@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
@@ -77,6 +78,12 @@ public class FsController {
         }
     }
 
+    @RequestMapping("/get")
+    public String get(@RequestParam String fname) {
+        logger.info("get file: {}", fname);
+        return getFileContent(fname);
+    }
+
     @RequestMapping("/ds")
     public String execDs(String ctype, String sp_id ) {
         logger.info("exec ds: ctype: {}, sp_id: {}", ctype, sp_id);
@@ -143,7 +150,7 @@ public class FsController {
     {
         // sort files by special sort alg
         StringBuilder sb = new StringBuilder();
-        String urlTemplate = "<a href=\"/fsapi/get?fname=%s\">%s</a><br/>";
+        String urlTemplate = "<a href=\"/get?fname=%s\">%s</a><br/>";
         String[] fileArray = new String[files.size()];
         // convert list to array
         files.toArray(fileArray);
