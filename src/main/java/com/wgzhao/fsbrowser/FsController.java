@@ -56,6 +56,7 @@ public class FsController {
         // date as folder , find all files from bTime to eTime as folder
         List<String> files = new ArrayList<>();
         Pattern pattern;
+        long today = sdf.parse(sdf.format(new Date())).getTime();
         for (Date d = bTime; d.compareTo(eTime) <= 0; d.setTime(d.getTime() + 86400000)) {
             String curDir = String.format(sdf.format(d));
             if (job.startsWith("tuna")) {
@@ -63,7 +64,7 @@ public class FsController {
             } else {
                 pattern = Pattern.compile("tuna_" + ".*?_" + job + "_\\d+_" + curDir + "_.*.log");
             }
-            if (d.getTime() > System.currentTimeMillis()) {
+            if (d.getTime() >= today) {
                 result.addAll(findFiles("./", pattern));
             } else {
                 result.addAll(findFiles(curDir, pattern));
