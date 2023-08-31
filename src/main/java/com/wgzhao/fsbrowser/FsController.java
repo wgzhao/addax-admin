@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,7 +47,7 @@ public class FsController {
      * @return
      */
     @RequestMapping("/fs/{cdate}/{job}")
-    public String getFs(@PathVariable  String cdate, @PathVariable String  job) throws ParseException {
+    public String getFs(HttpServletRequest request, @PathVariable  String cdate, @PathVariable String  job) throws ParseException {
         logger.info("query params: cdate: {}, job: {}", cdate, job);
         List<String> result = new ArrayList<>();
         // split cdate
@@ -74,7 +75,7 @@ public class FsController {
         if (result.size() == 1) {
             return getFileContent(result.get(0));
         } else {
-            return createLink(result);
+            return createLink(request.getContextPath(), result);
         }
     }
 
@@ -146,17 +147,19 @@ public class FsController {
     /**
      * create html link for files
      */
-    private String createLink(List<String> files)
+    private String createLink(String path, List<String> files)
     {
         // sort files by special sort alg
         StringBuilder sb = new StringBuilder();
-        String urlTemplate = "<a href=\"/get?fname=%s\">%s</a><br/>";
+        // get the context prefix path from server.servlet.context-path
+
+        String urlTemplate = "<a href=\"%s/get?fname=%s\">%s</a><br/>";
         String[] fileArray = new String[files.size()];
         // convert list to array
         files.toArray(fileArray);
         Arrays.sort(fileArray, comparator);
         for(String f : fileArray) {
-            sb.append((String.format(urlTemplate, f, new File(f).getName())));
+            sb.append((String.format(urlTemplate, path, f, new File(f).getName())));
         }
         return sb.toString();
     }
