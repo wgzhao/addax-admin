@@ -73,8 +73,10 @@ public class FsController {
             }
         }
         if (result.size() == 1) {
+            logger.info("Found only one file: {}", result.get(0));
             return getFileContent(result.get(0));
         } else {
+            logger.info("Found {} files", result.size());
             return createLink(request.getContextPath(), result);
         }
     }
@@ -121,7 +123,7 @@ public class FsController {
         }
         for (File f: Objects.requireNonNull(file.listFiles())) {
             if (pattern.matcher(f.getName()).find()) {
-                result.add(f.getName());
+                result.add(new File(logDir).toURI().relativize(f.toURI()).getPath());
             }
         }
         return result;
