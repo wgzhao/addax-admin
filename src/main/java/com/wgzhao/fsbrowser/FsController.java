@@ -1,6 +1,5 @@
 package com.wgzhao.fsbrowser;
 
-import org.apache.logging.log4j.util.StringBuilders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,11 +14,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.logging.Level;
 
 @RestController
 public class FsController {
@@ -71,6 +73,9 @@ public class FsController {
             } else {
                 result.addAll(findFiles(curDir, pattern));
             }
+        }
+        if (result.isEmpty()) {
+            return "no file found";
         }
         if (result.size() == 1) {
             logger.info("Found only one file: {}", result.get(0));

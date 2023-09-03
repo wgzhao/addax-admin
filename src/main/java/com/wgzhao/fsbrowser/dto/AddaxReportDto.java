@@ -4,7 +4,7 @@ public class AddaxReportDto {
     private String jobName;
     private int startTimeStamp;
     private int endTimeStamp;
-    private int totalCoasts;
+    private int totalCosts;
     private int byteSpeedPerSecond;
     private int recordSpeedPerSecond;
     private int totalReadRecords;
@@ -22,8 +22,8 @@ public class AddaxReportDto {
         return endTimeStamp;
     }
 
-    public int getTotalCoasts() {
-        return totalCoasts;
+    public int getTotalCosts() {
+        return totalCosts;
     }
 
     public int getByteSpeedPerSecond() {
@@ -48,7 +48,7 @@ public class AddaxReportDto {
                 "jobName='" + jobName + '\'' +
                 ", startTimeStamp=" + startTimeStamp +
                 ", endTimeStamp=" + endTimeStamp +
-                ", totalCoasts=" + totalCoasts +
+                ", totalCoasts=" + totalCosts +
                 ", byteSpeedPerSecond=" + byteSpeedPerSecond +
                 ", recordSpeedPerSecond=" + recordSpeedPerSecond +
                 ", totalReadRecords=" + totalReadRecords +

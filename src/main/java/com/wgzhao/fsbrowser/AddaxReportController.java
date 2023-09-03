@@ -46,7 +46,7 @@ public class AddaxReportController {
                     dto.getJobName(),
                     dto.getStartTimeStamp(),
                     dto.getEndTimeStamp(),
-                    dto.getTotalCoasts(),
+                    dto.getTotalCosts(),
                     dto.getByteSpeedPerSecond(),
                     dto.getRecordSpeedPerSecond(),
                     dto.getTotalReadRecords(),
