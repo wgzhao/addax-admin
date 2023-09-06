@@ -1,9 +1,8 @@
-package com.wgzhao.fsbrowser;
+package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.dto.AddaxReportDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpRequest;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
