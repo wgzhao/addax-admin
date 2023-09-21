@@ -1,8 +1,14 @@
 package com.wgzhao.fsbrowser.service;
 
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.json.JsonParser;
+import org.springframework.boot.json.JsonParserFactory;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -10,11 +16,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URISyntaxException;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.Map;
 import java.util.logging.Logger;
 
 @EnableScheduling
@@ -75,26 +86,52 @@ public class YYAlertService {
         try {
             Connection connection = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPassword);
             Statement statement = connection.createStatement();
-            statement.setFetchSize(batchSize);
             resultSet = statement.executeQuery(query);
 
-            RestTemplate restTemplate = new RestTemplate();
+            StringHttpMessageConverter stringHttpMessageConverter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
+            RestTemplate restTemplate = new RestTemplate(Collections.singletonList(stringHttpMessageConverter));
+            //restTemplate.getMessageConverters()
+              //      .add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+            int cntSuccess = 0;
+            int errcode;
+            JsonParser jsonParser = JsonParserFactory.getJsonParser();
             while (resultSet.next()) {
                 String mid = resultSet.getString("MID");
                 String msg = resultSet.getString("MSG");
+                //add color for error message
+                if (msg.contains("失败")) {
+                    msg =  "## <font color='red'>【失败告警】</font> \n" + msg;
+                } else {
+                    msg =  "## <font color='info'>【消息通知】</font> \n" + msg;
+                }
                 // payload json format
-                String payload = String.format("{\"msgtype\": \"text\", \"text\": {\"content\": \"%s\"}}", msg);
+                String payload = String.format("{\"msgtype\": \"markdown\", \"markdown\": {\"content\": \"%s\"}}", msg);
                 ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
-                if (response.getStatusCodeValue() == 200) {
+                if (response.getStatusCodeValue() != 200) {
+                    logger.warning("send wechat message failed: " + response.getBody());
+                    continue;
+                }
+                Map<String, Object> json = jsonParser.parseMap(response.getBody());
+                errcode = Integer.parseInt(json.get("errcode").toString());
+                if (errcode == 0 ) {
                     // update database, set BKK to 'y'
                     String updateSql = String.format("update %s set BKK = 'y' where MID = '%s'", jdbcTable, mid);
                     connection.createStatement().execute(updateSql);
+                    cntSuccess++;
+                } else {
+                    // most condition is caused by api has been limited , errcode = 45009
+                    // refs: https://open.work.weixin.qq.com/devtool/query?e=45009
+                    // give up, the current loop game over
+                    logger.info("send wechat message success: " + cntSuccess + " in current loop");
+                    logger.info("finish the current loop because of api limited");
+                    statement.close();
+                    return;
                 }
-            }
+            } // end while
+            logger.info("send wechat message success: " + cntSuccess + " in current loop");
             statement.close();
         } catch (SQLException e) {
             logger.warning("failed to send wechat message: " + e);
-            return;
         }
     }
 
