@@ -1,13 +1,10 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.json.JsonParser;
 import org.springframework.boot.json.JsonParserFactory;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -16,15 +13,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URISyntaxException;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -76,7 +70,7 @@ public class YYAlertService {
     @Async
     @Scheduled(fixedDelayString = "${alert.interval}", initialDelay = INIT_DELAY)
     public void sendWechatMessage() {
-        if (! wechatEnabled) {
+        if (!wechatEnabled) {
             return;
         }
         String url = String.format("%s?key=%s", webchatUrl, wechatKey);
@@ -86,12 +80,11 @@ public class YYAlertService {
         try {
             Connection connection = DriverManager.getConnection(jdbcUrl, jdbcUser, jdbcPassword);
             Statement statement = connection.createStatement();
+            statement.setFetchSize(batchSize);
             resultSet = statement.executeQuery(query);
 
-            StringHttpMessageConverter stringHttpMessageConverter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
-            RestTemplate restTemplate = new RestTemplate(Collections.singletonList(stringHttpMessageConverter));
-            //restTemplate.getMessageConverters()
-              //      .add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+            RestTemplate restTemplate = new RestTemplate();
+            restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
             int cntSuccess = 0;
             int errcode;
             JsonParser jsonParser = JsonParserFactory.getJsonParser();
@@ -100,9 +93,9 @@ public class YYAlertService {
                 String msg = resultSet.getString("MSG");
                 //add color for error message
                 if (msg.contains("失败")) {
-                    msg =  "## <font color='red'>【失败告警】</font> \n" + msg;
+                    msg = "## <font color='red'>【失败告警】</font> \n" + msg;
                 } else {
-                    msg =  "## <font color='info'>【消息通知】</font> \n" + msg;
+                    msg = "## <font color='info'>【消息通知】</font> \n" + msg;
                 }
                 // payload json format
                 String payload = String.format("{\"msgtype\": \"markdown\", \"markdown\": {\"content\": \"%s\"}}", msg);
@@ -113,7 +106,7 @@ public class YYAlertService {
                 }
                 Map<String, Object> json = jsonParser.parseMap(response.getBody());
                 errcode = Integer.parseInt(json.get("errcode").toString());
-                if (errcode == 0 ) {
+                if (errcode == 0) {
                     // update database, set BKK to 'y'
                     String updateSql = String.format("update %s set BKK = 'y' where MID = '%s'", jdbcTable, mid);
                     connection.createStatement().execute(updateSql);
@@ -125,11 +118,13 @@ public class YYAlertService {
                     logger.info("send wechat message success: " + cntSuccess + " in current loop");
                     logger.info("finish the current loop because of api limited");
                     statement.close();
+                    connection.close();
                     return;
                 }
             } // end while
             logger.info("send wechat message success: " + cntSuccess + " in current loop");
             statement.close();
+            connection.close();
         } catch (SQLException e) {
             logger.warning("failed to send wechat message: " + e);
         }
@@ -139,7 +134,7 @@ public class YYAlertService {
     @ConditionalOnProperty(value = {"alert.sms.enabled", "alert.enabled"})
     @Scheduled(fixedDelayString = "${alert.interval}", initialDelay = INIT_DELAY)
     public void sendSmsMessage() {
-        if (! smsEnabled) {
+        if (!smsEnabled) {
             return;
         }
         logger.info("send sms message");
@@ -148,7 +143,7 @@ public class YYAlertService {
     @Async
     @Scheduled(fixedDelayString = "${alert.interval}", initialDelay = INIT_DELAY)
     public void sendEmailMessage() {
-        if (! emailEnabled) {
+        if (!emailEnabled) {
             return;
         }
         logger.info("send email message");
