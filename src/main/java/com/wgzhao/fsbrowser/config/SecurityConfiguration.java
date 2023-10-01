@@ -4,12 +4,10 @@ package com.wgzhao.fsbrowser.config;
 import com.wgzhao.fsbrowser.handler.LoginFailureHandler;
 import com.wgzhao.fsbrowser.handler.LoginSuccessHandler;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -70,9 +68,9 @@ public class SecurityConfiguration {
                 .password(passwordEncoder().encode("password"))
                 .roles("ADMIN")
                 .build();
-        JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
-        users.createUser(user);
-        users.createUser(admin);
+//        JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
+//        users.createUser(user);
+//        users.createUser(admin);
         return new InMemoryUserDetailsManager(user);
     }
 }

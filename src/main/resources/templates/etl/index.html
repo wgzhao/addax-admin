@@ -1,0 +1,502 @@
+<html th:replace="~{layout :: layout(~{::title}, ~{::section})}" lang="zh">
+<head>
+    <title>ETL | Table</title>
+</head>
+<body>
+<section>
+    <div class="row">
+        <div class="col-sm-12">
+            <section class="panel">
+                <header class="panel-heading">
+                    数据源完成情况
+                    <span class="tools pull-right">
+                        <a href="javascript:;" class="fa fa-chevron-down"></a>
+                    </span>
+                </header>
+                <div class="panel-body">
+                    <div class="adv-table">
+                    <table class="display table table-bordered table-striped" id="etl-complete-summary">
+                        <thead>
+                        <tr>
+                            <th colspan="2">数据源</th>
+                            <th colspan="7">整体情况</th>
+                            <th colspan="3">T-1 日</th>
+                            <th colspan="3">T 日</th>
+                        </tr>
+                        <tr>
+                            <th>启动</th>
+                            <th>数据源</th>
+                            <th>总数</th>
+                            <th>完成数</th>
+                            <th>完成率</th>
+                            <th>运行</th>
+                            <th>错误</th>
+                            <th>未执行</th>
+                            <th>未建表</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>耗时</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>耗时</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>H3<em>合规管理系统</em>杭州_MySQL</td>
+                            <td>12</td>
+                            <td>12</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:00:02</td>
+                            <td>2023-09-28 01:02:14</td>
+                            <td>132</td>
+                            <td>2023-09-30 01:00:01</td>
+                            <td>2023-09-30 01:02:18</td>
+                            <td>137</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>HC_原华远CRM系统</td>
+                            <td>177</td>
+                            <td>177</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:00:02</td>
+                            <td>2023-09-28 01:18:22</td>
+                            <td>1100</td>
+                            <td>2023-09-30 01:00:01</td>
+                            <td>2023-09-30 01:18:25</td>
+                            <td>1104</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>WC_原万达CRM系统</td>
+                            <td>180</td>
+                            <td>180</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:00:02</td>
+                            <td>2023-09-28 01:23:45</td>
+                            <td>1423</td>
+                            <td>2023-09-30 01:00:01</td>
+                            <td>2023-09-30 01:22:17</td>
+                            <td>1336</td>
+                        </tr>
+                        <tr>
+                            <td>130</td>
+                            <td>BK_原北京客服系统</td>
+                            <td>44</td>
+                            <td>44</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:30:02</td>
+                            <td>2023-09-28 01:33:57</td>
+                            <td>235</td>
+                            <td>2023-09-30 01:30:01</td>
+                            <td>2023-09-30 01:34:09</td>
+                            <td>248</td>
+                        </tr>
+                        <tr>
+                            <td>130</td>
+                            <td>CP_APP产品中心（产品中心）</td>
+                            <td>18</td>
+                            <td>18</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:30:02</td>
+                            <td>2023-09-28 01:32:11</td>
+                            <td>129</td>
+                            <td>2023-09-30 01:30:01</td>
+                            <td>2023-09-30 01:32:26</td>
+                            <td>145</td>
+                        </tr>
+                        <tr>
+                            <td>130</td>
+                            <td>H2<em>合规管理系统</em>广州</td>
+                            <td>19</td>
+                            <td>19</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:30:02</td>
+                            <td>2023-09-28 01:32:59</td>
+                            <td>177</td>
+                            <td>2023-09-30 01:30:01</td>
+                            <td>2023-09-30 01:32:56</td>
+                            <td>175</td>
+                        </tr>
+                        <tr>
+                            <td>130</td>
+                            <td>PR_盈亚产品体系</td>
+                            <td>23</td>
+                            <td>23</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:30:02</td>
+                            <td>2023-09-28 01:32:42</td>
+                            <td>160</td>
+                            <td>2023-09-30 01:30:01</td>
+                            <td>2023-09-30 01:32:40</td>
+                            <td>159</td>
+                        </tr>
+                        <tr>
+                            <td>130</td>
+                            <td>QW_新千万系统（投研派后台系统）</td>
+                            <td>6</td>
+                            <td>6</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 01:30:02</td>
+                            <td>2023-09-28 01:31:20</td>
+                            <td>78</td>
+                            <td>2023-09-30 01:30:01</td>
+                            <td>2023-09-30 01:31:21</td>
+                            <td>79</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>RK_新CRM系统-客服系统</td>
+                            <td>59</td>
+                            <td>59</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:00:01</td>
+                            <td>2023-09-28 02:05:38</td>
+                            <td>337</td>
+                            <td>2023-09-30 02:00:01</td>
+                            <td>2023-09-30 02:05:31</td>
+                            <td>330</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>RP_新CRM系统-产品中心</td>
+                            <td>11</td>
+                            <td>11</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:00:01</td>
+                            <td>2023-09-28 02:02:29</td>
+                            <td>148</td>
+                            <td>2023-09-30 02:00:01</td>
+                            <td>2023-09-30 02:02:15</td>
+                            <td>134</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>WK_原万达客服系统</td>
+                            <td>45</td>
+                            <td>45</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:00:01</td>
+                            <td>2023-09-28 02:04:52</td>
+                            <td>291</td>
+                            <td>2023-09-30 02:00:01</td>
+                            <td>2023-09-30 02:04:52</td>
+                            <td>291</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>YC_银华CRM系统</td>
+                            <td>185</td>
+                            <td>185</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:00:01</td>
+                            <td>2023-09-28 02:13:06</td>
+                            <td>785</td>
+                            <td>2023-09-30 02:00:01</td>
+                            <td>2023-09-30 02:13:23</td>
+                            <td>802</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>ZB_盈亚直播室</td>
+                            <td>18</td>
+                            <td>18</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:00:01</td>
+                            <td>2023-09-28 02:02:54</td>
+                            <td>173</td>
+                            <td>2023-09-30 02:00:01</td>
+                            <td>2023-09-30 02:03:09</td>
+                            <td>188</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>230</td>
+                            <td>RM_新CRM系统</td>
+                            <td>253</td>
+                            <td>253</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:30:01</td>
+                            <td>2023-09-28 02:51:39</td>
+                            <td>1297</td>
+                            <td>2023-09-30 02:30:02</td>
+                            <td>2023-09-30 02:51:39</td>
+                            <td>1297</td>
+                        </tr>
+                        <tr>
+                            <td>230</td>
+                            <td>YR_友睿系统（手机留痕）</td>
+                            <td>630</td>
+                            <td>630</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 02:30:01</td>
+                            <td>2023-09-28 03:08:14</td>
+                            <td>2293</td>
+                            <td>2023-09-30 02:30:02</td>
+                            <td>2023-09-30 03:08:30</td>
+                            <td>2308</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>FK_合规风控管理系统（盈亚后台管理系统）</td>
+                            <td>139</td>
+                            <td>139</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 03:00:02</td>
+                            <td>2023-09-28 03:22:19</td>
+                            <td>1336</td>
+                            <td>2023-09-30 03:00:02</td>
+                            <td>2023-09-30 03:20:04</td>
+                            <td>1201</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>HG<em>合规管理系统</em>杭州_RDS</td>
+                            <td>93</td>
+                            <td>93</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 03:00:02</td>
+                            <td>2023-09-28 03:19:55</td>
+                            <td>1193</td>
+                            <td>2023-09-30 03:00:02</td>
+                            <td>2023-09-30 03:21:51</td>
+                            <td>1309</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>330</td>
+                            <td>GL_盈亚证券咨询投顾管理平台</td>
+                            <td>76</td>
+                            <td>76</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 03:30:01</td>
+                            <td>2023-09-28 03:53:51</td>
+                            <td>1429</td>
+                            <td>2023-09-30 03:30:01</td>
+                            <td>2023-09-30 03:52:58</td>
+                            <td>1377</td>
+                        </tr>
+                        <tr>
+                            <td>330</td>
+                            <td>HK_网易互客系统</td>
+                            <td>151</td>
+                            <td>151</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 03:30:01</td>
+                            <td>2023-09-28 03:52:18</td>
+                            <td>1336</td>
+                            <td>2023-09-30 03:30:01</td>
+                            <td>2023-09-30 03:53:58</td>
+                            <td>1436</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>GP_股票池后台管理</td>
+                            <td>40</td>
+                            <td>40</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 04:00:02</td>
+                            <td>2023-09-28 04:05:22</td>
+                            <td>320</td>
+                            <td>2023-09-30 04:00:02</td>
+                            <td>2023-09-30 04:05:47</td>
+                            <td>345</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>TG_盈亚推广系统</td>
+                            <td>81</td>
+                            <td>81</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 04:00:02</td>
+                            <td>2023-09-28 04:07:19</td>
+                            <td>437</td>
+                            <td>2023-09-30 04:00:02</td>
+                            <td>2023-09-30 04:07:31</td>
+                            <td>449</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>YQ_舆情监测管理后台</td>
+                            <td>13</td>
+                            <td>13</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 04:00:02</td>
+                            <td>2023-09-28 04:02:01</td>
+                            <td>119</td>
+                            <td>2023-09-30 04:00:02</td>
+                            <td>2023-09-30 04:02:03</td>
+                            <td>121</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>DO_调度知识库oracle</td>
+                            <td>70</td>
+                            <td>70</td>
+                            <td>100%</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>2023-09-28 07:00:02</td>
+                            <td>2023-09-28 07:08:53</td>
+                            <td>531</td>
+                            <td>2023-09-30 07:00:01</td>
+                            <td>2023-09-30 07:10:08</td>
+                            <td>607</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-6">
+            <section class="panel">
+                <header class="panel-heading">
+                    特殊任务提醒：错误、耗时过长、有重试、有拒绝行
+                    <span class="tools pull-right">
+                        <a href="javascript:;" class="fa fa-chevron-down"></a>
+                    </span>
+                </header>
+                <div class="panel-body">
+                    <div class="adv-table">
+                    <table class="display table table-bordered table-striped" id="etl-error-summary">
+                        <thead>
+                        <tr>
+                            <th>任务名</th>
+                            <th>状态</th>
+                            <th>剩余</th>
+                            <th>耗时</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>hadoop_ODSOA_ALBUMP</td>
+                            <td>N</td>
+                            <td>3</td>
+                            <td>2000</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td>hadoop_ODSCS_TEST</td>
+                            <td>N</td>
+                            <td>1</td>
+                            <td>83</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+            </section>
+        </div>
+        <div class="col-sm-6">
+
+        </div>
+    </div>
+</section>
+</body>
+</html>

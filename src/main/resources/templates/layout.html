@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html th:fragment="layout (title, content)" xmlns:th="https://www.thymeleaf.org"
+      lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="keywords" content="admin, dashboard, bootstrap, template, flat, modern, theme, responsive, fluid, retina, backend, html5, css, css3">
+  <meta name="description" content="">
+  <meta name="author" content="ThemeBucket">
+  <link rel="shortcut icon" href="#" type="image/png">
+
+  <title th:replace="${title}">Auto ETL Management</title>
+
+  <!--图表样式-->
+  <link href="js/iCheck/skins/minimal/minimal.css" th:href="@{/js/iCheck/skins/minimal/minimal.css}" rel="stylesheet">
+  <link href="js/iCheck/skins/square/square.css" th:href="@{/js/iCheck/skins/square/square.css}" rel="stylesheet">
+  <link href="js/iCheck/skins/square/red.css" th:href="@{/js/iCheck/skins/square/red.css}" rel="stylesheet">
+  <link href="js/iCheck/skins/square/blue.css" th:href="@{/js/iCheck/skins/square/blue.css}" rel="stylesheet">
+
+  <!--日历样式-->
+  <link href="css/clndr.css" th:href="@{/css/clndr.css}" rel="stylesheet">
+  <!--common-->
+  <link href="css/style.css" th:href="@{/css/style.css}" rel="stylesheet">
+  <!-- 响应式样式 -->
+  <link href="css/style-responsive.css" th:href="@{/css/style-responsive.css}" rel="stylesheet">
+
+  <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!--[if lt IE 9]>
+  <script src="/js/html5shiv.js" th:href="@{/js/html5shiv.js}"></script>
+  <script src="/js/respond.min.js" th:href="@{/js/respond.min.js}"></script>
+  <![endif]-->
+</head>
+
+<body class="sticky-header">
+
+<section>
+    <!-- 左边开始-->
+    <div class="left-side sticky-left-side">
+
+        <!--网站logo 大 和 小-->
+        <div class="logo">
+            <a href="index.html"><img src="/images/logo.png" th:href="@{/images/logo.png}" alt=""></a>
+        </div>
+        
+        <!-- 隐藏侧边栏时显示logo -->
+        <div class="logo-icon text-center">
+            <a href="index.html"><img src="/images/logo_icon.png" th:href="@{/images/logo_icon.png}" alt=""></a>
+        </div>
+         <!--网站logo 大 和 小-->
+
+        <div class="left-side-inner">
+
+            <!-- 头部用户个人操作 -->
+            <div class="visible-xs hidden-sm hidden-md hidden-lg" th:insert="~{user-info}">
+
+            </div>
+
+            <!--侧边栏导航开始-->
+            <div th:replace="~{side-nav}"></div>
+            <!--侧边栏导航结束-->
+        </div>
+    </div>
+    <!-- 左边结束-->
+    
+    <!--主要内容开始-->
+    <div class="main-content" >
+
+        <!-- 头部分开始-->
+        <div class="header-section">
+
+            <!--开关按钮开始-->
+            <a class="toggle-btn"><i class="fa fa-bars"></i></a>
+            <!--开关按钮结束-->
+
+            <!--搜索开始-->
+
+            <!--搜索结束-->
+
+            <!--通知菜单开始 -->
+            <!--通知菜单结束 -->
+
+        </div>
+        <!-- 头部分结束-->
+
+        <!-- 页面标题开始-->
+        <div class="page-heading">
+            <h3>
+                面板
+            </h3>
+            <ul class="breadcrumb">
+                <li>
+                    <a href="#">仪表盘</a>
+                </li>
+                <li class="active"> 我的面板 </li>
+            </ul>
+        </div>
+        <!-- page heading end-->
+
+        <!--body wrapper start-->
+       <div class="wrapper"  th:replace="${content}"></div>
+        <!--body end-->
+
+        <!--footer section start-->
+        <div th:insert="~{footer}"></div>
+        <!--footer section end-->
+
+
+    </div>
+    <!--主要内容结束-->
+</section>
+
+<!-- 最后把js文件的页面加载速度 -->
+<script src="/js/jquery-3.7.1.min.js" th:href="@{/js/jquery-3.7.1.min.js}"></script>
+<script src="/js/jquery-ui-1.9.2.custom.min.js" th:href="@{/js/jquery-ui-1.9.2.custom.min.js}"></script>
+<!--<script src="/js/jquery-migrate-1.2.1.min.js" th:href="@{/js/jquery-migrate-1.2.1.min.js}"></script>-->
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery-migrate/3.4.1/jquery-migrate.min.js"></script>
+<script src="/js/bootstrap.min.js" th:href="@{/js/bootstrap.min.js}"></script>
+<script src="/js/modernizr.min.js" th:href="@{/js/modernizr.min.js}"></script>
+<script src="/js/jquery.nicescroll.3.7.6.js" th:href="@{/js/jquery.nicescroll.3.7.6.js}"></script>
+
+
+<!--饼形图-->
+<script src="/js/easypiechart/jquery.easypiechart.js" th:href="@{/js/easypiechart/jquery.easypiechart.js}"></script>
+<script src="/js/easypiechart/easypiechart-init.js" th:href="@{/js/easypiechart/easypiechart-init.js}"></script>
+
+<!--Sparkline图表-->
+<script src="/js/sparkline/jquery.sparkline.js" th:href="@{/js/sparkline/jquery.sparkline.js}"></script>
+<script src="/js/sparkline/sparkline-init.js" th:href="@{/js/sparkline/sparkline-init.js}"></script>
+
+<!--icheck -->
+<script src="/js/iCheck/jquery.icheck.js" th:href="@{/js/iCheck/jquery.icheck.js}"></script>
+<script src="/js/icheck-init.js" th:href="@{/js/icheck-init.js}"></script>
+
+<!-- jQuery 浮标图表-->
+<script src="/js/flot-chart/jquery.flot.js" th:href="@{/js/flot-chart/jquery.flot.js}"></script>
+<script src="/js/flot-chart/jquery.flot.tooltip.js" th:href="@{/js/flot-chart/jquery.flot.tooltip.js}"></script>
+<script src="/js/flot-chart/jquery.flot.resize.js" th:href="@{/js/flot-chart/jquery.flot.resize.js}"></script>
+
+
+<!--莫里斯图表-->
+<script src="/js/morris-chart/morris.js" th:href="@{/js/morris-chart/morris.js}"></script>
+<script src="/js/morris-chart/raphael-min.js" th:href="@{/js/morris-chart/raphael-min.js}"></script>
+
+<!--日历-->
+<script src="/js/calendar/clndr.js" th:href="@{/js/calendar/clndr.js}"></script>
+<script src="/js/calendar/evnt.calendar.init.js" th:href="@{/js/calendar/evnt.calendar.init.js}"></script>
+<script src="/js/calendar/moment-2.2.1.js" th:href="@{/js/calendar/moment-2.2.1.js}"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+
+<!--常见的所有页面的脚本-->
+<script src="/js/scripts.js" th:href="@{/js/scripts.js}"></script>
+
+<!--仪表板的图表-->
+<script src="/js/dashboard-chart-init.js" th:href="@{/js/dashboard-chart-init.js}"></script>
+
+
+</body>
+</html>
