@@ -1,8 +1,16 @@
-<html th:replace="~{layout :: layout(~{::title}, ~{::section})}" lang="zh">
+<html th:replace="~{layout :: layout(~{::title}, ~{::#breadcrumb}, ~{::section})}" lang="zh">
 <head>
     <title>ETL | Table</title>
 </head>
 <body>
+<div id="breadcrumb">
+    <ul class="breadcrumb">
+        <li>
+            <a href="#">仪表盘</a>
+        </li>
+        <li class="active"> 我的面板 </li>
+    </ul>
+</div>
 <section>
     <div class="row">
         <div class="col-sm-12">

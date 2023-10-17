@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html th:fragment="layout (title, content)" xmlns:th="https://www.thymeleaf.org"
+<html th:fragment="layout (title, breadcrumb, content)" xmlns:th="https://www.thymeleaf.org"
       lang="en">
 <head>
   <meta charset="utf-8">
@@ -87,12 +87,7 @@
             <h3>
                 面板
             </h3>
-            <ul class="breadcrumb">
-                <li>
-                    <a href="#">仪表盘</a>
-                </li>
-                <li class="active"> 我的面板 </li>
-            </ul>
+            <div th:replace="${breadcrumb}"></div>
         </div>
         <!-- page heading end-->
 
