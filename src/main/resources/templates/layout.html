@@ -11,24 +11,23 @@
 
   <title th:replace="${title}">Auto ETL Management</title>
 
-  <!--图表样式-->
-  <link href="js/iCheck/skins/minimal/minimal.css" th:href="@{/js/iCheck/skins/minimal/minimal.css}" rel="stylesheet">
-  <link href="js/iCheck/skins/square/square.css" th:href="@{/js/iCheck/skins/square/square.css}" rel="stylesheet">
-  <link href="js/iCheck/skins/square/red.css" th:href="@{/js/iCheck/skins/square/red.css}" rel="stylesheet">
-  <link href="js/iCheck/skins/square/blue.css" th:href="@{/js/iCheck/skins/square/blue.css}" rel="stylesheet">
-
-  <!--日历样式-->
-  <link href="css/clndr.css" th:href="@{/css/clndr.css}" rel="stylesheet">
   <!--common-->
-  <link href="css/style.css" th:href="@{/css/style.css}" rel="stylesheet">
+  <link href="/css/style.css" th:href="@{/css/style.css}" rel="stylesheet" />
+    <!-- dynamic table -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
   <!-- 响应式样式 -->
-  <link href="css/style-responsive.css" th:href="@{/css/style-responsive.css}" rel="stylesheet">
+<!--  <link href="/css/style-responsive.css" th:href="@{/css/style-responsive.css}" rel="stylesheet" />-->
+<!--    <link href="/css/table-responsive.css" th:href="@{/css/table-responsive.css}" rel="stylesheet" />-->
 
-  <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
-  <!--[if lt IE 9]>
-  <script src="/js/html5shiv.js" th:href="@{/js/html5shiv.js}"></script>
-  <script src="/js/respond.min.js" th:href="@{/js/respond.min.js}"></script>
-  <![endif]-->
+    <!-- 最后把js文件的页面加载速度 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery-migrate/3.4.1/jquery-migrate.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+    <!-- dynamic table -->
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 </head>
 
 <body class="sticky-header">
@@ -104,49 +103,41 @@
     <!--主要内容结束-->
 </section>
 
-<!-- 最后把js文件的页面加载速度 -->
-<script src="/js/jquery-3.7.1.min.js" th:href="@{/js/jquery-3.7.1.min.js}"></script>
-<script src="/js/jquery-ui-1.9.2.custom.min.js" th:href="@{/js/jquery-ui-1.9.2.custom.min.js}"></script>
-<!--<script src="/js/jquery-migrate-1.2.1.min.js" th:href="@{/js/jquery-migrate-1.2.1.min.js}"></script>-->
-<script src="https://cdn.bootcdn.net/ajax/libs/jquery-migrate/3.4.1/jquery-migrate.min.js"></script>
-<script src="/js/bootstrap.min.js" th:href="@{/js/bootstrap.min.js}"></script>
-<script src="/js/modernizr.min.js" th:href="@{/js/modernizr.min.js}"></script>
-<script src="/js/jquery.nicescroll.3.7.6.js" th:href="@{/js/jquery.nicescroll.3.7.6.js}"></script>
-
 
 <!--饼形图-->
-<script src="/js/easypiechart/jquery.easypiechart.js" th:href="@{/js/easypiechart/jquery.easypiechart.js}"></script>
-<script src="/js/easypiechart/easypiechart-init.js" th:href="@{/js/easypiechart/easypiechart-init.js}"></script>
+<!--<script src="/js/easypiechart/jquery.easypiechart.js" th:href="@{/js/easypiechart/jquery.easypiechart.js}"></script>-->
+<!--<script src="/js/easypiechart/easypiechart-init.js" th:href="@{/js/easypiechart/easypiechart-init.js}"></script>-->
 
 <!--Sparkline图表-->
-<script src="/js/sparkline/jquery.sparkline.js" th:href="@{/js/sparkline/jquery.sparkline.js}"></script>
-<script src="/js/sparkline/sparkline-init.js" th:href="@{/js/sparkline/sparkline-init.js}"></script>
+<!--<script src="/js/sparkline/jquery.sparkline.js" th:href="@{/js/sparkline/jquery.sparkline.js}"></script>-->
+<!--<script src="/js/sparkline/sparkline-init.js" th:href="@{/js/sparkline/sparkline-init.js}"></script>-->
 
 <!--icheck -->
-<script src="/js/iCheck/jquery.icheck.js" th:href="@{/js/iCheck/jquery.icheck.js}"></script>
-<script src="/js/icheck-init.js" th:href="@{/js/icheck-init.js}"></script>
+<!--<script src="/js/iCheck/jquery.icheck.js" th:href="@{/js/iCheck/jquery.icheck.js}"></script>-->
+<!--<script src="/js/icheck-init.js" th:href="@{/js/icheck-init.js}"></script>-->
 
 <!-- jQuery 浮标图表-->
-<script src="/js/flot-chart/jquery.flot.js" th:href="@{/js/flot-chart/jquery.flot.js}"></script>
-<script src="/js/flot-chart/jquery.flot.tooltip.js" th:href="@{/js/flot-chart/jquery.flot.tooltip.js}"></script>
-<script src="/js/flot-chart/jquery.flot.resize.js" th:href="@{/js/flot-chart/jquery.flot.resize.js}"></script>
+<!--<script src="/js/flot-chart/jquery.flot.js" th:href="@{/js/flot-chart/jquery.flot.js}"></script>-->
+<!--<script src="/js/flot-chart/jquery.flot.tooltip.js" th:href="@{/js/flot-chart/jquery.flot.tooltip.js}"></script>-->
+<!--<script src="/js/flot-chart/jquery.flot.resize.js" th:href="@{/js/flot-chart/jquery.flot.resize.js}"></script>-->
 
 
 <!--莫里斯图表-->
-<script src="/js/morris-chart/morris.js" th:href="@{/js/morris-chart/morris.js}"></script>
-<script src="/js/morris-chart/raphael-min.js" th:href="@{/js/morris-chart/raphael-min.js}"></script>
+<!--<script src="/js/morris-chart/morris.js" th:href="@{/js/morris-chart/morris.js}"></script>-->
+<!--<script src="/js/morris-chart/raphael-min.js" th:href="@{/js/morris-chart/raphael-min.js}"></script>-->
 
 <!--日历-->
-<script src="/js/calendar/clndr.js" th:href="@{/js/calendar/clndr.js}"></script>
-<script src="/js/calendar/evnt.calendar.init.js" th:href="@{/js/calendar/evnt.calendar.init.js}"></script>
-<script src="/js/calendar/moment-2.2.1.js" th:href="@{/js/calendar/moment-2.2.1.js}"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+<!--<script src="/js/calendar/clndr.js" th:href="@{/js/calendar/clndr.js}"></script>-->
+<!--<script src="/js/calendar/evnt.calendar.init.js" th:href="@{/js/calendar/evnt.calendar.init.js}"></script>-->
+<!--<script src="/js/calendar/moment-2.2.1.js" th:href="@{/js/calendar/moment-2.2.1.js}"></script>-->
+<!--<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>-->
+
 
 <!--常见的所有页面的脚本-->
 <script src="/js/scripts.js" th:href="@{/js/scripts.js}"></script>
 
 <!--仪表板的图表-->
-<script src="/js/dashboard-chart-init.js" th:href="@{/js/dashboard-chart-init.js}"></script>
+<!--<script src="/js/dashboard-chart-init.js" th:href="@{/js/dashboard-chart-init.js}"></script>-->
 
 
 </body>

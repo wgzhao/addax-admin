@@ -20,7 +20,7 @@ public class ImpDBServiceImpl implements ImpDBService{
     }
 
     @Override
-    public ImpDB getImpDBById(UUID id) {
+    public ImpDB getImpDBById(String id) {
         Optional<ImpDB> optional = impDBRepo.findById(id);
         if (optional.isPresent()) {
             return optional.get();

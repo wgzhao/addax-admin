@@ -26,17 +26,17 @@ public class ImpDBController {
         return "impdb/list";
     }
 
-    @GetMapping("/view/{id}")
-    public String getImpDBById(Model model, @PathVariable(name="id") UUID id) {
-        model.addAttribute("impdb", impDBService.getImpDBById(id));
-        model.addAttribute("Editable", false);
+    @GetMapping("/detail/{id}")
+    public String getImpDBById(Model model, @PathVariable(value="id") String id) {
+        model.addAttribute("d", impDBService.getImpDBById(id));
+        model.addAttribute("editable", false);
         return "impdb/detail";
     }
 
     @GetMapping("/edit/{id}")
-    public String editImpDB(@PathVariable(value="id") UUID id, Model model) {
-        model.addAttribute("impdb", impDBService.getImpDBById(id));
-        model.addAttribute("Editable", true);
+    public String editImpDB(@PathVariable(value="id") String id, Model model) {
+        model.addAttribute("d", impDBService.getImpDBById(id));
+        model.addAttribute("editable", true);
         return "impdb/detail";
     }
 

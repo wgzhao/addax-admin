@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface ImpDBRepo extends JpaRepository<ImpDB, UUID> {
+public interface ImpDBRepo extends JpaRepository<ImpDB, String> {
 }

@@ -2,9 +2,7 @@
 	font-family: 'bucket-ico-font';
 	src:url('../fonts/custom-ico-fonts/custom-ico-font.eot');
 	src:url('../fonts/custom-ico-fonts/custom-ico-font-.eot') format('embedded-opentype'),
-		url('../fonts/custom-ico-fonts/custom-ico-font.woff') format('woff'),
-		url('../fonts/custom-ico-fonts/custom-ico-font.ttf') format('truetype'),
-		url('../fonts/custom-ico-fonts/custom-ico-font.svg') format('svg');
+		url('../fonts/custom-ico-fonts/custom-ico-font.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
 }

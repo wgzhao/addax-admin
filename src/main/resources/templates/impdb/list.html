@@ -14,23 +14,23 @@
 </div>
 <section>
     <div class="row">
-        <div class="col-sm-6">
+        <div class="col-sm-12">
             <section class="panel">
                 <header class="panel-heading">
                     采集数据源
-                    <span class="tools pull-right">
-                        <a href="javascript:;" class="fa fa-chevron-down"></a>
-                    </span>
                 </header>
                 <div class="panel-body">
                     <div class="adv-table">
-                        <table class="display table table-bordered table-striped" id="imp-db-summary">
+                        <table class="display table table-bordered table-striped" id="dynamic-table">
                             <thead>
                             <tr>
                                 <th>数据库名称</th>
                                 <th>采集编号</th>
                                 <th>服务编号</th>
-                                <th colspan="4">操作</th>
+                                <th>操作</th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -50,6 +50,12 @@
             </section>
         </div>
     </div>
+    <!-- initial table -->
+    <script>
+        $(document).ready( function () {
+            $('#dynamic-table').DataTable();
+        } );
+    </script>
 </section>
 </body>
 </html>
