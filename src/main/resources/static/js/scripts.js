@@ -149,7 +149,7 @@
         return false;
     });
 
-    $("#sortable-todo").sortable();
+    // $("#sortable-todo").sortable();
 
 
     // panel close
@@ -161,11 +161,11 @@
 
     // tool tips
 
-    $('.tooltips').tooltip();
+    // $('.tooltips').tooltip();
 
     // popovers
 
-    $('.popovers').popover();
+    // $('.popovers').popover();
 
 
 

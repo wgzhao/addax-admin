@@ -1,7 +1,7 @@
 <div class="media logged-user">
     <img alt="" th:href="@{/images/photos/user-avatar.png}" class="media-object">
     <div class="media-body">
-        <h4><a href="#"></a></h4>
+        <h4><a href="#"><span sec:authentication="principal.username"> User</span</a></h4>
         <span>"你好啊..."</span>
     </div>
 </div>

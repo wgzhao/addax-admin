@@ -28,9 +28,6 @@
                                 <th>采集编号</th>
                                 <th>服务编号</th>
                                 <th>操作</th>
-                                <th></th>
-                                <th></th>
-                                <th></th>
                             </tr>
                             </thead>
                             <tbody>
@@ -38,10 +35,10 @@
                                 <td th:text="${d.dbName}"></td>
                                 <td th:text="${d.dbIdEtl}"></td>
                                 <td th:text="${d.dbIdDs}"></td>
-                                <td><a th:href="@{/impdb/detail/{id}(id=${d.id})}" class="btn btn-xs btn-info">详情</a></td>
-                                <td><a th:href="@{/impdb/edit/{id}(id=${d.id})}" class="btn btn-xs btn-warning">编辑</a></td>
-                                <td>使用场景</td>
-                                <td>探索源库</td>
+                                <td><a th:href="@{/impdb/detail/{id}(id=${d.id})}" class="btn btn-xs btn-info">详情</a>
+                                <a th:href="@{/impdb/edit/{id}(id=${d.id})}" class="btn btn-xs btn-warning">编辑</a>
+                                <a href="#" class="btn btn-xs btn-info">使用场景</a>
+                                <a href="#" class="btn btn-xs btn-info">探索源库</a>
                             </tr>
                             </tbody>
                         </table>

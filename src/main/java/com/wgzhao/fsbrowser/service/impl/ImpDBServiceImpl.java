@@ -1,7 +1,8 @@
-package com.wgzhao.fsbrowser.service;
+package com.wgzhao.fsbrowser.service.impl;
 
 import com.wgzhao.fsbrowser.model.ImpDB;
 import com.wgzhao.fsbrowser.repository.ImpDBRepo;
+import com.wgzhao.fsbrowser.service.ImpDBService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class ImpDBServiceImpl implements ImpDBService{
+public class ImpDBServiceImpl implements ImpDBService {
 
     @Autowired
     private ImpDBRepo impDBRepo;
