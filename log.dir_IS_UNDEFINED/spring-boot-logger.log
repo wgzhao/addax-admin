@@ -1,0 +1,111 @@
+2023-10-19 00:34:52,063 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=29m14s990ms).
+2023-10-19 00:50:56,939 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m34s859ms).
+2023-10-19 01:09:34,869 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m7s939ms).
+2023-10-19 01:27:10,294 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m58s588ms).
+2023-10-19 01:44:25,309 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m44s546ms).
+2023-10-19 02:01:26,073 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m30s231ms).
+2023-10-19 02:19:31,848 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m28s411ms).
+2023-10-19 02:39:52,136 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m46s445ms).
+2023-10-19 02:57:21,099 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m58s825ms).
+2023-10-19 03:13:31,177 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m39s993ms).
+2023-10-19 03:30:13,155 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m11s995ms).
+2023-10-19 03:47:42,980 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m59s824ms).
+2023-10-19 04:05:41,897 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m28s858ms).
+2023-10-19 04:21:54,777 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m42s841ms).
+2023-10-19 04:40:03,891 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m39s66ms).
+2023-10-19 04:56:04,373 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m29s847ms).
+2023-10-19 05:12:22,694 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m48s346ms).
+2023-10-19 05:30:06,611 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m9s255ms).
+2023-10-19 05:46:56,417 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m19s851ms).
+2023-10-19 06:04:11,038 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m39s752ms).
+2023-10-19 06:21:30,767 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m47s121ms).
+2023-10-19 06:26:23,121 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=4m22s273ms).
+2023-10-19 06:26:52,461 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Retrograde clock change detected (housekeeper delta=29s340ms), soft-evicting connections from pool.
+2023-10-19 06:42:31,844 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m39s382ms).
+2023-10-19 07:00:14,120 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=17m11s920ms).
+2023-10-19 07:00:40,065 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Retrograde clock change detected (housekeeper delta=25s945ms), soft-evicting connections from pool.
+2023-10-19 07:11:58,239 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=11m18s174ms).
+2023-10-19 07:28:44,011 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m11s492ms).
+2023-10-19 07:44:05,055 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=14m20s912ms).
+2023-10-19 08:00:37,610 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m2s549ms).
+2023-10-19 08:16:36,083 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=15m28s450ms).
+2023-10-19 08:33:59,210 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m53s116ms).
+2023-10-19 08:51:26,678 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=16m57s472ms).
+2023-10-19 08:53:03,212 WARN com.zaxxer.hikari.pool.HikariPool$HouseKeeper [HikariPool-14 housekeeper] HikariPool-14 - Thread starvation or clock leap detected (housekeeper delta=1m6s543ms).
+2023-10-19 08:53:23,250 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-10-19 08:53:23,250 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-10-19 08:53:23,251 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 1 ms
+2023-10-19 08:54:53,908 INFO org.springframework.boot.devtools.autoconfigure.LocalDevToolsAutoConfiguration$RestartingClassPathChangeChangedEventListener [File Watcher] Restarting due to 1 class path change (0 additions, 0 deletions, 1 modification)
+2023-10-19 08:54:53,912 INFO org.apache.juli.logging.DirectJDKLog [Thread-53] Pausing ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:54:53,912 INFO org.apache.juli.logging.DirectJDKLog [Thread-53] Stopping service [Tomcat]
+2023-10-19 08:54:53,912 INFO org.apache.juli.logging.DirectJDKLog [Thread-53] Destroying Spring FrameworkServlet 'dispatcherServlet'
+2023-10-19 08:54:53,914 INFO org.apache.juli.logging.DirectJDKLog [Thread-53] Stopping ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:54:53,915 INFO org.apache.juli.logging.DirectJDKLog [Thread-53] Destroying ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:54:53,916 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [Thread-53] Closing JPA EntityManagerFactory for persistence unit 'default'
+2023-10-19 08:54:53,916 INFO com.zaxxer.hikari.HikariDataSource [Thread-53] HikariPool-14 - Shutdown initiated...
+2023-10-19 08:54:53,917 INFO com.zaxxer.hikari.HikariDataSource [Thread-53] HikariPool-14 - Shutdown completed.
+2023-10-19 08:54:54,071 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Starting FsbrowserApplication using Java 17.0.7 with PID 44177 (/Users/wgzhao/Code/fsbrowser/target/classes started by wgzhao in /Users/wgzhao/Code/fsbrowser)
+2023-10-19 08:54:54,071 INFO org.springframework.boot.SpringApplication [restartedMain] The following 1 profile is active: "dev"
+2023-10-19 08:54:54,271 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-10-19 08:54:54,295 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Finished Spring Data repository scanning in 23 ms. Found 2 JPA repository interfaces.
+2023-10-19 08:54:54,463 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat initialized with port(s): 5001 (http)
+2023-10-19 08:54:54,464 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:54:54,464 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting service [Tomcat]
+2023-10-19 08:54:54,464 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting Servlet engine: [Apache Tomcat/10.1.13]
+2023-10-19 08:54:54,536 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing Spring embedded WebApplicationContext
+2023-10-19 08:54:54,537 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [restartedMain] Root WebApplicationContext: initialization completed in 464 ms
+2023-10-19 08:54:54,586 INFO org.hibernate.jpa.internal.util.LogHelper [restartedMain] HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-10-19 08:54:54,591 INFO org.hibernate.bytecode.internal.BytecodeProviderInitiator [restartedMain] HHH000021: Bytecode provider name : bytebuddy
+2023-10-19 08:54:54,594 INFO org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo [restartedMain] No LoadTimeWeaver setup: ignoring JPA class transformer
+2023-10-19 08:54:54,596 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-15 - Starting...
+2023-10-19 08:54:54,598 INFO com.zaxxer.hikari.pool.HikariPool [restartedMain] HikariPool-15 - Added connection org.sqlite.jdbc4.JDBC4Connection@4122d08d
+2023-10-19 08:54:54,599 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-15 - Start completed.
+2023-10-19 08:54:54,614 INFO org.hibernate.bytecode.internal.BytecodeProviderInitiator [restartedMain] HHH000021: Bytecode provider name : bytebuddy
+2023-10-19 08:54:54,641 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [restartedMain] HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2023-10-19 08:54:54,646 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [restartedMain] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-10-19 08:54:54,872 INFO org.springframework.security.web.DefaultSecurityFilterChain [restartedMain] Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@555fe7c9, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@5762413b, org.springframework.security.web.context.SecurityContextHolderFilter@50608499, org.springframework.security.web.header.HeaderWriterFilter@2bab96bf, org.springframework.security.web.csrf.CsrfFilter@4e0f657f, org.springframework.security.web.authentication.logout.LogoutFilter@46fd55c9, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@1470fa97, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@65f13777, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@922f393, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@38cad11, org.springframework.security.web.access.ExceptionTranslationFilter@58c68f3d, org.springframework.security.web.access.intercept.AuthorizationFilter@20de8c9a]
+2023-10-19 08:54:54,938 INFO org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer [restartedMain] LiveReload server is running on port 35729
+2023-10-19 08:54:54,946 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:54:54,947 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat started on port(s): 5001 (http) with context path ''
+2023-10-19 08:54:54,951 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Started FsbrowserApplication in 0.9 seconds (process running for 8593.959)
+2023-10-19 08:54:54,952 INFO org.springframework.boot.devtools.autoconfigure.ConditionEvaluationDeltaLoggingListener [restartedMain] Condition evaluation unchanged
+2023-10-19 08:54:58,749 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-10-19 08:54:58,750 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-10-19 08:54:58,750 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 0 ms
+2023-10-19 08:56:52,824 INFO org.springframework.boot.devtools.autoconfigure.LocalDevToolsAutoConfiguration$RestartingClassPathChangeChangedEventListener [File Watcher] Restarting due to 1 class path change (0 additions, 0 deletions, 1 modification)
+2023-10-19 08:56:52,828 INFO org.apache.juli.logging.DirectJDKLog [Thread-57] Pausing ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:56:52,828 INFO org.apache.juli.logging.DirectJDKLog [Thread-57] Stopping service [Tomcat]
+2023-10-19 08:56:52,828 INFO org.apache.juli.logging.DirectJDKLog [Thread-57] Destroying Spring FrameworkServlet 'dispatcherServlet'
+2023-10-19 08:56:52,829 INFO org.apache.juli.logging.DirectJDKLog [Thread-57] Stopping ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:56:52,830 INFO org.apache.juli.logging.DirectJDKLog [Thread-57] Destroying ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:56:52,831 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [Thread-57] Closing JPA EntityManagerFactory for persistence unit 'default'
+2023-10-19 08:56:52,831 INFO com.zaxxer.hikari.HikariDataSource [Thread-57] HikariPool-15 - Shutdown initiated...
+2023-10-19 08:56:52,832 INFO com.zaxxer.hikari.HikariDataSource [Thread-57] HikariPool-15 - Shutdown completed.
+2023-10-19 08:56:52,933 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Starting FsbrowserApplication using Java 17.0.7 with PID 44177 (/Users/wgzhao/Code/fsbrowser/target/classes started by wgzhao in /Users/wgzhao/Code/fsbrowser)
+2023-10-19 08:56:52,933 INFO org.springframework.boot.SpringApplication [restartedMain] The following 1 profile is active: "dev"
+2023-10-19 08:56:53,029 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-10-19 08:56:53,036 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Finished Spring Data repository scanning in 7 ms. Found 2 JPA repository interfaces.
+2023-10-19 08:56:53,133 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat initialized with port(s): 5001 (http)
+2023-10-19 08:56:53,133 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:56:53,133 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting service [Tomcat]
+2023-10-19 08:56:53,133 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting Servlet engine: [Apache Tomcat/10.1.13]
+2023-10-19 08:56:53,150 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing Spring embedded WebApplicationContext
+2023-10-19 08:56:53,150 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [restartedMain] Root WebApplicationContext: initialization completed in 215 ms
+2023-10-19 08:56:53,183 INFO org.hibernate.jpa.internal.util.LogHelper [restartedMain] HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-10-19 08:56:53,189 INFO org.hibernate.bytecode.internal.BytecodeProviderInitiator [restartedMain] HHH000021: Bytecode provider name : bytebuddy
+2023-10-19 08:56:53,189 INFO org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo [restartedMain] No LoadTimeWeaver setup: ignoring JPA class transformer
+2023-10-19 08:56:53,190 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-16 - Starting...
+2023-10-19 08:56:53,191 INFO com.zaxxer.hikari.pool.HikariPool [restartedMain] HikariPool-16 - Added connection org.sqlite.jdbc4.JDBC4Connection@62c2b465
+2023-10-19 08:56:53,192 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-16 - Start completed.
+2023-10-19 08:56:53,201 INFO org.hibernate.bytecode.internal.BytecodeProviderInitiator [restartedMain] HHH000021: Bytecode provider name : bytebuddy
+2023-10-19 08:56:53,223 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [restartedMain] HHH000490: Using JtaPlatform implementation: [org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform]
+2023-10-19 08:56:53,226 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [restartedMain] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-10-19 08:56:53,405 INFO org.springframework.security.web.DefaultSecurityFilterChain [restartedMain] Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@2e0c99c5, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@42a9405d, org.springframework.security.web.context.SecurityContextHolderFilter@37ae0cb1, org.springframework.security.web.header.HeaderWriterFilter@3648d91f, org.springframework.security.web.csrf.CsrfFilter@3be222b7, org.springframework.security.web.authentication.logout.LogoutFilter@3f9ee2b7, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter@3bd152c, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@1df36769, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@e2cf2ce, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@7865fc97, org.springframework.security.web.access.ExceptionTranslationFilter@655ed253, org.springframework.security.web.access.intercept.AuthorizationFilter@3b203acd]
+2023-10-19 08:56:53,471 INFO org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer [restartedMain] LiveReload server is running on port 35729
+2023-10-19 08:56:53,479 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting ProtocolHandler ["http-nio-5001"]
+2023-10-19 08:56:53,481 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat started on port(s): 5001 (http) with context path ''
+2023-10-19 08:56:53,485 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Started FsbrowserApplication in 0.569 seconds (process running for 8712.49)
+2023-10-19 08:56:53,486 INFO org.springframework.boot.devtools.autoconfigure.ConditionEvaluationDeltaLoggingListener [restartedMain] Condition evaluation unchanged
+2023-10-19 08:57:07,706 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-10-19 08:57:07,706 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-10-19 08:57:07,707 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 1 ms

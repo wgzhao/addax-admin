@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html th:fragment="layout (title, breadcrumb, content)" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="keywords"
+          content="admin, dashboard, bootstrap, template, flat, modern, theme, responsive, fluid, retina, backend, html5, css, css3">
+    <meta name="description" content="">
+    <meta name="author" content="ThemeBucket">
+    <link rel="shortcut icon" href="#" type="image/png">
+
+    <title th:replace="${title}">Auto ETL Management</title>
+
+    <!--common-->
+    <link href="/css/style.css" th:href="@{/css/style.css}" rel="stylesheet"/>
+<!--    <link href="/css/style-responsive.css" th:href="@{/css/style-responsive.css}" rel="stylesheet"/>-->
+    <!-- dynamic table -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"/>
+<!--    <link rel="stylesheet" href="/js/data-tables/DT_bootstrap.css" />-->
+    <!-- 响应式样式 -->
+    <!--  <link href="/css/style-responsive.css" th:href="@{/css/style-responsive.css}" rel="stylesheet" />-->
+    <!--    <link href="/css/table-responsive.css" th:href="@{/css/table-responsive.css}" rel="stylesheet" />-->
+
+    <!-- 最后把js文件的页面加载速度 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<!--    <script src="https://cdn.bootcdn.net/ajax/libs/jquery-migrate/3.4.1/jquery-migrate.min.js"></script>-->
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/modernizr/2.8.3/modernizr.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery.nicescroll/3.7.6/jquery.nicescroll.min.js"></script>
+    <!-- dynamic table -->
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+</head>
+
+<body class="sticky-header">
+
+<section>
+    <!-- 左边开始-->
+    <div class="left-side sticky-left-side">
+
+        <!--网站logo 大 和 小-->
+        <div class="logo">
+            <a href="/"><img src="/images/logo.png" th:href="@{/images/logo.png}" alt=""></a>
+        </div>
+
+        <!-- 隐藏侧边栏时显示logo -->
+        <div class="logo-icon text-center">
+            <a href="/"><img src="/images/logo_icon.png" th:href="@{/images/logo_icon.png}" alt=""></a>
+        </div>
+        <!--网站logo 大 和 小-->
+
+        <div class="left-side-inner">
+
+            <!-- 头部用户个人操作 -->
+            <div class="visible-xs hidden-sm hidden-md hidden-lg">
+                <div class="media logged-user">
+                    <img alt="" th:href="@{/images/photos/user-avatar.png}" class="media-object">
+                    <div class="media-body">
+                        <h4><a href="#"><span sec:authentication="principal.username"></span></a></h4>
+                        <span>"你好啊..."</span>
+                    </div>
+                </div>
+
+                <h5 class="left-nav-title">账户信息</h5>
+                <ul class="nav nav-pills nav-stacked custom-nav">
+                    <li><a href="#"><i class="fa fa-user"></i> <span>用户资料 </span></a></li>
+                    <li><a href="#"><i class="fa fa-cog"></i> <span>设置</span></a></li>
+                    <li><a href="#" th:action="@{/logout}"><i class="fa fa-sign-out"></i> <span>退出</span></a></li>
+                </ul>
+
+            </div>
+
+            <!--侧边栏导航开始-->
+            <div th:replace="~{side-nav}"></div>
+            <!--侧边栏导航结束-->
+        </div>
+    </div>
+    <!-- 左边结束-->
+
+    <!--主要内容开始-->
+    <div class="main-content">
+
+        <!-- 头部分开始-->
+        <div class="header-section">
+
+            <!--开关按钮开始-->
+            <a class="toggle-btn"><i class="fa fa-bars"></i></a>
+            <!--开关按钮结束-->
+
+            <!--搜索开始-->
+            <!--搜索结束-->
+
+            <!--通知菜单开始 -->
+            <div class="menu-right">
+                <ul class="notification-menu">
+                    <li>
+                        <div class="dropdown">
+                            <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+                                <img src="/images/photos/user-avatar.png" alt=""/>
+                                <span sec:authentication="name"></span>
+                                <span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="#" class="dropdown-item">
+                                        <i class="fa fa-user"></i>
+                                        用户信息
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" class="dropdown-item">
+                                        <i class="fa fa-cog"></i>
+                                        设置
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" class="dropdown-item">
+                                        <i class="fa fa-sign-out"></i>
+                                        登出
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <!--通知菜单结束 -->
+
+        </div>
+        <!-- 头部分结束-->
+
+        <!-- 页面标题开始-->
+        <div class="page-heading">
+            <div th:replace="${breadcrumb}"></div>
+        </div>
+        <!-- page heading end-->
+
+        <!--body wrapper start-->
+        <div class="wrapper" th:replace="${content}"></div>
+        <!--body end-->
+
+        <!--footer section start-->
+        <div th:insert="~{footer}"></div>
+        <!--footer section end-->
+
+
+    </div>
+    <!--主要内容结束-->
+</section>
+
+
+<!--饼形图-->
+<!--<script src="/js/easypiechart/jquery.easypiechart.js" th:href="@{/js/easypiechart/jquery.easypiechart.js}"></script>-->
+<!--<script src="/js/easypiechart/easypiechart-init.js" th:href="@{/js/easypiechart/easypiechart-init.js}"></script>-->
+
+<!--Sparkline图表-->
+<!--<script src="/js/sparkline/jquery.sparkline.js" th:href="@{/js/sparkline/jquery.sparkline.js}"></script>-->
+<!--<script src="/js/sparkline/sparkline-init.js" th:href="@{/js/sparkline/sparkline-init.js}"></script>-->
+
+<!--icheck -->
+<!--<script src="/js/iCheck/jquery.icheck.js" th:href="@{/js/iCheck/jquery.icheck.js}"></script>-->
+<!--<script src="/js/icheck-init.js" th:href="@{/js/icheck-init.js}"></script>-->
+
+<!-- jQuery 浮标图表-->
+<!--<script src="/js/flot-chart/jquery.flot.js" th:href="@{/js/flot-chart/jquery.flot.js}"></script>-->
+<!--<script src="/js/flot-chart/jquery.flot.tooltip.js" th:href="@{/js/flot-chart/jquery.flot.tooltip.js}"></script>-->
+<!--<script src="/js/flot-chart/jquery.flot.resize.js" th:href="@{/js/flot-chart/jquery.flot.resize.js}"></script>-->
+
+
+<!--莫里斯图表-->
+<!--<script src="/js/morris-chart/morris.js" th:href="@{/js/morris-chart/morris.js}"></script>-->
+<!--<script src="/js/morris-chart/raphael-min.js" th:href="@{/js/morris-chart/raphael-min.js}"></script>-->
+
+<!--日历-->
+<!--<script src="/js/calendar/clndr.js" th:href="@{/js/calendar/clndr.js}"></script>-->
+<!--<script src="/js/calendar/evnt.calendar.init.js" th:href="@{/js/calendar/evnt.calendar.init.js}"></script>-->
+<!--<script src="/js/calendar/moment-2.2.1.js" th:href="@{/js/calendar/moment-2.2.1.js}"></script>-->
+<!--<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>-->
+
+
+<!--常见的所有页面的脚本-->
+<script src="/js/scripts.js" th:href="@{/js/scripts.js}"></script>
+
+<!--仪表板的图表-->
+<!--<script src="/js/dashboard-chart-init.js" th:href="@{/js/dashboard-chart-init.js}"></script>-->
+
+
+</body>
+</html>

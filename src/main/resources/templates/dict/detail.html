@@ -1,0 +1,52 @@
+<html th:replace="~{layout :: layout(~{::title}, ~{::#breadcrumb}, ~{::section})}" lang="zh">
+<head>
+    <title>ETL | Table</title>
+</head>
+<body>
+<div id="breadcrumb">
+    <ul class="breadcrumb">
+        <li>
+            <a href="#">Home</a>
+        </li>
+        <li><a href="/conf/index" th:href="@{/conf/index}">主表配置</a></li>
+        <li> <a href="/dict/list" th:href="@{/dict/list}">参数管理</a>  </li>
+        <li class="active">参数详情</li>
+    </ul>
+</div>
+<section>
+<div class="row">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button aria-hidden="true" data-dismiss="modal" class="close" type="button">×</button>
+                <h4 class="modal-title">新增/修改参数</h4>
+            </div>
+            <div class="modal-body">
+                <form role="form" action="#" th:action="@{/dict/save}" th:object="${emptyDict}" method="post" >
+                    <div class="form-group">
+                        <label for="dictCode">参数值</label>
+                        <input type="text" class="form-control" id="dictCode" th:field="*{dictCode}" placeholder="1001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dictName">参数名称</label>
+                        <input type="text" class="form-control" id="dictName" th:field="*{dictName}" placeholder="参数名称" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dictClass">参数分类</label>
+                        <input type="text" id="dictClass" class="form-control" th:field="*{dictClass}" placeholder="FR">
+                        <p class="help-block">Example block-level help text here.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="remark">参数说明</label>
+                        <input type="text" id="remark" class="form-control" th:field="*{remark}" placeholder="remark">
+                        <p class="help-block">Example block-level help text here.</p>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</section>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<div class="media logged-user">
+    <img alt="" th:href="@{/images/photos/user-avatar.png}" class="media-object">
+    <div class="media-body">
+        <h4><a href="#"><span sec:authentication="principal.username"> User</span</a></h4>
+        <span>"你好啊..."</span>
+    </div>
+</div>
+
+<h5 class="left-nav-title">账户信息</h5>
+<ul class="nav nav-pills nav-stacked custom-nav">
+    <li><a href="#"><i class="fa fa-user"></i> <span>用户资料 </span></a></li>
+    <li><a href="#"><i class="fa fa-cog"></i> <span>设置</span></a></li>
+    <li><a href="#" th:action="@{/logout}"><i class="fa fa-sign-out"></i> <span>退出</span></a></li>
+</ul>
