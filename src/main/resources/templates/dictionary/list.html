@@ -1,0 +1,79 @@
+<html th:replace="~{layout :: layout(~{::title}, ~{::#breadcrumb}, ~{::section})}" lang="zh">
+<head>
+    <title>ETL | Table</title>
+</head>
+<body>
+<div id="breadcrumb">
+    <ul class="breadcrumb">
+        <li>
+            <a href="#">Home</a>
+        </li>
+        <li><a href="/conf/index" th:href="@{/conf/index}">主表配置</a></li>
+        <li class="active"> <a href="/dict/list" th:href="@{/dictionary/list}">参数管理</a>  </li>
+    </ul>
+</div>
+<section>
+    <div class="row">
+        <div class="col-sm-12">
+            <section class="panel">
+                <header class="panel-heading">
+                    参数管理
+                </header>
+                <div class="panel-body">
+                    <div class="adv-table">
+                        <div class="clearfix">
+                            <div class="btn-group pull-right">
+                                <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">Tools <i class="fa fa-angle-down"></i>
+                                </button>
+                                <ul class="dropdown-menu pull-right">
+                                    <li><a href="#">Print</a></li>
+                                    <li><a href="#">Save as PDF</a></li>
+                                    <li><a href="#">Export to Excel</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="space15"></div>
+                        <table class="display table table-bordered table-striped" id="table-dictionary">
+                            <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>参数值</th>
+                                <th>参数项</th>
+                                <th>参数名称</th>
+                                <th>备注</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="d,iterStat : ${dicts}">
+                                <td th:text="${iterStat.count}"></td>
+                                <td th:text="${d.entryCode}"></td>
+                                <td th:text="${d.entryValue}"></td>
+                                <td th:text="${d.entryContent}"></td>
+                                <td th:text="${d.remark}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- new modal window -->
+
+    <!-- initial table -->
+    <script>
+        $(document).ready( function () {
+            // EditableTable.init(4);
+            $('#table-dictionary').DataTable();
+
+            // new DataTable('#table-dictionary', {
+            //     columnDefs: [{ width: , targets: 3 }],
+            //     fixedColumns: false,
+            //     paging: true
+            // });
+        });
+    </script>
+</section>
+</body>
+</html>

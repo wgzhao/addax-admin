@@ -26,6 +26,15 @@ public class ImpDBController {
         return "impdb/list";
     }
 
+    @GetMapping("/add")
+    public String addImpDB(Model model) {
+        ImpDB impDB = new ImpDB();
+        impDB.setId(UUID.randomUUID().toString());
+        model.addAttribute("d", impDB);
+        model.addAttribute("editable", true);
+        return "impdb/detail";
+    }
+
     @GetMapping("/detail/{id}")
     public String getImpDBById(Model model, @PathVariable(value="id") String id) {
         model.addAttribute("d", impDBService.getImpDBById(id));
