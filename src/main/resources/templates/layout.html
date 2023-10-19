@@ -98,11 +98,7 @@
                         <div class="dropdown">
                             <a href="#" class="btn btn-default dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
                                 <img src="/images/photos/user-avatar.png" alt=""/>
-                                <span sec:authentication="principal.username"></span>
                                 <span sec:authentication="name"></span>
-                                <div sec:authorize="isAuthenticated()">
-                                    Text visible only to authenticated users.
-                                </div>
                                 <span class="caret"></span>
                             </a>
                             <ul class="dropdown-menu">

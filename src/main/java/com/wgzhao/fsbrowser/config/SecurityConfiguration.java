@@ -41,20 +41,11 @@ public class SecurityConfiguration {
         return new BCryptPasswordEncoder();
     }
 
-
-//    @Bean
-//    public DaoAuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-//        authProvider.setUserDetailsService(userService);
-//        authProvider.setPasswordEncoder(passwordEncoder());
-//        return authProvider;
-//    }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests((requests) -> requests
-                        .requestMatchers("/login", "/logout", "/register", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/login", "/logout", "/register", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin((form) -> form
@@ -64,29 +55,9 @@ public class SecurityConfiguration {
                         .permitAll()
                 )
                 .logout((logout) -> logout.logoutSuccessUrl("/login?logout=true")
-                        .deleteCookies("JSESSIONID"));
+                        .deleteCookies("JSESSIONID")
+                        .permitAll());
 
         return http.build();
     }
-
-//    @Bean
-//    public UserDetailsService jdbcUserDetailsService(DataSource dataSource) {
-//        return new JdbcUserDetailsManager(dataSource);
-//    }
-
-//    @Bean
-//    public UserDetailsService userDetailsService() {
-//        UserDetails user =
-//                User.builder()
-//                        .username("user")
-//                        .password(passwordEncoder().encode("password"))
-//                        .roles("USER")
-//                        .build();
-//        UserDetails admin = User.builder()
-//                .username("admin")
-//                .password(passwordEncoder().encode("password"))
-//                .roles("ADMIN")
-//                .build();
-//        return new InMemoryUserDetailsManager(user);
-//    }
 }
