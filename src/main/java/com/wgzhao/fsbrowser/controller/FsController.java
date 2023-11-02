@@ -58,8 +58,6 @@ public class FsController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         Date bTime = sdf.parse(dateList[0]);
         Date eTime = sdf.parse(dateList[1]);
-        // date as folder , find all files from bTime to eTime as folder
-        List<String> files = new ArrayList<>();
         Pattern pattern;
         long today = sdf.parse(sdf.format(new Date())).getTime();
         for (Date d = bTime; d.compareTo(eTime) <= 0; d.setTime(d.getTime() + 86400000)) {

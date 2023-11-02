@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.json.JsonParser;
 import org.springframework.boot.json.JsonParserFactory;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.scheduling.annotation.Async;
@@ -100,7 +101,7 @@ public class YYAlertService {
                 // payload json format
                 String payload = String.format("{\"msgtype\": \"markdown\", \"markdown\": {\"content\": \"%s\"}}", msg);
                 ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
-                if (response.getStatusCodeValue() != 200) {
+                if (response.getStatusCode() != HttpStatusCode.valueOf(200)) {
                     logger.warning("send wechat message failed: " + response.getBody());
                     continue;
                 }
