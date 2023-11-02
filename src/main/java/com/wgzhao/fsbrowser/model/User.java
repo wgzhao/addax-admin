@@ -19,7 +19,7 @@ import java.util.Collection;
         @UniqueConstraint(columnNames = "username"),
         @UniqueConstraint(columnNames = "email"),
         @UniqueConstraint(columnNames = "phone")
-})
+}, schema = "stg01")
 public class User {
 
     @Id
@@ -38,7 +38,7 @@ public class User {
     private Boolean enabled;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @JoinTable(name = "user_roles",
+    @JoinTable(name = "user_roles", schema = "stg01",
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Collection<Role> roles;

@@ -55,7 +55,10 @@
                             <td th:text="${d.sysname}"></td>
                             <td th:text="${d.totalCnt}"></td>
                             <td th:text="${d.overCnt}"></td>
-                            <td th:text="${d.overPrec}"></td>
+                            <td><div class="progress" role="progressbar" aria-label="Success example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar" th:style="'width: ' +  ${d.overPrec} + '%'" th:text="${d.overPrec} + '%'"></div>
+                            </div></td>
+<!--                            <td th:text="${d.overPrec}"></td>-->
                             <td th:text="${d.runCnt}"></td>
                             <td th:text="${d.errCnt}"></td>
                             <td th:text="${d.noCnt}"></td>
