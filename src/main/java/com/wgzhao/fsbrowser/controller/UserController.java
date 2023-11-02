@@ -32,7 +32,9 @@ public class UserController {
     @PostMapping("/register")
     public String registerAccount(@ModelAttribute("user") User user)
     {
-        System.out.println(user);
+        if (userService.existsByUsername(user.getUsername())) {
+            return "redirect:/register?failed";
+        }
         userService.save(user);
         return "redirect:/register?success";
     }
