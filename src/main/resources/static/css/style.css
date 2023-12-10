@@ -4,8 +4,8 @@ Author: ThemeBucket
 -------------------------------------------*/
 
 @import url(https://fonts.googleapis.com/css?family=Open+Sans:400%2C300%2C300italic%2C400italic%2C600%2C600italic%2C700%2C700italic%2C800%2C800italic);
-@import url('bootstrap.min.css');
-/*@import url(https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css);*/
+/* @import url('bootstrap.min.css'); */
+@import url(https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css);
 @import url('bootstrap-reset.css');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/themes/base/jquery-ui.min.css');
 @import url('https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.2/css/all.min.css');

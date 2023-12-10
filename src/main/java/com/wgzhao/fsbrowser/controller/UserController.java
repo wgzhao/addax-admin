@@ -2,6 +2,9 @@ package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.User;
 import com.wgzhao.fsbrowser.service.UserService;
+
+import ch.qos.logback.core.model.Model;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -30,7 +33,7 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public String registerAccount(@ModelAttribute("user") User user)
+    public String registerAccount(@ModelAttribute("user") User user, Model model)
     {
         if (userService.existsByUsername(user.getUsername())) {
             return "redirect:/register?failed";
