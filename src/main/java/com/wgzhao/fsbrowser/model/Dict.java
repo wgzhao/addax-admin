@@ -1,12 +1,12 @@
 package com.wgzhao.fsbrowser.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Entity
 @Table(name = "tb_dict")
@@ -23,4 +23,9 @@ public class Dict {
     private String dictClass;
     @Column(length = 2000)
     private String remark;
+
+    @OneToMany(fetch = FetchType.EAGER)
+    @JoinColumn(name="entryCode") // column entry_code in table tb_dictionary
+    @JsonIgnore
+    private List<Dictionary> dicts;
 }

@@ -1,0 +1,279 @@
+2023-12-15 10:12:28,986 INFO org.springframework.boot.StartupInfoLogger [main] Starting FsbrowserApplication v0.0.1-SNAPSHOT using Java 17.0.1 with PID 2346 (/Users/wgzhao/code/fsbrowser/target/fsbrowser-0.0.1-SNAPSHOT.jar started by wgzhao in /Users/wgzhao/code/fsbrowser)
+2023-12-15 10:12:28,996 INFO org.springframework.boot.SpringApplication [main] The following 1 profile is active: "dev"
+2023-12-15 10:12:30,192 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [main] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-12-15 10:12:30,312 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [main] Finished Spring Data repository scanning in 101 ms. Found 6 JPA repository interfaces.
+2023-12-15 10:12:31,198 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [main] Tomcat initialized with port 5001 (http)
+2023-12-15 10:12:31,211 INFO org.apache.juli.logging.DirectJDKLog [main] Initializing ProtocolHandler ["http-nio-5001"]
+2023-12-15 10:12:31,215 INFO org.apache.juli.logging.DirectJDKLog [main] Starting service [Tomcat]
+2023-12-15 10:12:31,215 INFO org.apache.juli.logging.DirectJDKLog [main] Starting Servlet engine: [Apache Tomcat/10.1.16]
+2023-12-15 10:12:31,288 INFO org.apache.juli.logging.DirectJDKLog [main] Initializing Spring embedded WebApplicationContext
+2023-12-15 10:12:31,290 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [main] Root WebApplicationContext: initialization completed in 2136 ms
+2023-12-15 10:12:31,601 INFO com.zaxxer.hikari.HikariDataSource [main] HikariPool-1 - Starting...
+2023-12-15 10:12:32,418 INFO com.zaxxer.hikari.pool.HikariPool [main] HikariPool-1 - Added connection oracle.jdbc.driver.T4CConnection@bb25753
+2023-12-15 10:12:32,421 INFO com.zaxxer.hikari.HikariDataSource [main] HikariPool-1 - Start completed.
+2023-12-15 10:12:32,523 INFO org.hibernate.jpa.internal.util.LogHelper [main] HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-12-15 10:12:32,596 INFO org.hibernate.Version [main] HHH000412: Hibernate ORM core version 6.3.1.Final
+2023-12-15 10:12:32,645 INFO org.hibernate.cache.internal.RegionFactoryInitiator [main] HHH000026: Second-level cache disabled
+2023-12-15 10:12:32,952 INFO org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo [main] No LoadTimeWeaver setup: ignoring JPA class transformer
+2023-12-15 10:12:33,099 WARN org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl [main] HHH90000025: OracleDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2023-12-15 10:12:34,355 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [main] HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2023-12-15 10:12:34,360 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [main] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 10:12:34,697 INFO org.springframework.data.jpa.repository.query.QueryEnhancerFactory [main] Hibernate is in classpath; If applicable, HQL parser will be used.
+2023-12-15 10:12:35,443 INFO org.apache.juli.logging.DirectJDKLog [main] Starting ProtocolHandler ["http-nio-5001"]
+2023-12-15 10:12:35,479 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [main] Tomcat started on port 5001 (http) with context path ''
+2023-12-15 10:12:35,490 INFO org.springframework.boot.StartupInfoLogger [main] Started FsbrowserApplication in 7.348 seconds (process running for 8.5)
+2023-12-15 10:12:41,671 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-12-15 10:12:41,672 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-12-15 10:12:41,674 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 2 ms
+2023-12-15 13:07:47,502 ERROR org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-7] Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Could not resolve view with name 'impdb/list' in servlet with name 'dispatcherServlet'] with root cause
+jakarta.servlet.ServletException: Could not resolve view with name 'impdb/list' in servlet with name 'dispatcherServlet'
+	at org.springframework.web.servlet.DispatcherServlet.render(DispatcherServlet.java:1394)
+	at org.springframework.web.servlet.DispatcherServlet.processDispatchResult(DispatcherServlet.java:1159)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1098)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:974)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1011)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+2023-12-15 13:08:20,389 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [SpringApplicationShutdownHook] Closing JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 13:08:20,402 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown initiated...
+2023-12-15 13:08:20,444 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown completed.
+2023-12-15 13:08:36,284 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Starting FsbrowserApplication using Java 17.0.1 with PID 2828 (/Users/wgzhao/code/fsbrowser/target/classes started by wgzhao in /Users/wgzhao/code/fsbrowser)
+2023-12-15 13:08:36,287 INFO org.springframework.boot.SpringApplication [restartedMain] The following 1 profile is active: "dev"
+2023-12-15 13:08:36,378 INFO org.springframework.boot.logging.DeferredLog [restartedMain] The Class-Path manifest attribute in /Users/wgzhao/.m2/repository/com/oracle/ojdbc/ojdbc8/19.3.0.0/ojdbc8-19.3.0.0.jar referenced one or more files that do not exist: file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/ojdbc8/19.3.0.0/oraclepki.jar
+2023-12-15 13:08:36,378 INFO org.springframework.boot.logging.DeferredLog [restartedMain] The Class-Path manifest attribute in /Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/oraclepki-19.3.0.0.jar referenced one or more files that do not exist: file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/osdt_core.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/osdt_cert.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/oracle.osdt/osdt_core.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/oracle.osdt/osdt_cert.jar
+2023-12-15 13:08:36,379 INFO org.springframework.boot.logging.DeferredLog [restartedMain] Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2023-12-15 13:08:36,381 INFO org.springframework.boot.logging.DeferredLog [restartedMain] For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2023-12-15 13:08:37,402 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-12-15 13:08:37,508 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Finished Spring Data repository scanning in 92 ms. Found 6 JPA repository interfaces.
+2023-12-15 13:08:38,280 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat initialized with port 5001 (http)
+2023-12-15 13:08:38,290 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing ProtocolHandler ["http-nio-5001"]
+2023-12-15 13:08:38,293 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting service [Tomcat]
+2023-12-15 13:08:38,294 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting Servlet engine: [Apache Tomcat/10.1.16]
+2023-12-15 13:08:38,346 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing Spring embedded WebApplicationContext
+2023-12-15 13:08:38,349 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [restartedMain] Root WebApplicationContext: initialization completed in 1965 ms
+2023-12-15 13:08:38,571 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-1 - Starting...
+2023-12-15 13:08:38,874 INFO com.zaxxer.hikari.pool.HikariPool [restartedMain] HikariPool-1 - Added connection oracle.jdbc.driver.T4CConnection@7a0f136c
+2023-12-15 13:08:38,876 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-1 - Start completed.
+2023-12-15 13:08:38,973 INFO org.hibernate.jpa.internal.util.LogHelper [restartedMain] HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-12-15 13:08:39,049 INFO org.hibernate.Version [restartedMain] HHH000412: Hibernate ORM core version 6.3.1.Final
+2023-12-15 13:08:39,107 INFO org.hibernate.cache.internal.RegionFactoryInitiator [restartedMain] HHH000026: Second-level cache disabled
+2023-12-15 13:08:39,426 INFO org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo [restartedMain] No LoadTimeWeaver setup: ignoring JPA class transformer
+2023-12-15 13:08:39,570 WARN org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl [restartedMain] HHH90000025: OracleDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2023-12-15 13:08:40,848 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [restartedMain] HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2023-12-15 13:08:40,852 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [restartedMain] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 13:08:41,204 INFO org.springframework.data.jpa.repository.query.QueryEnhancerFactory [restartedMain] Hibernate is in classpath; If applicable, HQL parser will be used.
+2023-12-15 13:08:41,930 INFO org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer [restartedMain] LiveReload server is running on port 35729
+2023-12-15 13:08:41,954 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting ProtocolHandler ["http-nio-5001"]
+2023-12-15 13:08:41,973 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat started on port 5001 (http) with context path ''
+2023-12-15 13:08:41,986 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Started FsbrowserApplication in 6.258 seconds (process running for 8.101)
+2023-12-15 13:08:57,122 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-12-15 13:08:57,122 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-12-15 13:08:57,124 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 1 ms
+2023-12-15 13:08:57,455 ERROR org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Could not resolve view with name 'impdb/list' in servlet with name 'dispatcherServlet'] with root cause
+jakarta.servlet.ServletException: Could not resolve view with name 'impdb/list' in servlet with name 'dispatcherServlet'
+	at org.springframework.web.servlet.DispatcherServlet.render(DispatcherServlet.java:1394)
+	at org.springframework.web.servlet.DispatcherServlet.processDispatchResult(DispatcherServlet.java:1159)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1098)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:974)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1011)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+2023-12-15 13:09:52,963 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [SpringApplicationShutdownHook] Closing JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 13:09:52,976 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown initiated...
+2023-12-15 13:09:53,019 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown completed.
+2023-12-15 13:10:08,108 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Starting FsbrowserApplication using Java 17.0.1 with PID 2854 (/Users/wgzhao/code/fsbrowser/target/classes started by wgzhao in /Users/wgzhao/code/fsbrowser)
+2023-12-15 13:10:08,111 INFO org.springframework.boot.SpringApplication [restartedMain] The following 1 profile is active: "dev"
+2023-12-15 13:10:08,226 INFO org.springframework.boot.logging.DeferredLog [restartedMain] The Class-Path manifest attribute in /Users/wgzhao/.m2/repository/com/oracle/ojdbc/ojdbc8/19.3.0.0/ojdbc8-19.3.0.0.jar referenced one or more files that do not exist: file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/ojdbc8/19.3.0.0/oraclepki.jar
+2023-12-15 13:10:08,227 INFO org.springframework.boot.logging.DeferredLog [restartedMain] The Class-Path manifest attribute in /Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/oraclepki-19.3.0.0.jar referenced one or more files that do not exist: file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/osdt_core.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/osdt_cert.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/oracle.osdt/osdt_core.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/oracle.osdt/osdt_cert.jar
+2023-12-15 13:10:08,228 INFO org.springframework.boot.logging.DeferredLog [restartedMain] Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2023-12-15 13:10:08,228 INFO org.springframework.boot.logging.DeferredLog [restartedMain] For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2023-12-15 13:10:09,095 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-12-15 13:10:09,187 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Finished Spring Data repository scanning in 81 ms. Found 6 JPA repository interfaces.
+2023-12-15 13:10:09,948 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat initialized with port 5001 (http)
+2023-12-15 13:10:09,958 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing ProtocolHandler ["http-nio-5001"]
+2023-12-15 13:10:09,961 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting service [Tomcat]
+2023-12-15 13:10:09,961 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting Servlet engine: [Apache Tomcat/10.1.16]
+2023-12-15 13:10:10,018 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing Spring embedded WebApplicationContext
+2023-12-15 13:10:10,020 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [restartedMain] Root WebApplicationContext: initialization completed in 1790 ms
+2023-12-15 13:10:10,230 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-1 - Starting...
+2023-12-15 13:10:10,533 INFO com.zaxxer.hikari.pool.HikariPool [restartedMain] HikariPool-1 - Added connection oracle.jdbc.driver.T4CConnection@461a74c2
+2023-12-15 13:10:10,537 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-1 - Start completed.
+2023-12-15 13:10:10,634 INFO org.hibernate.jpa.internal.util.LogHelper [restartedMain] HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-12-15 13:10:10,706 INFO org.hibernate.Version [restartedMain] HHH000412: Hibernate ORM core version 6.3.1.Final
+2023-12-15 13:10:10,757 INFO org.hibernate.cache.internal.RegionFactoryInitiator [restartedMain] HHH000026: Second-level cache disabled
+2023-12-15 13:10:11,085 INFO org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo [restartedMain] No LoadTimeWeaver setup: ignoring JPA class transformer
+2023-12-15 13:10:11,220 WARN org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl [restartedMain] HHH90000025: OracleDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2023-12-15 13:10:12,532 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [restartedMain] HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2023-12-15 13:10:12,535 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [restartedMain] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 13:10:12,827 INFO org.springframework.data.jpa.repository.query.QueryEnhancerFactory [restartedMain] Hibernate is in classpath; If applicable, HQL parser will be used.
+2023-12-15 13:10:13,511 INFO org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer [restartedMain] LiveReload server is running on port 35729
+2023-12-15 13:10:13,534 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting ProtocolHandler ["http-nio-5001"]
+2023-12-15 13:10:13,553 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat started on port 5001 (http) with context path ''
+2023-12-15 13:10:13,562 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Started FsbrowserApplication in 6.066 seconds (process running for 7.67)
+2023-12-15 13:10:18,881 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-12-15 13:10:18,885 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-12-15 13:10:18,890 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 3 ms
+2023-12-15 17:10:36,279 WARN org.springframework.web.servlet.DispatcherServlet [http-nio-5001-exec-3] No mapping for GET /impdb/detailF3F748288E1845F0BE4CFA7507BDEDD2
+2023-12-15 17:10:36,333 ERROR com.wgzhao.fsbrowser.controller.ErrorController [http-nio-5001-exec-3] Exception during execution of SpringSecurity application
+org.springframework.web.servlet.NoHandlerFoundException: No endpoint GET /impdb/detailF3F748288E1845F0BE4CFA7507BDEDD2.
+	at org.springframework.web.servlet.DispatcherServlet.noHandlerFound(DispatcherServlet.java:1296)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1059)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:974)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1011)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+2023-12-15 17:10:43,092 WARN org.springframework.web.servlet.DispatcherServlet [http-nio-5001-exec-4] No mapping for GET /impdb/detail592D20366F1643EAAC07E30358BCD0BE
+2023-12-15 17:10:43,094 ERROR com.wgzhao.fsbrowser.controller.ErrorController [http-nio-5001-exec-4] Exception during execution of SpringSecurity application
+org.springframework.web.servlet.NoHandlerFoundException: No endpoint GET /impdb/detail592D20366F1643EAAC07E30358BCD0BE.
+	at org.springframework.web.servlet.DispatcherServlet.noHandlerFound(DispatcherServlet.java:1296)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1059)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:974)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1011)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:205)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:174)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:149)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:482)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:115)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:340)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:391)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:896)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1744)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191)
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.base/java.lang.Thread.run(Thread.java:833)
+2023-12-15 17:12:07,595 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [SpringApplicationShutdownHook] Closing JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 17:12:07,626 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown initiated...
+2023-12-15 17:12:07,668 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown completed.
+2023-12-15 17:12:13,336 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Starting FsbrowserApplication using Java 17.0.1 with PID 3774 (/Users/wgzhao/code/fsbrowser/target/classes started by wgzhao in /Users/wgzhao/code/fsbrowser)
+2023-12-15 17:12:13,340 INFO org.springframework.boot.SpringApplication [restartedMain] The following 1 profile is active: "dev"
+2023-12-15 17:12:13,537 INFO org.springframework.boot.logging.DeferredLog [restartedMain] The Class-Path manifest attribute in /Users/wgzhao/.m2/repository/com/oracle/ojdbc/ojdbc8/19.3.0.0/ojdbc8-19.3.0.0.jar referenced one or more files that do not exist: file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/ojdbc8/19.3.0.0/oraclepki.jar
+2023-12-15 17:12:13,542 INFO org.springframework.boot.logging.DeferredLog [restartedMain] The Class-Path manifest attribute in /Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/oraclepki-19.3.0.0.jar referenced one or more files that do not exist: file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/osdt_core.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/19.3.0.0/osdt_cert.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/oracle.osdt/osdt_core.jar,file:/Users/wgzhao/.m2/repository/com/oracle/ojdbc/oraclepki/oracle.osdt/osdt_cert.jar
+2023-12-15 17:12:13,543 INFO org.springframework.boot.logging.DeferredLog [restartedMain] Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2023-12-15 17:12:13,546 INFO org.springframework.boot.logging.DeferredLog [restartedMain] For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2023-12-15 17:12:14,509 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2023-12-15 17:12:14,611 INFO org.springframework.data.repository.config.RepositoryConfigurationDelegate [restartedMain] Finished Spring Data repository scanning in 88 ms. Found 6 JPA repository interfaces.
+2023-12-15 17:12:15,476 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat initialized with port 5001 (http)
+2023-12-15 17:12:15,489 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing ProtocolHandler ["http-nio-5001"]
+2023-12-15 17:12:15,494 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting service [Tomcat]
+2023-12-15 17:12:15,494 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting Servlet engine: [Apache Tomcat/10.1.16]
+2023-12-15 17:12:15,569 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Initializing Spring embedded WebApplicationContext
+2023-12-15 17:12:15,571 INFO org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext [restartedMain] Root WebApplicationContext: initialization completed in 2015 ms
+2023-12-15 17:12:15,837 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-1 - Starting...
+2023-12-15 17:12:16,165 INFO com.zaxxer.hikari.pool.HikariPool [restartedMain] HikariPool-1 - Added connection oracle.jdbc.driver.T4CConnection@50e8e6a8
+2023-12-15 17:12:16,168 INFO com.zaxxer.hikari.HikariDataSource [restartedMain] HikariPool-1 - Start completed.
+2023-12-15 17:12:16,285 INFO org.hibernate.jpa.internal.util.LogHelper [restartedMain] HHH000204: Processing PersistenceUnitInfo [name: default]
+2023-12-15 17:12:16,380 INFO org.hibernate.Version [restartedMain] HHH000412: Hibernate ORM core version 6.3.1.Final
+2023-12-15 17:12:16,454 INFO org.hibernate.cache.internal.RegionFactoryInitiator [restartedMain] HHH000026: Second-level cache disabled
+2023-12-15 17:12:16,780 INFO org.springframework.orm.jpa.persistenceunit.SpringPersistenceUnitInfo [restartedMain] No LoadTimeWeaver setup: ignoring JPA class transformer
+2023-12-15 17:12:16,929 WARN org.hibernate.engine.jdbc.dialect.internal.DialectFactoryImpl [restartedMain] HHH90000025: OracleDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2023-12-15 17:12:18,233 INFO org.hibernate.engine.transaction.jta.platform.internal.JtaPlatformInitiator [restartedMain] HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2023-12-15 17:12:18,237 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [restartedMain] Initialized JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 17:12:18,556 INFO org.springframework.data.jpa.repository.query.QueryEnhancerFactory [restartedMain] Hibernate is in classpath; If applicable, HQL parser will be used.
+2023-12-15 17:12:19,556 INFO org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer [restartedMain] LiveReload server is running on port 35729
+2023-12-15 17:12:19,686 INFO org.apache.juli.logging.DirectJDKLog [restartedMain] Starting ProtocolHandler ["http-nio-5001"]
+2023-12-15 17:12:19,738 INFO org.springframework.boot.web.embedded.tomcat.TomcatWebServer [restartedMain] Tomcat started on port 5001 (http) with context path ''
+2023-12-15 17:12:19,754 INFO org.springframework.boot.StartupInfoLogger [restartedMain] Started FsbrowserApplication in 7.043 seconds (process running for 8.428)
+2023-12-15 17:12:23,687 INFO org.apache.juli.logging.DirectJDKLog [http-nio-5001-exec-1] Initializing Spring DispatcherServlet 'dispatcherServlet'
+2023-12-15 17:12:23,688 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Initializing Servlet 'dispatcherServlet'
+2023-12-15 17:12:23,690 INFO org.springframework.web.servlet.FrameworkServlet [http-nio-5001-exec-1] Completed initialization in 1 ms
+2023-12-15 17:45:53,035 INFO org.springframework.orm.jpa.AbstractEntityManagerFactoryBean [SpringApplicationShutdownHook] Closing JPA EntityManagerFactory for persistence unit 'default'
+2023-12-15 17:45:53,074 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown initiated...
+2023-12-15 17:45:53,102 INFO com.zaxxer.hikari.HikariDataSource [SpringApplicationShutdownHook] HikariPool-1 - Shutdown completed.

@@ -1,13 +1,12 @@
 package com.wgzhao.fsbrowser.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 
 @Table(name="tb_dictionary", uniqueConstraints = {@UniqueConstraint(columnNames = {"entryCode", "entryValue"})})
@@ -29,4 +28,11 @@ public class Dictionary {
 
     @Column(length = 4000)
     private String remark;
+
+//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+//    @JoinColumn(name = "entry_code", nullable = false)
+//    @OnDelete(action = OnDeleteAction.CASCADE)
+//    @JsonIgnore
+//    private Dict dict;
+
 }

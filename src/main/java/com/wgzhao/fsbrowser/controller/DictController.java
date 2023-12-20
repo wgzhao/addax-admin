@@ -3,25 +3,39 @@ package com.wgzhao.fsbrowser.controller;
 import com.wgzhao.fsbrowser.model.Dict;
 import com.wgzhao.fsbrowser.service.DictService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+
+import java.util.List;
+
+@RestController
 @RequestMapping("/dict")
+@CrossOrigin
 public class DictController {
 
     @Autowired
     DictService dictService;
 
+    /**
+     * query dict
+     * @return List of {@link Dict}
+     */
     @GetMapping("/list")
-    public String getAllDict(Model model) {
-        model.addAttribute("dicts", dictService.getAllDict());
-        return "dict/list";
+    public List<Dict> getAllDict() {
+        return dictService.getAllDict();
+    }
+
+    @GetMapping("/{code}")
+    public Dict getDict(@PathVariable("c") String code)
+    {
+        return dictService.findByCode(code);
     }
 
     @GetMapping("/add")

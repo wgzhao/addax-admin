@@ -1,63 +1,63 @@
-package com.wgzhao.fsbrowser.controller;
+// package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.User;
-import com.wgzhao.fsbrowser.service.UserService;
+// import com.wgzhao.fsbrowser.model.User;
+// import com.wgzhao.fsbrowser.service.UserService;
 
-import ch.qos.logback.core.model.Model;
+// import ch.qos.logback.core.model.Model;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
+// import org.springframework.stereotype.Controller;
+// import org.springframework.web.bind.annotation.GetMapping;
+// import org.springframework.web.bind.annotation.ModelAttribute;
+// import org.springframework.web.bind.annotation.PostMapping;
 
-@Controller
-public class UserController {
+// @Controller
+// public class UserController {
 
-    private UserService userService;
+//     private UserService userService;
 
-    public UserController(UserService userService)
-    {
-        this.userService = userService;
-    }
+//     public UserController(UserService userService)
+//     {
+//         this.userService = userService;
+//     }
 
-    @ModelAttribute("user")
-    public User userRegistration()
-    {
-        return new User();
-    }
+//     @ModelAttribute("user")
+//     public User userRegistration()
+//     {
+//         return new User();
+//     }
 
-    @GetMapping("/register")
-    public String register()
-    {
-        return "register";
-    }
+//     @GetMapping("/register")
+//     public String register()
+//     {
+//         return "register";
+//     }
 
-    @PostMapping("/register")
-    public String registerAccount(@ModelAttribute("user") User user, Model model)
-    {
-        if (userService.existsByUsername(user.getUsername())) {
-            return "redirect:/register?failed";
-        }
-        userService.save(user);
-        return "redirect:/register?success";
-    }
+//     @PostMapping("/register")
+//     public String registerAccount(@ModelAttribute("user") User user, Model model)
+//     {
+//         if (userService.existsByUsername(user.getUsername())) {
+//             return "redirect:/register?failed";
+//         }
+//         userService.save(user);
+//         return "redirect:/register?success";
+//     }
 
-    @GetMapping("/login")
-    public String login()
-    {
-        return "login";
-    }
+//     @GetMapping("/login")
+//     public String login()
+//     {
+//         return "login";
+//     }
 
-    @GetMapping("/home")
-    public String home()
-    {
-        return "home";
-    }
+//     @GetMapping("/home")
+//     public String home()
+//     {
+//         return "home";
+//     }
 
-    @GetMapping("/failed")
-    public String failed()
-    {
-        return "failed";
-    }
+//     @GetMapping("/failed")
+//     public String failed()
+//     {
+//         return "failed";
+//     }
 
-}
+// }

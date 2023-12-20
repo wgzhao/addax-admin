@@ -1,10 +1,10 @@
-package com.wgzhao.fsbrowser.service;
+// package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
+// import com.wgzhao.fsbrowser.model.User;
+// import org.springframework.security.core.userdetails.UserDetailsService;
 
-public interface UserService extends UserDetailsService {
-    User save(User user);
+// public interface UserService extends UserDetailsService {
+//     User save(User user);
 
-    boolean existsByUsername(String username);
-}
+//     boolean existsByUsername(String username);
+// }
