@@ -1,7 +1,8 @@
 package com.wgzhao.fsbrowser.model;
 
-import jakarta.persistence.*;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -9,6 +10,7 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 
 /**
  * HADOOP_SP的配置主表 实体类
@@ -55,13 +57,17 @@ public class ImpSp {
     
     // 运行开始时间
 
-    @Column(name = "START_TIME") 
+    @Column(name = "START_TIME")
+    @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date startTime;
 
     
     // 运行结束时间
 
-    @Column(name = "END_TIME") 
+    @Column(name = "END_TIME")
+    @DateTimeFormat(pattern="yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date endTime;
 
     
