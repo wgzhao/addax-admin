@@ -24,4 +24,9 @@ public class ImpSpComServiceImpl implements ImpSpComService {
             return impSpComRepo.findAll();
     }
 
+    @Override
+    public List<ImpSpCom> findBySpId(String spId) {
+        return impSpComRepo.findAllBySpId(spId);
+    }
+
 }

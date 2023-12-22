@@ -1,5 +1,6 @@
 package com.wgzhao.fsbrowser.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import java.util.Date;
 import jakarta.persistence.Column;
@@ -49,13 +50,15 @@ public class ImpSpCom {
     
     // 开始时间
 
-    @Column(name = "START_TIME") 
+    @Column(name = "START_TIME")
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date startTime;
 
     
     // 结束时间
 
-    @Column(name = "END_TIME") 
+    @Column(name = "END_TIME")
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date endTime;
 
     

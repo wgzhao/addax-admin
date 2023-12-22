@@ -12,4 +12,6 @@ import java.util.List;
 public interface ImpSpComService {
 
       public List<ImpSpCom> findAll();
+
+    List<ImpSpCom> findBySpId(String spId);
 }
