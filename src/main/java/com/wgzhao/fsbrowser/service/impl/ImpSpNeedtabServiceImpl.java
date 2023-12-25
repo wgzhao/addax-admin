@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * TB_IMP_SP_NEEDTAB服务接口实现
@@ -22,6 +23,11 @@ public class ImpSpNeedtabServiceImpl implements ImpSpNeedtabService {
     @Override
     public List<ImpSpNeedtab> findAll() {
             return impSpNeedtabRepo.findAll();
+    }
+
+    @Override
+    public List<Map> findSceneByTableName(String tableName) {
+        return impSpNeedtabRepo.findSceneByTableName(tableName);
     }
 
 }
