@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.Dictionary;
+import com.wgzhao.fsbrowser.model.oracle.Dictionary;
 import com.wgzhao.fsbrowser.service.DictionaryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;

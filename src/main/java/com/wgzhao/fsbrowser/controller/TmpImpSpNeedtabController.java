@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.TmpImpSpNeedtab;
+import com.wgzhao.fsbrowser.model.oracle.TmpImpSpNeedtab;
 import com.wgzhao.fsbrowser.service.TmpImpSpNeedtabService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

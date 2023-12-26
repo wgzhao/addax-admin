@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.ImpSp;
+import com.wgzhao.fsbrowser.model.oracle.ImpSp;
 
 import java.util.List;
 import java.util.Map;

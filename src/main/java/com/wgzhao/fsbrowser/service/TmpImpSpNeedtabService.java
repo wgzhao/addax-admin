@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.TmpImpSpNeedtab;
+import com.wgzhao.fsbrowser.model.oracle.TmpImpSpNeedtab;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpChkInf;
-import com.wgzhao.fsbrowser.repository.ImpChkInfRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpChkInf;
+import com.wgzhao.fsbrowser.repository.oracle.ImpChkInfRepo;
 import com.wgzhao.fsbrowser.service.ImpChkInfService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

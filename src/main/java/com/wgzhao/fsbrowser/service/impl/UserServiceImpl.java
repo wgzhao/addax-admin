@@ -1,8 +1,8 @@
 // package com.wgzhao.fsbrowser.service.impl;
 
-// import com.wgzhao.fsbrowser.model.Role;
-// import com.wgzhao.fsbrowser.model.User;
-// import com.wgzhao.fsbrowser.repository.UserRepo;
+// import com.wgzhao.fsbrowser.model.oracle.Role;
+// import com.wgzhao.fsbrowser.model.oracle.User;
+// import com.wgzhao.fsbrowser.repository.oracle.UserRepo;
 // import com.wgzhao.fsbrowser.service.UserService;
 // import org.springframework.beans.factory.annotation.Autowired;
 // import org.springframework.security.core.GrantedAuthority;

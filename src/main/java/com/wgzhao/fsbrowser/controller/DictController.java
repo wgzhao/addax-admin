@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.Dict;
+import com.wgzhao.fsbrowser.model.oracle.Dict;
 import com.wgzhao.fsbrowser.service.DictService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
@@ -33,7 +33,7 @@ public class DictController {
     }
 
     @GetMapping("/{code}")
-    public Dict getDict(@PathVariable("c") String code)
+    public Dict getDict(@PathVariable("code") String code)
     {
         return dictService.findByCode(code);
     }

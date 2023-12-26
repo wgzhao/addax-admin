@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.ImpJour;
+import com.wgzhao.fsbrowser.model.oracle.ImpJour;
 
 import java.util.List;
 

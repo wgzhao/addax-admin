@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.ImpParam0;
+import com.wgzhao.fsbrowser.model.oracle.ImpParam0;
 
 import java.util.List;
 

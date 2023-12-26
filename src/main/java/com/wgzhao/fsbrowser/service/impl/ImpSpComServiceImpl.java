@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpSpCom;
-import com.wgzhao.fsbrowser.repository.ImpSpComRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpSpCom;
+import com.wgzhao.fsbrowser.repository.oracle.ImpSpComRepo;
 import com.wgzhao.fsbrowser.service.ImpSpComService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

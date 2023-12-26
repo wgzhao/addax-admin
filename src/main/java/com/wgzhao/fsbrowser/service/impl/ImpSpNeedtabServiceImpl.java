@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpSpNeedtab;
-import com.wgzhao.fsbrowser.repository.ImpSpNeedtabRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpSpNeedtab;
+import com.wgzhao.fsbrowser.repository.oracle.ImpSpNeedtabRepo;
 import com.wgzhao.fsbrowser.service.ImpSpNeedtabService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

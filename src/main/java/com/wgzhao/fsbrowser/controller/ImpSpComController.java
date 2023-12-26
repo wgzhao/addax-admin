@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.ImpSpCom;
+import com.wgzhao.fsbrowser.model.oracle.ImpSpCom;
 import com.wgzhao.fsbrowser.service.ImpSpComService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

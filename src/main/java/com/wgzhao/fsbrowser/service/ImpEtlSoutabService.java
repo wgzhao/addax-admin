@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.ImpEtlSoutab;
+import com.wgzhao.fsbrowser.model.oracle.ImpEtlSoutab;
 
 import java.util.List;
 

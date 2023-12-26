@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.ImpDB;
+import com.wgzhao.fsbrowser.model.oracle.ImpDB;
 import com.wgzhao.fsbrowser.service.ImpDBService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;

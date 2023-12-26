@@ -1,20 +1,22 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.dto.AddaxReportDto;
+import com.wgzhao.fsbrowser.model.pg.TbAddaxStaEntity;
+import com.wgzhao.fsbrowser.repository.pg.AddaxStaRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.List;
 
 @RestController
 @RequestMapping("/addax")
+@CrossOrigin
 public class AddaxReportController {
 
     @Value("${addax.datasource.url}")
@@ -30,6 +32,9 @@ public class AddaxReportController {
     private String jdbcTable;
 
     private static final Logger logger = LoggerFactory.getLogger(FsController.class);
+
+    @Autowired
+    private AddaxStaRepo addaxStaRepo;
 
     @PostMapping(value = "/addax/v1/jobReport", consumes = "application/json")
     public String jobReport(@RequestBody AddaxReportDto reportDto) {
@@ -60,4 +65,11 @@ public class AddaxReportController {
             return false;
         }
     }
+
+    // 任务拒绝行
+    @GetMapping("/taskReject")
+    public List<TbAddaxStaEntity> getTaskReject() {
+        return addaxStaRepo.findByTotalErrNot(0);
+    }
+
 }

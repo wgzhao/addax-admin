@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.ImpTblHdp;
+import com.wgzhao.fsbrowser.model.oracle.ImpTblHdp;
 
 import java.util.List;
 

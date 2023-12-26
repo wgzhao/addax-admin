@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.ImpFlag;
+import com.wgzhao.fsbrowser.model.oracle.ImpFlag;
 import com.wgzhao.fsbrowser.service.ImpFlagService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

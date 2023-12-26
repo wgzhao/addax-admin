@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.Dict;
-import com.wgzhao.fsbrowser.repository.DictRepo;
+import com.wgzhao.fsbrowser.model.oracle.Dict;
+import com.wgzhao.fsbrowser.repository.oracle.DictRepo;
 import com.wgzhao.fsbrowser.service.DictService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

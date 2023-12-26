@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpSpNeedall;
-import com.wgzhao.fsbrowser.repository.ImpSpNeedallRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpSpNeedall;
+import com.wgzhao.fsbrowser.repository.oracle.ImpSpNeedallRepo;
 import com.wgzhao.fsbrowser.service.ImpSpNeedallService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

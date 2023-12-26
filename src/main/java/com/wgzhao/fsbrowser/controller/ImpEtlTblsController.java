@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.ImpEtlTbls;
+import com.wgzhao.fsbrowser.model.oracle.ImpEtlTbls;
 import com.wgzhao.fsbrowser.service.ImpEtlTblsService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

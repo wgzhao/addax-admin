@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.Dict;
+import com.wgzhao.fsbrowser.model.oracle.Dict;
 
 import java.util.List;
 

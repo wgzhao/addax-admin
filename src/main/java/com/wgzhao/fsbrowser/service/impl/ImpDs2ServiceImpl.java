@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpDs2;
-import com.wgzhao.fsbrowser.repository.ImpDs2Repo;
+import com.wgzhao.fsbrowser.model.oracle.ImpDs2;
+import com.wgzhao.fsbrowser.repository.oracle.ImpDs2Repo;
 import com.wgzhao.fsbrowser.service.ImpDs2Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

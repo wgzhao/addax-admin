@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.ImpJour;
+import com.wgzhao.fsbrowser.model.oracle.ImpJour;
 import com.wgzhao.fsbrowser.service.ImpJourService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;

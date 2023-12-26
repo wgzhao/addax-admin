@@ -1,10 +1,10 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpEtlOverprec;
-import com.wgzhao.fsbrowser.repository.ImpEtlOverprecRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpEtlOverprec;
+import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprecEntity;
+import com.wgzhao.fsbrowser.repository.oracle.VwImpEtlOverprecRepo;
 import com.wgzhao.fsbrowser.service.ImpEtlOverprecService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,9 +14,9 @@ import java.util.Map;
 public class ImpEtlOverprecImpl implements ImpEtlOverprecService {
 
     @Autowired
-    private ImpEtlOverprecRepo impEtlOverprecRepo;
+    private VwImpEtlOverprecRepo impEtlOverprecRepo;
     @Override
-    public List<ImpEtlOverprec> getAllImpEtlOverprec() {
+    public List<VwImpEtlOverprecEntity> getAllImpEtlOverprec() {
 //        return impEtlOverprecRepo.findAllByOrderByDbStartAsc();
         return impEtlOverprecRepo.findAll();
     }

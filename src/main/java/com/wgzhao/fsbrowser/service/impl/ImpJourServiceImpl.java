@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpJour;
-import com.wgzhao.fsbrowser.repository.ImpJourRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpJour;
+import com.wgzhao.fsbrowser.repository.oracle.ImpJourRepo;
 import com.wgzhao.fsbrowser.service.ImpJourService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

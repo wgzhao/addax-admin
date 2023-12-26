@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.Msg;
+import com.wgzhao.fsbrowser.model.oracle.Msg;
 
 import java.util.List;
 

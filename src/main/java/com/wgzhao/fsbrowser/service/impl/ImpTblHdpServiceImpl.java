@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpTblHdp;
-import com.wgzhao.fsbrowser.repository.ImpTblHdpRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpTblHdp;
+import com.wgzhao.fsbrowser.repository.oracle.ImpTblHdpRepo;
 import com.wgzhao.fsbrowser.service.ImpTblHdpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

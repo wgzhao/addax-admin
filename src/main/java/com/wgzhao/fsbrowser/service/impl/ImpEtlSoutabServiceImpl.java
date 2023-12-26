@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.ImpEtlSoutab;
-import com.wgzhao.fsbrowser.repository.ImpEtlSoutabRepo;
+import com.wgzhao.fsbrowser.model.oracle.ImpEtlSoutab;
+import com.wgzhao.fsbrowser.repository.oracle.ImpEtlSoutabRepo;
 import com.wgzhao.fsbrowser.service.ImpEtlSoutabService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
