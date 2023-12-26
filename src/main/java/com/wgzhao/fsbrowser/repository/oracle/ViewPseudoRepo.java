@@ -50,4 +50,13 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudoEntity, Long> {
             "having max(case when fval='3' then 1 else 0 end)=max(case when fval='4' then 1 else 0 end)\n" +
             ") x group by tradedate", nativeQuery = true)
     List<LastEtlTaketime> findLast5LtdTaketimes(@Param("l5td") int l5td);
+
+    // SP 整体执行情况
+    @Query(value = "select sp_owner,flag,count(1) cnt,min(start_time) start_time,max(end_time) end_time,\n" +
+            "       trunc((max(end_time)-min(start_time))*24*60*60) runtime\n" +
+            "from vw_imp_sp t\n" +
+            "where bvalid=1 and bfreq=1\n" +
+            "group by sp_owner,flag\n" +
+            "order by 1,2", nativeQuery = true)
+    List<Map<String, Object>> findSpExecInfo();
 }
