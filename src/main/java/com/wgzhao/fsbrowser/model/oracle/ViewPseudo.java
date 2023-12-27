@@ -8,7 +8,7 @@ import org.hibernate.annotations.Immutable;
 @Entity
 @Immutable
 @Data
-public class ViewPseudoEntity {
+public class ViewPseudo {
 
     @Id
     private Long id;

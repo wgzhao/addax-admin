@@ -36,13 +36,13 @@ public class SpMonitorController {
     // SP 计算的有效性检测结果
     @GetMapping("/validChkSp")
     public List<TbImpChkSpEntity> getValidChkSp() {
-        return impChkSpRepo.findValidChkSp(calcTradeDate(5));
+        return impChkSpRepo.findValidChkSp(calcTradeDate(5, "yyyyMMdd"));
     }
 
     // SP计算的记录数检测结果
     @GetMapping("/validSpCnt")
     public List<Map<String, Object>> getValidSpCnt() {
-        return impChkSpRepo.findValidSpCnt(calcTradeDate(5));
+        return impChkSpRepo.findValidSpCnt(calcTradeDate(5, "yyyyMMdd"));
     }
 
     // 特殊任务：报错、重跑

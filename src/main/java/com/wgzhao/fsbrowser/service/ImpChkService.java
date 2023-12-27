@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpChk;
+import com.wgzhao.fsbrowser.model.oracle.TbImpChk;
 
 import java.util.List;
 
@@ -11,5 +11,5 @@ import java.util.List;
  */
 public interface ImpChkService {
 
-      public List<ImpChk> findAll();
+      public List<TbImpChk> findAll();
 }

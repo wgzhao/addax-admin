@@ -1,6 +1,6 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprecEntity;
+import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprec;
 import com.wgzhao.fsbrowser.model.pg.TbAddaxStaEntity;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.fsbrowser.repository.pg.AddaxStaRepo;
@@ -33,7 +33,7 @@ public class ETLController {
 
         // 数据源采集完成情况列表
         @RequestMapping("/accomplishList")
-        public List<VwImpEtlOverprecEntity> getAll() {
+        public List<VwImpEtlOverprec> getAll() {
             return impEtlOverprecService.getAllImpEtlOverprec();
         }
 

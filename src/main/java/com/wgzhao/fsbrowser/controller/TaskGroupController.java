@@ -4,8 +4,8 @@ package com.wgzhao.fsbrowser.controller;
  * 任务组接口
  */
 
-import com.wgzhao.fsbrowser.model.oracle.TbImpFlagEntity;
-import com.wgzhao.fsbrowser.model.oracle.VwImpTaskgroupDetailEntity;
+import com.wgzhao.fsbrowser.model.oracle.TbImpFlag;
+import com.wgzhao.fsbrowser.model.oracle.VwImpTaskgroupDetail;
 import com.wgzhao.fsbrowser.repository.oracle.TbImpFlagRepo;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.fsbrowser.repository.oracle.VwImpTaskgroupDetailRepo;
@@ -36,14 +36,14 @@ public class TaskGroupController {
 
     // 任务组整体执行情况
     @GetMapping("/totalExec")
-    public List<VwImpTaskgroupDetailEntity> taskGroupTotalExec() {
+    public List<VwImpTaskgroupDetail> taskGroupTotalExec() {
         return vwImpTaskgroupDetailRepo.findAll();
     }
 
     // 任务组标志生成时间
     @GetMapping("/flagGenTime")
-    public List<TbImpFlagEntity> taskGroupFlagGenTime() {
-        int td = Integer.parseInt(calcTradeDate(1));
+    public List<TbImpFlag> taskGroupFlagGenTime() {
+        int td = Integer.parseInt(calcTradeDate(1,"yyyyMMdd"));
         return tbImpFlagRepo.findByTradedateAndKind(td, "TASK_GROUP");
     }
 

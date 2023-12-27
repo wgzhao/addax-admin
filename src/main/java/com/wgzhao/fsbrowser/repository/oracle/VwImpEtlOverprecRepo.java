@@ -1,16 +1,15 @@
 package com.wgzhao.fsbrowser.repository.oracle;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpEtlOverprec;
-import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprecEntity;
+import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprec;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Map;
 
-public interface VwImpEtlOverprecRepo extends JpaRepository<VwImpEtlOverprecEntity, String> {
+public interface VwImpEtlOverprecRepo extends JpaRepository<VwImpEtlOverprec, String> {
 
-    List<VwImpEtlOverprecEntity> findAllByOrderByDbStartAsc();
+    List<VwImpEtlOverprec> findAllByOrderByDbStartAsc();
 
     @Query(value = """
             SELECT SYSNAME, round(OVER_PREC,2)*100 AS OVER_PREC,

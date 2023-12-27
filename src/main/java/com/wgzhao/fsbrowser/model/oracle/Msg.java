@@ -1,7 +1,6 @@
 package com.wgzhao.fsbrowser.model.oracle;
 
-import jakarta.persistence.*;
-import java.util.Date;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -9,6 +8,8 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Date;
 
 /**
  * 数据中心消息提醒总表 实体类
@@ -43,7 +44,8 @@ public class Msg {
     
     // 消息生成的时间，自动生成
 
-    @Column(name = "DW_CLT_DATE") 
+    @Column(name = "DW_CLT_DATE")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date dwCltDate;
 
     

@@ -13,7 +13,7 @@ import java.sql.Date;
 @Immutable
 @Setter
 @Getter
-public class VwImpEtlOverprecEntity {
+public class VwImpEtlOverprec {
 
     @Id
     @Column(name = "SYSNAME", nullable = true, length = 275)

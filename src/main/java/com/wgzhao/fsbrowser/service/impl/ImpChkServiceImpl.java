@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service.impl;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpChk;
-import com.wgzhao.fsbrowser.repository.oracle.ImpChkRepo;
+import com.wgzhao.fsbrowser.model.oracle.TbImpChk;
+import com.wgzhao.fsbrowser.repository.oracle.TbImpChkRepo;
 import com.wgzhao.fsbrowser.service.ImpChkService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,10 +17,10 @@ import java.util.List;
 public class ImpChkServiceImpl implements ImpChkService {
     
     @Autowired
-    private ImpChkRepo impChkRepo;
+    private TbImpChkRepo impChkRepo;
 
     @Override
-    public List<ImpChk> findAll() {
+    public List<TbImpChk> findAll() {
             return impChkRepo.findAll();
     }
 

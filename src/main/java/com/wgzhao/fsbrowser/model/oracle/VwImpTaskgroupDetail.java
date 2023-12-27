@@ -6,13 +6,12 @@ import lombok.Setter;
 
 import java.math.BigInteger;
 import java.sql.Date;
-import java.util.Objects;
 
 @Entity
 @Table(name = "VW_IMP_TASKGROUP_DETAIL")
 @Setter
 @Getter
-public class VwImpTaskgroupDetailEntity {
+public class VwImpTaskgroupDetail {
 
     @Id
     @Column(name = "TASK_GROUP")

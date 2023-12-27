@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.repository.oracle;
 
 import com.wgzhao.fsbrowser.model.oracle.LastEtlTaketime;
-import com.wgzhao.fsbrowser.model.oracle.ViewPseudoEntity;
+import com.wgzhao.fsbrowser.model.oracle.ViewPseudo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Define a pseudo repository for querying views
  */
-public interface ViewPseudoRepo extends JpaRepository<ViewPseudoEntity, Long> {
+public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
 
     // 特殊任务提醒
     @Query(value="select spname, flag,retry_cnt,runtime," +
