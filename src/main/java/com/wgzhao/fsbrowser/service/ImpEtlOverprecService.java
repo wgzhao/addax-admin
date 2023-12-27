@@ -1,15 +1,20 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpEtlOverprec;
 import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprecEntity;
+import com.wgzhao.fsbrowser.repository.oracle.VwImpEtlOverprecRepo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
-public interface ImpEtlOverprecService {
+@Service
+public class ImpEtlOverprecService {
 
-    List<VwImpEtlOverprecEntity> getAllImpEtlOverprec();
+    @Autowired
+    private VwImpEtlOverprecRepo impEtlOverprecRepo;
 
-    List<Map<String, Float>> accompListRatio();
+    public List<VwImpEtlOverprecEntity> getAllImpEtlOverprec() {
+        return impEtlOverprecRepo.findAll();
+    }
 
 }

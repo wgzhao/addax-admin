@@ -65,11 +65,4 @@ public class AddaxReportController {
             return false;
         }
     }
-
-    // 任务拒绝行
-    @GetMapping("/taskReject")
-    public List<TbAddaxStaEntity> getTaskReject() {
-        return addaxStaRepo.findByTotalErrNot(0);
-    }
-
 }

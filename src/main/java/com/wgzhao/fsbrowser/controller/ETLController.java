@@ -1,7 +1,9 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprecEntity;
+import com.wgzhao.fsbrowser.model.pg.TbAddaxStaEntity;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
+import com.wgzhao.fsbrowser.repository.pg.AddaxStaRepo;
 import com.wgzhao.fsbrowser.service.ImpEtlOverprecService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -25,14 +27,12 @@ public class ETLController {
 
         @Autowired
         private ViewPseudoRepo viewPseudoRepo;
-//        @RequestMapping("/index")
-//        public String index(Model model)
-//        {
-//            model.addAttribute("impEtlOverprec", impEtlOverprecService.getAllImpEtlOverprec());
-//            return "etl/index";
-//        }
 
-        @RequestMapping("/list")
+        @Autowired
+        private AddaxStaRepo addaxStaRepo;
+
+        // 数据源采集完成情况列表
+        @RequestMapping("/accomplishList")
         public List<VwImpEtlOverprecEntity> getAll() {
             return impEtlOverprecService.getAllImpEtlOverprec();
         }
@@ -40,7 +40,7 @@ public class ETLController {
         // 各数据源采集完成率，用于图表展示
         @RequestMapping("/accomplishRatio")
         public List<Map<String, Float>> accompListRatio() {
-                return impEtlOverprecService.accompListRatio();
+                return viewPseudoRepo.accompListRatio();
         }
 
 
@@ -55,4 +55,11 @@ public class ETLController {
         public List<Map> specialTask() {
                 return viewPseudoRepo.findAllSepcialTask();
         }
+
+        // 任务拒绝行
+        @GetMapping("/taskReject")
+        public List<TbAddaxStaEntity> getTaskReject() {
+                return addaxStaRepo.findByTotalErrNot(0);
+        }
+
 }
