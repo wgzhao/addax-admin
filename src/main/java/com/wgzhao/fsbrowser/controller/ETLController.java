@@ -46,13 +46,13 @@ public class ETLController {
 
         // 日间实时采集任务
         @GetMapping("/realtimeTask")
-        public List<Map> realtimeTask() {
+        public List<Map<String, Object>> realtimeTask() {
                 return viewPseudoRepo.findRealtimeTask();
         }
 
         // 特殊任务提醒
         @GetMapping("/specialTask")
-        public List<Map> specialTask() {
+        public List<Map<String, Object>> specialTask() {
                 return viewPseudoRepo.findAllSepcialTask();
         }
 
