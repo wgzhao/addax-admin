@@ -1,8 +1,10 @@
 package com.wgzhao.fsbrowser.controller;
 
+import com.wgzhao.fsbrowser.model.oracle.VwImpEtl;
 import com.wgzhao.fsbrowser.model.oracle.VwImpSystem;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
-import com.wgzhao.fsbrowser.repository.oracle.VwImpSystemRepo;
+import com.wgzhao.fsbrowser.service.VwImpEtlService;
+import com.wgzhao.fsbrowser.service.VwImpSystemService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,29 +24,24 @@ import java.util.Map;
 public class SystemInfoController {
 
     @Autowired
-    private VwImpSystemRepo vwImpSystemRepo;
+    private ViewPseudoRepo viewPseudoRepo;
 
     @Autowired
-    private ViewPseudoRepo viewPseudoRepo;
+    private VwImpSystemService vwImpSystemService;
+
+    @Autowired
+    private VwImpEtlService vwImpEtlService;
 
     // 数据中心采集及数据服务系统清单
     @GetMapping("/etlAndDs")
-    public List<Map<String, Object>> etlAndDs(@RequestParam(required = false, name="q") String filter) {
-        if (filter != null && !filter.isEmpty()) {
-            return viewPseudoRepo.findEtlAndDs(filter);
-        } else {
-            return viewPseudoRepo.findEtlAndDs();
-        }
+    public List<VwImpSystem> etlAndDs(@RequestParam(required = false, name="q") String filter) {
+        return vwImpSystemService.fetchEtlDSInfo(filter);
     }
 
     // 数据中心采集表清单(显示100条)
     @GetMapping("/etlInfo")
-    public List<Map<String, Object>> etlInfo(@RequestParam(required = false, name="q") String filter) {
-        if (filter != null && !filter.isEmpty()) {
-            return viewPseudoRepo.findTop100EtlInfo(filter);
-        } else {
-            return viewPseudoRepo.findTop100EtlInfo();
-        }
+    public List<VwImpEtl> etlInfo(@RequestParam(required = false, name="q") String filter) {
+        return vwImpEtlService.fetchEtlInfo(filter);
     }
 
     // 数据中心数据推送表清单(显示100条)

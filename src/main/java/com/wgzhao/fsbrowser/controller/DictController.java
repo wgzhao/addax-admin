@@ -35,7 +35,7 @@ public class DictController {
     @GetMapping("/{code}")
     public Dict getDict(@PathVariable("code") String code)
     {
-        return dictRepo.findByCode(code);
+        return dictRepo.findByDictCode(code);
     }
 
     @GetMapping("/add")
@@ -47,7 +47,7 @@ public class DictController {
 
     @GetMapping("/edit/{id}")
     public String editDict(@PathVariable(value = "id") String id, Model model) {
-        Dict dict = dictRepo.findByCode(id);
+        Dict dict = dictRepo.findByDictCode(id);
         if (dict != null) {
             model.addAttribute("emptyDict", dict);
             return "dict/detail";
@@ -63,7 +63,7 @@ public class DictController {
 
     @PostMapping("/save")
     public String saveDict(@ModelAttribute("dict") Dict  dict) {
-        Dict result = dictRepo.findByCode(dict.getDictCode());
+        Dict result = dictRepo.findByDictCode(dict.getDictCode());
         if (result == null ) {
             dictRepo.save(dict);
             return "redirect:/dict/list";
@@ -75,7 +75,7 @@ public class DictController {
 
     @GetMapping("/delete/{id}")
     public String deleteDict(@PathVariable(value = "id") String id) {
-        Dict dict = dictRepo.findByCode(id);
+        Dict dict = dictRepo.findByDictCode(id);
         if (dict != null) {
             dictRepo.delete(dict);
         }

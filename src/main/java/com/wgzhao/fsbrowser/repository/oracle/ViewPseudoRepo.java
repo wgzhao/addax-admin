@@ -34,7 +34,7 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
     List<Map<String, Object>> findRealtimeTask();
 
     @Query(value = """
-            select tradedate as trade_date, string_agg(fid, ',' order by px)  as fids, string_agg(cast(runtime as varchar),',' order by px) as take_times\n" +
+            select tradedate as trade_date, string_agg(fid, ',' order by px)  as fids, string_agg(cast(runtime as varchar),',' order by px) as take_times
             from (
             select tradedate,fid,
                    cast(extract(epoch from

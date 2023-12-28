@@ -1,6 +1,9 @@
 package com.wgzhao.fsbrowser.service;
 
 import com.wgzhao.fsbrowser.model.oracle.ImpSp;
+import com.wgzhao.fsbrowser.repository.oracle.ImpSpRepo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
@@ -10,13 +13,27 @@ import java.util.Map;
  *
  * @author 
  */
-public interface ImpSpService {
+@Service
+public class ImpSpService {
 
-      public List<ImpSp> findAll();
+    @Autowired
+    private ImpSpRepo impSpRepo;
 
-    List<Map<String, Object>> findLineage(String spId);
+    public List<ImpSp> findAll() {
+        return impSpRepo.findAll();
+    }
 
-    List<Map<String, String>> findRequires(String spId);
+    public List<Map<String, Object>> findLineage(String spId) {
+        return null;
+//        return impSpRepo.findLineage(spId);
+    }
 
-    Map<String, String> findThrough(String spId);
+    public List<Map<String, String>> findRequires(String spId) {
+        return impSpRepo.findRequires(spId);
+    }
+
+    public Map<String, String> findThrough(String spId) {
+        return impSpRepo.findAllNeeds(spId);
+    }
+
 }
