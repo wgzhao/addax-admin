@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DictRepo extends JpaRepository<Dict, String> {
 
-    Dict findByDictCode(String dictCode);
+    Dict findByCode(String code);
 }

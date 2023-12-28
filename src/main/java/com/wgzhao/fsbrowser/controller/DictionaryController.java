@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.Dictionary;
-import com.wgzhao.fsbrowser.service.DictionaryService;
+import com.wgzhao.fsbrowser.repository.oracle.DictionaryRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,17 +16,17 @@ import java.util.List;
 public class DictionaryController {
 
     @Autowired
-    private DictionaryService dictionaryService;
+    private DictionaryRepo dictionaryRepo;
 
     @GetMapping("/detail/{id}")
     public String detail(@PathVariable(value = "id") String id, Model model) {
-        model.addAttribute("dictionary", dictionaryService.findByEntryCode(id));
+        model.addAttribute("dictionary", dictionaryRepo.findByEntryCode(id));
         return "dictionary/detail";
     }
 
     @GetMapping("/list/{id}")
     public String list(@PathVariable(value = "id") String id, Model model) {
-        List<Dictionary> dicts = dictionaryService.findByEntryCode(id);
+        List<Dictionary> dicts = dictionaryRepo.findByEntryCode(id);
         System.out.println(dicts.get(2).getEntryValue());
         model.addAttribute("dicts", dicts);
         return "dictionary/list";

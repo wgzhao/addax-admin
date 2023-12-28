@@ -1,14 +1,14 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.ImpDB;
-import com.wgzhao.fsbrowser.service.ImpDBService;
+import com.wgzhao.fsbrowser.repository.oracle.ImpDBRepo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -16,33 +16,18 @@ import java.util.UUID;
 @CrossOrigin
 public class ImpDBController {
 
+
     @Autowired
-    private ImpDBService impDBService;
+    private ImpDBRepo impDBRepo;
 
     @GetMapping("/list")
     public List<ImpDB> getAllImpDB() {
-        return impDBService.getAllImpDB();
-    }
-
-    @GetMapping("/add")
-    public String addImpDB(Model model) {
-        ImpDB impDB = new ImpDB();
-        impDB.setId(UUID.randomUUID().toString());
-        model.addAttribute("d", impDB);
-        model.addAttribute("editable", true);
-        return "impdb/detail";
+        return impDBRepo.findAll();
     }
 
     @GetMapping("/detail/{id}")
-    public ImpDB getImpDBById(Model model, @PathVariable(value="id") String id) {
-        return impDBService.getImpDBById(id);
-    }
-
-    @GetMapping("/edit/{id}")
-    public String editImpDB(@PathVariable(value="id") String id, Model model) {
-        model.addAttribute("d", impDBService.getImpDBById(id));
-        model.addAttribute("editable", true);
-        return "impdb/detail";
+    public Optional<ImpDB> getImpDBById(Model model, @PathVariable(value="id") String id) {
+        return impDBRepo.findById(id);
     }
 
     @PostMapping("/save")
@@ -50,7 +35,7 @@ public class ImpDBController {
         if (impDB.getId() == null || Objects.equals(impDB.getId(), "")) {
             impDB.setId(UUID.randomUUID().toString());
         }
-        impDBService.saveImpDB(impDB);
+        impDBRepo.save(impDB);
         return impDB;
     }
 }

@@ -1,15 +1,13 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.Msg;
-import com.wgzhao.fsbrowser.service.MsgService;
+import com.wgzhao.fsbrowser.repository.oracle.MsgRepo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import io.swagger.annotations.ApiParam;
 
 import java.util.List;
 
@@ -24,7 +22,7 @@ import java.util.List;
 public class MsgController {
 
     @Autowired
-    private MsgService msgService;
+    private MsgRepo msgRepo;
 
     /**
      * 查询数据中心消息提醒总表数据
@@ -34,6 +32,6 @@ public class MsgController {
     @ApiOperation(value = "查询数据中心消息提醒总表数据", httpMethod = "GET",tags = {"查询数据中心消息提醒总表数据"})
     @GetMapping(value = "/list")
     public List<Msg> getList() {
-        return msgService.findAll();
+        return msgRepo.findAll();
     }
 }

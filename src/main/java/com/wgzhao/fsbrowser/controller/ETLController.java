@@ -3,8 +3,8 @@ package com.wgzhao.fsbrowser.controller;
 import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprec;
 import com.wgzhao.fsbrowser.model.pg.TbAddaxStaEntity;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
+import com.wgzhao.fsbrowser.repository.oracle.VwImpEtlOverprecRepo;
 import com.wgzhao.fsbrowser.repository.pg.AddaxStaRepo;
-import com.wgzhao.fsbrowser.service.ImpEtlOverprecService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +23,7 @@ import java.util.Map;
 public class ETLController {
 
         @Autowired
-        private ImpEtlOverprecService impEtlOverprecService;
+        private VwImpEtlOverprecRepo impEtlOverprecRepo;
 
         @Autowired
         private ViewPseudoRepo viewPseudoRepo;
@@ -34,7 +34,7 @@ public class ETLController {
         // 数据源采集完成情况列表
         @RequestMapping("/accomplishList")
         public List<VwImpEtlOverprec> getAll() {
-            return impEtlOverprecService.getAllImpEtlOverprec();
+            return impEtlOverprecRepo.findAll();
         }
 
         // 各数据源采集完成率，用于图表展示

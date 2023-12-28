@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.ImpSpCom;
-import com.wgzhao.fsbrowser.service.ImpSpComService;
+import com.wgzhao.fsbrowser.repository.oracle.ImpSpComRepo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import io.swagger.annotations.ApiParam;
 
 import java.util.List;
 
@@ -27,7 +25,7 @@ import java.util.List;
 public class ImpSpComController {
 
     @Autowired
-    private ImpSpComService impSpComService;
+    private ImpSpComRepo impSpComRepo;
 
     /**
      * 查询HADOOP_SP的运行脚本（作为主表的附属表）数据
@@ -37,11 +35,11 @@ public class ImpSpComController {
     @ApiOperation(value = "查询HADOOP_SP的运行脚本（作为主表的附属表）数据", httpMethod = "GET",tags = {"查询HADOOP_SP的运行脚本（作为主表的附属表）数据"})
     @GetMapping(value = "/list")
     public List<ImpSpCom> getList() {
-        return impSpComService.findAll();
+        return impSpComRepo.findAll();
     }
 
     @GetMapping("/{id}")
     public List<ImpSpCom> getCmdsBySpId(@PathVariable("id") String spId) {
-        return impSpComService.findBySpId(spId);
+        return impSpComRepo.findAllBySpId(spId);
     }
 }

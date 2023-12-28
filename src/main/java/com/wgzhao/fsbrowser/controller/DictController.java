@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.Dict;
-import com.wgzhao.fsbrowser.service.DictService;
+import com.wgzhao.fsbrowser.repository.oracle.DictRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -21,7 +21,7 @@ import java.util.List;
 public class DictController {
 
     @Autowired
-    DictService dictService;
+    private DictRepo dictRepo;
 
     /**
      * query dict
@@ -29,13 +29,13 @@ public class DictController {
      */
     @GetMapping("/list")
     public List<Dict> getAllDict() {
-        return dictService.getAllDict();
+        return dictRepo.findAll();
     }
 
     @GetMapping("/{code}")
     public Dict getDict(@PathVariable("code") String code)
     {
-        return dictService.findByCode(code);
+        return dictRepo.findByCode(code);
     }
 
     @GetMapping("/add")
@@ -47,7 +47,7 @@ public class DictController {
 
     @GetMapping("/edit/{id}")
     public String editDict(@PathVariable(value = "id") String id, Model model) {
-        Dict dict = dictService.findByCode(id);
+        Dict dict = dictRepo.findByCode(id);
         if (dict != null) {
             model.addAttribute("emptyDict", dict);
             return "dict/detail";
@@ -63,9 +63,9 @@ public class DictController {
 
     @PostMapping("/save")
     public String saveDict(@ModelAttribute("dict") Dict  dict) {
-        Dict result = dictService.findByCode(dict.getDictCode());
+        Dict result = dictRepo.findByCode(dict.getDictCode());
         if (result == null ) {
-            dictService.save(dict);
+            dictRepo.save(dict);
             return "redirect:/dict/list";
         } else {
             return "The dictCode " +  dict.getDictCode() + " has exists";
@@ -75,9 +75,9 @@ public class DictController {
 
     @GetMapping("/delete/{id}")
     public String deleteDict(@PathVariable(value = "id") String id) {
-        Dict dict = dictService.findByCode(id);
+        Dict dict = dictRepo.findByCode(id);
         if (dict != null) {
-            dictService.delete(dict);
+            dictRepo.delete(dict);
         }
         return "redirect:/dict/list";
     }
