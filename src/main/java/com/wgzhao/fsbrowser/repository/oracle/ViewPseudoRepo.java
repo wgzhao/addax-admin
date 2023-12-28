@@ -46,7 +46,7 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
             where kind in('ETL_END','ETL_START') and tradedate>=:l5td and fval in('3','4')
             group by tradedate, fid
             having max(case when fval='3' then 1 else 0 end)=max(case when fval='4' then 1 else 0 end)
-            ) x group by tradeate
+            ) x group by tradedate
             """, nativeQuery = true)
     List<LastEtlTaketime> findLast5LtdTaketimes(@Param("l5td") int l5td);
 
