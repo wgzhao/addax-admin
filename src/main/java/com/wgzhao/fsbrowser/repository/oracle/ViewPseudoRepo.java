@@ -125,4 +125,63 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
             ")\n" +
             "order by case when td_err>0 then 1 when td_ok<td_task then 2 else 3 end,td_task desc", nativeQuery = true)
     List<Map<String, Object>> findTargetComplete();
+
+    // 数据中心采集及数据服务系统清单
+    @Query(value = """
+        select sys_kind,sysid,sys_name,db_constr,db_user
+        from vw_imp_system
+        where ((sys_kind='etl' and length(sysid)=2) or sys_kind='ds')
+        order by 1,2
+        """, nativeQuery = true)
+    List<Map<String, Object>> findEtlAndDs();
+
+    @Query(value = """
+        select sys_kind,sysid,sys_name,db_constr,db_user
+        from vw_imp_system
+        where ((sys_kind='etl' and length(sysid)=2) or sys_kind='ds')
+            and lower(sysid||sys_name||db_constr||db_user)
+            like lower('%' || ?1 || '%')
+        order by 1,2
+        """, nativeQuery = true)
+    List<Map<String, Object>> findEtlAndDs(String filter);
+
+    // 数据中心采集表清单(显示100条)
+    @Query(value = """
+        select sysname,sou_owner,sou_tablename,sou_filter,dest_owner,dest_tablename,start_time,end_time
+        from vw_imp_etl
+        where rownum <= 100 order by 1,2,3
+        """, nativeQuery = true)
+    List<Map<String, Object>> findTop100EtlInfo();
+
+    @Query(value = """
+        select sysname,sou_owner,sou_tablename,sou_filter,dest_owner,dest_tablename,start_time,end_time
+        from vw_imp_etl
+        where lower(sysname||sou_owner||sou_tablename||dest_owner||dest_tablename)
+        		like lower('%' || ?1 || '%')
+        	and rownum<=100 order by 1,2,3
+        """, nativeQuery = true)
+    List<Map<String, Object>> findTop100EtlInfo(String filter);
+
+    // 数据中心数据推送表清单(显示100条)
+    @Query(value = """
+    select ds_name,lower(dest_tablename) as tblname,
+    to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
+    to_char(end_time, 'yyyy-MM-dd HH:mm:ss') as end_time
+    from vw_imp_ds2_mid
+    where rownum<=100
+    order by dest_sysid,dest_tablename
+    """, nativeQuery = true)
+    List<Map<String, Object>> findTop100DsInfo();
+
+    @Query(value = """
+    select ds_name,lower(dest_tablename) as tblname,
+    to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
+    to_char(end_time, 'yyyy-MM-dd HH:mm:ss') as end_time
+    from vw_imp_ds2_mid
+    where lower(task_group||dest_sysid||d_conn||dest_tablename||sou_table)
+    		like lower('%' || ?1 || '%')
+    	and rownum<=100
+    order by dest_sysid,dest_tablename
+    """, nativeQuery = true)
+    List<Map<String, Object>> findTop100DsInfo(String filter);
 }

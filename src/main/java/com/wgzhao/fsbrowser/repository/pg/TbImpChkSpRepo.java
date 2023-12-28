@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 import java.util.Map;
 
-public interface ImpChkSpRepo extends JpaRepository<TbImpChkSpEntity, String> {
+public interface TbImpChkSpRepo extends JpaRepository<TbImpChkSpEntity, String> {
     @Query(value = "select t.logdate, t.procName, t.checkValue,t.updtDate, " +
             " case when t.procName='edw.com_date' and t.checkValue<>0 then 1 else 0 end as remark " +
             "from TbImpChkSpEntity t " +

@@ -1,6 +1,9 @@
 package com.wgzhao.fsbrowser.controller;
 
+import com.wgzhao.fsbrowser.repository.oracle.TbImpFlagRepo;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
+import com.wgzhao.fsbrowser.utils.CacheUtil;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,9 +22,22 @@ public class DashboardController {
     @Autowired
     private ViewPseudoRepo viewPseudoRepo;
 
+    @Autowired
+    private TbImpFlagRepo tbImpFlagRepo;
+
+    @Resource
+    CacheUtil cacheUtil;
+
     // 各数据源采集完成率，用于图表展示
     @RequestMapping("/accomplishRatio")
     public List<Map<String, Float>> accompListRatio() {
         return viewPseudoRepo.accompListRatio();
+    }
+
+    //  最近5天采集耗时对比
+    @RequestMapping("/last5DaysEtlTime")
+    public List<Map<String, Object>> last5DaysEtlTime() {
+        int l5td = Integer.parseInt(cacheUtil.get("param.L5TD"));
+        return tbImpFlagRepo.findLast5DaysEtlTime(l5td);
     }
 }

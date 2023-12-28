@@ -2,7 +2,7 @@ package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.pg.TbImpChkSpEntity;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
-import com.wgzhao.fsbrowser.repository.pg.ImpChkSpRepo;
+import com.wgzhao.fsbrowser.repository.pg.TbImpChkSpRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +25,7 @@ public class SpMonitorController {
     private ViewPseudoRepo  viewPseudoRepo;
 
     @Autowired
-    private ImpChkSpRepo impChkSpRepo;
+    private TbImpChkSpRepo tbImpChkSpRepo;
 
     // SP 整体执行情况
     @GetMapping("/totalExec")
@@ -36,13 +36,13 @@ public class SpMonitorController {
     // SP 计算的有效性检测结果
     @GetMapping("/validChkSp")
     public List<TbImpChkSpEntity> getValidChkSp() {
-        return impChkSpRepo.findValidChkSp(calcTradeDate(5, "yyyyMMdd"));
+        return tbImpChkSpRepo.findValidChkSp(calcTradeDate(5, "yyyyMMdd"));
     }
 
     // SP计算的记录数检测结果
     @GetMapping("/validSpCnt")
     public List<Map<String, Object>> getValidSpCnt() {
-        return impChkSpRepo.findValidSpCnt(calcTradeDate(5, "yyyyMMdd"));
+        return tbImpChkSpRepo.findValidSpCnt(calcTradeDate(5, "yyyyMMdd"));
     }
 
     // 特殊任务：报错、重跑
