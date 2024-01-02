@@ -101,4 +101,8 @@ public class VwImpEtlService {
         };
         return vwImpEtlRepo.findAll(spec, 0, 100);
     }
+
+    public VwImpEtl findOneODSInfo(String tid) {
+        return vwImpEtlRepo.findById(tid).orElse(null);
+    }
 }

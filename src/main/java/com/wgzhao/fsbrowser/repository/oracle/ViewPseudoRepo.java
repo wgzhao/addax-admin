@@ -156,4 +156,15 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
         order by dest_sysid,dest_tablename
     """, nativeQuery = true)
     List<Map<String, Object>> findTop100DsInfo(String filter);
+
+    // ODS采集表字段对比
+    @Query(value="""
+        select row_number()over(order by nvl(col_idx,column_id)) idx,
+               col_name,col_type_full,col_comment,tbl_comment,column_name_orig,data_type,data_length,data_precision,data_scale,column_comment,table_comment,dest_type,dest_type_full
+        from stg01.vw_imp_tbl
+        where tid=?1
+          and col_name not in('DW_TRADE_DATE','MODIFIER_NO','DW_CLT_DATE','LOGDATE')
+        order by nvl(col_idx,column_id)
+    """, nativeQuery = true)
+    List<Map<String, Object>> findFieldsCompare(String tid);
 }
