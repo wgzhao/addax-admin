@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.service;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpSp;
-import com.wgzhao.fsbrowser.repository.oracle.ImpSpRepo;
+import com.wgzhao.fsbrowser.model.oracle.TbImpSp;
+import com.wgzhao.fsbrowser.repository.oracle.TbImpSpRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,9 +17,9 @@ import java.util.Map;
 public class ImpSpService {
 
     @Autowired
-    private ImpSpRepo impSpRepo;
+    private TbImpSpRepo impSpRepo;
 
-    public List<ImpSp> findAll() {
+    public List<TbImpSp> findAll() {
         return impSpRepo.findAll();
     }
 

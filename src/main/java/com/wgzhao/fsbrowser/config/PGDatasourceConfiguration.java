@@ -21,7 +21,8 @@ import java.util.Objects;
 @EnableJpaRepositories(
         basePackages = {"com.wgzhao.fsbrowser.repository.pg"},
         entityManagerFactoryRef = "pgEntityManagerFactory",
-        transactionManagerRef = "pgTransactionManager"
+        transactionManagerRef = "pgTransactionManager",
+        repositoryBaseClass = com.wgzhao.fsbrowser.repository.BaseRepositoryImpl.class
 )
 public class PGDatasourceConfiguration {
 

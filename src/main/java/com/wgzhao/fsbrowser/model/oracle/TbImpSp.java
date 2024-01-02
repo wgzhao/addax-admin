@@ -22,7 +22,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 @Setter
 @Getter
 @Data
-public class ImpSp {
+public class TbImpSp {
 
     
     // SP用户

@@ -7,7 +7,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name="tb_imp_db")
-public class ImpDB {
+public class TbImpDb {
 
     @Id
     @Column(name = "did")

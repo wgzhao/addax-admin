@@ -1,13 +1,14 @@
 package com.wgzhao.fsbrowser.repository.oracle;
 
 import com.wgzhao.fsbrowser.model.oracle.TbImpFlag;
+import com.wgzhao.fsbrowser.repository.BaseRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Map;
 
-public interface TbImpFlagRepo extends JpaRepository<TbImpFlag, String> {
+public interface TbImpFlagRepo extends BaseRepository<TbImpFlag, String> {
     List<TbImpFlag> findByTradedateAndKind(Integer date, String taskGroup);
 
     List<TbImpFlag> findByTradedateAndKindOrderByDwCltDateDesc(Integer i, String taskGroup);

@@ -1,9 +1,8 @@
 package com.wgzhao.fsbrowser.repository.oracle;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpSp;
+import com.wgzhao.fsbrowser.model.oracle.TbImpSp;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,7 @@ import java.util.Map;
  *
  * @author 
  */
-public interface ImpSpRepo extends JpaRepository<ImpSp, String> {
+public interface TbImpSpRepo extends JpaRepository<TbImpSp, String> {
     @Query(value = "select t.needs, \n" +
             "to_char(fn_imp_value('taskname', t.needs)) as needs_name,\n" +
             "t.needs_flag,\n" +

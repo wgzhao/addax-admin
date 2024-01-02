@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigInteger;
 import java.sql.Date;
@@ -19,7 +20,6 @@ public class VwImpEtl {
     @Column(name = "WKF")
     private String wkf;
 
-    @Id
     @Column(name = "SYSID")
     private String sysid;
 
@@ -90,7 +90,7 @@ public class VwImpEtl {
     private String etlKind;
 
     @Column(name = "RETRY_CNT")
-    private Boolean retryCnt;
+    private Integer retryCnt;
 
     @Column(name = "START_TIME")
     private Date startTime;
@@ -104,11 +104,12 @@ public class VwImpEtl {
     @Column(name = "RUNTIME_ADD")
     private Integer runtimeAdd;
 
+    @Id
     @Column(name = "TID")
     private String tid;
 
     @Column(name = "RID")
-    private Object rid;
+    private String rid;
 
     @Column(name = "SPNAME")
     private String spname;
@@ -157,4 +158,8 @@ public class VwImpEtl {
 
     @Column(name = "JOBKIND")
     private String jobkind;
+
+    // virtual column
+    @Formula("upper(spname || dest_owner||'.'||dest_tablename||','||sou_owner||'.'||sou_tablename||','||realtime_taskgroup)")
+    private String filterColumn;
 }

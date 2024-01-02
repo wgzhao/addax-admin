@@ -135,42 +135,6 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
             """, nativeQuery = true)
     List<Map<String, Object>> findTargetComplete();
 
-    // 数据中心采集及数据服务系统清单
-    @Query(value = """
-        select sys_kind,sysid,sys_name,db_constr,db_user
-        from vw_imp_system
-        where ((sys_kind='etl' and length(sysid)=2) or sys_kind='ds')
-        order by 1,2
-        """, nativeQuery = true)
-    List<Map<String, Object>> findEtlAndDs();
-
-    @Query(value = """
-        select sys_kind,sysid,sys_name,db_constr,db_user
-        from vw_imp_system
-        where ((sys_kind='etl' and length(sysid)=2) or sys_kind='ds')
-            and lower(sysid||sys_name||db_constr||db_user)
-            like lower('%' || ?1 || '%')
-        order by 1,2
-        """, nativeQuery = true)
-    List<Map<String, Object>> findEtlAndDs(String filter);
-
-    // 数据中心采集表清单(显示100条)
-    @Query(value = """
-        select sysname,sou_owner,sou_tablename,sou_filter,dest_owner,dest_tablename,start_time,end_time
-        from vw_imp_etl
-        where rownum <= 100 order by 1,2,3
-        """, nativeQuery = true)
-    List<Map<String, Object>> findTop100EtlInfo();
-
-    @Query(value = """
-        select sysname,sou_owner,sou_tablename,sou_filter,dest_owner,dest_tablename,start_time,end_time
-        from vw_imp_etl
-        where lower(sysname||sou_owner||sou_tablename||dest_owner||dest_tablename)
-        		like lower('%' || ?1 || '%')
-        	and rownum<=100 order by 1,2,3
-        """, nativeQuery = true)
-    List<Map<String, Object>> findTop100EtlInfo(String filter);
-
     // 数据中心数据推送表清单(显示100条)
     @Query(value = """
         select ds_name,lower(dest_tablename) as tblname,

@@ -4,6 +4,7 @@ import com.wgzhao.fsbrowser.model.oracle.VwImpSystem;
 import com.wgzhao.fsbrowser.repository.oracle.VwImpSystemRepo;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -66,6 +67,6 @@ public class VwImpSystemService {
         List<Sort.Order> orders = new ArrayList<>();
         orders.add(new Sort.Order(Sort.Direction.ASC, "sysKind"));
         orders.add(new Sort.Order(Sort.Direction.ASC, "sysid"));
-        return vwImpSystemRepo.findAll(spec, Sort.by(orders));
+        return vwImpSystemRepo.findAll(spec, 0, 100, Sort.by(orders));
     }
 }

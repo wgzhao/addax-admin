@@ -21,7 +21,8 @@ import java.util.Objects;
 @EnableJpaRepositories(
         basePackages = {"com.wgzhao.fsbrowser.repository.oracle"},
         entityManagerFactoryRef = "oracleEntityManagerFactory",
-        transactionManagerRef = "oracleTransactionManager"
+        transactionManagerRef = "oracleTransactionManager",
+        repositoryBaseClass = com.wgzhao.fsbrowser.repository.BaseRepositoryImpl.class
 )
 public class OracleDatasourceConfiguration {
 

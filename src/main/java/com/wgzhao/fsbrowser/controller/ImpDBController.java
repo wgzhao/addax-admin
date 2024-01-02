@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.controller;
 
-import com.wgzhao.fsbrowser.model.oracle.ImpDB;
-import com.wgzhao.fsbrowser.repository.oracle.ImpDBRepo;
+import com.wgzhao.fsbrowser.model.oracle.TbImpDb;
+import com.wgzhao.fsbrowser.repository.oracle.TbImpDBRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,24 +18,24 @@ public class ImpDBController {
 
 
     @Autowired
-    private ImpDBRepo impDBRepo;
+    private TbImpDBRepo tbImpDBRepo;
 
     @GetMapping("/list")
-    public List<ImpDB> getAllImpDB() {
-        return impDBRepo.findAll();
+    public List<TbImpDb> getAllImpDB() {
+        return tbImpDBRepo.findAll();
     }
 
     @GetMapping("/detail/{id}")
-    public Optional<ImpDB> getImpDBById(Model model, @PathVariable(value="id") String id) {
-        return impDBRepo.findById(id);
+    public Optional<TbImpDb> getImpDBById(Model model, @PathVariable(value="id") String id) {
+        return tbImpDBRepo.findById(id);
     }
 
     @PostMapping("/save")
-    public ImpDB saveImpDB(@ModelAttribute("impDB") ImpDB impDB) {
-        if (impDB.getId() == null || Objects.equals(impDB.getId(), "")) {
-            impDB.setId(UUID.randomUUID().toString());
+    public TbImpDb saveImpDB(@ModelAttribute("impDB") TbImpDb tbImpDb) {
+        if (tbImpDb.getId() == null || Objects.equals(tbImpDb.getId(), "")) {
+            tbImpDb.setId(UUID.randomUUID().toString());
         }
-        impDBRepo.save(impDB);
-        return impDB;
+        tbImpDBRepo.save(tbImpDb);
+        return tbImpDb;
     }
 }
