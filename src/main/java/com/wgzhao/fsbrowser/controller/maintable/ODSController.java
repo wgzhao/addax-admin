@@ -1,10 +1,14 @@
 package com.wgzhao.fsbrowser.controller.maintable;
 
 import com.wgzhao.fsbrowser.model.oracle.ImpSpCom;
+import com.wgzhao.fsbrowser.model.oracle.TbImpSpNeedtab;
 import com.wgzhao.fsbrowser.model.oracle.VwImpEtl;
+import com.wgzhao.fsbrowser.model.pg.VwAddaxLog;
 import com.wgzhao.fsbrowser.repository.oracle.ImpSpComRepo;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.fsbrowser.repository.oracle.VwImpEtlRepo;
+import com.wgzhao.fsbrowser.service.TbImpSpNeedtabService;
+import com.wgzhao.fsbrowser.service.VwAddaxLogService;
 import com.wgzhao.fsbrowser.service.VwImpEtlService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +37,12 @@ public class ODSController {
     @Autowired
     private ImpSpComRepo impSpComRepo;
 
+    @Autowired
+    private TbImpSpNeedtabService tbImpSpNeedtabService;
+
+    @Autowired
+    private VwAddaxLogService vwAddaxLogService;
+
     // 获得 ODS 采集的基本信息
     @RequestMapping("/list")
     public List<VwImpEtl> getODSList(@RequestParam(value = "flag", defaultValue = "", required = false) String flag,
@@ -58,5 +68,22 @@ public class ODSController {
     public List<ImpSpCom> cmdList(@PathVariable("spId") String spId)
     {
         return impSpComRepo.findAllBySpId(spId);
+    }
+
+    // 表使用场景
+    @RequestMapping("/tableUsed")
+    public List<TbImpSpNeedtab> tableUsed(@RequestParam("tablename") String tablename,
+                                          @RequestParam("sysId") String sysId)
+    {
+        return tbImpSpNeedtabService.getNeedtablesByTablename(tablename, sysId);
+    }
+
+    // 取 Addax 执行结果 按照名称显示最近15条记录
+    @RequestMapping("/addaxResult/{spname}")
+    public List<VwAddaxLog> addaxResult(@PathVariable("spname") String spname)
+    {
+        List<String> spNames = List.of(spname, spname +"_100", spname + "_102");
+
+        return vwAddaxLogService.getAddaxResult(spNames);
     }
 }
