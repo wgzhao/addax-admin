@@ -57,7 +57,7 @@ public class ETLController {
         }
 
         // 任务拒绝行
-        @GetMapping("/taskReject")
+        @GetMapping("/rejectTask")
         public List<TbAddaxStaEntity> getTaskReject() {
                 return addaxStaRepo.findByTotalErrNot(0);
         }

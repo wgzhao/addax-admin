@@ -21,10 +21,10 @@ public class VwImpTaskgroupDetail {
     private String kind;
 
     @Column(name = "ALLCNT")
-    private BigInteger allcnt;
+    private Integer allcnt;
 
     @Column(name = "YCNT")
-    private BigInteger ycnt;
+    private Integer ycnt;
 
     @Column(name = "START_TIME")
     private Date startTime;
@@ -33,22 +33,22 @@ public class VwImpTaskgroupDetail {
     private Date endTime;
 
     @Column(name = "RUNTIME")
-    private BigInteger runtime;
+    private Integer runtime;
 
     @Column(name = "RCNT")
-    private BigInteger rcnt;
+    private Integer rcnt;
 
     @Column(name = "START_TIME_R")
     private Date startTimeR;
 
     @Column(name = "NCNT")
-    private BigInteger ncnt;
+    private Integer ncnt;
 
     @Column(name = "ECNT")
-    private BigInteger ecnt;
+    private Integer ecnt;
 
     @Column(name = "PREC")
-    private BigInteger prec;
+    private Float prec;
 
     @Column(name = "KIND2")
     private String kind2;
