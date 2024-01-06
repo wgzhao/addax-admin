@@ -1,0 +1,45 @@
+package com.wgzhao.addax.admin.controller;
+
+import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
+import com.wgzhao.addax.admin.repository.oracle.ImpSpComRepo;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+/**
+ * HADOOP_SP的运行脚本（作为主表的附属表） API接口
+ *
+ * @author 
+ */
+@Api(value = "/impSpCom", tags = {"HADOOP_SP的运行脚本（作为主表的附属表）API"})
+@RequestMapping("/impSpCom")
+@RestController
+@CrossOrigin
+public class ImpSpComController {
+
+    @Autowired
+    private ImpSpComRepo impSpComRepo;
+
+    /**
+     * 查询HADOOP_SP的运行脚本（作为主表的附属表）数据
+     *
+     * @return List of {@link ImpSpCom}
+     */
+    @ApiOperation(value = "查询HADOOP_SP的运行脚本（作为主表的附属表）数据", httpMethod = "GET",tags = {"查询HADOOP_SP的运行脚本（作为主表的附属表）数据"})
+    @GetMapping(value = "/list")
+    public List<ImpSpCom> getList() {
+        return impSpComRepo.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public List<ImpSpCom> getCmdsBySpId(@PathVariable("id") String spId) {
+        return impSpComRepo.findAllBySpId(spId);
+    }
+}
