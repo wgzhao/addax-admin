@@ -1,6 +1,8 @@
-# ETL Management (backend)
+# ETL Management 
 
-## Description
+The complete ETL management solution. It is composed of three projects:
 
-This is the backend of the ETL Management project. It is a REST API that allows the user to manage ETL processes.
-The frontend can be found [here](https://github.com/wgzhao/fsbrowser-ui)
+- [Addax](https://github.com/wgzhao/addax) The ETL core program
+- [Addax Admin](https://github.com/wgzhao/addax-admin) The ETL management backend 
+- [Addax UI](https://github.com/wgzhao/addax-ui) The ETL management frontend
+
