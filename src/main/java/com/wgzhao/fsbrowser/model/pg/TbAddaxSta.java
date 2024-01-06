@@ -6,14 +6,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.sql.Timestamp;
-import java.util.Objects;
 
 @Entity
 @Table(name = "tb_addax_sta", schema = "public", catalog = "stg01")
 @Data
 @Setter
 @Getter
-public class TbAddaxStaEntity {
+public class TbAddaxSta {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "pkid")
