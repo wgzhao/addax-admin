@@ -1,7 +1,7 @@
 package com.wgzhao.fsbrowser.controller;
 
 import com.wgzhao.fsbrowser.model.oracle.VwImpEtlOverprec;
-import com.wgzhao.fsbrowser.model.pg.TbAddaxStaEntity;
+import com.wgzhao.fsbrowser.model.pg.TbAddaxSta;
 import com.wgzhao.fsbrowser.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.fsbrowser.repository.oracle.VwImpEtlOverprecRepo;
 import com.wgzhao.fsbrowser.repository.pg.AddaxStaRepo;
@@ -58,7 +58,7 @@ public class ETLController {
 
         // 任务拒绝行
         @GetMapping("/rejectTask")
-        public List<TbAddaxStaEntity> getTaskReject() {
+        public List<TbAddaxSta> getTaskReject() {
                 return addaxStaRepo.findByTotalErrNot(0);
         }
 

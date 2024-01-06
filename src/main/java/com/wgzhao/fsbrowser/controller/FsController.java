@@ -29,7 +29,8 @@ public class FsController {
 
     private static final Logger logger = LoggerFactory.getLogger(FsController.class);
 
-    private static final String DS_EXEC = "/opt/infalog/bin/sp_alone.sh start_wkf";
+    @Value("${ds.exec}")
+    private String dsExec;
 
     @Value("${log.dir}")
     private String logDir;
@@ -95,7 +96,7 @@ public class FsController {
     public String execDs(String ctype, String sp_id ) {
         logger.info("exec ds: ctype: {}, sp_id: {}", ctype, sp_id);
         StringBuilder sb = new StringBuilder(" ");
-        sb.append(DS_EXEC);
+        sb.append(dsExec);
         if (Objects.equals(ctype, "source")) {
              sb.append(" soutab_start ");
         } else if (Objects.equals(ctype, "sp")) {
