@@ -13,4 +13,6 @@ public interface TbImpSpNeedtabRepo extends JpaRepository<TbImpSpNeedtab, String
         where lower(tableName)=:tablename or lower(tableName) like 'ods' || :sysId || '.%'
         """, nativeQuery = false)
     List<TbImpSpNeedtab> findByTableName(String tablename, String sysId);
+
+    List<TbImpSpNeedtab> findDistinctByTableNameIgnoreCase(String tbl);
 }

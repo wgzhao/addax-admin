@@ -36,4 +36,7 @@ public class TbImpSpNeedtab {
 
     @Formula("to_char(fn_imp_value('taskname',sp_id))")
     private String used;
+
+    @Formula("decode(kind,'ALL','SP基础表','DS','数据服务源表','NEEDS','SP前置依赖','其他类型')")
+    private String kindName;
 }
