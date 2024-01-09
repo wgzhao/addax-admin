@@ -15,7 +15,7 @@ import java.util.Map;
 public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
 
     // 特殊任务提醒
-    @Query(value="""
+    @Query(value = """
             select spname, flag, retry_cnt, runtime,
             to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
             to_char(end_time,'yyyy-MM-dd HH:mm:ss') as end_time
@@ -137,34 +137,48 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
 
     // 数据中心数据推送表清单(显示100条)
     @Query(value = """
-        select ds_name,lower(dest_tablename) as tblname,
-        to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
-        to_char(end_time, 'yyyy-MM-dd HH:mm:ss') as end_time
-        from vw_imp_ds2_mid
-        where rownum<=100
-        order by dest_sysid,dest_tablename
-    """, nativeQuery = true)
+                select ds_name,lower(dest_tablename) as tblname,
+                to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
+                to_char(end_time, 'yyyy-MM-dd HH:mm:ss') as end_time
+                from vw_imp_ds2_mid
+                where rownum<=100
+                order by dest_sysid,dest_tablename
+            """, nativeQuery = true)
     List<Map<String, Object>> findTop100DsInfo();
 
     @Query(value = """
-        select ds_name,lower(dest_tablename) as tblname,
-        to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
-        to_char(end_time, 'yyyy-MM-dd HH:mm:ss') as end_time
-        from vw_imp_ds2_mid
-        where lower(task_group||dest_sysid||d_conn||dest_tablename||sou_table)
-        like lower('%' || ?1 || '%') and rownum <= 100
-        order by dest_sysid,dest_tablename
-    """, nativeQuery = true)
+                select ds_name,lower(dest_tablename) as tblname,
+                to_char(start_time,'yyyy-MM-dd HH:mm:ss') as start_time,
+                to_char(end_time, 'yyyy-MM-dd HH:mm:ss') as end_time
+                from vw_imp_ds2_mid
+                where lower(task_group||dest_sysid||d_conn||dest_tablename||sou_table)
+                like lower('%' || ?1 || '%') and rownum <= 100
+                order by dest_sysid,dest_tablename
+            """, nativeQuery = true)
     List<Map<String, Object>> findTop100DsInfo(String filter);
 
     // ODS采集表字段对比
-    @Query(value="""
-        select row_number()over(order by nvl(col_idx,column_id)) idx,
-               col_name,col_type_full,col_comment,tbl_comment,column_name_orig,data_type,data_length,data_precision,data_scale,column_comment,table_comment,dest_type,dest_type_full
-        from stg01.vw_imp_tbl
-        where tid=?1
-          and col_name not in('DW_TRADE_DATE','MODIFIER_NO','DW_CLT_DATE','LOGDATE')
-        order by nvl(col_idx,column_id)
-    """, nativeQuery = true)
+    @Query(value = """
+                select row_number()over(order by nvl(col_idx,column_id)) idx,
+                       col_name,col_type_full,col_comment,tbl_comment,column_name_orig,data_type,data_length,data_precision,data_scale,column_comment,table_comment,dest_type,dest_type_full
+                from stg01.vw_imp_tbl
+                where tid=?1
+                  and col_name not in('DW_TRADE_DATE','MODIFIER_NO','DW_CLT_DATE','LOGDATE')
+                order by nvl(col_idx,column_id)
+            """, nativeQuery = true)
     List<Map<String, Object>> findFieldsCompare(String tid);
+
+    // 推送表字段详情
+
+    @Query(value = """
+             select a.column_name, a.data_type, a.data_length, a.data_precision, a.data_scale, b.col_name, b.col_type
+            from vw_imp_ds2_mid t
+            inner join tb_imp_etl_soutab a
+            on a.sou_db_conn=t.sou_db_conn and lower(a.owner)=lower(t.dest_owner) and lower(a.table_name)=lower(t.dest_tablename)
+            left join tb_imp_etl_tbls b
+            on lower(b.db_name||'.'||b.tbl_name)=case t.sou_istab when 1 then t.sou_table else 'ds.'||t.dsview end and lower(b.col_name)=lower(a.column_name)
+            where t.tbl_id=?1
+            order by a.column_name
+            """, nativeQuery = true)
+    List<Map<String, Object>> findTableFields(String tbl_id);
 }

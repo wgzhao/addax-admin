@@ -3,15 +3,22 @@ package com.wgzhao.addax.admin.controller.maintable;
 import com.wgzhao.addax.admin.model.oracle.TbImpDs2Tbls;
 import com.wgzhao.addax.admin.model.oracle.VwImpDs2;
 import com.wgzhao.addax.admin.repository.oracle.TbImpDs2TblsRepo;
+import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.VwImpDs2Service;
+import com.wgzhao.addax.admin.utils.CacheUtil;
+import com.wgzhao.addax.admin.utils.LogFileUtil;
 import io.swagger.annotations.Api;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -27,6 +34,15 @@ public class DataServiceController {
 
     @Autowired
     private TbImpDs2TblsRepo tbImpDs2TblsRepo;
+
+    @Autowired
+    private ViewPseudoRepo viewPseudoRepo;
+
+    @Resource
+    CacheUtil cacheUtil;
+
+    @Resource
+    LogFileUtil logFileUtil;
 
     @GetMapping({"/list", "/"})
     public List<VwImpDs2> list()
@@ -45,5 +61,27 @@ public class DataServiceController {
     public List<TbImpDs2Tbls> getDsTable(@PathVariable("id") String id)
     {
         return tbImpDs2TblsRepo.findByDsId(id);
+    }
+
+    // 获得推送表字段详情
+    @GetMapping("/dsTableFields/{tbl}")
+    public List<Map<String, Object>> getDsTableFields(@PathVariable("tbl") String tbl)
+    {
+        return viewPseudoRepo.findTableFields(tbl);
+    }
+
+    // 获取指定 SP 的日志列表
+    @GetMapping("/logFiles/{spName}")
+    public List<String> getSpLog(@PathVariable("spName") String spName)
+    {
+        String tradeRange = cacheUtil.get("param.L5TD") + "," + cacheUtil.get("param.NTD");
+        return logFileUtil.getFs(tradeRange, spName);
+    }
+
+    // 获取指定日志文件的内容
+    @GetMapping("/logFileContent")
+    public String getLogFileContent(@RequestParam("f") String fname)
+    {
+        return logFileUtil.getFileContent(fname);
     }
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 import java.math.BigInteger;
 import java.sql.Date;
@@ -62,4 +63,8 @@ public class TbImpDs2Tbls {
     @Basic
     @Column(name = "MAX_RUNTIME")
     private BigInteger maxRuntime;
+
+    // 采集配置文件
+    @Formula("to_char(fn_imp_value('ds_json', TBL_ID))")
+    private String dsJson;
 }

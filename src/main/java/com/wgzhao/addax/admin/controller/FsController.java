@@ -46,45 +46,6 @@ public class FsController {
                 "                </pre>\n" +
                 "        </h3>";
     }
-    /**
-     * fs/{cdate}/{job}
-     * @return
-     */
-    @RequestMapping("/fs/{cdate}/{job}")
-    public String getFs(HttpServletRequest request, @PathVariable  String cdate, @PathVariable String  job) throws ParseException {
-        logger.info("query params: cdate: {}, job: {}", cdate, job);
-        List<String> result = new ArrayList<>();
-        // split cdate
-        String[] dateList = cdate.split(",");
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        Date bTime = sdf.parse(dateList[0]);
-        Date eTime = sdf.parse(dateList[1]);
-        Pattern pattern;
-        long today = sdf.parse(sdf.format(new Date())).getTime();
-        for (Date d = bTime; d.compareTo(eTime) <= 0; d.setTime(d.getTime() + 86400000)) {
-            String curDir = String.format(sdf.format(d));
-            if (job.startsWith("tuna")) {
-                pattern = Pattern.compile(job + "_" + curDir + "_.*.log");
-            } else {
-                pattern = Pattern.compile("tuna_" + ".*?_" + job + "_\\d+_" + curDir + "_.*.log");
-            }
-            if (d.getTime() >= today) {
-                result.addAll(findFiles("./", pattern));
-            } else {
-                result.addAll(findFiles(curDir, pattern));
-            }
-        }
-        if (result.isEmpty()) {
-            return "no file found";
-        }
-        if (result.size() == 1) {
-            logger.info("Found only one file: {}", result.get(0));
-            return getFileContent(result.get(0));
-        } else {
-            logger.info("Found {} files", result.size());
-            return createLink(request.getContextPath(), result);
-        }
-    }
 
     @RequestMapping("/get")
     public String get(@RequestParam String fname) {
@@ -92,84 +53,6 @@ public class FsController {
         return getFileContent(fname);
     }
 
-    @RequestMapping("/ds")
-    public String execDs(String ctype, String sp_id ) {
-        logger.info("exec ds: ctype: {}, sp_id: {}", ctype, sp_id);
-        StringBuilder sb = new StringBuilder(" ");
-        sb.append(dsExec);
-        if (Objects.equals(ctype, "source")) {
-             sb.append(" soutab_start ");
-        } else if (Objects.equals(ctype, "sp")) {
-            sb.append(" sp_start ");
-        } else if (Objects.equals(ctype, "spcom")) {
-            sb.append(" spcom ").append(sp_id);
-        } else {
-            // return HTTP 400 bad entity
-            return "bad entity";
-        }
-        try {
-            Process process = Runtime.getRuntime().exec(sb.toString());
-            process.waitFor();
-            return new String(process.getInputStream().readAllBytes());
-        } catch (IOException | InterruptedException e) {
-            logger.error("exec ds error: {}", e.getMessage());
-            return e.getMessage();
-        }
-    }
-
-    /**
-     * Find file in special directory with regex pattern
-     */
-    private List<String> findFiles(String dir, Pattern pattern) {
-        List<String> result = new ArrayList<>();
-        File file = new File(logDir + File.separator + dir);
-        if (! file.exists() || ! file.isDirectory()) {
-            return result;
-        }
-        for (File f: Objects.requireNonNull(file.listFiles())) {
-            if (pattern.matcher(f.getName()).find()) {
-                result.add(new File(logDir).toURI().relativize(f.toURI()).getPath());
-            }
-        }
-        return result;
-    }
-
-    Comparator<String> comparator = new Comparator<String>() {
-        @Override
-        public int compare(String o1, String o2) {
-            Pattern p = Pattern.compile(".*(\\d{8})_(\\d{6}).*.log");
-            String s1 = "";
-            String s2 = "";
-            Matcher matcher = p.matcher(o1);
-            if (matcher.find()) {
-                s1 = matcher.group(1) + matcher.group(2);
-            }
-            matcher = p.matcher(o2);
-            if (matcher.find()) {
-                s2 = matcher.group(1) + matcher.group(2);
-            }
-            return s2.compareTo(s1);
-        }
-    };
-    /**
-     * create html link for files
-     */
-    private String createLink(String path, List<String> files)
-    {
-        // sort files by special sort alg
-        StringBuilder sb = new StringBuilder();
-        // get the context prefix path from server.servlet.context-path
-
-        String urlTemplate = "<a href=\"%s/get?fname=%s\">%s</a><br/>";
-        String[] fileArray = new String[files.size()];
-        // convert list to array
-        files.toArray(fileArray);
-        Arrays.sort(fileArray, comparator);
-        for(String f : fileArray) {
-            sb.append((String.format(urlTemplate, path, f, new File(f).getName())));
-        }
-        return sb.toString();
-    }
 
     private String getFileContent(String fname)  {
         File file = new File(logDir + "/" + fname);
