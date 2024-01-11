@@ -38,12 +38,6 @@ public class DataServiceController {
     @Autowired
     private ViewPseudoRepo viewPseudoRepo;
 
-    @Resource
-    CacheUtil cacheUtil;
-
-    @Resource
-    LogFileUtil logFileUtil;
-
     @GetMapping({"/list", "/"})
     public List<VwImpDs2> list()
     {
@@ -70,18 +64,4 @@ public class DataServiceController {
         return viewPseudoRepo.findTableFields(tbl);
     }
 
-    // 获取指定 SP 的日志列表
-    @GetMapping("/logFiles/{spName}")
-    public List<String> getSpLog(@PathVariable("spName") String spName)
-    {
-        String tradeRange = cacheUtil.get("param.L5TD") + "," + cacheUtil.get("param.NTD");
-        return logFileUtil.getFs(tradeRange, spName);
-    }
-
-    // 获取指定日志文件的内容
-    @GetMapping("/logFileContent")
-    public String getLogFileContent(@RequestParam("f") String fname)
-    {
-        return logFileUtil.getFileContent(fname);
-    }
 }

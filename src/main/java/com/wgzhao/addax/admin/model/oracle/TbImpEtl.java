@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.model.oracle;
 
-import jakarta.persistence.*;
 import java.util.Date;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +19,7 @@ import lombok.Setter;
 @Setter
 @Getter
 @Data
-public class ImpEtl {
+public class TbImpEtl {
 
     
     // 源系统编号

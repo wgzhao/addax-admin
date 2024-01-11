@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * HADOOP_SP的配置主表 服务接口
@@ -36,4 +37,7 @@ public class ImpSpService {
         return impSpRepo.findAllNeeds(spId);
     }
 
+    public Optional<TbImpSp> findById(String id) {
+        return impSpRepo.findById(id);
+    }
 }

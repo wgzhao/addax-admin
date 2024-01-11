@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.utils;
 
+import oracle.ucp.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +22,7 @@ public class DsUtil {
     @Value("${addax.ds.path}")
     private static String dsExec;
 
-    private static final Map<String, String> ctypeMap = Map.of(
+    private final Map<String, String> ctypeMap = Map.of(
             "source", "soutab_start",
             "sp", "sp_start",
             "spcom", "spcom");
@@ -32,27 +33,27 @@ public class DsUtil {
      *
      * @return 调度工具命令执行结果
      */
-    public static String execDs(String ctype, String sp_id ) {
+    public Pair<Boolean, String>  execDs(String ctype, String sp_id ) {
         logger.info("exec ds: ctype: {}, sp_id: {}", ctype, sp_id);
         StringBuilder sb = new StringBuilder(" ");
         sb.append(dsExec);
         if (! ctypeMap.containsKey(ctype)) {
             logger.error("bad ctype: {}", ctype);
-            return "bad ctype";
+            return new Pair<>(false, "bad ctype");
         }
         sb.append(" ").append(ctypeMap.get(ctype));
 
         try {
             Process process = Runtime.getRuntime().exec(sb.toString());
             process.waitFor();
-            return new String(process.getInputStream().readAllBytes());
+            return new Pair<>(true, new String(process.getInputStream().readAllBytes()));
         } catch (IOException | InterruptedException e) {
             logger.error("exec ds error: {}", e.getMessage());
-            return e.getMessage();
+            return new Pair<>(false,  e.getMessage());
         }
     }
 
-    public static String getFileContent(String path) {
+    public String getFileContent(String path) {
         try {
             return Files.readString(Paths.get(path));
         } catch (IOException e) {

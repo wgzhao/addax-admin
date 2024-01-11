@@ -56,8 +56,9 @@ public class SPController {
     }
 
     @GetMapping("/detail/{id}")
-    public Optional<TbImpDb> getImpDBById(@PathVariable(value="id") String id) {
-        return tbImpDBRepo.findById(id);
+    public Optional<TbImpSp> getImpDBById(@PathVariable(value="id") String id) {
+        return impSpService.findById(id);
+//        return tbImpDBRepo.findById(id);
     }
 
     @PostMapping("/save")
