@@ -6,10 +6,13 @@ import com.wgzhao.addax.admin.repository.oracle.TbDictRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbDictionaryRepo;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,40 +37,66 @@ public class ParamManageController {
      * query dict
      * @return List of {@link TbDict}
      */
-    @GetMapping("/list")
-    public List<TbDict> getAllDict() {
+    @GetMapping("/dicts")
+    public List<TbDict> listDicts() {
         return dictRepo.findAll();
     }
 
-    @GetMapping("/detail/{code}")
+    @GetMapping("/dicts/{code}")
     public Optional<TbDict> getDict(@PathVariable("code") String code)
     {
         return dictRepo.findById(code);
     }
 
-    @GetMapping("/dictionary/{entryCode}")
+    @PostMapping("/dicts")
+    public TbDict createOrSaveDict(@RequestBody TbDict dict) {
+        TbDict result = dictRepo.findByDictCode(dict.getDictCode());
+        if (result == null ) {
+            return dictRepo.save(dict);
+        } else {
+            return dict;
+        }
+    }
+
+    @DeleteMapping("/dicts/{id}")
+    public int deleteDict(@PathVariable(value = "id") String id) {
+        TbDict dict = dictRepo.findByDictCode(id);
+        if (dict != null) {
+            dictRepo.delete(dict);
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * 根据 {@link TbDict} 的 `dict_code` 来读取详细的字典编码
+     * @param entryCode String the dict_code value
+     * @return list of {@link TbDictionary}
+     */
+    @GetMapping("/dictionaries/{entryCode}")
     public List<TbDictionary> getDictByEntryCode(@PathVariable("entryCode") String entryCode)
     {
         return dictionaryRepo.findByEntryCodeOrderByEntryCodeAsc(entryCode);
     }
-    @PostMapping("/save")
-    public String saveDict(@ModelAttribute("dict") TbDict  dict) {
-        TbDict result = dictRepo.findByDictCode(dict.getDictCode());
-        if (result == null ) {
-            dictRepo.save(dict);
-            return "redirect:/dict/list";
-        } else {
-            return "The dictCode " +  dict.getDictCode() + " has exists";
-        }
 
+    @PostMapping("/dictionaries")
+    public TbDictionary createOrSaveDictionary(@RequestBody TbDictionary tbDictionary) {
+        return dictionaryRepo.save(tbDictionary);
     }
 
-    @GetMapping("/delete/{id}")
-    public String deleteDict(@PathVariable(value = "id") String id) {
-        TbDict dict = dictRepo.findByDictCode(id);
-        if (dict != null) {
-            dictRepo.delete(dict);
+    @PutMapping("/dictionaries")
+    public List<TbDictionary> bulkCreateDictionary(@RequestBody List<TbDictionary> tbDictionaries) {
+        return dictionaryRepo.saveAll(tbDictionaries);
+    }
+
+    @DeleteMapping("/dictionaries/{id}")
+    public int deleteDictionary(@PathVariable(value = "id") String id) {
+        if (dictionaryRepo.existsById(id)) {
+            dictionaryRepo.deleteById(id);
+            return 1;
+        } else {
+            return 0;
         }
-        return "redirect:/dict/list";
     }
 }

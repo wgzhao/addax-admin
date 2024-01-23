@@ -20,7 +20,7 @@ public class DsUtil {
 
     // 调度工具命令脚本
     @Value("${addax.ds.path}")
-    private static String dsExec;
+    private String dsExec;
 
     private final Map<String, String> ctypeMap = Map.of(
             "source", "soutab_start",
@@ -34,9 +34,8 @@ public class DsUtil {
      * @return 调度工具命令执行结果
      */
     public Pair<Boolean, String>  execDs(String ctype, String sp_id ) {
-        logger.info("exec ds: ctype: {}, sp_id: {}", ctype, sp_id);
         StringBuilder sb = new StringBuilder(" ");
-        sb.append(dsExec);
+        sb.append(dsExec).append(" start_wkf");
         if (! ctypeMap.containsKey(ctype)) {
             logger.error("bad ctype: {}", ctype);
             return new Pair<>(false, "bad ctype");
@@ -44,6 +43,7 @@ public class DsUtil {
         sb.append(" ").append(ctypeMap.get(ctype));
 
         try {
+            logger.info("execute command: '{}'", sb);
             Process process = Runtime.getRuntime().exec(sb.toString());
             process.waitFor();
             return new Pair<>(true, new String(process.getInputStream().readAllBytes()));

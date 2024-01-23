@@ -36,16 +36,6 @@ public class VwImpEtlService {
 
     /**
      * ODS 采集信息
-     * 实现如下的 SQL 逻辑
-     * select dest_owner,sou_owner,dest_tablename,sys_name,retry_cnt,tid,spname,flag,runtime
-     * from stg01.vw_imp_etl
-     * where (flag='${etl_flag}' or '${etl_flag}' is null) and
-     * 	(
-     * 	regexp_like(upper(dest_owner||'.'||dest_tablename||','||sou_owner||'.'||sou_tablename||','||realtime_taskgroup) ,'${etl_filter}') ) or
-     * 	instr(upper(';${etl_filter};') , upper(';'||dest_owner||'.'||dest_tablename||';'))>0 or
-     * 	spname='${etl_filter}' or
-     * 	'${etl_filter}' is null
-     * 	) and rownum<=100 order by 1,2,3
      *
      */
     public Page<VwImpEtl> getOdsInfo(int page, int pageSize, String q) {
