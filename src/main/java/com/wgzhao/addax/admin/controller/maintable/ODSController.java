@@ -111,12 +111,17 @@ public class ODSController {
     }
 
     // 保存批量增加的表
-    @PostMapping("/saveODS")
+    @PostMapping("/batchSave")
     public void saveODS(@RequestBody  List<TbImpEtl> etls)
     {
         tbImpEtlRepo.saveAll(etls);
     }
 
+    @PostMapping("/save")
+    public TbImpEtl save(@RequestBody TbImpEtl etl)
+    {
+        return tbImpEtlRepo.save(etl);
+    }
     // 启动采集
     @PostMapping(path="/startEtl", consumes = MediaType.APPLICATION_JSON_VALUE)
     public String startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response)

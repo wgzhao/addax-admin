@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,7 +41,8 @@ public class DataSourceController {
     }
 
     @PostMapping("/save")
-    public TbImpDb saveImpDB(@ModelAttribute("impDB") TbImpDb tbImpDb) {
+    public TbImpDb saveImpDB(@RequestBody TbImpDb tbImpDb) {
+        System.out.println("tbimpdb is " + tbImpDb);
         if (tbImpDb.getId() == null || Objects.equals(tbImpDb.getId(), "")) {
             tbImpDb.setId(UUID.randomUUID().toString());
         }

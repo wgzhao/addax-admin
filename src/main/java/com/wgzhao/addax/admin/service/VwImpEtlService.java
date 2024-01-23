@@ -79,7 +79,8 @@ public class VwImpEtlService {
         orders.add(new Sort.Order(Sort.Direction.ASC, "souOwner"));
         orders.add(new Sort.Order(Sort.Direction.ASC, "destTablename"));
         if (etlFlag.isEmpty() && etlFilter.isEmpty()) {
-            return vwImpEtlRepo.findAll(null, 0, 100);
+//            return vwImpEtlRepo.findAll(null, 0, 100);
+            return vwImpEtlRepo.findAll();
         }
         // create custom Specification
         Specification<VwImpEtl> spec = (root, query, cb) -> {
