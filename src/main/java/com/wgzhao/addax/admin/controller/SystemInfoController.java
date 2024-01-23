@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.model.oracle.VwImpSystem;
 import com.wgzhao.addax.admin.service.VwImpSystemService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,8 +41,9 @@ public class SystemInfoController {
 
     // 数据中心采集表清单(显示100条)
     @GetMapping("/etlInfo")
-    public List<VwImpEtl> etlInfo(@RequestParam(required = false, name="q") String filter) {
-        return vwImpEtlService.fetchEtlInfo(filter);
+    public Page<VwImpEtl> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
+                                  @RequestParam(name="pageSize", defaultValue = "10") int pageSize) {
+        return vwImpEtlService.fetchEtlInfo(page, pageSize);
     }
 
     // 数据中心数据推送表清单(显示100条)

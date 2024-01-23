@@ -17,6 +17,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
 import oracle.ucp.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,9 +62,12 @@ public class ODSController {
 
     // 获得 ODS 采集的基本信息
     @RequestMapping("/list")
-    public List<VwImpEtl> getODSList(@RequestParam(value = "flag", defaultValue = "", required = false) String flag,
-                                     @RequestParam(value = "q", defaultValue = "", required = false) String filter) {
-        return vwImpEtlService.getOdsInfo(flag, filter);
+    public Page<VwImpEtl> getODSList(@RequestParam(value="page", defaultValue = "0", required = true) int page,
+                                     @RequestParam(value="pageSize", defaultValue = "10", required = true) int pageSize,
+                                     @RequestParam(value="q", required = false) String q
+                                     ) {
+        if (page < 0) page = 0;
+        return vwImpEtlService.getOdsInfo(page, pageSize, q);
     }
 
     @RequestMapping("/odsinfo/{tid}")
