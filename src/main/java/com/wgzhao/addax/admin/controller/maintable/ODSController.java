@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
+import com.wgzhao.addax.admin.dto.VwImpEtlListDto;
 import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -60,18 +62,18 @@ public class ODSController {
     @Resource
     DsUtil dsUtil;
 
-    // 获得 ODS 采集的基本信息
-    @RequestMapping("/list")
-    public Page<VwImpEtl> getODSList(@RequestParam(value="page", defaultValue = "0", required = true) int page,
-                                     @RequestParam(value="pageSize", defaultValue = "10", required = true) int pageSize,
-                                     @RequestParam(value="q", required = false) String q
+    // 获得 ODS 采集的基本信息，仅用于列表展示
+    @GetMapping
+    public Page<VwImpEtl> list(@RequestParam(value="page", defaultValue = "0") int page,
+                                      @RequestParam(value="pageSize", defaultValue = "10") int pageSize,
+                                      @RequestParam(value = "q", required = false) String q
                                      ) {
         if (page < 0) page = 0;
         return vwImpEtlService.getOdsInfo(page, pageSize, q);
     }
 
-    @RequestMapping("/odsinfo/{tid}")
-    public VwImpEtl getODSInfo(@PathVariable("tid") String tid)
+    @GetMapping("/{tid}")
+    public VwImpEtl get(@PathVariable("tid") String tid)
     {
         return vwImpEtlService.findOneODSInfo(tid);
     }
