@@ -15,6 +15,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @Configuration
@@ -47,8 +50,11 @@ public class OracleDatasourceConfiguration {
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(
             @Qualifier("oracleDatasource") DataSource oracleDatasource,
             EntityManagerFactoryBuilder builder) {
+        Map<String, String> props = new HashMap<>();
+        props.put("hibernate.dialect", "org.hibernate.dialect.OracleDialect");
         return builder
                 .dataSource(oracleDatasource)
+                .properties(props)
                 .packages("com.wgzhao.addax.admin.model.oracle")
                 .build();
     }
