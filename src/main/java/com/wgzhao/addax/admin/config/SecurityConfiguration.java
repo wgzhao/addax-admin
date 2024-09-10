@@ -47,7 +47,12 @@ public class SecurityConfiguration
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling((exceptionHandling) -> exceptionHandling
-                        .authenticationEntryPoint((request, response, authException) -> response.sendError(401, "Unauthorized")));
+                        .authenticationEntryPoint((request, response, authException) ->
+                        {
+                            System.out.println("Unauthorized error: " + authException.getMessage());
+                            response.sendError(response.getStatus(), authException.getMessage());
+                        }
+                        ));
 
         return http.build();
     }
