@@ -12,7 +12,7 @@ import java.util.List;
 
 @Repository
 public interface VwImpEtlRepo extends JpaRepository<VwImpEtl, String> {
-    List<VwImpEtl> findByFlagAndFilterColumnContaining(String etlFlag, String etlFilter, Sort by);
+    Page<VwImpEtl> findByFlagAndFilterColumnContaining(String etlFlag, String etlFilter, Pageable pageable);
     
     List<VwImpEtl> findByFlag(String etlFlag, Sort by);
 

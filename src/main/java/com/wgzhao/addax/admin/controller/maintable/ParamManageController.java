@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.model.oracle.TbDict;
 import com.wgzhao.addax.admin.model.oracle.TbDictionary;
+import com.wgzhao.addax.admin.model.oracle.TbDictionaryPK;
 import com.wgzhao.addax.admin.repository.oracle.TbDictRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbDictionaryRepo;
 import io.swagger.annotations.Api;
@@ -90,13 +91,27 @@ public class ParamManageController {
         return dictionaryRepo.saveAll(tbDictionaries);
     }
 
-    @DeleteMapping("/dictionaries/{id}")
-    public int deleteDictionary(@PathVariable(value = "id") String id) {
-        if (dictionaryRepo.existsById(id)) {
-            dictionaryRepo.deleteById(id);
+//    @DeleteMapping("/dictionaries/{entryCode}")
+//    public int deleteDictionary(@PathVariable(value = "entryCode") String entryCode) {
+//        if (dictionaryRepo.findByEntryCode(entryCode)) {
+//            dictionaryRepo.deleteById(entryCode);
+//            return 1;
+//        } else {
+//            return 0;
+//        }
+//    }
+
+    @DeleteMapping("/dictionaries/{entryCode}/{entryValue}")
+    public int deleteDictionaryItem(@PathVariable(value = "entryCode") String entryCode, @PathVariable(value = "entryValue") String entryValue) {
+        TbDictionaryPK tbDictionary = new TbDictionaryPK();
+        tbDictionary.setEntryCode(entryCode);
+        tbDictionary.setEntryValue(entryValue);
+        if (dictionaryRepo.existsById(tbDictionary)) {
+            dictionaryRepo.deleteById(tbDictionary);
             return 1;
         } else {
             return 0;
         }
     }
+
 }

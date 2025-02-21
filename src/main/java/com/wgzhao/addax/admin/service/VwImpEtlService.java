@@ -34,6 +34,11 @@ public class VwImpEtlService {
         }
     }
 
+    public Page<VwImpEtl> getOdsByFlag(int page, int pageSize, String q, String flag) {
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return vwImpEtlRepo.findByFlagAndFilterColumnContaining(flag, q.toUpperCase(), pageable);
+    }
+
     public VwImpEtl findOneODSInfo(String tid) {
         return vwImpEtlRepo.findById(tid).orElse(null);
     }

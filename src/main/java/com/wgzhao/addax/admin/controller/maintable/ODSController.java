@@ -42,7 +42,7 @@ import java.util.Map;
 public class ODSController {
 
     @Autowired
-    private VwImpEtlService  vwImpEtlService;
+    private VwImpEtlService vwImpEtlService;
 
     @Autowired
     private ViewPseudoRepo viewPseudoRepo;
@@ -64,74 +64,71 @@ public class ODSController {
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
-    public Page<VwImpEtl> list(@RequestParam(value="page", defaultValue = "0") int page,
-                                      @RequestParam(value="pageSize", defaultValue = "10") int pageSize,
-                                      @RequestParam(value = "q", required = false) String q
-                                     ) {
+    public Page<VwImpEtl> list(@RequestParam(value = "page", defaultValue = "0") int page,
+                               @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+                               @RequestParam(value = "q", required = false) String q,
+                               @RequestParam(value = "flag", required = false) String flag
+    ) {
         if (page < 0) page = 0;
-        return vwImpEtlService.getOdsInfo(page, pageSize, q);
+        if (flag != null && !flag.isEmpty()) {
+            return vwImpEtlService.getOdsByFlag(page, pageSize, q, flag);
+        } else {
+            return vwImpEtlService.getOdsInfo(page, pageSize, q);
+        }
     }
 
     @GetMapping("/{tid}")
-    public VwImpEtl get(@PathVariable("tid") String tid)
-    {
+    public VwImpEtl get(@PathVariable("tid") String tid) {
         return vwImpEtlService.findOneODSInfo(tid);
     }
 
     // 字段对比
     @RequestMapping("/fieldCompare/{tid}")
-    public List<Map<String, Object>> fieldCompare(@PathVariable("tid") String tid)
-    {
+    public List<Map<String, Object>> fieldCompare(@PathVariable("tid") String tid) {
         return viewPseudoRepo.findFieldsCompare(tid);
     }
 
     // 命令列表
     @RequestMapping("/cmdList/{spId}")
-    public List<ImpSpCom> cmdList(@PathVariable("spId") String spId)
-    {
+    public List<ImpSpCom> cmdList(@PathVariable("spId") String spId) {
         return impSpComRepo.findAllBySpId(spId);
     }
 
     // 表使用场景
     @RequestMapping("/tableUsed")
     public List<TbImpSpNeedtab> tableUsed(@RequestParam("tablename") String tablename,
-                                          @RequestParam("sysId") String sysId)
-    {
+                                          @RequestParam("sysId") String sysId) {
         return tbImpSpNeedtabService.getNeedtablesByTablename(tablename, sysId);
     }
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
     @RequestMapping("/addaxResult/{spname}")
-    public List<VwAddaxLog> addaxResult(@PathVariable("spname") String spname)
-    {
-        List<String> spNames = List.of(spname, spname +"_100", spname + "_102");
+    public List<VwAddaxLog> addaxResult(@PathVariable("spname") String spname) {
+        List<String> spNames = List.of(spname, spname + "_100", spname + "_102");
 
         return vwAddaxLogService.getAddaxResult(spNames);
     }
 
     // 批量新增表时的源系统下拉框
     @RequestMapping("/sourceSystem")
-    public List<Map<String, String>> sysList()
-    {
+    public List<Map<String, String>> sysList() {
         return viewPseudoRepo.findSourceSystem();
     }
 
     // 保存批量增加的表
     @PostMapping("/batchSave")
-    public void saveODS(@RequestBody  List<TbImpEtl> etls)
-    {
+    public void saveODS(@RequestBody List<TbImpEtl> etls) {
         tbImpEtlRepo.saveAll(etls);
     }
 
     @PostMapping("/save")
-    public TbImpEtl save(@RequestBody TbImpEtl etl)
-    {
+    public TbImpEtl save(@RequestBody TbImpEtl etl) {
         return tbImpEtlRepo.save(etl);
     }
+
     // 启动采集
-    @PostMapping(path="/startEtl", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public String startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response)
-    {
+    @PostMapping(path = "/startEtl", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public String startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response) {
         Pair<Boolean, String> pair = dsUtil.execDs(payload.getOrDefault("ctype", "sp"), null);
         if (pair.get1st()) {
             response.setStatus(HttpStatus.OK.value());
