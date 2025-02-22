@@ -184,7 +184,10 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
 
     // 批量新增表时的源系统下拉框数据
     @Query(value = """
-            select sysid, sysid||'_'||sys_name as name
+            select sysid, sysid||'_'||sys_name as name,
+            db_constr as url,
+            db_user as username,
+            db_pass as password
             from vw_imp_system where sys_kind='etl' order by 1
             """, nativeQuery = true)
     List<Map<String, String>> findSourceSystem();

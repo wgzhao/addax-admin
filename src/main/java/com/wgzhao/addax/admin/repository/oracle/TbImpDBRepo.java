@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TbImpDBRepo extends JpaRepository<TbImpDb, String> {
+    TbImpDb findByDbIdEtl(String dbName);
 }

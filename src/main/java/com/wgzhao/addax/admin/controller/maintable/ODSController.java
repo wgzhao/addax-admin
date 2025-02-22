@@ -1,12 +1,14 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.VwImpEtlListDto;
+import com.wgzhao.addax.admin.model.oracle.TbImpDb;
 import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
 import com.wgzhao.addax.admin.model.oracle.VwImpEtl;
 import com.wgzhao.addax.admin.model.pg.VwAddaxLog;
 import com.wgzhao.addax.admin.repository.oracle.ImpSpComRepo;
+import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.TbImpSpNeedtabService;
@@ -30,8 +32,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.http.HttpResponse;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * ODS 采集配置接口
@@ -58,6 +66,9 @@ public class ODSController {
 
     @Autowired
     private TbImpEtlRepo tbImpEtlRepo;
+
+    @Autowired
+    private TbImpDBRepo tbImpDBRepo;
 
     @Resource
     DsUtil dsUtil;
@@ -113,6 +124,47 @@ public class ODSController {
     @RequestMapping("/sourceSystem")
     public List<Map<String, String>> sysList() {
         return viewPseudoRepo.findSourceSystem();
+    }
+
+    //单个采集源下的所有数据库
+    @PostMapping("/dbSources")
+    public List<String> dbList(@RequestBody Map<String, String> payload) {
+        List<String> result = new ArrayList<>();
+        try {
+            Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
+            // get all database names
+            ResultSet catalogs = connection.getMetaData().getCatalogs();
+            while (catalogs.next()) {
+                result.add(catalogs.getString(1));
+            }
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+    //获取指定采集源下，指定数据库下的所有还没有采集的表
+    @PostMapping("/tables")
+    public List<String> tableList(@RequestBody Map<String, String> payload) {
+        List<String> result = new ArrayList<>();
+        // get all exists tables
+        List<String> existsTables = tbImpEtlRepo.findTables(payload.get("sysId"), payload.get("db"));
+        try {
+            Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
+            connection.setSchema(payload.get("db"));
+            // get all tables names
+            ResultSet tables = connection.getMetaData().getTables(payload.get("db"), null, "%", new String[]{"TABLE"});
+            while (tables.next()) {
+                result.add(tables.getString("TABLE_NAME"));
+            }
+            // result - existsTables
+            result.removeAll(existsTables);
+        }
+        catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
     }
 
     // 保存批量增加的表
