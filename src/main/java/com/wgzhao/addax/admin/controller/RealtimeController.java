@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.VwImpPlanAll;
 import com.wgzhao.addax.admin.repository.oracle.VwImpPlanAllRepo;
 import io.swagger.annotations.Api;
@@ -23,7 +24,7 @@ public class RealtimeController {
 
     // 计划任务执行情况
     @GetMapping("/planAll")
-    public List<VwImpPlanAll> plan() {
-        return vwImpPlanAllRepo.findAll();
+    public ApiResponse<List<VwImpPlanAll>> plan() {
+        return ApiResponse.success(vwImpPlanAllRepo.findAll());
     }
 }

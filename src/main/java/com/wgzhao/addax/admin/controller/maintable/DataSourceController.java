@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.TbImpDb;
 import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -22,39 +23,40 @@ public class DataSourceController {
     private TbImpDBRepo tbImpDBRepo;
 
     @GetMapping
-    public List<TbImpDb> list() {
-        return tbImpDBRepo.findAll();
+    public ApiResponse<List<TbImpDb>> list() {
+        return ApiResponse.success(tbImpDBRepo.findAll());
     }
 
     @GetMapping("/{id}")
-    public Optional<TbImpDb> get(@PathVariable(value="id") String id) {
-        return tbImpDBRepo.findById(id);
+    public ApiResponse<Optional<TbImpDb>> get(@PathVariable(value="id") String id) {
+        return ApiResponse.success(tbImpDBRepo.findById(id));
     }
 
     @PostMapping
-    public TbImpDb saveImpDB(@RequestBody TbImpDb tbImpDb) {
+    public ApiResponse<TbImpDb> saveImpDB(@RequestBody TbImpDb tbImpDb) {
         tbImpDBRepo.save(tbImpDb);
-        return tbImpDb;
+        return ApiResponse.success(tbImpDb);
     }
 
     @DeleteMapping("/{id}")
-    public int delete(@PathVariable("id") String id) {
+    public ApiResponse<Integer> delete(@PathVariable("id") String id) {
         if (tbImpDBRepo.existsById(id)) {
             tbImpDBRepo.deleteById(id);
-            return 1;
+            return ApiResponse.success(1);
         } else {
-            return 0;
+            return ApiResponse.success(0);
         }
     }
 
     @PutMapping
-    public int bulkSave(@RequestBody List<TbImpDb> imps) {
+    public ApiResponse<Integer> bulkSave(@RequestBody List<TbImpDb> imps) {
         tbImpDBRepo.saveAll(imps);
-        return imps.size();
+        return ApiResponse.success(imps.size());
     }
 
     @PostMapping("/testConnect")
-    public boolean testConnect(@RequestBody Map<String, String> payload) {
-        return DbUtil.testConnection(payload.get("url"), payload.get("username"), payload.get("password"));
+    public ApiResponse<Boolean> testConnect(@RequestBody Map<String, String> payload) {
+        boolean isconn = DbUtil.testConnection(payload.get("url"), payload.get("username"), payload.get("password"));
+        return ApiResponse.success(isconn);
     }
 }

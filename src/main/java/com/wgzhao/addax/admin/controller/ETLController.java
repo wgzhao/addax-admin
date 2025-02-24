@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.VwImpEtlOverprec;
 import com.wgzhao.addax.admin.model.pg.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
@@ -33,33 +34,30 @@ public class ETLController {
 
         // 数据源采集完成情况列表
         @RequestMapping("/accomplishList")
-        public List<VwImpEtlOverprec> getAll() {
-            return impEtlOverprecRepo.findAll();
+        public ApiResponse<List<VwImpEtlOverprec>> getAll() {
+                return ApiResponse.success(impEtlOverprecRepo.findAll());
         }
 
         // 各数据源采集完成率，用于图表展示
         @RequestMapping("/accomplishRatio")
-        public List<Map<String, Float>> accompListRatio() {
-                return viewPseudoRepo.accompListRatio();
+        public ApiResponse<List<Map<String, Float>>> accompListRatio() {
+                return ApiResponse.success(viewPseudoRepo.accompListRatio());
         }
-
 
         // 日间实时采集任务
         @GetMapping("/realtimeTask")
-        public List<Map<String, Object>> realtimeTask() {
-                return viewPseudoRepo.findRealtimeTask();
+        public ApiResponse<List<Map<String, Object>>> realtimeTask() {
+                return ApiResponse.success(viewPseudoRepo.findRealtimeTask());
         }
-
         // 特殊任务提醒
         @GetMapping("/specialTask")
-        public List<Map<String, Object>> specialTask() {
-                return viewPseudoRepo.findAllSepcialTask();
+        public ApiResponse<List<Map<String, Object>>> specialTask() {
+                return ApiResponse.success(viewPseudoRepo.findAllSepcialTask());
         }
-
         // 任务拒绝行
         @GetMapping("/rejectTask")
-        public List<TbAddaxSta> getTaskReject() {
-                return addaxStaRepo.findByTotalErrNot(0);
+        public ApiResponse<List<TbAddaxSta>> getTaskReject() {
+                return ApiResponse.success(addaxStaRepo.findByTotalErrNot(0));
         }
 
 }

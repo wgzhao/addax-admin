@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.VwImpEtlService;
 import com.wgzhao.addax.admin.model.oracle.VwImpEtl;
@@ -35,24 +36,24 @@ public class SystemInfoController {
 
     // 数据中心采集及数据服务系统清单
     @GetMapping("/etlAndDs")
-    public List<VwImpSystem> etlAndDs(@RequestParam(required = false, name="q") String filter) {
-        return vwImpSystemService.fetchEtlDSInfo(filter);
+    public ApiResponse<List<VwImpSystem>> etlAndDs(@RequestParam(required = false, name="q") String filter) {
+        return ApiResponse.success(vwImpSystemService.fetchEtlDSInfo(filter));
     }
 
     // 数据中心采集表清单(显示100条)
     @GetMapping("/etlInfo")
-    public Page<VwImpEtl> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
+    public ApiResponse<Page<VwImpEtl>> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
                                   @RequestParam(name="pageSize", defaultValue = "10") int pageSize) {
-        return vwImpEtlService.fetchEtlInfo(page, pageSize);
+        return ApiResponse.success(vwImpEtlService.fetchEtlInfo(page, pageSize));
     }
 
     // 数据中心数据推送表清单(显示100条)
     @GetMapping("/dsInfo")
-    public List<Map<String, Object>> dsInfo(@RequestParam(required = false, name="q") String filter) {
+    public ApiResponse<List<Map<String, Object>>> dsInfo(@RequestParam(required = false, name="q") String filter) {
         if (filter != null && !filter.isEmpty()) {
-            return viewPseudoRepo.findTop100DsInfo(filter);
+            return ApiResponse.success(viewPseudoRepo.findTop100DsInfo(filter));
         } else {
-            return viewPseudoRepo.findTop100DsInfo();
+            return ApiResponse.success(viewPseudoRepo.findTop100DsInfo());
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.TbImpPlan;
 import com.wgzhao.addax.admin.service.TbImpPlanService;
 import io.swagger.annotations.Api;
@@ -23,8 +24,8 @@ public class PlanTaskController
     private TbImpPlanService tbImpPlanService;
 
     @GetMapping({"/list", "/"})
-    public List<TbImpPlan> getAllImpPlan() {
-        return tbImpPlanService.findAll();
+    public ApiResponse<List<TbImpPlan>> getAllImpPlan() {
+        return ApiResponse.success(tbImpPlanService.findAll());
     }
 
 }

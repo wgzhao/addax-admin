@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import com.wgzhao.addax.admin.utils.LogFileUtil;
 import jakarta.annotation.Resource;
@@ -26,16 +27,16 @@ public class LogController {
 
     // 获取指定 SP 的日志列表
     @GetMapping("/logFiles/{spName}")
-    public List<String> getSpLog(@PathVariable("spName") String spName)
+    public ApiResponse<List<String>> getSpLog(@PathVariable("spName") String spName)
     {
         String tradeRange = cacheUtil.get("param.L5TD") + "," + cacheUtil.get("param.NTD");
-        return logFileUtil.getFs(tradeRange, spName);
+        return ApiResponse.success(logFileUtil.getFs(tradeRange, spName));
     }
 
     // 获取指定日志文件的内容
     @GetMapping("/logFileContent")
-    public String getLogFileContent(@RequestParam("f") String fname)
+    public ApiResponse<String> getLogFileContent(@RequestParam("f") String fname)
     {
-        return logFileUtil.getFileContent(fname);
+        return ApiResponse.success(logFileUtil.getFileContent(fname));
     }
 }

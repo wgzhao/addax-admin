@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.repository.pg.TbImpChkEtlRepo;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import io.swagger.annotations.Api;
@@ -29,9 +30,9 @@ public class CloseCheckController {
 
     // 采集表记录数异常
     @GetMapping("/abnormalRecord")
-    public List<Map<String, Object>> abnormalRecord() {
+    public ApiResponse<List<Map<String, Object>>> abnormalRecord() {
         String td = cacheUtil.get("param.TD");
         String ltd = cacheUtil.get("param.LTD");
-        return tbImpChkEtlRepo.findAbnormalRecord(td, ltd);
+        return ApiResponse.success(tbImpChkEtlRepo.findAbnormalRecord(td, ltd));
     }
 }

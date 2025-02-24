@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.TbImpJour;
 import com.wgzhao.addax.admin.model.pg.TbImpChkSpEntity;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
@@ -39,31 +40,31 @@ public class SpMonitorController {
 
     // SP 整体执行情况
     @GetMapping("/totalExec")
-    public List<Map<String, Object>> spTotalExec() {
-        return viewPseudoRepo.findSpExecInfo();
+    public ApiResponse<List<Map<String, Object>>> spTotalExec() {
+        return ApiResponse.success(viewPseudoRepo.findSpExecInfo());
     }
 
     // SP 计算的有效性检测结果
     @GetMapping("/validChkSp")
-    public List<TbImpChkSpEntity> getValidChkSp() {
-        return tbImpChkSpRepo.findValidChkSp(calcTradeDate(5, "yyyyMMdd"));
+    public ApiResponse<List<TbImpChkSpEntity>> getValidChkSp() {
+        return ApiResponse.success(tbImpChkSpRepo.findValidChkSp(calcTradeDate(5, "yyyyMMdd")));
     }
 
     // SP计算的记录数检测结果
     @GetMapping("/validSpCnt")
-    public List<Map<String, Object>> getValidSpCnt() {
-        return tbImpChkSpRepo.findValidSpCnt(calcTradeDate(5, "yyyyMMdd"));
+    public ApiResponse<List<Map<String, Object>>> getValidSpCnt() {
+        return ApiResponse.success(tbImpChkSpRepo.findValidSpCnt(calcTradeDate(5, "yyyyMMdd")));
     }
 
     // 特殊任务：报错、重跑
     @GetMapping("/errorTasks")
-    public List<Map<String, Object>> getErrorTasks() {
-        return viewPseudoRepo.findErrorTasks();
+    public ApiResponse<List<Map<String, Object>>> getErrorTasks() {
+        return ApiResponse.success(viewPseudoRepo.findErrorTasks());
     }
 
     // SP计算相关流水
     @GetMapping("/pipeline")
-    public List<TbImpJour> getPipeline() {
-        return tbImpJourService.findPipeline(cacheUtil.get("param.TD"));
+    public ApiResponse<List<TbImpJour>> getPipeline() {
+        return ApiResponse.success(tbImpJourService.findPipeline(cacheUtil.get("param.TD")));
     }
 }

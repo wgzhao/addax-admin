@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.TbImpChk;
 import com.wgzhao.addax.admin.model.oracle.VwImpCheckSoutab;
 import com.wgzhao.addax.admin.model.oracle.Msg;
@@ -42,28 +43,27 @@ public class RiskController {
 
     // 系统风险检测结果
     @RequestMapping("/sysRisk")
-    public List<TbImpChk> sysRisk() {
-        return tbImpChkRepo.findAll();
+    public ApiResponse<List<TbImpChk>> sysRisk() {
+        return ApiResponse.success(tbImpChkRepo.findAll());
     }
 
     // ODS采集源库的字段变更提醒（T-1日结构与T日结构对比）
     @RequestMapping("/odsFieldChange")
-    public List<VwImpCheckSoutab> odsFieldChange() {
-        return vwImpCheckSoutabRepo.findAll();
+    public ApiResponse<List<VwImpCheckSoutab>> odsFieldChange() {
+        return ApiResponse.success(vwImpCheckSoutabRepo.findAll());
     }
 
     // 短信发送详情
     @RequestMapping("/smsDetail")
-    public List<Msg> smsDetail() {
+    public ApiResponse<List<Msg>> smsDetail() {
         Date day;
         String td = cacheUtil.get("param.TD");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmm");
         try {
             day = sdf.parse(td + " 1630");
-            return msgRepo.findDistinctBydwCltDateAfter(day);
+            return ApiResponse.success(msgRepo.findDistinctBydwCltDateAfter(day));
         } catch (ParseException e) {
-            e.printStackTrace();
+            return ApiResponse.error(500, "日期解析错误");
         }
-        return null;
     }
 }

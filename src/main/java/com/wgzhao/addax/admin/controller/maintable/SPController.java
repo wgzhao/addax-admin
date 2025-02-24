@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpDb;
 import com.wgzhao.addax.admin.model.oracle.TbImpSp;
@@ -45,60 +46,54 @@ public class SPController {
     @Autowired
     private TbImpSpNeedtabRepo tbImpSpNeedtabRepo;
 
-//    @GetMapping({"/list", "/"})
-//    public List<TbImpDb> getAllImpDB() {
-//        return tbImpDBRepo.findAll();
-//    }
 
     @GetMapping(value = "/list")
-    public List<TbImpSp> getList() {
-        return impSpService.findAll();
+    public ApiResponse<List<TbImpSp>> getList() {
+        return ApiResponse.success(impSpService.findAll());
     }
-
     @GetMapping("/detail/{id}")
-    public Optional<TbImpSp> getImpDBById(@PathVariable(value="id") String id) {
-        return impSpService.findById(id);
-//        return tbImpDBRepo.findById(id);
+    public ApiResponse<Optional<TbImpSp>> getImpDBById(@PathVariable(value="id") String id) {
+        return ApiResponse.success(impSpService.findById(id));
     }
 
     @PostMapping("/save")
-    public TbImpDb saveImpDB(@ModelAttribute("impDB") TbImpDb tbImpDb) {
+    public ApiResponse<TbImpDb> saveImpDB(@ModelAttribute("impDB") TbImpDb tbImpDb) {
         if (tbImpDb.getId() == null || Objects.equals(tbImpDb.getId(), "")) {
             tbImpDb.setId(UUID.randomUUID().toString());
         }
         tbImpDBRepo.save(tbImpDb);
-        return tbImpDb;
+        return ApiResponse.success(tbImpDb);
     }
 
     // 命令列表
     @GetMapping("/cmdlist/{id}")
-    public List<ImpSpCom> getCmdsBySpId(@PathVariable("id") String spId) {
-        return impSpComRepo.findAllBySpId(spId);
+    public ApiResponse<List<ImpSpCom>> getCmdsBySpId(@PathVariable("id") String spId) {
+        return ApiResponse.success(impSpComRepo.findAllBySpId(spId));
     }
 
     //前置情况
     @GetMapping("/prequires/{id}")
-    public List<Map<String, String>> getPrequires(@PathVariable("id") String spId) {
-        return impSpService.findRequires(spId);
+    public ApiResponse<List<Map<String, String>>> getPrequires(@PathVariable("id") String spId) {
+        return ApiResponse.success(impSpService.findRequires(spId));
     }
 
     // 使用场景
     @GetMapping("/scene")
-    public List<TbImpSpNeedtab> getScene(@RequestParam("tbl") String tbl, @RequestParam(value = "sysId", required = false) String sysId) {
-        return tbImpSpNeedtabRepo.findDistinctByTableNameIgnoreCase(tbl);
+    public ApiResponse<List<TbImpSpNeedtab>> getScene(@RequestParam("tbl") String tbl, @RequestParam(value = "sysId", required = false) String sysId) {
+        return ApiResponse.success(tbImpSpNeedtabRepo.findDistinctByTableNameIgnoreCase(tbl));
     }
 
     // 主表详情
     @GetMapping("/through/{id}")
-    public Map<String, String> getThrough(@PathVariable("id") String spId) {
-        return impSpService.findThrough(spId);
+    public ApiResponse<Map<String, String>> getThrough(@PathVariable("id") String spId) {
+        return ApiResponse.success(impSpService.findThrough(spId));
     }
 
     /**
      * 生成指定 sp_id 的溯源数据
      */
     @GetMapping(value="/lineage/{id}")
-    public List<Map<String, Object>> getLineage(@PathVariable("id") String spId) {
-        return impSpService.findLineage(spId);
+    public ApiResponse<List<Map<String, Object>>> getLineage(@PathVariable("id") String spId) {
+        return ApiResponse.success(impSpService.findLineage(spId));
     }
 }

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.TbImpDs2Tbls;
 import com.wgzhao.addax.admin.model.oracle.VwImpDs2;
 import com.wgzhao.addax.admin.repository.oracle.TbImpDs2TblsRepo;
@@ -39,29 +40,24 @@ public class DataServiceController {
     private ViewPseudoRepo viewPseudoRepo;
 
     @GetMapping({"/list", "/"})
-    public List<VwImpDs2> list()
-    {
-        return vwImpDs2Service.getAllDs();
+    public ApiResponse<List<VwImpDs2>> list() {
+        return ApiResponse.success(vwImpDs2Service.getAllDs());
     }
 
     @GetMapping("/detail/{id}")
-    public Optional<VwImpDs2> detail(@PathVariable("id") String id)
-    {
-        return vwImpDs2Service.getDsInfo(id);
+    public ApiResponse<Optional<VwImpDs2>> detail(@PathVariable("id") String id) {
+        return ApiResponse.success(vwImpDs2Service.getDsInfo(id));
     }
 
     // 获得数据推送表详情
     @GetMapping("/dsTable/{id}")
-    public List<TbImpDs2Tbls> getDsTable(@PathVariable("id") String id)
-    {
-        return tbImpDs2TblsRepo.findByDsId(id);
+    public ApiResponse<List<TbImpDs2Tbls>> getDsTable(@PathVariable("id") String id) {
+        return ApiResponse.success(tbImpDs2TblsRepo.findByDsId(id));
     }
 
     // 获得推送表字段详情
     @GetMapping("/dsTableFields/{tbl}")
-    public List<Map<String, Object>> getDsTableFields(@PathVariable("tbl") String tbl)
-    {
-        return viewPseudoRepo.findTableFields(tbl);
+    public ApiResponse<List<Map<String, Object>>> getDsTableFields(@PathVariable("tbl") String tbl) {
+        return ApiResponse.success(viewPseudoRepo.findTableFields(tbl));
     }
-
 }
