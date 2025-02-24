@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.repository.oracle.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbImpFlagRepo;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
 import com.wgzhao.addax.admin.repository.pg.AddaxStaRepo;
@@ -31,42 +33,52 @@ public class DashboardController {
     @Autowired
     private AddaxStaRepo addaxStaRepo;
 
+    @Autowired
+    private TbImpEtlRepo tbImpEtlRepo;
+
     @Resource
     CacheUtil cacheUtil;
 
     // 各数据源采集完成率，用于图表展示
     @RequestMapping("/accomplishRatio")
-    public List<Map<String, Float>> accompListRatio() {
-        return viewPseudoRepo.accompListRatio();
+    public ApiResponse<List<Map<String, Float>>> accompListRatio() {
+        return ApiResponse.success(viewPseudoRepo.accompListRatio());
     }
 
     //  最近5天采集耗时对比
     @RequestMapping("/last5DaysEtlTime")
-    public List<Map<String, Object>> last5DaysEtlTime() {
+    public ApiResponse<List<Map<String, Object>>> last5DaysEtlTime() {
         int l5td = Integer.parseInt(cacheUtil.get("param.L5TD"));
-        return tbImpFlagRepo.findLast5DaysEtlTime(l5td);
+        return ApiResponse.success(tbImpFlagRepo.findLast5DaysEtlTime(l5td));
     }
 
     // 最近交易日采集的数据量， 以 GB 为单位
     @RequestMapping("/lastEtlData")
-    public double lastEtlData() {
+    public ApiResponse<Double> lastEtlData() {
         String td = cacheUtil.get("param.TD");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        double etlData = 0.0;
         try {
             Date d = sdf.parse(td);
             long btime = d.getTime() / 1000;
             long etime = btime + 86400;
-            return addaxStaRepo.findLastEtlData(btime, etime);
+            etlData = addaxStaRepo.findLastEtlData(btime, etime);
         } catch (ParseException e) {
-            return 0.0;
+            //
         }
+        return ApiResponse.success(etlData);
     }
 
     // 获取最近12个月的采集累计数据量，单位为 GiB
     @RequestMapping("/last12MonthsEtlData")
-    public List<Map<String, Object>> last12MonthsEtlData() {
+    public ApiResponse<List<Map<String, Object>>> last12MonthsEtlData() {
         Date etime = new Date();
         Date btime = new Date(etime.getTime() - 86400 * 365 * 1000L);
-        return addaxStaRepo.findEtlDataByMonth(btime, etime);
+        return  ApiResponse.success(addaxStaRepo.findEtlDataByMonth(btime, etime));
+    }
+
+    @RequestMapping("/tableCount")
+    public ApiResponse<Long> tableCount() {
+        return ApiResponse.success(tbImpEtlRepo.count());
     }
 }
