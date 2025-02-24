@@ -2,21 +2,12 @@ package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.model.oracle.TbImpDb;
 import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
+import com.wgzhao.addax.admin.utils.DbUtil;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * 数据源配置接口
@@ -42,9 +33,6 @@ public class DataSourceController {
 
     @PostMapping
     public TbImpDb saveImpDB(@RequestBody TbImpDb tbImpDb) {
-        if (tbImpDb.getId() == null || Objects.equals(tbImpDb.getId(), "")) {
-            tbImpDb.setId(UUID.randomUUID().toString());
-        }
         tbImpDBRepo.save(tbImpDb);
         return tbImpDb;
     }
@@ -63,5 +51,10 @@ public class DataSourceController {
     public int bulkSave(@RequestBody List<TbImpDb> imps) {
         tbImpDBRepo.saveAll(imps);
         return imps.size();
+    }
+
+    @PostMapping("/testConnect")
+    public boolean testConnect(@RequestBody Map<String, String> payload) {
+        return DbUtil.testConnection(payload.get("url"), payload.get("username"), payload.get("password"));
     }
 }

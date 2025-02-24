@@ -1,9 +1,6 @@
 package com.wgzhao.addax.admin.model.oracle;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,7 +13,8 @@ import lombok.Setter;
 public class TbImpDb {
 
     @Id
-    @Column(name = "did")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "did", length = 32, updatable = false, nullable = false, insertable = false)
     private String id;
 
     @Column(name = "db_name")
