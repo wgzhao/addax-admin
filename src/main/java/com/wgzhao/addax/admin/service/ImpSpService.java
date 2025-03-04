@@ -40,4 +40,12 @@ public class ImpSpService {
     public Optional<TbImpSp> findById(String id) {
         return impSpRepo.findById(id);
     }
+
+    public boolean exists(String id) {
+        return impSpRepo.existsById(id);
+    }
+
+    public void save(TbImpSp tbImpSp) {
+        impSpRepo.save(tbImpSp);
+    }
 }

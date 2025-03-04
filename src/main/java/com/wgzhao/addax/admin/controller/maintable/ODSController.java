@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.EtlBatchReq;
 import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
@@ -22,13 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -182,5 +177,30 @@ public class ODSController {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
         return ApiResponse.success(pair.get2nd());
+    }
+
+    /**
+     *     更新采集表的某些字段信息
+     *     payload
+     *     {
+     *         tid: ["xxx","yyyy"],
+     *         flag: "N",
+     *         retryCnt: 3
+     *     }
+      */
+
+    @PostMapping("/batchUpdateStatusAndFlag")
+    public ApiResponse<TbImpEtl> update(@RequestBody EtlBatchReq payload) {
+        List<String> tids = payload.getTids();
+        String flag = payload.getFlag();
+        long retryCnt = payload.getRetryCnt();
+        // for each tid , update the flag and retryCnt, other fields left unchanged
+        tids.forEach(tid -> {
+            TbImpEtl etl = tbImpEtlRepo.findById(tid).orElseThrow();
+            etl.setFlag(flag);
+            etl.setRetryCnt(retryCnt);
+            tbImpEtlRepo.save(etl);
+        });
+        return ApiResponse.success(null);
     }
 }

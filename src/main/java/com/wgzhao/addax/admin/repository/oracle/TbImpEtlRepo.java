@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface TbImpEtlRepo extends JpaRepository<TbImpEtl, Long> {
+public interface TbImpEtlRepo extends JpaRepository<TbImpEtl, String> {
 
     @Query("SELECT t.souTablename FROM TbImpEtl t WHERE t.souSysid = :sysId AND t.souOwner = :souOwner")
     List<String> findTables(String sysId, String souOwner);

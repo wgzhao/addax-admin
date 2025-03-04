@@ -11,13 +11,7 @@ import com.wgzhao.addax.admin.repository.oracle.TbImpSpNeedtabRepo;
 import com.wgzhao.addax.admin.service.ImpSpService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -95,5 +89,16 @@ public class SPController {
     @GetMapping(value="/lineage/{id}")
     public ApiResponse<List<Map<String, Object>>> getLineage(@PathVariable("id") String spId) {
         return ApiResponse.success(impSpService.findLineage(spId));
+    }
+
+    @PutMapping("/spDetail/{id}")
+    public ApiResponse<TbImpSp> updateImpDB(@PathVariable(value="id") String id, @RequestBody TbImpSp tbImpSp) {
+       if (impSpService.exists(id)) {
+           // exists, update
+           impSpService.save(tbImpSp);
+       } else {
+           return ApiResponse.error(400, "id not found");
+       }
+        return ApiResponse.success(tbImpSp);
     }
 }
