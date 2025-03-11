@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,7 +31,10 @@ public class LogController {
     public ApiResponse<List<String>> getSpLog(@PathVariable("spName") String spName)
     {
         String tradeRange = cacheUtil.get("param.L5TD") + "," + cacheUtil.get("param.NTD");
-        return ApiResponse.success(logFileUtil.getFs(tradeRange, spName));
+
+        List<String> result = new ArrayList<>(logFileUtil.getFs(tradeRange, spName));
+        result.addAll(logFileUtil.getFs(tradeRange, "tuna_sp_etl_" + spName));
+        return ApiResponse.success(result);
     }
 
     // 获取指定日志文件的内容

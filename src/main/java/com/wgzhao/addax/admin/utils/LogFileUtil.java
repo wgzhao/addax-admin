@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  * 主要是处理 Trino 以及 Addax 的日志文件
  */
 @Component
-public class LogFileUtil {
+public class  LogFileUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(LogFileUtil.class);
 

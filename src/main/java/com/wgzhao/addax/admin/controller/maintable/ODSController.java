@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
+import com.wgzhao.addax.admin.dto.SortBy;
 import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
@@ -70,12 +71,15 @@ public class ODSController {
     public ApiResponse<Page<VwImpEtl>> list(@RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
             @RequestParam(value = "q", required = false) String q,
-            @RequestParam(value = "flag", required = false) String flag) {
+            @RequestParam(value = "flag", required = false) String flag,
+            @RequestParam(value = "sortField", required = false) String sortField,
+            @RequestParam(value = "sortOrder", required = false) String sortOrder) {
         if (page < 0) page = 0;
+
         if (flag != null && !flag.isEmpty()) {
-            return ApiResponse.success(vwImpEtlService.getOdsByFlag(page, pageSize, q, flag));
+            return ApiResponse.success(vwImpEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
         } else {
-            return ApiResponse.success(vwImpEtlService.getOdsInfo(page, pageSize, q));
+            return ApiResponse.success(vwImpEtlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
         }
     }
 

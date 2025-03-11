@@ -1,12 +1,15 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.SortBy;
 import com.wgzhao.addax.admin.dto.VwImpEtlListDto;
 import com.wgzhao.addax.admin.model.oracle.VwImpEtl;
 import com.wgzhao.addax.admin.repository.oracle.VwImpEtlRepo;
+import com.wgzhao.addax.admin.utils.QueryUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,8 +27,10 @@ public class VwImpEtlService {
      * ODS 采集信息
      *
      */
-    public Page<VwImpEtl> getOdsInfo(int page, int pageSize, String q) {
-        Pageable pageable = PageRequest.of(page, pageSize);
+    public Page<VwImpEtl> getOdsInfo(int page, int pageSize, String q, String sortField, String sortOrder) {
+
+
+        Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         if (q != null && !q.isEmpty()) {
             System.out.println("search " + q.toUpperCase());
             return vwImpEtlRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
@@ -34,8 +39,8 @@ public class VwImpEtlService {
         }
     }
 
-    public Page<VwImpEtl> getOdsByFlag(int page, int pageSize, String q, String flag) {
-        Pageable pageable = PageRequest.of(page, pageSize);
+    public Page<VwImpEtl> getOdsByFlag(int page, int pageSize, String q, String flag, String sortField, String sortOrder) {
+        Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         return vwImpEtlRepo.findByFlagAndFilterColumnContaining(flag, q.toUpperCase(), pageable);
     }
 
