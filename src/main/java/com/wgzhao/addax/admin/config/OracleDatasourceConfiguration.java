@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -68,4 +69,10 @@ public class OracleDatasourceConfiguration {
         return new JpaTransactionManager(Objects.requireNonNull(oracleEntityManagerFactory.getObject()));
     }
 
+    @Primary
+    @Bean(name = "oracleJdbcTemplate")
+    public JdbcTemplate jdbcTemplate(@Qualifier("oracleDatasource") DataSource oracleDatasource)
+    {
+        return new JdbcTemplate(oracleDatasource);
+    }
 }

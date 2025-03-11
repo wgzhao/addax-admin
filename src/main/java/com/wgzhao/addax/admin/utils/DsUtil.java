@@ -1,15 +1,19 @@
 package com.wgzhao.addax.admin.utils;
 
+import jakarta.annotation.Resource;
 import oracle.ucp.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 调度工具命令行类
@@ -26,6 +30,10 @@ public class DsUtil {
             "source", "soutab_start",
             "sp", "sp_start",
             "spcom", "spcom");
+
+    @Resource
+    CacheUtil cacheUtil;
+
     /**
      * 执行调度工具命令
      * @param ctype 任务类型
@@ -34,6 +42,10 @@ public class DsUtil {
      * @return 调度工具命令执行结果
      */
     public Pair<Boolean, String>  execDs(String ctype, String sp_id ) {
+        if (Objects.equals(cacheUtil.get("com.halt"), "Y")) {
+            logger.error("halted");
+            return new Pair<>(false, "The system has halted currently");
+        }
         StringBuilder sb = new StringBuilder(" ");
         sb.append(dsExec).append(" start_wkf");
         if (! ctypeMap.containsKey(ctype)) {
@@ -61,4 +73,5 @@ public class DsUtil {
             return null;
         }
     }
+
 }
