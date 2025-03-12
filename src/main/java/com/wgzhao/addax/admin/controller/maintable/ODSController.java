@@ -12,6 +12,7 @@ import com.wgzhao.addax.admin.repository.oracle.ImpSpComRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
+import com.wgzhao.addax.admin.service.TaskService;
 import com.wgzhao.addax.admin.service.TbImpSpNeedtabService;
 import com.wgzhao.addax.admin.service.VwAddaxLogService;
 import com.wgzhao.addax.admin.service.VwImpEtlService;
@@ -65,6 +66,9 @@ public class ODSController {
 
     @Resource
     DsUtil dsUtil;
+
+    @Autowired
+    private TaskService taskService;
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
@@ -183,6 +187,16 @@ public class ODSController {
         return ApiResponse.success(pair.get2nd());
     }
 
+    @PostMapping(path="/updateSchema")
+    public ApiResponse<String> updateSchema() {
+        Pair<Boolean, String> result = taskService.tableSchemaUpdate();
+        if (result.get1st()) {
+            return ApiResponse.success("schema update has scheduled");
+        } else {
+            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), result.get2nd());
+        }
+
+    }
     /**
      *     更新采集表的某些字段信息
      *     payload
