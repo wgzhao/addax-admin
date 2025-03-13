@@ -15,8 +15,6 @@ import java.sql.Types;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.StringJoiner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @Slf4j
 public class DbUtil

@@ -80,7 +80,7 @@ public class TaskService
                 Statement statement = connection.createStatement()) {
             // Step 1: Process each sou_db_conn value
             log.info("Fetching sou_db_conn values");
-            try (ResultSet rs = statement.executeQuery("select sou_db_conn from stg01.vw_imp_etl_soutab where kind='etl'")) {
+            try (ResultSet rs = statement.executeQuery("select sou_db_conn from vw_imp_etl_soutab where kind='etl'")) {
                 while (rs.next()) {
                     String dbConn = rs.getString(1);
                     soutabEtl(connection, dbConn);
@@ -158,7 +158,6 @@ public class TaskService
             }
             // Set temporary flag
             cacheUtil.tryLock("soutab.task", "lock", 3);
-            ;
             if ("updt_hive".equals(kind)) {
                 executeHiveUpdate(updateSql);
             }
