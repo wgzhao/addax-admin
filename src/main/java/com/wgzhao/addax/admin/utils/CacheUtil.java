@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.Objects;
 
 @Service
@@ -40,5 +41,22 @@ public class CacheUtil {
             result[i] = strs[i].getBytes();
         }
         return result;
+    }
+
+    public void del(String key) {
+        serializableRedisTemplate.delete(key);
+    }
+
+    public boolean tryLock(String key, String requestId, long timeoutSeconds) {
+        Boolean success = serializableRedisTemplate.opsForValue().setIfAbsent(key, requestId, Duration.ofSeconds(timeoutSeconds));
+
+        return Boolean.TRUE.equals(success);
+    }
+
+    public void unlock(String key, String requestId) {
+        boolean hasKey  =  serializableRedisTemplate.hasKey(key);
+        if (hasKey) {
+            serializableRedisTemplate.delete(key);
+        }
     }
 }

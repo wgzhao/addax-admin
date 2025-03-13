@@ -27,13 +27,14 @@ public class LogController {
     LogFileUtil logFileUtil;
 
     // 获取指定 SP 的日志列表
-    @GetMapping("/logFiles/{spName}")
-    public ApiResponse<List<String>> getSpLog(@PathVariable("spName") String spName)
+    @GetMapping("/logFiles")
+    public ApiResponse<List<String>> getSpLog(@RequestParam("tableName") String tableName, @RequestParam("spName") String spName)
     {
         String tradeRange = cacheUtil.get("param.L5TD") + "," + cacheUtil.get("param.NTD");
 
         List<String> result = new ArrayList<>(logFileUtil.getFs(tradeRange, spName));
         result.addAll(logFileUtil.getFs(tradeRange, "tuna_sp_etl_" + spName));
+        result.addAll(logFileUtil.getFs(tradeRange, "tuna_addax_hadoop_" + tableName + "_100"));
         return ApiResponse.success(result);
     }
 

@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.utils;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,4 +51,26 @@ public class DbUtil {
             return false;
         }
     }
+
+    public static Connection getConnect(String url, String username, String password) {
+        try {
+            Class.forName(getDriverName(url));
+            return DriverManager.getConnection(url, username, password);
+        } catch (ClassNotFoundException | SQLException e) {
+            logger.log(Level.SEVERE, e.getMessage());
+            return null;
+        }
+    }
+
+    public static Connection getConnect(String url, Properties properties) {
+        try {
+            Class.forName(getDriverName(url));
+            return DriverManager.getConnection(url, properties.getProperty("user", ""), properties.getProperty("password"));
+        } catch (ClassNotFoundException | SQLException e) {
+            logger.log(Level.SEVERE, e.getMessage());
+            return null;
+        }
+    }
+
+
 }

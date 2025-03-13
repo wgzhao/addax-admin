@@ -65,6 +65,7 @@ public class  LogFileUtil {
             } else {
                 pattern = Pattern.compile("tuna_" + ".*?_" + job + "_\\d+_" + curDir + "_.*.log");
             }
+            logger.info("pattern: {}", pattern);
             if (d.getTime() >= today) {
                 result.addAll(findFiles("./", pattern));
             } else {

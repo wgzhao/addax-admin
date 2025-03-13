@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
-import com.wgzhao.addax.admin.dto.SortBy;
 import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
@@ -34,6 +33,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * ODS 采集配置接口
@@ -41,7 +41,8 @@ import java.util.Map;
 @Api(value = "ODS 采集配置接口", tags = {"主表配置"})
 @RestController
 @RequestMapping("/maintable/ods")
-public class ODSController {
+public class ODSController
+{
 
     @Autowired
     private VwImpEtlService vwImpEtlService;
@@ -77,56 +78,67 @@ public class ODSController {
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "flag", required = false) String flag,
             @RequestParam(value = "sortField", required = false) String sortField,
-            @RequestParam(value = "sortOrder", required = false) String sortOrder) {
-        if (page < 0) page = 0;
+            @RequestParam(value = "sortOrder", required = false) String sortOrder)
+    {
+        if (page < 0) {
+            page = 0;
+        }
 
         if (flag != null && !flag.isEmpty()) {
             return ApiResponse.success(vwImpEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
-        } else {
+        }
+        else {
             return ApiResponse.success(vwImpEtlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
         }
     }
 
     @GetMapping("/{tid}")
-    public ApiResponse<VwImpEtl> get(@PathVariable("tid") String tid) {
+    public ApiResponse<VwImpEtl> get(@PathVariable("tid") String tid)
+    {
         return ApiResponse.success(vwImpEtlService.findOneODSInfo(tid));
     }
 
     // 字段对比
     @RequestMapping("/fieldCompare/{tid}")
-    public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid) {
+    public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid)
+    {
         return ApiResponse.success(viewPseudoRepo.findFieldsCompare(tid));
     }
 
     // 命令列表
     @RequestMapping("/cmdList/{spId}")
-    public ApiResponse<List<ImpSpCom>> cmdList(@PathVariable("spId") String spId) {
+    public ApiResponse<List<ImpSpCom>> cmdList(@PathVariable("spId") String spId)
+    {
         return ApiResponse.success(impSpComRepo.findAllBySpId(spId));
     }
 
     // 表使用场景
     @RequestMapping("/tableUsed")
     public ApiResponse<List<TbImpSpNeedtab>> tableUsed(@RequestParam("tablename") String tablename,
-            @RequestParam("sysId") String sysId) {
+            @RequestParam("sysId") String sysId)
+    {
         return ApiResponse.success(tbImpSpNeedtabService.getNeedtablesByTablename(tablename, sysId));
     }
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
     @RequestMapping("/addaxResult/{spname}")
-    public ApiResponse<List<VwAddaxLog>> addaxResult(@PathVariable("spname") String spname) {
+    public ApiResponse<List<VwAddaxLog>> addaxResult(@PathVariable("spname") String spname)
+    {
         List<String> spNames = List.of(spname, spname + "_100", spname + "_102");
         return ApiResponse.success(vwAddaxLogService.getAddaxResult(spNames));
     }
 
     // 批量新增表时的源系统下拉框
     @RequestMapping("/sourceSystem")
-    public ApiResponse<List<Map<String, String>>> sysList() {
+    public ApiResponse<List<Map<String, String>>> sysList()
+    {
         return ApiResponse.success(viewPseudoRepo.findSourceSystem());
     }
 
     // 单个采集源下的所有数据库
     @PostMapping("/dbSources")
-    public ApiResponse<List<String>> dbList(@RequestBody Map<String, String> payload) {
+    public ApiResponse<List<String>> dbList(@RequestBody Map<String, String> payload)
+    {
         List<String> result = new ArrayList<>();
         try {
             Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
@@ -135,7 +147,8 @@ public class ODSController {
             while (catalogs.next()) {
                 result.add(catalogs.getString(1));
             }
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             throw new RuntimeException(e);
         }
         return ApiResponse.success(result);
@@ -143,7 +156,8 @@ public class ODSController {
 
     // 获取指定采集源下，指定数据库下的所有还没有采集的表
     @PostMapping("/tables")
-    public ApiResponse<List<String>> tableList(@RequestBody Map<String, String> payload) {
+    public ApiResponse<List<String>> tableList(@RequestBody Map<String, String> payload)
+    {
         List<String> result = new ArrayList<>();
         // get all exists tables
         List<String> existsTables = tbImpEtlRepo.findTables(payload.get("sysId"), payload.get("db"));
@@ -151,13 +165,14 @@ public class ODSController {
             Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
             connection.setSchema(payload.get("db"));
             // get all tables names
-            ResultSet tables = connection.getMetaData().getTables(payload.get("db"), null, "%", new String[]{"TABLE"});
+            ResultSet tables = connection.getMetaData().getTables(payload.get("db"), null, "%", new String[] {"TABLE"});
             while (tables.next()) {
                 result.add(tables.getString("TABLE_NAME"));
             }
             // result - existsTables
             result.removeAll(existsTables);
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             throw new RuntimeException(e);
         }
         return ApiResponse.success(result);
@@ -165,50 +180,52 @@ public class ODSController {
 
     // 保存批量增加的表
     @PostMapping("/batchSave")
-    public ApiResponse<Integer> saveODS(@RequestBody List<TbImpEtl> etls) {
+    public ApiResponse<Integer> saveODS(@RequestBody List<TbImpEtl> etls)
+    {
         tbImpEtlRepo.saveAll(etls);
         return ApiResponse.success(etls.size());
     }
 
     @PostMapping("/save")
-    public ApiResponse<TbImpEtl> save(@RequestBody TbImpEtl etl) {
+    public ApiResponse<TbImpEtl> save(@RequestBody TbImpEtl etl)
+    {
         return ApiResponse.success(tbImpEtlRepo.save(etl));
     }
 
     // 启动采集
     @PostMapping(path = "/startEtl", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ApiResponse<String> startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response) {
+    public ApiResponse<String> startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response)
+    {
         Pair<Boolean, String> pair = dsUtil.execDs(payload.getOrDefault("ctype", "sp"), null);
         if (pair.get1st()) {
             response.setStatus(HttpStatus.OK.value());
-        } else {
+        }
+        else {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
         return ApiResponse.success(pair.get2nd());
     }
 
-    @PostMapping(path="/updateSchema")
-    public ApiResponse<String> updateSchema() {
-        Pair<Boolean, String> result = taskService.tableSchemaUpdate();
-        if (result.get1st()) {
-            return ApiResponse.success("schema update has scheduled");
-        } else {
-            return ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), result.get2nd());
-        }
-
+    @PostMapping(path = "/updateSchema")
+    public ApiResponse<String> updateSchema()
+    {
+        taskService.tableSchemaUpdate();
+        return ApiResponse.success("schema update has scheduled");
     }
+
     /**
-     *     更新采集表的某些字段信息
-     *     payload
-     *     {
-     *         tid: ["xxx","yyyy"],
-     *         flag: "N",
-     *         retryCnt: 3
-     *     }
-      */
+     * 更新采集表的某些字段信息
+     * payload
+     * {
+     * tid: ["xxx","yyyy"],
+     * flag: "N",
+     * retryCnt: 3
+     * }
+     */
 
     @PostMapping("/batchUpdateStatusAndFlag")
-    public ApiResponse<TbImpEtl> update(@RequestBody EtlBatchReq payload) {
+    public ApiResponse<TbImpEtl> update(@RequestBody EtlBatchReq payload)
+    {
         List<String> tids = payload.getTids();
         String flag = payload.getFlag();
         long retryCnt = payload.getRetryCnt();
