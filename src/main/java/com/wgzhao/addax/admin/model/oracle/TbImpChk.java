@@ -1,9 +1,16 @@
 package com.wgzhao.addax.admin.model.oracle;
 
+import java.io.Serializable;
 import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
@@ -19,11 +26,10 @@ import lombok.Setter;
 @Setter
 @Getter
 @Data
+@IdClass(TbImpChkKey.class)
 public class TbImpChk {
 
-    
     // CHK_KIND
-    @Id
     @Column(name = "CHK_KIND") 
     private String chkKind;
 
@@ -34,12 +40,15 @@ public class TbImpChk {
 
     
     // CHK_CONTENT
+    @Id
     @Column(name = "CHK_CONTENT") 
     private String chkContent;
 
     
     // UPDT_DATE
-    @Column(name = "UPDT_DATE") 
+    @Id
+    @Column(name = "UPDT_DATE")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date updtDate;
 
     
@@ -51,5 +60,6 @@ public class TbImpChk {
     // CHK_SENDTYPE
     @Column(name = "CHK_SENDTYPE") 
     private String chkSendtype;
+
 
 }

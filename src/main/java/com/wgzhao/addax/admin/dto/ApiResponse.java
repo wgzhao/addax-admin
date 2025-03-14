@@ -54,8 +54,7 @@ public class ApiResponse<T> {
     public String toString() {
         return "CommResponseDto{" +
                 "code=" + code +
-                ", message='" + message + '\'' +
-                ", data=" + data +
+                ", message='" + message +
                 '}';
     }
 }
