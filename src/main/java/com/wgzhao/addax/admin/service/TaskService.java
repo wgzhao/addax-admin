@@ -189,7 +189,14 @@ public class TaskService
             }
             log.info("update json for kind {}: {}", kind, colJson);
             log.info("Executing table copy for kind: {}", kind);
-            return DbUtil.tableCopy(colJson);
+            if (DbUtil.tableCopy(colJson)) {
+                log.info("Table copy executed successfully for kind: {}, set the bupdate to n", kind);
+                invokeProcedure(connection, "sp_imp_alone('bupdate','" + kind + "','n')");
+                return true;
+            } else {
+                return false;
+            }
+
         }
         catch (SQLException e) {
             log.error("Error processing update for kind: {}", kind, e);
