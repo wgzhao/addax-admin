@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/addax/v1")
+@RequestMapping("/addax")
 public class AddaxReportController {
 
     private static final Logger logger = LoggerFactory.getLogger(AddaxReportController.class);
