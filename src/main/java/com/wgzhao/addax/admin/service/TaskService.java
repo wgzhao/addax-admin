@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.utils.ProcedureHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,9 @@ public class TaskService
 
     @Resource
     private CacheUtil cacheUtil;
+
+    @Autowired
+    private ProcedureHelper procedureHelper;
 
     @Autowired
     @Qualifier("oracleDatasource")
@@ -79,10 +83,14 @@ public class TaskService
                 }
             }
 
-            if (!invokeProcedure(connection, "sp_imp_alone('colexch_updt')")) {
+            if (!procedureHelper.spImpAlone("colexch_updt")) {
                 log.error("首次刷新对比表失败: sp_imp_alone('colexch_updt')");
-                return;
+                return ;
             }
+//            if (!invokeProcedure(connection, "sp_imp_alone('colexch_updt')")) {
+//                log.error("首次刷新对比表失败: sp_imp_alone('colexch_updt')");
+//                return;
+//            }
 
             // Step 2: Execute update procedures for hive and mysql
             for (String kind : new String[] {"updt_hive", "updt_mysql"}) {
@@ -92,14 +100,14 @@ public class TaskService
             // Step 3: Refresh hadoop table schema and procedures
             if (redisTemplate.hasKey("soutab.task")) {
                 soutabEtl(connection, "hadoop");
-                if (!invokeProcedure(connection, "sp_imp_alone('colexch_updt')")) {
+                if (!procedureHelper.spImpAlone("colexch_updt")) {
                     log.error("Procedure sp_imp_alone('colexch_updt') failed");
                 }
                 cacheUtil.del("soutab.task");
             }
 
             // Step 4: Update status and refresh the diff table
-            if (!invokeProcedure(connection, "sp_imp_alone('bupdate','N')")) {
+            if (!procedureHelper.spImpAlone("bupdate", "N")) {
                 log.error("Procedure sp_imp_alone('bupdate','N') failed");
             }
             else {

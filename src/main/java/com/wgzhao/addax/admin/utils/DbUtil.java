@@ -128,7 +128,7 @@ public class DbUtil
         srcConnectProps.put("user", json.getByPath("src.user", String.class));
         srcConnectProps.put("password", json.getByPath("src.password", String.class));
         // source database
-        log.info("Connect source db with: {}", srcJdbc);
+        log.info("Connecting source db with: {}", srcJdbc);
         if (srcJdbc.contains("clickhouse")) {
             try {
                 Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
