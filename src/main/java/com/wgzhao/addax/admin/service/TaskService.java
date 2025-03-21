@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.utils.FuncHelper;
 import com.wgzhao.addax.admin.utils.ProcedureHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,9 @@ public class TaskService
 
     @Autowired
     private ProcedureHelper procedureHelper;
+
+    @Autowired
+    private FuncHelper funcHelper;
 
     @Autowired
     @Qualifier("oracleDatasource")
@@ -121,6 +125,21 @@ public class TaskService
             cacheUtil.del("soutab");
             log.info("tableSchemaUpdate finished and flag 'soutab' released");
         }
+    }
+
+    /**
+     * start ETL task
+     * the corresponding shell module is sp_init function
+     */
+    @Async
+    public void startEtl() {
+        if (! cacheUtil.tryLock("sp_init", "lock", 3)) {
+            log.warn("sp_init is already running, skipping");
+            return;
+        }
+
+        funcHelper.fnImpValue("etl_end");
+
     }
 
     private void processUpdateByKind(Statement statement, String kind)
