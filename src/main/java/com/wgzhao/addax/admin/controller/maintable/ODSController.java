@@ -98,6 +98,15 @@ public class ODSController
         return ApiResponse.success(vwImpEtlService.findOneODSInfo(tid));
     }
 
+    @DeleteMapping("/{tid}")
+    public ApiResponse<String> delete(@PathVariable("tid") String tid)
+    {
+        CompletableFuture.runAsync(() -> {
+            tbImpEtlRepo.deleteById(tid);
+        });
+        return ApiResponse.success("delete success");
+    }
+
     // 字段对比
     @RequestMapping("/fieldCompare/{tid}")
     public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid)
