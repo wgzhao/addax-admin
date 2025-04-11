@@ -64,7 +64,7 @@ public class DashboardController {
             long etime = btime + 86400;
             etlData = addaxStaRepo.findLastEtlData(btime, etime);
         } catch (ParseException e) {
-            //
+            return ApiResponse.error(500, "日期格式错误");
         }
         return ApiResponse.success(etlData);
     }

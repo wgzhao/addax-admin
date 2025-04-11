@@ -12,7 +12,7 @@ public interface AddaxStaRepo extends JpaRepository<TbAddaxSta, Long> {
     List<TbAddaxSta> findByTotalErrNot(int i);
 
     @Query(value = """
-            select round(sum(take_secs * 1.0 * byte_speed / 1024 / 1024 / 1024 ), 2) as data_size
+            select coalesce(round(sum(take_secs * 1.0 * byte_speed / 1024 / 1024 / 1024 ), 2), 0) as data_size
             from tb_addax_sta
             where start_ts between :btime and :etime
             """, nativeQuery = true)
