@@ -34,3 +34,4 @@ build/
 *.log
 archive/
 sp_alone.sh
+**/.DS_Store
