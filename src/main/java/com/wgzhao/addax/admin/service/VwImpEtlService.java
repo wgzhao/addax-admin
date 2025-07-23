@@ -1,15 +1,12 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.dto.SortBy;
-import com.wgzhao.addax.admin.dto.VwImpEtlListDto;
-import com.wgzhao.addax.admin.model.oracle.VwImpEtl;
-import com.wgzhao.addax.admin.repository.oracle.VwImpEtlRepo;
+import com.wgzhao.addax.admin.model.VwImpEtl;
+import com.wgzhao.addax.admin.repository.VwImpEtlRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service

@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.TbImpJour;
-import com.wgzhao.addax.admin.model.pg.TbImpChkSpEntity;
-import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
-import com.wgzhao.addax.admin.repository.pg.TbImpChkSpRepo;
+import com.wgzhao.addax.admin.model.TbImpJour;
+import com.wgzhao.addax.admin.model.TbImpChkSpEntity;
+import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
+import com.wgzhao.addax.admin.repository.TbImpChkSpRepo;
 import com.wgzhao.addax.admin.service.TbImpJourService;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import jakarta.annotation.Resource;

@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-@Configuration
+//@Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
         basePackages = {"com.wgzhao.addax.admin.repository.oracle"},

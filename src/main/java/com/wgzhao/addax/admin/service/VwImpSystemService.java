@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.oracle.VwImpSystemRepo;
-import com.wgzhao.addax.admin.model.oracle.VwImpSystem;
+import com.wgzhao.addax.admin.repository.VwImpSystemRepo;
+import com.wgzhao.addax.admin.model.VwImpSystem;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;

@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
-import com.wgzhao.addax.admin.model.oracle.Msg;
-import com.wgzhao.addax.admin.repository.oracle.MsgRepo;
+import com.wgzhao.addax.admin.model.Msg;
+import com.wgzhao.addax.admin.repository.MsgRepo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;

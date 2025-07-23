@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import javax.sql.DataSource;
 import java.util.Objects;
 
-@Configuration
+//@Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
         basePackages = {"com.wgzhao.addax.admin.repository.pg"},

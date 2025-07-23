@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.model.oracle.TbImpJour;
-import com.wgzhao.addax.admin.repository.oracle.TbImpJourRepo;
+import com.wgzhao.addax.admin.model.TbImpJour;
+import com.wgzhao.addax.admin.repository.TbImpJourRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +29,7 @@ public class TbImpJourService {
      * where px2<=50
      * order by px desc
      * @param td the trade date in format of YYYYMMDD
-     * @return list of {@link com.wgzhao.addax.admin.model.oracle.TbImpJour}
+     * @return list of {@link TbImpJour}
      */
     public List<TbImpJour> findPipeline(String td) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");

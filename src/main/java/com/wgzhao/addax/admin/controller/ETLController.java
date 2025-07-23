@@ -1,11 +1,11 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.VwImpEtlOverprec;
-import com.wgzhao.addax.admin.model.pg.TbAddaxSta;
-import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
-import com.wgzhao.addax.admin.repository.oracle.VwImpEtlOverprecRepo;
-import com.wgzhao.addax.admin.repository.pg.AddaxStaRepo;
+import com.wgzhao.addax.admin.model.VwImpEtlOverprec;
+import com.wgzhao.addax.admin.model.TbAddaxSta;
+import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
+import com.wgzhao.addax.admin.repository.VwImpEtlOverprecRepo;
+import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;

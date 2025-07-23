@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
-import com.wgzhao.addax.admin.model.pg.TbAddaxSta;
-import com.wgzhao.addax.admin.repository.pg.AddaxStaRepo;
+import com.wgzhao.addax.admin.model.TbAddaxSta;
+import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

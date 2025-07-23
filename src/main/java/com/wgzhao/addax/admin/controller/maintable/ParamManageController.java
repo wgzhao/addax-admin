@@ -1,11 +1,11 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.TbDict;
-import com.wgzhao.addax.admin.model.oracle.TbDictionary;
-import com.wgzhao.addax.admin.model.oracle.TbDictionaryPK;
-import com.wgzhao.addax.admin.repository.oracle.TbDictRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbDictionaryRepo;
+import com.wgzhao.addax.admin.model.TbDict;
+import com.wgzhao.addax.admin.model.TbDictionary;
+import com.wgzhao.addax.admin.model.TbDictionaryPK;
+import com.wgzhao.addax.admin.repository.TbDictRepo;
+import com.wgzhao.addax.admin.repository.TbDictionaryRepo;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;

@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.repository.oracle.TbImpEtlRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbImpFlagRepo;
-import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
-import com.wgzhao.addax.admin.repository.pg.AddaxStaRepo;
+import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
+import com.wgzhao.addax.admin.repository.TbImpFlagRepo;
+import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
+import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;

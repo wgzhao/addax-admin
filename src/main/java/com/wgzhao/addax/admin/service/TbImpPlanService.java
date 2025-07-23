@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.oracle.TbImpPlanRepo;
-import com.wgzhao.addax.admin.model.oracle.TbImpPlan;
+import com.wgzhao.addax.admin.repository.TbImpPlanRepo;
+import com.wgzhao.addax.admin.model.TbImpPlan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

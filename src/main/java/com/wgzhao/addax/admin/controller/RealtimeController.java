@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.VwImpPlanAll;
-import com.wgzhao.addax.admin.repository.oracle.VwImpPlanAllRepo;
+import com.wgzhao.addax.admin.model.VwImpPlanAll;
+import com.wgzhao.addax.admin.repository.VwImpPlanAllRepo;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;

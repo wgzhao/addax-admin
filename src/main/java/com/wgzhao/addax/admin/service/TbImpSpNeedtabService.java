@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.oracle.TbImpSpNeedtabRepo;
-import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
+import com.wgzhao.addax.admin.repository.TbImpSpNeedtabRepo;
+import com.wgzhao.addax.admin.model.TbImpSpNeedtab;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

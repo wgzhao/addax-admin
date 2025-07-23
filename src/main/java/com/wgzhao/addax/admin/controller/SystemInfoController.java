@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
+import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.VwImpEtlService;
-import com.wgzhao.addax.admin.model.oracle.VwImpEtl;
-import com.wgzhao.addax.admin.model.oracle.VwImpSystem;
+import com.wgzhao.addax.admin.model.VwImpEtl;
+import com.wgzhao.addax.admin.model.VwImpSystem;
 import com.wgzhao.addax.admin.service.VwImpSystemService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
