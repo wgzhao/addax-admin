@@ -44,7 +44,6 @@ public class TaskService
     private FuncHelper funcHelper;
 
     @Autowired
-    @Qualifier("oracleDatasource")
     private DataSource dataSource;
 
     @Resource
@@ -80,7 +79,7 @@ public class TaskService
                 Statement statement = connection.createStatement()) {
             // Step 1: Process each sou_db_conn value
             log.info("Fetching sou_db_conn values");
-            try (ResultSet rs = statement.executeQuery("select sou_db_conn from stg01.vw_imp_etl_soutab where kind='etl'")) {
+            try (ResultSet rs = statement.executeQuery("select sou_db_conn from vw_imp_etl_soutab where kind='etl'")) {
                 while (rs.next()) {
                     String dbConn = rs.getString(1);
                     soutabEtl(connection, dbConn);
@@ -146,7 +145,7 @@ public class TaskService
             throws SQLException, IOException, InterruptedException
     {
         log.info("Processing update for kind: {}", kind);
-        try (ResultSet rs = statement.executeQuery("select stg01.fn_imp_value('" + kind + "') from dual")) {
+        try (ResultSet rs = statement.executeQuery("select fn_imp_value('" + kind + "') from dual")) {
             if (!rs.next()) {
                 log.warn("No update SQL returned for kind: {}", kind);
                 return;
@@ -204,7 +203,7 @@ public class TaskService
             return false;
         }
         try (Statement stmt = connection.createStatement();
-                ResultSet rs = stmt.executeQuery("select col_json from stg01.vw_imp_etl_soutab where sou_db_conn='" + kind + "'")) {
+                ResultSet rs = stmt.executeQuery("select col_json from vw_imp_etl_soutab where sou_db_conn='" + kind + "'")) {
             if (!rs.next()) {
                 log.warn("No update json found for kind: {}", kind);
                 return false;

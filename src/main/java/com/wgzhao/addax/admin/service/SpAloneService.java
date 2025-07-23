@@ -58,12 +58,12 @@ public class SpAloneService {
             String msg = DateUtils.getCurrentDateTime() + ":系统暂停服务!!sp_alone:" + args[0] + "无法执行";
             System.out.println(msg);
             LogUtils.appendToFile(logfile, msg);
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('" + msg + "','1','110');end;\"");
+            CommandExecutor.execute(c_sql + " \"begin sp_sms('" + msg + "','1','110');end;\"");
         } else {
             // 根据参数调用相应的方法
             boolean success = dispatchCommand(args);
             if (!success) {
-                CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('sp_alone:" + args[0] +
+                CommandExecutor.execute(c_sql + " \"begin sp_sms('sp_alone:" + args[0] +
                         "[" + (args.length > 1 ? args[1] : "") + "]执行失败，请速速排查','1','110');end;\"");
             }
         }
@@ -252,7 +252,7 @@ public class SpAloneService {
      * 在数据库源库执行语句
      */
     private static boolean sdb(String sysid, String sql) {
-        String dbConn = CommandExecutor.executeForOutput(c_sql + " \"select db_conn from stg01.vw_imp_system where sysid='" + sysid + "'\"");
+        String dbConn = CommandExecutor.executeForOutput(c_sql + " \"select db_conn from vw_imp_system where sysid='" + sysid + "'\"");
         return CommandExecutor.executeWithResult(curpath + "/jdbc2console.sh -f MySQL " + dbConn + " \"" + sql + "\"") == 0;
     }
 

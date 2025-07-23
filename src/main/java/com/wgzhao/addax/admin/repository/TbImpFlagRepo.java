@@ -1,12 +1,14 @@
 package com.wgzhao.addax.admin.repository;
 
 import com.wgzhao.addax.admin.model.TbImpFlag;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Map;
 
-public interface TbImpFlagRepo extends BaseRepository<TbImpFlag, String> {
+public interface TbImpFlagRepo extends JpaRepository<TbImpFlag, String>
+{
     List<TbImpFlag> findByTradedateAndKind(Integer date, String taskGroup);
 
     List<TbImpFlag> findByTradedateAndKindOrderByDwCltDateDesc(Integer i, String taskGroup);
