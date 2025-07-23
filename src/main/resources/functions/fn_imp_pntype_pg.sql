@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.fn_imp_pntype(i_pn_type varchar)
+CREATE OR REPLACE FUNCTION fn_imp_pntype(i_pn_type varchar)
 RETURNS integer AS $$
 DECLARE
   o_return integer;

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.sp_sms(i_msg text, i_mobile varchar DEFAULT '1', i_sendtype varchar DEFAULT '010')
+CREATE OR REPLACE FUNCTION sp_sms(i_msg text, i_mobile varchar DEFAULT '1', i_sendtype varchar DEFAULT '010')
 RETURNS void AS $$
        -- 发送短信存储过程
        -- i_msg:短信内容，多条内容用;分隔
@@ -17,15 +17,15 @@ BEGIN
        SELECT string_agg(DISTINCT COALESCE(a.mobile, t.gp), ',')
               INTO v_mobile
          FROM t_in t
-         LEFT JOIN stg01.vw_mobile_group a
+         LEFT JOIN vw_mobile_group a
            ON a.groupid = t.gp
-        WHERE COALESCE(a.mobile, t.gp) IN (SELECT mobile FROM stg01.vw_mobile_group);
+        WHERE COALESCE(a.mobile, t.gp) IN (SELECT mobile FROM vw_mobile_group);
 
-       INSERT INTO stg01.tb_msg(phone, msg, bsms, bkk, bcall)
+       INSERT INTO tb_msg(phone, msg, bsms, bkk, bcall)
        SELECT v_mobile,
               substring(regexp_replace(gettd()::text || ':' || i_msg, ';$', '') || ';' || E'\n' || to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS') || E'\n' FROM 1 FOR 450),
               -- 1小时内发送短信超过30条,则停止发送短信
-              CASE WHEN (SELECT count(1) FROM stg01.tb_msg WHERE bsms <> 'N' AND dw_clt_date >= CURRENT_TIMESTAMP - interval '1 hour') >= 30 
+              CASE WHEN (SELECT count(1) FROM tb_msg WHERE bsms <> 'N' AND dw_clt_date >= CURRENT_TIMESTAMP - interval '1 hour') >= 30 
                    THEN 'N' 
                    ELSE CASE WHEN substring(i_sendtype FROM 1 FOR 1) = '1' THEN 'Y' ELSE 'N' END 
               END,

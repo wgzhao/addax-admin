@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.fn_imp_timechk(i_currtime timestamp,
+CREATE OR REPLACE FUNCTION fn_imp_timechk(i_currtime timestamp,
                                            i_fixed varchar,
                                            i_interval integer DEFAULT 0,
                                            i_range varchar DEFAULT NULL,

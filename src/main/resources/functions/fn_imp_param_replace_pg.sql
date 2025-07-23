@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.fn_imp_param_replace(i_com_text text, i_param_sou varchar DEFAULT 'C')
+CREATE OR REPLACE FUNCTION fn_imp_param_replace(i_com_text text, i_param_sou varchar DEFAULT 'C')
 RETURNS text AS $$
 DECLARE
   o_return text;
@@ -8,7 +8,7 @@ BEGIN
   
   -- 根据参数文件替换变量
   FOR c1 IN (SELECT a.param_kind, a.param_value
-             FROM stg01.vw_imp_param a
+             FROM vw_imp_param a
              WHERE a.param_sou = i_param_sou
                AND a.param_kind IS NOT NULL) LOOP
     o_return := replace(o_return, c1.param_kind, c1.param_value);

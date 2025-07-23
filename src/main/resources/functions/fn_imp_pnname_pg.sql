@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.fn_imp_pnname(i_pntype varchar,
+CREATE OR REPLACE FUNCTION fn_imp_pnname(i_pntype varchar,
                                          i_fixed varchar DEFAULT NULL,
                                          i_interval integer DEFAULT NULL,
                                          i_range varchar DEFAULT NULL)
@@ -10,7 +10,7 @@ BEGIN
   -- 计划类型名称
   SELECT entry_content
     INTO o_return
-    FROM stg01.tb_dictionary
+    FROM tb_dictionary
    WHERE entry_code = '1064'
      AND entry_value = i_pntype;
      

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.fn_imp_freqchk(i_freq varchar)
+CREATE OR REPLACE FUNCTION fn_imp_freqchk(i_freq varchar)
 RETURNS integer AS $$
 DECLARE
   o_return integer;

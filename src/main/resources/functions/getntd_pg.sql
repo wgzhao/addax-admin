@@ -1,9 +1,9 @@
-CREATE OR REPLACE FUNCTION STG01.getntd() 
+CREATE OR REPLACE FUNCTION getntd() 
 RETURNS integer AS $$
 DECLARE
   o_return integer;
 BEGIN
-  SELECT STG01.getparam('NTD', 'C') INTO o_return;
+  SELECT getparam('NTD', 'C') INTO o_return;
   RETURN o_return;
 END;
 $$ LANGUAGE plpgsql;

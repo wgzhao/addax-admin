@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.fn_imp_value(i_kind varchar, i_sp_id varchar DEFAULT '', i_value1 varchar DEFAULT '')
+CREATE OR REPLACE FUNCTION fn_imp_value(i_kind varchar, i_sp_id varchar DEFAULT '', i_value1 varchar DEFAULT '')
 RETURNS text AS $$
 DECLARE
   o_return text;
@@ -22,12 +22,12 @@ BEGIN
     WITH t_sp AS (
       -- 计划任务调起:1:plan
       SELECT 'plan|' || pn_id AS sp_id
-      FROM stg01.vw_imp_plan
+      FROM vw_imp_plan
       WHERE brun = 1 AND bpntype = 1
       -- 采集任务判断标志符合条件,手工调起:2:judge
       UNION ALL
       SELECT 'judge|' || CASE WHEN bstart = -1 THEN 'status_' ELSE 'start_' END || sysid
-        FROM stg01.vw_imp_etl_judge
+        FROM vw_imp_etl_judge
        WHERE bstart IN(-1, 0) AND px = 1
     )
     SELECT string_agg(sp_id, E'\n' ORDER BY sp_id)
@@ -56,7 +56,7 @@ BEGIN
               FROM (SELECT kind, sp_id, dest_sys, brun, runtime,
                            row_number() OVER(PARTITION BY kind, dest_sys ORDER BY brun, runtime DESC) AS sys_px -- 同一个系统下面最多并行几个任务，超过的暂不执行
                       FROM t_sp) sub1
-             WHERE sys_px <= COALESCE((SELECT db_paral FROM stg01.vw_imp_system
+             WHERE sys_px <= COALESCE((SELECT db_paral FROM vw_imp_system
                                        WHERE sysid = dest_sys AND sys_kind = 'etl'),
                                      8)) sub2
      WHERE px BETWEEN 1 AND 100;
@@ -65,16 +65,16 @@ BEGIN
   ELSIF i_kind = 'com_text' THEN
     SELECT com_text
            INTO o_return
-    FROM stg01.tb_imp_sp_com
+    FROM tb_imp_sp_com
     WHERE com_id = i_sp_id;
 
     IF o_return IS NOT NULL THEN
       -- 获取参数来源(如果本SP有参数设置则优先使用，否则使用TID)
       SELECT COALESCE(a.param_sou, b.param_sou, 'C'), b.tid
              INTO strtmp1, strtmp2
-      FROM stg01.tb_imp_sp_com t
-      LEFT JOIN stg01.tb_imp_sp a ON a.sp_id = t.sp_id
-      LEFT JOIN stg01.tb_imp_etl b ON b.tid = t.sp_id
+      FROM tb_imp_sp_com t
+      LEFT JOIN tb_imp_sp a ON a.sp_id = t.sp_id
+      LEFT JOIN tb_imp_etl b ON b.tid = t.sp_id
       WHERE t.com_id = i_sp_id;
 
       -- 如果能找到对应的采集任务，对代码部分进行预处理,SP任务不做替换
@@ -88,15 +88,15 @@ BEGIN
                          '${sou_filter}', replace(replace(t.sou_filter, '\', '\\'), '"', '\"')),
                          '${sou_split}', t.sou_split),
                          '${tag_tblname}', '/ods/' || lower(replace(t.dest, '.', '/')) || '/logdate=${dest_part}'),
-                         '${dest_part}', STG01.fn_imp_value('dest_part', tid)),
+                         '${dest_part}', fn_imp_value('dest_part', tid)),
                          '${modifier_no}', replace(replace(replace(t.sou_filter, '''', ''''''), '\', '\\'), '"', '\"')),
-                         '${hdp_cols}', (SELECT string_agg(col_name, ',' ORDER BY col_idx) FROM stg01.tb_imp_tbl_hdp WHERE tid = t.tid AND col_name <> 'LOGDATE' GROUP BY tid))
+                         '${hdp_cols}', (SELECT string_agg(col_name, ',' ORDER BY col_idx) FROM tb_imp_tbl_hdp WHERE tid = t.tid AND col_name <> 'LOGDATE' GROUP BY tid))
                 INTO o_return
-         FROM stg01.vw_imp_etl t
+         FROM vw_imp_etl t
          WHERE t.tid = strtmp2;
       END IF;
 
-      o_return := STG01.fn_imp_param_replace(o_return, strtmp1);
+      o_return := fn_imp_param_replace(o_return, strtmp1);
     END IF;
 
   -- 其他情况的简化处理，由于函数很长，这里只实现主要逻辑

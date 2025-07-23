@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION STG01.sp_imp_flag(i_kind varchar, i_group varchar, i_fid varchar, i_fval integer DEFAULT 0)
+CREATE OR REPLACE FUNCTION sp_imp_flag(i_kind varchar, i_group varchar, i_fid varchar, i_fval integer DEFAULT 0)
 RETURNS void AS $$
 DECLARE
   v_tradedate integer;
@@ -8,7 +8,7 @@ BEGIN
 
   -- 新增标志
   IF i_kind = 'add' THEN
-     INSERT INTO stg01.tb_imp_flag(tradedate, kind, fid, fval)
+     INSERT INTO tb_imp_flag(tradedate, kind, fid, fval)
      VALUES (v_tradedate, i_group, i_fid, i_fval);
 
   -- 删除标志
@@ -22,7 +22,7 @@ BEGIN
 
 EXCEPTION
   WHEN OTHERS THEN
-       PERFORM stg01.sp_sms('sp_imp_flag执行报错,kind=[' || i_kind || '],group=[' || i_group || '],fid=[' || i_fid || '],fval=' || i_fval || '],错误说明=[' || SQLERRM || ']', '18692206867', '110');
+       PERFORM sp_sms('sp_imp_flag执行报错,kind=[' || i_kind || '],group=[' || i_group || '],fid=[' || i_fid || '],fval=' || i_fval || '],错误说明=[' || SQLERRM || ']', '18692206867', '110');
        RAISE;
 END;
 $$ LANGUAGE plpgsql;
