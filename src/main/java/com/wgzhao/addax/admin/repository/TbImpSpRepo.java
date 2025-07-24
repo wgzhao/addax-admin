@@ -13,13 +13,15 @@ import java.util.Map;
  * @author 
  */
 public interface TbImpSpRepo extends JpaRepository<TbImpSp, String> {
-    @Query(value = "select t.needs, \n" +
-            "to_char(fn_imp_value('taskname', t.needs)) as needs_name,\n" +
-            "t.needs_flag,\n" +
-            "to_char(t.needs_end_time, 'YYYY-MM-dd HH:mm:ss') as needs_end_time \n" +
-            "from vw_imp_sp_needs t\n" +
-            "where t.sp_id = ?1 \n" +
-            "order by t.needs_end_time", nativeQuery = true)
+    @Query(value = """
+            select t.needs,
+            to_char(fn_imp_value('taskname', t.needs)) as needs_name,
+            t.needs_flag,
+            to_char(t.needs_end_time, 'YYYY-MM-dd HH:mm:ss') as needs_end_time
+            from vw_imp_sp_needs t
+            where t.sp_id = ?1
+            order by t.needs_end_time
+            """, nativeQuery = true)
     List<Map<String, String>> findRequires(String spId);
 
 //    @Query(value = "select parent_id || decode(level,1,'',level - 1) || decode(level,1,'',connect_by_root(cate_id)) as parent, \n" +

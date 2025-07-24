@@ -17,8 +17,8 @@ public interface TbImpFlagRepo extends JpaRepository<TbImpFlag, String>
 
     @Query(value = """
             select tradedate,fid,
-                   trunc((max(case when fval=4 then dw_clt_date end) -
-                   	max(case when fval=3 then dw_clt_date end))*24*60*60) runtime
+                   extract(epoch from (max(case when fval=4 then dw_clt_date end) -
+                   	max(case when fval=3 then dw_clt_date end))) runtime
             from tb_imp_flag
             where kind in('ETL_END','ETL_START') and tradedate>=?1 and fval in(3,4)
             group by tradedate,fid

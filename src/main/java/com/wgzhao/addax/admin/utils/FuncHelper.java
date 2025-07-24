@@ -341,10 +341,10 @@ public class FuncHelper {
 
     private List<Map<String, Object>> handlePlanRun() {
         String sql = "WITH t_sp AS (" +
-                "  SELECT 'plan|'||pn_id sp_id FROM stg01.vw_imp_plan WHERE brun=1 AND bpntype=1 " +
+                "  SELECT 'plan|'||pn_id sp_id FROM vw_imp_plan WHERE brun=1 AND bpntype=1 " +
                 "  UNION ALL " +
                 "  SELECT 'judge|'||DECODE(bstart,-1,'status_',0,'start_')||sysid " +
-                "  FROM stg01.vw_imp_etl_judge WHERE bstart IN (-1,0) AND px=1" +
+                "  FROM vw_imp_etl_judge WHERE bstart IN (-1,0) AND px=1" +
                 ") SELECT LISTAGG(sp_id, CHR(10)) WITHIN GROUP (ORDER BY 1) FROM t_sp";
 
         return jdbcTemplate.queryForList(sql);
@@ -361,7 +361,7 @@ public class FuncHelper {
                         from vw_imp_etl
                        where brun = 1 or flag = 'R'
                       union all
-                      select 'ds', ds_id, 'ds'||dest_sysid, nvl(runtime,999), brun
+                      select 'ds', ds_id, 'ds'||dest_sysid, coalesce(runtime,999), brun
                         from vw_imp_ds2
                        where brun = 1 or flag = 'R')
                     select replace(wm_concat(sp_id),',',chr(10))
@@ -371,7 +371,7 @@ public class FuncHelper {
                               from (select kind , sp_id , dest_sys , brun , runtime ,
                                            row_number() over(partition by kind, dest_sys order by brun , runtime desc) sys_px 
                                       from t_sp)
-                             where sys_px <= nvl((select db_paral from stg01.vw_imp_system
+                             where sys_px <= coalesce((select db_paral from vw_imp_system
                                                    where sysid = dest_sys and sys_kind='etl'),
                                                  8))
                      where px between 1 and 100 ;
@@ -380,7 +380,7 @@ public class FuncHelper {
     }
 
     private List<Map<String, Object>> handleComText(String spId)  {
-        String sql = "SELECT com_text FROM stg01.tb_imp_sp_com WHERE com_id = ?";
+        String sql = "SELECT com_text FROM tb_imp_sp_com WHERE com_id = ?";
         Map<String, Object> stringObjectMap = jdbcTemplate.queryForMap(sql, spId);
         String tpl = stringObjectMap.getOrDefault("com_text", "").toString();
         if (tpl.isEmpty()) {
@@ -389,8 +389,8 @@ public class FuncHelper {
         sql = """
                select coalesce(a.param_sou,b.param_sou,'C') AS sou,b.tid
                from tb_imp_sp_com t
-               left join stg01.tb_imp_sp a on a.sp_id = t.sp_id
-               left join stg01.tb_imp_etl b on b.tid = t.sp_id
+               left join tb_imp_sp a on a.sp_id = t.sp_id
+               left join tb_imp_etl b on b.tid = t.sp_id
                where t.com_id = ?
                """;
         Map<String, Object> stringObjectMap1 = jdbcTemplate.queryForMap(sql, spId);
@@ -414,8 +414,8 @@ public class FuncHelper {
     private void handleJobfile(String spId) {
         String sql = """
                 select a.jobfile,a.jobkind
-                     from stg01.vw_imp_etl t
-                     inner join stg01.vw_imp_jobfile a on a.jobkind=t.jobkind
+                     from vw_imp_etl t
+                     inner join vw_imp_jobfile a on a.jobkind=t.jobkind
                      where t.tid = ?
                 """;
         Map<String, Object> map = jdbcTemplate.queryForMap(sql, spId);
@@ -423,7 +423,7 @@ public class FuncHelper {
         String jobkind = map.get("jobkind").toString();
         sql = """
             select jobkind,data_type,column_name,bquota,col_name,col_type,col_idx
-            from stg01.vw_imp_etl_cols
+            from vw_imp_etl_cols
             where tid = ?
             order by col_idx
             """;
@@ -475,15 +475,15 @@ public class FuncHelper {
     private String handleTaskname(String spId) {
         String sql = """
                    select spname
-                       from (select spname from stg01.vw_imp_etl where tid = :spId
+                       from (select spname from vw_imp_etl where tid = :spId
                              union all
-                             select spname from stg01.vw_imp_sp where sp_id = :spId
+                             select spname from vw_imp_sp where sp_id = :spId
                              union all
-                             select spname from stg01.vw_imp_plan where pn_id = :spId
+                             select spname from vw_imp_plan where pn_id = :spId
                              union all
                              select ds_name from vw_imp_ds2_mid where :spId in(ds_id,tbl_id) and rownum=1
                              union all
-                             select sysid||'_'||sys_name from stg01.vw_imp_system where sysid = :spId
+                             select sysid||'_'||sys_name from vw_imp_system where sysid = :spId
                             )
                 """;
         return jdbcTemplate.queryForObject(sql, String.class, spId);
@@ -491,8 +491,8 @@ public class FuncHelper {
 
     private String getPnTypeList() {
          String sql = """
-                  select listagg(entry_content||'['||entry_value||']='||stg01.fn_imp_pntype(entry_value)||chr(10))within group(order by entry_value)
-                         from stg01.tb_dictionary
+                  select listagg(entry_content||'['||entry_value||']='||fn_imp_pntype(entry_value)||chr(10))within group(order by entry_value)
+                         from tb_dictionary
                         where entry_code='1064' and entry_value<='3
                  """;
          return jdbcTemplate.queryForObject(sql, String.class);
@@ -502,13 +502,13 @@ public class FuncHelper {
         String sql = """
                  select 'ODS[A-Z0-9]{2}' || listagg('|' || upper(db_name)) within group(order by length(db_name) desc)
                        from (select db_name
-                               from stg01.tb_imp_etl_tbls
+                               from tb_imp_etl_tbls
                               where col_idx = 1000
                                 and db_name not in ('edwuf', 'edwuftp', 'kpiuf', 'kpiuftp', 'tmp', 'default')
                                 and not regexp_like(db_name , '^ods' )
                               group by db_name
                               union
-                              select sp_owner from stg01.vw_imp_sp where bvalid=1 group by sp_owner)
+                              select sp_owner from vw_imp_sp where bvalid=1 group by sp_owner)
                 """;
         return jdbcTemplate.queryForObject(sql, String.class);
     }
@@ -517,7 +517,7 @@ public class FuncHelper {
         String sql = """
                  select replace(wm_concat(create_db), ',', chr(10)) || chr(10)
                         from vw_imp_system t
-                       inner join (select sysid from stg01.vw_imp_etl where bcreate = 'Y' and bupdate = 'n' and bvalid = 1 group by sysid) a
+                       inner join (select sysid from vw_imp_etl where bcreate = 'Y' and bupdate = 'n' and bvalid = 1 group by sysid) a
                           on a.sysid = t.sysid
                        where t.sys_kind = 'etl' and t.bvalid = 1
                          and t.sysid not in (select fid from tb_imp_flag where tradedate = ? and fval = 4 and kind = 'ETL_END')
@@ -536,11 +536,11 @@ public class FuncHelper {
             String createSql = "create external table if not exists `" + tblname.replace(".", "`.`") + "`(";
             String columnsSql = """
                     select column_name, dest_type_full as column_type, col_comment as column_comment, column_id
-                                        from stg01.tb_imp_tbl_sou t
+                                        from tb_imp_tbl_sou t
                                         where tid = ?
                                         union all
                                         select entry_value,entry_content,remark,10000+row_number()over(order by entry_value)
-                                        from stg01.tb_dictionary where entry_code='2015'
+                                        from tb_dictionary where entry_code='2015'
                                         order by column_id
                     """;
             List<Map> columns = jdbcTemplate.queryForList(columnsSql, Map.class);
@@ -558,7 +558,7 @@ public class FuncHelper {
             }
             createSql += " )";
             // get the table comment
-            String comment = jdbcTemplate.queryForObject("select max(tbl_comment) into strtmp1 from stg01.tb_imp_tbl_sou where tid = ? and tbl_comment is not null", String.class, tid);
+            String comment = jdbcTemplate.queryForObject("select max(tbl_comment) into strtmp1 from tb_imp_tbl_sou where tid = ? and tbl_comment is not null", String.class, tid);
             if (!comment.isEmpty()) {
                 createSql += " COMMENT '" + comment + "'";
             }

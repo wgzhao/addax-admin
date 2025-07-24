@@ -28,7 +28,7 @@ public class DataServiceHandler
 
         // 初始化redis
         System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":初始化redis配置信息...</b>" + RedisUtils.set("ds." + dsId, "0"));
-        CommandExecutor.execute(c_sql3 + " \"select init_rds from stg01.vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".initrds");
+        CommandExecutor.execute(c_sql3 + " \"select init_rds from vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".initrds");
 
         int result = CommandExecutor.executeWithResult("bash " + dest_dir + "/" + dsId + ".initrds 2>&1");
         if (result != 0) {
@@ -41,7 +41,7 @@ public class DataServiceHandler
 
             for (String kind : new String[] {"presto", "allsql"}) {
                 System.out.println("利用" + kind + "刷新视图...");
-                CommandExecutor.execute(c_sql3 + " \"select stg01.fn_imp_value('ds_sql_" + kind + "','" + dsId + "') from dual\" |tee " + dest_dir + "/" + dsId + ".dsview");
+                CommandExecutor.execute(c_sql3 + " \"select fn_imp_value('ds_sql_" + kind + "','" + dsId + "') from dual\" |tee " + dest_dir + "/" + dsId + ".dsview");
 
                 if (CommandExecutor.executeWithResult("test $(wc -c " + dest_dir + "/" + dsId + ".dsview |awk '{print $1}') -gt 3") == 0) {
                     String cmd = kind.equals("presto") ? RedisUtils.get("com.prestocmd") : RedisUtils.get("com.prestoall");
@@ -87,19 +87,19 @@ public class DataServiceHandler
             }
 
             // 更新数据服务涉及源表，用于计算是否完整配置了前置条件
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_alone('bupdate','D','" + dsId + "');end;\" 2>&1");
+            CommandExecutor.execute(c_sql + " \"begin sp_imp_alone('bupdate','D','" + dsId + "');end;\" 2>&1");
 
             // 更新完后，修改状态
             if ("0".equals(RedisUtils.get("ds." + dsId))) {
                 System.out.println("</p>表结构获取完成，置更新状态为N");
-                CommandExecutor.execute(c_sql + " \"update stg01.tb_imp_ds2 set bupdate='N' where ds_id='" + dsId + "'\" 2>&1");
+                CommandExecutor.execute(c_sql + " \"update tb_imp_ds2 set bupdate='N' where ds_id='" + dsId + "'\" 2>&1");
             }
         }
 
         // 前置SQL
         if ("0".equals(RedisUtils.get("ds." + dsId)) && "1".equals(RedisUtils.get("ds." + dsId + ".pre_sql"))) {
             System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":执行前置语句pre_sql...</b>");
-            CommandExecutor.execute(c_sql3 + " \"select pre_sql from stg01.vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".presql");
+            CommandExecutor.execute(c_sql3 + " \"select pre_sql from vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".presql");
 
             if (!SpAloneUtils.runSql(dest_dir + "/" + dsId + ".presql", 1)) {
                 RedisUtils.set("ds." + dsId, "1");
@@ -109,7 +109,7 @@ public class DataServiceHandler
         // 前置SH
         if ("0".equals(RedisUtils.get("ds." + dsId)) && "1".equals(RedisUtils.get("ds." + dsId + ".pre_sh"))) {
             System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":执行前置脚本pre_sh...</b>");
-            CommandExecutor.execute(c_sql3 + " \"select pre_sh from stg01.vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".presh");
+            CommandExecutor.execute(c_sql3 + " \"select pre_sh from vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".presh");
 
             if (CommandExecutor.executeWithResult("bash " + dest_dir + "/" + dsId + ".presh") != 0) {
                 RedisUtils.set("ds." + dsId, "1");
@@ -120,7 +120,7 @@ public class DataServiceHandler
         if ("0".equals(RedisUtils.get("ds." + dsId))) {
             System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":开始数据服务推送...</b>");
 
-            CommandExecutor.execute(c_sql3 + " \"select tbl_id from stg01.tb_imp_ds2_tbls where ds_id='" + dsId +
+            CommandExecutor.execute(c_sql3 + " \"select tbl_id from tb_imp_ds2_tbls where ds_id='" + dsId +
                     "' and flag='N' order by end_time-start_time desc\" |tee " + dest_dir + "/" + dsId + ".txt");
 
             String tblIds = LogUtils.readFile(dest_dir + "/" + dsId + ".txt");
@@ -135,11 +135,11 @@ public class DataServiceHandler
 
                 executor.submit(() -> {
                     System.out.println("======" + DateUtils.getCurrentDateTime() + ":[" + tblId + "][并发队列号:" + rc + "]开始执行======");
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cR','" + tblId + "');end;\"");
+                    CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cR','" + tblId + "');end;\"");
 
                     // 获取服务JSON及具体执行命令（文件及关系型数据库，通过cmd区分）
-                    CommandExecutor.execute(c_sql3 + " \"select stg01.fn_imp_value('ds_json','" + tblId + "') from dual\" >" + dest_dir + "/" + tblId + ".json");
-                    CommandExecutor.execute(c_sql3 + " \"select stg01.fn_imp_value('ds_cmd','" + tblId + "') from dual\" >" + dest_dir + "/" + tblId + ".sh");
+                    CommandExecutor.execute(c_sql3 + " \"select fn_imp_value('ds_json','" + tblId + "') from dual\" >" + dest_dir + "/" + tblId + ".json");
+                    CommandExecutor.execute(c_sql3 + " \"select fn_imp_value('ds_cmd','" + tblId + "') from dual\" >" + dest_dir + "/" + tblId + ".sh");
 
                     // 命令具体执行
                     int retCode;
@@ -152,11 +152,11 @@ public class DataServiceHandler
                     }
 
                     if (retCode == 0) {
-                        CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cY','" + tblId + "');end;\"");
+                        CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cY','" + tblId + "');end;\"");
                     }
                     else {
                         RedisUtils.set("ds." + dsId, "1");
-                        CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cE','" + tblId + "');end;\"");
+                        CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cE','" + tblId + "');end;\"");
                         System.out.println(tblId + "执行失败，等待10秒后继续");
                         try {
                             Thread.sleep(10000);
@@ -183,7 +183,7 @@ public class DataServiceHandler
         // 后置SQL
         if ("0".equals(RedisUtils.get("ds." + dsId)) && "1".equals(RedisUtils.get("ds." + dsId + ".post_sql"))) {
             System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":执行后置语句post_sql...</b>");
-            CommandExecutor.execute(c_sql3 + " \"select post_sql from stg01.vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".postsql");
+            CommandExecutor.execute(c_sql3 + " \"select post_sql from vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".postsql");
 
             if (!SpAloneUtils.runSql(dest_dir + "/" + dsId + ".postsql", 1)) {
                 RedisUtils.set("ds." + dsId, "1");
@@ -193,7 +193,7 @@ public class DataServiceHandler
         // 后置SH
         if ("0".equals(RedisUtils.get("ds." + dsId)) && "1".equals(RedisUtils.get("ds." + dsId + ".post_sh"))) {
             System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":执行后置脚本post_sh...</b>");
-            CommandExecutor.execute(c_sql3 + " \"select post_sh from stg01.vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".postsh");
+            CommandExecutor.execute(c_sql3 + " \"select post_sh from vw_imp_ds2 where ds_id='" + dsId + "'\" |tee " + dest_dir + "/" + dsId + ".postsh");
 
             if (CommandExecutor.executeWithResult("bash " + dest_dir + "/" + dsId + ".postsh") != 0) {
                 RedisUtils.set("ds." + dsId, "1");
@@ -203,10 +203,10 @@ public class DataServiceHandler
         // 执行完毕
         System.out.println("数据服务执行结果：" + RedisUtils.get("ds." + dsId));
         if ("0".equals(RedisUtils.get("ds." + dsId))) {
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('Y','" + dsId + "');end;\"");
+            CommandExecutor.execute(c_sql + " \"begin sp_imp_status('Y','" + dsId + "');end;\"");
         }
         else {
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('E','" + dsId + "');end;\"");
+            CommandExecutor.execute(c_sql + " \"begin sp_imp_status('E','" + dsId + "');end;\"");
         }
 
         // 清理redis

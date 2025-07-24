@@ -19,9 +19,9 @@ import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
-import oracle.ucp.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -206,13 +206,13 @@ public class ODSController
     public ApiResponse<String> startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response)
     {
         Pair<Boolean, String> pair = dsUtil.execDs(payload.getOrDefault("ctype", "sp"), null);
-        if (pair.get1st()) {
+        if (pair.getFirst()) {
             response.setStatus(HttpStatus.OK.value());
         }
         else {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
-        return ApiResponse.success(pair.get2nd());
+        return ApiResponse.success(pair.getSecond());
     }
 
     @PostMapping(path = "/updateSchema")

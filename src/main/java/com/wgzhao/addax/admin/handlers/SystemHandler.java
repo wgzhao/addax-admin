@@ -69,30 +69,30 @@ public class SystemHandler {
             return false;
         }
 
-        CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('系统参数param_sys开始切换'||chr(10)||to_char(stg01.fn_imp_value('pntype_list'))||chr(10)||'TD=" +
+        CommandExecutor.execute(c_sql + " \"begin sp_sms('系统参数param_sys开始切换'||chr(10)||to_char(fn_imp_value('pntype_list'))||chr(10)||'TD=" +
                 RedisUtils.get("param.TD") + "'||chr(10)||'CD=" + RedisUtils.get("param.CD") + "','1','110');end;\"");
 
         // 计算日期参数
         for (String td : new String[]{"sysdate", "sysdate-1", "sysdate+1"}) {
-            int result = CommandExecutor.executeWithResult(c_sql + " \"begin stg01.sp_imp_param(to_char(" + td + ",'YYYYMMDD'));end;\"");
+            int result = CommandExecutor.executeWithResult(c_sql + " \"begin sp_imp_param(to_char(" + td + ",'YYYYMMDD'));end;\"");
             if (result != 0) {
-                CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('系统参数param_sys生成失败!!!!','1','111');end;\"");
+                CommandExecutor.execute(c_sql + " \"begin sp_sms('系统参数param_sys生成失败!!!!','1','111');end;\"");
                 return false;
             }
         }
 
         // 更新薪酬参数
-        CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_alone('xc_init');end;\"");
+        CommandExecutor.execute(c_sql + " \"begin sp_imp_alone('xc_init');end;\"");
 
         // 读取配置信息更新redis，包含日期参数、常用地址，命令中文等
-        String rdsCommands = CommandExecutor.executeForOutput(c_sql + " \"select rds from stg01.vw_updt_rds\"");
+        String rdsCommands = CommandExecutor.executeForOutput(c_sql + " \"select rds from vw_updt_rds\"");
         for (String line : rdsCommands.split("\n")) {
             if (line != null && !line.trim().isEmpty()) {
                 System.out.println("更新redis：" + line + "===>" + CommandExecutor.executeForOutput("rds \"" + line + "\""));
             }
         }
 
-        CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('系统参数param_sys切换完成！'||chr(10)||to_char(stg01.fn_imp_value('pntype_list'))||chr(10)||'TD=" +
+        CommandExecutor.execute(c_sql + " \"begin sp_sms('系统参数param_sys切换完成！'||chr(10)||to_char(fn_imp_value('pntype_list'))||chr(10)||'TD=" +
                 RedisUtils.get("param.TD") + "'||chr(10)||'CD=" + RedisUtils.get("param.CD") + "','1','110');end;\"");
 
         // 记录数比对表增加分区
@@ -130,7 +130,7 @@ public class SystemHandler {
             RedisUtils.set("dschk.errcnt", "0"); // 错误数归0
 
             if ("1".equals(RedisUtils.flagHas("dschk.msg"))) {
-                CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('" + DateUtils.getCurrentDateTime() +
+                CommandExecutor.execute(c_sql + " \"begin sp_sms('" + DateUtils.getCurrentDateTime() +
                         ":调度工具运行平稳~~来自于" + CommandExecutor.getHostname() + "','1','010');end;\"");
             }
         } else {
@@ -145,7 +145,7 @@ public class SystemHandler {
             errCount++;
             RedisUtils.set("dschk.errcnt", String.valueOf(errCount)); // 错误数+1
 
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('" + DateUtils.getCurrentDateTime() +
+            CommandExecutor.execute(c_sql + " \"begin sp_sms('" + DateUtils.getCurrentDateTime() +
                     ":调度工具连续异常" + errCount + "次，需要赶紧处理!!来自于" +
                     CommandExecutor.getHostname() + "','dschk','110');end;\"");
         }
@@ -164,17 +164,17 @@ public class SystemHandler {
         }
 
         // 更新检测的配置信息
-        CommandExecutor.execute(c_sql + " \"truncate table stg01.tb_imp_chk_inf\"");
-        CommandExecutor.execute(c_sql + " \"insert into stg01.tb_imp_chk_inf(engine,chk_idx,chk_sendtype,chk_mobile,bpntype,chk_kind,chk_sql) " +
-                "select engine,chk_idx,chk_sendtype,chk_mobile,bpntype,chk_kind,chk_sql from stg01.vw_imp_chk_inf\"");
+        CommandExecutor.execute(c_sql + " \"truncate table tb_imp_chk_inf\"");
+        CommandExecutor.execute(c_sql + " \"insert into tb_imp_chk_inf(engine,chk_idx,chk_sendtype,chk_mobile,bpntype,chk_kind,chk_sql) " +
+                "select engine,chk_idx,chk_sendtype,chk_mobile,bpntype,chk_kind,chk_sql from vw_imp_chk_inf\"");
 
-        CommandExecutor.execute(c_sql + " \"delete from stg01.tb_imp_chk where chk_kind not in(select chk_kind from stg01.tb_imp_chk_inf)\"");
+        CommandExecutor.execute(c_sql + " \"delete from tb_imp_chk where chk_kind not in(select chk_kind from tb_imp_chk_inf)\"");
 
         // 网络连通性检测部分已注释，如需实现可以取消注释
         /*
         System.out.println("<b>" + DateUtils.getCurrentDateTime() + ":获取网络连通性</b><p style='background-color:#A9A9A9'>");
         String inifile = RedisUtils.get("path.trans") + "/netchk.txt";
-        CommandExecutor.execute(c_sql3 + " \"select distinct sysid||'_'||sys_name||','||netchk from stg01.vw_imp_system where netchk is not null order by 1\" >" + inifile);
+        CommandExecutor.execute(c_sql3 + " \"select distinct sysid||'_'||sys_name||','||netchk from vw_imp_system where netchk is not null order by 1\" >" + inifile);
 
         ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -193,7 +193,7 @@ public class SystemHandler {
                 System.out.println(DateUtils.getCurrentDateTime() + ":" + String.join(" ", parts) + "==>" + result);
 
                 if (result.contains("Closed")) {
-                    CommandExecutor.execute(c_sql + " \"insert into stg01.tb_imp_chk(chk_kind,chk_name,chk_content) values('netchk','" +
+                    CommandExecutor.execute(c_sql + " \"insert into tb_imp_chk(chk_kind,chk_name,chk_content) values('netchk','" +
                                           parts[0] + "','" + parts[0] + "[" + parts[1] + "]连通性异常')\"");
                 }
             });
@@ -207,7 +207,7 @@ public class SystemHandler {
         }
         */
 
-        CommandExecutor.execute(c_sql + " \"delete from stg01.tb_imp_chk where chk_kind in(select chk_kind from stg01.tb_imp_chk_inf where engine='allsql')\"");
+        CommandExecutor.execute(c_sql + " \"delete from tb_imp_chk where chk_kind in(select chk_kind from tb_imp_chk_inf where engine='allsql')\"");
 
         // 基于allsql的自定义检测
         System.out.println("</p><b>" + DateUtils.getCurrentDateTime() + ":基于allsql的自定义检测</b><p style='background-color:#A9A9A9'>");
@@ -218,13 +218,13 @@ public class SystemHandler {
             final int groupNum = grp;
             executor.submit(() -> {
                 String sqlfile = RedisUtils.get("path.oths") + "/syschk_" + groupNum + ".sql";
-                CommandExecutor.execute(RedisUtils.get("com.iniout") + " \"select chk from (select 'insert into ora_in.stg01.tb_imp_chk(chk_mobile,chk_sendtype,chk_kind,chk_name,chk_content)'||" +
-                        "chr(10)||stg01.fn_imp_param_replace(chk_sql)||';' as chk,mod(row_number()over(order by chk_idx),5)+1 px from stg01.tb_imp_chk_inf where engine='allsql') where px=" +
+                CommandExecutor.execute(RedisUtils.get("com.iniout") + " \"select chk from (select 'insert into ora_in.tb_imp_chk(chk_mobile,chk_sendtype,chk_kind,chk_name,chk_content)'||" +
+                        "chr(10)||fn_imp_param_replace(chk_sql)||';' as chk,mod(row_number()over(order by chk_idx),5)+1 px from tb_imp_chk_inf where engine='allsql') where px=" +
                         groupNum + "\" |tee " + sqlfile);
 
                 int result = CommandExecutor.executeWithResult(RedisUtils.get("com.prestoall") + " -f " + sqlfile + " 2>&1");
                 if (result != 0) {
-                    CommandExecutor.execute(RedisUtils.get("com.inicmd") + " \"begin stg01.sp_sms('" + groupNum + "组的系统检测失败','1','110');end;\"");
+                    CommandExecutor.execute(RedisUtils.get("com.inicmd") + " \"begin sp_sms('" + groupNum + "组的系统检测失败','1','110');end;\"");
                 }
             });
         }
@@ -238,9 +238,9 @@ public class SystemHandler {
 
         // 系统整体异常检测
         System.out.println("</p><b>" + DateUtils.getCurrentDateTime() + ":系统整体异常检测</b><p style='background-color:#A9A9A9'>");
-        int result = CommandExecutor.executeWithResult(c_sql + " \"begin stg01.sp_imp_alone('syschk');end;\" 2>&1");
+        int result = CommandExecutor.executeWithResult(c_sql + " \"begin sp_imp_alone('syschk');end;\" 2>&1");
         if (result != 0) {
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('系统检测函数报错,请及时处理!!','1','110');end;\"");
+            CommandExecutor.execute(c_sql + " \"begin sp_sms('系统检测函数报错,请及时处理!!','1','110');end;\"");
         }
 
         RedisUtils.flagRemove("syschk");

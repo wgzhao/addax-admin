@@ -153,7 +153,7 @@ public class SpAloneUtils {
 //    public static String sdb(String sysid, String sql) {
 //        String s = "\"" + sql + "\"";
 //        String command = RedisUtils.get("path.bin") + "/jdbc2console.sh -f MySQL $(" + c_sql +
-//                " \"select db_conn from stg01.vw_imp_system where sysid='" + sysid + "'")
+//                " \"select db_conn from vw_imp_system where sysid='" + sysid + "'")
 //        return CommandExecutor.executeForOutput(command);
 //    }
 

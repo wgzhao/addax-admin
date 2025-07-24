@@ -160,6 +160,6 @@ public class VwImpEtl {
     private String jobkind;
 
     // virtual column
-    @Formula("upper(spname || dest_owner||'.'||dest_tablename||','||sou_owner||'.'||sou_tablename||','||realtime_taskgroup)")
+    @Formula("upper(concat_ws('', vie1_0.spname , vie1_0.dest_owner, '.', vie1_0.dest_tablename, ',', vie1_0.sou_owner, '.', vie1_0.sou_tablename, ',', vie1_0.realtime_taskgroup))")
     private String filterColumn;
 }

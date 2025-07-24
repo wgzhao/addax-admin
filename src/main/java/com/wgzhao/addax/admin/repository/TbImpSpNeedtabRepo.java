@@ -8,9 +8,15 @@ import java.util.List;
 
 public interface TbImpSpNeedtabRepo extends JpaRepository<TbImpSpNeedtab, String> {
     @Query(value = """
-        select  distinct decode(kind,'ALL','SP基础表','DS','数据服务源表','NEEDS','SP前置依赖','其他类型') AS kind,
-        used from TbImpSpNeedtab
-        where lower(tableName)=:tablename or lower(tableName) like 'ods' || :sysId || '.%'
+            select distinct
+              CASE
+                WHEN kind = 'ALL' THEN 'SP基础表'
+                WHEN kind = 'DS' THEN '数据服务源表'
+                WHEN kind = 'NEEDS' THEN 'SP前置依赖'
+                ELSE '其他类型'
+              END AS kind,
+            used from TbImpSpNeedtab
+            where lower(tableName)=:tablename or lower(tableName) like 'ods' || :sysId || '.%'
         """, nativeQuery = false)
     List<TbImpSpNeedtab> findByTableName(String tablename, String sysId);
 
