@@ -474,42 +474,42 @@ public class FuncHelper {
 
     private String handleTaskname(String spId) {
         String sql = """
-                   select spname
-                       from (select spname from vw_imp_etl where tid = :spId
-                             union all
-                             select spname from vw_imp_sp where sp_id = :spId
-                             union all
-                             select spname from vw_imp_plan where pn_id = :spId
-                             union all
-                             select ds_name from vw_imp_ds2_mid where :spId in(ds_id,tbl_id) and rownum=1
-                             union all
-                             select sysid||'_'||sys_name from vw_imp_system where sysid = :spId
-                            )
-                """;
+               select spname
+                   from (select spname from vw_imp_etl where tid = :spId
+                         union all
+                         select spname from vw_imp_sp where sp_id = :spId
+                         union all
+                         select spname from vw_imp_plan where pn_id = :spId
+                         union all
+                         select ds_name from vw_imp_ds2_mid where :spId in(ds_id,tbl_id) limit 1
+                         union all
+                         select sysid||'_'||sys_name from vw_imp_system where sysid = :spId
+                        ) t
+               """;
         return jdbcTemplate.queryForObject(sql, String.class, spId);
     }
 
     private String getPnTypeList() {
          String sql = """
-                  select listagg(entry_content||'['||entry_value||']='||fn_imp_pntype(entry_value)||chr(10))within group(order by entry_value)
-                         from tb_dictionary
-                        where entry_code='1064' and entry_value<='3
-                 """;
+              select listagg(entry_content||'['||entry_value||']='||fn_imp_pntype(entry_value)||chr(10))within group(order by entry_value)
+                     from tb_dictionary
+                    where entry_code='1064' and entry_value<='3
+              """;
          return jdbcTemplate.queryForObject(sql, String.class);
     }
 
     private String getHadoopSchema() {
         String sql = """
-                 select 'ODS[A-Z0-9]{2}' || listagg('|' || upper(db_name)) within group(order by length(db_name) desc)
-                       from (select db_name
-                               from tb_imp_etl_tbls
-                              where col_idx = 1000
-                                and db_name not in ('edwuf', 'edwuftp', 'kpiuf', 'kpiuftp', 'tmp', 'default')
-                                and not regexp_like(db_name , '^ods' )
-                              group by db_name
-                              union
-                              select sp_owner from vw_imp_sp where bvalid=1 group by sp_owner)
-                """;
+              SELECT 'ODS[A-Z0-9]{2}' || string_agg('|' || upper(db_name), '' ORDER BY length(db_name) DESC)
+              FROM (SELECT db_name
+                    FROM tb_imp_etl_tbls
+                    WHERE col_idx = 1000
+                      AND db_name NOT IN ('edwuf', 'edwuftp', 'kpiuf', 'kpiuftp', 'tmp', 'default')
+                      AND db_name !~ '^ods'
+                    GROUP BY db_name
+                    UNION
+                    SELECT sp_owner FROM vw_imp_sp WHERE bvalid=1 GROUP BY sp_owner) t
+              """;
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 

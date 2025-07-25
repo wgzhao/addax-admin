@@ -52,7 +52,7 @@ public class ETLController {
         // 特殊任务提醒
         @GetMapping("/specialTask")
         public ApiResponse<List<Map<String, Object>>> specialTask() {
-                return ApiResponse.success(viewPseudoRepo.findAllSepcialTask());
+                return ApiResponse.success(viewPseudoRepo.findAllSpecialTask());
         }
         // 任务拒绝行
         @GetMapping("/rejectTask")

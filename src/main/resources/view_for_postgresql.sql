@@ -468,7 +468,16 @@ WITH t_sql AS ( -- 获取（采集源库，数据服务目标库）的表结构�
 SELECT t.kind, t.sou_db_conn, 'PostgreSQL migration needed for complex string operations' as col_json
 FROM t_sql t
 INNER JOIN vw_imp_system b ON b.db_name=t.sou_db_conn OR upper(b.sysid)=regexp_replace(upper(t.sou_db_conn),'_[0-9A-Z]+$','')
-WHERE b.bvalid=1;
+WHERE b.bvalid=1
+union all
+--获取hadoop所有视图及表的字段信息
+select kind,sou_db_conn,
+       replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+                               (select to_clob(entry_content) from stg01.tb_dictionary where entry_code='5005' and entry_value='DS_JSON'),
+             '${s_conn}',sou_conn),'${s_user}','hive'),'${s_pass}',sou_pass),'${s_sql}',colsql),
+             '${d_conn}','jdbc:oracle:thin:@inidb:1521/ini'),'${d_user}','stg01'),'${d_pass}','stg01pwd'),'${d_tblname}','stg01.'||dest_tbl),
+             '${d_pre}',pre_sql),'${d_post}',post_sql)
+from t_hdp;
 
 CREATE OR REPLACE VIEW vw_imp_flag AS
 SELECT t.tradedate, t.kind, t.fid, t.fval, t.dw_clt_date

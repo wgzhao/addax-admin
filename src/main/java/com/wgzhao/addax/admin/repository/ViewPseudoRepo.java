@@ -24,7 +24,7 @@ public interface ViewPseudoRepo
             from vw_imp_etl
             where (flag='E' or runtime>=1200 or retry_cnt<3) and bvalid=1
             order by flag asc, runtime desc""", nativeQuery = true)
-    List<Map<String, Object>> findAllSepcialTask();
+    List<Map<String, Object>> findAllSpecialTask();
 
     // 日间实时采集任务
     @Query(value = """

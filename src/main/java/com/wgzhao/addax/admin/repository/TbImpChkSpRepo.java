@@ -11,10 +11,10 @@ public interface TbImpChkSpRepo
         extends JpaRepository<TbImpChkSpEntity, String>
 {
     @Query(value = """
-            select t.logdate, t.procName, t.checkValue,t.updtDate, " +
-            " case when t.procName='edw.com_date' and t.checkValue<>0 then 1 else 0 end as remark " +
-            "from TbImpChkSpEntity t " +
-            "where t.checkItem='2' and t.logdate>=?1
+            select t.logdate, t.procName, t.checkValue,t.updtDate,
+            case when t.procName='edw.com_date' and t.checkValue<>0 then 1 else 0 end as remark
+            from TbImpChkSpEntity t
+            where t.checkItem='2' and t.logdate>=?1
             """)
     List<TbImpChkSpEntity> findValidChkSp(String l5td);
 

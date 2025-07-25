@@ -145,7 +145,7 @@ public class TaskService
             throws SQLException, IOException, InterruptedException
     {
         log.info("Processing update for kind: {}", kind);
-        try (ResultSet rs = statement.executeQuery("select fn_imp_value('" + kind + "') from dual")) {
+        try (ResultSet rs = statement.executeQuery("select fn_imp_value('" + kind + "')")) {
             if (!rs.next()) {
                 log.warn("No update SQL returned for kind: {}", kind);
                 return;
