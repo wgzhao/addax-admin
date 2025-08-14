@@ -1,4 +1,4 @@
-CREATE OR REPLACE function STG01.fn_imp_pntype(i_pn_type in varchar2)
+CREATE OR REPLACE function fn_imp_pntype(i_pn_type in varchar2)
   return int RESULT_CACHE as
   o_return int;
 begin

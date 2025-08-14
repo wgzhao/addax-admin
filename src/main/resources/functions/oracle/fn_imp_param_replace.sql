@@ -1,4 +1,4 @@
-CREATE OR REPLACE function STG01.fn_imp_param_replace(i_com_text in clob,i_param_sou in varchar2 := 'C')
+CREATE OR REPLACE function fn_imp_param_replace(i_com_text in clob,i_param_sou in varchar2 := 'C')
   return clob as
   o_return clob;
 begin
@@ -6,7 +6,7 @@ begin
 
   --根据参数文件替换变量
   for c1 in (select a.param_kind, a.param_value
-               from stg01.vw_imp_param a
+               from vw_imp_param a
               where a.param_sou = i_param_sou
                 and a.param_kind is not null)
   loop

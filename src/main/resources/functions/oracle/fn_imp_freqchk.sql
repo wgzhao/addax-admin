@@ -1,4 +1,4 @@
-CREATE OR REPLACE function STG01.fn_imp_freqchk(i_freq in varchar2) return int RESULT_CACHE as
+CREATE OR REPLACE function fn_imp_freqchk(i_freq in varchar2) return int RESULT_CACHE as
   o_return int;
   strfreq  varchar2(1);
   noffset  int;

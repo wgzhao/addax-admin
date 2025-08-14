@@ -1,4 +1,4 @@
-CREATE OR REPLACE procedure STG01.sp_imp_status(i_kind in varchar2,i_sp_id in varchar2)
+CREATE OR REPLACE procedure sp_imp_status(i_kind in varchar2,i_sp_id in varchar2)
 as
    v_remark varchar2(2000);
    v_kind varchar2(32);
@@ -25,17 +25,17 @@ begin
            union all
           select pn_id,'plan',
                  'PLAN主表信息：{名称=['||spname||'],主表状态=['||flag||'],运行耗时=['||runtime||']}'
-            from stg01.vw_imp_plan
+            from vw_imp_plan
            union all
           select ds_id,'ds',
                  'DS主表信息：{名称=['||ds_name||'],主表状态=['||flag||'],剩余次数=['||retry_cnt||'],运行耗时=['||runtime||'],参数组=['||param_sou||']}'
-            from stg01.vw_imp_ds2),
+            from vw_imp_ds2),
          t_com as --附属表信息
           (select sp_id,com_id,flag,'子表信息：{命令类型=['||com_kind||'],命令顺序=['||com_idx||'],命令状态=['||flag||']}' remark
-             from stg01.tb_imp_sp_com
+             from tb_imp_sp_com
             union all
            select ds_id,tbl_id,flag,'子表信息：{状态=['||flag||'],目标表=['||dest_tablename||']}'
-             from stg01.tb_imp_ds2_tbls)
+             from tb_imp_ds2_tbls)
    select max(t.remark||case when length(i_kind)=2 then chr(10)||b.remark else '' end),
           nvl(sum(case when nvl(b.flag,'N')='Y' then 0 else 1 end),-1),
           max(sou)
@@ -50,7 +50,7 @@ begin
      if length(v_kind) = 1 then
        --主表的状态变更（1位字符）
        --SP计算
-       update stg01.tb_imp_sp
+       update tb_imp_sp
           set flag       = v_kind,
               start_time = decode(v_kind,'R',v_curtime,start_time),
               end_time   = decode(v_kind,'Y',v_curtime,'E',v_curtime,end_time),
@@ -58,7 +58,7 @@ begin
               retry_cnt  = retry_cnt - decode(v_kind,'E',1,0)
         where sp_id = i_sp_id and v_sou = 'sp' ;
        --ODS采集
-       update stg01.tb_imp_etl
+       update tb_imp_etl
           set flag       = v_kind,
               start_time = decode(v_kind,'R',v_curtime,start_time),
               end_time   = case when v_kind in('E','Y') then v_curtime else end_time end,
@@ -66,14 +66,14 @@ begin
               retry_cnt  = retry_cnt - decode(v_kind,'E',1,0)
         where tid = i_sp_id and v_sou = 'etl' ;
        --计划任务
-       update stg01.tb_imp_plan
+       update tb_imp_plan
           set flag       = v_kind,
               start_time = decode(v_kind,'R',v_curtime,start_time),
               end_time   = case when v_kind in('E','Y') then v_curtime else end_time end,
               runtime    = (v_curtime-start_time)*24*60*60
         where pn_id = i_sp_id and v_sou = 'plan' ;
        --数据服务
-       update stg01.tb_imp_ds2
+       update tb_imp_ds2
           set flag       = v_kind,
               start_time = decode(v_kind,'R',v_curtime,start_time),
               end_time   = case when v_kind in('E','Y') then v_curtime else end_time end,
@@ -84,17 +84,17 @@ begin
 
        if v_kind = 'R' then
          --主表开始执行,附属表状态置为N
-         update stg01.tb_imp_sp_com set flag='N'
+         update tb_imp_sp_com set flag='N'
           where flag<>'X' and sp_id = i_sp_id and v_sou in ('sp','etl','plan') ;
 
          --ds_etl:数据服务开始执行，推送列表状态置为N(重跑时仅报错任务置N)
-         update stg01.tb_imp_ds2_tbls
+         update tb_imp_ds2_tbls
             set flag = 'N'
           where ds_id = i_sp_id and v_sou = 'ds'
             and (
-                (nvl(flag,'N') <> 'X' and (select retry_cnt from stg01.tb_imp_ds2 where ds_id = i_sp_id) = 3)
+                (nvl(flag,'N') <> 'X' and (select retry_cnt from tb_imp_ds2 where ds_id = i_sp_id) = 3)
                 or
-                (nvl(flag,'E') in('E','R') and (select retry_cnt from stg01.tb_imp_ds2 where ds_id = i_sp_id) < 3)
+                (nvl(flag,'E') in('E','R') and (select retry_cnt from tb_imp_ds2 where ds_id = i_sp_id) < 3)
                 );
 
        elsif v_kind = 'E' then
@@ -105,47 +105,47 @@ begin
                           mobile
                      from (--sp执行结束
                            select sp_id, t.spname, start_time, end_time, a.proj_name||',1' mobile
-                             from stg01.vw_imp_sp t
-                             left join stg01.vw_ci_deploy a on a.spname=t.sp_owner||'.'||t.sp_name and a.bvalid = 1
+                             from vw_imp_sp t
+                             left join vw_ci_deploy a on a.spname=t.sp_owner||'.'||t.sp_name and a.bvalid = 1
                             where t.sp_id = i_sp_id and v_sou = 'sp' and t.retry_cnt = 0 and t.flag = 'E'
                             union all
                            --数据服务执行结束
                            select ds_id, ds_name, start_time, end_time, '1'
-                             from stg01.vw_imp_ds2
+                             from vw_imp_ds2
                             where ds_id = i_sp_id and v_sou = 'ds' and retry_cnt = 0 and flag = 'E'
                             union all
                            --计划任务执行结束
                            select pn_id, spname, start_time, end_time, '1'
-                             from stg01.vw_imp_plan
+                             from vw_imp_plan
                             where pn_id = i_sp_id and v_sou = 'plan' and flag = 'E') t
                      left join (select ds_id,
                                        chr(10)||'失败任务'||sum(case when flag not in('Y','X') then 1 else 0 end)||'个(总任务'||count(1)||'个)' msg2
                                   from (
                                    select ds_id,nvl(flag,'E') flag,dest_tablename
-                                     from stg01.tb_imp_ds2_tbls
+                                     from tb_imp_ds2_tbls
                                     where ds_id = i_sp_id and v_sou = 'ds'
                                     union all
                                    select sp_id,nvl(flag,'E'),
                                           replace(to_char(regexp_substr(com_text,'^[^'||chr(10)||':,]+')),'#')
-                                     from stg01.tb_imp_sp_com
+                                     from tb_imp_sp_com
                                     where sp_id = i_sp_id and v_sou = 'plan'
                                     ) group by ds_id
                                ) a on a.ds_id = t.sp_id )
          loop
-             stg01.sp_sms(c1.msg,c1.mobile,'110') ;
+             sp_sms(c1.msg,c1.mobile,'110') ;
          end loop ;
 
        end if ;
 
      else
        --附属表的状态变更（2位字符）
-       update stg01.tb_imp_sp_com
+       update tb_imp_sp_com
           set flag       = substr(v_kind,2,1),
               start_time = decode(v_kind,'cR',v_curtime,start_time),
               end_time   = decode(v_kind,'cY',v_curtime,'cE',v_curtime,end_time)
         where com_id = i_sp_id and flag <> 'X' and v_sou in ('sp','etl','plan') ;
 
-       update stg01.tb_imp_ds2_tbls
+       update tb_imp_ds2_tbls
           set flag       = substr(v_kind,2,1),
               start_time = decode(v_kind,'cR',v_curtime,start_time),
               end_time   = decode(v_kind,'cY',v_curtime,'cE',v_curtime,end_time)
@@ -153,7 +153,7 @@ begin
      end if ;
 
      --记录操作流水
-     insert into stg01.tb_imp_jour(kind,trade_date,status,key_id,remark)
+     insert into tb_imp_jour(kind,trade_date,status,key_id,remark)
      values(v_sou,gettd(),v_kind,i_sp_id,
             v_remark||chr(10)||'开始时间：'||to_char(v_curtime,'YYYYMMDD HH24:MI:SS')||',执行耗时：'||to_char(trunc((sysdate-v_curtime)*24*60*60),'fm99999999')||
             '秒==>传入参数：{i_kind=['||i_kind||'],i_sp_id=['||i_sp_id||']}<==');
@@ -163,5 +163,5 @@ begin
 
 exception
    when others then
-        stg01.sp_sms('sp_imp_status执行报错,i_kind=['||i_kind||'],i_sp_id=['||i_sp_id||'],v_sou=['||v_sou||'],v_kind=['||v_kind||'],错误说明=['||sqlerrm||']','18692206867','110') ;
+        sp_sms('sp_imp_status执行报错,i_kind=['||i_kind||'],i_sp_id=['||i_sp_id||'],v_sou=['||v_sou||'],v_kind=['||v_kind||'],错误说明=['||sqlerrm||']','18692206867','110') ;
 end;

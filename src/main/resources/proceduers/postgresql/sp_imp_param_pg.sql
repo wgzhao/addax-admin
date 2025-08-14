@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION stg01.sp_imp_param_pg(i_curr_date integer DEFAULT 1)
+CREATE OR REPLACE FUNCTION sp_imp_param_pg(i_curr_date integer DEFAULT 1)
 RETURNS void AS $$
 DECLARE
    v_trade_date integer;
@@ -11,7 +11,7 @@ BEGIN
    v_curr_date := CASE WHEN (i_curr_date/10000000) <> 2 THEN to_char(CURRENT_TIMESTAMP,'YYYYMMDD')::integer ELSE i_curr_date END;
 
    SELECT MAX(init_date) INTO v_trade_date 
-   FROM stg01.vw_trade_date 
+   FROM vw_trade_date
    WHERE init_date <= v_curr_date;
 
    v_param_sou := CASE v_curr_date
@@ -26,14 +26,14 @@ BEGIN
    -- 异常处理块调整
    -- 日期计算逻辑转换
    SELECT CASE WHEN count(1)=0 THEN 7 ELSE 0 END INTO v_jump_week
-   FROM stg01.vw_trade_date
+   FROM vw_trade_date
    WHERE init_date BETWEEN to_char(date_trunc('week', to_date(v_trade_date::text, 'YYYYMMDD') - interval '1 week') - interval '7 days', 'YYYYMMDD')::integer
                      AND to_char(date_trunc('week', to_date(v_trade_date::text, 'YYYYMMDD')) - interval '1 day', 'YYYYMMDD')::integer;
 
    -- 动态SQL重构（UNPIVOT改用jsonb）
    IF v_param_sou IN('C','L','N') THEN
      EXECUTE format($dynsql$
-       INSERT INTO stg01.tb_imp_param0
+       INSERT INTO tb_imp_param0
        SELECT key as param_kind, value::text as param_value, %L as param_sou
        FROM jsonb_each_text(
          jsonb_build_object(
@@ -47,20 +47,20 @@ BEGIN
      -- 创建参数视图（PostgreSQL版本）
      IF v_param_sou = 'C' THEN
        EXECUTE (
-         SELECT 'CREATE OR REPLACE VIEW stg01.vw_imp_param_all AS '||
+         SELECT 'CREATE OR REPLACE VIEW vw_imp_param_all AS '||
                 string_agg(DISTINCT format('max(CASE param_kind WHEN %L THEN param_value END) as %I', param_kind_0, param_kind_0), ',')
-         FROM stg01.tb_imp_param0
+         FROM tb_imp_param0
          WHERE param_sou='C'
        );
      END IF;
 
    ELSE
-     PERFORM stg01.sp_sms('参数更新条件不满足','1','111');
+     PERFORM sp_sms('参数更新条件不满足','1','111');
    END IF;
 
 IF v_param_sou IN('C','L','N') THEN
      EXECUTE format($dynsql$
-       INSERT INTO stg01.tb_imp_param0
+       INSERT INTO tb_imp_param0
        SELECT key as param_kind, value::text as param_value, %L as param_sou
        FROM jsonb_each_text(
          jsonb_build_object(
@@ -78,7 +78,7 @@ IF v_param_sou IN('C','L','N') THEN
 
      -- 补充月份、季度、年度参数生成逻辑
      EXECUTE $
-       INSERT INTO stg01.tb_imp_param0
+       INSERT INTO tb_imp_param0
        SELECT * FROM (
          SELECT 
            param_kind, 
@@ -127,16 +127,16 @@ IF v_param_sou IN('C','L','N') THEN
      -- 创建参数视图（PostgreSQL版本）
      IF v_param_sou = 'C' THEN
        EXECUTE (
-         SELECT 'CREATE OR REPLACE VIEW stg01.vw_imp_param_all AS SELECT '||
+         SELECT 'CREATE OR REPLACE VIEW vw_imp_param_all AS SELECT '||
                 string_agg(DISTINCT format('MAX(CASE param_kind WHEN %L THEN param_value END) AS %I', param_kind, param_kind), ',')||
-                ' FROM stg01.tb_imp_param0'
-         FROM stg01.tb_imp_param0
+                ' FROM tb_imp_param0'
+         FROM tb_imp_param0
          WHERE param_sou='C'
        );
      END IF;
 
    ELSE
-     PERFORM stg01.sp_sms('参数更新条件不满足','1','111');
+     PERFORM sp_sms('参数更新条件不满足','1','111');
    END IF;
 
 EXCEPTION

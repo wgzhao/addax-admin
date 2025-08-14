@@ -1,4 +1,4 @@
-CREATE OR REPLACE function STG01.fn_imp_comment_replace(i_text in clob)
+CREATE OR REPLACE function fn_imp_comment_replace(i_text in clob)
   return clob as
 begin
 

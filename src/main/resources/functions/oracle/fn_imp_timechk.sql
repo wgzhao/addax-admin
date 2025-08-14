@@ -1,4 +1,4 @@
-CREATE OR REPLACE function STG01.fn_imp_timechk(i_currtime in date,
+CREATE OR REPLACE function fn_imp_timechk(i_currtime in date,
                                            i_fixed    in varchar2,
                                            i_interval in int default 0,
                                            i_range    in varchar2 default null,

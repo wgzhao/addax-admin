@@ -1,4 +1,4 @@
-CREATE OR REPLACE function STG01.fn_imp_pnname(i_pntype   in varchar2,
+CREATE OR REPLACE function fn_imp_pnname(i_pntype   in varchar2,
                                          i_fixed    in varchar2 default null,
                                          i_interval in int default null,
                                          i_range    in varchar2 default null)
@@ -9,7 +9,7 @@ begin
   --计划类型名称
   select entry_content
     into o_return
-    from stg01.tb_dictionary
+    from tb_dictionary
    where entry_code = '1064'
      and entry_value = i_pntype;
   --计划类型具体定义
