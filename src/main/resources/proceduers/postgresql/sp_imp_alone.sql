@@ -1,3 +1,4 @@
+-- PostgreSQL version of sp_imp_alone
 CREATE OR REPLACE FUNCTION sp_imp_alone(i_kind varchar, i_sp_id varchar DEFAULT '', i_value1 varchar DEFAULT '')
 RETURNS void AS $$
 DECLARE
@@ -390,3 +391,4 @@ EXCEPTION
       RAISE;
 END;
 $$ LANGUAGE plpgsql;
+
