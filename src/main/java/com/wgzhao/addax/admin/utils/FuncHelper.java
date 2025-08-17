@@ -93,6 +93,25 @@ public class FuncHelper {
     }
 
     /**
+     * Java implementation of fn_imp_comment_replace
+     * Remove newline, chr(19), single quote, double quote, backslash
+     * @param input input string
+     * @return processed string
+     */
+    public static String impCommentReplace(String input) {
+        if (input == null) {
+            return null;
+        }
+        String result = input;
+        result = result.replace("\n", "");
+        result = result.replace(String.valueOf((char)19), "");
+        result = result.replace("'", "");
+        result = result.replace("\"", "");
+        result = result.replace("\\", "");
+        return result;
+    }
+
+    /**
      * Implementation of fn_imp_freqchk
      * Checks if the current date matches the frequency condition
      *
@@ -585,3 +604,4 @@ public class FuncHelper {
         return jdbcTemplate.queryForList("select alter_sql from vw_imp_tbl_diff_mysql", String.class);
     }
 }
+
