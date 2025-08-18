@@ -1,5 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.utils.FuncHelper;
+import com.wgzhao.addax.admin.utils.ProcedureHelper;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +49,12 @@ public class SpAloneService {
     private final JdbcTemplate jdbcTemplate;
     private final StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private final FuncHelper funcHelper;
+
+    @Resource
+    private final ProcedureHelper procedureHelper;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -87,7 +96,7 @@ public class SpAloneService {
                     Long added = stringRedisTemplate.opsForSet().add(setKey, member);
                     return String.valueOf(added == null ? 0 : added);
                 }
-                case "srem": {
+                case "rem": {
                     if (parts.length < 3) return "0";
                     String setKey = parts[1];
                     String member = parts[2];
@@ -308,26 +317,39 @@ public class SpAloneService {
     /** 计划任务主控制 */
     public String executePlanStart() {
         try {
-            recordSystemLog("计划任务主控制开始执行");
+            log.info("计划任务主控制开始执行");
             int currentSecond = LocalDateTime.now().getSecond();
-            if (currentSecond >= 57) { recordSystemLog("计划任务主控制在整点前几秒开始"); sleep(3000); }
-            if (currentSecond > 30) { recordSystemLog("计划任务主控制在不合适的时间点启动,本次计划任务退出"); return "退出：不合适的时间点启动"; }
-            if ("1".equals(executeRedisFlag("add", "plan_start"))) {
-                StringBuilder sqlBuilder = new StringBuilder();
-                executeSqlStatement("begin; select sp_imp_alone('plan_start');end;");
-                List<Map.Entry<String, String>> tasks = fetchKindAndIds("select fn_imp_value('plan_run')");
-                for (Map.Entry<String, String> kv : tasks) {
-                    sqlBuilder.append("select sp_imp_status('R','").append(kv.getValue()).append("');");
-                    dispatchStartWkf(kv.getKey(), kv.getValue());
+            if (currentSecond >= 57) { log.warn("计划任务主控制在整点前几秒开始"); sleep(3000); }
+            if (currentSecond > 30) { log.warn("计划任务主控制在不合适的时间点启动,本次计划任务退出"); return "退出：不合适的时间点启动"; }
+            if (stringRedisTemplate.opsForSet().add("1", "plan_start") == 1) {
+                procedureHelper.spImpAlone("plan_start");
+                String sql = """
+                        WITH t_sp AS (
+                          SELECT 'plan' as dtype, pn_id AS sp_id FROM vw_imp_plan WHERE brun = 1 AND bpntype = 1
+                          UNION ALL
+                          SELECT 'judge' , CASE bstart WHEN '-1' THEN 'status_' WHEN '0' THEN 'start_' END || sysid
+                          FROM vw_imp_etl_judge
+                          WHERE bstart IN ('-1', '0') AND px = 1
+                        )
+                        select * from t_sp
+                        order by concat(dtype,sp_id)
+                        """;
+                List<Map<String, Object>> maps = jdbcTemplate.queryForList(sql);
+                if (maps.isEmpty()) {
+                    log.warn("没有计划任务在执行");
+                    return "没有计划任务在执行";
                 }
-                if (sqlBuilder.length() > 0) executeSqlStatement("begin; " + sqlBuilder + " end;");
+                for (Map<String, Object> map: maps) {
+                    dispatchStartWkf(map.get("dtype").toString(), map.get("sp_id").toString());
+                    procedureHelper.spImpStatus("R", map.get("sp_id").toString());
+                }
                 String spRunCount = querySingleCell("select count(1) where fn_imp_value('sp_run') is not null");
                 if ("1".equals(spRunCount)) executeSpStart();
-                executeRedisFlag("rem", "plan_start");
+                stringRedisTemplate.opsForSet().remove("1","plan_start");
             } else {
                 sendToWecomRobot("没有计划任务在执行，但是占用了标志!!");
             }
-            recordSystemLog("计划任务主控制执行完毕");
+            log.info("计划任务主控制执行完毕");
             return "计划任务执行完成";
         } catch (Exception e) {
             log.error("计划任务执行失败", e);

@@ -331,74 +331,80 @@ public class FuncHelper {
      * @param value1   Additional value
      * @return         Result value
      */
-    public List<Map<String, Object>> fnImpValue(String kind, String spId, String value1) {
+    public String fnImpValue(String kind, String spId, String value1) {
 
-            switch (kind.toUpperCase()) {
-                case "PLAN_RUN":
-                    return handlePlanRun();
-                case "SP_RUN":
-                    return handleSpRun();
-                case "COM_TEXT":
-                    return handleComText(spId);
-                // 其他case分支...
-                default:
-                    throw new IllegalArgumentException("Unsupported i_kind: " + kind);
-            }
+        return switch (kind.toUpperCase()) {
+            case "PLAN_RUN" -> handlePlanRun();
+            case "SP_RUN" -> handleSpRun();
+            case "COM_TEXT" -> handleComText(spId);
+            // 其他case分支...
+            default -> throw new IllegalArgumentException("Unsupported i_kind: " + kind);
+        };
 
     }
 
     /**
      * Implementation of fn_imp_value with default parameters
      */
-    public List<Map<String, Object>> fnImpValue(String kind) {
+    public String fnImpValue(String kind) {
         return fnImpValue(kind, "", "");
     }
 
-    public List<Map<String, Object>> fnImpValue(String kind, String spId) {
+    public String fnImpValue(String kind, String spId) {
         return fnImpValue(kind, spId, "");
     }
 
-    private List<Map<String, Object>> handlePlanRun() {
-        String sql = "WITH t_sp AS (" +
-                "  SELECT 'plan|'||pn_id sp_id FROM vw_imp_plan WHERE brun=1 AND bpntype=1 " +
-                "  UNION ALL " +
-                "  SELECT 'judge|'||DECODE(bstart,-1,'status_',0,'start_')||sysid " +
-                "  FROM vw_imp_etl_judge WHERE bstart IN (-1,0) AND px=1" +
-                ") SELECT LISTAGG(sp_id, CHR(10)) WITHIN GROUP (ORDER BY 1) FROM t_sp";
-
-        return jdbcTemplate.queryForList(sql);
-    }
-
-    private List<Map<String, Object>> handleSpRun()  {
+    private String handlePlanRun() {
         String sql = """
-                with t_sp as
-                     (select 'sp' kind, sp_id, 'sp'||sp_owner dest_sys, runtime, brun
-                        from vw_imp_sp
-                       where brun = 1 or flag = 'R'
-                      union all
-                      select 'etl', tid, sysid, runtime+runtime_add, brun
-                        from vw_imp_etl
-                       where brun = 1 or flag = 'R'
-                      union all
-                      select 'ds', ds_id, 'ds'||dest_sysid, coalesce(runtime,999), brun
-                        from vw_imp_ds2
-                       where brun = 1 or flag = 'R')
-                    select replace(wm_concat(sp_id),',',chr(10))
-                           into o_return
-                      from (select decode(kind,'etl','sp',kind)||'|'||sp_id sp_id,
-                                   brun * row_number() over(order by brun , runtime + 20000 / sys_px desc) px
-                              from (select kind , sp_id , dest_sys , brun , runtime ,
-                                           row_number() over(partition by kind, dest_sys order by brun , runtime desc) sys_px 
-                                      from t_sp)
-                             where sys_px <= coalesce((select db_paral from vw_imp_system
-                                                   where sysid = dest_sys and sys_kind='etl'),
-                                                 8))
-                     where px between 1 and 100 ;
+                 WITH t_sp AS (
+                  SELECT 'plan|' || pn_id::text AS sp_id FROM vw_imp_plan WHERE brun = 1 AND bpntype = 1
+                  UNION ALL
+                  SELECT 'judge|' || CASE bstart WHEN -1 THEN 'status_' WHEN 0 THEN 'start_' END || sysid::text
+                  FROM vw_imp_etl_judge WHERE bstart IN (-1, 0) AND px = 1
+                )
+                SELECT string_agg(sp_id, chr(10) ORDER BY sp_id) FROM t_sp
                 """;
-        return jdbcTemplate.queryForList(sql);
+        return jdbcTemplate.queryForObject(sql,String.class);
     }
 
-    private List<Map<String, Object>> handleComText(String spId)  {
+    private String handleSpRun()  {
+        String sql = """
+                with t_sp as (
+                         select 'sp' as kind, sp_id, 'sp'||sp_owner as dest_sys, runtime, brun
+                         from vw_imp_sp
+                         where brun = 1 or flag = 'R'
+                         union all
+                         select 'etl' as kind, tid as sp_id, sysid as dest_sys, runtime + runtime_add as runtime, brun
+                         from vw_imp_etl
+                         where brun = 1 or flag = 'R'
+                         union all
+                         select 'ds' as kind, ds_id as sp_id, 'ds'||dest_sysid as dest_sys, coalesce(runtime, 999) as runtime, brun
+                         from vw_imp_ds2
+                         where brun = 1 or flag = 'R'
+                     ),
+                     t_ranked as (
+                         select kind, sp_id, dest_sys, brun, runtime,
+                                row_number() over (partition by kind, dest_sys order by brun, runtime desc) as sys_px
+                         from t_sp
+                     ),
+                     t_px as (
+                         select
+                             (case when kind = 'etl' then 'sp' else kind end) || '|' || sp_id as sp_id,
+                             brun * row_number() over (order by brun, runtime + 20000.0 / nullif(sys_px, 0) desc) as px
+                         from t_ranked
+                         where sys_px <= coalesce(
+                             (select db_paral from vw_imp_system where sysid = dest_sys and sys_kind = 'etl'),
+                             8
+                         )
+                     )
+                     select string_agg(sp_id, chr(10) order by px)
+                     from t_px
+                     where px between 1 and 100
+                """;
+        return jdbcTemplate.queryForObject(sql, String.class);
+    }
+
+    private String handleComText(String spId)  {
         String sql = "SELECT com_text FROM tb_imp_sp_com WHERE com_id = ?";
         Map<String, Object> stringObjectMap = jdbcTemplate.queryForMap(sql, spId);
         String tpl = stringObjectMap.getOrDefault("com_text", "").toString();
@@ -424,7 +430,7 @@ public class FuncHelper {
                case when t.sou_owner like '%-%' then '`'||t.sou_owner||'`' else t.sou_owner end||case when sou_db_kind='sqlserver' and sou_db_conf like '%[soutab_owner:table_catalog]%' then '..' else '.' end||t.sou_tablename as sou_tablename,
                sou_filter,
                '/ods/'||lower(replace(dest,'.','/'))||'/logdate=${dest_part}') as tag_tblname,
-               
+
                 """;
         return null;
 

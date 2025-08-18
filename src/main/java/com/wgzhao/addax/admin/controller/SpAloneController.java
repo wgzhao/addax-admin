@@ -13,7 +13,7 @@ import java.util.Map;
  * 将 sp_alone.sh 脚本中的函数转换为 REST API 接口
  */
 @RestController
-@RequestMapping("/api/sp-alone")
+@RequestMapping("/sp-alone")
 @RequiredArgsConstructor
 public class SpAloneController {
 
@@ -106,7 +106,7 @@ public class SpAloneController {
     /**
      * 计划任务主控制接口 - 定时任务每分钟执行一次
      */
-    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
+//    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
     @PostMapping("/plan-start")
     public ResponseEntity<String> planStart() {
         String result = spAloneService.executePlanStart();
