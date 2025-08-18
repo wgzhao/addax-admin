@@ -1047,3 +1047,20 @@ INNER JOIN (SELECT fid,
 WHERE t.sys_kind = 'etl' AND a.fval = 4;
 
 -- Note: Missing vw_imp_tradetime view - this would need to be created based on the original Oracle definition
+
+create or replace view vw_updt_rds (rds) as
+select 'set param.' || param_kind_0 || ' "' || param_value || '"' as rds
+from vw_imp_param
+where param_sou = 'C' and param_kind_0 is not null
+union all
+select 'set ' ||
+       case entry_code
+         when '1061' then 'shname'
+         when '1062' then 'path'
+         when '1063' then 'com'
+         else ''
+       end
+       || '.' || entry_value || ' "' || entry_content || '"'
+from tb_dictionary
+where entry_code in ('1061','1062','1063')
+order by 1;
