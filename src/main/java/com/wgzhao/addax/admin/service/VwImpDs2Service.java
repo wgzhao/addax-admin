@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.oracle.VwImpDs2Repo;
-import com.wgzhao.addax.admin.model.oracle.VwImpDs2;
+import com.wgzhao.addax.admin.repository.VwImpDs2Repo;
+import com.wgzhao.addax.admin.model.VwImpDs2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

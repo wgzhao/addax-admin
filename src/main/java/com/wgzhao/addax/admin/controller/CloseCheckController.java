@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.repository.pg.TbImpChkEtlRepo;
+import com.wgzhao.addax.admin.repository.TbImpChkEtlRepo;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;

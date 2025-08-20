@@ -28,14 +28,14 @@ public class EtlHandler
         }
 
         if ("1".equals(RedisUtils.flagAdd("sp." + taskId))) {
-            String spname = CommandExecutor.executeForOutput(c_sql3 + " \"select nvl(stg01.fn_imp_value('taskname','" + taskId + "'),'" + taskId + "') from dual\"");
+            String spname = CommandExecutor.executeForOutput(c_sql3 + " \"select coalesce(fn_imp_value('taskname','" + taskId + "'),'" + taskId + "') from dual\"");
             System.out.println("<b>" + DateUtils.getCurrentDateTime() + ":" + taskId + "[" + spname + "]开始执行...</b>");
 
             if ("manual".equals(mode)) {
                 CommandExecutor.execute(c_sql + " \"update tb_imp_sp_com set flag='N' where sp_id='" + taskId + "' and flag!='X'\"");
             }
 
-            String comtList = CommandExecutor.executeForOutput(c_sql3 + " \"select com_id||','||com_kind||','||com_idx from stg01.tb_imp_sp_com where sp_id='" + taskId + "' and flag='N' order by com_idx\"");
+            String comtList = CommandExecutor.executeForOutput(c_sql3 + " \"select com_id||','||com_kind||','||com_idx from tb_imp_sp_com where sp_id='" + taskId + "' and flag='N' order by com_idx\"");
             for (String comt : comtList.split("\n")) {
                 if (comt.trim().isEmpty()) {
                     continue;
@@ -58,14 +58,14 @@ public class EtlHandler
                 String com_file = RedisUtils.get("path.coms") + "/" + spname + "_" + com_idx + ".txt";
                 System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":生成文件" + com_file + "...</b>");
 
-                int result = CommandExecutor.executeWithResult(c_sql3 + " \"select stg01.fn_imp_value('com_text','" + com_id + "') from dual\" >" + com_file);
+                int result = CommandExecutor.executeWithResult(c_sql3 + " \"select fn_imp_value('com_text','" + com_id + "') from dual\" >" + com_file);
                 if (result == 0) {
                     System.out.println("生成成功，置命令状态为R");
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cR','" + com_id + "');end;\" 2>&1");
+                    CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cR','" + com_id + "');end;\" 2>&1");
                 }
                 else {
                     System.out.println("生成失败，跳过");
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cE','" + com_id + "');end;\" 2>&1");
+                    CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cE','" + com_id + "');end;\" 2>&1");
 
                     if ("plan".equals(mode)) {
                         // 计划需要继续执行,只是跳过报错的一条计划
@@ -82,10 +82,10 @@ public class EtlHandler
                 result = CommandExecutor.executeWithResult(curpath + "/tuna.py -t 36000 -m " + com_kind + " -f " + com_file + " 2>&1");
 
                 if (result == 0) {
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cY','" + com_id + "');end;\" 2>&1");
+                    CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cY','" + com_id + "');end;\" 2>&1");
                 }
                 else {
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('cE','" + com_id + "');end;\" 2>&1");
+                    CommandExecutor.execute(c_sql + " \"begin sp_imp_status('cE','" + com_id + "');end;\" 2>&1");
 
                     if ("plan".equals(mode)) {
                         // 计划需要继续执行,只是跳过报错的一条计划
@@ -102,7 +102,7 @@ public class EtlHandler
             System.out.println("\n<b>" + DateUtils.getCurrentDateTime() + ":" + taskId + "[" + spname + "]执行结束...</b>" + RedisUtils.flagRemove("sp." + taskId));
 
             if (!"manual".equals(mode)) {
-                CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('Y','" + taskId + "');end;\" 2>&1");
+                CommandExecutor.execute(c_sql + " \"begin sp_imp_status('Y','" + taskId + "');end;\" 2>&1");
                 // 计划任务执行无需重新调起sp_start
                 if (!"plan".equals(mode)) {
                     return spStart();
@@ -112,7 +112,7 @@ public class EtlHandler
         }
         else {
             if (!"manual".equals(mode)) {
-                CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_status('E','" + taskId + "');end;\" 2>&1");
+                CommandExecutor.execute(c_sql + " \"begin sp_imp_status('E','" + taskId + "');end;\" 2>&1");
             }
             return false;
         }
@@ -145,7 +145,7 @@ public class EtlHandler
             String strsql = "";
 
             System.out.println("#####" + DateUtils.getCurrentDateTime() + ":数据源采集完毕######");
-            String sysids = CommandExecutor.executeForOutput(c_sql3 + " \"select stg01.fn_imp_value('etl_end') from dual\"");
+            String sysids = CommandExecutor.executeForOutput(c_sql3 + " \"select fn_imp_value('etl_end') from dual\"");
 
             for (String sysid : sysids.split("\n")) {
                 if (sysid == null || sysid.trim().isEmpty()) {
@@ -153,7 +153,7 @@ public class EtlHandler
                 }
 
                 // 置数据源采集结束
-                strsql += "stg01.sp_imp_alone('etl_end','" + sysid + "');";
+                strsql += "sp_imp_alone('etl_end','" + sysid + "');";
                 // 数据源采集完后的操作
                 CommandExecutor.execute("echo \"" + RedisUtils.get("com.sp_alone") + " start_wkf etl_end " + sysid + "\" |tee -a " + shfile);
             }
@@ -168,10 +168,10 @@ public class EtlHandler
             strsql = "";
             CommandExecutor.execute(">" + shfile);
 
-            int result = CommandExecutor.executeWithResult(c_sql + " \"begin stg01.sp_imp_alone('sp_start');end;\" 2>&1");
+            int result = CommandExecutor.executeWithResult(c_sql + " \"begin sp_imp_alone('sp_start');end;\" 2>&1");
 
             if (result == 0) {
-                String lines = CommandExecutor.executeForOutput(c_sql3 + " \"select stg01.fn_imp_value('sp_run') from dual\"");
+                String lines = CommandExecutor.executeForOutput(c_sql3 + " \"select fn_imp_value('sp_run') from dual\"");
 
                 for (String line : lines.split("\n")) {
                     if (line == null || line.trim().isEmpty()) {
@@ -180,7 +180,7 @@ public class EtlHandler
 
                     // 置状态为R
                     String[] linev = line.split("\\|");
-                    strsql += "stg01.sp_imp_status('R','" + linev[1] + "');";
+                    strsql += "sp_imp_status('R','" + linev[1] + "');";
                     CommandExecutor.execute("echo \"" + RedisUtils.get("com.sp_alone") + " start_wkf " + linev[0] + " " + linev[1] + "\" |tee -a " + shfile);
                 }
 
@@ -217,18 +217,18 @@ public class EtlHandler
             String jsonfile = RedisUtils.get("path.oths") + "/soutab_" + dbConn + ".json";
             System.out.println("\n" + DateUtils.getCurrentDateTime() + ":获取表结构信息[" + dbConn + "][" + jsonfile + "]...");
 
-            CommandExecutor.execute(c_sql3 + " \"select col_json from stg01.vw_imp_etl_soutab where sou_db_conn='" + dbConn + "'\" |tee " + jsonfile);
+            CommandExecutor.execute(c_sql3 + " \"select col_json from vw_imp_etl_soutab where sou_db_conn='" + dbConn + "'\" |tee " + jsonfile);
 
             if (LogUtils.countLines(jsonfile) >= 5) {
                 int result = CommandExecutor.executeWithResult(RedisUtils.get("com.tuna") + " -m schema -f " + jsonfile + " 2>&1");
 
                 if (result == 0) {
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_alone('bupdate','" + dbConn + "','n');end;\"");
+                    CommandExecutor.execute(c_sql + " \"begin sp_imp_alone('bupdate','" + dbConn + "','n');end;\"");
                     RedisUtils.flagRemove("soutab." + dbConn);
                     return true;
                 }
                 else {
-                    CommandExecutor.execute(c_sql + " \"begin stg01.sp_sms('获取" + dbConn + "的表结构信息失败!!!!','1','010');end;\"");
+                    CommandExecutor.execute(c_sql + " \"begin sp_sms('获取" + dbConn + "的表结构信息失败!!!!','1','010');end;\"");
                 }
             }
 
@@ -247,7 +247,7 @@ public class EtlHandler
             System.out.println("<b>" + DateUtils.getCurrentDateTime() + ":获取源库及hadoop的表结构信息</b><p style='background-color:#A9A9A9'>");
 
             String dest_dir = RedisUtils.get("path.oths");
-            String dbConns = CommandExecutor.executeForOutput(c_sql + " \"select sou_db_conn from stg01.vw_imp_etl_soutab where kind='etl'\"");
+            String dbConns = CommandExecutor.executeForOutput(c_sql + " \"select sou_db_conn from vw_imp_etl_soutab where kind='etl'\"");
 
             ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -272,13 +272,13 @@ public class EtlHandler
             }
 
             // 刷新对比表
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_alone('colexch_updt');end;\" 2>&1");
+            CommandExecutor.execute(c_sql + " \"begin sp_imp_alone('colexch_updt');end;\" 2>&1");
 
             // 建表或者刷新hive表结构
             String dest_file = dest_dir + "/updt_hive.sql";
 
             for (String kind : Arrays.asList("updt_hive", "updt_mysql")) {
-                CommandExecutor.execute(c_sql3 + " \"select stg01.fn_imp_value('" + kind + "') from dual\" >" + dest_file);
+                CommandExecutor.execute(c_sql3 + " \"select fn_imp_value('" + kind + "') from dual\" >" + dest_file);
 
                 if (CommandExecutor.executeWithResult("test -s " + dest_file) == 0) {
                     System.out.println("</p>\n<b>" + DateUtils.getCurrentDateTime() + ":" + kind + " " +
@@ -298,14 +298,14 @@ public class EtlHandler
             if ("1".equals(RedisUtils.flagHas("soutab.task"))) {
                 System.out.println("</p>\n<b>" + DateUtils.getCurrentDateTime() + ":本次hadoop有更新，获取更新后的hadoop表结构信息</b><p style='background-color:#A9A9A9'>");
                 soutabEtl("hadoop");
-                CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_alone('colexch_updt');end;\" 2>&1");
+                CommandExecutor.execute(c_sql + " \"begin sp_imp_alone('colexch_updt');end;\" 2>&1");
             }
 
             RedisUtils.flagRemove("soutab.task");
 
             // 更新状态及采集JSON
             System.out.println("</p>\n<b>" + DateUtils.getCurrentDateTime() + ":执行完毕，更新状态及采集JSON</b>");
-            CommandExecutor.execute(c_sql + " \"begin stg01.sp_imp_alone('bupdate','N');end;\" 2>&1");
+            CommandExecutor.execute(c_sql + " \"begin sp_imp_alone('bupdate','N');end;\" 2>&1");
 
             RedisUtils.flagRemove("soutab");
             return true;
@@ -324,7 +324,7 @@ public class EtlHandler
 
         // 1、更新redis中api参数,用于接口的日期参数，该参数是以数据源编号开头的，用于区分不同数据源的采集情况
         String rdsCommands = CommandExecutor.executeForOutput(c_sql + " \"select replace(rds,'set param.','set api." + sysid +
-                "') rds from stg01.vw_updt_rds where rds like 'set param.%'\"");
+                "') rds from vw_updt_rds where rds like 'set param.%'\"");
 
         for (String line : rdsCommands.split("\n")) {
             if (line != null && !line.trim().isEmpty()) {
@@ -338,7 +338,7 @@ public class EtlHandler
             String tblsql = RedisUtils.get("path.oths") + "/tblcnt_" + sysid + ".sql";
 
             CommandExecutor.execute(">" + tblcnt);
-            CommandExecutor.execute(c_sql3 + " \"select stg01.fn_imp_value('etl_end_chk','" + sysid + "') from dual\" >" + tblsql);
+            CommandExecutor.execute(c_sql3 + " \"select fn_imp_value('etl_end_chk','" + sysid + "') from dual\" >" + tblsql);
             CommandExecutor.execute(RedisUtils.get("com.prestocmd") + " --output-format TSV -f " + tblsql + " |tee -a " + tblcnt);
             CommandExecutor.execute("cp " + tblcnt + " /mnt/dfs/sta/stage/tab_cnt/logdate=" + RedisUtils.get("param.TD") + "/");
         }

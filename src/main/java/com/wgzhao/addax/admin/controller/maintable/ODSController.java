@@ -2,15 +2,15 @@ package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
-import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
-import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
-import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
-import com.wgzhao.addax.admin.model.oracle.VwImpEtl;
-import com.wgzhao.addax.admin.model.pg.VwAddaxLog;
-import com.wgzhao.addax.admin.repository.oracle.ImpSpComRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbImpEtlRepo;
-import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
+import com.wgzhao.addax.admin.model.TbImpEtl;
+import com.wgzhao.addax.admin.model.ImpSpCom;
+import com.wgzhao.addax.admin.model.TbImpSpNeedtab;
+import com.wgzhao.addax.admin.model.VwImpEtl;
+import com.wgzhao.addax.admin.model.VwAddaxLog;
+import com.wgzhao.addax.admin.repository.ImpSpComRepo;
+import com.wgzhao.addax.admin.repository.TbImpDBRepo;
+import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
+import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.TaskService;
 import com.wgzhao.addax.admin.service.TbImpSpNeedtabService;
 import com.wgzhao.addax.admin.service.VwAddaxLogService;
@@ -19,9 +19,9 @@ import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
-import oracle.ucp.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -83,7 +83,10 @@ public class ODSController
         if (page < 0) {
             page = 0;
         }
-
+        if (pageSize == -1) {
+            //means the browser select the "All" option
+            pageSize = Integer.MAX_VALUE; // or some large number
+        }
         if (flag != null && !flag.isEmpty()) {
             return ApiResponse.success(vwImpEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
         }
@@ -206,13 +209,13 @@ public class ODSController
     public ApiResponse<String> startEtl(@RequestBody Map<String, String> payload, HttpServletResponse response)
     {
         Pair<Boolean, String> pair = dsUtil.execDs(payload.getOrDefault("ctype", "sp"), null);
-        if (pair.get1st()) {
+        if (pair.getFirst()) {
             response.setStatus(HttpStatus.OK.value());
         }
         else {
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
-        return ApiResponse.success(pair.get2nd());
+        return ApiResponse.success(pair.getSecond());
     }
 
     @PostMapping(path = "/updateSchema")

@@ -710,7 +710,7 @@ public class ProcedureHelper {
 
             logger.info("System check completed");
         } catch (Exception e) {
-            logger.error("Error in handleSysCheck: " + e.getMessage(), e);
+            logger.error("Error in handleSysCheck: {}", e.getMessage(), e);
             spSms("系统检查执行失败: " + e.getMessage(), "1", "110");
         }
     }
@@ -865,7 +865,7 @@ public class ProcedureHelper {
 
             return updatedCount;
         } catch (Exception e) {
-            logger.error("Error in handleColExchUpdate: " + e.getMessage(), e);
+            logger.error("Error in handleColExchUpdate: {}", e.getMessage(), e);
             spSms("更新表结构信息失败: " + e.getMessage(), "1", "110");
             return 0;
         }
@@ -896,7 +896,7 @@ public class ProcedureHelper {
 
             return sdf.format(cal.getTime());
         } catch (Exception e) {
-            logger.error("Error calculating date offset: " + e.getMessage(), e);
+            logger.error("Error calculating date offset: {}", e.getMessage(), e);
             return String.valueOf(baseDate);
         }
     }
@@ -970,7 +970,7 @@ public class ProcedureHelper {
 
             logger.info("Parameter view created successfully");
         } catch (Exception e) {
-            logger.error("Error creating parameter view: " + e.getMessage(), e);
+            logger.error("Error creating parameter view: {}", e.getMessage(), e);
         }
     }
 }

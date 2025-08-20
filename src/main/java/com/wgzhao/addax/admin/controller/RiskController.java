@@ -1,12 +1,12 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.TbImpChk;
-import com.wgzhao.addax.admin.model.oracle.VwImpCheckSoutab;
-import com.wgzhao.addax.admin.model.oracle.Msg;
-import com.wgzhao.addax.admin.repository.oracle.MsgRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbImpChkRepo;
-import com.wgzhao.addax.admin.repository.oracle.VwImpCheckSoutabRepo;
+import com.wgzhao.addax.admin.model.TbImpChk;
+import com.wgzhao.addax.admin.model.VwImpCheckSoutab;
+import com.wgzhao.addax.admin.model.Msg;
+import com.wgzhao.addax.admin.repository.MsgRepo;
+import com.wgzhao.addax.admin.repository.TbImpChkRepo;
+import com.wgzhao.addax.admin.repository.VwImpCheckSoutabRepo;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;

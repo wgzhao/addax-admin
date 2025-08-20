@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.TbImpDb;
-import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
+import com.wgzhao.addax.admin.model.TbImpDb;
+import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;

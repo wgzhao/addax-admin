@@ -1,13 +1,13 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
-import com.wgzhao.addax.admin.model.oracle.TbImpDb;
-import com.wgzhao.addax.admin.model.oracle.TbImpSp;
-import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
-import com.wgzhao.addax.admin.repository.oracle.ImpSpComRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbImpDBRepo;
-import com.wgzhao.addax.admin.repository.oracle.TbImpSpNeedtabRepo;
+import com.wgzhao.addax.admin.model.ImpSpCom;
+import com.wgzhao.addax.admin.model.TbImpDb;
+import com.wgzhao.addax.admin.model.TbImpSp;
+import com.wgzhao.addax.admin.model.TbImpSpNeedtab;
+import com.wgzhao.addax.admin.repository.ImpSpComRepo;
+import com.wgzhao.addax.admin.repository.TbImpDBRepo;
+import com.wgzhao.addax.admin.repository.TbImpSpNeedtabRepo;
 import com.wgzhao.addax.admin.service.ImpSpService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
