@@ -318,18 +318,19 @@ public class SpAloneService {
     public String executePlanStart() {
         try {
             log.info("计划任务主控制开始执行");
-            int currentSecond = LocalDateTime.now().getSecond();
-            if (currentSecond >= 57) { log.warn("计划任务主控制在整点前几秒开始"); sleep(3000); }
-            if (currentSecond > 30) { log.warn("计划任务主控制在不合适的时间点启动,本次计划任务退出"); return "退出：不合适的时间点启动"; }
+//            int currentSecond = LocalDateTime.now().getSecond();
+//            if (currentSecond >= 57) { log.warn("计划任务主控制在整点前几秒开始"); sleep(3000); }
+//            if (currentSecond > 30) { log.warn("计划任务主控制在不合适的时间点启动,本次计划任务退出"); return "退出：不合适的时间点启动"; }
             if (stringRedisTemplate.opsForSet().add("1", "plan_start") == 1) {
-                procedureHelper.spImpAlone("plan_start");
+//                procedureHelper.spImpAlone("plan_start");
+                jdbcTemplate.execute("select sp_imp_alone('plan_start')");
                 String sql = """
                         WITH t_sp AS (
                           SELECT 'plan' as dtype, pn_id AS sp_id FROM vw_imp_plan WHERE brun = 1 AND bpntype = 1
                           UNION ALL
-                          SELECT 'judge' , CASE bstart WHEN '-1' THEN 'status_' WHEN '0' THEN 'start_' END || sysid
+                          SELECT 'judge' , CASE bstart WHEN -1 THEN 'status_' WHEN 0 THEN 'start_' END || sysid
                           FROM vw_imp_etl_judge
-                          WHERE bstart IN ('-1', '0') AND px = 1
+                          WHERE bstart IN (-1, 0) AND px = 1
                         )
                         select * from t_sp
                         order by concat(dtype,sp_id)
@@ -337,6 +338,7 @@ public class SpAloneService {
                 List<Map<String, Object>> maps = jdbcTemplate.queryForList(sql);
                 if (maps.isEmpty()) {
                     log.warn("没有计划任务在执行");
+                    stringRedisTemplate.opsForSet().remove("1","plan_start");
                     return "没有计划任务在执行";
                 }
                 for (Map<String, Object> map: maps) {

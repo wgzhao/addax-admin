@@ -98,7 +98,8 @@ public class TaskService
                 log.warn("Found empty sou_db_conn, skipping");
             }
         }
-        if (!procedureHelper.spImpAlone("colexch_updt")) {
+        boolean updtResult = jdbcTemplate.queryForObject("select sp_imp_alone('colexch_updt')", Boolean.class);
+        if (!updtResult) {
             log.error("首次刷新对比表失败: sp_imp_alone('colexch_updt')");
             return;
         }
@@ -151,7 +152,8 @@ public class TaskService
     {
         log.info("Processing update for kind: {}", kind);
 
-        String updateSql = funcHelper.fnImpValue(kind);
+//        String updateSql = funcHelper.fnImpValue(kind);
+        String updateSql = jdbcTemplate.queryForObject("select fn_imp_value('" + kind + "')", String.class);
         if (updateSql == null || updateSql.length() < 100) {
             log.warn("Update SQL for kind: {} is too short", kind);
             return;

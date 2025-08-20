@@ -1064,3 +1064,175 @@ select 'set ' ||
 from tb_dictionary
 where entry_code in ('1061','1062','1063')
 order by 1;
+
+CREATE OR REPLACE VIEW vw_imp_tbl_diff_hive AS
+SELECT '增加字段' AS kind,
+       tid,
+       lower('alter table "' || (SELECT replace(dest, '.', '"."') FROM vw_imp_etl WHERE tid = t.tid) || '" add columns(' ||
+             string_agg('"' || column_name || '" ' || dest_type_full ||
+                        CASE WHEN coalesce(t.column_comment, ' ') <> ' ' THEN ' comment "' || t.column_comment || '"' ELSE '' END, ',') ||
+             ');') AS alter_sql
+FROM vw_imp_tbl t
+WHERE col_name IS NULL
+GROUP BY tid
+
+UNION ALL
+
+SELECT '字段类型修改' AS kind,
+       t.tid,
+       lower('alter table "' || a.hive_owner || '"."' || a.hive_tablename || '" change "' || a.col_name || '" "' || a.col_name || '" ' ||
+             t.dest_type ||
+             CASE WHEN t.dest_type = 'DECIMAL' THEN
+                 '(' ||
+                 CASE
+                     WHEN t.data_precision > coalesce(a.col_precision, 0) OR t.data_scale > coalesce(a.col_scale, 0) THEN
+                         CASE
+                             WHEN t.data_precision - coalesce(a.col_precision, 0) < t.data_scale - coalesce(a.col_scale, 0)
+                                 THEN LEAST(38, coalesce(a.col_precision, 0) + t.data_scale - coalesce(a.col_scale, 0))
+                             ELSE t.data_precision
+                         END
+                 END || ',' ||
+                 CASE WHEN t.data_scale > coalesce(a.col_scale, 0) THEN t.data_scale ELSE coalesce(a.col_scale, 0) END || ')'
+             ELSE ''
+             END ||
+             CASE WHEN coalesce(t.col_comment, ' ') <> ' ' THEN ' comment "' || t.col_comment || '"' ELSE '' END || ';'
+       ) AS alter_sql
+FROM tb_imp_tbl_sou t
+INNER JOIN tb_imp_tbl_hdp a ON a.tid = t.tid AND t.column_name = a.col_name
+WHERE t.dest_type_full <> a.col_type_full
+  AND NOT (
+      (t.dest_type IN ('INT', 'BIGINT') AND a.col_type IN ('INT', 'BIGINT')) OR
+      (t.dest_type = 'DECIMAL' AND a.col_type = 'DECIMAL' AND coalesce(a.col_precision, 0) >= t.data_precision AND coalesce(a.col_scale, 0) >= t.data_scale)
+  )
+
+UNION ALL
+
+SELECT '修改表注释' AS kind,
+       t.tid,
+       'alter table "' || (SELECT lower(replace(dest, '.', '"."')) FROM vw_imp_etl WHERE tid = t.tid) ||
+       '" set tblproperties("comment" = "' || t.table_comment || '");'
+FROM (
+    SELECT tid, max(tbl_comment) AS table_comment
+    FROM tb_imp_tbl_sou
+    GROUP BY tid
+) t
+INNER JOIN (
+    SELECT tid, max(tbl_comment) AS tbl_comment
+    FROM tb_imp_tbl_hdp
+    GROUP BY tid
+) a ON a.tid = t.tid
+WHERE coalesce(a.tbl_comment, ' ') <> t.table_comment;
+
+
+CREATE OR REPLACE VIEW vw_imp_tbl_diff_mysql AS
+SELECT
+    '修改字段注释' AS kind,
+    tid,
+    '/*' || (SELECT lower(dest) FROM vw_imp_etl WHERE tid = t.tid) || '*/ ' ||
+    'update hive.COLUMNS_V2 set comment=''' || column_comment || ''' where cd_id = ' || cd_id || ' and integer_idx = ' || (col_idx - 1) || ';'
+    AS alter_sql
+FROM vw_imp_tbl t
+WHERE COALESCE(col_comment, ' ') <> column_comment AND cd_id IS NOT NULL;
+
+CREATE OR REPLACE VIEW vw_imp_tbl_hdp AS
+SELECT
+    t.tid,
+    t.bupdate,
+    t.dest_owner AS hive_owner,
+    t.dest_tablename AS hive_tablename,
+    upper(a.col_name) AS col_name,
+    upper(a.col_type) AS col_type_full,
+    -- 拆分字段类型
+    upper(split_part(a.col_type, '(', 1)) AS col_type,
+    CAST(
+        CASE
+            WHEN lower(a.col_type) LIKE 'decimal%' THEN
+                split_part(
+                    regexp_replace(a.col_type, '[^0-9,]', '', 'g'),
+                    ',', 1
+                )
+        END AS INTEGER
+    ) AS col_precision,
+    CAST(
+        CASE
+            WHEN lower(a.col_type) LIKE 'decimal%' THEN
+                split_part(
+                    regexp_replace(a.col_type, '[^0-9,]', '', 'g'),
+                    ',', 2
+                )
+        END AS INTEGER
+    ) AS col_scale,
+    a.col_idx,
+    fn_imp_comment_replace(a.tbl_comment)::text AS tbl_comment,
+    fn_imp_comment_replace(a.col_comment)::text AS col_comment,
+    a.cd_id
+FROM vw_imp_etl t
+INNER JOIN tb_imp_etl_tbls a
+    ON upper(a.db_name) = upper(t.dest_owner)
+   AND upper(a.tbl_name) = upper(t.dest_tablename);
+
+
+CREATE OR REPLACE VIEW vw_imp_tbl_sou AS
+WITH t_sou AS (
+    SELECT
+        t.tid,
+        t.bupdate,
+        t.sou_db_conn,
+        upper(t.sou_owner) AS sou_owner,
+        upper(t.sou_tablename) AS sou_tablename,
+        a.column_name AS column_name_orig,
+        CASE
+            WHEN upper(a.column_name) IN (SELECT upper(entry_value) FROM tb_dictionary WHERE entry_code = '2015' UNION ALL SELECT 'LOGDATE')
+                THEN upper(a.column_name) || '_RENAME'
+            WHEN a.column_name ~ '[^A-Z0-9_]+'
+                THEN 'COLUMN_' || a.column_id
+            ELSE upper(a.column_name)
+        END AS column_name,
+        a.column_id,
+        CASE
+            WHEN a.data_type = 'NUMBER' AND a.data_precision IS NULL AND a.data_scale = 0 THEN 'INT'
+            ELSE regexp_replace(a.data_type, '[^a-zA-Z0-9_]', '', 'g')
+        END AS data_type,
+        a.data_length,
+        CASE WHEN COALESCE(a.data_precision, 38) > 38 THEN 38 ELSE COALESCE(a.data_precision, 38) END AS data_precision,
+        COALESCE(a.data_scale, 10) AS data_scale,
+        fn_imp_comment_replace(a.tab_comment)::text AS tbl_comment,
+        CASE
+            WHEN a.column_name ~ '[^A-Z0-9_]+'
+                THEN '=>' || a.column_name || '<='
+            ELSE ''
+        END || fn_imp_comment_replace(a.col_comment)::text AS col_comment
+    FROM vw_imp_etl t
+    INNER JOIN tb_imp_etl_soutab a
+        ON a.sou_db_conn = t.sou_db_conn
+        AND upper(a.owner) = upper(t.sou_owner)
+        AND upper(a.table_name) = upper(t.sou_tablename)
+)
+SELECT
+    x.tid,
+    x.bupdate,
+    x.sou_db_conn,
+    x.sou_owner,
+    x.sou_tablename,
+    x.column_name_orig,
+    x.column_name,
+    x.column_id,
+    x.data_type,
+    x.data_length,
+    x.data_precision,
+    x.data_scale,
+    x.tbl_comment,
+    x.col_comment,
+    x.dest_type,
+    CASE
+        WHEN x.dest_type = 'DECIMAL' THEN x.dest_type || '(' || x.data_precision || ',' || x.data_scale || ')'
+        ELSE x.dest_type
+    END AS dest_type_full
+FROM (
+    SELECT
+        t.*,
+        upper(COALESCE(c.hive_type, 'string')) AS dest_type
+    FROM t_sou t
+    LEFT JOIN vw_imp_etl_coltype c
+        ON upper(c.coltype) = t.data_type
+) x;

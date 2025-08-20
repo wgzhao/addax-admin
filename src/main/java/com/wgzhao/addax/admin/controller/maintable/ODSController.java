@@ -83,7 +83,10 @@ public class ODSController
         if (page < 0) {
             page = 0;
         }
-
+        if (pageSize == -1) {
+            //means the browser select the "All" option
+            pageSize = Integer.MAX_VALUE; // or some large number
+        }
         if (flag != null && !flag.isEmpty()) {
             return ApiResponse.success(vwImpEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
         }

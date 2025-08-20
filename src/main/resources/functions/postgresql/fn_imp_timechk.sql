@@ -1,74 +1,146 @@
--- PostgreSQL version of fn_imp_timechk
--- Params:
---   i_currtime: 当前时间戳
---   i_fixed   : 逗号分隔的定点时间（如 '8,930,14,1800'，支持去前导0、去末尾00）
---   i_interval: 轮询间隔（分钟），>0 生效
---   i_range   : 时间范围，形如 'HHMM-HHMM'，支持跨日，如 '2300-0130'；为空时按 0000-2359
---   i_exit    : 预留参数（与 Oracle 保持一致），此实现未使用
--- Return: 0/1（不满足/满足）
-
 CREATE OR REPLACE FUNCTION fn_imp_timechk(
-  i_currtime timestamp without time zone,
-  i_fixed    text,
-  i_interval integer DEFAULT 0,
-  i_range    text DEFAULT NULL,
-  i_exit     text DEFAULT 'Y'
-) RETURNS integer
-LANGUAGE plpgsql
-AS $$
+    i_currtime TIMESTAMP,
+    i_fixed VARCHAR DEFAULT NULL,
+    i_interval INTEGER DEFAULT 0,
+    i_range VARCHAR DEFAULT NULL,
+    i_exit VARCHAR DEFAULT 'Y'
+)
+RETURNS INTEGER AS $$
 DECLARE
-  o_return   integer := 0;
-  v_range1_s text;
-  v_range2_s text;
-  v_range1   integer;
-  v_range2   integer;
-  plan_start timestamp;
-  elapsed_min integer;
-  curr_hhmi   integer;
-  curr_token  text;
-  cond_interval boolean := false;
-  cond_fixed    boolean := false;
+    o_return INTEGER;
+    v_range1 INTEGER;
+    v_range2 INTEGER;
+    current_time_int INTEGER;
+    start_time TIMESTAMP;
+    minutes_diff NUMERIC;
+    fixed_time_check INTEGER;
 BEGIN
-  -- 取范围起止（dt_full），默认 0000-2359
-  SELECT COALESCE((SELECT dt_full::text FROM vw_imp_date WHERE dt = COALESCE((substring(i_range FROM '^[0-9]+'))::numeric, 0)), '0000')
-    INTO v_range1_s;
-  SELECT COALESCE((SELECT dt_full::text FROM vw_imp_date WHERE dt = COALESCE((substring(i_range FROM '[0-9]+$'))::numeric, 2359)), '2359')
-    INTO v_range2_s;
-
-  -- 规范为 4 位
-  v_range1_s := lpad(v_range1_s, 4, '0');
-  v_range2_s := lpad(v_range2_s, 4, '0');
-  v_range1 := v_range1_s::integer;
-  v_range2 := v_range2_s::integer;
-
-  -- 计算计划开始时间（考虑跨日）
-  plan_start := date_trunc('day', i_currtime)
-                - CASE WHEN to_char(i_currtime,'HH24MI')::integer < v_range1 THEN interval '1 day' ELSE interval '0 day' END
-                + make_interval(hours := substr(v_range1_s,1,2)::integer,
-                                mins  := substr(v_range1_s,3,2)::integer);
-
-  -- 间隔匹配：分钟差对 i_interval 取模
-  IF i_interval > 0 THEN
-    elapsed_min := round(extract(epoch FROM (i_currtime - plan_start)) / 60.0)::integer;
-    curr_hhmi   := to_char(i_currtime,'HH24MI')::integer;
-
-    cond_interval := (elapsed_min % i_interval = 0) AND (
-        (v_range1 < v_range2 AND curr_hhmi BETWEEN v_range1 AND v_range2)
-        OR
-        (v_range1 > v_range2 AND (curr_hhmi >= v_range1 OR curr_hhmi <= v_range2))
+    -- 获取范围开始时间
+    SELECT dt_full INTO v_range1
+    FROM vw_imp_date
+    WHERE dt = COALESCE(
+        CAST(
+            SUBSTRING(i_range FROM '^[0-9]+') AS INTEGER
+        ),
+        0
     );
-  END IF;
 
-  -- 定点匹配：过滤 00:01~00:23；并支持去前导 0 与去末尾 00
-  IF NOT (to_char(i_currtime,'HH24MI') BETWEEN '0001' AND '0023') THEN
-    curr_token := regexp_replace(to_char(i_currtime,'HH24MI'), '(^0+|00$)', '', 'g');
-    IF curr_token IS NULL OR curr_token = '' THEN
-      curr_token := '0';
+    -- 如果没有找到记录，设置默认值
+    IF v_range1 IS NULL THEN
+        v_range1 := 0;
     END IF;
-    cond_fixed := position(','||curr_token||',' IN (','||COALESCE(i_fixed,' ')||',')) > 0;
-  END IF;
 
-  o_return := CASE WHEN cond_interval OR cond_fixed THEN 1 ELSE 0 END;
-  RETURN o_return;
+    -- 获取范围结束时间
+    SELECT dt_full INTO v_range2
+    FROM vw_imp_date
+    WHERE dt = COALESCE(
+        CAST(
+            SUBSTRING(i_range FROM '[0-9]+$') AS INTEGER
+        ),
+        2359
+    );
+
+    -- 如果没有找到记录，设置默认值
+    IF v_range2 IS NULL THEN
+        v_range2 := 2359;
+    END IF;
+
+    -- 获取当前时间的HHMM格式
+    current_time_int := CAST(TO_CHAR(i_currtime, 'HH24MI') AS INTEGER);
+
+    -- 初始化返回值
+    o_return := 0;
+
+    -- 时间间隔任务检查
+    IF i_interval > 0 THEN
+        -- 计算开始时间
+        start_time := DATE_TRUNC('day', i_currtime);
+
+        -- 如果当前时间小于范围开始时间，需要减去一天
+        IF current_time_int < v_range1 THEN
+            start_time := start_time - INTERVAL '1 day';
+        END IF;
+
+        -- 添加开始小时和分钟
+        start_time := start_time +
+                     INTERVAL '1 hour' * FLOOR(v_range1 / 100) +
+                     INTERVAL '1 minute' * (v_range1 % 100);
+
+        -- 计算分钟差
+        minutes_diff := EXTRACT(EPOCH FROM (i_currtime - start_time)) / 60;
+
+        -- 检查是否在时间范围内且符合间隔条件
+        IF (MOD(ROUND(minutes_diff), i_interval) = 0) AND
+           ((v_range1 < v_range2 AND current_time_int BETWEEN v_range1 AND v_range2) OR
+            (v_range1 > v_range2 AND (current_time_int >= v_range1 OR current_time_int <= v_range2))) THEN
+            o_return := 1;
+        END IF;
+    END IF;
+
+    -- 定点时间任务检查
+    IF o_return = 0 THEN
+        -- 检查是否不在0001-0023时间段内
+        IF NOT (TO_CHAR(i_currtime, 'HH24MI') BETWEEN '0001' AND '0023') THEN
+            -- 处理固定时间检查
+            IF i_fixed IS NOT NULL THEN
+                -- 格式化当前时间，去掉前导0和末尾00
+                DECLARE
+                    formatted_time VARCHAR;
+                BEGIN
+                    formatted_time := TO_CHAR(i_currtime, 'HH24MI');
+                    -- 去掉前导0
+                    formatted_time := LTRIM(formatted_time, '0');
+                    -- 如果结果为空（全是0），设为0
+                    IF formatted_time = '' THEN
+                        formatted_time := '0';
+                    -- 如果以00结尾，去掉00
+                    ELSIF RIGHT(formatted_time, 2) = '00' THEN
+                        formatted_time := LEFT(formatted_time, LENGTH(formatted_time) - 2);
+                        -- 如果去掉00后为空，设为0
+                        IF formatted_time = '' THEN
+                            formatted_time := '0';
+                        END IF;
+                    END IF;
+
+                    -- 检查格式化的时间是否在固定时间列表中
+                    IF POSITION(',' || formatted_time || ',' IN ',' || i_fixed || ',') > 0 THEN
+                        o_return := 1;
+                    END IF;
+                END;
+            ELSE
+                -- 如果i_fixed为NULL，使用空格进行检查
+                DECLARE
+                    formatted_time VARCHAR;
+                BEGIN
+                    formatted_time := TO_CHAR(i_currtime, 'HH24MI');
+                    -- 去掉前导0
+                    formatted_time := LTRIM(formatted_time, '0');
+                    -- 如果结果为空（全是0），设为0
+                    IF formatted_time = '' THEN
+                        formatted_time := '0';
+                    -- 如果以00结尾，去掉00
+                    ELSIF RIGHT(formatted_time, 2) = '00' THEN
+                        formatted_time := LEFT(formatted_time, LENGTH(formatted_time) - 2);
+                        -- 如果去掉00后为空，设为0
+                        IF formatted_time = '' THEN
+                            formatted_time := '0';
+                        END IF;
+                    END IF;
+
+                    -- 检查格式化的时间是否在固定时间列表中（使用空格作为默认值）
+                    IF POSITION(',' || formatted_time || ',' IN ', ,') > 0 THEN
+                        o_return := 1;
+                    END IF;
+                END;
+            END IF;
+        END IF;
+    END IF;
+
+    RETURN o_return;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- 如果发生任何错误，返回0
+        RETURN 0;
 END;
-$$;
+$$ LANGUAGE plpgsql;
