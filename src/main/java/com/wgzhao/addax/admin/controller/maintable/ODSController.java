@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
+import com.wgzhao.addax.admin.dto.SourceSystemDto;
 import com.wgzhao.addax.admin.model.oracle.TbImpEtl;
 import com.wgzhao.addax.admin.model.oracle.ImpSpCom;
 import com.wgzhao.addax.admin.model.oracle.TbImpSpNeedtab;
@@ -71,6 +72,9 @@ public class ODSController
     @Autowired
     private TaskService taskService;
 
+//    @Autowired
+//    private ViewPseudoService viewPseudoService;
+
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
     public ApiResponse<Page<VwImpEtl>> list(@RequestParam(value = "page", defaultValue = "0") int page,
@@ -139,7 +143,7 @@ public class ODSController
 
     // 批量新增表时的源系统下拉框
     @RequestMapping("/sourceSystem")
-    public ApiResponse<List<Map<String, String>>> sysList()
+    public ApiResponse<List<SourceSystemDto>> sysList()
     {
         return ApiResponse.success(viewPseudoRepo.findSourceSystem());
     }

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.repository.oracle;
 
+import com.wgzhao.addax.admin.dto.SourceSystemDto;
 import com.wgzhao.addax.admin.model.oracle.LastEtlTaketime;
 import com.wgzhao.addax.admin.model.oracle.ViewPseudo;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -190,5 +191,5 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
             db_pass as password
             from vw_imp_system where sys_kind='etl' order by 1
             """, nativeQuery = true)
-    List<Map<String, String>> findSourceSystem();
+    List<SourceSystemDto> findSourceSystem();
 }
