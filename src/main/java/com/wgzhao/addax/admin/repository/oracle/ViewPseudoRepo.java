@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.repository.oracle;
 
+import com.wgzhao.addax.admin.dto.AccomplishRatio;
 import com.wgzhao.addax.admin.dto.SourceSystemDto;
 import com.wgzhao.addax.admin.model.oracle.LastEtlTaketime;
 import com.wgzhao.addax.admin.model.oracle.ViewPseudo;
@@ -65,7 +66,7 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
 
     // 各数据源采集完成率
     @Query(value = """
-            SELECT SYSNAME, round(OVER_PREC,2)*100 AS OVER_PREC,
+            SELECT sysname, round(OVER_PREC,2)*100 AS overPrec,
             CASE
             	WHEN OVER_PREC = 1
             	THEN 'bg-success'
@@ -74,10 +75,11 @@ public interface ViewPseudoRepo extends JpaRepository<ViewPseudo, Long> {
             	WHEN OVER_PREC <=0.6
             	THEN 'bg-warning'
             	ELSE 'bg-info'
-            END AS BG_COLOR
+            END AS bgColor
             FROM VW_IMP_ETL_OVERPREC
+            order by OVER_PREC asc
             """, nativeQuery = true)
-    List<Map<String, Float>> accompListRatio();
+    List<AccomplishRatio> accompListRatio();
 
     // SP 监控 -- 特殊任务：报错、重跑
     @Query(value = """

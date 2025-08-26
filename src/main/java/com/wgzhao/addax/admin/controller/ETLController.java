@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.AccomplishRatio;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.oracle.VwImpEtlOverprec;
 import com.wgzhao.addax.admin.model.pg.TbAddaxSta;
@@ -40,7 +41,7 @@ public class ETLController {
 
         // 各数据源采集完成率，用于图表展示
         @RequestMapping("/accomplishRatio")
-        public ApiResponse<List<Map<String, Float>>> accompListRatio() {
+        public ApiResponse<List<AccomplishRatio>> accompListRatio() {
                 return ApiResponse.success(viewPseudoRepo.accompListRatio());
         }
 

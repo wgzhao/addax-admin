@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.AccomplishRatio;
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.EtlTime;
 import com.wgzhao.addax.admin.repository.oracle.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.oracle.TbImpFlagRepo;
 import com.wgzhao.addax.admin.repository.oracle.ViewPseudoRepo;
@@ -41,13 +43,13 @@ public class DashboardController {
 
     // 各数据源采集完成率，用于图表展示
     @RequestMapping("/accomplishRatio")
-    public ApiResponse<List<Map<String, Float>>> accompListRatio() {
+    public ApiResponse<List<AccomplishRatio>> accompListRatio() {
         return ApiResponse.success(viewPseudoRepo.accompListRatio());
     }
 
     //  最近5天采集耗时对比
     @RequestMapping("/last5DaysEtlTime")
-    public ApiResponse<List<Map<String, Object>>> last5DaysEtlTime() {
+    public ApiResponse<List<EtlTime>> last5DaysEtlTime() {
         int l5td = Integer.parseInt(cacheUtil.get("param.L5TD"));
         return ApiResponse.success(tbImpFlagRepo.findLast5DaysEtlTime(l5td));
     }
