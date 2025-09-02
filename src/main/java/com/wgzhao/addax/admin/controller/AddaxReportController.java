@@ -32,6 +32,7 @@ public class AddaxReportController {
         sta.setByteSpeed(dto.getByteSpeedPerSecond());
         sta.setRecSpeed(dto.getRecordSpeedPerSecond());
         sta.setTotalRec(dto.getTotalReadRecords());
+        sta.setTotalBytes(dto.getTotalBytes());
         sta.setTotalErr(dto.getTotalErrorRecords());
         sta.setUpdtDate(new java.sql.Timestamp(System.currentTimeMillis()));
 

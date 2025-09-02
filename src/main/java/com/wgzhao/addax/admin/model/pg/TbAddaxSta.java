@@ -39,6 +39,9 @@ public class TbAddaxSta {
     @Column(name = "total_rec")
     private Integer totalRec;
     @Basic
+    @Column(name = "total_bytes")
+    private Long totalBytes;
+    @Basic
     @Column(name = "total_err")
     private Integer totalErr;
     @Basic

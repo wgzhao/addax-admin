@@ -1,46 +1,24 @@
 package com.wgzhao.addax.admin.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Getter
+@Service
+@AllArgsConstructor
+@NoArgsConstructor
 public class AddaxReportDto {
     private String jobName;
     private int startTimeStamp;
     private int endTimeStamp;
     private int totalCosts;
+    private long totalBytes;
     private int byteSpeedPerSecond;
     private int recordSpeedPerSecond;
     private int totalReadRecords;
     private int totalErrorRecords;
-
-    public String getJobName() {
-        return jobName;
-    }
-
-    public int getStartTimeStamp() {
-        return startTimeStamp;
-    }
-
-    public int getEndTimeStamp() {
-        return endTimeStamp;
-    }
-
-    public int getTotalCosts() {
-        return totalCosts;
-    }
-
-    public int getByteSpeedPerSecond() {
-        return byteSpeedPerSecond;
-    }
-
-    public int getRecordSpeedPerSecond() {
-        return recordSpeedPerSecond;
-    }
-
-    public int getTotalReadRecords() {
-        return totalReadRecords;
-    }
-
-    public int getTotalErrorRecords() {
-        return totalErrorRecords;
-    }
 
     @Override
     public String toString() {
@@ -49,6 +27,7 @@ public class AddaxReportDto {
                 ", startTimeStamp=" + startTimeStamp +
                 ", endTimeStamp=" + endTimeStamp +
                 ", totalCoasts=" + totalCosts +
+                ", totalBytes=" + totalBytes +
                 ", byteSpeedPerSecond=" + byteSpeedPerSecond +
                 ", recordSpeedPerSecond=" + recordSpeedPerSecond +
                 ", totalReadRecords=" + totalReadRecords +
