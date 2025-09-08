@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -195,13 +196,14 @@ public class EtlTaskQueueManager
             // 执行具体的采集逻辑（这里先调用现有的采集方法框架）
             boolean result = executeEtlTaskLogic(task);
 
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = (System.currentTimeMillis() - startTime) / 1000; // seconds
             log.info("采集任务 {} 执行完成，耗时: {}ms, 结果: {}", taskId, duration, result);
 
             // 更新任务状态为成功
             if (result) {
                 jdbcTemplate.update("update tb_imp_etl set flag = 'Y' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
-            } else {
+            }
+            else {
                 jdbcTemplate.update("update tb_imp_etl set flag = 'E' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
                 spAloneService.sendToWecomRobot(String.format("采集任务执行失败: %s", taskId));
             }
@@ -226,9 +228,8 @@ public class EtlTaskQueueManager
     /**
      * 执行具体的采集逻辑（框架方法，具体逻辑待补充）
      */
-    private boolean executeEtlTaskLogic(EtlTask task)
+    public boolean executeEtlTaskLogic(EtlTask task)
     {
-        // TODO: 这里是具体的采集程序逻辑，需要后续详细实现
         String taskId = task.getTaskId();
         Map<String, Object> taskData = task.getTaskData();
 
@@ -236,21 +237,24 @@ public class EtlTaskQueueManager
                 taskId, taskData.get("sys_id"), taskData.get("table_name"));
 
         String job = jdbcTemplate.queryForObject("select job from tb_imp_etl_job where tid = '" + task.getTaskId() + "'", String.class);
-        if (job == null  || job.isEmpty()) {
+        if (job == null || job.isEmpty()) {
             log.warn("模板未生成, taskId = {}", taskId);
             return false;
         }
         // 写入临时文件
-        String tmpFile = FileUtils.writeToTempFile(job);
-        if (tmpFile == null) {
-            log.warn("写入临时文件失败");
-             return false;
-        } else {
-            log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
-            String cmd = "/opt/app/addax/bin/addax.sh " + tmpFile;
-            int retCode = CommandExecutor.executeWithResult(cmd);
-            return retCode == 0;
+        String tmpFile;
+        try {
+            tmpFile = FileUtils.writeToTempFile(taskId, job);
         }
+        catch (IOException e) {
+            log.error("写入临时文件失败", e);
+            return false;
+        }
+
+        log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
+        String cmd = "/opt/app/addax/bin/addax.sh -p'-DjobName=" + taskId + "' " + tmpFile;
+        int retCode = CommandExecutor.executeWithResult(cmd);
+        return retCode == 0;
     }
 
     /**

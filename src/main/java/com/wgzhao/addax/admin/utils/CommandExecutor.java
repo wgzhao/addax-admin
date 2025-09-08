@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.utils;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
@@ -8,6 +10,7 @@ import java.io.IOException;
 /**
  * 命令执行工具类
  */
+@Slf4j
 public class CommandExecutor {
 
     /**
@@ -63,7 +66,7 @@ public class CommandExecutor {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    log.info(line);
                 }
             }
 
@@ -71,7 +74,7 @@ public class CommandExecutor {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.err.println(line);
+                    log.error(line);
                 }
             }
 

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.TbImpEtlJob;
 import com.wgzhao.addax.admin.repository.TbImpEtlJobRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
@@ -37,6 +38,7 @@ public class EtlTaskEntryService
     private final JdbcTemplate jdbcTemplate;
     private final TbImpEtlRepo tbImpEtlRepo;
     private final TbImpEtlJobRepo tbImpEtlJobRepo;
+    private final EtlTaskQueueManager etlTaskQueueManager;
 
     /**
      * 计划任务主控制 - 基于队列的采集任务管理

@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.VwImpEtlOverprec;
 import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
@@ -158,10 +159,18 @@ public class ETLController
         return Map.of("success", true, "message", "success");
     }
 
-    @PostMapping("/updateJob/{tid}/")
+    @PostMapping("/updateJob/{tid}")
     public Map<String, Object> updateJob(@PathVariable("tid") String tid)
     {
         etlTaskEntryService.updateJob(Arrays.asList(tid.split(",")));
         return Map.of("success", true, "message", "success");
+    }
+
+    @PostMapping("/execute/{tid}")
+    public Map<String, Object> executeTask(@PathVariable("tid") String tid)
+    {
+        EtlTask etlTask = new EtlTask(tid, "manual", Map.of("tid", tid));
+        boolean success = queueManager.executeEtlTaskLogic(etlTask);
+        return Map.of("success", success, "message", success ? "任务已执行" : "任务执行失败");
     }
 }

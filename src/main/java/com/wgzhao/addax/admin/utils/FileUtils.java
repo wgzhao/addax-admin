@@ -104,16 +104,14 @@ public class FileUtils {
         }
     }
 
-    public static String writeToTempFile(String content) {
-        try {
-            File tempFile = File.createTempFile("tempfile_", ".tmp");
+    public static String writeToTempFile(String tid, String content)
+            throws IOException
+    {
+            File tempFile = File.createTempFile("tid_", ".json");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
                 writer.write(content);
             }
             return tempFile.getAbsolutePath();
-        } catch (IOException e) {
-            System.err.println("Error writing to temp file: " + e.getMessage());
-            return null;
-        }
+
     }
 }
