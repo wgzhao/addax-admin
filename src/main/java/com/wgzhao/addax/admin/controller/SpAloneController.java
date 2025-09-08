@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.service.EtlTaskEntryService;
 import com.wgzhao.addax.admin.service.SpAloneService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,8 @@ import java.util.Map;
 public class SpAloneController {
 
     private final SpAloneService spAloneService;
+
+    private final EtlTaskEntryService etlTaskEntryService;
 
     /**
      * Redis 操作接口
@@ -106,10 +109,11 @@ public class SpAloneController {
     /**
      * 计划任务主控制接口 - 定时任务每分钟执行一次
      */
-//    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
+    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
     @PostMapping("/plan-start")
     public ResponseEntity<String> planStart() {
-        String result = spAloneService.executePlanStart();
+//        String result = spAloneService.executePlanStart();
+        String result = etlTaskEntryService.executePlanStartWithQueue();
         return ResponseEntity.ok(result);
     }
 

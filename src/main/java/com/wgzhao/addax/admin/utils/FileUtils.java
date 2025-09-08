@@ -103,4 +103,17 @@ public class FileUtils {
             return false;
         }
     }
+
+    public static String writeToTempFile(String content) {
+        try {
+            File tempFile = File.createTempFile("tempfile_", ".tmp");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                writer.write(content);
+            }
+            return tempFile.getAbsolutePath();
+        } catch (IOException e) {
+            System.err.println("Error writing to temp file: " + e.getMessage());
+            return null;
+        }
+    }
 }

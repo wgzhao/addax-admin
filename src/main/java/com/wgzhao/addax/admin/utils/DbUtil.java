@@ -241,4 +241,28 @@ public class DbUtil
     {
         return copyRecords(JSONUtil.parseObj(job));
     }
+
+    public static String getKind(String jdbcUrl) {
+        if (jdbcUrl.contains("mysql")) {
+            return "M";
+        }
+        else if (jdbcUrl.contains("oracle")) {
+            return "O";
+        }
+        else if (jdbcUrl.contains("sqlserver")) {
+            return "S";
+        }
+        else if (jdbcUrl.contains("postgresql")) {
+            return "P";
+        }
+        else if (jdbcUrl.contains("db2")) {
+            return "D";
+        }
+        else if (jdbcUrl.contains("clickhouse") || jdbcUrl.contains("chk")) {
+            return "C";
+        }
+        else {
+            return "R";
+        }
+    }
 }

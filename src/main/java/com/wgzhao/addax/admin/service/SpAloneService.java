@@ -192,27 +192,28 @@ public class SpAloneService {
 
     /** 发送企业微信机器人消息 */
     public String sendToWecomRobot(String message) {
-        try {
-            String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            String hostname = getHostname();
-            String formattedMessage = String.format("""
-                ### **数据采集告警**
-
-                ---
-
-                **告警时间**: %s
-                **告警节点**: %s
-                **告警内容**: **%s**
-                """, currentTime, hostname, message);
-            Map<String, Object> body = Map.of(
-                "msgtype", "markdown",
-                "markdown", Map.of("content", formattedMessage)
-            );
-            return restTemplate.postForObject(webhookUrl, body, String.class);
-        } catch (Exception e) {
-            log.error("发送企业微信消息失败", e);
-            return "发送失败: " + e.getMessage();
-        }
+        return null;
+//        try {
+//            String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+//            String hostname = getHostname();
+//            String formattedMessage = String.format("""
+//                ### **数据采集告警**
+//
+//                ---
+//
+//                **告警时间**: %s
+//                **告警节点**: %s
+//                **告警内容**: **%s**
+//                """, currentTime, hostname, message);
+//            Map<String, Object> body = Map.of(
+//                "msgtype", "markdown",
+//                "markdown", Map.of("content", formattedMessage)
+//            );
+//            return restTemplate.postForObject(webhookUrl, body, String.class);
+//        } catch (Exception e) {
+//            log.error("发送企业微信消息失败", e);
+//            return "发送失败: " + e.getMessage();
+//        }
     }
 
     /** 执行SQL文件 */
