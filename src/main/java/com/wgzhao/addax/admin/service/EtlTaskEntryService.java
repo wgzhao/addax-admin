@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.TbImpEtlJob;
 import com.wgzhao.addax.admin.repository.TbImpEtlJobRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
@@ -8,13 +7,9 @@ import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +33,6 @@ public class EtlTaskEntryService
     private final JdbcTemplate jdbcTemplate;
     private final TbImpEtlRepo tbImpEtlRepo;
     private final TbImpEtlJobRepo tbImpEtlJobRepo;
-    private final EtlTaskQueueManager etlTaskQueueManager;
 
     /**
      * 计划任务主控制 - 基于队列的采集任务管理
@@ -46,43 +40,20 @@ public class EtlTaskEntryService
      */
     public String executePlanStartWithQueue()
     {
-        try {
-            log.info("基于队列的计划任务主控制开始执行");
-            Long planStart = stringRedisTemplate.opsForSet().add("1", "plan_start");
-            if (planStart != null && planStart == 1) {
-                try {
-                    // 执行存储过程初始化
-//                    spAloneService.executeSqlStatement("select sp_imp_alone('plan_start')");
 
-                    // 启动队列监控器（如果还未启动）
-                    queueManager.startQueueMonitor();
+        log.info("基于队列的计划任务主控制开始执行");
 
-                    // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
-                    queueManager.scanAndEnqueueEtlTasks();
+        // 启动队列监控器（如果还未启动）
+        queueManager.startQueueMonitor();
 
-                    // 处理其他类型任务（judge等非ETL任务）
+        // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
+        queueManager.scanAndEnqueueEtlTasks();
+
+        // 处理其他类型任务（judge等非ETL任务）
 //                    processNonEtlTasks();
 
-                    log.info("计划任务主控制执行完毕，队列状态: {}", queueManager.getQueueStatus());
-                    return "计划任务执行完成，采集任务已加入队列";
-                }
-                finally {
-                    // 确保释放Redis标志
-                    stringRedisTemplate.opsForSet().remove("1", "plan_start");
-                }
-            }
-            else {
-                String message = "计划任务已在执行中，请等待当前任务完成";
-                log.warn(message);
-                return message;
-            }
-        }
-        catch (Exception e) {
-            log.error("基于队列的计划任务执行失败", e);
-            stringRedisTemplate.opsForSet().remove("1", "plan_start");
-//            spAloneService.sendToWecomRobot("计划任务执行失败: " + e.getMessage());
-            return "计划任务执行失败: " + e.getMessage();
-        }
+        log.info("计划任务主控制执行完毕，队列状态: {}", queueManager.getQueueStatus());
+        return "计划任务执行完成，采集任务已加入队列";
     }
 
     /**
@@ -125,7 +96,7 @@ public class EtlTaskEntryService
             // 查询任务详情
             String sql = """
                     SELECT etl_id, sys_id, table_name, etl_type, priority, create_time
-                    FROM tb_imp_etl 
+                    FROM tb_imp_etl
                     WHERE etl_id = ? AND flag = 'N'
                     """;
 
@@ -269,7 +240,8 @@ public class EtlTaskEntryService
         }
     }
 
-    private String replacePlaceholders(String template, Map<String, Object> values) {
+    private String replacePlaceholders(String template, Map<String, Object> values)
+    {
         if (StringUtils.isBlank(template) || values.isEmpty()) {
             return template;
         }

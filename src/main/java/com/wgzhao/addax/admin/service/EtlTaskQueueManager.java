@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.utils.DbUtil;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -44,6 +45,12 @@ public class EtlTaskQueueManager
     @Autowired
     private SpAloneService spAloneService;
 
+    @Autowired
+    private HivePartitionManager hivePartitionManager;
+
+    @Autowired
+    private DateService dateService;
+
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTask> etlTaskQueue = new ArrayBlockingQueue<>(100);
 
@@ -75,7 +82,7 @@ public class EtlTaskQueueManager
         try {
             // 查询需要采集的任务 - 扫描tb_imp_etl表中flag字段为N的记录
             String sql = """
-                    select t.tid from tb_imp_etl  t
+                    select t.tid, t.dest_tablename, 'ods' || lower(t.sou_sysid ) as dest_db from tb_imp_etl  t
                     join tb_imp_db d
                     on t.sou_sysid  = d.db_id_etl
                     where t.flag = 'N' and t.retry_cnt > 0 and t.bupdate  = 'N' and t.bcreate = 'N' and d.bvalid  = 'Y'
@@ -234,12 +241,22 @@ public class EtlTaskQueueManager
         Map<String, Object> taskData = task.getTaskData();
 
         log.info("执行采集任务逻辑: taskId={}, sysId={}, tableName={}",
-                taskId, taskData.get("sys_id"), taskData.get("table_name"));
+                taskId, taskData.get("dest_db"), taskData.get("dest_tablename"));
 
         String job = jdbcTemplate.queryForObject("select job from tb_imp_etl_job where tid = '" + task.getTaskId() + "'", String.class);
         if (job == null || job.isEmpty()) {
             log.warn("模板未生成, taskId = {}", taskId);
             return false;
+        }
+        Map<String, String> partInfo = new HashMap<>();
+        partInfo.put("logdate", dateService.getLtd());
+        try {
+            hivePartitionManager.addPartition(taskData.get("dest_db").toString(),
+                    taskData.get("dest_tablename").toString(), partInfo
+            );
+        }
+        catch (HiveException e) {
+            throw new RuntimeException(e);
         }
         // 写入临时文件
         String tmpFile;
