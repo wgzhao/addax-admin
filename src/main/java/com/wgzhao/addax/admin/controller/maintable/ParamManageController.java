@@ -45,7 +45,7 @@ public class ParamManageController {
     }
 
     @GetMapping("/dicts/{code}")
-    public ApiResponse<Optional<TbDict>> getDict(@PathVariable("code") String code)
+    public ApiResponse<Optional<TbDict>> getDict(@PathVariable("code") int code)
     {
         return ApiResponse.success(dictRepo.findById(code));
     }
@@ -61,7 +61,7 @@ public class ParamManageController {
     }
 
     @DeleteMapping("/dicts/{id}")
-    public ApiResponse<Integer> deleteDict(@PathVariable(value = "id") String id) {
+    public ApiResponse<Integer> deleteDict(@PathVariable(value = "id") int id) {
         TbDict dict = dictRepo.findByDictCode(id);
         if (dict != null) {
             dictRepo.delete(dict);
@@ -78,7 +78,7 @@ public class ParamManageController {
      * @return list of {@link TbDictionary}
      */
     @GetMapping("/dictionaries/{entryCode}")
-    public ApiResponse<List<TbDictionary>> getDictByEntryCode(@PathVariable("entryCode") String entryCode)
+    public ApiResponse<List<TbDictionary>> getDictByEntryCode(@PathVariable("entryCode") int entryCode)
     {
         return ApiResponse.success(dictionaryRepo.findByEntryCodeOrderByEntryCodeAsc(entryCode));
     }
@@ -96,7 +96,7 @@ public class ParamManageController {
 
 
     @DeleteMapping("/dictionaries/{entryCode}/{entryValue}")
-    public ApiResponse<Integer> deleteDictionaryItem(@PathVariable(value = "entryCode") String entryCode, @PathVariable(value = "entryValue") String entryValue) {
+    public ApiResponse<Integer> deleteDictionaryItem(@PathVariable(value = "entryCode") int entryCode, @PathVariable(value = "entryValue") String entryValue) {
         TbDictionaryPK tbDictionary = new TbDictionaryPK();
         tbDictionary.setEntryCode(entryCode);
         tbDictionary.setEntryValue(entryValue);

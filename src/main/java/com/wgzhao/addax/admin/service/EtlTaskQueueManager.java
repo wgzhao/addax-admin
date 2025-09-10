@@ -2,11 +2,9 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
-import com.wgzhao.addax.admin.utils.DbUtil;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -14,6 +12,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -46,10 +46,7 @@ public class EtlTaskQueueManager
     private SpAloneService spAloneService;
 
     @Autowired
-    private HivePartitionManager hivePartitionManager;
-
-    @Autowired
-    private DateService dateService;
+    private SystemConfigService configService;
 
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTask> etlTaskQueue = new ArrayBlockingQueue<>(100);
@@ -240,7 +237,7 @@ public class EtlTaskQueueManager
         String taskId = task.getTaskId();
         Map<String, Object> taskData = task.getTaskData();
 
-        log.info("执行采集任务逻辑: taskId={}, sysId={}, tableName={}",
+        log.info("执行采集任务逻辑: taskId={}, destDB={}, tableName={}",
                 taskId, taskData.get("dest_db"), taskData.get("dest_tablename"));
 
         String job = jdbcTemplate.queryForObject("select job from tb_imp_etl_job where tid = '" + task.getTaskId() + "'", String.class);
@@ -248,16 +245,22 @@ public class EtlTaskQueueManager
             log.warn("模板未生成, taskId = {}", taskId);
             return false;
         }
-        Map<String, String> partInfo = new HashMap<>();
-        partInfo.put("logdate", dateService.getLtd());
-        try {
-            hivePartitionManager.addPartition(taskData.get("dest_db").toString(),
-                    taskData.get("dest_tablename").toString(), partInfo
-            );
-        }
-        catch (HiveException e) {
-            throw new RuntimeException(e);
-        }
+
+        String logdate = configService.getBizDate();
+        String dw_clt_date = configService.getCurDateTime();
+        job = job.replace("${logdate}", logdate).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", logdate);
+
+        // hive 创建分区
+        //TODO: 创建分区
+//        try {
+//            hivePartitionManager.addPartition(taskData.get("dest_db").toString(),
+//                    taskData.get("dest_tablename").toString(),
+//                    Map.of("logdate", logdate));
+//        }
+//        catch (HiveException e) {
+//            log.error("创建Hive分区失败: {}", e.getMessage(), e);
+//            return false;
+//        }
         // 写入临时文件
         String tmpFile;
         try {
@@ -270,7 +273,9 @@ public class EtlTaskQueueManager
 
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
         String cmd = "/opt/app/addax/bin/addax.sh -p'-DjobName=" + taskId + "' " + tmpFile;
-        int retCode = CommandExecutor.executeWithResult(cmd);
+        String logfile = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
+        int retCode = CommandExecutor.executeWithResult(cmd, Paths.get(configService.getLogPath(), logfile));
+        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logfile);
         return retCode == 0;
     }
 

@@ -195,7 +195,8 @@ public class EtlTaskEntryService
         }
         for (String taskId : tids) {
             String sql = """
-                    select  d.db_constr as sou_dbcon, d.db_user_etl as sou_user, d.db_pass_etl as sou_pass, t.sou_filter , t.sou_split, t.sou_tablename as sou_tblname , 'ods' || lower(t.sou_sysid) as dest_db, t.dest_tablename
+                    select  d.db_constr as sou_dbcon, d.db_user_etl as sou_user, d.db_pass_etl as sou_pass, t.sou_filter , t.sou_split, t.sou_tablename as sou_tblname , 
+                    'ods' || lower(t.sou_sysid) as dest_db, t.dest_tablename
                     from tb_imp_etl  t
                     join tb_imp_db d
                     on t.sou_sysid  = d.db_id_etl
@@ -217,16 +218,19 @@ public class EtlTaskEntryService
             String sou_col = jdbcTemplate.queryForObject(sql, String.class);
             // extra columns
             // current YYYmmdd
-            sou_col += "," + "\"current_timestamp as dw_clt_date\", \"'' as dw_trade_date\"," + "\"'" + sourceInfo.get("sou_filter") + "' as modifier_no\", \"${biz_date_short}\"";
+            sou_col += "," + "\"'${dw_clt_date}'\", \"${dw_trade_date}\"," + "\"'" + sourceInfo.get("sou_filter") + "'\"";
             sourceInfo.put("sou_col", sou_col);
 //            addaxReaderContentTemplate = addaxReaderContentTemplate.replace("${sou_col}", sou_col);
 
             String addaxWriterTemplate = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'wH'", String.class);
+            // col_idx = 1000 的字段为分区字段，不参与 select
             sql = """
-                    select string_agg('{"name": "' || col_name || '", "type": "' || col_type_full || '"}', ',' order by  col_idx asc) as tag_col from tb_imp_tbl_hdp where tid = '%s'
+                    select string_agg('{"name": "' || col_name || '", "type": "' || col_type_full || '"}', ',' order by  col_idx asc) as tag_col
+                    from tb_imp_tbl_hdp
+                    where tid = '%s' and col_idx <> 1000
                     """.formatted(taskId);
             String tag_col = jdbcTemplate.queryForObject(sql, String.class);
-            String hdfsPath = "/ods/" + sourceInfo.get("dest_db") + "/" + sourceInfo.get("dest_tablename") + "/logdate=${biz_date_short}";
+            String hdfsPath = "/ods/" + sourceInfo.get("dest_db") + "/" + sourceInfo.get("dest_tablename") + "/logdate=${logdate}";
             sourceInfo.put("tag_tblname", hdfsPath);
             sourceInfo.put("tag_col", tag_col);
             addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, sourceInfo);

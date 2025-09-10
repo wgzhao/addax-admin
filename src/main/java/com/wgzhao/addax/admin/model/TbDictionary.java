@@ -19,8 +19,8 @@ import lombok.Setter;
 public class TbDictionary {
 
     @Id
-    @Column(name="entry_code", length = 4)
-    private String entryCode;
+    @Column(name="entry_code")
+    private int entryCode;
 
     @Id
     @Column(name="entry_value", length = 255)

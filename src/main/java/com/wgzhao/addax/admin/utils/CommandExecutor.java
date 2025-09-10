@@ -3,9 +3,14 @@ package com.wgzhao.addax.admin.utils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 /**
  * 命令执行工具类
@@ -51,25 +56,29 @@ public class CommandExecutor {
         }
     }
 
+    public static int executeWithResult(String command) {
+        return executeWithResult(command, null);
+    }
+
     /**
      * 执行命令并返回退出码
      * @param command 要执行的命令
      * @return 命令的退出码，0表示成功
      */
-    public static int executeWithResult(String command) {
+    public static int executeWithResult(String command, Path logPath) {
         Process process = null;
 
         try {
             process = Runtime.getRuntime().exec(new String[]{"bash", "-c", command});
-
-            // 将输出重定向到标准输出
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    log.info(line);
+            if (logPath != null) {
+                // 将输出重定向到标准输出
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        Files.writeString(logPath, line, StandardOpenOption.APPEND);
+                    }
                 }
             }
-
             // 将错误输出重定向到标准错误
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                 String line;
@@ -94,8 +103,14 @@ public class CommandExecutor {
      * 执行命令但不关心输出
      * @param command 要执行的命令
      */
-    public static void execute(String command) {
-        executeWithResult(command);
+    public static void execute(String command)
+    {
+        try {
+            Runtime.getRuntime().exec(new String[] {command}, null, null);
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

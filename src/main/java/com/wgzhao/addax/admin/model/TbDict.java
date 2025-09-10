@@ -18,7 +18,7 @@ public class TbDict {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
     @Column(name = "dict_code")
-    private String dictCode;
+    private int dictCode;
     @Basic
     @Column(name = "dict_name")
     private String dictName;

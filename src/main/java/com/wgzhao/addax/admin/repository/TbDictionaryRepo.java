@@ -9,12 +9,12 @@ import java.util.List;
 
 public interface TbDictionaryRepo extends JpaRepository<TbDictionary, TbDictionaryPK> {
 
-    List<TbDictionary> findByEntryCode(String entryCode);
+    List<TbDictionary> findByEntryCode(int entryCode);
 
-    List<TbDictionary> findByEntryCodeOrderByEntryCodeAsc(String entryCode);
+    List<TbDictionary> findByEntryCodeOrderByEntryCodeAsc(int entryCode);
 
     @Query(value = """
-            select entry_value from tb_dictionary where entry_code = 1021 and entry_value < '?:curDate' order by entry_value desc limit 1
+            select entry_value from tb_dictionary where entry_code = 1021 and entry_value < ?1 order by entry_value desc limit 1
             """, nativeQuery = true)
     String getLastBizDate(String curDate);
 }

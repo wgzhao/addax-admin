@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.utils;
 
+import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -93,7 +94,7 @@ public class SpAloneUtils {
 
         // 按顺序读取原始SQL文件实际执行代码
         String tmpFile = "/tmp/" + parallelName + ".txt";
-        CommandExecutor.execute("sed -n '4,10000p' " + sqlFile + " >" + tmpFile);
+        CommandExecutor.execute("sed -n '4,10000p' " + sqlFile);
 
         String[] lines = FileUtils.readFileContent(tmpFile).split("\n");
 

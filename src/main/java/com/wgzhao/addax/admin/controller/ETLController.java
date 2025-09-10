@@ -2,8 +2,11 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlTask;
+import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.VwImpEtlOverprec;
 import com.wgzhao.addax.admin.model.TbAddaxSta;
+import com.wgzhao.addax.admin.repository.TbImpDBRepo;
+import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.repository.VwImpEtlOverprecRepo;
 import com.wgzhao.addax.admin.repository.AddaxStaRepo;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * ETL 采集接口
@@ -46,6 +50,9 @@ public class ETLController
 
     @Autowired
     private EtlTaskQueueManager queueManager;
+
+    @Autowired
+    private TbImpEtlRepo impEtlRepo;
 
     // 数据源采集完成情况列表
     @RequestMapping("/accomplishList")
@@ -169,7 +176,9 @@ public class ETLController
     @PostMapping("/execute/{tid}")
     public Map<String, Object> executeTask(@PathVariable("tid") String tid)
     {
-        EtlTask etlTask = new EtlTask(tid, "manual", Map.of("tid", tid));
+        TbImpEtl tbImpEtl = impEtlRepo.findById(tid).orElseThrow();
+        Map<String, Object> etlData = Map.of("dest_db", "ods" + tbImpEtl.getSouSysid().toLowerCase(), "dest_tablename", tbImpEtl.getDestTablename());
+        EtlTask etlTask = new EtlTask(tid, "manual",etlData);
         boolean success = queueManager.executeEtlTaskLogic(etlTask);
         return Map.of("success", success, "message", success ? "任务已执行" : "任务执行失败");
     }

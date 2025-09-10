@@ -9,13 +9,13 @@ import java.util.Objects;
 @Getter
 @Setter
 public class TbDictionaryPK implements Serializable {
-    private String entryCode;
+    private Integer entryCode;
     private String entryValue;
 
     public TbDictionaryPK() {
     }
 
-    public TbDictionaryPK(String entryCode, String entryValue) {
+    public TbDictionaryPK(Integer entryCode, String entryValue) {
         this.entryCode = entryCode;
         this.entryValue = entryValue;
     }
