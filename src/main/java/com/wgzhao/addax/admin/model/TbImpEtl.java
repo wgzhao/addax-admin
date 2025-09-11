@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
 
 /**
  * TB_IMP_ETL 实体类
@@ -198,4 +199,7 @@ public class TbImpEtl {
     @Column(name = "runtime_add") 
     private Long runtimeAdd;
 
+    // virtual column
+    @Formula("upper(concat_ws(',','ods' || lower(sou_sysid) || '.' || dest_tablename, sou_owner,sou_tablename,sou_filter))")
+    private String filterColumn;
 }

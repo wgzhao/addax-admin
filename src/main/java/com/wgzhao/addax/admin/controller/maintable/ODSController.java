@@ -1,11 +1,11 @@
 package com.wgzhao.addax.admin.controller.maintable;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
 import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.ImpSpCom;
 import com.wgzhao.addax.admin.model.TbImpSpNeedtab;
-import com.wgzhao.addax.admin.model.VwImpEtl;
 import com.wgzhao.addax.admin.model.VwAddaxLog;
 import com.wgzhao.addax.admin.repository.ImpSpComRepo;
 import com.wgzhao.addax.admin.repository.TbImpDBRepo;
@@ -14,7 +14,7 @@ import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.TaskService;
 import com.wgzhao.addax.admin.service.TbImpSpNeedtabService;
 import com.wgzhao.addax.admin.service.VwAddaxLogService;
-import com.wgzhao.addax.admin.service.VwImpEtlService;
+import com.wgzhao.addax.admin.service.ImpEtlService;
 import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;
@@ -45,7 +45,7 @@ public class ODSController
 {
 
     @Autowired
-    private VwImpEtlService vwImpEtlService;
+    private ImpEtlService impEtlService;
 
     @Autowired
     private ViewPseudoRepo viewPseudoRepo;
@@ -73,7 +73,7 @@ public class ODSController
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
-    public ApiResponse<Page<VwImpEtl>> list(@RequestParam(value = "page", defaultValue = "0") int page,
+    public ApiResponse<Page<TbImpEtl>> list(@RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "flag", required = false) String flag,
@@ -88,17 +88,17 @@ public class ODSController
             pageSize = Integer.MAX_VALUE; // or some large number
         }
         if (flag != null && !flag.isEmpty()) {
-            return ApiResponse.success(vwImpEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
+            return ApiResponse.success(impEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
         }
         else {
-            return ApiResponse.success(vwImpEtlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
+            return ApiResponse.success(impEtlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
         }
     }
 
     @GetMapping("/{tid}")
-    public ApiResponse<VwImpEtl> get(@PathVariable("tid") String tid)
+    public ApiResponse<TbImpEtl> get(@PathVariable("tid") String tid)
     {
-        return ApiResponse.success(vwImpEtlService.findOneODSInfo(tid));
+        return ApiResponse.success(impEtlService.findOneODSInfo(tid));
     }
 
     @DeleteMapping("/{tid}")
@@ -142,9 +142,9 @@ public class ODSController
 
     // 批量新增表时的源系统下拉框
     @RequestMapping("/sourceSystem")
-    public ApiResponse<List<Map<String, String>>> sysList()
+    public ApiResponse<List<DbSourceDto>> sysList()
     {
-        return ApiResponse.success(viewPseudoRepo.findSourceSystem());
+        return ApiResponse.success(tbImpDBRepo.findEtlSource());
     }
 
     // 单个采集源下的所有数据库
@@ -221,8 +221,13 @@ public class ODSController
     @PostMapping(path = "/updateSchema")
     public ApiResponse<String> updateSchema()
     {
-        taskService.tableSchemaUpdate();
-        return ApiResponse.success("schema update has scheduled");
+//        taskService.tableSchemaUpdate();
+        boolean result = impEtlService.addTableInfo();
+        if (!result) {
+            return ApiResponse.error(500, "schema update failed");
+        } else {
+            return ApiResponse.success("schema update has scheduled");
+        }
     }
 
     /**

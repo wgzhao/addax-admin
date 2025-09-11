@@ -67,7 +67,7 @@ public class CommandExecutor {
      */
     public static int executeWithResult(String command, Path logPath) {
         Process process = null;
-
+        log.info("Executing command: {}", command);
         try {
             process = Runtime.getRuntime().exec(new String[]{"bash", "-c", command});
             if (logPath != null) {
@@ -75,7 +75,7 @@ public class CommandExecutor {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        Files.writeString(logPath, line, StandardOpenOption.APPEND);
+                        Files.writeString(logPath, line + "\n", StandardOpenOption.APPEND,StandardOpenOption.CREATE);
                     }
                 }
             }
@@ -86,7 +86,6 @@ public class CommandExecutor {
                     log.error(line);
                 }
             }
-
             return process.waitFor();
         } catch (IOException | InterruptedException e) {
             if (process != null) {

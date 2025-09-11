@@ -187,7 +187,7 @@ public class EtlTaskQueueManager
     /**
      * 执行采集任务并控制并发
      */
-    private void executeEtlTaskWithConcurrencyControl(EtlTask task)
+    public boolean executeEtlTaskWithConcurrencyControl(EtlTask task)
     {
         String taskId = task.getTaskId();
         long startTime = System.currentTimeMillis();
@@ -206,10 +206,12 @@ public class EtlTaskQueueManager
             // 更新任务状态为成功
             if (result) {
                 jdbcTemplate.update("update tb_imp_etl set flag = 'Y' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
+                return true;
             }
             else {
                 jdbcTemplate.update("update tb_imp_etl set flag = 'E' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
                 spAloneService.sendToWecomRobot(String.format("采集任务执行失败: %s", taskId));
+                return false;
             }
         }
         catch (Exception e) {
@@ -221,6 +223,7 @@ public class EtlTaskQueueManager
 
             // 发送告警
             spAloneService.sendToWecomRobot(String.format("采集任务执行失败: %s, 错误: %s", taskId, e.getMessage()));
+            return false;
         }
         finally {
             // 减少运行任务计数

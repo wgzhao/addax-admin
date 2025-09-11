@@ -179,7 +179,7 @@ public class ETLController
         TbImpEtl tbImpEtl = impEtlRepo.findById(tid).orElseThrow();
         Map<String, Object> etlData = Map.of("dest_db", "ods" + tbImpEtl.getSouSysid().toLowerCase(), "dest_tablename", tbImpEtl.getDestTablename());
         EtlTask etlTask = new EtlTask(tid, "manual",etlData);
-        boolean success = queueManager.executeEtlTaskLogic(etlTask);
-        return Map.of("success", success, "message", success ? "任务已执行" : "任务执行失败");
+        boolean isSuccess = queueManager.executeEtlTaskWithConcurrencyControl(etlTask);
+        return Map.of("success", isSuccess, "message",isSuccess ? "任务已执行" : "任务执行失败");
     }
 }

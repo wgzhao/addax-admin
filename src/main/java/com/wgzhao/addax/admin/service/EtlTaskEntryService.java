@@ -195,7 +195,8 @@ public class EtlTaskEntryService
         }
         for (String taskId : tids) {
             String sql = """
-                    select  d.db_constr as sou_dbcon, d.db_user_etl as sou_user, d.db_pass_etl as sou_pass, t.sou_filter , t.sou_split, t.sou_tablename as sou_tblname , 
+                    select  d.db_constr as sou_dbcon, d.db_user_etl as sou_user, d.db_pass_etl as sou_pass, t.sou_filter , t.sou_split,
+                    concat(t.sou_owner , '.', t.sou_tablename)  as sou_tblname,
                     'ods' || lower(t.sou_sysid) as dest_db, t.dest_tablename
                     from tb_imp_etl  t
                     join tb_imp_db d
@@ -237,7 +238,6 @@ public class EtlTaskEntryService
             addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, sourceInfo);
             String job = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5000' and entry_value = '" + kind + "2H'", String.class);
             job = job.replace("${r" + kind + "}", addaxReaderContentTemplate).replace("${wH}", addaxWriterTemplate);
-            System.out.println("addax job content = \n" + job);
 
             TbImpEtlJob tbImpEtlJob = new TbImpEtlJob(taskId, job);
             tbImpEtlJobRepo.save(tbImpEtlJob);

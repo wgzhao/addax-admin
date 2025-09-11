@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
-import com.wgzhao.addax.admin.service.VwImpEtlService;
-import com.wgzhao.addax.admin.model.VwImpEtl;
+import com.wgzhao.addax.admin.service.ImpEtlService;
 import com.wgzhao.addax.admin.model.VwImpSystem;
 import com.wgzhao.addax.admin.service.VwImpSystemService;
 import io.swagger.annotations.Api;
@@ -32,7 +32,7 @@ public class SystemInfoController {
     private VwImpSystemService vwImpSystemService;
 
     @Autowired
-    private VwImpEtlService vwImpEtlService;
+    private ImpEtlService impEtlService;
 
     // 数据中心采集及数据服务系统清单
     @GetMapping("/etlAndDs")
@@ -42,9 +42,9 @@ public class SystemInfoController {
 
     // 数据中心采集表清单(显示100条)
     @GetMapping("/etlInfo")
-    public ApiResponse<Page<VwImpEtl>> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
+    public ApiResponse<Page<TbImpEtl>> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
                                   @RequestParam(name="pageSize", defaultValue = "10") int pageSize) {
-        return ApiResponse.success(vwImpEtlService.fetchEtlInfo(page, pageSize));
+        return ApiResponse.success(impEtlService.fetchEtlInfo(page, pageSize));
     }
 
     // 数据中心数据推送表清单(显示100条)
