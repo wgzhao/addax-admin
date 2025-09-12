@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.config;
 
-import com.wgzhao.addax.admin.AdminApplication;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;

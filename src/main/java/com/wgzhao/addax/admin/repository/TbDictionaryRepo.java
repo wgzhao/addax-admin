@@ -23,4 +23,11 @@ public interface TbDictionaryRepo extends JpaRepository<TbDictionary, TbDictiona
                 select entry_value, entry_content from tb_dictionary where entry_code = 2011
                 """, nativeQuery = true)
     Map<String, String> getHiveTypeMap();
+
+    String findEntryContentByEntryCodeAndEntryValue(int entryCode, String entryValue);
+
+    @Query(value = """
+            select entry_value from tb_dictionary where entry_code = ?1 and entry_value < ?2 order by entry_value desc limit 1
+            """, nativeQuery = true)
+    String findLastBizDate(int entryCode, String curDate);
 }

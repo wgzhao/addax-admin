@@ -206,13 +206,6 @@ public class EtlTaskEntryService
             Map<String, Object> sourceInfo = jdbcTemplate.queryForMap(sql);
             String kind = DbUtil.getKind(sourceInfo.get("sou_dbcon").toString());
             String addaxReaderContentTemplate = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'r" + kind + "'", String.class);
-            // addaxReaderContentTemplate 包含了若干占位符，这些占位符需要使用 sourceInfo 里的数据进行替换，占位符和 sourceInfo 里的字段是一一映射的
-//            for (Map.Entry<String, Object> entry : sourceInfo.entrySet()) {
-//                String key = entry.getKey();
-//                Object value = entry.getValue();
-//                // 替换模板中的 ${key} 格式的占位符
-//                addaxReaderContentTemplate = addaxReaderContentTemplate.replace("${" + key + "}", value.toString());
-//            }
             sql = """
                     select string_agg('"'  || column_name || '"', ',' order by column_id asc) as cols from tb_imp_etl_soutab where tid = '%s'
                     """.formatted(taskId);
@@ -221,7 +214,6 @@ public class EtlTaskEntryService
             // current YYYmmdd
             sou_col += "," + "\"'${dw_clt_date}'\", \"${dw_trade_date}\"," + "\"'" + sourceInfo.get("sou_filter") + "'\"";
             sourceInfo.put("sou_col", sou_col);
-//            addaxReaderContentTemplate = addaxReaderContentTemplate.replace("${sou_col}", sou_col);
 
             String addaxWriterTemplate = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'wH'", String.class);
             // col_idx = 1000 的字段为分区字段，不参与 select
@@ -237,6 +229,9 @@ public class EtlTaskEntryService
             addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, sourceInfo);
             addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, sourceInfo);
             String job = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5000' and entry_value = '" + kind + "2H'", String.class);
+            if (job == null || job.isEmpty()) {
+                return ;
+            }
             job = job.replace("${r" + kind + "}", addaxReaderContentTemplate).replace("${wH}", addaxWriterTemplate);
 
             TbImpEtlJob tbImpEtlJob = new TbImpEtlJob(taskId, job);

@@ -7,14 +7,17 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +34,10 @@ public class EtlTaskQueueManager
 {
 
     @Value("${sp.alone.queue.size:100}")
-    private int queueSize = 100;
+    private final int queueSize = 100;
 
     @Value("${sp.alone.concurrent.limit:30}")
-    private int concurrentLimit = 30;
+    private final int concurrentLimit = 30;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -46,7 +49,7 @@ public class EtlTaskQueueManager
     private SpAloneService spAloneService;
 
     @Autowired
-    private SystemConfigService configService;
+    private DictService dictService;
 
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTask> etlTaskQueue = new ArrayBlockingQueue<>(100);
@@ -73,18 +76,29 @@ public class EtlTaskQueueManager
 
     /**
      * 扫描并将采集任务加入队列
+     * 其逻辑为:
+     * 1. 先检查当前时间是否小于切日时间(SWITCH_TIME),如果小于，则 扫描tb_imp_etl表中flag字段为N的记录
+     * 2. 否则，需要检查任务设定的采集时间是否小于当前时间
+     * 比如，假定是T 日下午 16：:30切日，且采集时间设定为 02:50，则表示需要在 T+1 日后的 02:50 之后才能采集
+     * 当如果采集时间设定的为 14:30，则需要 T+1 日后的 14:30 之后才能采集
+     *
      */
     public void scanAndEnqueueEtlTasks()
     {
         try {
             // 查询需要采集的任务 - 扫描tb_imp_etl表中flag字段为N的记录
+            LocalTime switchTime = dictService.getSwitchTimeAsTime();
+            LocalTime currentTime = LocalDateTime.now().toLocalTime();
             String sql = """
                     select t.tid, t.dest_tablename, 'ods' || lower(t.sou_sysid ) as dest_db from tb_imp_etl  t
                     join tb_imp_db d
                     on t.sou_sysid  = d.db_id_etl
                     where t.flag = 'N' and t.retry_cnt > 0 and t.bupdate  = 'N' and t.bcreate = 'N' and d.bvalid  = 'Y'
                     """;
-
+            if (currentTime.isAfter(switchTime)) {
+                // 当前时间大于切日时间，则需要检查采集时间
+                sql += " and d.db_start > '" + switchTime + "' and d.db_start < current_time";
+            }
             List<Map<String, Object>> etlTasks = jdbcTemplate.queryForList(sql);
             log.info("扫描到 {} 个待采集任务", etlTasks.size());
 
@@ -249,8 +263,8 @@ public class EtlTaskQueueManager
             return false;
         }
 
-        String logdate = configService.getBizDate();
-        String dw_clt_date = configService.getCurDateTime();
+        String logdate = dictService.getBizDate();
+        String dw_clt_date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         job = job.replace("${logdate}", logdate).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", logdate);
 
         // hive 创建分区
@@ -277,7 +291,7 @@ public class EtlTaskQueueManager
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
         String cmd = "/opt/app/addax/bin/addax.sh -p'-DjobName=" + taskId + "' " + tmpFile;
         String logfile = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
-        int retCode = CommandExecutor.executeWithResult(cmd, Paths.get(configService.getLogPath(), logfile));
+        int retCode = CommandExecutor.executeWithResult(cmd, Paths.get(dictService.getLogPath(), logfile));
         log.info("采集任务 {} 的日志已写入文件: {}", taskId, logfile);
         return retCode == 0;
     }
