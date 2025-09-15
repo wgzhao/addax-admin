@@ -8,7 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 import java.util.Map;
 
-public interface TbDictionaryRepo extends JpaRepository<TbDictionary, TbDictionaryPK> {
+public interface TbDictionaryRepo
+        extends JpaRepository<TbDictionary, TbDictionaryPK>
+{
 
     List<TbDictionary> findByEntryCode(int entryCode);
 
@@ -20,11 +22,14 @@ public interface TbDictionaryRepo extends JpaRepository<TbDictionary, TbDictiona
     String getLastBizDate(String curDate);
 
     @Query(value = """
-                select entry_value, entry_content from tb_dictionary where entry_code = 2011
-                """, nativeQuery = true)
+            select entry_value, entry_content from tb_dictionary where entry_code = 2011
+            """, nativeQuery = true)
     Map<String, String> getHiveTypeMap();
 
-    String findEntryContentByEntryCodeAndEntryValue(int entryCode, String entryValue);
+    @Query(value = """
+            select entry_content from tb_dictionary where entry_code = ?1 and entry_value = ?2
+            """, nativeQuery = true)
+    String findEntryValue(int entryCode, String entryValue);
 
     @Query(value = """
             select entry_value from tb_dictionary where entry_code = ?1 and entry_value < ?2 order by entry_value desc limit 1

@@ -7,13 +7,13 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -50,6 +50,9 @@ public class EtlTaskQueueManager
 
     @Autowired
     private DictService dictService;
+
+    @Autowired
+    private AddaxLogService addaxLogService;
 
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTask> etlTaskQueue = new ArrayBlockingQueue<>(100);
@@ -289,35 +292,11 @@ public class EtlTaskQueueManager
         }
 
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
-        String cmd = "/opt/app/addax/bin/addax.sh -p'-DjobName=" + taskId + "' " + tmpFile;
+        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + "' " + tmpFile;
         String logfile = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
-        int retCode = CommandExecutor.executeWithResult(cmd, Paths.get(dictService.getLogPath(), logfile));
+        int retCode = executeAddax(cmd, taskId);
         log.info("采集任务 {} 的日志已写入文件: {}", taskId, logfile);
         return retCode == 0;
-    }
-
-    /**
-     * 更新采集任务状态
-     */
-    private void updateEtlTaskStatus(String taskId, String status)
-    {
-        String sql;
-        if (status == "R") {
-            sql = "UPDATE tb_imp_etl SET flag = ?, start_time = CURRENT_TIMESTAMP WHERE tid = ?";
-        }
-        else if (status == "Y" || status == "E") {
-            sql = "UPDATE tb_imp_etl SET flag = ?, end_time = CURRENT_TIMESTAMP WHERE tid = ?";
-        }
-        else {
-            sql = "UPDATE tb_imp_etl SET flag = ? WHERE tid = ?";
-        }
-        try {
-            int updated = jdbcTemplate.update(sql, status, taskId);
-            log.debug("更新任务 {} 状态为 {}, 影响行数: {}", taskId, status, updated);
-        }
-        catch (Exception e) {
-            log.error("更新任务状态失败: taskId={}, status={}", taskId, status, e);
-        }
     }
 
     /**
@@ -402,5 +381,42 @@ public class EtlTaskQueueManager
         }
 
         log.info("采集任务队列管理器已关闭");
+    }
+
+    private int executeAddax(String command, String tid)
+    {
+        Process process = null;
+        log.info("Executing command: {}", command);
+        try {
+            process = Runtime.getRuntime().exec(new String[] {"sh" , "-c", command});
+            StringBuilder sb = new StringBuilder();
+            // 将输出重定向到标准输出
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line).append("\n");
+                }
+                // 将日志写入到 sqlite 数据库中
+                addaxLogService.insertLog(tid, sb.toString());
+            }
+
+            // 将错误输出重定向到标准错误
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.error(line);
+                }
+            }
+            return process.waitFor();
+        }
+        catch (IOException | InterruptedException e) {
+            if (process != null) {
+                process.destroy();
+            }
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            return -1;
+        }
     }
 }

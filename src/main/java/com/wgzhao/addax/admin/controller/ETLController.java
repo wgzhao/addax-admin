@@ -14,6 +14,7 @@ import com.wgzhao.addax.admin.service.EtlTaskEntryService;
 import com.wgzhao.addax.admin.service.EtlTaskQueueManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -92,6 +93,7 @@ public class ETLController
     /**
      * 启动采集任务入口 - 扫描数据库并加入队列
      */
+    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
     @PostMapping("/start")
     public Map<String, Object> startEtlTasks()
     {

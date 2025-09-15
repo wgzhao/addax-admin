@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.model.TbDictionaryPK;
 import com.wgzhao.addax.admin.repository.TbDictRepo;
 import com.wgzhao.addax.admin.repository.TbDictionaryRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,7 @@ public class DictService
     private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     public String getSwitchTime() {
-        String res = tbDictionaryRepo.findEntryContentByEntryCodeAndEntryValue(1000, "SWITCH_TIME");
+        String res = tbDictionaryRepo.findEntryValue(1000, "SWITCH_TIME");
         return res == null ? DEFAULT_SWITCH_TIME : res;
     }
 
@@ -35,7 +36,7 @@ public class DictService
     }
 
     public String getLogPath() {
-        String res = tbDictionaryRepo.findEntryContentByEntryCodeAndEntryValue(1062, "runlog");
+        String res = tbDictionaryRepo.findEntryValue(1062, "runlog");
         return res == null ? System.getProperty("user.dir") + "/logs" : res;
     }
 
@@ -49,6 +50,11 @@ public class DictService
         }
         String res = tbDictionaryRepo.findLastBizDate(1021, curDate);
         return res == null ? curDate : res;
+    }
+
+    public String getAddaxHome() {
+        String res = tbDictionaryRepo.findEntryValue(1062, "addax");
+        return res == null ? "/opt/app/addax" : res;
     }
 
 }

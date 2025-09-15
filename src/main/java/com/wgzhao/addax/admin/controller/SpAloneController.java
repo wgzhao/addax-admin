@@ -109,7 +109,7 @@ public class SpAloneController {
     /**
      * 计划任务主控制接口 - 定时任务每分钟执行一次
      */
-    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
+//    @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
     @PostMapping("/plan-start")
     public ResponseEntity<String> planStart() {
 //        String result = spAloneService.executePlanStart();

@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.utils;
 
+import com.wgzhao.addax.admin.service.AddaxLogService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -11,24 +13,27 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.sql.DriverManager;
 
 /**
  * 命令执行工具类
  */
 @Slf4j
-public class CommandExecutor {
-
+public class CommandExecutor
+{
     /**
      * 执行命令并返回输出结果
+     *
      * @param command 要执行的命令
      * @return 命令的输出结果
      */
-    public static String executeForOutput(String command) {
+    public static String executeForOutput(String command)
+    {
         StringBuilder output = new StringBuilder();
         Process process = null;
 
         try {
-            process = Runtime.getRuntime().exec(new String[]{"bash", "-c", command});
+            process = Runtime.getRuntime().exec(new String[] {"bash", "-c", command});
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
@@ -45,7 +50,8 @@ public class CommandExecutor {
             }
 
             return output.toString();
-        } catch (IOException | InterruptedException e) {
+        }
+        catch (IOException | InterruptedException e) {
             if (process != null) {
                 process.destroy();
             }
@@ -56,50 +62,19 @@ public class CommandExecutor {
         }
     }
 
-    public static int executeWithResult(String command) {
-        return executeWithResult(command, null);
-    }
-
-    /**
-     * 执行命令并返回退出码
-     * @param command 要执行的命令
-     * @return 命令的退出码，0表示成功
-     */
-    public static int executeWithResult(String command, Path logPath) {
-        Process process = null;
-        log.info("Executing command: {}", command);
+    public static int executeWithResult(String command)
+    {
         try {
-            process = Runtime.getRuntime().exec(new String[]{"bash", "-c", command});
-            if (logPath != null) {
-                // 将输出重定向到标准输出
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        Files.writeString(logPath, line + "\n", StandardOpenOption.APPEND,StandardOpenOption.CREATE);
-                    }
-                }
-            }
-            // 将错误输出重定向到标准错误
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    log.error(line);
-                }
-            }
-            return process.waitFor();
-        } catch (IOException | InterruptedException e) {
-            if (process != null) {
-                process.destroy();
-            }
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            return -1;
+            return Runtime.getRuntime().exec(new String[] {command}).waitFor();
+        }
+        catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     /**
      * 执行命令但不关心输出
+     *
      * @param command 要执行的命令
      */
     public static void execute(String command)
@@ -114,25 +89,31 @@ public class CommandExecutor {
 
     /**
      * 获取当前主机名
+     *
      * @return 主机名
      */
-    public static String getHostname() {
+    public static String getHostname()
+    {
         return executeForOutput("hostname").trim();
     }
 
     /**
      * 获取当前进程ID
+     *
      * @return 进程ID
      */
-    public static String getPid() {
+    public static String getPid()
+    {
         return executeForOutput("echo $$").trim();
     }
 
     /**
      * 获取IP地址
+     *
      * @return IP地址
      */
-    public static String getIpAddress() {
+    public static String getIpAddress()
+    {
         return executeForOutput("ifconfig | grep '188\\.175\\.' | awk '{print $2}'").trim();
     }
 }
