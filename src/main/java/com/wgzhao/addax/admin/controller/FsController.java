@@ -29,7 +29,6 @@ public class FsController {
 
     private static final Logger logger = LoggerFactory.getLogger(FsController.class);
 
-    @Value("${addax.ds.path}")
     private String dsExec;
 
     @Value("${log.dir}")

@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.ImpSpCom;
 import com.wgzhao.addax.admin.model.TbImpSpNeedtab;
 import com.wgzhao.addax.admin.model.VwAddaxLog;
+import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
 import com.wgzhao.addax.admin.repository.ImpSpComRepo;
 import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
@@ -73,7 +74,7 @@ public class ODSController
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
-    public ApiResponse<Page<TbImpEtl>> list(@RequestParam(value = "page", defaultValue = "0") int page,
+    public ApiResponse<Page<VwImpEtlWithDb>> list(@RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "flag", required = false) String flag,
@@ -96,7 +97,7 @@ public class ODSController
     }
 
     @GetMapping("/{tid}")
-    public ApiResponse<TbImpEtl> get(@PathVariable("tid") String tid)
+    public ApiResponse<VwImpEtlWithDb> get(@PathVariable("tid") String tid)
     {
         return ApiResponse.success(impEtlService.findOneODSInfo(tid));
     }
@@ -114,7 +115,7 @@ public class ODSController
     @RequestMapping("/fieldCompare/{tid}")
     public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid)
     {
-        return ApiResponse.success(viewPseudoRepo.findFieldsCompare(tid));
+        return ApiResponse.success(impEtlService.findFieldsCompare(tid));
     }
 
     // 命令列表

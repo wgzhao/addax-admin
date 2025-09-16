@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.TbImpEtl;
+import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.service.ImpEtlService;
 import com.wgzhao.addax.admin.model.VwImpSystem;
@@ -42,7 +43,7 @@ public class SystemInfoController {
 
     // 数据中心采集表清单(显示100条)
     @GetMapping("/etlInfo")
-    public ApiResponse<Page<TbImpEtl>> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
+    public ApiResponse<Page<VwImpEtlWithDb>> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
                                   @RequestParam(name="pageSize", defaultValue = "10") int pageSize) {
         return ApiResponse.success(impEtlService.fetchEtlInfo(page, pageSize));
     }

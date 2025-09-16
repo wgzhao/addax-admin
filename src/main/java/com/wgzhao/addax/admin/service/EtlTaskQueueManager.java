@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.EtlTask;
-import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -14,15 +13,20 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static java.lang.Math.max;
 
 /**
  * 采集任务队列管理器
@@ -284,7 +288,7 @@ public class EtlTaskQueueManager
         // 写入临时文件
         String tmpFile;
         try {
-            tmpFile = FileUtils.writeToTempFile(taskId, job);
+            tmpFile = FileUtils.writeToTempFile(taskData.get("dest_db") + "." + taskData.get("dest_tablename")  + "_", job);
         }
         catch (IOException e) {
             log.error("写入临时文件失败", e);
@@ -391,13 +395,21 @@ public class EtlTaskQueueManager
             process = Runtime.getRuntime().exec(new String[] {"sh" , "-c", command});
             StringBuilder sb = new StringBuilder();
             // 将输出重定向到标准输出
+            LinkedList<String> lastLines = new LinkedList<>();
+            final int MAX_LINES = 9;
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     sb.append(line).append("\n");
+                    if (lastLines.size() >= MAX_LINES) {
+                        lastLines.removeFirst();
+                    }
+                    lastLines.add(line);
                 }
-                // 将日志写入到 sqlite 数据库中
                 addaxLogService.insertLog(tid, sb.toString());
+                if (!lastLines.isEmpty()) {
+                    processAddaxStatistics(tid, lastLines);
+                }
             }
 
             // 将错误输出重定向到标准错误
@@ -418,5 +430,60 @@ public class EtlTaskQueueManager
             }
             return -1;
         }
+    }
+
+    /**
+     * 分析 Addax 采集的最后 8 行信息，提取统计信息，并插入到 tb_addax_sta 表中
+     * 最后 8 行的信息类似如下：
+     * <p>
+     * Job start  at             : 2025-09-16 09:00:50
+     * Job end    at             : 2025-09-16 09:01:00
+     * Job took secs             :                  9s
+     * Total   bytes             :               41841
+     * Average   bps             :            6.81KB/s
+     * Average   rps             :             74rec/s
+     * Number of rec             :                 449
+     * Failed record             :                   0
+     *
+     * @param tid 采集表主键
+     * @param lastLines 最后的统计信息
+     */
+    private void processAddaxStatistics(String tid, LinkedList<String> lastLines) {
+        Map<String, String> stats = new HashMap<>();
+        for (String line : lastLines) {
+            String[] parts = line.split(":", 2);
+            if (parts.length == 2) {
+                stats.put(parts[0].trim(), parts[1].trim());
+            }
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date jobStart;
+        Date jobEnd;
+        try {
+         jobStart =  sdf.parse(stats.get("Job start  at"));
+         jobEnd = sdf.parse(stats.get("Job end    at"));
+        }
+        catch (ParseException e) {
+            log.error("解析 Addax 采集时间失败", e);
+            return;
+        }
+        int jobTook = Integer.parseInt(stats.get("Job took secs").replace("s", ""));
+        int totalBytes = Integer.parseInt(stats.get("Total   bytes"));
+        int numberOfRec = Integer.parseInt(stats.get("Number of rec"));
+        int failedRecord = Integer.parseInt(stats.get("Failed record"));
+        int averageBps = totalBytes / jobTook;
+        int averageRps = max(numberOfRec / jobTook, 1);
+
+        String insertSql = """
+                insert into tb_addax_statistic
+                (tid, start_at, end_at, take_secs, total_bytes, byte_speed, rec_speed, total_recs, total_errors, update_at)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+                """;
+
+        jdbcTemplate.update(insertSql, tid, jobStart, jobEnd, jobTook, totalBytes,
+                averageBps, averageRps, numberOfRec, failedRecord, LocalDateTime.now());
+        log.info("Addax 采集统计信息已插入 tb_addax_statistic 表: tid={}, total_recs={}, total_bytes={}, take_secs={}",
+                tid, numberOfRec, totalBytes, jobTook);
     }
 }

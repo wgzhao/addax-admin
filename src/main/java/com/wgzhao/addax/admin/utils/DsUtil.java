@@ -21,7 +21,6 @@ public class DsUtil {
     private static final Logger logger = LoggerFactory.getLogger(DsUtil.class);
 
     // 调度工具命令脚本
-    @Value("${addax.ds.path}")
     private String dsExec;
 
     private final Map<String, String> ctypeMap = Map.of(

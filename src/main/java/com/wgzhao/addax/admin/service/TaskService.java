@@ -58,16 +58,12 @@ public class TaskService
     @Resource
     private RestTemplate restTemplate;
 
-    @Value("${hive.metastore.jdbc.url}")
     private String hiveJdbcUrl;
 
-    @Value("${hive.metastore.jdbc.username}")
     private String hivejdbcUsername;
 
-    @Value("${hive.metastore.jdbc.password}")
     private String hivejdbcPassword;
 
-    @Value("${hive.metastore.jdbc.driver-class-name}")
     private String hivejdbcDriverClassName;
 
     /**

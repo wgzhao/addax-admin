@@ -21,17 +21,9 @@ public interface TbImpEtlRepo extends JpaRepository<TbImpEtl, String> {
             """)
     List<String> findValidTids();
 
-    Page<TbImpEtl> findByFlagAndFilterColumnContaining(String etlFlag, String etlFilter, Pageable pageable);
-
     List<TbImpEtl> findByFlag(String etlFlag, Sort by);
 
-    Page<TbImpEtl> findByFilterColumnContaining(String q, Pageable pageable);
-
     Page<TbImpEtl> findAllProjectedBy(Pageable page);
-
-    Page<TbImpEtl> findAllProjectedByFilterColumnContaining(String upperCase, Pageable pageable);
-
-    List<TbImpEtl> findAllByFilterColumnContaining(String q);
 
     @Query("SELECT t FROM TbImpEtl t WHERE t.bupdate = 'Y' OR t.bcreate = 'Y'")
     List<TbImpEtl> findByBupdateOrBcreateIsY();

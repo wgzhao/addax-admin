@@ -5,13 +5,13 @@ import com.wgzhao.addax.admin.model.TbImpDb;
 import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.TbImpEtlSoutab;
 import com.wgzhao.addax.admin.model.TbImpTblHdp;
-import com.wgzhao.addax.admin.model.VwImpEtl;
+import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
 import com.wgzhao.addax.admin.repository.TbDictionaryRepo;
 import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlHdpRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlSoutabRepo;
-import com.wgzhao.addax.admin.repository.VwImpEtlRepo;
+import com.wgzhao.addax.admin.repository.VwImpEtlWithDbRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +37,9 @@ public class ImpEtlService
     private TbImpEtlRepo tbImpEtlRepo;
 
     @Autowired
+    private VwImpEtlWithDbRepo vwImpEtlWithDbRepo;
+
+    @Autowired
     private TbImpDBRepo tbImpDBRepo;
 
     @Autowired
@@ -51,34 +54,34 @@ public class ImpEtlService
     @Autowired
     private EtlTaskEntryService etlTaskEntryService;
 
-    public Page<TbImpEtl> fetchEtlInfo(int page, int pageSize) {
+    public Page<VwImpEtlWithDb> fetchEtlInfo(int page, int pageSize) {
         Pageable pageable = PageRequest.of(page, pageSize);
-        return tbImpEtlRepo.findAll(pageable);
+        return vwImpEtlWithDbRepo.findAll(pageable);
     }
 
     /**
      * ODS 采集信息
      *
      */
-    public Page<TbImpEtl> getOdsInfo(int page, int pageSize, String q, String sortField, String sortOrder) {
+    public Page<VwImpEtlWithDb> getOdsInfo(int page, int pageSize, String q, String sortField, String sortOrder) {
 
 
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         if (q != null && !q.isEmpty()) {
             System.out.println("search " + q.toUpperCase());
-            return tbImpEtlRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
+            return vwImpEtlWithDbRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
         } else {
-            return tbImpEtlRepo.findAll(pageable);
+            return vwImpEtlWithDbRepo.findAll(pageable);
         }
     }
 
-    public Page<TbImpEtl> getOdsByFlag(int page, int pageSize, String q, String flag, String sortField, String sortOrder) {
+    public Page<VwImpEtlWithDb> getOdsByFlag(int page, int pageSize, String q, String flag, String sortField, String sortOrder) {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
-        return tbImpEtlRepo.findByFlagAndFilterColumnContaining(flag, q.toUpperCase(), pageable);
+        return vwImpEtlWithDbRepo.findByFlagAndFilterColumnContaining(flag, q.toUpperCase(), pageable);
     }
 
-    public TbImpEtl findOneODSInfo(String tid) {
-        return tbImpEtlRepo.findById(tid).orElse(null);
+    public VwImpEtlWithDb findOneODSInfo(String tid) {
+        return vwImpEtlWithDbRepo.findById(tid).orElse(null);
     }
 
     /**
@@ -167,5 +170,10 @@ public class ImpEtlService
         // update job table
         etlTaskEntryService.updateJob(tids);
         return true;
+    }
+
+    public List<Map<String, Object>> findFieldsCompare(String tid)
+    {
+        return null;
     }
 }

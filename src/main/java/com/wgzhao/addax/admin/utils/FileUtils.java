@@ -104,10 +104,10 @@ public class FileUtils {
         }
     }
 
-    public static String writeToTempFile(String tid, String content)
+    public static String writeToTempFile(String prefix, String content)
             throws IOException
     {
-            File tempFile = File.createTempFile("tid_", ".json");
+            File tempFile = File.createTempFile(prefix, ".json");
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
                 writer.write(content);
             }
