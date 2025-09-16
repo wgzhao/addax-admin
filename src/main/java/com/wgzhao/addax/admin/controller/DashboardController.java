@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.TbImpFlagRepo;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.repository.AddaxStaRepo;
+import com.wgzhao.addax.admin.service.AddaxStatService;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,9 @@ public class DashboardController {
     @Autowired
     private TbImpEtlRepo tbImpEtlRepo;
 
+    @Autowired
+    private AddaxStatService statService;
+
     @Resource
     CacheUtil cacheUtil;
 
@@ -55,26 +59,13 @@ public class DashboardController {
     // 最近交易日采集的数据量， 以 GB 为单位
     @RequestMapping("/lastEtlData")
     public ApiResponse<Double> lastEtlData() {
-        String td = cacheUtil.get("param.TD");
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        double etlData = 0.0;
-        try {
-            Date d = sdf.parse(td);
-            long btime = d.getTime() / 1000;
-            long etime = btime + 86400;
-            etlData = addaxStaRepo.findLastEtlData(btime, etime);
-        } catch (ParseException e) {
-            return ApiResponse.error(500, "日期格式错误");
-        }
-        return ApiResponse.success(etlData);
+        return ApiResponse.success(statService.statTotalData());
     }
 
     // 获取最近12个月的采集累计数据量，单位为 GiB
     @RequestMapping("/last12MonthsEtlData")
     public ApiResponse<List<Map<String, Object>>> last12MonthsEtlData() {
-        Date etime = new Date();
-        Date btime = new Date(etime.getTime() - 86400 * 365 * 1000L);
-        return  ApiResponse.success(addaxStaRepo.findEtlDataByMonth(btime, etime));
+        return ApiResponse.success(statService.statLast12MonthsData());
     }
 
     @RequestMapping("/tableCount")
