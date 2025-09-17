@@ -1,7 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.model.TbImpSp;
-import com.wgzhao.addax.admin.repository.TbImpSpRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

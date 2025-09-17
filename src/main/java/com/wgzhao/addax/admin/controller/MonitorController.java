@@ -19,12 +19,13 @@ import java.util.Map;
 
 import static com.wgzhao.addax.admin.utils.TradeDateUtils.calcTradeDate;
 /**
- * SP 监控
+ * 监控
  */
 @RestController
 @CrossOrigin
 @RequestMapping("/sp")
-public class SpMonitorController {
+public class MonitorController
+{
 
     @Autowired
     private ViewPseudoRepo  viewPseudoRepo;

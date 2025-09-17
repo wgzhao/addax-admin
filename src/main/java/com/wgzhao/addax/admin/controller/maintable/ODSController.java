@@ -5,17 +5,13 @@ import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
 import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.ImpSpCom;
-import com.wgzhao.addax.admin.model.TbImpSpNeedtab;
 import com.wgzhao.addax.admin.model.VwAddaxLog;
 import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
 import com.wgzhao.addax.admin.repository.ImpSpComRepo;
 import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
-import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
-import com.wgzhao.addax.admin.service.TaskService;
-import com.wgzhao.addax.admin.service.TbImpSpNeedtabService;
 import com.wgzhao.addax.admin.service.VwAddaxLogService;
-import com.wgzhao.addax.admin.service.ImpEtlService;
+import com.wgzhao.addax.admin.service.EtlService;
 import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;
@@ -46,16 +42,11 @@ public class ODSController
 {
 
     @Autowired
-    private ImpEtlService impEtlService;
+    private EtlService etlService;
 
-    @Autowired
-    private ViewPseudoRepo viewPseudoRepo;
 
     @Autowired
     private ImpSpComRepo impSpComRepo;
-
-    @Autowired
-    private TbImpSpNeedtabService tbImpSpNeedtabService;
 
     @Autowired
     private VwAddaxLogService vwAddaxLogService;
@@ -68,9 +59,6 @@ public class ODSController
 
     @Resource
     DsUtil dsUtil;
-
-    @Autowired
-    private TaskService taskService;
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
@@ -89,17 +77,17 @@ public class ODSController
             pageSize = Integer.MAX_VALUE; // or some large number
         }
         if (flag != null && !flag.isEmpty()) {
-            return ApiResponse.success(impEtlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
+            return ApiResponse.success(etlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
         }
         else {
-            return ApiResponse.success(impEtlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
+            return ApiResponse.success(etlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
         }
     }
 
     @GetMapping("/{tid}")
     public ApiResponse<VwImpEtlWithDb> get(@PathVariable("tid") String tid)
     {
-        return ApiResponse.success(impEtlService.findOneODSInfo(tid));
+        return ApiResponse.success(etlService.findOneODSInfo(tid));
     }
 
     @DeleteMapping("/{tid}")
@@ -115,7 +103,7 @@ public class ODSController
     @RequestMapping("/fieldCompare/{tid}")
     public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid)
     {
-        return ApiResponse.success(impEtlService.findFieldsCompare(tid));
+        return ApiResponse.success(etlService.findFieldsCompare(tid));
     }
 
     // 命令列表
@@ -123,14 +111,6 @@ public class ODSController
     public ApiResponse<List<ImpSpCom>> cmdList(@PathVariable("spId") String spId)
     {
         return ApiResponse.success(impSpComRepo.findAllBySpId(spId));
-    }
-
-    // 表使用场景
-    @RequestMapping("/tableUsed")
-    public ApiResponse<List<TbImpSpNeedtab>> tableUsed(@RequestParam("tablename") String tablename,
-            @RequestParam("sysId") String sysId)
-    {
-        return ApiResponse.success(tbImpSpNeedtabService.getNeedtablesByTablename(tablename, sysId));
     }
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
@@ -223,7 +203,7 @@ public class ODSController
     public ApiResponse<String> updateSchema()
     {
 //        taskService.tableSchemaUpdate();
-        boolean result = impEtlService.addTableInfo();
+        boolean result = etlService.addTableInfo();
         if (!result) {
             return ApiResponse.error(500, "schema update failed");
         } else {

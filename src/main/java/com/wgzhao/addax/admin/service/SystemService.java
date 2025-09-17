@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class VwImpSystemService {
+public class SystemService
+{
 
     @Autowired
     private VwImpSystemRepo vwImpSystemRepo;

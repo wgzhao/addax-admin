@@ -23,13 +23,18 @@ import java.sql.Statement;
 import java.util.Map;
 import java.util.logging.Logger;
 
+/**
+ * Alert Service
+ * support send alert message to WeChat group bot, SMS, Email
+ */
 @EnableScheduling
 @EnableAsync
 @ConditionalOnProperty(name = "alert.enabled")
 @Service
-public class YYAlertService {
+public class AlertService
+{
 
-    private static final Logger logger = Logger.getLogger(YYAlertService.class.getName());
+    private static final Logger logger = Logger.getLogger(AlertService.class.getName());
 
     private static final int INIT_DELAY = 5 * 1000;
 
@@ -148,6 +153,31 @@ public class YYAlertService {
             return;
         }
         logger.info("send email message");
+    }
 
+    /** 发送企业微信机器人消息 */
+    public String sendToWecomRobot(String message) {
+        return null;
+//        try {
+//            String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+//            String hostname = getHostname();
+//            String formattedMessage = String.format("""
+//                ### **数据采集告警**
+//
+//                ---
+//
+//                **告警时间**: %s
+//                **告警节点**: %s
+//                **告警内容**: **%s**
+//                """, currentTime, hostname, message);
+//            Map<String, Object> body = Map.of(
+//                "msgtype", "markdown",
+//                "markdown", Map.of("content", formattedMessage)
+//            );
+//            return restTemplate.postForObject(webhookUrl, body, String.class);
+//        } catch (Exception e) {
+//            log.error("发送企业微信消息失败", e);
+//            return "发送失败: " + e.getMessage();
+//        }
     }
 }

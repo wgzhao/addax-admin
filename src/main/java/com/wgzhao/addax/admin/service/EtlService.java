@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.TbDictionary;
 import com.wgzhao.addax.admin.model.TbImpDb;
 import com.wgzhao.addax.admin.model.TbImpEtl;
@@ -29,8 +30,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 采集表表信息管理
+ */
 @Service
-public class ImpEtlService
+public class EtlService
 {
 
     @Autowired
@@ -52,7 +56,7 @@ public class ImpEtlService
     private TbImpEtlSoutabRepo tbImpEtlSoutabRepo;
 
     @Autowired
-    private EtlTaskEntryService etlTaskEntryService;
+    private TaskService taskService;
 
     public Page<VwImpEtlWithDb> fetchEtlInfo(int page, int pageSize) {
         Pageable pageable = PageRequest.of(page, pageSize);
@@ -169,12 +173,19 @@ public class ImpEtlService
             tbImpEtlRepo.save(etl);
         }
         // update job table
-        etlTaskEntryService.updateJob(tids);
+        taskService.updateJob(tids);
         return true;
     }
 
     public List<Map<String, Object>> findFieldsCompare(String tid)
     {
         return null;
+    }
+
+    public EtlTask createEtlTask(String tid)
+    {
+        TbImpEtl tbImpEtl = tbImpEtlRepo.findById(tid).orElseThrow();
+        Map<String, Object> etlData = Map.of("dest_db", "ods" + tbImpEtl.getSouSysid().toLowerCase(), "dest_tablename", tbImpEtl.getDestTablename());
+        return new EtlTask(tid, "manual",etlData);
     }
 }

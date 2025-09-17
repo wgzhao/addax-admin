@@ -32,4 +32,12 @@ public interface TbImpEtlRepo extends JpaRepository<TbImpEtl, String> {
     @Modifying
     @Query("UPDATE TbImpEtl t SET t.flag = 'N' where t.flag < 'X'")
     void resetAllEtlFlags();
+
+    @Query(value = """
+            select t
+            from TbImpEtl t
+            where (t.flag='E' or t.runtime>=1200 or t.retryCnt<3) and t.flag <> 'X'
+            order by t.flag asc,t. runtime desc
+            """)
+    List<TbImpEtl> findSpecialTasks();
 }

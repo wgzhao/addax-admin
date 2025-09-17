@@ -1,12 +1,11 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
-import com.wgzhao.addax.admin.service.ImpEtlService;
+import com.wgzhao.addax.admin.service.EtlService;
 import com.wgzhao.addax.admin.model.VwImpSystem;
-import com.wgzhao.addax.admin.service.VwImpSystemService;
+import com.wgzhao.addax.admin.service.SystemService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -30,22 +29,22 @@ public class SystemInfoController {
     private ViewPseudoRepo viewPseudoRepo;
 
     @Autowired
-    private VwImpSystemService vwImpSystemService;
+    private SystemService systemService;
 
     @Autowired
-    private ImpEtlService impEtlService;
+    private EtlService etlService;
 
     // 数据中心采集及数据服务系统清单
     @GetMapping("/etlAndDs")
     public ApiResponse<List<VwImpSystem>> etlAndDs(@RequestParam(required = false, name="q") String filter) {
-        return ApiResponse.success(vwImpSystemService.fetchEtlDSInfo(filter));
+        return ApiResponse.success(systemService.fetchEtlDSInfo(filter));
     }
 
     // 数据中心采集表清单(显示100条)
     @GetMapping("/etlInfo")
     public ApiResponse<Page<VwImpEtlWithDb>> etlInfo(@RequestParam(name="page", defaultValue = "1") int page,
                                   @RequestParam(name="pageSize", defaultValue = "10") int pageSize) {
-        return ApiResponse.success(impEtlService.fetchEtlInfo(page, pageSize));
+        return ApiResponse.success(etlService.fetchEtlInfo(page, pageSize));
     }
 
     // 数据中心数据推送表清单(显示100条)

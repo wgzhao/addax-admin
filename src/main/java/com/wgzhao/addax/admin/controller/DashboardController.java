@@ -1,10 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
-import com.wgzhao.addax.admin.repository.TbImpFlagRepo;
-import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
-import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import com.wgzhao.addax.admin.service.AddaxStatService;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import jakarta.annotation.Resource;
@@ -13,9 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 

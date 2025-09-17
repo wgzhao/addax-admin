@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.TbAddaxStatistic;
-import com.wgzhao.addax.admin.repository.TbAddaxStatisticRepo;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -15,13 +14,10 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,7 +33,7 @@ import static java.lang.Math.max;
  */
 @Component
 @Slf4j
-public class EtlTaskQueueManager
+public class TaskQueueManager
 {
 
     @Value("${sp.alone.queue.size:100}")
@@ -316,12 +312,16 @@ public class EtlTaskQueueManager
     public boolean addTaskToQueue(String taskId, String taskType, Map<String, Object> taskData)
     {
         EtlTask task = new EtlTask(taskId, taskType, taskData);
+        return addTaskToQueue(task);
+    }
+
+    public boolean addTaskToQueue(EtlTask task) {
         boolean added = etlTaskQueue.offer(task);
         if (added) {
-            log.info("手动添加任务到队列: {}", taskId);
+            log.info("手动添加任务到队列: {}", task.getTaskId());
         }
         else {
-            log.warn("队列已满，无法添加任务: {}", taskId);
+            log.warn("队列已满，无法添加任务: {}", task.getTaskId());
         }
         return added;
     }

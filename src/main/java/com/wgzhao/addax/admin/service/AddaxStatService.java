@@ -228,4 +228,9 @@ public class AddaxStatService
                 });
         return true;
     }
+
+    public List<TbAddaxStatistic> findErrorTask()
+    {
+        return tbAddaxStatisticRepo.findErrorTask();
+    }
 }

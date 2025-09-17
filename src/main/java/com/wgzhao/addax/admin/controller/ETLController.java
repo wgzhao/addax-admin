@@ -2,18 +2,20 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlTask;
+import com.wgzhao.addax.admin.model.TbAddaxStatistic;
 import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.VwImpEtlOverprec;
 import com.wgzhao.addax.admin.model.TbAddaxSta;
-import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
 import com.wgzhao.addax.admin.repository.VwImpEtlOverprecRepo;
 import com.wgzhao.addax.admin.repository.AddaxStaRepo;
-import com.wgzhao.addax.admin.service.EtlTaskEntryService;
-import com.wgzhao.addax.admin.service.EtlTaskQueueManager;
+import com.wgzhao.addax.admin.service.AddaxStatService;
+import com.wgzhao.addax.admin.service.TaskService;
+import com.wgzhao.addax.admin.service.TaskQueueManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * ETL 采集接口
@@ -47,13 +48,14 @@ public class ETLController
     private AddaxStaRepo addaxStaRepo;
 
     @Autowired
-    private EtlTaskEntryService etlTaskEntryService;
+    private TaskService taskService;
 
     @Autowired
-    private EtlTaskQueueManager queueManager;
+    private TaskQueueManager queueManager;
 
     @Autowired
     private TbImpEtlRepo impEtlRepo;
+    @Autowired private AddaxStatService addaxStatService;
 
     // 数据源采集完成情况列表
     @RequestMapping("/accomplishList")
@@ -62,12 +64,6 @@ public class ETLController
         return ApiResponse.success(impEtlOverprecRepo.findAll());
     }
 
-    // 各数据源采集完成率，用于图表展示
-    @RequestMapping("/accomplishRatio")
-    public ApiResponse<List<Map<String, Float>>> accompListRatio()
-    {
-        return ApiResponse.success(viewPseudoRepo.accompListRatio());
-    }
 
     // 日间实时采集任务
     @GetMapping("/realtimeTask")
@@ -78,16 +74,16 @@ public class ETLController
 
     // 特殊任务提醒
     @GetMapping("/specialTask")
-    public ApiResponse<List<Map<String, Object>>> specialTask()
+    public ApiResponse<List<TbImpEtl>> specialTask()
     {
-        return ApiResponse.success(viewPseudoRepo.findAllSpecialTask());
+        return ApiResponse.success(taskService.findAllSpecialTask());
     }
 
     // 任务拒绝行
     @GetMapping("/rejectTask")
-    public ApiResponse<List<TbAddaxSta>> getTaskReject()
+    public ApiResponse<List<TbAddaxStatistic>> getTaskReject()
     {
-        return ApiResponse.success(addaxStaRepo.findByTotalErrNot(0));
+        return ApiResponse.success(addaxStatService.findErrorTask());
     }
 
     /**
@@ -98,7 +94,7 @@ public class ETLController
     public Map<String, Object> startEtlTasks()
     {
         log.info("接收到启动采集任务的请求");
-        String result = etlTaskEntryService.executePlanStartWithQueue();
+        String result = taskService.executePlanStartWithQueue();
 
         return Map.of(
                 "success", true,
@@ -113,23 +109,23 @@ public class ETLController
     @GetMapping("/status")
     public Map<String, Object> getQueueStatus()
     {
-        return etlTaskEntryService.getEtlQueueStatus();
+        return taskService.getEtlQueueStatus();
     }
 
     /**
      * 手动添加任务到队列
      */
-    @PostMapping("/add/{etlId}")
-    public Map<String, Object> addTaskToQueue(@PathVariable String etlId)
-    {
-        boolean success = etlTaskEntryService.addEtlTaskToQueue(etlId);
-
-        return Map.of(
-                "success", success,
-                "message", success ? "任务已加入队列" : "添加任务失败",
-                "etlId", etlId
-        );
-    }
+//    @PostMapping("/add/{tid}")
+//    public Map<String, Object> addTaskToQueue(@PathVariable("tid") String tid)
+//    {
+//        boolean success = queueManager.addTaskToQueue(tid);
+//
+//        return Map.of(
+//                "success", success,
+//                "message", success ? "任务已加入队列" : "添加任务失败",
+//                "tid", tid
+//        );
+//    }
 
     /**
      * 停止队列监控
@@ -137,7 +133,7 @@ public class ETLController
     @PostMapping("/stop")
     public Map<String, Object> stopQueueMonitor()
     {
-        String result = etlTaskEntryService.stopQueueMonitor();
+        String result = taskService.stopQueueMonitor();
         return Map.of("success", true, "message", result);
     }
 
@@ -147,7 +143,7 @@ public class ETLController
     @PostMapping("/restart")
     public Map<String, Object> restartQueueMonitor()
     {
-        String result = etlTaskEntryService.restartQueueMonitor();
+        String result = taskService.restartQueueMonitor();
         return Map.of("success", true, "message", result);
     }
 
@@ -157,21 +153,21 @@ public class ETLController
     @PostMapping("/reset")
     public Map<String, Object> resetQueue()
     {
-        String result = etlTaskEntryService.resetQueue();
+        String result = taskService.resetQueue();
         return Map.of("success", true, "message", result);
     }
 
     @PostMapping("/updateJob")
     public Map<String, Object> updateJob()
     {
-        etlTaskEntryService.updateJob(null);
+        taskService.updateJob(null);
         return Map.of("success", true, "message", "success");
     }
 
     @PostMapping("/updateJob/{tid}")
     public Map<String, Object> updateJob(@PathVariable("tid") String tid)
     {
-        etlTaskEntryService.updateJob(Arrays.asList(tid.split(",")));
+        taskService.updateJob(Arrays.asList(tid.split(",")));
         return Map.of("success", true, "message", "success");
     }
 
@@ -184,4 +180,14 @@ public class ETLController
         boolean isSuccess = queueManager.executeEtlTaskWithConcurrencyControl(etlTask);
         return Map.of("success", isSuccess, "message",isSuccess ? "任务已执行" : "任务执行失败");
     }
+
+    /**
+     * 更新参数接口
+     */
+    @PostMapping("/updt-param")
+    public ResponseEntity<String> updtParam() {
+        String result = taskService.updateParameters();
+        return ResponseEntity.ok(result);
+    }
+
 }

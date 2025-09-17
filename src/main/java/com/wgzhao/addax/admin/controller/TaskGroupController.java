@@ -2,10 +2,8 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.TbImpFlag;
-import com.wgzhao.addax.admin.model.VwImpTaskgroupDetail;
 import com.wgzhao.addax.admin.repository.TbImpFlagRepo;
 import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
-import com.wgzhao.addax.admin.repository.VwImpTaskgroupDetailRepo;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
