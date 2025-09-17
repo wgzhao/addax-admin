@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +44,11 @@ public class SystemConfigService
     public String getCurDateTime()
     {
         return (String) configCache.get("CUR_DATETIME");
+    }
+
+    public String getSwitchTime()
+    {
+        return (String) configCache.get("SWITCH_TIME");
     }
 
 }

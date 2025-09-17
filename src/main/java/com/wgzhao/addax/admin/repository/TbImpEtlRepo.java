@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -27,4 +28,8 @@ public interface TbImpEtlRepo extends JpaRepository<TbImpEtl, String> {
 
     @Query("SELECT t FROM TbImpEtl t WHERE t.bupdate = 'Y' OR t.bcreate = 'Y'")
     List<TbImpEtl> findByBupdateOrBcreateIsY();
+
+    @Modifying
+    @Query("UPDATE TbImpEtl t SET t.flag = 'N' where t.flag < 'X'")
+    void resetAllEtlFlags();
 }

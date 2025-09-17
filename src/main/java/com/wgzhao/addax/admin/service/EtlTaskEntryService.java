@@ -11,6 +11,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,7 @@ public class EtlTaskEntryService
     private final JdbcTemplate jdbcTemplate;
     private final TbImpEtlRepo tbImpEtlRepo;
     private final TbImpEtlJobRepo tbImpEtlJobRepo;
+    private final SystemConfigService configService;
 
     /**
      * 计划任务主控制 - 基于队列的采集任务管理
@@ -46,11 +49,11 @@ public class EtlTaskEntryService
         // 启动队列监控器（如果还未启动）
         queueManager.startQueueMonitor();
 
+        // 处理其他类型任务（judge等非ETL任务）
+        processNonEtlTasks();
+
         // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
         queueManager.scanAndEnqueueEtlTasks();
-
-        // 处理其他类型任务（judge等非ETL任务）
-//                    processNonEtlTasks();
 
         log.info("计划任务主控制执行完毕，队列状态: {}", queueManager.getQueueStatus());
         return "计划任务执行完成，采集任务已加入队列";
@@ -59,33 +62,18 @@ public class EtlTaskEntryService
     /**
      * 处理非ETL任务（如judge任务）
      */
-//    private void processNonEtlTasks() {
-//        try {
-//            String sql = """
-//                    SELECT 'judge' as dtype,
-//                           CASE bstart WHEN -1 THEN 'status_' WHEN 0 THEN 'start_' END || sysid as sp_id
-//                    FROM vw_imp_etl_judge
-//                    WHERE bstart IN (-1, 0) AND px = 1
-//                    """;
-//
-//            List<Map<String, Object>> judgeTasks = spAloneService.querySingleList(sql);
-//            log.info("找到 {} 个judge任务需要处理", judgeTasks.size());
-//
-//            for (Map<String, Object> task : judgeTasks) {
-//                String taskType = task.get("dtype").toString();
-//                String taskId = task.get("sp_id").toString();
-//
-//                // 使用现有的任务分发机制处理judge任务
-//                spAloneService.dispatchStartWkf(taskType, taskId);
-//                spAloneService.procedureHelper.spImpStatus("R", taskId);
-//
-//                log.debug("已分发judge任务: {} - {}", taskType, taskId);
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("处理非ETL任务失败", e);
-//        }
-//    }
+    private void processNonEtlTasks()
+    {
+        // 如果当前时间是在切日时间附近，则开始做切日处理
+        // 1. 把所有有效的采集任务的 flag 字段设置为 'N'，以便重新采集
+        String currTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String switchTime = configService.getSwitchTime();
+        // 只需要比较分钟和小时即可
+        if (currTime.equals(switchTime)) {
+            log.info("当前时间 {} 在切日时间 {} 附近，开始重置所有采集任务的 flag 字段为 'N'", currTime, switchTime);
+            tbImpEtlRepo.resetAllEtlFlags();
+        }
+    }
 
     /**
      * 手动添加采集任务到队列
@@ -194,9 +182,12 @@ public class EtlTaskEntryService
             tids = tbImpEtlRepo.findValidTids();
         }
         for (String taskId : tids) {
+            // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
+            // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
+            // 需要根据不同数据库类型做不同的处理
             String sql = """
                     select  d.db_constr as sou_dbcon, d.db_user_etl as sou_user, d.db_pass_etl as sou_pass, t.sou_filter , t.sou_split,
-                    concat(t.sou_owner , '.', t.sou_tablename)  as sou_tblname,
+                    concat('`', t.sou_owner , '`.`', t.sou_tablename, '`')  as sou_tblname,
                     'ods' || lower(t.sou_sysid) as dest_db, t.dest_tablename
                     from tb_imp_etl  t
                     join tb_imp_db d
@@ -223,6 +214,7 @@ public class EtlTaskEntryService
                     where tid = '%s' and col_idx <> 1000
                     """.formatted(taskId);
             String tag_col = jdbcTemplate.queryForObject(sql, String.class);
+            //TODO ods, logdate 这些应该从配置获取
             String hdfsPath = "/ods/" + sourceInfo.get("dest_db") + "/" + sourceInfo.get("dest_tablename") + "/logdate=${logdate}";
             sourceInfo.put("tag_tblname", hdfsPath);
             sourceInfo.put("tag_col", tag_col);
@@ -230,7 +222,7 @@ public class EtlTaskEntryService
             addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, sourceInfo);
             String job = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5000' and entry_value = '" + kind + "2H'", String.class);
             if (job == null || job.isEmpty()) {
-                return ;
+                return;
             }
             job = job.replace("${r" + kind + "}", addaxReaderContentTemplate).replace("${wH}", addaxWriterTemplate);
 
