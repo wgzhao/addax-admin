@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.service.AddaxStatService;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,18 +27,6 @@ import java.util.Map;
 public class DashboardController {
 
     @Autowired
-    private ViewPseudoRepo viewPseudoRepo;
-
-    @Autowired
-    private TbImpFlagRepo tbImpFlagRepo;
-
-    @Autowired
-    private AddaxStaRepo addaxStaRepo;
-
-    @Autowired
-    private TbImpEtlRepo tbImpEtlRepo;
-
-    @Autowired
     private AddaxStatService statService;
 
     @Resource
@@ -45,15 +34,14 @@ public class DashboardController {
 
     // 各数据源采集完成率，用于图表展示
     @RequestMapping("/accomplishRatio")
-    public ApiResponse<List<Map<String, Float>>> accompListRatio() {
-        return ApiResponse.success(viewPseudoRepo.accompListRatio());
+    public ApiResponse<List<Map<String, Object>>> accompListRatio() {
+        return ApiResponse.success(statService.statLastAccompRatio());
     }
 
     //  最近5天采集耗时对比
     @RequestMapping("/last5DaysEtlTime")
     public ApiResponse<List<Map<String, Object>>> last5DaysEtlTime() {
-        int l5td = Integer.parseInt(cacheUtil.get("param.L5TD"));
-        return ApiResponse.success(tbImpFlagRepo.findLast5DaysEtlTime(l5td));
+        return ApiResponse.success(statService.statLast5DaysTimeBySource());
     }
 
     // 最近交易日采集的数据量， 以 GB 为单位
@@ -69,7 +57,13 @@ public class DashboardController {
     }
 
     @RequestMapping("/tableCount")
-    public ApiResponse<Long> tableCount() {
-        return ApiResponse.success(tbImpEtlRepo.count());
+    public ApiResponse<Integer> tableCount() {
+        return ApiResponse.success(statService.statValidEtlTables());
+    }
+
+    @GetMapping("/sourceCount")
+    public ApiResponse<Integer> sourceCount()
+    {
+        return ApiResponse.success(statService.statValidEtlSources());
     }
 }

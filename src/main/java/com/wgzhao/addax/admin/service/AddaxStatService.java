@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.model.TbAddaxStatistic;
+import com.wgzhao.addax.admin.repository.TbAddaxStatisticRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,9 @@ public class AddaxStatService
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private TbAddaxStatisticRepo tbAddaxStatisticRepo;
+
     // 按采集源统计最近一次采集的数据量
     public List<Map<String, Object>> statDataBySource()
     {
@@ -25,7 +30,7 @@ public class AddaxStatService
                 (SELECT tid, total_bytes FROM (
                   SELECT
                     tid, total_bytes,
-                    row_number() OVER (PARTITION BY tid ORDER BY update_at DESC) AS rn
+                    row_number() OVER (PARTITION BY tid ORDER BY run_date DESC) AS rn
                   FROM tb_addax_statistic
                 ) t WHERE rn = 1)
                 t
@@ -49,7 +54,7 @@ public class AddaxStatService
                 (SELECT tid, total_bytes FROM (
                   SELECT
                     tid, total_bytes,
-                    row_number() OVER (PARTITION BY tid ORDER BY update_at DESC) AS rn
+                    row_number() OVER (PARTITION BY tid ORDER BY run_date DESC) AS rn
                   FROM tb_addax_statistic
                 ) t WHERE rn = 1)
                 t
@@ -65,10 +70,10 @@ public class AddaxStatService
     {
         String sql = """
                 select
-                to_char(date_trunc('month', update_at), 'YYYY-MM') as month,
+                to_char(date_trunc('month', run_date), 'YYYY-MM') as month,
                 sum(total_bytes)/1024/1024/1024 as total_gb
                 from tb_addax_statistic
-                where update_at >= date_trunc('month', current_date) - interval '11 months'
+                where run_date >= date_trunc('month', current_date) - interval '11 months'
                 group by month
                 order by month
                 """;
@@ -93,31 +98,30 @@ public class AddaxStatService
     }
 
     // 按照采集来源统计最近 5 天的耗时，用来形成柱状图表
-    public List<Map<String, Object>> statLast5DaysTimeBySource(int l5td)
+    public List<Map<String, Object>> statLast5DaysTimeBySource()
     {
         String sql = """
                 select
                 b.db_id_etl ,
+                t.run_date,
                 max(b.db_name) as sourceName,
-                a.tradedate,
-                sum(a.runtime) as take_secs
+                sum(t.total_bytes) as total_bytes
                 from
-                (select tradedate,fid,
-                       extract(epoch from (max(case when fval=4 then dw_clt_date end) -
-                       	max(case when fval=3 then dw_clt_date end))) runtime
-                from tb_imp_flag
-                where kind in('ETL_END','ETL_START') and tradedate>=?1 and fval in(3,4)
-                group by tradedate,fid
-                having max(case when fval=3 then 1 else 0 end)=max(case when fval=4 then 1 else 0 end)
-                ) a
-                left join tb_imp_etl c
-                on a.fid = c.tid
+                (SELECT tid, run_date, total_bytes FROM (
+                  SELECT
+                    tid, run_date, total_bytes,
+                    row_number() OVER (PARTITION BY tid ORDER BY run_date DESC) AS rn
+                  FROM tb_addax_statistic
+                ) t WHERE rn < 5)
+                t
+                left join
+                tb_imp_etl a
+                on a.tid = t.tid
                 left join tb_imp_db b
-                on c.sou_sysid  = b.db_id_etl
-                group by b.db_id_etl,a.tradedate
-                order by b.db_id_etl,a.tradedate
+                on a.sou_sysid  = b.db_id_etl
+                group by b.db_id_etl, t.run_date
                 """;
-        return jdbcTemplate.queryForList(sql, l5td);
+        return jdbcTemplate.queryForList(sql);
     }
 
     //按采集源统计目前的采集状态统计
@@ -184,5 +188,44 @@ public class AddaxStatService
                 WHERE total_num > 0;
                 """;
         return jdbcTemplate.queryForList(sql);
+    }
+
+    // 目前有效的采集表数量
+    public Integer statValidEtlTables()
+    {
+        String sql = """
+                select
+                count(*)
+                from tb_imp_etl t
+                join tb_imp_db d
+                on t.sou_sysid = d.db_id_etl
+                where t.flag <> 'X' and d.bvalid  = 'Y'
+                """;
+        return jdbcTemplate.queryForObject(sql, Integer.class);
+    }
+
+    // 目前有效的采集源数量
+    public Integer statValidEtlSources()
+    {
+        String sql = """
+                select
+                count(*)
+                from tb_imp_db
+                where bvalid  = 'Y'
+                """;
+        return jdbcTemplate.queryForObject(sql, Integer.class);
+    }
+
+    public boolean saveOrUpdate(TbAddaxStatistic statistic) {
+        tbAddaxStatisticRepo.findByTidAndRunDate(statistic.getTid(), statistic.getRunDate())
+                .ifPresentOrElse(existingStat -> {
+                    // 如果存在，则更新现有记录
+                    statistic.setId(existingStat.getId());
+                    tbAddaxStatisticRepo.save(statistic);
+                }, () -> {
+                    // 如果不存在，则插入新记录
+                    tbAddaxStatisticRepo.save(statistic);
+                });
+        return true;
     }
 }

@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalTime;
+
 @Entity
 @Table(name="tb_imp_db")
 @Setter
@@ -48,7 +50,7 @@ public class TbImpDb {
     private Integer dbParalDs;
 
     @Column(name = "db_start")
-    private String dbStart;
+    private LocalTime dbStart;
 
     @Column(name = "db_start_type")
     private String dbStartType;

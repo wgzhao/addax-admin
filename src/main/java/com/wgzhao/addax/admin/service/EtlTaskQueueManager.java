@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.EtlTask;
+import com.wgzhao.addax.admin.model.TbAddaxStatistic;
+import com.wgzhao.addax.admin.repository.TbAddaxStatisticRepo;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -57,6 +60,10 @@ public class EtlTaskQueueManager
 
     @Autowired
     private AddaxLogService addaxLogService;
+
+    @Autowired
+    private AddaxStatService statService;
+
 
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTask> etlTaskQueue = new ArrayBlockingQueue<>(100);
@@ -456,34 +463,37 @@ public class EtlTaskQueueManager
                 stats.put(parts[0].trim(), parts[1].trim());
             }
         }
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date jobStart;
-        Date jobEnd;
-        try {
-         jobStart =  sdf.parse(stats.get("Job start  at"));
-         jobEnd = sdf.parse(stats.get("Job end    at"));
-        }
-        catch (ParseException e) {
-            log.error("解析 Addax 采集时间失败", e);
+        if (stats.size() < 8) {
+            log.warn("无法解析 Addax 统计信息，行数不足: {}", stats);
             return;
         }
+        if (!stats.containsKey("Job start  at") || stats.get("Job start  at").isEmpty()) {
+            log.error("无法解析 Addax 统计信息，缺少 Job start  at 字段: {}", stats);
+            return;
+        }
+        String jobStart =  stats.get("Job start  at").replace(" ", "T");
+        String jobEnd = stats.get("Job end    at").replace(" ", "T");
+
+        TbAddaxStatistic statistic = new TbAddaxStatistic();
+        statistic.setTid(tid);
+        statistic.setRunDate(LocalDate.now());
+        statistic.setStartAt(LocalDateTime.parse(jobStart));
+        statistic.setEndAt(LocalDateTime.parse(jobEnd));
         int jobTook = Integer.parseInt(stats.get("Job took secs").replace("s", ""));
+        statistic.setTakeSecs(jobTook);
         int totalBytes = Integer.parseInt(stats.get("Total   bytes"));
+        statistic.setTotalBytes(totalBytes);
         int numberOfRec = Integer.parseInt(stats.get("Number of rec"));
+        statistic.setTotalRecs(numberOfRec);
         int failedRecord = Integer.parseInt(stats.get("Failed record"));
+        statistic.setTotalErrors(failedRecord);
         int averageBps = totalBytes / jobTook;
+        statistic.setByteSpeed(averageBps);
         int averageRps = max(numberOfRec / jobTook, 1);
+        statistic.setRecSpeed(averageRps);
 
-        String insertSql = """
-                insert into tb_addax_statistic
-                (tid, start_at, end_at, take_secs, total_bytes, byte_speed, rec_speed, total_recs, total_errors, update_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
-                """;
-
-        jdbcTemplate.update(insertSql, tid, jobStart, jobEnd, jobTook, totalBytes,
-                averageBps, averageRps, numberOfRec, failedRecord, LocalDateTime.now());
-        log.info("Addax 采集统计信息已插入 tb_addax_statistic 表: tid={}, total_recs={}, total_bytes={}, take_secs={}",
-                tid, numberOfRec, totalBytes, jobTook);
+        if (statService.saveOrUpdate(statistic)) {
+            log.info("Addax 采集统计信息已插入 tb_addax_statistic 表: {}", statistic);
+        }
     }
 }

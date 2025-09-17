@@ -108,7 +108,7 @@ public class ImpEtlService
             hiveTypeMapping.put(dict.getEntryValue(), dict.getEntryContent());
         }
 
-        String sql  = "select * from " + tbImpEtl.getSouOwner() + "." + tbImpEtl.getSouTablename() + " where 1=0";
+        String sql  = "select * from `" + tbImpEtl.getSouOwner() + "`.`" + tbImpEtl.getSouTablename() + "` where 1=0";
         try (ResultSet resultSet = connection.createStatement().executeQuery(sql)){
             ResultSetMetaData metaData = resultSet.getMetaData();
             int columnCount = metaData.getColumnCount();
@@ -120,6 +120,7 @@ public class ImpEtlService
 
             TbImpTblHdp tbImpTblHdp = new TbImpTblHdp();
             tbImpTblHdp.setTid(tbImpEtl.getTid());
+            // TODO hive 的库名前缀应该从配置获取
             tbImpTblHdp.setHiveOwner("ods" + tbImpEtl.getSouSysid().toLowerCase());
             tbImpTblHdp.setHiveTablename(tbImpEtl.getDestTablename());
 
