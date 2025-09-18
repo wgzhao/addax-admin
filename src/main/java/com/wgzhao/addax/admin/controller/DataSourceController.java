@@ -1,4 +1,4 @@
-package com.wgzhao.addax.admin.controller.maintable;
+package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.TbImpDb;
@@ -15,7 +15,7 @@ import java.util.*;
  */
 @Api(value="数据源配置接口", tags = {"主表配置"})
 @RestController
-@RequestMapping("/maintable/datasource")
+@RequestMapping("/datasource")
 public class DataSourceController {
 
 

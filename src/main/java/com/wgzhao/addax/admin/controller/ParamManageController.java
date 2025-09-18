@@ -1,4 +1,4 @@
-package com.wgzhao.addax.admin.controller.maintable;
+package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.TbDict;
@@ -25,7 +25,7 @@ import java.util.Optional;
  */
 @Api(value="参数管理配置接口", tags = {"主表配置"})
 @RestController
-@RequestMapping("/maintable/paramManage")
+@RequestMapping("/paramManage")
 public class ParamManageController {
 
     @Autowired

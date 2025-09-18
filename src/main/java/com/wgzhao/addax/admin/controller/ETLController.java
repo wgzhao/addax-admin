@@ -4,18 +4,12 @@ import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.TbAddaxStatistic;
 import com.wgzhao.addax.admin.model.TbImpEtl;
-import com.wgzhao.addax.admin.model.VwImpEtlOverprec;
-import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
-import com.wgzhao.addax.admin.repository.ViewPseudoRepo;
-import com.wgzhao.addax.admin.repository.VwImpEtlOverprecRepo;
-import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import com.wgzhao.addax.admin.service.AddaxStatService;
 import com.wgzhao.addax.admin.service.TaskService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,13 +31,6 @@ import java.util.Map;
 @Slf4j
 public class ETLController
 {
-
-    @Autowired
-    private VwImpEtlOverprecRepo impEtlOverprecRepo;
-
-    @Autowired
-    private AddaxStaRepo addaxStaRepo;
-
     @Autowired
     private TaskService taskService;
 
@@ -56,9 +43,9 @@ public class ETLController
 
     // 数据源采集完成情况列表
     @RequestMapping("/accomplishList")
-    public ApiResponse<List<VwImpEtlOverprec>> getAll()
+    public ApiResponse<List<Map<String, Object>>> getAll()
     {
-        return ApiResponse.success(impEtlOverprecRepo.findAll());
+        return ApiResponse.success(addaxStatService.statLastAccompRatio());
     }
 
 

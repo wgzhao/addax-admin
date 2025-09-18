@@ -1,4 +1,4 @@
-package com.wgzhao.addax.admin.controller.maintable;
+package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.TbImpPlan;
@@ -16,7 +16,7 @@ import java.util.List;
  */
 @Api(value="计划任务配置接口", tags = {"主表配置"})
 @RestController
-@RequestMapping("/maintable/plantask")
+@RequestMapping("/plantask")
 public class PlanTaskController
 {
 

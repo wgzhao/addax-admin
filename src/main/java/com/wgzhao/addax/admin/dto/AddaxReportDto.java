@@ -1,5 +1,8 @@
 package com.wgzhao.addax.admin.dto;
 
+import lombok.Data;
+
+@Data
 public class AddaxReportDto {
     private String jobName;
     private int startTimeStamp;
@@ -9,38 +12,6 @@ public class AddaxReportDto {
     private int recordSpeedPerSecond;
     private int totalReadRecords;
     private int totalErrorRecords;
-
-    public String getJobName() {
-        return jobName;
-    }
-
-    public int getStartTimeStamp() {
-        return startTimeStamp;
-    }
-
-    public int getEndTimeStamp() {
-        return endTimeStamp;
-    }
-
-    public int getTotalCosts() {
-        return totalCosts;
-    }
-
-    public int getByteSpeedPerSecond() {
-        return byteSpeedPerSecond;
-    }
-
-    public int getRecordSpeedPerSecond() {
-        return recordSpeedPerSecond;
-    }
-
-    public int getTotalReadRecords() {
-        return totalReadRecords;
-    }
-
-    public int getTotalErrorRecords() {
-        return totalErrorRecords;
-    }
 
     @Override
     public String toString() {

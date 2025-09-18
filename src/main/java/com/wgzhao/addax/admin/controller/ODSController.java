@@ -1,17 +1,14 @@
-package com.wgzhao.addax.admin.controller.maintable;
+package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
 import com.wgzhao.addax.admin.model.TbAddaxStatistic;
 import com.wgzhao.addax.admin.model.TbImpEtl;
-import com.wgzhao.addax.admin.model.ImpSpCom;
 import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
-import com.wgzhao.addax.admin.repository.ImpSpComRepo;
 import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
 import com.wgzhao.addax.admin.service.AddaxStatService;
-import com.wgzhao.addax.admin.service.VwAddaxLogService;
 import com.wgzhao.addax.admin.service.EtlService;
 import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
@@ -38,19 +35,12 @@ import java.util.concurrent.CompletableFuture;
  */
 @Api(value = "ODS 采集配置接口", tags = {"主表配置"})
 @RestController
-@RequestMapping("/maintable/ods")
+@RequestMapping("/ods")
 public class ODSController
 {
 
     @Autowired
     private EtlService etlService;
-
-
-    @Autowired
-    private ImpSpComRepo impSpComRepo;
-
-    @Autowired
-    private VwAddaxLogService vwAddaxLogService;
 
     @Autowired
     private TbImpEtlRepo tbImpEtlRepo;
@@ -110,12 +100,6 @@ public class ODSController
         return ApiResponse.success(etlService.findFieldsCompare(tid));
     }
 
-    // 命令列表
-    @RequestMapping("/cmdList/{spId}")
-    public ApiResponse<List<ImpSpCom>> cmdList(@PathVariable("spId") String spId)
-    {
-        return ApiResponse.success(impSpComRepo.findAllBySpId(spId));
-    }
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
     @RequestMapping("/addaxResult/{tid}")
@@ -209,7 +193,8 @@ public class ODSController
         boolean result = etlService.addTableInfo();
         if (!result) {
             return ApiResponse.error(500, "schema update failed");
-        } else {
+        }
+        else {
             return ApiResponse.success("schema update has scheduled");
         }
     }
