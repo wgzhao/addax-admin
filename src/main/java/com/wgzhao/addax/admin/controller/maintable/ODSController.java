@@ -3,13 +3,14 @@ package com.wgzhao.addax.admin.controller.maintable;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
+import com.wgzhao.addax.admin.model.TbAddaxStatistic;
 import com.wgzhao.addax.admin.model.TbImpEtl;
 import com.wgzhao.addax.admin.model.ImpSpCom;
-import com.wgzhao.addax.admin.model.VwAddaxLog;
 import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
 import com.wgzhao.addax.admin.repository.ImpSpComRepo;
 import com.wgzhao.addax.admin.repository.TbImpDBRepo;
 import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
+import com.wgzhao.addax.admin.service.AddaxStatService;
 import com.wgzhao.addax.admin.service.VwAddaxLogService;
 import com.wgzhao.addax.admin.service.EtlService;
 import com.wgzhao.addax.admin.utils.DsUtil;
@@ -56,6 +57,9 @@ public class ODSController
 
     @Autowired
     private TbImpDBRepo tbImpDBRepo;
+
+    @Autowired
+    private AddaxStatService statService;
 
     @Resource
     DsUtil dsUtil;
@@ -114,11 +118,10 @@ public class ODSController
     }
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
-    @RequestMapping("/addaxResult/{spname}")
-    public ApiResponse<List<VwAddaxLog>> addaxResult(@PathVariable("spname") String spname)
+    @RequestMapping("/addaxResult/{tid}")
+    public ApiResponse<List<TbAddaxStatistic>> addaxResult(@PathVariable("tid") String tid)
     {
-        List<String> spNames = List.of(spname, spname + "_100", spname + "_102");
-        return ApiResponse.success(vwAddaxLogService.getAddaxResult(spNames));
+        return ApiResponse.success(statService.getLast15Records(tid));
     }
 
     // 批量新增表时的源系统下拉框

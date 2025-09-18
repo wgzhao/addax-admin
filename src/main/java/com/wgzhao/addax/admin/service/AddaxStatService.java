@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.TbAddaxStatistic;
+import com.wgzhao.addax.admin.model.VwAddaxLog;
 import com.wgzhao.addax.admin.repository.TbAddaxStatisticRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -101,27 +102,9 @@ public class AddaxStatService
     public List<Map<String, Object>> statLast5DaysTimeBySource()
     {
         String sql = """
-                select
-                b.db_id_etl ,
-                t.run_date,
-                max(b.db_name) as sourceName,
-                sum(t.total_bytes) as total_bytes
-                from
-                (SELECT tid, run_date, total_bytes FROM (
-                  SELECT
-                    tid, run_date, total_bytes,
-                    row_number() OVER (PARTITION BY tid ORDER BY run_date DESC) AS rn
-                  FROM tb_addax_statistic
-                ) t WHERE rn < 5)
-                t
-                left join
-                tb_imp_etl a
-                on a.tid = t.tid
-                left join tb_imp_db b
-                on a.sou_sysid  = b.db_id_etl
-                group by b.db_id_etl, t.run_date
+               
                 """;
-        return jdbcTemplate.queryForList(sql);
+        return tbAddaxStatisticRepo.findLast5DaysTakeTimes();
     }
 
     //按采集源统计目前的采集状态统计
@@ -232,5 +215,10 @@ public class AddaxStatService
     public List<TbAddaxStatistic> findErrorTask()
     {
         return tbAddaxStatisticRepo.findErrorTask();
+    }
+
+    // 根据采集表 ID 获取最近 15 条采集日志
+    public List<TbAddaxStatistic> getLast15Records(String tid) {
+        return tbAddaxStatisticRepo.findTop15ByTidOrderByRunDateDesc(tid);
     }
 }

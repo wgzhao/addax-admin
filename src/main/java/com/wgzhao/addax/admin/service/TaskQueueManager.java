@@ -6,8 +6,6 @@ import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -36,20 +34,12 @@ import static java.lang.Math.max;
 public class TaskQueueManager
 {
 
-    @Value("${sp.alone.queue.size:100}")
     private final int queueSize = 100;
 
-    @Value("${sp.alone.concurrent.limit:30}")
     private final int concurrentLimit = 30;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Autowired
-    private SpAloneService spAloneService;
 
     @Autowired
     private DictService dictService;
@@ -59,6 +49,9 @@ public class TaskQueueManager
 
     @Autowired
     private AddaxStatService statService;
+
+    @Autowired
+    private AlertService alertService;
 
 
     // 采集任务队列 - 固定长度100
@@ -137,7 +130,7 @@ public class TaskQueueManager
         }
         catch (Exception e) {
             log.error("扫描和入队采集任务失败", e);
-            spAloneService.sendToWecomRobot("扫描采集任务失败: " + e.getMessage());
+            alertService.sendToWecomRobot("扫描采集任务失败: " + e.getMessage());
         }
     }
 
@@ -234,7 +227,7 @@ public class TaskQueueManager
             }
             else {
                 jdbcTemplate.update("update tb_imp_etl set flag = 'E' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
-                spAloneService.sendToWecomRobot(String.format("采集任务执行失败: %s", taskId));
+                alertService.sendToWecomRobot(String.format("采集任务执行失败: %s", taskId));
                 return false;
             }
         }
@@ -246,7 +239,7 @@ public class TaskQueueManager
             jdbcTemplate.update("update tb_imp_etl set flag = 'E' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
 
             // 发送告警
-            spAloneService.sendToWecomRobot(String.format("采集任务执行失败: %s, 错误: %s", taskId, e.getMessage()));
+            alertService.sendToWecomRobot(String.format("采集任务执行失败: %s, 错误: %s", taskId, e.getMessage()));
             return false;
         }
         finally {

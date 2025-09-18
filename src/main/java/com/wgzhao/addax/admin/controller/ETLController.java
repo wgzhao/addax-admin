@@ -42,9 +42,6 @@ public class ETLController
     private VwImpEtlOverprecRepo impEtlOverprecRepo;
 
     @Autowired
-    private ViewPseudoRepo viewPseudoRepo;
-
-    @Autowired
     private AddaxStaRepo addaxStaRepo;
 
     @Autowired
@@ -64,13 +61,6 @@ public class ETLController
         return ApiResponse.success(impEtlOverprecRepo.findAll());
     }
 
-
-    // 日间实时采集任务
-    @GetMapping("/realtimeTask")
-    public ApiResponse<List<Map<String, Object>>> realtimeTask()
-    {
-        return ApiResponse.success(viewPseudoRepo.findRealtimeTask());
-    }
 
     // 特殊任务提醒
     @GetMapping("/specialTask")
@@ -184,10 +174,10 @@ public class ETLController
     /**
      * 更新参数接口
      */
-    @PostMapping("/updt-param")
-    public ResponseEntity<String> updtParam() {
-        String result = taskService.updateParameters();
-        return ResponseEntity.ok(result);
-    }
+//    @PostMapping("/updt-param")
+//    public ResponseEntity<String> updtParam() {
+//        String result = taskService.updateParameters();
+//        return ResponseEntity.ok(result);
+//    }
 
 }

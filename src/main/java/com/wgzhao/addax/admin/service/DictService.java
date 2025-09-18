@@ -57,4 +57,14 @@ public class DictService
         return res == null ? "/opt/app/addax" : res;
     }
 
+    public int getConcurrentLimit() {
+        String res = tbDictionaryRepo.findEntryValue(1000, "CONCURRENT_LIMIT");
+        return res == null ? 5 : Integer.parseInt(res);
+    }
+
+    public int getQueueSize() {
+        String res = tbDictionaryRepo.findEntryValue(1000, "QUEUE_SIZE");
+        return res == null ? 100 : Integer.parseInt(res);
+    }
+
 }

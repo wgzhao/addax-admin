@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.json.JsonParser;
@@ -29,12 +30,10 @@ import java.util.logging.Logger;
  */
 @EnableScheduling
 @EnableAsync
-@ConditionalOnProperty(name = "alert.enabled")
 @Service
+@Slf4j
 public class AlertService
 {
-
-    private static final Logger logger = Logger.getLogger(AlertService.class.getName());
 
     private static final int INIT_DELAY = 5 * 1000;
 
@@ -80,7 +79,7 @@ public class AlertService
             return;
         }
         String url = String.format("%s?key=%s", webchatUrl, wechatKey);
-        logger.info("send wechat message to " + url);
+        log.info("send wechat message to {}",  url);
         String query = String.format("select MID, MSG, BKK from %s where BKK = 'Y' order by dw_clt_date asc", jdbcTable);
         ResultSet resultSet;
         try {
@@ -107,7 +106,7 @@ public class AlertService
                 String payload = String.format("{\"msgtype\": \"markdown\", \"markdown\": {\"content\": \"%s\"}}", msg);
                 ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
                 if (response.getStatusCode() != HttpStatusCode.valueOf(200)) {
-                    logger.warning("send wechat message failed: " + response.getBody());
+                    log.warn("send wechat message failed: {}" , response.getBody());
                     continue;
                 }
                 Map<String, Object> json = jsonParser.parseMap(response.getBody());
@@ -121,18 +120,17 @@ public class AlertService
                     // most condition is caused by api has been limited , errcode = 45009
                     // refs: https://open.work.weixin.qq.com/devtool/query?e=45009
                     // give up, the current loop game over
-                    logger.info("send wechat message success: " + cntSuccess + " in current loop");
-                    logger.info("finish the current loop because of api limited");
+                    log.info("send wechat message success: {}  in current loop finish the current loop because of api limited",  cntSuccess);
                     statement.close();
                     connection.close();
                     return;
                 }
             } // end while
-            logger.info("send wechat message success: " + cntSuccess + " in current loop");
+            log.info("send wechat message success: {} in current loop", cntSuccess);
             statement.close();
             connection.close();
         } catch (SQLException e) {
-            logger.warning("failed to send wechat message: " + e);
+            log.warn("failed to send wechat message" , e);
         }
     }
 
@@ -143,7 +141,7 @@ public class AlertService
         if (!smsEnabled) {
             return;
         }
-        logger.info("send sms message");
+        log.info("send sms message");
     }
 
     @Async
@@ -152,7 +150,7 @@ public class AlertService
         if (!emailEnabled) {
             return;
         }
-        logger.info("send email message");
+        log.info("send email message");
     }
 
     /** 发送企业微信机器人消息 */
