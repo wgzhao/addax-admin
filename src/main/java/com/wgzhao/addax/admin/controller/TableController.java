@@ -31,12 +31,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * ODS 采集配置接口
+ * 采集表管理接口
  */
-@Api(value = "ODS 采集配置接口", tags = {"主表配置"})
+@Api(value = "采集表配置管理接口")
 @RestController
-@RequestMapping("/ods")
-public class ODSController
+@RequestMapping("/table")
+public class TableController
 {
 
     @Autowired

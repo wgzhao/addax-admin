@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * 风险点接口
  */
-@Api(value = "风险点接口", tags = {"风险点接口"})
+@Api(value = "风险点接口")
 @RestController
 @RequestMapping("/risk")
 public class RiskController

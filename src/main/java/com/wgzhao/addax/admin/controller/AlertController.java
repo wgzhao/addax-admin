@@ -16,10 +16,11 @@ import java.util.List;
  *
  * @author 
  */
-@Api(value = "/msg", tags = {"数据中心消息提醒总表API"})
-@RequestMapping("/msg")
+@Api(value = "/alert")
+@RequestMapping("/alert")
 @RestController
-public class MsgController {
+public class AlertController
+{
 
     @Autowired
     private MsgRepo msgRepo;

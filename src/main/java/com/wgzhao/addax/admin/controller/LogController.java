@@ -1,16 +1,22 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
+import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.AddaxLog;
+import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
+import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import com.wgzhao.addax.admin.utils.LogFileUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,10 +31,14 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping("/log")
+@Slf4j
 public class LogController {
 
     @Autowired
     private AddaxLogService addaxLogService;
+
+    @Autowired
+    private AddaxStaRepo addaxStaRepo;
 
     // 获取指定 SP 的日志列表
     @GetMapping("/addaxLog/list/{tid}")
@@ -45,4 +55,21 @@ public class LogController {
         return addaxLog.map(log -> ApiResponse.success(log.getLog())).orElseGet(() -> ApiResponse.error(400, "未找到对应日志"));
     }
 
+
+    @PostMapping(value = "/jobReport", consumes = "application/json")
+    public TbAddaxSta jobReport(@RequestBody AddaxReportDto dto) {
+        log.info("job report: {}", dto);
+        TbAddaxSta sta = new TbAddaxSta();
+        sta.setJobname(dto.getJobName());
+        sta.setStartTs(dto.getStartTimeStamp());
+        sta.setEndTs(dto.getEndTimeStamp());
+        sta.setTakeSecs(dto.getTotalCosts());
+        sta.setByteSpeed(dto.getByteSpeedPerSecond());
+        sta.setRecSpeed(dto.getRecordSpeedPerSecond());
+        sta.setTotalRec(dto.getTotalReadRecords());
+        sta.setTotalErr(dto.getTotalErrorRecords());
+        sta.setUpdtDate(new java.sql.Timestamp(System.currentTimeMillis()));
+
+        return addaxStaRepo.save(sta);
+    }
 }

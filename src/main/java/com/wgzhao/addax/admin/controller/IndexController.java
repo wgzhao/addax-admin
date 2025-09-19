@@ -14,7 +14,7 @@ import java.util.Map;
  * 监控主页面，主要是汇总信息和图表展示
  */
 @RestController
-@RequestMapping("/")
+@RequestMapping("/dashboard")
 public class IndexController
 {
 

@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ETL 采集接口
+ * 采集任务管理接口
  */
 @RestController
 @RequestMapping("/etl")
 @CrossOrigin
 @Slf4j
-public class ETLController
+public class TaskController
 {
     @Autowired
     private TaskService taskService;
@@ -40,28 +40,6 @@ public class ETLController
     @Autowired
     private TbImpEtlRepo impEtlRepo;
     @Autowired private AddaxStatService addaxStatService;
-
-    // 数据源采集完成情况列表
-    @RequestMapping("/accomplishList")
-    public ApiResponse<List<Map<String, Object>>> getAll()
-    {
-        return ApiResponse.success(addaxStatService.statLastAccompRatio());
-    }
-
-
-    // 特殊任务提醒
-    @GetMapping("/specialTask")
-    public ApiResponse<List<TbImpEtl>> specialTask()
-    {
-        return ApiResponse.success(taskService.findAllSpecialTask());
-    }
-
-    // 任务拒绝行
-    @GetMapping("/rejectTask")
-    public ApiResponse<List<TbAddaxStatistic>> getTaskReject()
-    {
-        return ApiResponse.success(addaxStatService.findErrorTask());
-    }
 
     /**
      * 启动采集任务入口 - 扫描数据库并加入队列

@@ -14,10 +14,10 @@ import java.util.List;
 /**
  * 计划任务配置接口
  */
-@Api(value="计划任务配置接口", tags = {"主表配置"})
+@Api(value="计划任务配置接口")
 @RestController
-@RequestMapping("/plantask")
-public class PlanTaskController
+@RequestMapping("/plan")
+public class PlanController
 {
 
     @Autowired

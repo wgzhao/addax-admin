@@ -23,10 +23,11 @@ import java.util.Optional;
 /**
  * 参数管理配置接口
  */
-@Api(value="参数管理配置接口", tags = {"主表配置"})
+@Api(value="参数管理配置接口")
 @RestController
-@RequestMapping("/paramManage")
-public class ParamManageController {
+@RequestMapping("/param")
+public class ParamController
+{
 
     @Autowired
     private TbDictRepo dictRepo;
