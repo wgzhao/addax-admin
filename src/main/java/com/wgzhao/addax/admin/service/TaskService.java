@@ -67,7 +67,7 @@ public class TaskService
     {
         // 如果当前时间是在切日时间附近，则开始做切日处理
         // 1. 把所有有效的采集任务的 flag 字段设置为 'N'，以便重新采集
-        String currTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        String currTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
         String switchTime = configService.getSwitchTime();
         // 只需要比较分钟和小时即可
         if (currTime.equals(switchTime)) {
