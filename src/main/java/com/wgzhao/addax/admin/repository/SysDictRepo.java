@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SysDictRepo
         extends JpaRepository<SysDict, Integer> {
 
-    SysDict findByDictCode(int code);
+    SysDict findByCode(int code);
 }

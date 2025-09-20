@@ -14,7 +14,7 @@ import lombok.Setter;
 public class SysItem {
     @Id
     @Column(name="dict_code")
-    private short dictCode;
+    private Integer dictCode;
 
     @Id
     @Column(name="item_key", length = 255)

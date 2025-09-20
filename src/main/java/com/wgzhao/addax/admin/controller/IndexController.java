@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.StatService;
+import com.wgzhao.addax.admin.service.TableService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,7 @@ public class IndexController
 
     @Autowired
     private SourceService sourceService;
+    @Autowired private TableService tableService;
 
     // 各数据源采集完成率，用于图表展示
     @RequestMapping("/accomplishRatio")
@@ -51,7 +53,7 @@ public class IndexController
 
     @RequestMapping("/tableCount")
     public ApiResponse<Integer> tableCount() {
-        return ApiResponse.success(statService.statValidEtlTables());
+        return ApiResponse.success(tableService.getValidTableCount());
     }
 
     @GetMapping("/sourceCount")

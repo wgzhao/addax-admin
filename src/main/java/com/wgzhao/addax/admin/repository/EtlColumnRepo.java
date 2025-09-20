@@ -15,7 +15,7 @@ public interface EtlColumnRepo
     @Query(value = """
             select string_agg('"'  || column_name || '"', ',' order by column_id) as columns
             from etl_column where tid = :tid
-            """
+            """, nativeQuery = true
     )
     String getAllColumns(long tid);
 }

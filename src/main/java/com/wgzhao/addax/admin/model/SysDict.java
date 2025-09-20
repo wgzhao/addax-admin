@@ -18,7 +18,7 @@ public class SysDict
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "code")
-    private Short code;
+    private Integer code;
 
     @Column(name = "name")
     private String name;

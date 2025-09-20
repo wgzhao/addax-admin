@@ -54,7 +54,7 @@ public class RiskController
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmm");
         try {
             day = sdf.parse(td + " 1630");
-            return ApiResponse.success(notificationRepo.findDistinctBydwCltDateAfter(day));
+            return ApiResponse.success(notificationRepo.findDistinctByCreateAtAfter(day));
         }
         catch (ParseException e) {
             return ApiResponse.error(500, "日期解析错误");

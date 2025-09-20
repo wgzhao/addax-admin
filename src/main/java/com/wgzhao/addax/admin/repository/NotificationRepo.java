@@ -13,5 +13,7 @@ import java.util.List;
  */
 public interface NotificationRepo
         extends JpaRepository<Notification, String> {
-    List<Notification> findDistinctBydwCltDateAfter(Date td);
+    List<Notification> findDistinctByCreateAtAfter(Date td);
+
+    List<Notification> findAllByImOrderByCreateAtAsc(String y);
 }

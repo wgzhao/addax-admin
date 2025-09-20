@@ -53,7 +53,7 @@ public class ParamController
 
     @PostMapping("/dicts")
     public ApiResponse<SysDict> createOrSaveDict(@RequestBody SysDict dict) {
-        SysDict result = sysDictRepo.findByDictCode(dict.getCode());
+        SysDict result = sysDictRepo.findByCode(dict.getCode());
         if (result == null ) {
             return ApiResponse.success(sysDictRepo.save(dict));
         } else {
@@ -63,7 +63,7 @@ public class ParamController
 
     @DeleteMapping("/dicts/{id}")
     public ApiResponse<Integer> deleteDict(@PathVariable(value = "id") int id) {
-        SysDict dict = sysDictRepo.findByDictCode(id);
+        SysDict dict = sysDictRepo.findById(id).orElse(null);
         if (dict != null) {
             sysDictRepo.delete(dict);
             return ApiResponse.success(1);

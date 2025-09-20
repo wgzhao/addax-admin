@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,8 +11,6 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class DictService
 {
-    @Autowired
-    private SysDictRepo sysDictRepo;
 
     @Autowired
     private SysItemRepo sysItemRepo;
@@ -47,7 +44,7 @@ public class DictService
         } else {
              curDate = LocalDate.now().format(sdf);
         }
-        String res = sysItemRepo.findLastBizDate(1021, curDate);
+        String res = sysItemRepo.findLastBizDateList(1021, curDate).getFirst();
         return res == null ? curDate : res;
     }
 

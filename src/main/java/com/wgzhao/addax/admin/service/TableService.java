@@ -50,11 +50,10 @@ public class TableService
     @Autowired
     private SysItemRepo sysItemRepo;
 
-    @Autowired
-    private TaskService taskService;
     @Autowired private EtlColumnRepo etlColumnRepo;
     @Autowired private SystemConfigService systemConfigService;
     @Autowired private DictService dictService;
+    @Autowired private JobContentService jobContentService;
 
     public Page<VwImpEtlWithDb> fetchEtlInfo(int page, int pageSize)
     {
@@ -66,23 +65,23 @@ public class TableService
      * ODS 采集信息
      *
      */
-    public Page<VwImpEtlWithDb> getOdsInfo(int page, int pageSize, String q, String sortField, String sortOrder)
+    public Page<EtlTable> getTablesInfo(int page, int pageSize, String q, String sortField, String sortOrder)
     {
 
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         if (q != null && !q.isEmpty()) {
             System.out.println("search " + q.toUpperCase());
-            return vwImpEtlWithDbRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
+            return etlTableRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
         }
         else {
-            return vwImpEtlWithDbRepo.findAll(pageable);
+            return etlTableRepo.findAll(pageable);
         }
     }
 
-    public Page<VwImpEtlWithDb> getOdsByFlag(int page, int pageSize, String q, String flag, String sortField, String sortOrder)
+    public Page<EtlTable> getTablesByFlag(int page, int pageSize, String q, String flag, String sortField, String sortOrder)
     {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
-        return vwImpEtlWithDbRepo.findByFlagAndFilterColumnContaining(flag, q.toUpperCase(), pageable);
+        return etlTableRepo.findByStatusAndFilterColumnContaining(flag, q.toUpperCase(), pageable);
     }
 
     public VwImpEtlWithDb findOneODSInfo(String tid)
@@ -149,7 +148,7 @@ public class TableService
 
     public boolean addTableInfo()
     {
-        List<EtlTable> etlList = etlTableRepo.findByBupdateOrBcreateIsY();
+        List<EtlTable> etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
         List<Long> ids = etlList.stream().map(EtlTable::getId).toList();
         for (EtlTable etl : etlList) {
             if (!addTableInfo(etl)) {
@@ -159,9 +158,10 @@ public class TableService
             etl.setUpdateFlag("N");
             etl.setStatus("N");
             etlTableRepo.save(etl);
+            // update job table
+            jobContentService.updateJob(etl);
         }
-        // update job table
-        taskService.updateJob(ids);
+
         return true;
     }
 
@@ -219,5 +219,23 @@ public class TableService
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);
         return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime);
+    }
+
+
+    public Integer getValidTableCount() {
+        return etlTableRepo.findValidTids().size();
+    }
+
+    public List<EtlTable> getValidTables() {
+        return etlTableRepo.findValidTables();
+    }
+
+    public void resetAllFlags()
+    {
+        etlTableRepo.resetAllEtlFlags();
+    }
+
+    public List<EtlTable> findSpecialTasks() {
+        return etlTableRepo.findSpecialTasks();
     }
 }

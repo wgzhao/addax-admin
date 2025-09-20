@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
+import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
@@ -56,7 +57,7 @@ public class TableController
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
-    public ApiResponse<Page<VwImpEtlWithDb>> list(@RequestParam(value = "page", defaultValue = "0") int page,
+    public ApiResponse<Page<EtlTable>> list(@RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
             @RequestParam(value = "q", required = false) String q,
             @RequestParam(value = "flag", required = false) String flag,
@@ -71,10 +72,10 @@ public class TableController
             pageSize = Integer.MAX_VALUE; // or some large number
         }
         if (flag != null && !flag.isEmpty()) {
-            return ApiResponse.success(tableService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
+            return ApiResponse.success(tableService.getTablesByFlag(page, pageSize, q, flag, sortField, sortOrder));
         }
         else {
-            return ApiResponse.success(tableService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
+            return ApiResponse.success(tableService.getTablesInfo(page, pageSize, q, sortField, sortOrder));
         }
     }
 
@@ -103,16 +104,16 @@ public class TableController
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
     @RequestMapping("/addaxResult/{tid}")
-    public ApiResponse<List<EtlStatistic>> addaxResult(@PathVariable("tid") String tid)
+    public ApiResponse<List<EtlStatistic>> addaxResult(@PathVariable("tid") long tid)
     {
         return ApiResponse.success(statService.getLast15Records(tid));
     }
 
     // 批量新增表时的源系统下拉框
     @RequestMapping("/sourceSystem")
-    public ApiResponse<List<DbSourceDto>> sysList()
+    public ApiResponse<List<EtlSource>> sysList()
     {
-        return ApiResponse.success(etlSourceRepo.findEtlSource());
+        return ApiResponse.success(etlSourceRepo.findAllByEnabled(true));
     }
 
     // 单个采集源下的所有数据库
@@ -140,7 +141,7 @@ public class TableController
     {
         List<String> result = new ArrayList<>();
         // get all exists tables
-        List<String> existsTables = etlTableRepo.findTables(payload.get("sysId"), payload.get("db"));
+        List<String> existsTables = etlTableRepo.findTables(Integer.parseInt(payload.get("sysId")), payload.get("db"));
         try {
             Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
             connection.setSchema(payload.get("db"));

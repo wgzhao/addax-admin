@@ -26,17 +26,17 @@ public class AddaxLogService
         addaxLogRepo.save(addaxLog);
     }
 
-    public List<LocalDate> getLast5RunDatesByTid(String tid) {
+    public List<LocalDate> getLast5RunDatesByTid(long tid) {
         return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid).stream()
                 .map(AddaxLog::getRunDate)
                 .distinct()
                 .toList();
     }
-    public AddaxLog getLastLogByTid(String tid) {
+    public AddaxLog getLastLogByTid(long tid) {
         return addaxLogRepo.findFirstByTidOrderByRunDateDesc(tid);
     }
 
-    public List<AddaxLog> getLast5LogsById(String tid) {
+    public List<AddaxLog> getLast5LogsById(long tid) {
         return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid);
     }
 

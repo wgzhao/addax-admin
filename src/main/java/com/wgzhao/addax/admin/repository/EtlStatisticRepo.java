@@ -54,5 +54,5 @@ public interface EtlStatisticRepo
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysTakeTimes();
 
-    List<EtlStatistic> findTop15ByTidOrderByRunDateDesc(String tid);
+    List<EtlStatistic> findTop15ByTidOrderByRunDateDesc(long tid);
 }

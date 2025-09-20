@@ -17,20 +17,14 @@ public interface SysItemRepo
 
     List<SysItem> findByDictCodeOrderByDictCodeAsc(int dictCode);
 
-    @Query(value = """
-            select item_value from sys_item where dict_code = 1021 and item_value < ?1 order by item_value desc limit 1
-            """, nativeQuery = true)
-    String getLastBizDate(String curDate);
+    @Query("SELECT s.itemValue FROM SysItem s WHERE s.dictCode = 1021 AND s.itemValue < :curDate ORDER BY s.itemValue DESC")
+    List<String> getLastBizDateList(String curDate);
 
-    @Query(value = """
-            select item_name, item_value from sys_item where dict_code = 2011
-            """, nativeQuery = true)
-    Map<String, String> getHiveTypeMap();
+    @Query("SELECT s FROM SysItem s WHERE s.dictCode = 2011")
+    List<SysItem> getHiveTypeItems();
 
     SysItem findByDictCodeAndItemKey(int dictCode, String itemKey);
 
-    @Query(value = """
-            select entry_value from sys_item where dict_code = ?1 and item_key < ?2 order by item_key desc limit 1
-            """, nativeQuery = true)
-    String findLastBizDate(int dictCode, String curDate);
+    @Query("SELECT s.itemValue FROM SysItem s WHERE s.dictCode = :dictCode AND s.itemKey < :curDate ORDER BY s.itemKey DESC")
+    List<String> findLastBizDateList(int dictCode, String curDate);
 }

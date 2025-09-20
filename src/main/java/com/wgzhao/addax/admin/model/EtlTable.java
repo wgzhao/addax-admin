@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
+
 import java.util.Date;
 
 /**
@@ -73,4 +75,7 @@ public class EtlTable {
 
     @Column(name = "duration", nullable = false)
     private Long duration;
+
+    @Formula("LOWER(source_db || '.' || source_table || target_db || '.' || target_table || part_kind || part_name || filter)")
+    private String filterColumn;
 }

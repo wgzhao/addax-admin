@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
+import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskService;
@@ -15,12 +15,9 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -38,10 +35,8 @@ public class TaskController
     @Autowired
     private TaskQueueManager queueManager;
 
-    @Autowired
-    private EtlTableRepo impEtlRepo;
-    @Autowired private StatService statService;
     @Autowired private TableService tableService;
+    @Autowired private JobContentService jobContentService;
 
     /**
      * 启动采集任务入口 - 扫描数据库并加入队列
@@ -121,14 +116,16 @@ public class TaskController
     @PostMapping("/updateJob")
     public Map<String, Object> updateJob()
     {
-        taskService.updateJob(null);
+        for (EtlTable table : tableService.getValidTables()) {
+            jobContentService.updateJob(table);
+        };
         return Map.of("success", true, "message", "success");
     }
 
     @PostMapping("/updateJob/{tid}")
     public Map<String, Object> updateJob(@PathVariable("tid") long tid)
     {
-        taskService.updateJob(Collections.singletonList(tid));
+        jobContentService.updateJob(tableService.getTable(tid));
         return Map.of("success", true, "message", "success");
     }
 

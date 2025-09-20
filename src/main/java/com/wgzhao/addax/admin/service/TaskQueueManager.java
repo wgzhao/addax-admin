@@ -40,9 +40,6 @@ public class TaskQueueManager
     private final int concurrentLimit = 30;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired
     private DictService dictService;
 
     @Autowired

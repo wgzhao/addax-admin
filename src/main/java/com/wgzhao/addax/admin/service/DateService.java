@@ -23,7 +23,7 @@ public class DateService
 
     public String getLtd() {
         String curDate =  LocalDate.now().format(sdf);
-        return sysItemRepo.getLastBizDate(curDate);
+        return sysItemRepo.getLastBizDateList(curDate).getFirst();
     }
 
     public String getShortDate() {
