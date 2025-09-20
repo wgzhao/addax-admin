@@ -1,18 +1,17 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.model.TbImpEtl;
-import com.wgzhao.addax.admin.model.TbImpEtlJob;
-import com.wgzhao.addax.admin.repository.TbImpEtlJobRepo;
-import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
+import com.wgzhao.addax.admin.model.EtlSource;
+import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.EtlJob;
+import com.wgzhao.addax.admin.repository.EtlJobRepo;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -34,9 +33,12 @@ public class TaskService
     private final TaskQueueManager queueManager;
 
     private final JdbcTemplate jdbcTemplate;
-    private final TbImpEtlRepo tbImpEtlRepo;
-    private final TbImpEtlJobRepo tbImpEtlJobRepo;
+    private final EtlTableRepo etlTableRepo;
+    private final EtlJobRepo etlJobRepo;
     private final SystemConfigService configService;
+    private final TableService tableService;
+    private final DictService dictService;
+    private final ColumnService columnService;
 
     /**
      * 计划任务主控制 - 基于队列的采集任务管理
@@ -72,35 +74,7 @@ public class TaskService
         // 只需要比较分钟和小时即可
         if (currTime.equals(switchTime)) {
             log.info("当前时间 {} 在切日时间 {} 附近，开始重置所有采集任务的 flag 字段为 'N'", currTime, switchTime);
-            tbImpEtlRepo.resetAllEtlFlags();
-        }
-    }
-
-    /**
-     * 手动添加采集任务到队列
-     */
-    public boolean addEtlTaskToQueue(String etlId)
-    {
-        try {
-            // 查询任务详情
-            String sql = """
-                    SELECT tid, sou_sysid, sou_tablename, etl_type, priority, create_time
-                    FROM tb_imp_etl
-                    WHERE etl_id = ? AND flag = 'N'
-                    """;
-
-            List<Map<String, Object>> taskList = jdbcTemplate.queryForList(sql, etlId);
-            if (taskList.isEmpty()) {
-                log.warn("未找到可添加的任务: {}", etlId);
-                return false;
-            }
-
-            Map<String, Object> taskData = taskList.get(0);
-            return queueManager.addTaskToQueue(etlId, "etl", taskData);
-        }
-        catch (Exception e) {
-            log.error("手动添加任务到队列失败: {}", etlId, e);
-            return false;
+            etlTableRepo.resetAllEtlFlags();
         }
     }
 
@@ -113,17 +87,13 @@ public class TaskService
 
         try {
             // 添加数据库中待处理任务数量
-            String sql = "SELECT COUNT(*) as pending_count FROM tb_imp_etl WHERE flag = 'N'";
-            List<Map<String, Object>> result = jdbcTemplate.queryForList(sql);
-            if (!result.isEmpty()) {
-                detailedStatus.put("pendingInDatabase", result.get(0).get("pending_count"));
+            int result  = tableService.findPendingTasks();
+            if (result > 0) {
+                detailedStatus.put("pendingInDatabase", result);
             }
-
-            // 添加正在运行的任务数量
-            sql = "SELECT COUNT(*) as running_count FROM tb_imp_etl WHERE flag = 'R'";
-            result = jdbcTemplate.queryForList(sql);
-            if (!result.isEmpty()) {
-                detailedStatus.put("runningInDatabase", result.get(0).get("running_count"));
+            result = tableService.findRunningTasks();
+            if (result > 0) {
+                detailedStatus.put("runningInDatabase", result);
             }
         }
         catch (Exception e) {
@@ -177,62 +147,50 @@ public class TaskService
      * 他扫描 tb_imp_etl 任务，然后生成 addax 采集需要的 json 文件模板，并写入到 tb_imp_etl_job 表中
      * 这个方法可以定期运行，确保 tb_imp_etl_job 表中的 json
      */
-    public void updateJob(List<String> tids)
+    public void updateJob(List<Long> tids)
     {
         if (tids == null || tids.isEmpty()) {
-            tids = tbImpEtlRepo.findValidTids();
+            tids = etlTableRepo.findValidTids();
         }
-        for (String taskId : tids) {
+        for (long tid : tids) {
             // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
             // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
             // 需要根据不同数据库类型做不同的处理
-            String sql = """
-                    select  d.db_constr as sou_dbcon, d.db_user_etl as sou_user, d.db_pass_etl as sou_pass, t.sou_filter , t.sou_split,
-                    concat('`', t.sou_owner , '`.`', t.sou_tablename, '`')  as sou_tblname,
-                    'ods' || lower(t.sou_sysid) as dest_db, t.dest_tablename
-                    from tb_imp_etl  t
-                    join tb_imp_db d
-                    on t.sou_sysid  = d.db_id_etl
-                    where t.tid = '%s'
-                    """.formatted(taskId);
-            Map<String, Object> sourceInfo = jdbcTemplate.queryForMap(sql);
-            String kind = DbUtil.getKind(sourceInfo.get("sou_dbcon").toString());
-            String addaxReaderContentTemplate = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'r" + kind + "'", String.class);
-            sql = """
-                    select string_agg('"'  || column_name || '"', ',' order by column_id asc) as cols from tb_imp_etl_soutab where tid = '%s'
-                    """.formatted(taskId);
-            String sou_col = jdbcTemplate.queryForObject(sql, String.class);
-            // extra columns
-            // current YYYmmdd
-            sou_col += "," + "\"'${dw_clt_date}'\", \"${dw_trade_date}\"," + "\"'" + sourceInfo.get("sou_filter") + "'\"";
-            sourceInfo.put("sou_col", sou_col);
+            EtlTable etlTable = tableService.getTableAndSource(tid);
+            EtlSource etlSource = etlTable.getEtlSource();
+            String kind = DbUtil.getKind(etlSource.getUrl());
+            String addaxReaderContentTemplate = dictService.getReaderTemplate(kind);
+            String columns = columnService.getSourceColumns(tid);
+            Map<String, String> params = new HashMap<>();
+            params.put("url", etlSource.getUrl());
+            params.put("username", etlSource.getUsername());
+            params.put("pass", etlSource.getPass());
+            params.put("filter", etlTable.getFilter());
+            params.put("table_name", "`" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "`");
+            params.put("columns", columns);
 
-            String addaxWriterTemplate = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'wH'", String.class);
+            String addaxWriterTemplate = dictService.getItemValue(5001, "wH", String.class);
             // col_idx = 1000 的字段为分区字段，不参与 select
-            sql = """
-                    select string_agg('{"name": "' || col_name || '", "type": "' || col_type_full || '"}', ',' order by  col_idx asc) as tag_col
-                    from tb_imp_tbl_hdp
-                    where tid = '%s' and col_idx <> 1000
-                    """.formatted(taskId);
-            String tag_col = jdbcTemplate.queryForObject(sql, String.class);
             //TODO ods, logdate 这些应该从配置获取
-            String hdfsPath = "/ods/" + sourceInfo.get("dest_db") + "/" + sourceInfo.get("dest_tablename") + "/logdate=${logdate}";
-            sourceInfo.put("tag_tblname", hdfsPath);
-            sourceInfo.put("tag_col", tag_col);
-            addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, sourceInfo);
-            addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, sourceInfo);
-            String job = jdbcTemplate.queryForObject("select entry_content from  tb_dictionary where entry_code = '5000' and entry_value = '" + kind + "2H'", String.class);
+            String hdfsPath = configService.getHDFSPrefix() + etlTable.getTargetDb() + "/" + etlTable.getTargetTable();
+            if (!etlTable.getPartName().isEmpty()) {
+                hdfsPath +=  "/" + etlTable.getPartName() + "=${logdate}";
+            }
+            params.put("hdfs_path", hdfsPath);
+            addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, params);
+            addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, params);
+            String job = dictService.getAddaxJobTemplate(kind + "2H");
             if (job == null || job.isEmpty()) {
                 return;
             }
             job = job.replace("${r" + kind + "}", addaxReaderContentTemplate).replace("${wH}", addaxWriterTemplate);
 
-            TbImpEtlJob tbImpEtlJob = new TbImpEtlJob(taskId, job);
-            tbImpEtlJobRepo.save(tbImpEtlJob);
+            EtlJob etlJob = new EtlJob(tid, job);
+            etlJobRepo.save(etlJob);
         }
     }
 
-    private String replacePlaceholders(String template, Map<String, Object> values)
+    private String replacePlaceholders(String template, Map<String, String> values)
     {
         if (StringUtils.isBlank(template) || values.isEmpty()) {
             return template;
@@ -277,7 +235,7 @@ public class TaskService
 //    }
 
     // 特殊任务提醒
-    public List<TbImpEtl> findAllSpecialTask() {
-        return tbImpEtlRepo.findSpecialTasks();
+    public List<EtlTable> findAllSpecialTask() {
+        return etlTableRepo.findSpecialTasks();
     }
 }

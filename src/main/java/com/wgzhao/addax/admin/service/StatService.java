@@ -1,8 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.model.TbAddaxStatistic;
-import com.wgzhao.addax.admin.model.VwAddaxLog;
-import com.wgzhao.addax.admin.repository.TbAddaxStatisticRepo;
+import com.wgzhao.addax.admin.model.EtlStatistic;
+import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -11,13 +10,13 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class AddaxStatService
+public class StatService
 {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private TbAddaxStatisticRepo tbAddaxStatisticRepo;
+    private EtlStatisticRepo etlStatisticRepo;
 
     // 按采集源统计最近一次采集的数据量
     public List<Map<String, Object>> statDataBySource()
@@ -104,7 +103,7 @@ public class AddaxStatService
         String sql = """
                
                 """;
-        return tbAddaxStatisticRepo.findLast5DaysTakeTimes();
+        return etlStatisticRepo.findLast5DaysTakeTimes();
     }
 
     //按采集源统计目前的采集状态统计
@@ -199,26 +198,26 @@ public class AddaxStatService
         return jdbcTemplate.queryForObject(sql, Integer.class);
     }
 
-    public boolean saveOrUpdate(TbAddaxStatistic statistic) {
-        tbAddaxStatisticRepo.findByTidAndRunDate(statistic.getTid(), statistic.getRunDate())
+    public boolean saveOrUpdate(EtlStatistic statistic) {
+        etlStatisticRepo.findByTidAndRunDate(statistic.getTid(), statistic.getRunDate())
                 .ifPresentOrElse(existingStat -> {
                     // 如果存在，则更新现有记录
                     statistic.setId(existingStat.getId());
-                    tbAddaxStatisticRepo.save(statistic);
+                    etlStatisticRepo.save(statistic);
                 }, () -> {
                     // 如果不存在，则插入新记录
-                    tbAddaxStatisticRepo.save(statistic);
+                    etlStatisticRepo.save(statistic);
                 });
         return true;
     }
 
-    public List<TbAddaxStatistic> findErrorTask()
+    public List<EtlStatistic> findErrorTask()
     {
-        return tbAddaxStatisticRepo.findErrorTask();
+        return etlStatisticRepo.findErrorTask();
     }
 
     // 根据采集表 ID 获取最近 15 条采集日志
-    public List<TbAddaxStatistic> getLast15Records(String tid) {
-        return tbAddaxStatisticRepo.findTop15ByTidOrderByRunDateDesc(tid);
+    public List<EtlStatistic> getLast15Records(String tid) {
+        return etlStatisticRepo.findTop15ByTidOrderByRunDateDesc(tid);
     }
 }

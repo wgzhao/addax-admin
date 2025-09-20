@@ -1,8 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.model.TbDictionaryPK;
-import com.wgzhao.addax.admin.repository.TbDictRepo;
-import com.wgzhao.addax.admin.repository.TbDictionaryRepo;
+import com.wgzhao.addax.admin.repository.SysDictRepo;
+import com.wgzhao.addax.admin.repository.SysItemRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,16 +13,16 @@ import java.time.format.DateTimeFormatter;
 public class DictService
 {
     @Autowired
-    private TbDictRepo tbDictRepo;
+    private SysDictRepo sysDictRepo;
 
     @Autowired
-    private TbDictionaryRepo tbDictionaryRepo;
+    private SysItemRepo sysItemRepo;
 
     private static final String DEFAULT_SWITCH_TIME = "16:30";
     private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     public String getSwitchTime() {
-        String res = tbDictionaryRepo.findEntryValue(1000, "SWITCH_TIME");
+        String res = getItemValue(1000, "SWITCH_TIME", String.class);
         return res == null ? DEFAULT_SWITCH_TIME : res;
     }
 
@@ -36,7 +35,7 @@ public class DictService
     }
 
     public String getLogPath() {
-        String res = tbDictionaryRepo.findEntryValue(1062, "runlog");
+        String res = getItemValue(1062, "runlog", String.class);
         return res == null ? System.getProperty("user.dir") + "/logs" : res;
     }
 
@@ -48,23 +47,50 @@ public class DictService
         } else {
              curDate = LocalDate.now().format(sdf);
         }
-        String res = tbDictionaryRepo.findLastBizDate(1021, curDate);
+        String res = sysItemRepo.findLastBizDate(1021, curDate);
         return res == null ? curDate : res;
     }
 
     public String getAddaxHome() {
-        String res = tbDictionaryRepo.findEntryValue(1062, "addax");
+        String res = getItemValue(1062, "addax", String.class);
         return res == null ? "/opt/app/addax" : res;
     }
 
     public int getConcurrentLimit() {
-        String res = tbDictionaryRepo.findEntryValue(1000, "CONCURRENT_LIMIT");
-        return res == null ? 5 : Integer.parseInt(res);
+        Integer res = getItemValue(1000, "CONCURRENT_LIMIT", Integer.class);
+        return res == null ? 5 : res;
     }
 
     public int getQueueSize() {
-        String res = tbDictionaryRepo.findEntryValue(1000, "QUEUE_SIZE");
-        return res == null ? 100 : Integer.parseInt(res);
+        Integer  res = getItemValue(1000, "QUEUE_SIZE", Integer.class);
+        return res == null ? 100 : res;
     }
 
+    //    select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'r" + kind + "'"
+    public String getReaderTemplate(String kind) {
+        return getItemValue(5001, "r" + kind, String.class);
+    }
+
+
+    public <T> T getItemValue(int dictCode, String itemKey, Class<T> clazz) {
+      String value = sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey).getItemValue();
+        if (value == null) {
+            return null;
+        }
+        if (clazz == Integer.class) {
+            return clazz.cast(Integer.parseInt(value));
+        } else if (clazz == Long.class) {
+            return clazz.cast(Long.parseLong(value));
+        } else if (clazz == Boolean.class) {
+            return clazz.cast(Boolean.parseBoolean(value));
+        } else {
+            // 默认 String 类型
+            return clazz.cast(value);
+        }
+    }
+
+    public String getAddaxJobTemplate(String kind)
+    {
+        return getItemValue(5000, kind, String.class);
+    }
 }

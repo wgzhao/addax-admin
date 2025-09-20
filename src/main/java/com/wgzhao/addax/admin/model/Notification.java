@@ -21,7 +21,8 @@ import java.util.Date;
 @Setter
 @Getter
 @Data
-public class Msg {
+public class Notification
+{
 
     
     // 自动生成，无需理会

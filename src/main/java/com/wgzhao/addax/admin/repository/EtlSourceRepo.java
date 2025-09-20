@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.repository;
 
 import com.wgzhao.addax.admin.dto.DbSourceDto;
-import com.wgzhao.addax.admin.model.TbImpDb;
+import com.wgzhao.addax.admin.model.EtlSource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface TbImpDBRepo extends JpaRepository<TbImpDb, String> {
-    TbImpDb findByDbIdEtl(String dbName);
+public interface EtlSourceRepo
+        extends JpaRepository<EtlSource, Integer> {
 
     @Query(value= """
             select new com.wgzhao.addax.admin.dto.DbSourceDto(dbIdEtl as sysid,
@@ -19,8 +19,10 @@ public interface TbImpDBRepo extends JpaRepository<TbImpDb, String> {
             dbUserEtl as username,
             dbPassEtl as password
             )
-            from  TbImpDb t
+            from  EtlSource t
             where t.dbIdEtl is not null
             """)
     List<DbSourceDto> findEtlSource();
+
+    Integer countByEnabled(boolean b);
 }

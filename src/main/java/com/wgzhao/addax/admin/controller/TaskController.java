@@ -2,10 +2,10 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.EtlTask;
-import com.wgzhao.addax.admin.model.TbAddaxStatistic;
-import com.wgzhao.addax.admin.model.TbImpEtl;
-import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
-import com.wgzhao.addax.admin.service.AddaxStatService;
+import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
+import com.wgzhao.addax.admin.service.StatService;
+import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +15,12 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -38,8 +39,9 @@ public class TaskController
     private TaskQueueManager queueManager;
 
     @Autowired
-    private TbImpEtlRepo impEtlRepo;
-    @Autowired private AddaxStatService addaxStatService;
+    private EtlTableRepo impEtlRepo;
+    @Autowired private StatService statService;
+    @Autowired private TableService tableService;
 
     /**
      * 启动采集任务入口 - 扫描数据库并加入队列
@@ -112,6 +114,10 @@ public class TaskController
         return Map.of("success", true, "message", result);
     }
 
+    // 立即更新任务
+    // 可以传递一个包含 tid 数组的 JSON 对象，类似
+    // { "tid": [1, 2, 3] }
+    // 如果不传递任何参数，则更新所有任务
     @PostMapping("/updateJob")
     public Map<String, Object> updateJob()
     {
@@ -120,20 +126,26 @@ public class TaskController
     }
 
     @PostMapping("/updateJob/{tid}")
-    public Map<String, Object> updateJob(@PathVariable("tid") String tid)
+    public Map<String, Object> updateJob(@PathVariable("tid") long tid)
     {
-        taskService.updateJob(Arrays.asList(tid.split(",")));
+        taskService.updateJob(Collections.singletonList(tid));
         return Map.of("success", true, "message", "success");
     }
 
     @PostMapping("/execute/{tid}")
-    public Map<String, Object> executeTask(@PathVariable("tid") String tid)
+    public ApiResponse<Map<String, Object>> executeTask(@PathVariable("tid") long tid)
     {
-        TbImpEtl tbImpEtl = impEtlRepo.findById(tid).orElseThrow();
-        Map<String, Object> etlData = Map.of("dest_db", "ods" + tbImpEtl.getSouSysid().toLowerCase(), "dest_tablename", tbImpEtl.getDestTablename());
-        EtlTask etlTask = new EtlTask(tid, "manual",etlData);
-        boolean isSuccess = queueManager.executeEtlTaskWithConcurrencyControl(etlTask);
-        return Map.of("success", isSuccess, "message",isSuccess ? "任务已执行" : "任务执行失败");
+        EtlTable etlTable = tableService.getTable(tid);
+        if (etlTable == null) {
+            return ApiResponse.error(400, "tid 对应的采集任务不存在");
+        }
+        boolean isSuccess = queueManager.executeEtlTaskWithConcurrencyControl(etlTable);
+        if (!isSuccess) {
+            log.warn("任务执行失败，tid: {}", tid);
+            return ApiResponse.error(500, "任务执行失败，可能是并发数已达上限");
+        } else {
+            return ApiResponse.success(Map.of("tid", tid, "message", "任务已执行"));
+        }
     }
 
     /**

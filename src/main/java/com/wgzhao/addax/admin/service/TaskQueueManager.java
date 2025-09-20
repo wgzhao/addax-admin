@@ -1,7 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.EtlTask;
-import com.wgzhao.addax.admin.model.TbAddaxStatistic;
+import com.wgzhao.addax.admin.model.EtlStatistic;
+import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -48,14 +49,16 @@ public class TaskQueueManager
     private AddaxLogService addaxLogService;
 
     @Autowired
-    private AddaxStatService statService;
+    private StatService statService;
 
     @Autowired
     private AlertService alertService;
 
+    @Autowired
+    private TableService tableService;
 
     // 采集任务队列 - 固定长度100
-    private final BlockingQueue<EtlTask> etlTaskQueue = new ArrayBlockingQueue<>(100);
+    private final BlockingQueue<EtlTable> etlTaskQueue = new ArrayBlockingQueue<>(100);
 
     // 当前执行中的采集任务数
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
@@ -76,6 +79,7 @@ public class TaskQueueManager
 
     // 队列监控标志
     private volatile boolean queueMonitorRunning = false;
+    @Autowired private JobContentService jobContentService;
 
     /**
      * 扫描并将采集任务加入队列
@@ -89,39 +93,23 @@ public class TaskQueueManager
     public void scanAndEnqueueEtlTasks()
     {
         try {
-            // 查询需要采集的任务 - 扫描tb_imp_etl表中flag字段为N的记录
-            LocalTime switchTime = dictService.getSwitchTimeAsTime();
-            LocalTime currentTime = LocalDateTime.now().toLocalTime();
-            String sql = """
-                    select t.tid, t.dest_tablename, 'ods' || lower(t.sou_sysid ) as dest_db from tb_imp_etl  t
-                    join tb_imp_db d
-                    on t.sou_sysid  = d.db_id_etl
-                    where t.flag = 'N' and t.retry_cnt > 0 and t.bupdate  = 'N' and t.bcreate = 'N' and d.bvalid  = 'Y'
-                    """;
-            if (currentTime.isAfter(switchTime)) {
-                // 当前时间大于切日时间，则需要检查采集时间
-                sql += " and d.db_start > '" + switchTime + "' and d.db_start < current_time";
-            }
-            List<Map<String, Object>> etlTasks = jdbcTemplate.queryForList(sql);
-            log.info("扫描到 {} 个待采集任务", etlTasks.size());
+
+            List<EtlTable> tasks = tableService.getRunnableTasks();
+            log.info("扫描到 {} 个待采集任务", tasks.size());
 
             int enqueuedCount = 0;
             int skippedCount = 0;
 
-            for (Map<String, Object> taskData : etlTasks) {
-                String taskId = String.valueOf(taskData.get("tid"));
-                String taskType = "etl"; // 采集任务类型
-
-                EtlTask etlTask = new EtlTask(taskId, taskType, taskData);
+            for (EtlTable task : tasks) {
 
                 // 尝试将任务加入队列（非阻塞）
-                if (etlTaskQueue.offer(etlTask)) {
+                if (etlTaskQueue.offer(task)) {
                     enqueuedCount++;
-                    log.debug("任务 {} 已加入队列", taskId);
+                    log.debug("任务 {} 已加入队列", task.getId());
                 }
                 else {
                     skippedCount++;
-                    log.warn("队列已满，任务 {} 未能加入队列", taskId);
+                    log.warn("队列已满，任务 {} 未能加入队列", task.getId());
                 }
             }
 
@@ -166,7 +154,7 @@ public class TaskQueueManager
                 }
 
                 // 从队列中获取任务（阻塞等待，最多等待5秒）
-                EtlTask task = etlTaskQueue.poll(5, TimeUnit.SECONDS);
+                EtlTable task = etlTaskQueue.poll(5, TimeUnit.SECONDS);
                 if (task == null) {
                     // 队列为空，继续监控
                     continue;
@@ -175,7 +163,7 @@ public class TaskQueueManager
                 // 增加运行任务计数
                 int currentRunning = runningTaskCount.incrementAndGet();
                 log.info("从队列获取任务: {}, 当前并发数: {}/{}",
-                        task.getTaskId(), currentRunning, concurrentLimit);
+                        task.getId(), currentRunning, concurrentLimit);
 
                 // 提交任务到执行线程池
                 etlExecutor.submit(() -> executeEtlTaskWithConcurrencyControl(task));
@@ -204,63 +192,63 @@ public class TaskQueueManager
     /**
      * 执行采集任务并控制并发
      */
-    public boolean executeEtlTaskWithConcurrencyControl(EtlTask task)
+    public boolean executeEtlTaskWithConcurrencyControl(EtlTable task)
     {
-        String taskId = task.getTaskId();
+        long tid = task.getId();
         long startTime = System.currentTimeMillis();
 
         try {
-            log.info("开始执行采集任务: {}", taskId);
+            log.info("开始执行采集任务: {}", tid);
 
             // 更新任务状态为运行中
-            jdbcTemplate.update("update tb_imp_etl set flag = 'R' , start_time = current_timestamp where tid = ?", taskId);
+            tableService.setRunning(task);
             // 执行具体的采集逻辑（这里先调用现有的采集方法框架）
             boolean result = executeEtlTaskLogic(task);
 
-            long duration = (System.currentTimeMillis() - startTime) / 1000; // seconds
-            log.info("采集任务 {} 执行完成，耗时: {}ms, 结果: {}", taskId, duration, result);
-
+            long duration = max((System.currentTimeMillis() - startTime) / 1000, 0); // seconds
+            log.info("采集任务 {} 执行完成，耗时: {}ms, 结果: {}", tid, duration, result);
+            task.setDuration(duration);
             // 更新任务状态为成功
             if (result) {
-                jdbcTemplate.update("update tb_imp_etl set flag = 'Y' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
+                tableService.setFinished(task);
                 return true;
             }
             else {
-                jdbcTemplate.update("update tb_imp_etl set flag = 'E' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
-                alertService.sendToWecomRobot(String.format("采集任务执行失败: %s", taskId));
+                tableService.setFailed(task);
+                alertService.sendToWecomRobot(String.format("采集任务执行失败: %s", tid));
                 return false;
             }
         }
         catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000; // seconds
-            log.error("采集任务 {} 执行失败，耗时: {}s", taskId, duration, e);
+            log.error("采集任务 {} 执行失败，耗时: {}s", tid, duration, e);
 
             // 更新任务状态为失败
-            jdbcTemplate.update("update tb_imp_etl set flag = 'E' , end_time = current_timestamp, runtime = ? where tid = ?", duration, taskId);
+            task.setDuration(duration);
+            tableService.setFailed(task);
 
             // 发送告警
-            alertService.sendToWecomRobot(String.format("采集任务执行失败: %s, 错误: %s", taskId, e.getMessage()));
+            alertService.sendToWecomRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
             return false;
         }
         finally {
             // 减少运行任务计数
             int currentRunning = runningTaskCount.decrementAndGet();
-            log.debug("任务 {} 执行结束，当前并发数: {}", taskId, currentRunning);
+            log.debug("任务 {} 执行结束，当前并发数: {}", tid, currentRunning);
         }
     }
 
     /**
-     * 执行具体的采集逻辑（框架方法，具体逻辑待补充）
+     * 执行具体的采集逻辑
      */
-    public boolean executeEtlTaskLogic(EtlTask task)
+    public boolean executeEtlTaskLogic(EtlTable task)
     {
-        String taskId = task.getTaskId();
-        Map<String, Object> taskData = task.getTaskData();
+        long taskId = task.getId();
 
         log.info("执行采集任务逻辑: taskId={}, destDB={}, tableName={}",
-                taskId, taskData.get("dest_db"), taskData.get("dest_tablename"));
+                taskId, task.getTargetDb(), task.getTargetTable());
 
-        String job = jdbcTemplate.queryForObject("select job from tb_imp_etl_job where tid = '" + task.getTaskId() + "'", String.class);
+        String job = jobContentService.getJobContent(taskId);
         if (job == null || job.isEmpty()) {
             log.warn("模板未生成, taskId = {}", taskId);
             return false;
@@ -284,7 +272,7 @@ public class TaskQueueManager
         // 写入临时文件
         String tmpFile;
         try {
-            tmpFile = FileUtils.writeToTempFile(taskData.get("dest_db") + "." + taskData.get("dest_tablename")  + "_", job);
+            tmpFile = FileUtils.writeToTempFile(task.getTargetDb()+ "." + task.getTargetTable()  + "_", job);
         }
         catch (IOException e) {
             log.error("写入临时文件失败", e);
@@ -302,19 +290,18 @@ public class TaskQueueManager
     /**
      * 手动添加任务到队列
      */
-    public boolean addTaskToQueue(String taskId, String taskType, Map<String, Object> taskData)
+    public boolean addTaskToQueue(long tid)
     {
-        EtlTask task = new EtlTask(taskId, taskType, taskData);
-        return addTaskToQueue(task);
+        return addTaskToQueue(tableService.getTable(tid));
     }
 
-    public boolean addTaskToQueue(EtlTask task) {
+    public boolean addTaskToQueue(EtlTable task) {
         boolean added = etlTaskQueue.offer(task);
         if (added) {
-            log.info("手动添加任务到队列: {}", task.getTaskId());
+            log.info("手动添加任务到队列: {}", task.getId());
         }
         else {
-            log.warn("队列已满，无法添加任务: {}", task.getTaskId());
+            log.warn("队列已满，无法添加任务: {}", task.getId());
         }
         return added;
     }
@@ -387,7 +374,7 @@ public class TaskQueueManager
         log.info("采集任务队列管理器已关闭");
     }
 
-    private int executeAddax(String command, String tid)
+    private int executeAddax(String command, long tid)
     {
         Process process = null;
         log.info("Executing command: {}", command);
@@ -448,7 +435,7 @@ public class TaskQueueManager
      * @param tid 采集表主键
      * @param lastLines 最后的统计信息
      */
-    private void processAddaxStatistics(String tid, LinkedList<String> lastLines) {
+    private void processAddaxStatistics(long tid, LinkedList<String> lastLines) {
         Map<String, String> stats = new HashMap<>();
         for (String line : lastLines) {
             String[] parts = line.split(":", 2);
@@ -467,7 +454,7 @@ public class TaskQueueManager
         String jobStart =  stats.get("Job start  at").replace(" ", "T");
         String jobEnd = stats.get("Job end    at").replace(" ", "T");
 
-        TbAddaxStatistic statistic = new TbAddaxStatistic();
+        EtlStatistic statistic = new EtlStatistic();
         statistic.setTid(tid);
         statistic.setRunDate(LocalDate.now());
         statistic.setStartAt(LocalDateTime.parse(jobStart));
@@ -476,13 +463,13 @@ public class TaskQueueManager
         statistic.setTakeSecs(jobTook);
         int totalBytes = Integer.parseInt(stats.get("Total   bytes"));
         statistic.setTotalBytes(totalBytes);
-        int numberOfRec = Integer.parseInt(stats.get("Number of rec"));
+        long numberOfRec = Long.parseLong(stats.get("Number of rec"));
         statistic.setTotalRecs(numberOfRec);
         int failedRecord = Integer.parseInt(stats.get("Failed record"));
         statistic.setTotalErrors(failedRecord);
         int averageBps = totalBytes / jobTook;
         statistic.setByteSpeed(averageBps);
-        int averageRps = max(numberOfRec / jobTook, 1);
+        int averageRps = (numberOfRec / jobTook > 1 ? (int)(numberOfRec / jobTook) : 1);
         statistic.setRecSpeed(averageRps);
 
         if (statService.saveOrUpdate(statistic)) {

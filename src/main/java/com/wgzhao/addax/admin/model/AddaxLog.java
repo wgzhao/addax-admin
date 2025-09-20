@@ -26,7 +26,7 @@ public class AddaxLog
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String tid;
+    private Long tid;
     private LocalDateTime runAt;
     private LocalDate runDate;
     private String log;

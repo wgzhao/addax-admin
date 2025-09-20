@@ -1,7 +1,8 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.service.AddaxStatService;
+import com.wgzhao.addax.admin.service.SourceService;
+import com.wgzhao.addax.admin.service.StatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +20,10 @@ public class IndexController
 {
 
     @Autowired
-    private AddaxStatService statService;
+    private StatService statService;
+
+    @Autowired
+    private SourceService sourceService;
 
     // 各数据源采集完成率，用于图表展示
     @RequestMapping("/accomplishRatio")
@@ -53,6 +57,6 @@ public class IndexController
     @GetMapping("/sourceCount")
     public ApiResponse<Integer> sourceCount()
     {
-        return ApiResponse.success(statService.statValidEtlSources());
+        return ApiResponse.success(sourceService.getValidSources());
     }
 }

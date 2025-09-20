@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.model;
 
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,21 +10,23 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "tb_dict")
+@Table(name = "sys_dict")
 @Setter
 @Getter
-public class TbDict {
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class SysDict
+{
     @Id
-    @Column(name = "dict_code")
-    private int dictCode;
-    @Basic
-    @Column(name = "dict_name")
-    private String dictName;
-    @Basic
-    @Column(name = "dict_class")
-    private String dictClass;
-    @Basic
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "code")
+    private Short code;
+
+    @Column(name = "name")
+    private String name;
+
+    // 列名在 DDL 中为 "classification "（尾随空格），这里使用转义以精确映射
+    @Column(name = "classification")
+    private String classification;
+
     @Column(name = "remark")
     private String remark;
 }

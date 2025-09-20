@@ -3,13 +3,13 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
-import com.wgzhao.addax.admin.model.TbAddaxStatistic;
-import com.wgzhao.addax.admin.model.TbImpEtl;
+import com.wgzhao.addax.admin.model.EtlStatistic;
+import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
-import com.wgzhao.addax.admin.repository.TbImpDBRepo;
-import com.wgzhao.addax.admin.repository.TbImpEtlRepo;
-import com.wgzhao.addax.admin.service.AddaxStatService;
-import com.wgzhao.addax.admin.service.EtlService;
+import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
+import com.wgzhao.addax.admin.service.StatService;
+import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;
@@ -40,16 +40,16 @@ public class TableController
 {
 
     @Autowired
-    private EtlService etlService;
+    private TableService tableService;
 
     @Autowired
-    private TbImpEtlRepo tbImpEtlRepo;
+    private EtlTableRepo etlTableRepo;
 
     @Autowired
-    private TbImpDBRepo tbImpDBRepo;
+    private EtlSourceRepo etlSourceRepo;
 
     @Autowired
-    private AddaxStatService statService;
+    private StatService statService;
 
     @Resource
     DsUtil dsUtil;
@@ -71,24 +71,24 @@ public class TableController
             pageSize = Integer.MAX_VALUE; // or some large number
         }
         if (flag != null && !flag.isEmpty()) {
-            return ApiResponse.success(etlService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
+            return ApiResponse.success(tableService.getOdsByFlag(page, pageSize, q, flag, sortField, sortOrder));
         }
         else {
-            return ApiResponse.success(etlService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
+            return ApiResponse.success(tableService.getOdsInfo(page, pageSize, q, sortField, sortOrder));
         }
     }
 
     @GetMapping("/{tid}")
     public ApiResponse<VwImpEtlWithDb> get(@PathVariable("tid") String tid)
     {
-        return ApiResponse.success(etlService.findOneODSInfo(tid));
+        return ApiResponse.success(tableService.findOneODSInfo(tid));
     }
 
     @DeleteMapping("/{tid}")
-    public ApiResponse<String> delete(@PathVariable("tid") String tid)
+    public ApiResponse<String> delete(@PathVariable("tid") long tid)
     {
         CompletableFuture.runAsync(() -> {
-            tbImpEtlRepo.deleteById(tid);
+            etlTableRepo.deleteById(tid);
         });
         return ApiResponse.success("delete success");
     }
@@ -97,13 +97,13 @@ public class TableController
     @RequestMapping("/fieldCompare/{tid}")
     public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid)
     {
-        return ApiResponse.success(etlService.findFieldsCompare(tid));
+        return ApiResponse.success(tableService.findFieldsCompare(tid));
     }
 
 
     // 取 Addax 执行结果 按照名称显示最近15条记录
     @RequestMapping("/addaxResult/{tid}")
-    public ApiResponse<List<TbAddaxStatistic>> addaxResult(@PathVariable("tid") String tid)
+    public ApiResponse<List<EtlStatistic>> addaxResult(@PathVariable("tid") String tid)
     {
         return ApiResponse.success(statService.getLast15Records(tid));
     }
@@ -112,7 +112,7 @@ public class TableController
     @RequestMapping("/sourceSystem")
     public ApiResponse<List<DbSourceDto>> sysList()
     {
-        return ApiResponse.success(tbImpDBRepo.findEtlSource());
+        return ApiResponse.success(etlSourceRepo.findEtlSource());
     }
 
     // 单个采集源下的所有数据库
@@ -140,7 +140,7 @@ public class TableController
     {
         List<String> result = new ArrayList<>();
         // get all exists tables
-        List<String> existsTables = tbImpEtlRepo.findTables(payload.get("sysId"), payload.get("db"));
+        List<String> existsTables = etlTableRepo.findTables(payload.get("sysId"), payload.get("db"));
         try {
             Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
             connection.setSchema(payload.get("db"));
@@ -160,16 +160,16 @@ public class TableController
 
     // 保存批量增加的表
     @PostMapping("/batchSave")
-    public ApiResponse<Integer> saveODS(@RequestBody List<TbImpEtl> etls)
+    public ApiResponse<Integer> saveODS(@RequestBody List<EtlTable> etls)
     {
-        tbImpEtlRepo.saveAll(etls);
+        etlTableRepo.saveAll(etls);
         return ApiResponse.success(etls.size());
     }
 
     @PostMapping("/save")
-    public ApiResponse<TbImpEtl> save(@RequestBody TbImpEtl etl)
+    public ApiResponse<EtlTable> save(@RequestBody EtlTable etl)
     {
-        return ApiResponse.success(tbImpEtlRepo.save(etl));
+        return ApiResponse.success(etlTableRepo.save(etl));
     }
 
     // 启动采集
@@ -190,7 +190,7 @@ public class TableController
     public ApiResponse<String> updateSchema()
     {
 //        taskService.tableSchemaUpdate();
-        boolean result = etlService.addTableInfo();
+        boolean result = tableService.addTableInfo();
         if (!result) {
             return ApiResponse.error(500, "schema update failed");
         }
@@ -203,25 +203,19 @@ public class TableController
      * 更新采集表的某些字段信息
      * payload
      * {
-     * tid: ["xxx","yyyy"],
+     * tid: [2, 3],
      * flag: "N",
      * retryCnt: 3
      * }
      */
 
     @PostMapping("/batchUpdateStatusAndFlag")
-    public ApiResponse<TbImpEtl> update(@RequestBody EtlBatchReq payload)
+    public ApiResponse<EtlTable> update(@RequestBody EtlBatchReq payload)
     {
         List<String> tids = payload.getTids();
         String flag = payload.getFlag();
-        long retryCnt = payload.getRetryCnt();
-        // for each tid , update the flag and retryCnt, other fields left unchanged
-        tids.forEach(tid -> {
-            TbImpEtl etl = tbImpEtlRepo.findById(tid).orElseThrow();
-            etl.setFlag(flag);
-            etl.setRetryCnt(retryCnt);
-            tbImpEtlRepo.save(etl);
-        });
+        int retryCnt = payload.getRetryCnt();
+        tableService.updateStatusAndFlag(tids, flag, retryCnt);
         return ApiResponse.success(null);
     }
 }

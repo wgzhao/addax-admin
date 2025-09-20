@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.model.TbImpDb;
-import com.wgzhao.addax.admin.repository.TbImpDBRepo;
+import com.wgzhao.addax.admin.model.EtlSource;
+import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,32 +19,32 @@ import java.util.*;
 public class SourceController
 {
     @Autowired
-    private TbImpDBRepo tbImpDBRepo;
+    private EtlSourceRepo etlSourceRepo;
 
     @GetMapping
-    public ApiResponse<List<TbImpDb>> list()
+    public ApiResponse<List<EtlSource>> list()
     {
-        return ApiResponse.success(tbImpDBRepo.findAll());
+        return ApiResponse.success(etlSourceRepo.findAll());
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Optional<TbImpDb>> get(@PathVariable(value = "id") String id)
+    public ApiResponse<Optional<EtlSource>> get(@PathVariable(value = "id") int id)
     {
-        return ApiResponse.success(tbImpDBRepo.findById(id));
+        return ApiResponse.success(etlSourceRepo.findById(id));
     }
 
     @PostMapping
-    public ApiResponse<TbImpDb> saveImpDB(@RequestBody TbImpDb tbImpDb)
+    public ApiResponse<EtlSource> saveImpDB(@RequestBody EtlSource etlSource)
     {
-        tbImpDBRepo.save(tbImpDb);
-        return ApiResponse.success(tbImpDb);
+        etlSourceRepo.save(etlSource);
+        return ApiResponse.success(etlSource);
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Integer> delete(@PathVariable("id") String id)
+    public ApiResponse<Integer> delete(@PathVariable("id") int id)
     {
-        if (tbImpDBRepo.existsById(id)) {
-            tbImpDBRepo.deleteById(id);
+        if (etlSourceRepo.existsById(id)) {
+            etlSourceRepo.deleteById(id);
             return ApiResponse.success(1);
         }
         else {
@@ -53,9 +53,9 @@ public class SourceController
     }
 
     @PutMapping
-    public ApiResponse<Integer> bulkSave(@RequestBody List<TbImpDb> imps)
+    public ApiResponse<Integer> bulkSave(@RequestBody List<EtlSource> imps)
     {
-        tbImpDBRepo.saveAll(imps);
+        etlSourceRepo.saveAll(imps);
         return ApiResponse.success(imps.size());
     }
 

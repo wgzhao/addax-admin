@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.repository;
 
-import com.wgzhao.addax.admin.model.TbAddaxStatistic;
+import com.wgzhao.addax.admin.model.EtlStatistic;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -9,22 +9,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public interface TbAddaxStatisticRepo
-        extends JpaRepository<TbAddaxStatistic, Long>
+public interface EtlStatisticRepo
+        extends JpaRepository<EtlStatistic, Long>
 {
 
-    Optional<TbAddaxStatistic> findByTidAndRunDate(String tid, LocalDate runDate);
+    Optional<EtlStatistic> findByTidAndRunDate(long tid, LocalDate runDate);
 
     @Query(value = """
-            SELECT s1 FROM TbAddaxStatistic s1
+            SELECT s1 FROM EtlStatistic s1
             WHERE s1.totalErrors > 0
             AND s1.runDate = (
                 SELECT MAX(s2.runDate)
-                FROM TbAddaxStatistic s2
+                FROM EtlStatistic s2
                 WHERE s2.tid = s1.tid
             )
             """)
-    List<TbAddaxStatistic> findErrorTask();
+    List<EtlStatistic> findErrorTask();
 
     @Query(value = """
              select
@@ -54,5 +54,5 @@ public interface TbAddaxStatisticRepo
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysTakeTimes();
 
-    List<TbAddaxStatistic> findTop15ByTidOrderByRunDateDesc(String tid);
+    List<EtlStatistic> findTop15ByTidOrderByRunDateDesc(String tid);
 }

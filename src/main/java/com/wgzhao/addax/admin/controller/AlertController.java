@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
-import com.wgzhao.addax.admin.model.Msg;
-import com.wgzhao.addax.admin.repository.MsgRepo;
+import com.wgzhao.addax.admin.model.Notification;
+import com.wgzhao.addax.admin.repository.NotificationRepo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,16 +23,16 @@ public class AlertController
 {
 
     @Autowired
-    private MsgRepo msgRepo;
+    private NotificationRepo notificationRepo;
 
     /**
      * 查询数据中心消息提醒总表数据
      *
-     * @return List of {@link Msg}
+     * @return List of {@link Notification}
      */
     @ApiOperation(value = "查询数据中心消息提醒总表数据", httpMethod = "GET",tags = {"查询数据中心消息提醒总表数据"})
     @GetMapping(value = "/list")
-    public List<Msg> getList() {
-        return msgRepo.findAll();
+    public List<Notification> getList() {
+        return notificationRepo.findAll();
     }
 }

@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.TbDictRepo;
-import com.wgzhao.addax.admin.repository.TbDictionaryRepo;
+import com.wgzhao.addax.admin.repository.SysDictRepo;
+import com.wgzhao.addax.admin.repository.SysItemRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,17 +13,17 @@ import java.time.format.DateTimeFormatter;
 public class DateService
 {
     @Autowired
-    private TbDictRepo tbDictRepo;
+    private SysDictRepo sysDictRepo;
 
     @Autowired
-    private TbDictionaryRepo tbDictionaryRepo;
+    private SysItemRepo sysItemRepo;
 
     private static final  DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
 
     public String getLtd() {
         String curDate =  LocalDate.now().format(sdf);
-        return tbDictionaryRepo.getLastBizDate(curDate);
+        return sysItemRepo.getLastBizDate(curDate);
     }
 
     public String getShortDate() {

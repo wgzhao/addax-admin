@@ -17,7 +17,7 @@ public class AddaxLogService
     @Autowired
     private AddaxLogRepo addaxLogRepo;
 
-    public void insertLog(String tid,  String message) {
+    public void insertLog(long tid,  String message) {
         AddaxLog addaxLog = new AddaxLog();
         addaxLog.setTid(tid);
         addaxLog.setLog(message);

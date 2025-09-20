@@ -10,16 +10,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name="tb_imp_etl_job")
+@Table(name="etl_job")
 @Setter
 @Getter
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class TbImpEtlJob
+public class EtlJob
 {
     @Id
-    String tid;
+    long tid;
 
     String job;
 }

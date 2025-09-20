@@ -12,5 +12,5 @@ import java.util.List;
 public class EtlBatchReq {
     private List<String> tids;
     private String flag;
-    private Long retryCnt;
+    private int retryCnt;
 }

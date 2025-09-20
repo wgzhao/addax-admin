@@ -51,4 +51,9 @@ public class SystemConfigService
         return (String) configCache.get("SWITCH_TIME");
     }
 
+    public String getHDFSPrefix()
+    {
+        return "/ods/";
+    }
+
 }

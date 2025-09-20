@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.repository;
 
-import com.wgzhao.addax.admin.model.Msg;
+import com.wgzhao.addax.admin.model.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Date;
@@ -11,6 +11,7 @@ import java.util.List;
  *
  * @author 
  */
-public interface MsgRepo extends JpaRepository<Msg, String> {
-    List<Msg> findDistinctBydwCltDateAfter(Date td);
+public interface NotificationRepo
+        extends JpaRepository<Notification, String> {
+    List<Notification> findDistinctBydwCltDateAfter(Date td);
 }

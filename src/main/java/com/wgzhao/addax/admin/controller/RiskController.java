@@ -2,8 +2,8 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.TbImpChk;
-import com.wgzhao.addax.admin.model.Msg;
-import com.wgzhao.addax.admin.repository.MsgRepo;
+import com.wgzhao.addax.admin.model.Notification;
+import com.wgzhao.addax.admin.repository.NotificationRepo;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import io.swagger.annotations.Api;
 import jakarta.annotation.Resource;
@@ -26,7 +26,7 @@ public class RiskController
 {
 
     @Autowired
-    private MsgRepo msgRepo;
+    private NotificationRepo notificationRepo;
 
     @Resource
     private CacheUtil cacheUtil;
@@ -47,14 +47,14 @@ public class RiskController
 
     // 短信发送详情
     @RequestMapping("/smsDetail")
-    public ApiResponse<List<Msg>> smsDetail()
+    public ApiResponse<List<Notification>> smsDetail()
     {
         Date day;
         String td = cacheUtil.get("param.TD");
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmm");
         try {
             day = sdf.parse(td + " 1630");
-            return ApiResponse.success(msgRepo.findDistinctBydwCltDateAfter(day));
+            return ApiResponse.success(notificationRepo.findDistinctBydwCltDateAfter(day));
         }
         catch (ParseException e) {
             return ApiResponse.error(500, "日期解析错误");
