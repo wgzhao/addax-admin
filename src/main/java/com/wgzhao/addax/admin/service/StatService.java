@@ -35,10 +35,8 @@ public class StatService
                 ) t WHERE rn = 1)
                 t
                 left join
-                etl_table a
-                on a.id = t.tid
-                left join etl_source b
-                on a.sid  = b.id
+                vw_etl_table_with_source b
+                on b.id = t.tid
                 group by b.code
                 """;
         return jdbcTemplate.queryForList(sql);
@@ -49,7 +47,7 @@ public class StatService
     {
         String sql = """
                 select
-                sum(t.total_bytes)/1024/1024/1024 as total_gb
+                coalesce(sum(t.total_bytes)/1024/1024/1024,0) as total_gb
                 from
                 (SELECT tid, total_bytes FROM (
                   SELECT
@@ -85,14 +83,12 @@ public class StatService
     {
         String sql = """
                 select
-                b.code ,
-                max(b.db_name) as sourceName,
-                sum(a.runtime) as take_secs
+                code ,
+                max(name) as sourceName,
+                sum(duration) as take_secs
                 from
-                etl_table a
-                left join etl_source b
-                on a.sid  = b.id
-                group by b.code
+                vw_etl_table_with_source
+                group by code
                 """;
         return jdbcTemplate.queryForList(sql);
     }
@@ -100,9 +96,6 @@ public class StatService
     // 按照采集来源统计最近 5 天的耗时，用来形成柱状图表
     public List<Map<String, Object>> statLast5DaysTimeBySource()
     {
-        String sql = """
-               
-                """;
         return etlStatisticRepo.findLast5DaysTakeTimes();
     }
 
@@ -110,7 +103,6 @@ public class StatService
     public List<Map<String, Object>> statStatusBySource()
     {
         String sql = """
-                
                  SELECT
                     code,
                     jsonb_build_object(
@@ -127,15 +119,7 @@ public class StatService
                         SUM(CASE WHEN status = 'E' THEN 1 ELSE 0 END) AS num2,
                         SUM(CASE WHEN status = 'W' THEN 1 ELSE 0 END) AS num3,
                         SUM(case when status = 'R' then 1 else 0 END) as num4
-                    FROM (
-                        SELECT
-                            a.status,
-                            b.code ,
-                            b.name
-                        FROM etl_table a
-                        LEFT JOIN etl_source b
-                        ON a.sid = b.id
-                    ) AS sub
+                    vw_etl_table_with_source
                     GROUP BY code
                 ) AS final;
                 """;
@@ -147,27 +131,23 @@ public class StatService
     {
         String sql = """
                 SELECT
-                    code || '_' || name AS source_name,
+                    name || '(' || code || ')' AS source_name,
                     ROUND(over_prec_percent, 0) || '%' AS over_prec_str,
                     CASE
                         WHEN over_prec_percent >= 100 THEN 'bg-success'
                         WHEN over_prec_percent <= 40 THEN 'bg-danger'
                         WHEN over_prec_percent <= 60 THEN 'bg-warning'
                         ELSE 'bg-info'
-                    END AS bg_color
+                        END AS bg_color
                 FROM (
-                    SELECT
-                        t.code,
-                        d.name,
-                        SUM(CASE WHEN t.flag = 'Y' THEN 1 ELSE 0 END) AS finish_num,
-                        COUNT(*) AS total_num,
-                        (SUM(CASE WHEN t.flag = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS over_prec_percent
-                    FROM etl_table t
-                    LEFT JOIN etl_source d
-                    ON t.sid = d.id
-                    GROUP BY t.code, d.name
-                ) AS a
-                WHERE total_num > 0;
+                         SELECT
+                             t.code,
+                             t.name,
+                             (SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS over_prec_percent
+                         FROM vw_etl_table_with_source t
+                         GROUP BY t.code, t.name
+                         having count(*) > 0
+                     ) AS a
                 """;
         return jdbcTemplate.queryForList(sql);
     }
@@ -178,10 +158,9 @@ public class StatService
         String sql = """
                 select
                 count(*)
-                from etl_table t
-                join etl_source d
-                on t.sid = d.id
-                where t.status <> 'X' and d.enabled  =  true
+                from
+                vw_etl_table_with_source
+                where status <> 'X' and enabled  =  true
                 """;
         return jdbcTemplate.queryForObject(sql, Integer.class);
     }

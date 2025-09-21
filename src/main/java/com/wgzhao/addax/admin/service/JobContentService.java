@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -9,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ public class JobContentService
 
     @Autowired
     private SystemConfigService configService;
+    @Autowired private SourceService sourceService;
 
     public String getJobContent(long tid)
     {
@@ -49,17 +52,30 @@ public class JobContentService
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
         // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
         // 需要根据不同数据库类型做不同的处理
-        EtlSource etlSource = etlTable.getEtlSource();
+        EtlSource etlSource = sourceService.getSource(etlTable.getSid());
         String kind = DbUtil.getKind(etlSource.getUrl());
         String addaxReaderContentTemplate = dictService.getReaderTemplate(kind);
-        String columns = columnService.getSourceColumns(etlTable.getId());
+//        String columns = columnService.getSourceColumns(etlTable.getId());
+
         Map<String, String> params = new HashMap<>();
         params.put("url", etlSource.getUrl());
         params.put("username", etlSource.getUsername());
         params.put("pass", etlSource.getPass());
         params.put("filter", etlTable.getFilter());
         params.put("table_name", "`" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "`");
-        params.put("columns", columns);
+        List<EtlColumn> columnList = columnService.getColumns(etlTable.getId());
+        List<String> srcColumns = new ArrayList<>();
+        // hdfswrite 中的 column 项需要使用 {"name": "<column name>":,"type":"<data type>"} 的格式
+        String typeTemplate = """
+                {"name": "%s", "type":"%s"}
+                """;
+        List<String> destColumns = new ArrayList<>();
+        for (EtlColumn etlColumn : columnList) {
+            srcColumns.add("\"" + etlColumn.getColumnName() + "\"");
+            destColumns.add(typeTemplate.formatted(etlColumn.getColumnName(), etlColumn.getTargetTypeFull()));
+        }
+        params.put("column", String.join(",", srcColumns));
+        addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, params);
 
         String addaxWriterTemplate = dictService.getItemValue(5001, "wH", String.class);
         // col_idx = 1000 的字段为分区字段，不参与 select
@@ -69,7 +85,7 @@ public class JobContentService
             hdfsPath += "/" + etlTable.getPartName() + "=${logdate}";
         }
         params.put("hdfs_path", hdfsPath);
-        addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, params);
+        params.put("column", String.join(",", destColumns));
         addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, params);
         String job = dictService.getAddaxJobTemplate(kind + "2H");
         if (job == null || job.isEmpty()) {

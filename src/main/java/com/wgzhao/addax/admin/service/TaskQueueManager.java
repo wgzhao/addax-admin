@@ -219,7 +219,6 @@ public class TaskQueueManager
         catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000; // seconds
             log.error("采集任务 {} 执行失败，耗时: {}s", tid, duration, e);
-
             // 更新任务状态为失败
             task.setDuration(duration);
             tableService.setFailed(task);

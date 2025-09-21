@@ -14,23 +14,12 @@ import java.util.List;
 public interface EtlTableRepo
         extends JpaRepository<EtlTable, Long>
 {
-
     @Query(value = """
-            SELECT t.sourceTable FROM EtlTable t WHERE t.etlSource.id = :sysId AND t.sourceDb = :souOwner
-            """)
-    List<String> findTables(int sysId, String souOwner);
-
-    @Query(value = """
-            select t.id from EtlTable t
-            join t.etlSource d
+            select count(t.id) from VwEtlTableWithSource t
             where t.status <> 'X' and t.updateFlag = 'N' and t.createFlag = 'N'
-                  and d.enabled = true
+                  and t.enabled = true
             """)
-    List<Long> findValidTids();
-
-    List<EtlTable> findByStatus(String etlFlag, Sort by);
-
-    Page<EtlTable> findAllProjectedBy(Pageable page);
+    Integer findValidTableCount();
 
     List<EtlTable> findByCreateFlagOrUpdateFlag(String createFlag, String updateFlag);
 
@@ -52,24 +41,20 @@ public interface EtlTableRepo
                     set t.status = ?2, t.retryCnt = ?3
                     where t.id in ?1
             """)
-    void batchUpdateStatusAndFlag(List<String> ids, String status, int retryCnt);
+    void batchUpdateStatusAndFlag(List<Long> ids, String status, int retryCnt);
 
     int countByStatusEquals(String n);
 
     @Query("""
-        SELECT t FROM EtlTable t JOIN t.etlSource d
+        SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
         WHERE t.status = 'N' AND t.retryCnt > 0 AND t.updateFlag = 'N' AND t.createFlag = 'N'
         AND (
             :checkTime = false OR
-            (d.startAt > :switchTime AND d.startAt < :currentTime)
+            (s.startAt > :switchTime AND s.startAt < :currentTime)
         )
     """)
     List<EtlTable> findRunnableTasks(LocalTime switchTime, LocalTime currentTime, boolean checkTime);
 
-    @Query("SELECT t FROM EtlTable t JOIN t.etlSource d WHERE t.status <> 'X' AND d.enabled = true")
+    @Query("SELECT t FROM EtlTable t JOIN EtlSource s WHERE t.status <> 'X' AND s.enabled = true")
     List<EtlTable> findValidTables();
-
-    Page<EtlTable> findByFilterColumnContaining(String upperCase, Pageable pageable);
-
-    Page<EtlTable> findByStatusAndFilterColumnContaining(String status, String upperCase, Pageable pageable);
 }

@@ -1,15 +1,19 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import com.wgzhao.addax.admin.dto.DbSourceDto;
 import com.wgzhao.addax.admin.dto.EtlBatchReq;
+import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
-import com.wgzhao.addax.admin.model.VwImpEtlWithDb;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
+import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.utils.DsUtil;
 import io.swagger.annotations.Api;
@@ -52,15 +56,21 @@ public class TableController
     @Autowired
     private StatService statService;
 
+    @Autowired
+    private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
+
     @Resource
     DsUtil dsUtil;
+    @Autowired private SystemConfigService systemConfigService;
+    @Autowired private ColumnService columnService;
+    @Autowired private JobContentService jobContentService;
 
     // 获得 ODS 采集的基本信息，仅用于列表展示
     @GetMapping
-    public ApiResponse<Page<EtlTable>> list(@RequestParam(value = "page", defaultValue = "0") int page,
+    public ApiResponse<Page<VwEtlTableWithSource>> list(@RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
             @RequestParam(value = "q", required = false) String q,
-            @RequestParam(value = "flag", required = false) String flag,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "sortField", required = false) String sortField,
             @RequestParam(value = "sortOrder", required = false) String sortOrder)
     {
@@ -71,8 +81,8 @@ public class TableController
             //means the browser select the "All" option
             pageSize = Integer.MAX_VALUE; // or some large number
         }
-        if (flag != null && !flag.isEmpty()) {
-            return ApiResponse.success(tableService.getTablesByFlag(page, pageSize, q, flag, sortField, sortOrder));
+        if (status != null && !status.isEmpty()) {
+            return ApiResponse.success(tableService.getTablesByStatus(page, pageSize, q, status, sortField, sortOrder));
         }
         else {
             return ApiResponse.success(tableService.getTablesInfo(page, pageSize, q, sortField, sortOrder));
@@ -80,9 +90,9 @@ public class TableController
     }
 
     @GetMapping("/{tid}")
-    public ApiResponse<VwImpEtlWithDb> get(@PathVariable("tid") String tid)
+    public ApiResponse<VwEtlTableWithSource> get(@PathVariable("tid") long tid)
     {
-        return ApiResponse.success(tableService.findOneODSInfo(tid));
+        return ApiResponse.success(tableService.findOneTableInfo(tid));
     }
 
     @DeleteMapping("/{tid}")
@@ -95,10 +105,10 @@ public class TableController
     }
 
     // 字段对比
-    @RequestMapping("/fieldCompare/{tid}")
-    public ApiResponse<List<Map<String, Object>>> fieldCompare(@PathVariable("tid") String tid)
+    @GetMapping("/fieldCompare/{tid}")
+    public ApiResponse<List<EtlColumn>> fieldCompare(@PathVariable("tid") long tid)
     {
-        return ApiResponse.success(tableService.findFieldsCompare(tid));
+        return ApiResponse.success(columnService.getColumns(tid));
     }
 
 
@@ -141,9 +151,10 @@ public class TableController
     {
         List<String> result = new ArrayList<>();
         // get all exists tables
-        List<String> existsTables = etlTableRepo.findTables(Integer.parseInt(payload.get("sysId")), payload.get("db"));
+        List<String> existsTables = tableService.getTablesBySidAndDb(Integer.parseInt(payload.get("id")), payload.get("db"));
         try {
-            Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("password"));
+
+            Connection connection = DriverManager.getConnection(payload.get("url"), payload.get("username"), payload.get("pass"));
             connection.setSchema(payload.get("db"));
             // get all tables names
             ResultSet tables = connection.getMetaData().getTables(payload.get("db"), null, "%", new String[] {"TABLE"});
@@ -187,17 +198,34 @@ public class TableController
         return ApiResponse.success(pair.getSecond());
     }
 
+    /**
+     * 更新采集表结构
+     * 1. 无参数：只更新需要更新的表
+     * 2. 参数为 all：强制全部更新
+     * 3. 参数为 tid（数字）：只更新指定 id 的表
+     */
     @PostMapping(path = "/updateSchema")
-    public ApiResponse<String> updateSchema()
+    public ApiResponse<String> updateSchema(@RequestBody(required = false) Map<String, Object> payload)
     {
-//        taskService.tableSchemaUpdate();
-        boolean result = tableService.addTableInfo();
-        if (!result) {
-            return ApiResponse.error(500, "schema update failed");
+        if (payload == null || payload.isEmpty()) {
+            tableService.updateSchemaAsync(null, null);
+            return ApiResponse.success("schema update (pending tables) has been scheduled");
         }
-        else {
-            return ApiResponse.success("schema update has scheduled");
+        if (payload.containsKey("mode") && "all".equalsIgnoreCase(String.valueOf(payload.get("mode")))) {
+            tableService.updateSchemaAsync("all", null);
+            return ApiResponse.success("schema update (all tables) has been scheduled");
         }
+        if (payload.containsKey("tid")) {
+            Long tid = null;
+            try {
+                tid = Long.valueOf(String.valueOf(payload.get("tid")));
+            } catch (Exception e) {
+                return ApiResponse.error(400, "Invalid tid value");
+            }
+            tableService.updateSchemaAsync(null, tid);
+            return ApiResponse.success("schema update (table id=" + tid + ") has been scheduled");
+        }
+        return ApiResponse.error(400, "Invalid parameters");
     }
 
     /**
@@ -210,13 +238,33 @@ public class TableController
      * }
      */
 
-    @PostMapping("/batchUpdateStatusAndFlag")
+    @PostMapping("/batchUpdateStatus")
     public ApiResponse<EtlTable> update(@RequestBody EtlBatchReq payload)
     {
-        List<String> tids = payload.getTids();
-        String flag = payload.getFlag();
+        List<Long> tids = payload.getTids();
+        String status = payload.getStatus();
         int retryCnt = payload.getRetryCnt();
-        tableService.updateStatusAndFlag(tids, flag, retryCnt);
+        tableService.updateStatusAndFlag(tids, status, retryCnt);
         return ApiResponse.success(null);
+    }
+
+    // 获得 ODS 采集的基本信息，仅用于列表展示（改为查询视图，返回联合信息）
+    @GetMapping("/view")
+    public ApiResponse<Page<VwEtlTableWithSource>> listWithSource(@RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "pageSize", defaultValue = "10") int pageSize)
+    {
+        Page<VwEtlTableWithSource> result = vwEtlTableWithSourceRepo.findAll(org.springframework.data.domain.PageRequest.of(page, pageSize));
+        return ApiResponse.success(result);
+    }
+
+    // 获得指定表主键的 Addax Job 模板文件
+    @GetMapping("/addaxJob/{tid}")
+    public ApiResponse<String> getAddaxJob(@PathVariable("tid") long tid)
+    {
+        String job = jobContentService.getJobContent(tid);
+        if (job == null) {
+            return ApiResponse.error(400, "tid 对应的采集任务不存在");
+        }
+        return ApiResponse.success(job);
     }
 }

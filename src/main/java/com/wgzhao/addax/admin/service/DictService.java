@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -7,6 +8,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class DictService
@@ -89,5 +92,13 @@ public class DictService
     public String getAddaxJobTemplate(String kind)
     {
         return getItemValue(5000, kind, String.class);
+    }
+
+    // 获取 Hive 类型映射
+    public Map<String, String> getHiveTypeMapping() {
+        return sysItemRepo.getHiveTypeItems().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        item -> item.getItemKey().toUpperCase(),
+                        SysItem::getItemValue));
     }
 }

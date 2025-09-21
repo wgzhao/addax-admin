@@ -2,9 +2,7 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.EtlTable;
-import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.service.JobContentService;
-import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
@@ -43,16 +41,10 @@ public class TaskController
      */
     @Scheduled(cron = "0 * * * * ?") // 每分钟的第0秒执行
     @PostMapping("/start")
-    public Map<String, Object> startEtlTasks()
+    public void startEtlTasks()
     {
         log.info("接收到启动采集任务的请求");
-        String result = taskService.executePlanStartWithQueue();
-
-        return Map.of(
-                "success", true,
-                "message", result,
-                "timestamp", System.currentTimeMillis()
-        );
+        taskService.executePlanStartWithQueue();
     }
 
     /**

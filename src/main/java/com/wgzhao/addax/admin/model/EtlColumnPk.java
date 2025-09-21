@@ -13,4 +13,16 @@ public class EtlColumnPk
     private long tid;
     private String columnName;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EtlColumnPk that = (EtlColumnPk) o;
+        return tid == that.tid && columnName.equals(that.columnName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Long.hashCode(tid) * 31 + columnName.hashCode();
+    }
 }

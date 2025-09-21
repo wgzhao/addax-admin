@@ -61,7 +61,7 @@ public class AlertService
      * here is the official document: <a href="https://work.weixin.qq.com/api/doc/90000/90136/91770">群机器人配置说明</a>
      */
     @Async
-    @Scheduled(fixedDelayString = "${alert.interval}", initialDelay = INIT_DELAY)
+//    @Scheduled(fixedDelayString = "${alert.interval}", initialDelay = INIT_DELAY)
     public void sendWechatMessage()
     {
         if (!wechatEnabled) {
@@ -105,7 +105,6 @@ public class AlertService
                 // refs: https://open.work.weixin.qq.com/devtool/query?e=45009
                 // give up, the current loop game over
                 log.info("send wechat message success: {}  in current loop finish the current loop because of api limited", cntSuccess);
-
                 return;
             }
         } // end while

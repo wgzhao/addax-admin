@@ -25,16 +25,15 @@ public class TaskService
 
     private final SystemConfigService configService;
     private final TableService tableService;
-    private final ColumnService columnService;
 
     /**
      * 计划任务主控制 - 基于队列的采集任务管理
      * 这是采集任务的入口方法，负责扫描tb_imp_etl表并管理采集队列
      */
-    public String executePlanStartWithQueue()
+    public void executePlanStartWithQueue()
     {
 
-        log.info("基于队列的计划任务主控制开始执行");
+//        log.info("基于队列的计划任务主控制开始执行");
 
         // 启动队列监控器（如果还未启动）
         queueManager.startQueueMonitor();
@@ -44,9 +43,6 @@ public class TaskService
 
         // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
         queueManager.scanAndEnqueueEtlTasks();
-
-        log.info("计划任务主控制执行完毕，队列状态: {}", queueManager.getQueueStatus());
-        return "计划任务执行完成，采集任务已加入队列";
     }
 
     /**

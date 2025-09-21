@@ -69,9 +69,8 @@ public class EtlTable {
     @Column(name = "max_runtime")
     private Integer maxRuntime;
 
-    @ManyToOne
-    @JoinColumn(name = "sid", referencedColumnName = "id")
-    private EtlSource etlSource;
+    @Column(name = "sid")
+    private Integer sid;
 
     @Column(name = "duration", nullable = false)
     private Long duration;

@@ -10,7 +10,7 @@ import java.util.List;
 public interface EtlColumnRepo
         extends JpaRepository<EtlColumn, EtlColumnPk>
 {
-    List<EtlColumn> findAllByTid(long tid);
+    List<EtlColumn> findAllByTidOrderByColumnId(long tid);
 
     @Query(value = """
             select string_agg('"'  || column_name || '"', ',' order by column_id) as columns

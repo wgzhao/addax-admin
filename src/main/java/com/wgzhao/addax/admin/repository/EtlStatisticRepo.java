@@ -29,26 +29,23 @@ public interface EtlStatisticRepo
     @Query(value = """
              select
                  run_date,
-                 array_agg(db_id_etl) AS sources,
+                 array_agg(code) AS sources,
                  array_agg(total_secs) AS total_secs
              FROM (
-                 SELECT
-                     b.db_id_etl,
-                     t.run_date,
-                     SUM(t.take_secs) AS total_secs
-                 FROM
-                     tb_addax_statistic t
-                 LEFT JOIN
-                     tb_imp_etl a
-                     ON a.tid = t.tid
-                 LEFT JOIN
-                     tb_imp_db b
-                     ON a.sou_sysid = b.db_id_etl
-                 WHERE
-                     t.run_date > current_date - INTERVAL '5 days'
-                 GROUP BY
-                     b.db_id_etl, t.run_date
-             ) sub
+                      SELECT
+                          b.code,
+                          t.run_date,
+                          SUM(t.take_secs) AS total_secs
+                      FROM
+                          etl_statistic t
+                              LEFT JOIN
+                          vw_etl_table_with_source b
+                      on t.tid = b.id
+                      WHERE
+                          t.run_date > current_date - INTERVAL '5 days'
+                      GROUP BY
+                          b.code, t.run_date
+                  ) sub
              GROUP BY
                  run_date
             """, nativeQuery = true)
