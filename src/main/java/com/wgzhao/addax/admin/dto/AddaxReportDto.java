@@ -5,12 +5,12 @@ import lombok.Data;
 @Data
 public class AddaxReportDto {
     private String jobName;
-    private int startTimeStamp;
-    private int endTimeStamp;
+    private long startTimeStamp;
+    private long endTimeStamp;
     private int totalCosts;
     private int byteSpeedPerSecond;
     private int recordSpeedPerSecond;
-    private int totalReadRecords;
+    private long totalReadRecords;
     private int totalErrorRecords;
 
     @Override

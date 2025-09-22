@@ -18,4 +18,8 @@ public class SourceService
     public EtlSource getSource(Integer sid) {
         return etlSourceRepo.findById(sid).orElse(null);
     }
+
+    public boolean checkCode(String code) {
+        return etlSourceRepo.existsByCode(code);
+    }
 }

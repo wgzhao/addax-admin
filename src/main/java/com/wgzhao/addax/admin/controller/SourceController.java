@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,9 @@ public class SourceController
 {
     @Autowired
     private EtlSourceRepo etlSourceRepo;
+
+    @Autowired
+    private SourceService sourceService;
 
     @GetMapping
     public ApiResponse<List<EtlSource>> list()
@@ -64,5 +68,14 @@ public class SourceController
     {
         boolean isconn = DbUtil.testConnection(payload.get("url"), payload.get("username"), payload.get("password"));
         return ApiResponse.success(isconn);
+    }
+
+    // 检查编号是否存在
+    @GetMapping("/checkCode/{code}" )
+    public ApiResponse<Boolean> checkCode(@PathVariable("code") String code) {
+        if (code.isEmpty()) {
+            return ApiResponse.success(false);
+        }
+        return ApiResponse.success(sourceService.checkCode(code));
     }
 }

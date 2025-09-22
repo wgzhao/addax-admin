@@ -2,6 +2,8 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.model.AddaxLog;
+import com.wgzhao.addax.admin.model.EtlStatistic;
+import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,4 +50,5 @@ public class AddaxLogService
     {
         return addaxLogRepo.findLogEntry(tid);
     }
+
 }

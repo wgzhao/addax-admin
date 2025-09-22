@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlStatistic;
+import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -186,5 +187,67 @@ public class StatService
     // 根据采集表 ID 获取最近 15 条采集日志
     public List<EtlStatistic> getLast15Records(long tid) {
         return etlStatisticRepo.findTop15ByTidOrderByRunDateDesc(tid);
+    }
+
+    /**
+     * 已数据源为单位，统计最近两天的采集完成情况
+     * @return
+     */
+    public List<Map<String, Object>> getLast2DaysCompleteList() {
+        String sql = """
+                with total_info as (
+                    select
+                    s.code,
+                    max(start_at) as start_at,
+                    count(*) as total_cnt,
+                    sum(case when status = 'Y' then 1 else 0 end) as succ_cnt,
+                    sum(case when status = 'R' then 1 else 0 end) as run_cnt,
+                    sum(case when status = 'E' then 1 else 0 end ) as fail_cnt,
+                    sum(case when status = 'N' then 1 else 0 end ) as no_run_cnt,
+                    sum(case when create_flag = 'Y' then 1 else 0 end ) as no_create_table_cnt
+                    from
+                    vw_etl_table_with_source s
+                    where s.enabled = true
+                    group by s.code
+                ),
+                last2_info as (
+                    select code,
+                    name,
+                    max(case when rn = 1 then begin_at else null end) as y_begin_at ,
+                    max(case when rn = 2 then begin_at else null end) as t_begin_at,
+                    max(case when rn =1 then finish_at else null end) as y_finish_at,
+                    max(case when rn =2 then finish_at else null end) as t_finish_at
+                    , max(case when rn =1  then extract( epoch from finish_at - begin_at) else 0 end ) as y_take_secs
+                    , max(case when rn =2  then extract(epoch from finish_at - begin_at) else 0 end ) as t_take_secs
+                    from (
+                        select
+                        code,
+                        name,
+                        run_date,
+                        min(es.start_at) as begin_at,
+                        max(end_at) as finish_at,
+                        row_number() over(partition by code order by run_date) as rn
+                        from etl_statistic es
+                        left join vw_etl_table_with_source vetws
+                        on es.tid = vetws.id
+                        where run_date > now() - interval '2' day
+                        group by vetws.code, vetws.name, run_date
+                    )t
+                    group by code,name
+                )
+                select b.name || '(' || b.code || ')' as sys_name,
+                a.start_at,
+                a.total_cnt, a.succ_cnt, a.run_cnt, a.fail_cnt, a.no_run_cnt, a.no_create_table_cnt,
+                to_char(b.y_begin_at, 'YYYY-mm-dd HH:MM:ss') as y_begin_at,
+                to_char(b.y_finish_at, 'YYYY-mm-dd HH:MM:ss') as y_finish_at,
+                b.y_take_secs,
+                to_char(b.t_begin_at, 'YYYY-mm-dd HH:MM:ss') as t_begin_at,
+                to_char(b.t_finish_at, 'YYYY-mm-dd HH:MM:ss') as t_finish_at,
+                b.t_take_secs
+                from total_info a
+                join last2_info b
+                on a.code = b.code
+                """;
+        return jdbcTemplate.queryForList(sql);
     }
 }

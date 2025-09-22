@@ -4,10 +4,12 @@ import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.AddaxLog;
+import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
 import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import com.wgzhao.addax.admin.service.AddaxLogService;
+import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.utils.CacheUtil;
 import com.wgzhao.addax.admin.utils.LogFileUtil;
 import jakarta.annotation.Resource;
@@ -21,7 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +42,7 @@ public class LogController {
     private AddaxLogService addaxLogService;
 
     @Autowired
-    private AddaxStaRepo addaxStaRepo;
+    private StatService statService;
 
     // 获取指定 SP 的日志列表
     @GetMapping("/addaxLog/list/{tid}")
@@ -57,19 +61,19 @@ public class LogController {
 
 
     @PostMapping(value = "/jobReport", consumes = "application/json")
-    public TbAddaxSta jobReport(@RequestBody AddaxReportDto dto) {
+    public boolean jobReport(@RequestBody AddaxReportDto dto) {
         log.info("job report: {}", dto);
-        TbAddaxSta sta = new TbAddaxSta();
-        sta.setJobname(dto.getJobName());
-        sta.setStartTs(dto.getStartTimeStamp());
-        sta.setEndTs(dto.getEndTimeStamp());
+        EtlStatistic sta = new EtlStatistic();
+        sta.setTid(Long.parseLong(dto.getJobName()));
+        sta.setStartAt(LocalDateTime.ofEpochSecond(dto.getStartTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
+        sta.setEndAt( LocalDateTime.ofEpochSecond(dto.getEndTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
         sta.setTakeSecs(dto.getTotalCosts());
         sta.setByteSpeed(dto.getByteSpeedPerSecond());
         sta.setRecSpeed(dto.getRecordSpeedPerSecond());
-        sta.setTotalRec(dto.getTotalReadRecords());
-        sta.setTotalErr(dto.getTotalErrorRecords());
-        sta.setUpdtDate(new java.sql.Timestamp(System.currentTimeMillis()));
-
-        return addaxStaRepo.save(sta);
+        sta.setTotalRecs(dto.getTotalReadRecords());
+        sta.setTotalErrors(dto.getTotalErrorRecords());
+        sta.setRunDate(sta.getStartAt().toLocalDate());
+        sta.setTotalBytes(dto.getByteSpeedPerSecond() * dto.getTotalCosts());
+        return statService.saveOrUpdate(sta);
     }
 }

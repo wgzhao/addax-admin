@@ -276,10 +276,11 @@ public class TaskQueueManager
         }
 
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
-        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + "' " + tmpFile;
-        String logfile = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
-        int retCode = executeAddax(cmd, taskId);
-        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logfile);
+        // 设定一个日志文件名的名称
+        String logname = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
+        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + " -Dlog.file.name=" + logname + "' " + tmpFile;
+        int retCode = executeAddax(cmd, taskId, logname);
+        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logname);
         return retCode == 0;
     }
 
@@ -370,39 +371,31 @@ public class TaskQueueManager
         log.info("采集任务队列管理器已关闭");
     }
 
-    private int executeAddax(String command, long tid)
+    /**
+     * 执行 Addax 采集命令，并处理日志输出
+     * @param command Addax 执行命令
+     * @param tid 采集表主键
+     * @param logname addax 输出的日志文件名
+     * @return 程序退出码
+     */
+    private int executeAddax(String command, long tid, String logName)
     {
         Process process = null;
         log.info("Executing command: {}", command);
         try {
             process = Runtime.getRuntime().exec(new String[] {"sh" , "-c", command});
-            StringBuilder sb = new StringBuilder();
-            // 将输出重定向到标准输出
-            LinkedList<String> lastLines = new LinkedList<>();
-            final int MAX_LINES = 9;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line).append("\n");
-                    if (lastLines.size() >= MAX_LINES) {
-                        lastLines.removeFirst();
-                    }
-                    lastLines.add(line);
-                }
-                addaxLogService.insertLog(tid, sb.toString());
-                if (!lastLines.isEmpty()) {
-                    processAddaxStatistics(tid, lastLines);
-                }
-            }
 
-            // 将错误输出重定向到标准错误
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    log.error(line);
-                }
+            int retCode = process.waitFor();
+            if (retCode != 0) {
+                log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, retCode);
+                return retCode;
             }
-            return process.waitFor();
+            else {
+              // 日志写入到数据表
+                String logContent = FileUtils.readFileContent(dictService.getAddaxHome() + "/log/" + logName);
+                addaxLogService.insertLog(tid, logContent);
+                return 0;
+            }
         }
         catch (IOException | InterruptedException e) {
             if (process != null) {

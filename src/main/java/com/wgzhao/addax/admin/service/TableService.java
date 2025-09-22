@@ -243,6 +243,8 @@ public class TableService
 
     public void setFinished(EtlTable task) {
         task.setStatus("Y");
+        // 重试次数也重置
+        task.setRetryCnt(3);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
         etlTableRepo.save(task);
     }

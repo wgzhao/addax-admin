@@ -24,11 +24,11 @@ public class MonitorController
     private
     StatService statService;
 
-    // 数据源采集完成情况列表
+    // 数据源采集完成情况列表,获取最近两天的采集情况
     @RequestMapping("/accomplishList")
-    public ApiResponse<List<Map<String, Object>>> getAll()
+    public ApiResponse<List<Map<String, Object>>> getLast2DaysCompleteList()
     {
-        return ApiResponse.success(statService.statLastAccompRatio());
+        return ApiResponse.success(statService.getLast2DaysCompleteList());
     }
 
     // 特殊任务提醒
