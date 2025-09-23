@@ -36,9 +36,13 @@ public class CommandExecutor
 
             int exitCode = process.waitFor();
 
-            // 移除最后一个换行符
-            if (!output.isEmpty()) {
-                output.setLength(output.length() - 1);
+            if (exitCode != 0) {
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    String errLine;
+                    while ((errLine = errorReader.readLine()) != null) {
+                        output.append(errLine).append("\n");
+                    }
+                }
             }
 
             return new CommandResult(exitCode, output.toString());
@@ -58,6 +62,23 @@ public class CommandExecutor
     {
         try {
             Process process = Runtime.getRuntime().exec(new String[] {"bash", "-c", command});
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            }
+
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0) {
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    String errLine;
+                    while ((errLine = errorReader.readLine()) != null) {
+                        System.err.println(errLine);
+                    }
+                }
+            }
             return process.waitFor();
         }
         catch (IOException | InterruptedException e) {
