@@ -261,9 +261,8 @@ public class TaskQueueManager
 
         if (!Objects.equals(task.getPartName(), "")) {
             // hive 创建分区, 尝试用 hive 命令行创建分区
-            String partSql = """
-                    alter table %s.%s add if not exists partition (%s='%s')
-                    """.formatted(task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDate);
+            String partSql = "alter table %s.%s add if not exists partition (%s='%s')"
+                    .formatted(task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDate);
             String hiveCli = dictService.getHiveCli();
             String hiveCmd = hiveCli + " -e \"" + partSql + "\"";
             int retCode = CommandExecutor.executeWithResult(hiveCmd);

@@ -79,8 +79,8 @@ public class JobContentService
 
         String addaxWriterTemplate = dictService.getItemValue(5001, "wH", String.class);
         // col_idx = 1000 的字段为分区字段，不参与 select
-        //TODO ods, logdate 这些应该从配置获取
-        String hdfsPath = configService.getHDFSPrefix() + etlTable.getTargetDb() + "/" + etlTable.getTargetTable();
+        //TODO 路径结合应该考虑尾部 / 的问题
+        String hdfsPath = configService.getHDFSPrefix() +  "/" + etlTable.getTargetDb() + "/" + etlTable.getTargetTable();
         if (!etlTable.getPartName().isEmpty()) {
             hdfsPath += "/" + etlTable.getPartName() + "=${logdate}";
         }

@@ -118,7 +118,7 @@ public class DictService
 
     public String getHdfsPrefix() {
         String res = getItemValue(1000, "HDFS_PREFIX", String.class);
-        return res == null ? "/ods" : res;
+        return res == null ? "/ods/" : res;
     }
 
     public String getHdfsCompress() {
