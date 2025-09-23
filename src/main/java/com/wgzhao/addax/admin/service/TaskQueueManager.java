@@ -1,26 +1,23 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.dto.EtlTask;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -250,25 +247,35 @@ public class TaskQueueManager
             return false;
         }
 
-        String logdate = dictService.getBizDate();
+        String logDate = dictService.getBizDate(); //yyyyMMdd
         String dw_clt_date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        job = job.replace("${logdate}", logdate).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", logdate);
+        // 分区字段的日期格式需要根据采集表中的 part_format 来进行格式化
+        String partFormat = task.getPartFormat();
+        String bizDate = logDate;
+        if ( ! partFormat.isBlank() && !partFormat.equals("yyyyMMdd")) {
+            bizDate = LocalDate.parse(logDate, DateTimeFormatter.ofPattern("yyyyMMdd"))
+                    .format(DateTimeFormatter.ofPattern(partFormat));
+        }
+        log.info("biz date is {}, dw_clt_date is {}, dw_trade_date is {}", bizDate, dw_clt_date, logDate);
+        job = job.replace("${logdate}", bizDate).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", logDate);
 
-        // hive 创建分区
-        //TODO: 创建分区
-//        try {
-//            hivePartitionManager.addPartition(taskData.get("dest_db").toString(),
-//                    taskData.get("dest_tablename").toString(),
-//                    Map.of("logdate", logdate));
-//        }
-//        catch (HiveException e) {
-//            log.error("创建Hive分区失败: {}", e.getMessage(), e);
-//            return false;
-//        }
+        if (!Objects.equals(task.getPartName(), "")) {
+            // hive 创建分区, 尝试用 hive 命令行创建分区
+            String partSql = """
+                    alter table %s.%s add if not exists partition (%s='%s')
+                    """.formatted(task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDate);
+            String hiveCli = dictService.getHiveCli();
+            String hiveCmd = hiveCli + " -e \"" + partSql + "\"";
+            int retCode = CommandExecutor.executeWithResult(hiveCmd);
+            if (retCode != 0) {
+                log.warn("创建Hive分区失败，命令: {}", hiveCmd);
+                return false;
+            }
+        }
         // 写入临时文件
         String tmpFile;
         try {
-            tmpFile = FileUtils.writeToTempFile(task.getTargetDb()+ "." + task.getTargetTable()  + "_", job);
+            tmpFile = FileUtils.writeToTempFile(task.getTargetDb() + "." + task.getTargetTable() + "_", job);
         }
         catch (IOException e) {
             log.error("写入临时文件失败", e);
@@ -277,10 +284,10 @@ public class TaskQueueManager
 
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
         // 设定一个日志文件名的名称
-        String logname = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
-        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + " -Dlog.file.name=" + logname + "' " + tmpFile;
-        int retCode = executeAddax(cmd, taskId, logname);
-        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logname);
+        String logName = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
+        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + " -Dlog.file.name=" + logName + "' " + tmpFile;
+        int retCode = executeAddax(cmd, taskId, logName);
+        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode == 0;
     }
 
@@ -292,7 +299,8 @@ public class TaskQueueManager
         return addTaskToQueue(tableService.getTable(tid));
     }
 
-    public boolean addTaskToQueue(EtlTable task) {
+    public boolean addTaskToQueue(EtlTable task)
+    {
         boolean added = etlTaskQueue.offer(task);
         if (added) {
             log.info("手动添加任务到队列: {}", task.getId());
@@ -373,9 +381,10 @@ public class TaskQueueManager
 
     /**
      * 执行 Addax 采集命令，并处理日志输出
+     *
      * @param command Addax 执行命令
      * @param tid 采集表主键
-     * @param logname addax 输出的日志文件名
+     * @param logName addax 输出的日志文件名
      * @return 程序退出码
      */
     private int executeAddax(String command, long tid, String logName)
@@ -383,21 +392,20 @@ public class TaskQueueManager
         Process process = null;
         log.info("Executing command: {}", command);
         try {
-            process = Runtime.getRuntime().exec(new String[] {"sh" , "-c", command});
-
+            process = Runtime.getRuntime().exec(new String[] {"sh", "-c", command});
             int retCode = process.waitFor();
+            // 记录日志
+            String logContent = FileUtils.readFileContent(dictService.getAddaxHome() + "/log/" + logName);
+            addaxLogService.insertLog(tid, logContent);
+
             if (retCode != 0) {
                 log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, retCode);
-                return retCode;
+                // 失败时也需要记录日志
             }
-            else {
-              // 日志写入到数据表
-                String logContent = FileUtils.readFileContent(dictService.getAddaxHome() + "/log/" + logName);
-                addaxLogService.insertLog(tid, logContent);
-                return 0;
-            }
+            return retCode;
         }
         catch (IOException | InterruptedException e) {
+            log.error("Addax 采集任务 {} 执行异常", tid, e);
             if (process != null) {
                 process.destroy();
             }
@@ -424,7 +432,8 @@ public class TaskQueueManager
      * @param tid 采集表主键
      * @param lastLines 最后的统计信息
      */
-    private void processAddaxStatistics(long tid, LinkedList<String> lastLines) {
+    private void processAddaxStatistics(long tid, LinkedList<String> lastLines)
+    {
         Map<String, String> stats = new HashMap<>();
         for (String line : lastLines) {
             String[] parts = line.split(":", 2);
@@ -440,7 +449,7 @@ public class TaskQueueManager
             log.error("无法解析 Addax 统计信息，缺少 Job start  at 字段: {}", stats);
             return;
         }
-        String jobStart =  stats.get("Job start  at").replace(" ", "T");
+        String jobStart = stats.get("Job start  at").replace(" ", "T");
         String jobEnd = stats.get("Job end    at").replace(" ", "T");
 
         EtlStatistic statistic = new EtlStatistic();
@@ -448,17 +457,17 @@ public class TaskQueueManager
         statistic.setRunDate(LocalDate.now());
         statistic.setStartAt(LocalDateTime.parse(jobStart));
         statistic.setEndAt(LocalDateTime.parse(jobEnd));
-        int jobTook = Integer.parseInt(stats.get("Job took secs").replace("s", ""));
+        long jobTook = Long.parseLong(stats.get("Job took secs").replace("s", ""));
         statistic.setTakeSecs(jobTook);
-        int totalBytes = Integer.parseInt(stats.get("Total   bytes"));
+        long totalBytes = Long.parseLong(stats.get("Total   bytes"));
         statistic.setTotalBytes(totalBytes);
         long numberOfRec = Long.parseLong(stats.get("Number of rec"));
         statistic.setTotalRecs(numberOfRec);
-        int failedRecord = Integer.parseInt(stats.get("Failed record"));
+        long failedRecord = Long.parseLong(stats.get("Failed record"));
         statistic.setTotalErrors(failedRecord);
-        int averageBps = totalBytes / jobTook;
+        long averageBps = totalBytes / (jobTook == 0 ? 1 : jobTook);
         statistic.setByteSpeed(averageBps);
-        int averageRps = (numberOfRec / jobTook > 1 ? (int)(numberOfRec / jobTook) : 1);
+        long averageRps = numberOfRec / (jobTook == 0 ? 1 : jobTook);
         statistic.setRecSpeed(averageRps);
 
         if (statService.saveOrUpdate(statistic)) {

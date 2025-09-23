@@ -29,22 +29,22 @@ public class EtlStatistic {
     private LocalDateTime endAt;
 
     @Column(name = "take_secs")
-    private Integer takeSecs;
+    private Long takeSecs;
 
     @Column(name = "total_bytes")
-    private Integer totalBytes;
+    private Long totalBytes;
 
     @Column(name = "byte_speed")
-    private Integer byteSpeed;
+    private Long byteSpeed;
 
     @Column(name = "rec_speed")
-    private Integer recSpeed;
+    private Long recSpeed;
 
     @Column(name = "total_recs")
     private Long totalRecs;
 
     @Column(name = "total_errors")
-    private Integer totalErrors;
+    private Long totalErrors;
 
     @Column(name = "run_date")
     private LocalDate runDate;

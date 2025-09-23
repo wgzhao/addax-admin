@@ -29,6 +29,10 @@ public class SystemConfigService
         // 切日时间
         configCache.put("SWITCH_TIME", dictService.getSwitchTime());
         // hive
+
+        configCache.put("HIVE_CLI", dictService.getHiveCli());
+
+        configCache.put("HDFS_PREFIX", dictService.getHdfsPrefix());
     }
 
     public String getBizDate()
@@ -53,7 +57,7 @@ public class SystemConfigService
 
     public String getHDFSPrefix()
     {
-        return "/ods/";
+        return (String) configCache.get("HDFS_PREFIX");
     }
 
 }

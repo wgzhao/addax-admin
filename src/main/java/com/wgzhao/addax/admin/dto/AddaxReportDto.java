@@ -7,11 +7,11 @@ public class AddaxReportDto {
     private String jobName;
     private long startTimeStamp;
     private long endTimeStamp;
-    private int totalCosts;
-    private int byteSpeedPerSecond;
-    private int recordSpeedPerSecond;
+    private long totalCosts;
+    private long byteSpeedPerSecond;
+    private long recordSpeedPerSecond;
     private long totalReadRecords;
-    private int totalErrorRecords;
+    private long totalErrorRecords;
 
     @Override
     public String toString() {

@@ -1,19 +1,10 @@
 package com.wgzhao.addax.admin.utils;
 
-import com.wgzhao.addax.admin.service.AddaxLogService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
-
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.sql.DriverManager;
 
 /**
  * 命令执行工具类
@@ -21,13 +12,14 @@ import java.sql.DriverManager;
 @Slf4j
 public class CommandExecutor
 {
+    public record CommandResult(int exitCode, String output) {}
     /**
      * 执行命令并返回输出结果
      *
      * @param command 要执行的命令
      * @return 命令的输出结果
      */
-    public static String executeForOutput(String command)
+    public static CommandResult executeForOutput(String command)
     {
         StringBuilder output = new StringBuilder();
         Process process = null;
@@ -42,14 +34,14 @@ public class CommandExecutor
                 }
             }
 
-            process.waitFor();
+            int exitCode = process.waitFor();
 
             // 移除最后一个换行符
-            if (output.length() > 0) {
+            if (!output.isEmpty()) {
                 output.setLength(output.length() - 1);
             }
 
-            return output.toString();
+            return new CommandResult(exitCode, output.toString());
         }
         catch (IOException | InterruptedException e) {
             if (process != null) {
@@ -58,7 +50,7 @@ public class CommandExecutor
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            return "";
+            return new CommandResult(-1, "");
         }
     }
 
@@ -85,35 +77,5 @@ public class CommandExecutor
         catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * 获取当前主机名
-     *
-     * @return 主机名
-     */
-    public static String getHostname()
-    {
-        return executeForOutput("hostname").trim();
-    }
-
-    /**
-     * 获取当前进程ID
-     *
-     * @return 进程ID
-     */
-    public static String getPid()
-    {
-        return executeForOutput("echo $$").trim();
-    }
-
-    /**
-     * 获取IP地址
-     *
-     * @return IP地址
-     */
-    public static String getIpAddress()
-    {
-        return executeForOutput("ifconfig | grep '188\\.175\\.' | awk '{print $2}'").trim();
     }
 }

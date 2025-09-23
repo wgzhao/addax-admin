@@ -21,6 +21,9 @@ public class VwEtlTableWithSource {
     private String targetTable;
     private String partKind;
     private String partName;
+    private String partFormat;
+    private String storageFormat;
+    private String compressFormat;
     private String filter;
     private String status;
     private String kind;

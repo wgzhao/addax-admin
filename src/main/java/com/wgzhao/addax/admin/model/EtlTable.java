@@ -42,6 +42,9 @@ public class EtlTable {
     @Column(name = "part_name", length = 20)
     private String partName;
 
+    @Column(name = "part_format", length = 10)
+    private String partFormat;
+
     @Column(name = "filter", length = 2000, nullable = false)
     private String filter;
 

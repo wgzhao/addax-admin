@@ -25,6 +25,11 @@ public interface SysItemRepo
 
     SysItem findByDictCodeAndItemKey(int dictCode, String itemKey);
 
-    @Query("SELECT s.itemValue FROM SysItem s WHERE s.dictCode = :dictCode AND s.itemKey < :curDate ORDER BY s.itemKey DESC")
-    List<String> findLastBizDateList(int dictCode, String curDate);
+    @Query(value = """
+            SELECT item_value FROM sys_item
+            WHERE dict_code = 1021 AND item_key < ?1
+            ORDER BY item_key DESC
+            LIMIT 1
+            """, nativeQuery = true)
+    String findLastBizDateList(String curDate);
 }

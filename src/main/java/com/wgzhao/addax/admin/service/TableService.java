@@ -9,7 +9,9 @@ import com.wgzhao.addax.admin.repository.SysItemRepo;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.utils.FileUtils;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -26,8 +29,10 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static java.lang.Math.max;
 
@@ -111,7 +116,7 @@ public class TableService
         }
 
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
-
+//        StringBuilder createTableSql = new StringBuilder("create external table if not exists `" + etlTable.getTargetDb() + "`.`" + etlTable.getTargetTable() + "` (");
         String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
         try (ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -121,6 +126,7 @@ public class TableService
 
             String tableComment = DbUtil.getTableComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable());
             etlColumn.setTblComment(tableComment);
+            List<String> hiveColumns = new ArrayList<>();
             for (int i = 1; i <= columnCount; i++) {
                 etlColumn.setColumnId(i);
                 etlColumn.setColumnName(metaData.getColumnName(i));
@@ -133,12 +139,56 @@ public class TableService
                 // map SQL type to Hive type
                 String hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i), "string");
                 etlColumn.setTargetType(hiveType);
+                if (Objects.equals(hiveType, "decimal")) {
+                    // decimal(10,2)
+                    hiveType = String.format("decimal(%d,%d)", metaData.getPrecision(i), metaData.getScale(i));
+                }
                 etlColumn.setTargetTypeFull(hiveType);
+                hiveColumns.add("`" + metaData.getColumnName(i) + "` " + hiveType);
+//                createTableSql.append("\n  `").append(metaData.getColumnName(i)).append("` ").append(hiveType).append(",");
                 etlColumnRepo.save(etlColumn);
+            }
+
+            if (!createOrUpdateHiveTable(etlTable, tableComment, hiveColumns)) {
+                return false;
             }
         }
         catch (SQLException e) {
             throw new RuntimeException(e);
+        }
+        return true;
+    }
+
+    private boolean createOrUpdateHiveTable(EtlTable etlTable, String tblComment, List<String> hiveColumns)
+    {
+        String createTableSql = """
+                    create database if not exists `%s` location '%s/%s';
+                    create external table if not exists `%s`.`%s` (
+                    %s
+                    ) comment '%s'
+                    partitioned by ( `%s` string )
+                     stored as %s
+                     location '%s/%s/%s'
+                     tblproperties ('external.table.purge'='true', 'discover.partitions'='true', 'orc.compress'='%s', 'snappy.compress'='%s')
+                    """.formatted(etlTable.getTargetDb(), dictService.getHdfsPrefix(), etlTable.getTargetDb(),
+                etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), tblComment, etlTable.getPartName(),
+                dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), etlTable.getTargetDb(), etlTable.getTargetTable(),
+                dictService.getHdfsCompress(), dictService.getHdfsCompress()
+        );
+        log.info("create table sql:\n{}", createTableSql);
+        //  write to temporary file
+        String sqlPath;
+        try {
+            sqlPath = FileUtils.writeToTempFile("hive_ddl_", createTableSql);
+        } catch (IOException e) {
+            log.warn("failed to write create table sql to temporary file", e);
+            return false;
+        }
+        String cmd = dictService.getHiveCli() + " -f " + sqlPath;
+        CommandExecutor.CommandResult result = CommandExecutor.executeForOutput(cmd);
+        if (result.exitCode() != 0) {
+            log.warn("failed to create hive table for tid {}, command: {}, output: {}", etlTable.getId(), cmd, result.output());
+            return false;
         }
         return true;
     }
@@ -148,7 +198,8 @@ public class TableService
         List<EtlTable> etlList;
         if (isForce) {
             etlList = etlTableRepo.findAll();
-        } else {
+        }
+        else {
             etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
         }
         for (EtlTable etl : etlList) {
@@ -167,10 +218,12 @@ public class TableService
 
     /**
      * 异步更新表结构
+     *
      * @param mode "all" 表示全部强制更新；null 表示只更新需要更新的；tid 表示只更新指定表
      */
     @Async
-    public void updateSchemaAsync(String mode, Long tid) {
+    public void updateSchemaAsync(String mode, Long tid)
+    {
         if (tid != null) {
             EtlTable etl = etlTableRepo.findById(tid).orElse(null);
             if (etl != null) {
@@ -207,26 +260,33 @@ public class TableService
         }
     }
 
-    public void updateStatusAndFlag(List<Long> ids, String status, int retryCnt) {
+    public void updateStatusAndFlag(List<Long> ids, String status, int retryCnt)
+    {
         List<EtlTable> tables = etlTableRepo.findAllById(ids);
         if (tables.isEmpty()) {
             return;
         }
-        tables.forEach(etlTable -> {etlTable.setStatus(status); etlTable.setRetryCnt(retryCnt);});
+        tables.forEach(etlTable -> {
+            etlTable.setStatus(status);
+            etlTable.setRetryCnt(retryCnt);
+        });
         etlTableRepo.saveAll(tables);
 //        etlTableRepo.batchUpdateStatusAndFlag(ids, status, retryCnt);
     }
 
     // 找到所有需要采集的表
-    public int findPendingTasks() {
+    public int findPendingTasks()
+    {
         return etlTableRepo.countByStatusEquals("N");
     }
 
-    public int findRunningTasks() {
+    public int findRunningTasks()
+    {
         return etlTableRepo.countByStatusEquals("R");
     }
 
-    public EtlTable getTableAndSource(long tid) {
+    public EtlTable getTableAndSource(long tid)
+    {
         return etlTableRepo.findById(tid).orElse(null);
     }
 
@@ -235,13 +295,15 @@ public class TableService
         return etlTableRepo.findById(tid).orElse(null);
     }
 
-    public void setRunning(EtlTable task) {
+    public void setRunning(EtlTable task)
+    {
         task.setStatus("R");
         task.setStartTime(new Timestamp(System.currentTimeMillis()));
         etlTableRepo.save(task);
     }
 
-    public void setFinished(EtlTable task) {
+    public void setFinished(EtlTable task)
+    {
         task.setStatus("Y");
         // 重试次数也重置
         task.setRetryCnt(3);
@@ -259,19 +321,21 @@ public class TableService
 
     // 找到所有可以运行的任务
     // 要注意切日的问题
-    public List<EtlTable> getRunnableTasks() {
+    public List<EtlTable> getRunnableTasks()
+    {
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);
         return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime);
     }
 
-
-    public Integer getValidTableCount() {
+    public Integer getValidTableCount()
+    {
         return etlTableRepo.findValidTableCount();
     }
 
-    public List<EtlTable> getValidTables() {
+    public List<EtlTable> getValidTables()
+    {
         return etlTableRepo.findValidTables();
     }
 
@@ -280,7 +344,8 @@ public class TableService
         etlTableRepo.resetAllEtlFlags();
     }
 
-    public List<EtlTable> findSpecialTasks() {
+    public List<EtlTable> findSpecialTasks()
+    {
         return etlTableRepo.findSpecialTasks();
     }
 

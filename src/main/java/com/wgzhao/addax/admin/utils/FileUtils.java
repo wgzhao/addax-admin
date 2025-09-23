@@ -104,6 +104,33 @@ public class FileUtils {
         }
     }
 
+    /**
+     * 创建文件，如果文件不存在
+     * @param filePath 文件路径
+     * @throws IOException 如果发生I/O错误
+     */
+    public static void createFile(String filePath) throws IOException {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            File parentDir = file.getParentFile();
+            if (!parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+            file.createNewFile();
+        }
+    }
+    /**
+     * 将内容写入文件
+     * @param filePath 文件路径
+     * @param content 要写入的内容
+     * @throws IOException 如果发生I/O错误
+     */
+    public static void writeToFile(String filePath, String content) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            writer.write(content);
+        }
+    }
+
     public static String writeToTempFile(String prefix, String content)
             throws IOException
     {
