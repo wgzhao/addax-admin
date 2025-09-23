@@ -112,7 +112,7 @@ public class TaskQueueManager
         }
         catch (Exception e) {
             log.error("扫描和入队采集任务失败", e);
-            alertService.sendToWecomRobot("扫描采集任务失败: " + e.getMessage());
+            alertService.sendToWeComRobot("扫描采集任务失败: " + e.getMessage());
         }
     }
 
@@ -209,7 +209,7 @@ public class TaskQueueManager
             }
             else {
                 tableService.setFailed(task);
-                alertService.sendToWecomRobot(String.format("采集任务执行失败: %s", tid));
+                alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", tid));
                 return false;
             }
         }
@@ -221,7 +221,7 @@ public class TaskQueueManager
             tableService.setFailed(task);
 
             // 发送告警
-            alertService.sendToWecomRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
+            alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
             return false;
         }
         finally {

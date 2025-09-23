@@ -5,14 +5,8 @@ import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.model.EtlStatistic;
-import com.wgzhao.addax.admin.model.TbAddaxSta;
-import com.wgzhao.addax.admin.repository.AddaxLogRepo;
-import com.wgzhao.addax.admin.repository.AddaxStaRepo;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.StatService;
-import com.wgzhao.addax.admin.utils.CacheUtil;
-import com.wgzhao.addax.admin.utils.LogFileUtil;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,13 +14,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 

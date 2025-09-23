@@ -8,6 +8,7 @@ public class AddaxReportDto {
     private long startTimeStamp;
     private long endTimeStamp;
     private long totalCosts;
+    private long totalBytes;
     private long byteSpeedPerSecond;
     private long recordSpeedPerSecond;
     private long totalReadRecords;

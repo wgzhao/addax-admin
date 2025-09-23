@@ -1,0 +1,15 @@
+[Unit]
+Description=Addax Admin Spring Boot Service
+After=network.target
+
+[Service]
+Type=simple
+User=addax
+EnvironmentFile=/opt/addax-admin/config/env.sh
+ExecStart=/usr/bin/java -Dspring.config.location=/opt/addax-admin/config/application.properties -jar /opt/addax-admin/lib/addax-admin-0.0.1-SNAPSHOT.jar
+Restart=on-failure
+WorkingDirectory=/opt/addax-admin
+
+[Install]
+WantedBy=multi-user.target
+# 如需自定义安装路径，请将所有 /opt/addax-admin 替换为实际解压路径
