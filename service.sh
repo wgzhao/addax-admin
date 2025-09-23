@@ -21,6 +21,35 @@ LOG_FILE="$APP_HOME/logs/${APP_NAME}.log"
 
 JAVA_OPTS="-Dspring.config.location=${CONFIG_DIR}/application.properties -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
 
+# Function to get server port
+get_server_port() {
+    # 1. Check JAVA_OPTS for -Dserver.port=...
+    local port_from_opts=$(echo "$JAVA_OPTS" | grep -o 'server.port=[0-9]*' | cut -d'=' -f2)
+    if [ -n "$port_from_opts" ]; then
+        echo "$port_from_opts"
+        return
+    fi
+
+    # 2. Check for SERVER_PORT environment variable
+    if [ -n "$SERVER_PORT" ]; then
+        echo "$SERVER_PORT"
+        return
+    fi
+
+    # 3. Parse application.properties
+    local app_properties="${CONFIG_DIR}/application.properties"
+    if [ -f "$app_properties" ]; then
+        local port_from_file=$(grep -E '^\s*server\.port\s*=' "$app_properties" | cut -d'=' -f2 | tr -d '[:space:]')
+        if [ -n "$port_from_file" ]; then
+            echo "$port_from_file"
+            return
+        fi
+    fi
+
+    # 4. Default port
+    echo "50601"
+}
+
 start() {
     echo "Starting $APP_NAME..."
     if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
@@ -28,9 +57,23 @@ start() {
         return 0
     fi
     [ -f "$ENV_FILE" ] && . "$ENV_FILE"
+
+    local port=$(get_server_port)
+
     nohup java $JAVA_OPTS -cp ${JAR_MAIN}  org.springframework.boot.loader.launch.PropertiesLauncher > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
-    echo "$APP_NAME started."
+    # check status
+    echo "Checking port $port..."
+    for i in $(seq 1 30); do
+        sleep 1
+        nc -z localhost $port > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "$APP_NAME started successfully on port $port."
+            return 0
+        fi
+    done
+    echo "$APP_NAME start failed."
+    stop
 }
 
 stop() {

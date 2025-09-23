@@ -4,8 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,7 +11,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
@@ -30,7 +27,6 @@ import javax.sql.DataSource;
 public class SecurityConfiguration
 {
     @Autowired JwtFilter jwtFilter;
-    @Autowired DataSource dataSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
@@ -62,7 +58,6 @@ public class SecurityConfiguration
                 )
                 .httpBasic(Customizer.withDefaults())
                 .formLogin(Customizer.withDefaults())
-                .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling((exceptionHandling) -> exceptionHandling
                         // 无 token/无效 token -> 401
@@ -76,18 +71,9 @@ public class SecurityConfiguration
 
 
     @Bean
-    PasswordEncoder passwordEncoder()
+    public PasswordEncoder passwordEncoder()
     {
         return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userDetailsService(dataSource));
-        authenticationProvider.setPasswordEncoder(passwordEncoder());
-        return authenticationProvider;
-
     }
 
     @Bean
@@ -96,15 +82,15 @@ public class SecurityConfiguration
     }
 
     @Bean
-    UserDetailsManager users(DataSource dataSource) {
+    UserDetailsManager users(DataSource dataSource, PasswordEncoder passwordEncoder) {
         UserDetails user = User.builder()
                 .username("user")
-                .password(passwordEncoder().encode("user123"))
+                .password(passwordEncoder.encode("user123"))
                 .roles("USER")
                 .build();
         UserDetails admin = User.builder()
                 .username("admin")
-                .password(passwordEncoder().encode("389f89beb8d7"))
+                .password(passwordEncoder.encode("389f89beb8d7"))
                 .roles("USER", "ADMIN")
                 .build();
         JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
@@ -117,10 +103,6 @@ public class SecurityConfiguration
         return users;
     }
 
-    @Bean
-    public UserDetailsService userDetailsService(DataSource dataSource) {
-        return new JdbcUserDetailsManager(dataSource);
-    }
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {
