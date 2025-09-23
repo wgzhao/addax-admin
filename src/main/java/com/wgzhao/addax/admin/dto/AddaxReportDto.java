@@ -20,6 +20,7 @@ public class AddaxReportDto {
                 ", startTimeStamp=" + startTimeStamp +
                 ", endTimeStamp=" + endTimeStamp +
                 ", totalCoasts=" + totalCosts +
+                ", totalBytes=" + totalBytes +
                 ", byteSpeedPerSecond=" + byteSpeedPerSecond +
                 ", recordSpeedPerSecond=" + recordSpeedPerSecond +
                 ", totalReadRecords=" + totalReadRecords +
