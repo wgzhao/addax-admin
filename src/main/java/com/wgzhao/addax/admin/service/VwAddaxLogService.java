@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.repository.pg.VwAddaxLogRepo;
-import com.wgzhao.addax.admin.model.pg.VwAddaxLog;
+import com.wgzhao.addax.admin.repository.VwAddaxLogRepo;
+import com.wgzhao.addax.admin.model.VwAddaxLog;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

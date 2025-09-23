@@ -10,7 +10,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EtlBatchReq {
-    private List<String> tids;
-    private String flag;
-    private Long retryCnt;
+    private List<Long> tids;
+    private String status;
+    private int retryCnt;
 }

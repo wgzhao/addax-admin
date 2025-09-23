@@ -239,4 +239,102 @@ public class DbUtil
     {
         return copyRecords(JSONUtil.parseObj(job));
     }
+
+    public static String getKind(String jdbcUrl) {
+        if (jdbcUrl.contains("mysql")) {
+            return "M";
+        }
+        else if (jdbcUrl.contains("oracle")) {
+            return "O";
+        }
+        else if (jdbcUrl.contains("sqlserver")) {
+            return "S";
+        }
+        else if (jdbcUrl.contains("postgresql")) {
+            return "P";
+        }
+        else if (jdbcUrl.contains("db2")) {
+            return "D";
+        }
+        else if (jdbcUrl.contains("clickhouse") || jdbcUrl.contains("chk")) {
+            return "C";
+        }
+        else {
+            return "R";
+        }
+    }
+
+    public static String getColumnComment(Connection conn, String dbName, String tableName, String columnName) {
+        try {
+            String dbType = conn.getMetaData().getDatabaseProductName().toLowerCase();
+            String sql = null;
+            if (dbType.contains("mysql")) {
+                sql = "SELECT COLUMN_COMMENT FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND COLUMN_NAME=?";
+            } else if (dbType.contains("postgresql")) {
+                sql = "SELECT pgd.description FROM pg_catalog.pg_description pgd " +
+                        "JOIN pg_catalog.pg_class c ON c.oid = pgd.objoid " +
+                        "JOIN pg_catalog.pg_attribute a ON a.attrelid = c.oid AND a.attnum = pgd.objsubid " +
+                        "JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace " +
+                        "WHERE n.nspname = ? AND c.relname = ? AND a.attname = ?";
+            } else if (dbType.contains("oracle")) {
+                sql = "SELECT COMMENTS FROM ALL_COL_COMMENTS WHERE OWNER=? AND TABLE_NAME=? AND COLUMN_NAME=?";
+            } else if (dbType.contains("microsoft sql server") || dbType.contains("sql server")) {
+                sql = "SELECT CAST(value AS VARCHAR) FROM fn_listextendedproperty ('MS_Description', 'schema', ?, 'table', ?, 'column', ?)";
+            } else if (dbType.contains("db2")) {
+                sql = "SELECT REMARKS FROM SYSCAT.COLUMNS WHERE TABSCHEMA=? AND TABNAME=? AND COLNAME=?";
+            } else {
+                return "";
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, dbName);
+                ps.setString(2, tableName);
+                ps.setString(3, columnName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String result = rs.getString(1);
+                        return result == null ? "" : result;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("getColumnComment error", e);
+            return "";
+        }
+        return "";
+    }
+
+    public static String getTableComment(Connection conn, String dbName, String tableName) {
+        try {
+            String dbType = conn.getMetaData().getDatabaseProductName().toLowerCase();
+            String sql = null;
+            if (dbType.contains("mysql")) {
+                sql = "SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?";
+            } else if (dbType.contains("postgresql")) {
+                sql = "SELECT obj_description(c.oid) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname=? AND c.relname=?";
+            } else if (dbType.contains("oracle")) {
+                sql = "SELECT COMMENTS FROM ALL_TAB_COMMENTS WHERE OWNER=? AND TABLE_NAME=?";
+            } else if (dbType.contains("microsoft sql server") || dbType.contains("sql server")) {
+                sql = "SELECT CAST(value AS VARCHAR) FROM fn_listextendedproperty ('MS_Description', 'schema', ?, 'table', ?, NULL)";
+            } else if (dbType.contains("db2")) {
+                sql = "SELECT REMARKS FROM SYSCAT.TABLES WHERE TABSCHEMA=? AND TABNAME=?";
+            } else {
+                return "";
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, dbName);
+                ps.setString(2, tableName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String result = rs.getString(1);
+                        return result == null ? "" : result;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            // 可以记录日志
+            log.warn("getTableComment error", e);
+            return "";
+        }
+        return "";
+    }
 }

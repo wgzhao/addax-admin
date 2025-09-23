@@ -39,16 +39,37 @@ public class SecurityConfiguration
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests((authorize) -> authorize
+                        // 放行公开接口
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/addax/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/log/jobReport").permitAll()
+                        // 受保护的业务接口，仅这些前缀需要认证
+                        .requestMatchers(
+                                "/dashboard/**",
+                                "/etl/**",
+                                "/alert/**",
+                                "/log/**",
+                                "/monitor/**",
+                                "/param/**",
+                                "/plan/**",
+                                "/risk/**",
+                                "/source/**",
+                                "/table/**",
+                                "/task/**"
+                        ).authenticated()
+                        // 其他未匹配路径放行，让 MVC 返回正确的 404/405/500 等
+                        .anyRequest().permitAll()
                 )
                 .httpBasic(Customizer.withDefaults())
                 .formLogin(Customizer.withDefaults())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling((exceptionHandling) -> exceptionHandling
-                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint()));
+                        // 无 token/无效 token -> 401
+                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+                        // 已认证但权限不足 -> 403
+                        .accessDeniedHandler(new CustomAccessDeniedHandler())
+                );
 
         return http.build();
     }

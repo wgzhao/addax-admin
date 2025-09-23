@@ -1,13 +1,11 @@
 package com.wgzhao.addax.admin.utils;
 
 import jakarta.annotation.Resource;
-import oracle.ucp.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,7 +21,6 @@ public class DsUtil {
     private static final Logger logger = LoggerFactory.getLogger(DsUtil.class);
 
     // 调度工具命令脚本
-    @Value("${addax.ds.path}")
     private String dsExec;
 
     private final Map<String, String> ctypeMap = Map.of(
@@ -41,16 +38,16 @@ public class DsUtil {
      *
      * @return 调度工具命令执行结果
      */
-    public Pair<Boolean, String>  execDs(String ctype, String sp_id ) {
+    public Pair<Boolean, String> execDs(String ctype, String sp_id ) {
         if (Objects.equals(cacheUtil.get("com.halt"), "Y")) {
             logger.error("halted");
-            return new Pair<>(false, "The system has halted currently");
+            return Pair.of(false, "The system has halted currently");
         }
         StringBuilder sb = new StringBuilder(" ");
         sb.append(dsExec).append(" start_wkf");
         if (! ctypeMap.containsKey(ctype)) {
             logger.error("bad ctype: {}", ctype);
-            return new Pair<>(false, "bad ctype");
+            return Pair.of(false, "bad ctype");
         }
         sb.append(" ").append(ctypeMap.get(ctype));
 
@@ -58,10 +55,10 @@ public class DsUtil {
             logger.info("execute command: '{}'", sb);
             Process process = Runtime.getRuntime().exec(sb.toString());
             process.waitFor();
-            return new Pair<>(true, new String(process.getInputStream().readAllBytes()));
+            return Pair.of(true, new String(process.getInputStream().readAllBytes()));
         } catch (IOException | InterruptedException e) {
             logger.error("exec ds error: {}", e.getMessage());
-            return new Pair<>(false,  e.getMessage());
+            return Pair.of(false,  e.getMessage());
         }
     }
 

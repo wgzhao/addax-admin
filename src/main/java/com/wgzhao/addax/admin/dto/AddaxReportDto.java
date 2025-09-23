@@ -1,24 +1,17 @@
 package com.wgzhao.addax.admin.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Service;
+import lombok.Data;
 
-@Getter
-@Service
-@AllArgsConstructor
-@NoArgsConstructor
+@Data
 public class AddaxReportDto {
     private String jobName;
-    private int startTimeStamp;
-    private int endTimeStamp;
-    private int totalCosts;
-    private long totalBytes;
-    private int byteSpeedPerSecond;
-    private int recordSpeedPerSecond;
-    private int totalReadRecords;
-    private int totalErrorRecords;
+    private long startTimeStamp;
+    private long endTimeStamp;
+    private long totalCosts;
+    private long byteSpeedPerSecond;
+    private long recordSpeedPerSecond;
+    private long totalReadRecords;
+    private long totalErrorRecords;
 
     @Override
     public String toString() {
