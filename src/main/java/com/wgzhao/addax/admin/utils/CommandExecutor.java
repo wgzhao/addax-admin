@@ -57,9 +57,13 @@ public class CommandExecutor
     public static int executeWithResult(String command)
     {
         try {
-            return Runtime.getRuntime().exec(new String[] {command}).waitFor();
+            Process process = Runtime.getRuntime().exec(new String[] {"bash", "-c", command});
+            return process.waitFor();
         }
         catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(e);
         }
     }
@@ -72,7 +76,7 @@ public class CommandExecutor
     public static void execute(String command)
     {
         try {
-            Runtime.getRuntime().exec(new String[] {command}, null, null);
+            Runtime.getRuntime().exec(new String[] {"bash", "-c", command});
         }
         catch (IOException e) {
             throw new RuntimeException(e);
