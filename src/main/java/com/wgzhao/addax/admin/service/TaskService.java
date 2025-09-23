@@ -20,9 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TaskService
 {
-
     private final TaskQueueManager queueManager;
-
     private final SystemConfigService configService;
     private final TableService tableService;
 

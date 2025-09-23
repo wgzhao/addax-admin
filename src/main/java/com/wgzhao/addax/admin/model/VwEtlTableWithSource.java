@@ -1,10 +1,13 @@
 package com.wgzhao.addax.admin.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
 import org.hibernate.annotations.Formula;
+
+import java.time.LocalDateTime;
 
 /**
  * 映射 vw_etl_table_with_source 视图
@@ -30,6 +33,10 @@ public class VwEtlTableWithSource {
     private String updateFlag;
     private String createFlag;
     private Integer retryCnt;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime startTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime endTime;
     private Integer sid;
     private Integer duration;
     private String code;
