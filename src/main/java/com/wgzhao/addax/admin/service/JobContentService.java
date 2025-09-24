@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
+@Slf4j
 public class JobContentService
 {
     @Autowired
@@ -48,7 +50,7 @@ public class JobContentService
         if (etlTable == null) {
             return;
         }
-
+        log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(),etlTable.getId());
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
         // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
         // 需要根据不同数据库类型做不同的处理
@@ -89,12 +91,14 @@ public class JobContentService
         addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, params);
         String job = dictService.getAddaxJobTemplate(kind + "2H");
         if (job == null || job.isEmpty()) {
+            log.warn("没有获得 {} 的预设模板，检查系统配置表", kind + "2H");
             return;
         }
         job = job.replace("${r" + kind + "}", addaxReaderContentTemplate).replace("${wH}", addaxWriterTemplate);
 
         EtlJob etlJob = new EtlJob(etlTable.getId(), job);
         jobRepo.save(etlJob);
+        log.info("更新完成");
     }
 
     private String replacePlaceholders(String template, Map<String, String> values)

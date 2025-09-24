@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
+import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,6 +12,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class DictService
@@ -17,6 +20,9 @@ public class DictService
 
     @Autowired
     private SysItemRepo sysItemRepo;
+
+    @Autowired
+    private SysDictRepo sysDictRepo;
 
     private static final String DEFAULT_SWITCH_TIME = "16:30";
     private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -129,5 +135,42 @@ public class DictService
     public String getHdfsStorageFormat() {
         String res = getItemValue(1000, "HDFS_STORAGE_FORMAT", String.class);
         return res == null ? "orc" : res;
+    }
+
+    // SysDict CRUD
+    public List<SysDict> findAllDicts() {
+        return sysDictRepo.findAll();
+    }
+    public Optional<SysDict> findDictById(int dictCode) {
+        return sysDictRepo.findById(dictCode);
+    }
+    public SysDict saveDict(SysDict dict) {
+        return sysDictRepo.save(dict);
+    }
+    public void deleteDict(int dictCode) {
+        sysDictRepo.deleteById(dictCode);
+    }
+    public boolean existsDict(int dictCode) {
+        return sysDictRepo.existsById(dictCode);
+    }
+    public SysDict findDictByCode(int code) {
+        return sysDictRepo.findByCode(code);
+    }
+
+    // SysItem CRUD
+    public List<SysItem> findItemsByDictCode(int dictCode) {
+        return sysItemRepo.findByDictCodeOrderByDictCodeAsc(dictCode);
+    }
+    public Optional<SysItem> findItemById(int dictCode, String itemKey) {
+        return sysItemRepo.findById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
+    }
+    public SysItem saveItem(SysItem item) {
+        return sysItemRepo.save(item);
+    }
+    public void deleteItem(int dictCode, String itemKey) {
+        sysItemRepo.deleteById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
+    }
+    public boolean existsItem(int dictCode, String itemKey) {
+        return sysItemRepo.existsById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
 }

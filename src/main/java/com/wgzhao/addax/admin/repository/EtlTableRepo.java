@@ -47,7 +47,7 @@ public interface EtlTableRepo
 
     @Query("""
         SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
-        WHERE t.status = 'N' AND t.retryCnt > 0 AND t.updateFlag = 'N' AND t.createFlag = 'N'
+        WHERE t.status NOT IN ('Y','X') AND t.retryCnt > 0 AND t.updateFlag = 'N' AND t.createFlag = 'N'
         AND (
             :checkTime = false OR
             (s.startAt > :switchTime AND s.startAt < :currentTime)

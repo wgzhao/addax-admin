@@ -89,6 +89,9 @@ public class TaskQueueManager
         try {
 
             List<EtlTable> tasks = tableService.getRunnableTasks();
+            if(tasks.isEmpty()) {
+                return ;
+            }
             log.info("扫描到 {} 个待采集任务", tasks.size());
 
             int enqueuedCount = 0;
@@ -125,9 +128,6 @@ public class TaskQueueManager
             queueMonitorRunning = true;
             queueMonitorExecutor.submit(this::queueMonitorLoop);
             log.info("采集任务队列监控器已启动，队列容量: {}, 并发限制: {}", queueSize, concurrentLimit);
-        }
-        else {
-            log.info("队列监控器已在运行中");
         }
     }
 
@@ -192,8 +192,6 @@ public class TaskQueueManager
         long startTime = System.currentTimeMillis();
 
         try {
-            log.info("开始执行采集任务: {}", tid);
-
             // 更新任务状态为运行中
             tableService.setRunning(task);
             // 执行具体的采集逻辑（这里先调用现有的采集方法框架）

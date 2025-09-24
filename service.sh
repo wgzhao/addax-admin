@@ -63,16 +63,17 @@ start() {
     nohup java $JAVA_OPTS -cp ${JAR_MAIN}  org.springframework.boot.loader.launch.PropertiesLauncher > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     # check status
-    echo "Checking port $port..."
+    echo -n "Checking port $port..."
     for i in $(seq 1 30); do
+        echo -n "."
         sleep 1
         nc -z localhost $port > /dev/null 2>&1
         if [ $? -eq 0 ]; then
-            echo "$APP_NAME started successfully on port $port."
+            echo " Done"
             return 0
         fi
     done
-    echo "$APP_NAME start failed."
+    echo " Failed"
     stop
 }
 

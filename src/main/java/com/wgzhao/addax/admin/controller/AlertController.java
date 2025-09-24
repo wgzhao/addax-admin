@@ -2,8 +2,9 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.model.Notification;
 import com.wgzhao.addax.admin.repository.NotificationRepo;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,7 +17,7 @@ import java.util.List;
  *
  * @author 
  */
-@Api(value = "/alert")
+@Tag(name = "alert")
 @RequestMapping("/alert")
 @RestController
 public class AlertController
@@ -30,7 +31,7 @@ public class AlertController
      *
      * @return List of {@link Notification}
      */
-    @ApiOperation(value = "查询数据中心消息提醒总表数据", httpMethod = "GET",tags = {"查询数据中心消息提醒总表数据"})
+    @Operation(summary = "查询数据中心消息提醒总表数据", description = "查询数据中心消息提醒总表数据")
     @GetMapping(value = "/list")
     public List<Notification> getList() {
         return notificationRepo.findAll();

@@ -35,3 +35,5 @@ build/
 archive/
 sp_alone.sh
 **/.DS_Store
+jdbc-drivers/
+.env

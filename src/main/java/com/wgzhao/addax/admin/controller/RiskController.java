@@ -5,7 +5,7 @@ import com.wgzhao.addax.admin.model.TbImpChk;
 import com.wgzhao.addax.admin.model.Notification;
 import com.wgzhao.addax.admin.repository.NotificationRepo;
 import com.wgzhao.addax.admin.utils.CacheUtil;
-import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * 风险点接口
  */
-@Api(value = "风险点接口")
+@Tag(name = "风险点接口")
 @RestController
 @RequestMapping("/risk")
 public class RiskController
