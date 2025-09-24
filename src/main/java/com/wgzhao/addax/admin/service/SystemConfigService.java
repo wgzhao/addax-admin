@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,6 +54,11 @@ public class SystemConfigService
     public String getSwitchTime()
     {
         return (String) configCache.get("SWITCH_TIME");
+    }
+
+    public LocalTime getSwitchTimeAsTime() {
+        String switchTime = getSwitchTime();
+        return LocalTime.parse(switchTime, DateTimeFormatter.ofPattern("HH:mm"));
     }
 
     public String getHDFSPrefix()

@@ -15,4 +15,6 @@ public interface EtlSourceRepo
     List<EtlSource> findAllByEnabled(boolean b);
 
     boolean existsByCode(String code);
+
+    List<EtlSource> findByEnabled(boolean b);
 }

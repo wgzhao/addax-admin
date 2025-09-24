@@ -4,6 +4,7 @@ import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.FileUtils;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +75,11 @@ public class TaskQueueManager
     // 队列监控标志
     private volatile boolean queueMonitorRunning = false;
     @Autowired private JobContentService jobContentService;
+
+    @PostConstruct
+    public void init() {
+        startQueueMonitor();
+    }
 
     /**
      * 扫描并将采集任务加入队列
@@ -470,5 +476,10 @@ public class TaskQueueManager
         if (statService.saveOrUpdate(statistic)) {
             log.info("Addax 采集统计信息已插入 tb_addax_statistic 表: {}", statistic);
         }
+    }
+
+    public BlockingQueue<EtlTable> getEtlQueue()
+    {
+        return this.etlTaskQueue;
     }
 }

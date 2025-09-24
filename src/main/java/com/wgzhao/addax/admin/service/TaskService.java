@@ -1,12 +1,12 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +21,21 @@ import java.util.Map;
 public class TaskService
 {
     private final TaskQueueManager queueManager;
-    private final SystemConfigService configService;
     private final TableService tableService;
+
+    @Autowired
+    private EtlTableRepo etlTableRepo;
+
+    public void executeTasksForSource(int sourceId) {
+        List<EtlTable> tables = etlTableRepo.findBySourceIdAndStatus(sourceId, true);
+        log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size());
+        for (EtlTable table : tables) {
+            if (table.getStatus().equals("Y") || table.getStatus().equals("X")) {
+                continue; // Skip completed or invalid tasks
+            }
+            queueManager.getEtlQueue().offer(table);
+        }
+    }
 
     /**
      * 计划任务主控制 - 基于队列的采集任务管理
@@ -37,7 +50,7 @@ public class TaskService
         queueManager.startQueueMonitor();
 
         // 处理其他类型任务（judge等非ETL任务）
-        processNonEtlTasks();
+//        processNonEtlTasks();
 
         // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
         queueManager.scanAndEnqueueEtlTasks();
@@ -46,17 +59,11 @@ public class TaskService
     /**
      * 处理非ETL任务（如judge任务）
      */
-    private void processNonEtlTasks()
+    public void updateParams()
     {
-        // 如果当前时间是在切日时间附近，则开始做切日处理
-        // 1. 把所有有效的采集任务的 flag 字段设置为 'N'，以便重新采集
-        String currTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
-        String switchTime = configService.getSwitchTime();
-        // 只需要比较分钟和小时即可
-        if (currTime.equals(switchTime)) {
-            log.info("当前时间 {} 在切日时间 {} 附近，开始重置所有采集任务的 flag 字段为 'N'", currTime, switchTime);
-            tableService.resetAllFlags();
-        }
+        // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
+        log.info("开始执行每日参数更新和任务重置...");
+        tableService.resetAllFlags();
     }
 
     /**

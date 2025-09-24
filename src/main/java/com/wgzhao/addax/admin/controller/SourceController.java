@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.service.SourceService;
@@ -139,24 +140,100 @@ public class SourceController {
         return ResponseEntity.ok(result);
     }
 
-    @Operation(summary = "查询未采集的表", description = "查询指定采集源和数据库下未采集的表名")
+    @Operation(summary = "查询未采集的表(含表注释)", description = "查询指定采集源和数据库下未采集的表名与表注释")
     @GetMapping("/{sourceId}/databases/{dbName}/tables/uncollected")
-    public ResponseEntity<List<String>> listUncollectedTables(
+    public ResponseEntity<List<TableMetaDto>> listUncollectedTables(
             @Parameter(description = "数据源ID", example = "1") @PathVariable("sourceId") int sourceId,
             @Parameter(description = "数据库名", example = "testdb") @PathVariable("dbName") String dbName) {
-        List<String> result = new ArrayList<>();
+        List<TableMetaDto> result = new ArrayList<>();
         List<String> existsTables = tableService.getTablesBySidAndDb(sourceId, dbName);
+        // 为了尽量避免大小写带来的不一致，这里做一个双写的Set
+        Set<String> existsSet = new HashSet<>();
+        for (String t : existsTables) {
+            existsSet.add(t);
+            existsSet.add(t.toLowerCase());
+        }
         EtlSource source = sourceService.getSource(sourceId);
         if (source == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
         }
         try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
-            connection.setSchema(dbName);
+            // 各数据库注释回退：构建 commentFallback，key 优先为 schema.table，其次为 table
+            Map<String, String> commentFallback = new HashMap<>();
+            String url = Optional.ofNullable(source.getUrl()).orElse("").toLowerCase();
+            // MySQL: information_schema.tables
+            if (url.startsWith("jdbc:mysql")) {
+                try (var ps = connection.prepareStatement(
+                        "SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.tables WHERE TABLE_SCHEMA = ?")) {
+                    ps.setString(1, dbName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            String tbl = rs.getString("TABLE_NAME");
+                            String cmt = Optional.ofNullable(rs.getString("TABLE_COMMENT")).orElse("");
+                            commentFallback.put(tbl, cmt);
+                        }
+                    }
+                } catch (SQLException ignore) { /* fallback 不可用时忽略 */ }
+            }
+            // PostgreSQL: pg_class + pg_namespace + obj_description
+            else if (url.startsWith("jdbc:postgresql")) {
+                String sql = "SELECT n.nspname AS schema, c.relname AS table, obj_description(c.oid) AS comment " +
+                             "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind='r'";
+                try (var ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String schema = Optional.ofNullable(rs.getString("schema")).orElse("");
+                        String tbl = rs.getString("table");
+                        String cmt = Optional.ofNullable(rs.getString("comment")).orElse("");
+                        if (!schema.isEmpty()) commentFallback.put(schema + "." + tbl, cmt);
+                        commentFallback.put(tbl, cmt);
+                    }
+                } catch (SQLException ignore) { }
+            }
+            // Oracle: ALL_TAB_COMMENTS（含 owner）
+            else if (url.startsWith("jdbc:oracle")) {
+                String sql = "SELECT OWNER AS schema, TABLE_NAME, COMMENTS FROM ALL_TAB_COMMENTS WHERE TABLE_TYPE='TABLE'";
+                try (var ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String schema = Optional.ofNullable(rs.getString("schema")).orElse("");
+                        String tbl = rs.getString("TABLE_NAME");
+                        String cmt = Optional.ofNullable(rs.getString("COMMENTS")).orElse("");
+                        // Oracle 标识符默认大写，元数据中 TABLE_SCHEM/TABLE_NAME 多为大写
+                        if (!schema.isEmpty()) commentFallback.put(schema + "." + tbl, cmt);
+                        commentFallback.put(tbl, cmt);
+                    }
+                } catch (SQLException ignore) { }
+            }
+            // SQL Server: sys.tables + sys.schemas + sys.extended_properties('MS_Description')
+            else if (url.startsWith("jdbc:sqlserver")) {
+                String sql = "SELECT s.name AS schema, t.name AS table, CAST(ep.value AS NVARCHAR(4000)) AS comment " +
+                             "FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id " +
+                             "LEFT JOIN sys.extended_properties ep ON ep.major_id = t.object_id AND ep.minor_id = 0 AND ep.class=1 AND ep.name='MS_Description'";
+                try (var ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String schema = Optional.ofNullable(rs.getString("schema")).orElse("");
+                        String tbl = rs.getString("table");
+                        String cmt = Optional.ofNullable(rs.getString("comment")).orElse("");
+                        if (!schema.isEmpty()) commentFallback.put(schema + "." + tbl, cmt);
+                        commentFallback.put(tbl, cmt);
+                    }
+                } catch (SQLException ignore) { }
+            }
+
+            // 按元数据读取所有表
             ResultSet tables = connection.getMetaData().getTables(dbName, null, "%", new String[] {"TABLE"});
             while (tables.next()) {
-                result.add(tables.getString("TABLE_NAME"));
+                String tblName = tables.getString("TABLE_NAME");
+                String schema = Optional.ofNullable(tables.getString("TABLE_SCHEM")).orElse("");
+                if (existsSet.contains(tblName) || existsSet.contains(tblName.toLowerCase())) {
+                    continue;
+                }
+                String remarks = Optional.ofNullable(tables.getString("REMARKS")).orElse("");
+                if (remarks.isEmpty()) {
+                    String key1 = !schema.isEmpty() ? (schema + "." + tblName) : tblName;
+                    remarks = commentFallback.getOrDefault(key1, commentFallback.getOrDefault(tblName, ""));
+                }
+                result.add(new TableMetaDto(tblName, remarks));
             }
-            result.removeAll(existsTables);
         } catch (SQLException e) {
             throw new ApiException(500, e.getMessage());
         }

@@ -57,4 +57,6 @@ public interface EtlTableRepo
 
     @Query("SELECT t FROM EtlTable t JOIN EtlSource s WHERE t.status <> 'X' AND s.enabled = true")
     List<EtlTable> findValidTables();
+
+    List<EtlTable> findBySourceIdAndStatus(int sourceId, boolean b);
 }
