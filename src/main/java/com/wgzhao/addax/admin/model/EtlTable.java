@@ -78,7 +78,7 @@ public class EtlTable {
     @Column(name = "duration", nullable = false)
     private Long duration;
 
-    @Column(name = "tblcomment")
+    @Column(name = "tbl_comment", length = 500)
     private String tblComment;
 
     @Formula("LOWER(source_db || '.' || source_table || target_db || '.' || target_table || part_kind || part_name || filter)")

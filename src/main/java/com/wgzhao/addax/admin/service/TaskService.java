@@ -1,10 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlTable;
-import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -23,18 +21,12 @@ public class TaskService
     private final TaskQueueManager queueManager;
     private final TableService tableService;
 
-    @Autowired
-    private EtlTableRepo etlTableRepo;
-
     public void executeTasksForSource(int sourceId) {
-        List<EtlTable> tables = etlTableRepo.findBySourceIdAndStatus(sourceId, true);
-        log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size());
+        List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
         for (EtlTable table : tables) {
-            if (table.getStatus().equals("Y") || table.getStatus().equals("X")) {
-                continue; // Skip completed or invalid tasks
-            }
             queueManager.getEtlQueue().offer(table);
         }
+        log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size());
     }
 
     /**

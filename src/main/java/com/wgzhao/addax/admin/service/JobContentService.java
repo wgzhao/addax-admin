@@ -2,8 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
-import com.wgzhao.addax.admin.model.EtlSource;
-import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +32,6 @@ public class JobContentService
 
     @Autowired
     private SystemConfigService configService;
-    @Autowired private SourceService sourceService;
 
     public String getJobContent(long tid)
     {
@@ -45,7 +43,7 @@ public class JobContentService
      * 他扫描 tb_imp_etl 任务，然后生成 addax 采集需要的 json 文件模板，并写入到 tb_imp_etl_job 表中
      * 这个方法可以定期运行，确保 tb_imp_etl_job 表中的 json
      */
-    public void updateJob(EtlTable etlTable)
+    public void updateJob(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
             return;
@@ -54,15 +52,14 @@ public class JobContentService
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
         // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
         // 需要根据不同数据库类型做不同的处理
-        EtlSource etlSource = sourceService.getSource(etlTable.getSid());
-        String kind = DbUtil.getKind(etlSource.getUrl());
+        String kind = DbUtil.getKind(etlTable.getUrl());
         String addaxReaderContentTemplate = dictService.getReaderTemplate(kind);
 //        String columns = columnService.getSourceColumns(etlTable.getId());
 
         Map<String, String> params = new HashMap<>();
-        params.put("url", etlSource.getUrl());
-        params.put("username", etlSource.getUsername());
-        params.put("pass", etlSource.getPass());
+        params.put("url", etlTable.getUrl());
+        params.put("username", etlTable.getUsername());
+        params.put("pass", etlTable.getPass());
         params.put("filter", etlTable.getFilter());
         params.put("table_name", "`" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "`");
         List<EtlColumn> columnList = columnService.getColumns(etlTable.getId());

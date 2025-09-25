@@ -39,6 +39,17 @@
 | /etl/updateJob/{tid} | POST  | 立即更新单任务   | /api/v1/tasks/{taskId}/update-job | POST       | path: taskId；返回字符串/状态码        |
 | /etl/execute/{tid}| POST     | 执行采集任务     | /api/v1/tasks/{taskId}/execute    | POST       | path: taskId；返回 Map/状态码          | 
 
+## TaskController（采集任务管理）
+
+| 路径 | HTTP方法 | 说明 | 参数说明/响应结构 |
+|------|----------|------|------------------|
+| /api/v1/tasks/queue | GET | 获取队列状态 | 返回 Map<String, Object>，队列状态信息 |
+| /api/v1/tasks/queue | PATCH | 更改队列监控器状态 | body: {state: 'running' 或 'stopped'}，返回 {success, message} |
+| /api/v1/tasks/queue/actions/reset | POST | 重置采集任务队列 | 返回 {success, message} |
+| /api/v1/tasks/jobs | POST | 立即更新所有采集任务配置 | 返回 {success, message} |
+| /api/v1/tasks/{taskId}/job | PUT | 立即更新单个采集任务配置 | path: taskId，返回 {success, message} |
+| /api/v1/tasks/{taskId}/executions | POST | 执行采集任务 | path: taskId，返回 {taskId, message} |
+
 ---
 
 ## ParamController（参数配置管理）

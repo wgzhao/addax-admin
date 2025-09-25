@@ -8,9 +8,7 @@ import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
-import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.DbUtil;
-import com.wgzhao.addax.admin.utils.FileUtils;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -64,24 +61,29 @@ public class TableService
         if (table == null) {
             return;
         }
+        VwEtlTableWithSource vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null);
+        if (vwTable == null) {
+            log.warn("Table view not found for tid {}", table.getId());
+            return;
+        }
         // 1. 更新列信息
         table.setUpdateFlag("y"); //正在更新
-        if (columnService.updateTableColumns(table) > 0) {
+        if (columnService.updateTableColumns(vwTable) > 0) {
             table.setUpdateFlag("N"); //更新完成
             table.setStatus("N"); //设置为待采集状态
-            etlTableRepo.save(table);
+//            etlTableRepo.save(table);
             log.info("Updated columns for table id {}", table.getId());
             // 更新成功后，重建Hive表
             table.setCreateFlag("y");
-            etlTableRepo.save(table);
-            if (!targetService.createOrUpdateHiveTable(table)) {
+//            etlTableRepo.save(table);
+            if (!targetService.createOrUpdateHiveTable(vwTable)) {
                 log.warn("Failed to update Hive table for tid {}", table.getId());
                 return;
             }
             table.setCreateFlag("N");
             etlTableRepo.save(table);
             // 2. 更新任务文件
-            jobContentService.updateJob(table);
+            jobContentService.updateJob(vwTable);
         }
     }
 
@@ -112,7 +114,7 @@ public class TableService
      * ODS 采集信息
      *
      */
-    public Page<VwEtlTableWithSource> getTablesInfo(int page, int pageSize, String q, String sortField, String sortOrder)
+    public Page<VwEtlTableWithSource> getVwTablesInfo(int page, int pageSize, String q, String sortField, String sortOrder)
     {
 
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
@@ -125,7 +127,7 @@ public class TableService
         }
     }
 
-    public Page<VwEtlTableWithSource> getTablesByStatus(int page, int pageSize, String q, String status, String sortField, String sortOrder)
+    public Page<VwEtlTableWithSource> getVwTablesByStatus(int page, int pageSize, String q, String status, String sortField, String sortOrder)
     {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         return vwEtlTableWithSourceRepo.findByStatusAndFilterColumnContaining(status, q.toUpperCase(), pageable);
@@ -138,72 +140,78 @@ public class TableService
 
 
 
-    public void updateSchema(boolean isForce)
-    {
-        List<EtlTable> etlList;
-        if (isForce) {
-            etlList = etlTableRepo.findAll();
-        }
-        else {
-            etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
-        }
-        for (EtlTable etl : etlList) {
-            if (!updateTableInfo(etl)) {
-                log.warn("failed to add table info for tid {}", etl.getId());
-                continue;
-            }
-            etl.setCreateFlag("N");
-            etl.setUpdateFlag("N");
-            etl.setStatus("N");
-            etlTableRepo.save(etl);
-            // update job table
-            jobContentService.updateJob(etl);
-        }
-    }
-
-    /**
-     * 异步更新表结构
-     *
-     * @param mode "all" 表示全部强制更新；null 表示只更新需要更新的；tid 表示只更新指定表
-     */
-//    @Async
-//    public void updateSchemaAsync(String mode, Long tid)
+//    public void updateSchema(boolean isForce)
 //    {
-//        if (tid != null) {
-//            EtlTable etl = etlTableRepo.findById(tid).orElse(null);
-//            if (etl != null) {
-//                updateTableInfo(etl);
-//                etl.setCreateFlag("N");
-//                etl.setUpdateFlag("N");
-//                etl.setStatus("N");
-//                etlTableRepo.save(etl);
-//                jobContentService.updateJob(etl);
-//            }
-//            return;
+//        List<EtlTable> etlList;
+//        if (isForce) {
+//            etlList = etlTableRepo.findAll();
 //        }
-//        if ("all".equalsIgnoreCase(mode)) {
-//            List<EtlTable> etlList = etlTableRepo.findAll();
-//            for (EtlTable etl : etlList) {
-//                updateTableInfo(etl);
-//                etl.setCreateFlag("N");
-//                etl.setUpdateFlag("N");
-//                etl.setStatus("N");
-//                etlTableRepo.save(etl);
-//                jobContentService.updateJob(etl);
-//            }
-//            return;
+//        else {
+//            etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
 //        }
-//        // 默认只更新需要更新的表
-//        List<EtlTable> etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
 //        for (EtlTable etl : etlList) {
-//            updateTableInfo(etl);
+//            if (!updateTableInfo(etl)) {
+//                log.warn("failed to add table info for tid {}", etl.getId());
+//                continue;
+//            }
 //            etl.setCreateFlag("N");
 //            etl.setUpdateFlag("N");
 //            etl.setStatus("N");
 //            etlTableRepo.save(etl);
+//            // update job table
 //            jobContentService.updateJob(etl);
 //        }
 //    }
+
+    /**
+     * 异步更新表结构
+     *
+     * @param tid 为空表示更新所有表；不为空表示只更新指定表
+     * @param mode "all" 表示全部强制更新；need 表示只更新需要更新的；tid 表示只更新指定表
+     */
+    @Async
+    public void updateSchemaAsync(Long tid, String mode)
+    {
+
+        if (tid != null) {
+            EtlTable etl = etlTableRepo.findById(tid).orElse(null);
+            if (etl != null) {
+                updateTableInfo(etl);
+                etl.setCreateFlag("N");
+                etl.setUpdateFlag("N");
+                etl.setStatus("N");
+                etlTableRepo.save(etl);
+                jobContentService.updateJob(getTableView(tid));
+            }
+            return;
+        }
+        if ("need".equalsIgnoreCase(mode)) {
+            // 默认只更新需要更新的表
+            List<EtlTable> etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
+            for (EtlTable etl : etlList) {
+                updateTableInfo(etl);
+                etl.setCreateFlag("N");
+                etl.setUpdateFlag("N");
+                etl.setStatus("N");
+                etlTableRepo.save(etl);
+                jobContentService.updateJob(getTableView(etl.getId()));
+            }
+            return ;
+        }
+        if ("all".equalsIgnoreCase(mode)) {
+            List<EtlTable> etlList = etlTableRepo.findAll();
+            for (EtlTable etl : etlList) {
+                updateTableInfo(etl);
+                etl.setCreateFlag("N");
+                etl.setUpdateFlag("N");
+                etl.setStatus("N");
+                etlTableRepo.save(etl);
+                jobContentService.updateJob(getTableView(tid));
+            }
+            return;
+        }
+
+    }
 
 //    public void updateStatusAndFlag(List<Long> ids, String status, int retryCnt)
 //    {
@@ -240,6 +248,11 @@ public class TableService
         return etlTableRepo.findById(tid).orElse(null);
     }
 
+    public VwEtlTableWithSource getTableView(long tid)
+    {
+        return vwEtlTableWithSourceRepo.findById(tid).orElse(null);
+    }
+
     public void setRunning(EtlTable task)
     {
         task.setStatus("R");
@@ -274,6 +287,17 @@ public class TableService
         return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime);
     }
 
+    public List<EtlTable> getRunnableTasks(int sourceId)
+    {
+        LocalTime switchTime = dictService.getSwitchTimeAsTime();
+        LocalTime currentTime = LocalDateTime.now().toLocalTime();
+        boolean checkTime = currentTime.isAfter(switchTime);
+        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)
+                .stream()
+                .filter(t -> t.getSid() == sourceId)
+                .toList();
+    }
+
     public Integer getValidTableCount()
     {
         return etlTableRepo.findValidTableCount();
@@ -282,6 +306,11 @@ public class TableService
     public List<EtlTable> getValidTables()
     {
         return etlTableRepo.findValidTables();
+    }
+
+    public List<VwEtlTableWithSource> getValidTableViews()
+    {
+        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot("X");
     }
 
     public void resetAllFlags()
@@ -336,9 +365,6 @@ public class TableService
             int columnCount = metaData.getColumnCount();
             EtlColumn etlColumn = new EtlColumn();
             etlColumn.setTid(etlTable.getId());
-
-            String tableComment = DbUtil.getTableComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable());
-            etlColumn.setTblComment(tableComment);
             List<String> hiveColumns = new ArrayList<>();
             for (int i = 1; i <= columnCount; i++) {
                 etlColumn.setColumnId(i);

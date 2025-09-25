@@ -33,9 +33,7 @@ public class VwEtlTableWithSource {
     private String updateFlag;
     private String createFlag;
     private Integer retryCnt;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
     private Integer sid;
     private Integer duration;
@@ -46,6 +44,7 @@ public class VwEtlTableWithSource {
     private String pass;
     private String startAt;
     private Boolean enabled;
+    private String tblComment;
     @Formula("UPPER(concat_ws('|', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , code, name))")
     private String filterColumn;
 }

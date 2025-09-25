@@ -12,7 +12,7 @@ import com.wgzhao.addax.admin.service.TableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,15 +29,13 @@ import java.util.concurrent.CompletableFuture;
 @Tag(name = "采集表配置管理接口")
 @RestController
 @RequestMapping("/tables")
+@AllArgsConstructor
 public class TableController {
 
-    @Autowired
-    private TableService tableService;
-    @Autowired
-    private EtlTableRepo etlTableRepo;
-    @Autowired
-    private StatService statService;
-    @Autowired private ColumnService columnService;
+    private final TableService tableService;
+    private final EtlTableRepo etlTableRepo;
+    private final StatService statService;
+    private final ColumnService columnService;
 
     // 分页查询采集表
     @Operation(summary = "分页查询采集表")
@@ -53,9 +51,9 @@ public class TableController {
         if (pageSize == -1) pageSize = Integer.MAX_VALUE;
         Page<VwEtlTableWithSource> result;
         if (status != null && !status.isEmpty()) {
-            result = tableService.getTablesByStatus(page, pageSize, q, status, sortField, sortOrder);
+            result = tableService.getVwTablesByStatus(page, pageSize, q, status, sortField, sortOrder);
         } else {
-            result = tableService.getTablesInfo(page, pageSize, q, sortField, sortOrder);
+            result = tableService.getVwTablesInfo(page, pageSize, q, sortField, sortOrder);
         }
         return ResponseEntity.ok(result);
     }
@@ -110,7 +108,7 @@ public class TableController {
 
     @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
-    public ResponseEntity<Void> refreshAllTableResources() {
+    public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode) {
         CompletableFuture.runAsync(tableService::refreshAllTableResources);
         return ResponseEntity.accepted().build();
     }
@@ -124,14 +122,6 @@ public class TableController {
         }
         CompletableFuture.runAsync(() -> tableService.refreshTableResources(tableId));
         return ResponseEntity.accepted().build();
-    }
-
-    // 更新表结构
-    @Operation(summary = "更新表结构")
-    @PostMapping("/update-schema")
-    public ResponseEntity<String> updateSchema(@RequestBody Map<String, Object> params) {
-        // 具体实现略
-        return ResponseEntity.ok("Schema updated");
     }
 
     // 批量更新表状态
@@ -157,4 +147,14 @@ public class TableController {
         // 具体实现略
         return ResponseEntity.ok("Addax Job Template");
     }
+
+//    // 对单个表执行采集任务
+//    @Operation(summary = "执行采集任务", description = "根据采集表ID立即执行单个采集任务")
+//    @PostMapping("/{tableId}/actions/collect")
+//    public ResponseEntity<Map<String, Object>> executeTableTask(
+//            @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
+//        EtlTable etlTable = tableService.getTable(tableId);
+//        if (etlTable == null) {
+//            throw new ApiException(404, "Table not found");
+//        }
 }

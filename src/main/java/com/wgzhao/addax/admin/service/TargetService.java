@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.model.EtlColumn;
-import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import lombok.AllArgsConstructor;
@@ -28,19 +27,19 @@ public class TargetService
     private final DictService dictService;
     private final ColumnService columnService;
 
-    public boolean createOrUpdateHiveTable(EtlTable etlTable)
+    public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
     {
         List<String> hiveColumns = columnService.getHiveColumns(etlTable.getId());
         String createTableSql = """
-                    create database if not exists `%s` location '%s/%s';
-                    create external table if not exists `%s`.`%s` (
-                    %s
-                    ) comment '%s'
-                    partitioned by ( `%s` string )
-                     stored as %s
-                     location '%s/%s/%s'
-                     tblproperties ('external.table.purge'='true', 'discover.partitions'='true', 'orc.compress'='%s', 'snappy.compress'='%s')
-                    """.formatted(etlTable.getTargetDb(), dictService.getHdfsPrefix(), etlTable.getTargetDb(),
+                create database if not exists `%s` location '%s/%s';
+                create external table if not exists `%s`.`%s` (
+                %s
+                ) comment '%s'
+                partitioned by ( `%s` string )
+                 stored as %s
+                 location '%s/%s/%s'
+                 tblproperties ('external.table.purge'='true', 'discover.partitions'='true', 'orc.compress'='%s', 'snappy.compress'='%s')
+                """.formatted(etlTable.getTargetDb(), dictService.getHdfsPrefix(), etlTable.getTargetDb(),
                 etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(), etlTable.getPartName(),
                 dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), etlTable.getTargetDb(), etlTable.getTargetTable(),
                 dictService.getHdfsCompress(), dictService.getHdfsCompress()
@@ -50,7 +49,8 @@ public class TargetService
         String sqlPath;
         try {
             sqlPath = FileUtils.writeToTempFile("hive_ddl_", createTableSql);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             log.warn("failed to write create table sql to temporary file", e);
             return false;
         }

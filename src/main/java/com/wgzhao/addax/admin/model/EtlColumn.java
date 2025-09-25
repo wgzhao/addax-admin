@@ -34,9 +34,6 @@ public class EtlColumn {
     @Column(name = "data_scale")
     private Integer dataScale;
 
-    @Column(name = "tbl_comment", length = 4000)
-    private String tblComment;
-
     @Column(name = "col_comment", length = 4000)
     private String colComment;
 

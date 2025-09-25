@@ -3,8 +3,10 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +55,7 @@ public class ColumnService
      * @param etlTable etl_table 表记录
      * @return 0 表示无需更新, 1 表示字段有更新，-1 表示更新失败
      */
-    public int updateTableColumns(EtlTable etlTable)
+    public int updateTableColumns(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
             return 0;
@@ -63,17 +65,10 @@ public class ColumnService
             // 第一次创建，直接全量写入
             return createTableColumns(etlTable) ? 1 : -1;
         }
-        // 获取数据库连接信息
-        int sourceId = etlTable.getSid();
-        EtlSource dbInfo = etlSourceRepo.findById(sourceId).orElse(null);
-        if (dbInfo == null) {
-            log.warn("cannot find source info for id {}", sourceId);
-            return -1;
-        }
         // 获取源表的字段信息
-        Connection connection = DbUtil.getConnect(dbInfo.getUrl(), dbInfo.getUsername(), dbInfo.getPass());
+        Connection connection = DbUtil.getConnect(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
         if (connection == null) {
-            log.warn("failed to get connection for source {}", sourceId);
+            log.warn("failed to get connection for source {}", etlTable.getUrl());
             return -1;
         }
 
@@ -88,7 +83,6 @@ public class ColumnService
 
             // 构造源端列信息列表（保持顺序）
             List<EtlColumn> sourceCols = new ArrayList<>(n);
-            String tableComment = DbUtil.getTableComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable());
             for (int i = 1; i <= n; i++) {
                 EtlColumn sc = new EtlColumn();
                 sc.setTid(etlTable.getId());
@@ -98,7 +92,6 @@ public class ColumnService
                 sc.setDataLength(md.getColumnDisplaySize(i));
                 sc.setDataPrecision(md.getPrecision(i));
                 sc.setDataScale(md.getScale(i));
-                sc.setTblComment(tableComment);
                 String colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), md.getColumnName(i));
                 sc.setColComment(colComment);
                 String hiveType = hiveTypeMapping.getOrDefault(sc.getSourceType(), "string");
@@ -143,20 +136,11 @@ public class ColumnService
                         oc.setDataPrecision(sc.getDataPrecision());
                         oc.setDataScale(sc.getDataScale());
                         oc.setColComment(sc.getColComment());
-                        oc.setTblComment(sc.getTblComment());
                         oc.setTargetType(sc.getTargetType());
                         oc.setTargetTypeFull(sc.getTargetTypeFull());
                         etlColumnRepo.save(oc);
                         changed = true;
-                    } else {
-                        // 注释变更也可以同步（不会影响返回值）
-                        if (!Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()))
-                                || !Objects.equals(nvlStr(oc.getTblComment()), nvlStr(sc.getTblComment()))) {
-                            oc.setColComment(sc.getColComment());
-                            oc.setTblComment(sc.getTblComment());
-                            etlColumnRepo.save(oc);
-                        }
-                    }
+                    } // else 类型未变化，不做处理
                     o++; s++;
                 } else {
                     // 名称不一致 -> 视为源删除了 origin 当前位置的列
@@ -192,7 +176,6 @@ public class ColumnService
                 nc.setDataLength(sc.getDataLength());
                 nc.setDataPrecision(sc.getDataPrecision());
                 nc.setDataScale(sc.getDataScale());
-                nc.setTblComment(sc.getTblComment());
                 nc.setColComment(sc.getColComment());
                 nc.setTargetType(sc.getTargetType());
                 nc.setTargetTypeFull(sc.getTargetTypeFull());
@@ -223,21 +206,14 @@ public class ColumnService
      * @param etlTable etl_table 表记录
      * @return true 成功，false 失败
      */
-    public boolean createTableColumns(EtlTable etlTable)
+    public boolean createTableColumns(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
             return false;
         }
-        // 获取数据库连接信息
-        int sourceId = etlTable.getSid();
-        EtlSource dbInfo = etlSourceRepo.findById(sourceId).orElse(null);
-        if (dbInfo == null) {
-            log.warn("cannot find source info for id {}", sourceId);
-            return false;
-        }
-        Connection connection = DbUtil.getConnect(dbInfo.getUrl(), dbInfo.getUsername(), dbInfo.getPass());
+        Connection connection = DbUtil.getConnect(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
         if (connection == null) {
-            log.warn("cannot get connection for id {}", sourceId);
+            log.warn("cannot get connection for id {}", etlTable.getUrl());
             return false;
         }
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
@@ -245,7 +221,6 @@ public class ColumnService
         try (ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
             ResultSetMetaData metaData = resultSet.getMetaData();
             int columnCount = metaData.getColumnCount();
-            String tableComment = DbUtil.getTableComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable());
             for (int i = 1; i <= columnCount; i++) {
                 EtlColumn etlColumn = new EtlColumn();
                 etlColumn.setTid(etlTable.getId());
@@ -257,7 +232,6 @@ public class ColumnService
                 etlColumn.setDataScale(metaData.getScale(i));
                 String colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), metaData.getColumnName(i));
                 etlColumn.setColComment(colComment);
-                etlColumn.setTblComment(tableComment);
                 String hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i), "string");
                 etlColumn.setTargetType(hiveType);
                 if (Objects.equals(hiveType, "decimal")) {

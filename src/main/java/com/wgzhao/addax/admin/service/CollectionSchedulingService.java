@@ -2,14 +2,17 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
-import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
 import java.util.List;
 
 @Service
+@Slf4j
 public class CollectionSchedulingService {
 
     @Autowired
@@ -24,19 +27,25 @@ public class CollectionSchedulingService {
     @Autowired
     private SystemConfigService systemConfigService;
 
-    @PostConstruct
-    public void initializeSchedules() {
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
         rescheduleAllTasks();
     }
 
     public void rescheduleAllTasks() {
-        // Schedule collection tasks for each source
-        List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
-        for (EtlSource source : sources) {
-            scheduleOrUpdateTask(source);
+        try {
+            // Schedule collection tasks for each source
+            List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
+            for (EtlSource source : sources) {
+                scheduleOrUpdateTask(source);
+            }
+            // Schedule the daily parameter update task
+            scheduleDailyParamUpdate();
+        } catch (Exception e) {
+            // 记录详细异常，便于排查
+           log.error("Error in rescheduleAllTasks: " , e);
+            e.printStackTrace();
         }
-        // Schedule the daily parameter update task
-        scheduleDailyParamUpdate();
     }
 
     private void scheduleDailyParamUpdate() {

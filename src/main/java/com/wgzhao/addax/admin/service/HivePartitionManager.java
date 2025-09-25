@@ -1,42 +1,43 @@
 //package com.wgzhao.addax.admin.service;
 //
+//import lombok.extern.slf4j.Slf4j;
 //import org.apache.hadoop.hive.conf.HiveConf;
-//import org.apache.hadoop.hive.metastore.HiveMetaStore;
 //import org.apache.hadoop.hive.ql.metadata.Hive;
 //import org.apache.hadoop.hive.ql.metadata.HiveException;
 //import org.apache.hadoop.hive.ql.metadata.Partition;
 //import org.apache.hadoop.hive.ql.metadata.Table;
+//import org.apache.hadoop.conf.Configuration;
 //import org.springframework.stereotype.Service;
 //
 //import java.util.HashMap;
 //import java.util.Map;
 //
 //@Service
+//@Slf4j
 //public class HivePartitionManager
 //{
 //
 //    public void addPartition(String dbName, String tableName, Map<String, String> partitionSpec)
 //            throws HiveException
 //    {
-//
 //        // 初始化 Hive 配置
 //        HiveConf hiveConf = new HiveConf();
-//        hiveConf.set("javax.jnlp.start", "true");
-//        hiveConf.set("hive.metastore.uris", "thrift://nn01:9083");
+////        hiveConf.set("javax.jnlp.start", "true");
+//        hiveConf.set("hive.metastore.uris", "thrift://188.166.1.84:9083");
 //        // 获取 Hive 元数据客户端
 //        Hive hive = Hive.get(hiveConf);
+////        hive.setMetaConf("hive.metastore.uris", "thrift://188.166.1.84:9083");
 //        Table table = hive.getTable(dbName, tableName);
 //        // 创建分区
-//
 //        // 检查分区是否已存在
 //        if (hive.getPartition(table, partitionSpec, false) != null) {
-//            System.out.println("分区已存在：" + partitionSpec);
+//            log.info("分区已存在：{}",  partitionSpec);
 //            return;
 //        }
 //
 //        // 创建分区并添加到表
 //        Partition partition = hive.createPartition(table, partitionSpec);
-//        System.out.println("成功添加分区：" + partitionSpec);
+//        log.info("成功添加分区：{}" ,  partition);
 //    }
 //
 //    /**

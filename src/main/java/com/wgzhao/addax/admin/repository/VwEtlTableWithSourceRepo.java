@@ -9,14 +9,15 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface VwEtlTableWithSourceRepo extends JpaRepository<VwEtlTableWithSource, Long> {
-    // 可根据需要添加自定义查询方法
-    Page<VwEtlTableWithSource> findByNameContainingIgnoreCase(String sourceName, Pageable pageable);
-    Page<VwEtlTableWithSource> findByStatusAndNameContainingIgnoreCase(String status, String sourceName, Pageable pageable);
+public interface VwEtlTableWithSourceRepo
+        extends JpaRepository<VwEtlTableWithSource, Long>
+{
 
     Page<VwEtlTableWithSource> findByStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);
 
     Page<VwEtlTableWithSource> findByFilterColumnContaining(String filterContent, Pageable pageable);
 
     List<VwEtlTableWithSource> findBySidAndSourceDb(int sid, String db);
+
+    List<VwEtlTableWithSource> findByEnabledTrueAndStatusNot(String x);
 }

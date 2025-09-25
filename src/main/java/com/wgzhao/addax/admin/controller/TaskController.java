@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskService;
@@ -72,7 +73,7 @@ public class TaskController {
     @Operation(summary = "立即更新所有任务", description = "立即更新所有有效的采集任务的配置")
     @PostMapping("/jobs")
     public ResponseEntity<Map<String, Object>> updateAllJobs() {
-        for (EtlTable table : tableService.getValidTables()) {
+        for (VwEtlTableWithSource table : tableService.getValidTableViews()) {
             jobContentService.updateJob(table);
         }
         return ResponseEntity.ok(Map.of("success", true, "message", "success"));
@@ -83,7 +84,7 @@ public class TaskController {
     @PutMapping("/{taskId}/job")
     public ResponseEntity<Map<String, Object>> updateJob(
             @Parameter(description = "任务ID") @PathVariable("taskId") long taskId) {
-        jobContentService.updateJob(tableService.getTable(taskId));
+        jobContentService.updateJob(tableService.getTableView(taskId));
         return ResponseEntity.ok(Map.of("success", true, "message", "success"));
     }
 

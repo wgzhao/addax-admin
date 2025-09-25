@@ -20,12 +20,6 @@ public class DateService
 
     private static final  DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-
-    public String getLtd() {
-        String curDate =  LocalDate.now().format(sdf);
-        return sysItemRepo.getLastBizDateList(curDate).getFirst();
-    }
-
     public String getShortDate() {
         return  LocalDate.now().format(sdf);
     }
