@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.repository.NotificationRepo;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,11 +21,10 @@ import java.util.List;
 @Tag(name = "alert")
 @RequestMapping("/alert")
 @RestController
+@AllArgsConstructor
 public class AlertController
 {
-
-    @Autowired
-    private NotificationRepo notificationRepo;
+    private final NotificationRepo notificationRepo;
 
     /**
      * 查询数据中心消息提醒总表数据

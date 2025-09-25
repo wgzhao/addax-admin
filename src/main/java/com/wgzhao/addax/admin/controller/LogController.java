@@ -35,14 +35,14 @@ public class LogController {
     private StatService statService;
 
     // 获取指定 SP 的日志列表
-    @GetMapping("/addaxLog/list/{tid}")
+    @GetMapping("/{tid}")
     public ApiResponse<List<AddaxLogDto>> getSpLog(@PathVariable("tid") String tid)
     {
         return ApiResponse.success(addaxLogService.getLogEntry(tid));
     }
 
     // 获取指定日志文件的内容
-    @GetMapping("/addaxLog/content/{id}")
+    @GetMapping("/{id}/content")
     public ApiResponse<String> getLogFileContent(@PathVariable("id") Long id)
     {
         Optional<AddaxLog> addaxLog = addaxLogService.getLogContent(id);

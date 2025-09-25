@@ -23,7 +23,7 @@ public class PlanController
     @Autowired
     private TbImpPlanService tbImpPlanService;
 
-    @GetMapping({"/list", "/"})
+    @GetMapping("")
     public ApiResponse<List<TbImpPlan>> getAllImpPlan() {
         return ApiResponse.success(tbImpPlanService.findAll());
     }

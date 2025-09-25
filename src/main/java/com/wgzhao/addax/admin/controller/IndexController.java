@@ -4,7 +4,9 @@ import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,48 +19,52 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/dashboard")
+@AllArgsConstructor
 public class IndexController
 {
 
-    @Autowired
-    private StatService statService;
-
-    @Autowired
-    private SourceService sourceService;
-    @Autowired private TableService tableService;
+    private final StatService statService;
+    private final SourceService sourceService;
+    private final TableService tableService;
 
     // 各数据源采集完成率，用于图表展示
-    @RequestMapping("/accomplishRatio")
-    public ApiResponse<List<Map<String, Object>>> accompListRatio() {
-        return ApiResponse.success(statService.statLastAccompRatio());
+    @RequestMapping("/accomplish-ratio")
+    public ResponseEntity<List<Map<String, Object>>> accomplishRatio()
+    {
+        return ResponseEntity.ok(statService.statLastAccompRatio());
     }
 
     //  最近5天采集耗时对比
-    @RequestMapping("/last5DaysEtlTime")
-    public ApiResponse<List<Map<String, Object>>> last5DaysEtlTime() {
-        return ApiResponse.success(statService.statLast5DaysTimeBySource());
+    @RequestMapping("/last-5d-collect-time")
+    public ResponseEntity<List<Map<String, Object>>> last5DaysEtlTime()
+    {
+        return ResponseEntity.ok(statService.statLast5DaysTimeBySource());
     }
 
     // 最近交易日采集的数据量， 以 GB 为单位
-    @RequestMapping("/lastEtlData")
-    public ApiResponse<Double> lastEtlData() {
-        return ApiResponse.success(statService.statTotalData());
+    @RequestMapping("/last-collect-data")
+    public ResponseEntity<Double> lastEtlData()
+    {
+        return ResponseEntity.ok(statService.statTotalData());
     }
 
     // 获取最近12个月的采集累计数据量，单位为 GiB
-    @RequestMapping("/last12MonthsEtlData")
-    public ApiResponse<List<Map<String, Object>>> last12MonthsEtlData() {
-        return ApiResponse.success(statService.statLast12MonthsData());
-    }
-
-    @RequestMapping("/tableCount")
-    public ApiResponse<Integer> tableCount() {
-        return ApiResponse.success(tableService.getValidTableCount());
-    }
-
-    @GetMapping("/sourceCount")
-    public ApiResponse<Integer> sourceCount()
+    @RequestMapping("/last-12m-data")
+    public ResponseEntity<?> last12MonthsData()
     {
-        return ApiResponse.success(sourceService.getValidSources());
+        // Adjusted method signature for consistency
+        return ResponseEntity.ok(statService.statLast12MonthsData());
+    }
+
+    @RequestMapping("/collect-table-count")
+    public ResponseEntity<Integer> tableCount()
+    {
+        return ResponseEntity.ok(tableService.getValidTableCount());
+    }
+
+    @GetMapping("/collect-source-count")
+    public ResponseEntity<Integer> sourceCount()
+    {
+        return ResponseEntity.ok(sourceService.getValidSources());
     }
 }
