@@ -48,7 +48,10 @@ public class SourceController {
 
     @PostMapping("")
     public ResponseEntity<EtlSource> createSource(@RequestBody EtlSource etlSource) {
-        EtlSource saved = sourceService.save(etlSource);
+        if (etlSource.getId()  > 0) {
+            throw new ApiException(400, "Source ID must not be provided when creating a new source");
+        }
+        EtlSource saved = sourceService.create(etlSource);
         return ResponseEntity.status(201).body(saved);
     }
 
@@ -68,7 +71,8 @@ public class SourceController {
         if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
             throw new ApiException(400, "Source code cannot be modified");
         }
-        sourceService.save(etlSource);
+        boolean needUpdateSchedule = existing.getStartAt() == etlSource.getStartAt();
+        sourceService.save(etlSource, needUpdateSchedule);
         return ResponseEntity.ok(1);
     }
 

@@ -47,7 +47,7 @@ public class CollectionSchedulingService {
     }
 
     public void scheduleOrUpdateTask(EtlSource source) {
-        String taskId = "source-" + source.getId();
+        String taskId = "source-" + source.getCode();
         if (source.isEnabled() && source.getStartAt() != null) {
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
             Runnable task = () -> taskService.executeTasksForSource(source.getId());
@@ -57,8 +57,8 @@ public class CollectionSchedulingService {
         }
     }
 
-    public void cancelTask(int sourceId) {
-        String taskId = "source-" + sourceId;
+    public void cancelTask(String code) {
+        String taskId = "source-" + code;
         taskSchedulerService.cancelTask(taskId);
     }
 
