@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
+
 @Service
 @Slf4j
 public class JobContentService
@@ -48,7 +50,7 @@ public class JobContentService
         if (etlTable == null) {
             return;
         }
-        log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(),etlTable.getId());
+        log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(), etlTable.getId());
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
         // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
         // 需要根据不同数据库类型做不同的处理
@@ -70,8 +72,18 @@ public class JobContentService
                 """;
         List<String> destColumns = new ArrayList<>();
         for (EtlColumn etlColumn : columnList) {
-            srcColumns.add("\"" + etlColumn.getColumnName() + "\"");
-            destColumns.add(typeTemplate.formatted(etlColumn.getColumnName(), etlColumn.getTargetTypeFull()));
+            String columnName = etlColumn.getColumnName();
+            String targetColumn = typeTemplate.formatted(columnName, etlColumn.getTargetTypeFull());
+            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
+                // 被标记为删除的字段，那么使用 null 来填充该字段
+                srcColumns.add("\"NULL\"");
+                // 目标表字段名还是正常的字段名
+                targetColumn = typeTemplate.formatted(columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()), etlColumn.getTargetTypeFull());
+            }
+            else {
+                srcColumns.add("\"" +columnName + "\"");
+            }
+            destColumns.add(targetColumn);
         }
         params.put("column", String.join(",", srcColumns));
         addaxReaderContentTemplate = replacePlaceholders(addaxReaderContentTemplate, params);
@@ -79,7 +91,7 @@ public class JobContentService
         String addaxWriterTemplate = dictService.getItemValue(5001, "wH", String.class);
         // col_idx = 1000 的字段为分区字段，不参与 select
         //TODO 路径结合应该考虑尾部 / 的问题
-        String hdfsPath = configService.getHDFSPrefix() +  "/" + etlTable.getTargetDb() + "/" + etlTable.getTargetTable();
+        String hdfsPath = configService.getHDFSPrefix() + "/" + etlTable.getTargetDb() + "/" + etlTable.getTargetTable();
         if (!etlTable.getPartName().isEmpty()) {
             hdfsPath += "/" + etlTable.getPartName() + "=${logdate}";
         }

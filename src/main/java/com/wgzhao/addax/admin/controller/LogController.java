@@ -50,7 +50,7 @@ public class LogController {
     }
 
 
-    @PostMapping(value = "/jobReport", consumes = "application/json")
+    @PostMapping(value = "/job-report", consumes = "application/json")
     public boolean jobReport(@RequestBody AddaxReportDto dto) {
         log.info("job report: {}", dto);
         EtlStatistic sta = new EtlStatistic();

@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,6 +37,7 @@ public class TableController {
     private final EtlTableRepo etlTableRepo;
     private final StatService statService;
     private final ColumnService columnService;
+    private final JobContentService jobContentService;
 
     // 分页查询采集表
     @Operation(summary = "分页查询采集表")
@@ -145,7 +147,12 @@ public class TableController {
     @GetMapping("/{tableId}/addax-job")
     public ResponseEntity<String> getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
         // 具体实现略
-        return ResponseEntity.ok("Addax Job Template");
+        String job = jobContentService.getJobContent(tableId);
+        if (job == null || job.isEmpty()) {
+            throw new ApiException(404, "Job not found");
+        } else {
+            return ResponseEntity.ok(job);
+        }
     }
 
 //    // 对单个表执行采集任务

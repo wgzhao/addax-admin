@@ -1,11 +1,9 @@
 package com.wgzhao.addax.admin.controller;
 
-import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

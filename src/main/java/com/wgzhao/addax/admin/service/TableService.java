@@ -78,9 +78,12 @@ public class TableService
 //            etlTableRepo.save(table);
             if (!targetService.createOrUpdateHiveTable(vwTable)) {
                 log.warn("Failed to update Hive table for tid {}", table.getId());
-                return;
+                // TODO: 这里是否应该继续后面的流程，后续手工只需要补救 Hive 表即可
+                table.setCreateFlag("Y"); //创建失败
+//                return;
+            } else {
+                table.setCreateFlag("N");
             }
-            table.setCreateFlag("N");
             etlTableRepo.save(table);
             // 2. 更新任务文件
             jobContentService.updateJob(vwTable);

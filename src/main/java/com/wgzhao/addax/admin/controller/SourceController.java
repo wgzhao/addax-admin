@@ -116,21 +116,21 @@ public class SourceController
             )
     )
     @PostMapping("/test-connect")
-    public ApiResponse<Boolean> testConnect(@RequestBody DbConnectDto payload)
+    public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload)
     {
         boolean isConnected = DbUtil.testConnection(payload.getUrl(), payload.getUsername(), payload.getPassword());
-        return ApiResponse.success(isConnected);
+        return ResponseEntity.ok(isConnected);
     }
 
     @Operation(summary = "检查编号是否存在", description = "检查数据源编号是否已存在")
     @GetMapping("/check-code")
-    public ApiResponse<Boolean> checkCode(
+    public ResponseEntity<Boolean> checkCode(
             @Parameter(description = "数据源编号", example = "SRC001", required = true) @RequestParam(value = "code") String code)
     {
         if (code == null || code.isEmpty()) {
-            return ApiResponse.success(false);
+            return ResponseEntity.ok(false);
         }
-        return ApiResponse.success(sourceService.checkCode(code));
+        return ResponseEntity.ok(sourceService.checkCode(code));
     }
 
     @Operation(summary = "查询采集源下所有数据库", description = "根据 sourceId 查询该采集源下所有数据库名称")

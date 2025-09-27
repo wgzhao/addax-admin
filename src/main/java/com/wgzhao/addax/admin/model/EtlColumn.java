@@ -15,10 +15,10 @@ public class EtlColumn {
     @Column(name = "tid", nullable = false)
     private Long tid;
 
-    @Id
     @Column(name = "column_name", length = 255)
     private String columnName;
 
+    @Id
     @Column(name = "column_id")
     private int columnId;
 

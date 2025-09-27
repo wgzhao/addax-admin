@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
+
 /**
  * 采集表字段信息管理
  */
@@ -31,13 +33,6 @@ public class ColumnService
 {
     private final EtlColumnRepo etlColumnRepo;
     private final DictService dictService;
-    private final EtlSourceRepo etlSourceRepo;
-
-    private static final String DELETED_PLACEHOLDER_PREFIX = "__deleted__";
-    //  获取采集表的源表字段，使用逗号分隔
-    public String getSourceAggColumns(long tid) {
-        return etlColumnRepo.getAllColumns(tid);
-    }
 
     public List<EtlColumn> getColumns(long tid) {
         return etlColumnRepo.findAllByTidOrderByColumnId(tid);
@@ -60,8 +55,8 @@ public class ColumnService
         if (etlTable == null) {
             return 0;
         }
-        List<EtlColumn> originColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.getId());
-        if (originColumns == null || originColumns.isEmpty()) {
+        List<EtlColumn> existingColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.getId());
+        if (existingColumns == null || existingColumns.isEmpty()) {
             // 第一次创建，直接全量写入
             return createTableColumns(etlTable) ? 1 : -1;
         }
@@ -106,12 +101,12 @@ public class ColumnService
             }
 
             // 双指针对齐比较
-            int o = 0; // origin index
-            int s = 0; // source index
-            int m = originColumns.size();
+            int o = 0; // 当前已经存在的字段索引 index
+            int s = 0; // 当前采集表源字段索引 index
+            int m = existingColumns.size();
 
             while (o < m && s < n) {
-                EtlColumn oc = originColumns.get(o);
+                EtlColumn oc = existingColumns.get(o);
                 // 跳过已删除占位
                 if (isDeletedPlaceholder(oc.getColumnName())) {
                     o++;
@@ -146,6 +141,7 @@ public class ColumnService
                     // 名称不一致 -> 视为源删除了 origin 当前位置的列
                     String placeholder = DELETED_PLACEHOLDER_PREFIX  + oc.getColumnName();
                     oc.setColumnName(placeholder);
+                    // 这里要注意该表必须有主键，否则会变成新增记录
                     etlColumnRepo.save(oc);
                     changed = true;
                     o++;
@@ -155,7 +151,7 @@ public class ColumnService
 
             // 剩余历史列 -> 全部标记为删除占位
             while (o < m) {
-                EtlColumn oc = originColumns.get(o++);
+                EtlColumn oc = existingColumns.get(o++);
                 if (!isDeletedPlaceholder(oc.getColumnName())) {
                     String placeholder = DELETED_PLACEHOLDER_PREFIX + oc.getColumnName();
                     oc.setColumnName(placeholder);
