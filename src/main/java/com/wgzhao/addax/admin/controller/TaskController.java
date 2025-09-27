@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import org.springframework.http.ResponseEntity;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -96,20 +98,55 @@ public class TaskController
     // 执行采集任务
     @Operation(summary = "执行采集任务", description = "根据任务ID立即执行单个采集任务")
     @PostMapping("/{taskId}/executions")
-    public ResponseEntity<Map<String, Object>> executeTask(
-            @Parameter(description = "任务ID") @PathVariable("taskId") long taskId)
+    public ResponseEntity<TaskResultDto> executeTask(
+            @Parameter(description = "任务ID") @PathVariable("taskId") long taskId,
+            @Parameter(description = "是否同步执行，默认 false") @RequestParam(name = "isSync", required = false, defaultValue = "false") boolean isSync)
     {
-        EtlTable etlTable = tableService.getTable(taskId);
-        if (etlTable == null) {
-            throw new ApiException(400, "taskId 对应的采集任务不存在");
+        TaskResultDto result;
+        if (isSync) {
+            EtlTable etlTable = tableService.getTable(taskId);
+            if (etlTable == null) {
+                throw new ApiException(400, "taskId 对应的采集任务不存在");
+            }
+            result = queueManager.executeEtlTaskWithConcurrencyControl(etlTable);
+        } else {
+            result = taskService.submitTask(taskId);
         }
-        boolean isSuccess = queueManager.executeEtlTaskWithConcurrencyControl(etlTable);
-        if (!isSuccess) {
-            log.warn("任务执行失败，taskId: {}", taskId);
-            throw new ApiException(500, "任务执行失败，可能是并发数已达上限");
+        return ResponseEntity.ok(result);
+    }
+
+    // 批量异步执行采集任务
+    @Operation(summary = "批量异步执行采集任务", description = "根据任务ID列表异步执行多个采集任务")
+    @PostMapping("/executions/batch")
+    public ResponseEntity<TaskResultDto> executeTasksBatch(
+            @RequestBody(description = "请求体，需包含 taskIds 字段，值为任务ID列表")
+            @org.springframework.web.bind.annotation.RequestBody List<Long> tids)
+    {
+        int successCount = 0;
+        int failCount = 0;
+        TaskResultDto result;
+        for (Long tid : tids) {
+            result = taskService.submitTask(tid);
+            if (result.isSuccess()) {
+                successCount++;
+            }
+            else {
+                failCount++;
+            }
         }
-        else {
-            return ResponseEntity.ok(Map.of("taskId", taskId, "message", "任务已执行"));
+        return ResponseEntity.ok(TaskResultDto.success(
+                String.format("批量任务提交完成: 成功 %d 个，失败 %d 个", successCount, failCount), 0));
+    }
+
+    // 采集任务状态查询
+    @Operation(summary = "采集任务状态查询", description = "查询采集任务的最新状态")
+    @GetMapping("/status")
+    public ResponseEntity<List<Map<String, Object>>> getAllTaskStatus()
+    {
+        List<Map<String, Object>> status = taskService.getAllTaskStatus();
+        if (status == null || status.isEmpty()) {
+            throw new ApiException(404, "Task not found or no status available");
         }
+        return ResponseEntity.ok(status);
     }
 }

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
@@ -191,8 +192,9 @@ public class TaskQueueManager
 
     /**
      * 执行采集任务并控制并发
+     * 返回详细执行结果，包含成功/失败、错误码、消息、耗时等
      */
-    public boolean executeEtlTaskWithConcurrencyControl(EtlTable task)
+    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task)
     {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
@@ -204,17 +206,17 @@ public class TaskQueueManager
             boolean result = executeEtlTaskLogic(task);
 
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0); // seconds
-            log.info("采集任务 {} 执行完成，耗时: {}ms, 结果: {}", tid, duration, result);
+            log.info("采集任务 {} 执行完成，耗时: {}s, 结果: {}", tid, duration, result);
             task.setDuration(duration);
             // 更新任务状态为成功
             if (result) {
                 tableService.setFinished(task);
-                return true;
+                return TaskResultDto.success( "执行成功", duration);
             }
             else {
                 tableService.setFailed(task);
                 alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", tid));
-                return false;
+                return TaskResultDto.failure( "执行失败：Addax 退出非0", duration);
             }
         }
         catch (Exception e) {
@@ -226,7 +228,8 @@ public class TaskQueueManager
 
             // 发送告警
             alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
-            return false;
+            String msg = e.getMessage() == null ? "内部异常" : e.getMessage();
+            return TaskResultDto.failure( "执行异常: " + msg, duration);
         }
         finally {
             // 减少运行任务计数
@@ -287,8 +290,8 @@ public class TaskQueueManager
 
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
         // 设定一个日志文件名的名称
-        String logName = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
-        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + " -Dlog.file.name=" + logName + "' " + tmpFile;
+        String logName = "addax_" + taskId + "_" + System.currentTimeMillis();
+        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + logName + " -Dlog.file.name=" + logName + ".log' " + tmpFile;
         int retCode = executeAddax(cmd, taskId, logName);
         log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode == 0;

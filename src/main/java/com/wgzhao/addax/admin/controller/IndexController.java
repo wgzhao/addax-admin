@@ -47,7 +47,7 @@ public class IndexController
     }
 
     // 获取最近12个月的采集累计数据量，单位为 GiB
-    @RequestMapping("/last-12m-data")
+    @RequestMapping("/last-12m-collect-data")
     public ResponseEntity<?> last12MonthsData()
     {
         // Adjusted method signature for consistency

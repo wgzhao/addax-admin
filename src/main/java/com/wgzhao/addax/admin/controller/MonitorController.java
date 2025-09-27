@@ -58,31 +58,22 @@ public class MonitorController
 
     // 系统风险检测结果
     @RequestMapping("/sys-risk")
-    public ApiResponse<List<TbImpChk>> sysRisk()
+    public ResponseEntity<List<TbImpChk>> sysRisk()
     {
         return null;
     }
 
     // ODS采集源库的字段变更提醒（T-1日结构与T日结构对比）
     @RequestMapping("/field-change")
-    public ApiResponse<List<Object>> odsFieldChange()
+    public ResponseEntity<List<Object>> odsFieldChange()
     {
         return null;
     }
 
     // 短信发送详情
     @RequestMapping("/sms-detail")
-    public ApiResponse<List<Notification>> smsDetail()
+    public ResponseEntity<List<Notification>> smsDetail()
     {
-        Date day;
-        String td = cacheUtil.get("param.TD");
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HHmm");
-        try {
-            day = sdf.parse(td + " 1630");
-            return ApiResponse.success(notificationRepo.findDistinctByCreateAtAfter(day));
-        }
-        catch (ParseException e) {
-            return ApiResponse.error(500, "日期解析错误");
-        }
+        return ResponseEntity.ok(notificationRepo.findAll());
     }
 }

@@ -1,8 +1,10 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -20,6 +22,7 @@ public class TaskService
 {
     private final TaskQueueManager queueManager;
     private final TableService tableService;
+    private final JdbcTemplate jdbcTemplate;
 
     public void executeTasksForSource(int sourceId) {
         List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
@@ -146,5 +149,43 @@ public class TaskService
     // 特殊任务提醒
     public List<EtlTable> findAllSpecialTask() {
         return tableService.findSpecialTasks();
+    }
+
+    // 提交采集任务到队列
+    public boolean submitTask(EtlTable etlTable) {
+        return queueManager.addTaskToQueue(etlTable);
+    }
+
+    public TaskResultDto submitTask(long tableId) {
+        if (queueManager.addTaskToQueue(tableId) ) {
+            return TaskResultDto.success("任务已提交到队列", 0);
+        } else {
+            return TaskResultDto.failure("任务提交失败，可能是队列已满或任务已存在", 0);
+        }
+    }
+
+    public List<Map<String, Object>> getAllTaskStatus()
+    {
+        String sql = """
+                select
+                id,
+                target_db || '.' ||  target_table as tbl,
+                status,
+                start_time,
+                round(case when status in ('E','W') then 0 else extract(epoch from now() - t.start_time ) / b.take_secs  end ,2) as progress
+                from etl_table t
+                left join
+                (
+                select tid,
+                take_secs,
+                row_number() over (partition by tid order by start_at desc) as rn
+                from etl_statistic
+                ) b
+                on t.id = b.tid
+                where rn = 1
+                and t.status not in ('Y', 'X')
+                order by id
+                """;
+        return jdbcTemplate.queryForList(sql);
     }
 }
