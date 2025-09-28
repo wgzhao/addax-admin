@@ -48,17 +48,13 @@ public class EtlTable {
     @Column(name = "filter", length = 2000, nullable = false)
     private String filter;
 
-    @Column(name = "status", length = 1)
-    private String status;
+    @Column(name = "status")
+    @Convert(converter = EtlTableStatusConverter.class)
+    private EtlTableStatus status;
 
     @Column(name = "kind", length = 1)
     private String kind;
 
-    @Column(name = "update_flag", length = 1)
-    private String updateFlag;
-
-    @Column(name = "create_flag", length = 1)
-    private String createFlag;
 
     @Column(name = "retry_cnt")
     private Integer retryCnt;
