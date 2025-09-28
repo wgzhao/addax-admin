@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
@@ -53,6 +55,9 @@ public class TaskQueueManager
     @Autowired
     private TableService tableService;
 
+    @Autowired
+    private EtlJourService jourService;
+
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTable> etlTaskQueue = new ArrayBlockingQueue<>(100);
 
@@ -78,7 +83,8 @@ public class TaskQueueManager
     @Autowired private JobContentService jobContentService;
 
     @PostConstruct
-    public void init() {
+    public void init()
+    {
         startQueueMonitor();
     }
 
@@ -96,8 +102,8 @@ public class TaskQueueManager
         try {
 
             List<EtlTable> tasks = tableService.getRunnableTasks();
-            if(tasks.isEmpty()) {
-                return ;
+            if (tasks.isEmpty()) {
+                return;
             }
             log.info("扫描到 {} 个待采集任务", tasks.size());
 
@@ -211,12 +217,12 @@ public class TaskQueueManager
             // 更新任务状态为成功
             if (result) {
                 tableService.setFinished(task);
-                return TaskResultDto.success( "执行成功", duration);
+                return TaskResultDto.success("执行成功", duration);
             }
             else {
                 tableService.setFailed(task);
                 alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", tid));
-                return TaskResultDto.failure( "执行失败：Addax 退出非0", duration);
+                return TaskResultDto.failure("执行失败：Addax 退出非0", duration);
             }
         }
         catch (Exception e) {
@@ -229,7 +235,7 @@ public class TaskQueueManager
             // 发送告警
             alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
             String msg = e.getMessage() == null ? "内部异常" : e.getMessage();
-            return TaskResultDto.failure( "执行异常: " + msg, duration);
+            return TaskResultDto.failure("执行异常: " + msg, duration);
         }
         finally {
             // 减少运行任务计数
@@ -247,6 +253,7 @@ public class TaskQueueManager
 
         log.info("执行采集任务逻辑: taskId={}, destDB={}, tableName={}",
                 taskId, task.getTargetDb(), task.getTargetTable());
+        // 生成已提交任务流水
 
         String job = jobContentService.getJobContent(taskId);
         if (job == null || job.isEmpty()) {
@@ -259,22 +266,32 @@ public class TaskQueueManager
         // 分区字段的日期格式需要根据采集表中的 part_format 来进行格式化
         String partFormat = task.getPartFormat();
         String bizDate = logDate;
-        if ( ! partFormat.isBlank() && !partFormat.equals("yyyyMMdd")) {
+        if (!partFormat.isBlank() && !partFormat.equals("yyyyMMdd")) {
             bizDate = LocalDate.parse(logDate, DateTimeFormatter.ofPattern("yyyyMMdd"))
                     .format(DateTimeFormatter.ofPattern(partFormat));
         }
         log.info("biz date is {}, dw_clt_date is {}, dw_trade_date is {}", bizDate, dw_clt_date, logDate);
         job = job.replace("${logdate}", bizDate).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", logDate);
-
+        TaskResultDto taskResult;
         if (!Objects.equals(task.getPartName(), "")) {
             // hive 创建分区, 尝试用 hive 命令行创建分区
             String partSql = "alter table %s.%s add if not exists partition (%s='%s')"
                     .formatted(task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDate);
             String hiveCli = dictService.getHiveCli();
             String hiveCmd = hiveCli + " -e \"" + partSql + "\"";
-            int retCode = CommandExecutor.executeWithResult(hiveCmd);
-            if (retCode != 0) {
-                log.warn("创建Hive分区失败，命令: {}", hiveCmd);
+            EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, hiveCmd);
+            taskResult = CommandExecutor.executeWithResult(hiveCmd);
+            if (taskResult.isSuccess()) {
+                etlJour.setStatus(true);
+                etlJour.setDuration(taskResult.getDurationSeconds());
+                jourService.saveJour(etlJour);
+            }
+            else {
+                log.warn("创建Hive分区失败，命令: {}, {}", hiveCmd, taskResult.getMessage());
+                etlJour.setStatus(false);
+                etlJour.setErrorMsg(taskResult.getMessage());
+                etlJour.setDuration(taskResult.getDurationSeconds());
+                jourService.saveJour(etlJour);
                 return false;
             }
         }
@@ -290,11 +307,11 @@ public class TaskQueueManager
 
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
         // 设定一个日志文件名的名称
-        String logName = "addax_" + taskId + "_" + System.currentTimeMillis();
-        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + logName + " -Dlog.file.name=" + logName + ".log' " + tmpFile;
-        int retCode = executeAddax(cmd, taskId, logName);
+        String logName = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
+        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + " -Dlog.file.name=" + logName + "' " + tmpFile;
+        boolean retCode = executeAddax(cmd, taskId, logName);
         log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
-        return retCode == 0;
+        return retCode;
     }
 
     /**
@@ -393,33 +410,24 @@ public class TaskQueueManager
      * @param logName addax 输出的日志文件名
      * @return 程序退出码
      */
-    private int executeAddax(String command, long tid, String logName)
+    private boolean executeAddax(String command, long tid, String logName)
     {
-        Process process = null;
         log.info("Executing command: {}", command);
-        try {
-            process = Runtime.getRuntime().exec(new String[] {"sh", "-c", command});
-            int retCode = process.waitFor();
-            // 记录日志
-            String logContent = FileUtils.readFileContent(dictService.getAddaxHome() + "/log/" + logName);
-            addaxLogService.insertLog(tid, logContent);
+        EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
 
-            if (retCode != 0) {
-                log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, retCode);
-                // 失败时也需要记录日志
-            }
-            return retCode;
+        TaskResultDto taskResult = CommandExecutor.executeWithResult(command);
+        // 记录日志
+        String logContent = FileUtils.readFileContent(dictService.getAddaxHome() + "/log/" + logName);
+        addaxLogService.insertLog(tid, logContent);
+        etlJour.setDuration(taskResult.getDurationSeconds());
+        etlJour.setStatus(true);
+        if (!taskResult.isSuccess()) {
+            log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.getMessage());
+            etlJour.setStatus(false);
+            etlJour.setErrorMsg(taskResult.getMessage());
         }
-        catch (IOException | InterruptedException e) {
-            log.error("Addax 采集任务 {} 执行异常", tid, e);
-            if (process != null) {
-                process.destroy();
-            }
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            return -1;
-        }
+        jourService.saveJour(etlJour);
+        return taskResult.isSuccess();
     }
 
     /**

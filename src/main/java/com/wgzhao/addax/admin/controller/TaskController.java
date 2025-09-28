@@ -144,9 +144,6 @@ public class TaskController
     public ResponseEntity<List<Map<String, Object>>> getAllTaskStatus()
     {
         List<Map<String, Object>> status = taskService.getAllTaskStatus();
-        if (status == null || status.isEmpty()) {
-            throw new ApiException(404, "Task not found or no status available");
-        }
         return ResponseEntity.ok(status);
     }
 }

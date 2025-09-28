@@ -16,7 +16,7 @@ Addax Admin 是一个现代化的 ETL 管理后端服务，为 [Addax](https://g
 
 ## ✨ 主要特性
 
-- 🚀 **现代化架构** - 基于 Spring Boot 3.x 和 Java 21
+- 🚀 **现代化架构** - 基于 Spring Boot 3.5.6 和 Java 21
 - 🔐 **安全认证** - 集成 JWT 令牌认证和 Spring Security
 - 💾 **多数据库支持** - 支持 PostgreSQL、Oracle、SQL Server 等
 - 📊 **RESTful API** - 提供完整的 REST API 接口
@@ -27,7 +27,7 @@ Addax Admin 是一个现代化的 ETL 管理后端服务，为 [Addax](https://g
 ## 🛠 技术栈
 
 ### 核心框架
-- **Spring Boot 3.2.2** - 应用框架
+- **Spring Boot 3.5.6** - 应用框架
 - **Spring Security** - 安全框架
 - **Spring Data JPA** - 数据访问层
 - **Hibernate 6.6.11** - ORM 框架
@@ -47,8 +47,8 @@ Addax Admin 是一个现代化的 ETL 管理后端服务，为 [Addax](https://g
 ### 环境要求
 
 - **Java 21** 或更高版本
-- **Maven 3.6+**
-- **PostgreSQL 12+** (推荐)
+- **Maven 3.8+**
+- **PostgreSQL 15+** (推荐)
 - **Redis 6.0+** (可选，用于缓存)
 
 ### 安装步骤

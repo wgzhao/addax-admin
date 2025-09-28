@@ -1,7 +1,10 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
+import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -35,6 +38,9 @@ public class JobContentService
     @Autowired
     private SystemConfigService configService;
 
+    @Autowired
+    private EtlJourService jourService;
+
     public String getJobContent(long tid)
     {
         return jobRepo.findById(tid).map(EtlJob::getJob).orElse(null);
@@ -45,12 +51,13 @@ public class JobContentService
      * 他扫描 tb_imp_etl 任务，然后生成 addax 采集需要的 json 文件模板，并写入到 tb_imp_etl_job 表中
      * 这个方法可以定期运行，确保 tb_imp_etl_job 表中的 json
      */
-    public void updateJob(VwEtlTableWithSource etlTable)
+    public TaskResultDto updateJob(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
-            return;
+            return  TaskResultDto.failure( "没有指定采集任务", 0);
         }
         log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(), etlTable.getId());
+        EtlJour etlJour =  jourService.addJour(etlTable.getId(), JourKind.ADDAX_JOB, null);
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
         // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
         // 需要根据不同数据库类型做不同的处理
@@ -100,14 +107,18 @@ public class JobContentService
         addaxWriterTemplate = replacePlaceholders(addaxWriterTemplate, params);
         String job = dictService.getAddaxJobTemplate(kind + "2H");
         if (job == null || job.isEmpty()) {
-            log.warn("没有获得 {} 的预设模板，检查系统配置表", kind + "2H");
-            return;
+            String msg = "没有获得 " + kind + "2H 的预设模板，检查系统配置表";
+            jourService.failJour(etlJour, msg);
+            log.warn(msg);
+            return TaskResultDto.failure(msg, 0);
         }
         job = job.replace("${r" + kind + "}", addaxReaderContentTemplate).replace("${wH}", addaxWriterTemplate);
 
         EtlJob etlJob = new EtlJob(etlTable.getId(), job);
         jobRepo.save(etlJob);
-        log.info("更新完成");
+        jourService.successJour(etlJour);
+        log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
+        return TaskResultDto.success("更新采集任务模板成功", 0);
     }
 
     private String replacePlaceholders(String template, Map<String, String> values)
@@ -131,5 +142,10 @@ public class JobContentService
         matcher.appendTail(result);
 
         return result.toString();
+    }
+
+    public void deleteByTid(long tableId)
+    {
+        jobRepo.deleteById(tableId);
     }
 }

@@ -42,8 +42,8 @@ public class AddaxLogService
         return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid);
     }
 
-    public Optional<AddaxLog> getLogContent(long id) {
-        return addaxLogRepo.findById(id);
+    public String getLogContent(long id) {
+        return addaxLogRepo.findLogById(id);
     }
 
     public List<AddaxLogDto> getLogEntry(String tid)

@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlStatistic;
@@ -31,7 +32,8 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @RequestMapping("/tables")
 @AllArgsConstructor
-public class TableController {
+public class TableController
+{
 
     private final TableService tableService;
     private final EtlTableRepo etlTableRepo;
@@ -48,13 +50,17 @@ public class TableController {
             @Parameter(description = "查询关键字") @RequestParam(value = "q", required = false) String q,
             @Parameter(description = "状态") @RequestParam(value = "status", required = false) String status,
             @Parameter(description = "排序字段") @RequestParam(value = "sortField", required = false) String sortField,
-            @Parameter(description = "排序顺序") @RequestParam(value = "sortOrder", required = false) String sortOrder) {
-        if (page < 0) page = 0;
-        if (pageSize == -1) pageSize = Integer.MAX_VALUE;
+            @Parameter(description = "排序顺序") @RequestParam(value = "sortOrder", required = false) String sortOrder)
+    {
+        if (page < 0)
+            page = 0;
+        if (pageSize == -1)
+            pageSize = Integer.MAX_VALUE;
         Page<VwEtlTableWithSource> result;
         if (status != null && !status.isEmpty()) {
             result = tableService.getVwTablesByStatus(page, pageSize, q, status, sortField, sortOrder);
-        } else {
+        }
+        else {
             result = tableService.getVwTablesInfo(page, pageSize, q, sortField, sortOrder);
         }
         return ResponseEntity.ok(result);
@@ -63,39 +69,46 @@ public class TableController {
     // 查询单个采集表
     @Operation(summary = "查询单个采集表")
     @GetMapping("/{tableId}")
-    public ResponseEntity<VwEtlTableWithSource> getTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
+    public ResponseEntity<VwEtlTableWithSource> getTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
         VwEtlTableWithSource table = tableService.findOneTableInfo(tableId);
-        if (table == null) throw new ApiException(404, "Table not found");
+        if (table == null)
+            throw new ApiException(404, "Table not found");
         return ResponseEntity.ok(table);
     }
 
     // 删除采集表
     @Operation(summary = "删除采集表")
     @DeleteMapping("/{tableId}")
-    public ResponseEntity<Void> deleteTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
-        if (!etlTableRepo.existsById(tableId)) throw new ApiException(404, "Table not found");
-        CompletableFuture.runAsync(() -> etlTableRepo.deleteById(tableId));
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<String> deleteTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
+        if (!etlTableRepo.existsById(tableId))
+            throw new ApiException(404, "Table not found");
+        tableService.deleteTable(tableId);
+        return ResponseEntity.ok("表以及相关资源删除成功");
     }
 
     // 查询表字段
     @Operation(summary = "查询表字段")
     @GetMapping("/{tableId}/columns")
-    public ResponseEntity<List<EtlColumn>> getTableColumns(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
+    public ResponseEntity<List<EtlColumn>> getTableColumns(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
         return ResponseEntity.ok(columnService.getColumns(tableId));
     }
 
     // 查询表采集统计
     @Operation(summary = "查询表采集统计")
     @GetMapping("/{tableId}/statistics")
-    public ResponseEntity<List<EtlStatistic>> getTableStatistics(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
+    public ResponseEntity<List<EtlStatistic>> getTableStatistics(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
         return ResponseEntity.ok(statService.getLast15Records(tableId));
     }
 
     // 批量保存采集表
     @Operation(summary = "批量保存采集表")
     @PostMapping("/batch")
-    public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls) {
+    public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
+    {
         etlTableRepo.saveAll(etls);
         return ResponseEntity.status(HttpStatus.CREATED).body(etls.size());
     }
@@ -103,33 +116,42 @@ public class TableController {
     // 新增单个采集表
     @Operation(summary = "新增单个采集表")
     @PostMapping("")
-    public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl) {
+    public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
+    {
         EtlTable saved = etlTableRepo.save(etl);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
-    public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode) {
+    public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode)
+    {
         CompletableFuture.runAsync(tableService::refreshAllTableResources);
         return ResponseEntity.accepted().build();
     }
 
     @Operation(summary = "刷新表关联资源", description = "触发一个异步任务，用于更新指定表的元数据（字段）和采集任务文件")
     @PostMapping("/{tableId}/actions/refresh")
-    public ResponseEntity<Void> refreshTableResources(
-            @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
+    public ResponseEntity<TaskResultDto> refreshTableResources(
+            @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
         if (!etlTableRepo.existsById(tableId)) {
-            throw new ApiException(404, "Table not found");
+            return ResponseEntity.status(400).body(TaskResultDto.failure("tableId 对应的采集表不存在", 0));
         }
-        CompletableFuture.runAsync(() -> tableService.refreshTableResources(tableId));
-        return ResponseEntity.accepted().build();
+        TaskResultDto taskResultDto = tableService.refreshTableResources(tableId);
+        if (taskResultDto.isSuccess()) {
+            return ResponseEntity.ok(taskResultDto);
+        }
+        else {
+            return ResponseEntity.internalServerError().body(taskResultDto);
+        }
     }
 
     // 批量更新表状态
     @Operation(summary = "批量更新表状态")
     @PostMapping("/batch/status")
-    public ResponseEntity<Integer> batchUpdateStatus(@RequestBody Map<String, Object> params) {
+    public ResponseEntity<Integer> batchUpdateStatus(@RequestBody Map<String, Object> params)
+    {
         // 具体实现略
         return ResponseEntity.ok(1);
     }
@@ -137,7 +159,8 @@ public class TableController {
     // 查询表视图
     @Operation(summary = "查询表视图")
     @GetMapping("/view")
-    public ResponseEntity<List<VwEtlTableWithSource>> listTableViews(@RequestParam Map<String, String> params) {
+    public ResponseEntity<List<VwEtlTableWithSource>> listTableViews(@RequestParam Map<String, String> params)
+    {
         // 具体实现略
         return ResponseEntity.ok(new ArrayList<>());
     }
@@ -145,15 +168,18 @@ public class TableController {
     // 获取Addax Job模板
     @Operation(summary = "获取Addax Job模板")
     @GetMapping("/{tableId}/addax-job")
-    public ResponseEntity<String> getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
+    public ResponseEntity<String> getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
         // 具体实现略
         String job = jobContentService.getJobContent(tableId);
         if (job == null || job.isEmpty()) {
-            throw new ApiException(404, "Job not found");
-        } else {
+           return ResponseEntity.badRequest().body("No job content found for the given table ID");
+        }
+        else {
             return ResponseEntity.ok(job);
         }
     }
+}
 
 //    // 对单个表执行采集任务
 //    @Operation(summary = "执行采集任务", description = "根据采集表ID立即执行单个采集任务")
@@ -164,4 +190,3 @@ public class TableController {
 //        if (etlTable == null) {
 //            throw new ApiException(404, "Table not found");
 //        }
-}

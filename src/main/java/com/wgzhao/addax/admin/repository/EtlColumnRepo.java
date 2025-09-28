@@ -13,7 +13,9 @@ public interface EtlColumnRepo
         extends JpaRepository<EtlColumn, EtlColumnPk>
 {
     List<EtlColumn> findAllByTidOrderByColumnId(long tid);
-    
+
+    void deleteAllByTid(long tableId);
+
 //    @Modifying
 //    @Transactional
 //    int updateColumnNameByTidAndColumnId(Long tid, int columnId, String placeholder);

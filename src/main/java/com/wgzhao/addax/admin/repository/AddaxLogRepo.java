@@ -26,4 +26,7 @@ public interface AddaxLogRepo extends JpaRepository<AddaxLog, Long>
             limit 5
             """)
     List<AddaxLogDto> findLogEntry(String tid);
+
+    @Query(value = "select log from addax_log where id = ?1", nativeQuery = true)
+    String findLogById(Long id);
 }

@@ -3,12 +3,14 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.StatService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,10 +45,10 @@ public class LogController {
 
     // 获取指定日志文件的内容
     @GetMapping("/{id}/content")
-    public ApiResponse<String> getLogFileContent(@PathVariable("id") Long id)
+    public ResponseEntity<String> getLogFileContent(@PathVariable("id") Long id)
     {
-        Optional<AddaxLog> addaxLog = addaxLogService.getLogContent(id);
-        return addaxLog.map(log -> ApiResponse.success(log.getLog())).orElseGet(() -> ApiResponse.error(400, "未找到对应日志"));
+        String addaxLog = addaxLogService.getLogContent(id);
+        return ResponseEntity.ok(addaxLog);
     }
 
 

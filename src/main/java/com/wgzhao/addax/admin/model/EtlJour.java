@@ -2,8 +2,12 @@ package com.wgzhao.addax.admin.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "etl_jour")
@@ -19,10 +23,19 @@ public class EtlJour implements Serializable {
     @Column(name = "kind", length = 32)
     private String kind;
 
-    @Column(name = "run_date", precision = 10)
-    private Long runDate;
+    @Column(name = "start_at")
+    private LocalDateTime startAt = LocalDateTime.now();
 
-    @Column(name = "remark", length = 4000)
-    private String remark;
+    @Column(name = "status")
+    private boolean status;
+
+    @Column(name="cmd")
+    private String cmd;
+
+    @Column(name ="duration")
+    private Long duration = 0L;
+
+    @Column(name = "error_msg", length = 4000)
+    private String errorMsg;
 }
 

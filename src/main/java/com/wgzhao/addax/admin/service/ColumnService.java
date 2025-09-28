@@ -1,16 +1,15 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlColumn;
-import com.wgzhao.addax.admin.model.EtlSource;
-import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlColumnRepo;
-import com.wgzhao.addax.admin.repository.EtlSourceRepo;
-import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -33,6 +32,7 @@ public class ColumnService
 {
     private final EtlColumnRepo etlColumnRepo;
     private final DictService dictService;
+    private final EtlJourService jourService;
 
     public List<EtlColumn> getColumns(long tid) {
         return etlColumnRepo.findAllByTidOrderByColumnId(tid);
@@ -50,6 +50,7 @@ public class ColumnService
      * @param etlTable etl_table 表记录
      * @return 0 表示无需更新, 1 表示字段有更新，-1 表示更新失败
      */
+    @Transactional
     public int updateTableColumns(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
@@ -60,9 +61,12 @@ public class ColumnService
             // 第一次创建，直接全量写入
             return createTableColumns(etlTable) ? 1 : -1;
         }
+        log.info("updating table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
+        EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
         // 获取源表的字段信息
         Connection connection = DbUtil.getConnect(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
         if (connection == null) {
+            jourService.failJour(etlJour, "no connection info for the table");
             log.warn("failed to get connection for source {}", etlTable.getUrl());
             return -1;
         }
@@ -180,9 +184,12 @@ public class ColumnService
             }
         }
         catch (SQLException e) {
+            jourService.failJour(etlJour, e.getMessage());
             log.error("failed to update table columns for tid {}", etlTable.getId(), e);
             return -1;
         }
+        log.info("table columns updated for tid {}, changed={}", etlTable.getId(), changed);
+        jourService.successJour(etlJour);
         return changed ? 1 : 0;
     }
 
@@ -202,13 +209,18 @@ public class ColumnService
      * @param etlTable etl_table 表记录
      * @return true 成功，false 失败
      */
+    @Transactional
     public boolean createTableColumns(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
             return false;
         }
+        log.info("first add table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
+
+        EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
         Connection connection = DbUtil.getConnect(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
         if (connection == null) {
+            jourService.failJour(etlJour, "no connection info for the table");
             log.warn("cannot get connection for id {}", etlTable.getUrl());
             return false;
         }
@@ -236,15 +248,18 @@ public class ColumnService
                 etlColumn.setTargetTypeFull(hiveType);
                 etlColumnRepo.save(etlColumn);
             }
+            log.info("table columns created for tid {}, total {} columns", etlTable.getId(), columnCount);
+            jourService.successJour(etlJour);
             return true;
         }
         catch (SQLException e) {
+            jourService.failJour(etlJour, e.getMessage());
             log.error("failed to create table columns for tid {}", etlTable.getId(), e);
             return false;
         }
     }
 
-    public List<String> getHiveColumns(Long tid) {
+    public List<String> getHiveColumnsAsDDL(Long tid) {
         List<String> result = new ArrayList<>();
         List<EtlColumn> columns = getColumns(tid);
         for (EtlColumn col : columns) {
@@ -254,8 +269,17 @@ public class ColumnService
             } else {
                 colName = col.getColumnName();
             }
-            result.add("{\"name\":\"" + colName + "\", \"type\":\"" + col.getTargetTypeFull() + "\"}");
+            if (col.getColComment().isEmpty()) {
+                result.add(colName + " " +  col.getTargetTypeFull());
+            } else {
+                result.add(colName + " " +  col.getTargetTypeFull() + " COMMENT '" + nvlStr(col.getColComment()) + "'");
+            }
         }
         return result;
+    }
+
+    public void deleteByTid(long tableId)
+    {
+        etlColumnRepo.deleteAllByTid(tableId);
     }
 }

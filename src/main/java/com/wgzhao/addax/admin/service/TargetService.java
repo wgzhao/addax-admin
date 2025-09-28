@@ -1,5 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.FileUtils;
@@ -26,10 +29,11 @@ public class TargetService
 
     private final DictService dictService;
     private final ColumnService columnService;
+    private final EtlJourService jourService;
 
-    public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
+    public TaskResultDto createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
     {
-        List<String> hiveColumns = columnService.getHiveColumns(etlTable.getId());
+        List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());
         String createTableSql = """
                 create database if not exists `%s` location '%s/%s';
                 create external table if not exists `%s`.`%s` (
@@ -46,20 +50,25 @@ public class TargetService
         );
         log.info("create table sql:\n{}", createTableSql);
         //  write to temporary file
+        EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
         String sqlPath;
         try {
             sqlPath = FileUtils.writeToTempFile("hive_ddl_", createTableSql);
         }
         catch (IOException e) {
             log.warn("failed to write create table sql to temporary file", e);
-            return false;
+            jourService.failJour(etlJour, e.getMessage());
+            return TaskResultDto.failure("写入临时文件失败：" + e.getMessage(), 0);
         }
         String cmd = dictService.getHiveCli() + " -f " + sqlPath;
-        CommandExecutor.CommandResult result = CommandExecutor.executeForOutput(cmd);
-        if (result.exitCode() != 0) {
-            log.warn("failed to create hive table for tid {}, command: {}, output: {}", etlTable.getId(), cmd, result.output());
-            return false;
+        TaskResultDto result = CommandExecutor.executeWithResult(cmd);
+        if (result.isSuccess()) {
+            jourService.successJour(etlJour);
+            return TaskResultDto.success("创建或更新 Hive 表成功", 0);
+        } else {
+            log.warn("failed to create hive table for tid {}, command: {}, output: {}", etlTable.getId(), cmd, result.getMessage());
+            jourService.failJour(etlJour, result.getMessage());
+            return TaskResultDto.failure("创建或更新 Hive 表失败：" + result.getMessage(), 0);
         }
-        return true;
     }
 }
