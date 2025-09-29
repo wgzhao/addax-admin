@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -88,6 +89,21 @@ public class TableController
         return ResponseEntity.ok("表以及相关资源删除成功");
     }
 
+    // 更新采集表
+    @Operation(summary = "更新采集表")
+    @PutMapping("/{tableId}")
+    public ResponseEntity<EtlTable> updateTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId,
+                                                @RequestBody EtlTable etl)
+    {
+        if (etl.getId() == null || etl.getId() != tableId) {
+            throw new ApiException(400, "Table ID in path and body must match");
+        }
+        if (!etlTableRepo.existsById(tableId)) {
+            throw new ApiException(404, "Table not found");
+        }
+        EtlTable updated = etlTableRepo.save(etl);
+        return ResponseEntity.ok(updated);
+    }
     // 查询表字段
     @Operation(summary = "查询表字段")
     @GetMapping("/{tableId}/columns")
@@ -109,7 +125,11 @@ public class TableController
     @PostMapping("/batch")
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
-        etlTableRepo.saveAll(etls);
+        List<EtlTable> saveTables = tableService.batchCreateTable(etls);
+        // 异步刷新资源
+        for (EtlTable table : saveTables) {
+            tableService.refreshTableResourcesAsync(table);
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(etls.size());
     }
 
@@ -118,7 +138,7 @@ public class TableController
     @PostMapping("")
     public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
     {
-        EtlTable saved = etlTableRepo.save(etl);
+        EtlTable saved = tableService.createTable(etl);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 

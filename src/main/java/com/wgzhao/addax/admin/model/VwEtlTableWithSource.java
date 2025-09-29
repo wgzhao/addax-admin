@@ -30,8 +30,6 @@ public class VwEtlTableWithSource {
     private String filter;
     private String status;
     private String kind;
-    private String updateFlag;
-    private String createFlag;
     private Integer retryCnt;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

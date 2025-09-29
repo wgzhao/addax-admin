@@ -54,12 +54,6 @@ public class EtlTable {
     @Column(name = "kind", length = 1)
     private String kind;
 
-    @Column(name = "update_flag", length = 1)
-    private String updateFlag;
-
-    @Column(name = "create_flag", length = 1)
-    private String createFlag;
-
     @Column(name = "retry_cnt")
     private Integer retryCnt;
 
@@ -81,6 +75,6 @@ public class EtlTable {
     @Column(name = "tbl_comment", length = 500)
     private String tblComment;
 
-    @Formula("LOWER(source_db || '.' || source_table || target_db || '.' || target_table || part_kind || part_name || filter)")
+    @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , filter))")
     private String filterColumn;
 }

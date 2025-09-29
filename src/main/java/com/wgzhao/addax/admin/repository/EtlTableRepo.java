@@ -16,15 +16,13 @@ public interface EtlTableRepo
 {
     @Query(value = """
             select count(t.id) from VwEtlTableWithSource t
-            where t.status <> 'X' and t.updateFlag = 'N' and t.createFlag = 'N'
+            where t.status not in ( 'X' ,'U')
                   and t.enabled = true
             """)
     Integer findValidTableCount();
 
-    List<EtlTable> findByCreateFlagOrUpdateFlag(String createFlag, String updateFlag);
-
     @Modifying
-    @Query("UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3 where t.status <> 'X'")
+    @Query("UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3 where t.status not in ( 'X', 'U')")
     void resetAllEtlFlags();
 
     @Query(value = """
@@ -47,7 +45,7 @@ public interface EtlTableRepo
 
     @Query("""
         SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
-        WHERE t.status NOT IN ('Y','X') AND t.retryCnt > 0 AND t.updateFlag = 'N' AND t.createFlag = 'N'
+        WHERE t.status NOT IN ('Y','X','U') AND t.retryCnt > 0
         AND (
             :checkTime = false OR
             (s.startAt > :switchTime AND s.startAt < :currentTime)

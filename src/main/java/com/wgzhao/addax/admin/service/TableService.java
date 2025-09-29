@@ -13,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -48,7 +50,8 @@ public class TableService
     @Autowired
     private TargetService targetService;
 
-    public TaskResultDto refreshTableResources(EtlTable table) {
+    public TaskResultDto refreshTableResources(EtlTable table)
+    {
         if (table == null) {
             return TaskResultDto.failure("Table is null", 0);
         }
@@ -58,50 +61,63 @@ public class TableService
             return TaskResultDto.failure("Table view not found for tid " + table.getId(), 0);
         }
         // 1. 更新列信息
-        table.setUpdateFlag("y"); //正在更新
-        if (columnService.updateTableColumns(vwTable) > 0) {
-            table.setUpdateFlag("N"); //更新完成
+        int retCode = columnService.updateTableColumns(vwTable);
+        if (retCode == 0) {
+            // 说明字段没有变化，那么就不需要继续后面的流程了
             table.setStatus("N"); //设置为待采集状态
-//            etlTableRepo.save(table);
-            log.info("Updated columns for table id {}", table.getId());
-            // 更新成功后，重建Hive表
-            table.setCreateFlag("y");
-//            etlTableRepo.save(table);
-            TaskResultDto result = targetService.createOrUpdateHiveTable(vwTable);
-            if (result.isSuccess()) {
-                table.setCreateFlag("N");
-                etlTableRepo.save(table);
-            } else {
-                log.warn("Failed to update Hive table for tid {}", table.getId());
-                // TODO: 这里是否应该继续后面的流程，后续手工只需要补救 Hive 表即可
-                table.setCreateFlag("Y"); //创建失败
-                etlTableRepo.save(table);
-                return TaskResultDto.failure("Failed to update Hive table for tid " + table.getId(), result.getDurationSeconds());
-            }
-            // 2. 更新任务文件
-            result = jobContentService.updateJob(vwTable);
-            if (result.isSuccess()) {
-                return TaskResultDto.success("Table resources refreshed successfully ", result.getDurationSeconds());
-            } else {
-                log.warn("Failed to update job content for tid {}", table.getId());
-                return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), result.getDurationSeconds());
-            }
+            etlTableRepo.save(table);
+            return TaskResultDto.success("No columns updated for table id " + table.getId(),0);
         }
-        return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
+        if (retCode == -1) {
+            table.setStatus("E");
+            log.warn("Failed to update columns for table id {}", table.getId());
+            return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
+        }
+
+        TaskResultDto result = targetService.createOrUpdateHiveTable(vwTable);
+        if (!result.isSuccess()) {
+            table.setStatus("E");
+            etlTableRepo.save(table);
+            log.warn("Failed to create or update Hive table for tid {}", table.getId());
+            return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), result.getDurationSeconds());
+        }
+
+        // 2. 更新任务文件
+        result = jobContentService.updateJob(vwTable);
+        if (result.isSuccess()) {
+            table.setStatus("N");
+            etlTableRepo.save(table);
+            return TaskResultDto.success("Table resources refreshed successfully ", result.getDurationSeconds());
+        }
+        else {
+            table.setStatus("E");
+            etlTableRepo.save(table);
+            log.warn("Failed to update job content for tid {}", table.getId());
+            return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), result.getDurationSeconds());
+        }
     }
 
-    public TaskResultDto refreshTableResources(long tableId) {
+    public TaskResultDto refreshTableResources(long tableId)
+    {
         EtlTable table = etlTableRepo.findById(tableId)
                 .orElseThrow(() -> new IllegalArgumentException("Table not found with id: " + tableId));
         return refreshTableResources(table);
     }
 
-    public void refreshAllTableResources() {
+    @Async
+    public void refreshTableResourcesAsync(EtlTable table)
+    {
+        refreshTableResources(table);
+    }
+
+    public void refreshAllTableResources()
+    {
         List<EtlTable> tables = etlTableRepo.findAll();
         for (EtlTable table : tables) {
             try {
                 refreshTableResources(table);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 log.error("Failed to refresh resources for table {}", table.getId(), e);
             }
         }
@@ -140,45 +156,6 @@ public class TableService
     {
         return vwEtlTableWithSourceRepo.findById(tid).orElse(null);
     }
-
-
-
-//    public void updateSchema(boolean isForce)
-//    {
-//        List<EtlTable> etlList;
-//        if (isForce) {
-//            etlList = etlTableRepo.findAll();
-//        }
-//        else {
-//            etlList = etlTableRepo.findByCreateFlagOrUpdateFlag("Y", "Y");
-//        }
-//        for (EtlTable etl : etlList) {
-//            if (!updateTableInfo(etl)) {
-//                log.warn("failed to add table info for tid {}", etl.getId());
-//                continue;
-//            }
-//            etl.setCreateFlag("N");
-//            etl.setUpdateFlag("N");
-//            etl.setStatus("N");
-//            etlTableRepo.save(etl);
-//            // update job table
-//            jobContentService.updateJob(etl);
-//        }
-//    }
-
-//    public void updateStatusAndFlag(List<Long> ids, String status, int retryCnt)
-//    {
-//        List<EtlTable> tables = etlTableRepo.findAllById(ids);
-//        if (tables.isEmpty()) {
-//            return;
-//        }
-//        tables.forEach(etlTable -> {
-//            etlTable.setStatus(status);
-//            etlTable.setRetryCnt(retryCnt);
-//        });
-//        etlTableRepo.saveAll(tables);
-////        etlTableRepo.batchUpdateStatusAndFlag(ids, status, retryCnt);
-//    }
 
     // 找到所有需要采集的表
     public int findPendingTasks()
@@ -266,6 +243,7 @@ public class TableService
         return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot("X");
     }
 
+    @Transactional
     public void resetAllFlags()
     {
         etlTableRepo.resetAllEtlFlags();
@@ -287,14 +265,27 @@ public class TableService
                 .toList();
     }
 
+    @Transactional
     public boolean deleteTable(long tableId)
     {
         // 首先删除列信息
         columnService.deleteByTid(tableId);
         // 然后删除任务信息
         jobContentService.deleteByTid(tableId);
+        // 删除流水
+        jourService.deleteByTid(tableId);
         // 最后删除采集表信息
         etlTableRepo.deleteById(tableId);
         return true;
+    }
+
+    public EtlTable createTable(EtlTable etl)
+    {
+        return etlTableRepo.save(etl);
+    }
+
+    public List<EtlTable> batchCreateTable(List<EtlTable> tables)
+    {
+        return etlTableRepo.saveAll(tables);
     }
 }

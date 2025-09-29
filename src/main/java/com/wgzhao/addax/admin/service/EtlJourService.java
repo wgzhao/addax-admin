@@ -49,4 +49,8 @@ public class EtlJourService
     {
         etlJourRepo.save(etlJour);
     }
+
+    public void deleteByTid(long tableId) {
+        etlJourRepo.deleteAllByTid(tableId);
+    }
 }

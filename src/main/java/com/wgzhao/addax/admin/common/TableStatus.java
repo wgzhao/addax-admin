@@ -9,14 +9,7 @@ public enum TableStatus
     COLLECT_FAIL("F", "采集失败"),
     WAITING_COLLECT("W", "等待采集"),
     EXCLUDE_COLLECT("X", "不采集"),
-    // 表更新状态
-    NEED_UPDATE_TABLE("Y", "需要更新表信息"),
-    NO_NEED_UPDATE_TABLE("N", "不需要更新表信息"),
-    // 目标表创建状态
-    NEED_CREATE_TABLE("Y", "需要创建目标表"),
-    NO_NEED_CREATE_TABLE("N", "不需要创建目标表"),
-    CREATE_TABLE_SUCCESS("S", "目标表创建成功"),
-    CREATE_TABLE_FAIL("F", "目标表创建失败");
+    WAIT_SCHEMA("U", "等待同步表结构");
     TableStatus(String status, String mark)
     {
 
