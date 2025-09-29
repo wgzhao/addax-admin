@@ -6,7 +6,6 @@ import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
-import com.wgzhao.addax.admin.model.EtlTableStatus;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.JobContentService;
@@ -59,11 +58,7 @@ public class TableController
             pageSize = Integer.MAX_VALUE;
         Page<VwEtlTableWithSource> result;
         if (status != null && !status.isEmpty()) {
-            EtlTableStatus statusEnum = null;
-            try {
-                statusEnum = EtlTableStatus.valueOf(status);
-            } catch (Exception ignored) {}
-            result = tableService.getVwTablesByStatus(page, pageSize, q, statusEnum, sortField, sortOrder);
+            result = tableService.getVwTablesByStatus(page, pageSize, q, status, sortField, sortOrder);
         }
         else {
             result = tableService.getVwTablesInfo(page, pageSize, q, sortField, sortOrder);
@@ -89,11 +84,8 @@ public class TableController
     {
         if (!etlTableRepo.existsById(tableId))
             throw new ApiException(404, "Table not found");
-        if (tableService.deleteTable(tableId)) {
-            return ResponseEntity.ok("表以及相关资源删除成功");
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("表删除失败");
-        }
+        tableService.deleteTable(tableId);
+        return ResponseEntity.ok("表以及相关资源删除成功");
     }
 
     // 查询表字段
@@ -115,18 +107,18 @@ public class TableController
     // 批量保存采集表
     @Operation(summary = "批量保存采集表")
     @PostMapping("/batch")
-    public ResponseEntity<Integer> batchCreateTables(@RequestBody List<EtlTable> tables)
+    public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
-        tableService.batchCreateTable(tables);
-        return ResponseEntity.status(HttpStatus.CREATED).body(tables.size());
+        etlTableRepo.saveAll(etls);
+        return ResponseEntity.status(HttpStatus.CREATED).body(etls.size());
     }
 
     // 新增单个采集表
     @Operation(summary = "新增单个采集表")
     @PostMapping("")
-    public ResponseEntity<EtlTable> addTable(@RequestBody EtlTable etl)
+    public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
     {
-        EtlTable saved = tableService.create(etl);
+        EtlTable saved = etlTableRepo.save(etl);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -160,21 +152,8 @@ public class TableController
     @PostMapping("/batch/status")
     public ResponseEntity<Integer> batchUpdateStatus(@RequestBody Map<String, Object> params)
     {
-        List<Integer> idList = (List<Integer>) params.get("ids");
-        String statusStr = (String) params.get("status");
-        Integer retryCnt = params.get("retryCnt") != null ? (Integer) params.get("retryCnt") : 3;
-        if (idList == null || statusStr == null) {
-            return ResponseEntity.badRequest().body(0);
-        }
-        EtlTableStatus statusEnum;
-        try {
-            statusEnum = EtlTableStatus.valueOf(statusStr);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(0);
-        }
-        List<Long> ids = idList.stream().map(Integer::longValue).toList();
-        tableService.batchUpdateStatusAndFlag(ids, statusEnum, retryCnt);
-        return ResponseEntity.ok(ids.size());
+        // 具体实现略
+        return ResponseEntity.ok(1);
     }
 
     // 查询表视图
