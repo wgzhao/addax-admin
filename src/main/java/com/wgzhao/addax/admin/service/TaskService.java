@@ -23,6 +23,8 @@ public class TaskService
     private final TaskQueueManager queueManager;
     private final TableService tableService;
     private final JdbcTemplate jdbcTemplate;
+    private final EtlJourService jourService;
+    private final SystemConfigService configService;
 
     public void executeTasksForSource(int sourceId) {
         List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
@@ -59,6 +61,8 @@ public class TaskService
         // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
         log.info("开始执行每日参数更新和任务重置...");
         tableService.resetAllFlags();
+        // 重载系统配置
+        configService.loadConfig();
     }
 
     /**
@@ -125,27 +129,6 @@ public class TaskService
                 clearedCount, status.get("queueSize"));
     }
 
-//    /** 参数更新 */
-//    public String updateParameters() {
-//        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmm"));
-//        if (!"1630".equals(now)) { recordSystemLog("参数更新任务不能执行,任务退出,非切日时间点"); return "非切日时间点"; }
-//        sendToWecomRobot("系统参数param_sys开始切换\nTD=" + executeRedisCommand("get param.TD") + "\nCD=" + executeRedisCommand("get param.CD"));
-//        List<String> tds = List.of(
-//                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")),
-//                LocalDateTime.now().minusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd")),
-//                LocalDateTime.now().plusDays(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-//        );
-//        for (String td : tds) {
-//            try { executeSqlStatement("select sp_imp_param(" + td + ")"); }
-//            catch (Exception e) { sendToWecomRobot("系统参数param_sys生成失败!!!!"); return "失败"; }
-//        }
-//        List<String> rdsCmds = querySingleColumn("select rds from vw_updt_rds");
-//        for (String line : rdsCmds) log.info("更新redis: {} => {}", line, executeRedisCommand(line));
-//        sendToWecomRobot("系统参数param_sys切换完成！\n TD=" + executeRedisCommand("get param.TD") + "\n CD=" + executeRedisCommand("get param.CD"));
-//        recordSystemLog("参数更新任务执行完毕");
-//        return "参数更新完成";
-//    }
-
     // 特殊任务提醒
     public List<EtlTable> findAllSpecialTask() {
         return tableService.findSpecialTasks();
@@ -183,9 +166,13 @@ public class TaskService
                 ) b
                 on t.id = b.tid
                 where rn = 1
-                and t.status not in ('Y', 'X')
+                and t.status in ( 'R', 'W')
                 order by id
                 """;
         return jdbcTemplate.queryForList(sql);
+    }
+
+    public String getLastErrorByTableId(long tableId) {
+        return jourService.findLastErrorByTableId(tableId);
     }
 }

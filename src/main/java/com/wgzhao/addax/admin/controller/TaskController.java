@@ -4,6 +4,7 @@ import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskService;
@@ -35,6 +36,7 @@ public class TaskController
     private final TaskQueueManager queueManager;
     private final TableService tableService;
     private final JobContentService jobContentService;
+    private final EtlJourService jourService;
 
     // 获取队列状态
     @Operation(summary = "获取队列状态", description = "获取当前采集任务队列的状态")
@@ -76,7 +78,7 @@ public class TaskController
 
     // 立即更新所有任务
     @Operation(summary = "立即更新所有任务", description = "立即更新所有有效的采集任务的配置")
-    @PostMapping("/jobs")
+    @PostMapping("/addax-jobs")
     public ResponseEntity<Map<String, Object>> updateAllJobs()
     {
         for (VwEtlTableWithSource table : tableService.getValidTableViews()) {
@@ -87,7 +89,7 @@ public class TaskController
 
     // 立即更新单任务
     @Operation(summary = "立即更新单个任务", description = "根据任务ID立即更新单个采集任务的配置")
-    @PutMapping("/{taskId}/job")
+    @PutMapping("/{taskId}/addax-job")
     public ResponseEntity<Map<String, Object>> updateJob(
             @Parameter(description = "任务ID") @PathVariable("taskId") long taskId)
     {
@@ -145,5 +147,20 @@ public class TaskController
     {
         List<Map<String, Object>> status = taskService.getAllTaskStatus();
         return ResponseEntity.ok(status);
+    }
+
+    // 获取指定采集表的最后错误信息
+    @Operation(summary = "获取指定采集表的最后错误信息", description = "根据采集表ID获取该表最近一次采集任务的错误信息")
+    @GetMapping("/{tableId}/last-error")
+    public ResponseEntity<String> getLastErrorByTableId(
+            @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
+        String errorMsg = jourService.findLastErrorByTableId(tableId);
+        if (errorMsg == null || errorMsg.isEmpty()) {
+            return ResponseEntity.ok("No error message found for the given table ID");
+        }
+        else {
+            return ResponseEntity.ok(errorMsg);
+        }
     }
 }

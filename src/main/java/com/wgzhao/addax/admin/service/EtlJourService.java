@@ -53,4 +53,9 @@ public class EtlJourService
     public void deleteByTid(long tableId) {
         etlJourRepo.deleteAllByTid(tableId);
     }
+
+    public String findLastErrorByTableId(long tableId)
+    {
+        return etlJourRepo.findLastError(tableId);
+    }
 }

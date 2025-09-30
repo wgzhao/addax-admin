@@ -1,16 +1,19 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
+import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -40,6 +43,9 @@ public class JobContentService
 
     @Autowired
     private EtlJourService jourService;
+
+    @Autowired
+    private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
 
     public String getJobContent(long tid)
     {
@@ -147,5 +153,13 @@ public class JobContentService
     public void deleteByTid(long tableId)
     {
         jobRepo.deleteById(tableId);
+    }
+
+    // 根据数据源 ID 更新相关的任务
+    @Async
+    public void updateJobBySourceId(int sid)
+    {
+        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)
+                .forEach(this::updateJob);
     }
 }

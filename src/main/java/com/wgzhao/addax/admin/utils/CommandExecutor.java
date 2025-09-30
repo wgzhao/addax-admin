@@ -35,10 +35,10 @@ public class CommandExecutor
                         errLine.append(line).append("\n");
                     }
                 }
-                return TaskResultDto.failure(errLine.toString(), System.currentTimeMillis() - startAt);
+                return TaskResultDto.failure(errLine.toString(), (System.currentTimeMillis() - startAt)  / 1000);
             }
             else {
-                return TaskResultDto.success("SUCCESS", System.currentTimeMillis() - startAt);
+                return TaskResultDto.success("SUCCESS", (System.currentTimeMillis() - startAt) / 1000);
             }
         }
         catch (IOException | InterruptedException e) {
@@ -46,7 +46,7 @@ public class CommandExecutor
                 Thread.currentThread().interrupt();
             }
             log.error("execute command failed: {}", command, e);
-            return TaskResultDto.failure(e.getMessage(), System.currentTimeMillis() - startAt);
+            return TaskResultDto.failure(e.getMessage(), (System.currentTimeMillis() - startAt) / 1000);
         }
     }
 }

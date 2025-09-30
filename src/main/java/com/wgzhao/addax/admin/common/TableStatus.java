@@ -1,17 +1,23 @@
 package com.wgzhao.addax.admin.common;
 
-public enum TableStatus
+public class TableStatus
 {
     // 表采集状态
-    NOT_COLLECT("N", "未采集"),
-    COLLECTING("R", "采集中"),
-    COLLECTED("Y", "采集完成"),
-    COLLECT_FAIL("F", "采集失败"),
-    WAITING_COLLECT("W", "等待采集"),
-    EXCLUDE_COLLECT("X", "不采集"),
-    WAIT_SCHEMA("U", "等待同步表结构");
-    TableStatus(String status, String mark)
-    {
+    // 未采集
+    public static final String NOT_COLLECT = "N";
+    // 采集中
+    public static final String COLLECTING = "R";
+    //采集完成
+    public static final String COLLECTED = "Y";
+    //采集失败
+    public static final String COLLECT_FAIL = "E";
+    //等待采集
+    public static final String WAITING_COLLECT = "W";
+    //不采集
+    public static final String EXCLUDE_COLLECT = "X";
+    //等待同步表结构
+    public static final String WAIT_SCHEMA = "U";
 
-    }
+
+    private TableStatus() {}
 }

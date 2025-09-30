@@ -38,7 +38,7 @@ public class SecurityConfiguration
                         // 放行公开接口
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/addax/**").permitAll()
-                        .requestMatchers("/log/jobReport").permitAll()
+                        .requestMatchers("/log/job-report").permitAll()
                         // 受保护的业务接口，仅这些前缀需要认证
                         .requestMatchers(
                                 "/dashboard/**",

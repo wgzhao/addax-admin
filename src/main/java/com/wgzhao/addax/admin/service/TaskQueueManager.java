@@ -58,6 +58,9 @@ public class TaskQueueManager
     @Autowired
     private EtlJourService jourService;
 
+    @Autowired
+    private SystemConfigService configService;
+
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTable> etlTaskQueue = new ArrayBlockingQueue<>(100);
 
@@ -261,7 +264,7 @@ public class TaskQueueManager
             return false;
         }
 
-        String logDate = dictService.getBizDate(); //yyyyMMdd
+        String logDate = configService.getBizDate(); //yyyyMMdd
         String dw_clt_date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         // 分区字段的日期格式需要根据采集表中的 part_format 来进行格式化
         String partFormat = task.getPartFormat();

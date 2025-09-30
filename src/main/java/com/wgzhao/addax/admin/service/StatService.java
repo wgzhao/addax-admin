@@ -204,7 +204,7 @@ public class StatService
                     sum(case when status = 'R' then 1 else 0 end) as run_cnt,
                     sum(case when status = 'E' then 1 else 0 end ) as fail_cnt,
                     sum(case when status = 'N' then 1 else 0 end ) as no_run_cnt,
-                    sum(case when create_flag = 'Y' then 1 else 0 end ) as no_create_table_cnt
+                    sum(case when status = 'U' then 1 else 0 end ) as no_create_table_cnt
                     from
                     vw_etl_table_with_source s
                     where s.enabled = true
@@ -230,9 +230,10 @@ public class StatService
                         from etl_statistic es
                         left join vw_etl_table_with_source vetws
                         on es.tid = vetws.id
-                        where run_date > now() - interval '2' day
+                        where run_date > now() - interval '10' day
                         group by vetws.code, vetws.name, run_date
                     )t
+                    where t.rn < 3
                     group by code,name
                 )
                 select b.name || '(' || b.code || ')' as sys_name,

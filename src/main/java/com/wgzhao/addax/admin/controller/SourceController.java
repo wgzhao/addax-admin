@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.controller;
 
-import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlSource;
+import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -22,6 +22,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.Future;
 
 /**
  * 数据源配置接口
@@ -34,6 +35,7 @@ public class SourceController
 {
     private final SourceService sourceService;
     private final TableService tableService;
+    private final JobContentService jobContentService;
 
     @Operation(summary = "查询所有数据源", description = "返回所有数据源列表")
     @GetMapping("")
@@ -78,6 +80,8 @@ public class SourceController
         }
         boolean needUpdateSchedule = existing.getStartAt() == etlSource.getStartAt();
         sourceService.save(etlSource, needUpdateSchedule);
+        // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
+        jobContentService.updateJobBySourceId(id);
         return ResponseEntity.ok(1);
     }
 

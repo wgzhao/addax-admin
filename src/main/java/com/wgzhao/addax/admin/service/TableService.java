@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -8,6 +9,7 @@ import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
+import jakarta.persistence.Table;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -64,20 +66,18 @@ public class TableService
         int retCode = columnService.updateTableColumns(vwTable);
         if (retCode == 0) {
             // 说明字段没有变化，那么就不需要继续后面的流程了
-            table.setStatus("N"); //设置为待采集状态
-            etlTableRepo.save(table);
+            setStatus(table, TableStatus.NOT_COLLECT);
             return TaskResultDto.success("No columns updated for table id " + table.getId(),0);
         }
         if (retCode == -1) {
-            table.setStatus("E");
+            setStatus(table, TableStatus.COLLECT_FAIL);
             log.warn("Failed to update columns for table id {}", table.getId());
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
 
         TaskResultDto result = targetService.createOrUpdateHiveTable(vwTable);
         if (!result.isSuccess()) {
-            table.setStatus("E");
-            etlTableRepo.save(table);
+            setStatus(table, TableStatus.COLLECT_FAIL);
             log.warn("Failed to create or update Hive table for tid {}", table.getId());
             return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), result.getDurationSeconds());
         }
@@ -85,13 +85,11 @@ public class TableService
         // 2. 更新任务文件
         result = jobContentService.updateJob(vwTable);
         if (result.isSuccess()) {
-            table.setStatus("N");
-            etlTableRepo.save(table);
+            setStatus(table, TableStatus.NOT_COLLECT);
             return TaskResultDto.success("Table resources refreshed successfully ", result.getDurationSeconds());
         }
         else {
-            table.setStatus("E");
-            etlTableRepo.save(table);
+            setStatus(table, TableStatus.COLLECT_FAIL);
             log.warn("Failed to update job content for tid {}", table.getId());
             return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), result.getDurationSeconds());
         }
@@ -123,12 +121,6 @@ public class TableService
         }
     }
 
-    public Page<VwEtlTableWithSource> fetchEtlInfo(int page, int pageSize)
-    {
-        Pageable pageable = PageRequest.of(page, pageSize);
-        return vwEtlTableWithSourceRepo.findAll(pageable);
-    }
-
     /**
      * ODS 采集信息
      *
@@ -138,7 +130,6 @@ public class TableService
 
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         if (q != null && !q.isEmpty()) {
-            System.out.println("search " + q.toUpperCase());
             return vwEtlTableWithSourceRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
         }
         else {
@@ -160,12 +151,12 @@ public class TableService
     // 找到所有需要采集的表
     public int findPendingTasks()
     {
-        return etlTableRepo.countByStatusEquals("N");
+        return etlTableRepo.countByStatusEquals(TableStatus.NOT_COLLECT);
     }
 
     public int findRunningTasks()
     {
-        return etlTableRepo.countByStatusEquals("R");
+        return etlTableRepo.countByStatusEquals(TableStatus.COLLECTING);
     }
 
     public EtlTable getTableAndSource(long tid)
@@ -185,14 +176,14 @@ public class TableService
 
     public void setRunning(EtlTable task)
     {
-        task.setStatus("R");
+        task.setStatus(TableStatus.COLLECTING);
         task.setStartTime(new Timestamp(System.currentTimeMillis()));
         etlTableRepo.save(task);
     }
 
     public void setFinished(EtlTable task)
     {
-        task.setStatus("Y");
+        task.setStatus(TableStatus.COLLECTED);
         // 重试次数也重置
         task.setRetryCnt(3);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
@@ -201,10 +192,15 @@ public class TableService
 
     public void setFailed(EtlTable task)
     {
-        task.setStatus("E");
+        task.setStatus(TableStatus.COLLECT_FAIL);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
         task.setRetryCnt(max(task.getRetryCnt() - 1, 0));
         etlTableRepo.save(task);
+    }
+
+    public void setStatus(EtlTable table, String status) {
+        table.setStatus(status);
+        etlTableRepo.save(table);
     }
 
     // 找到所有可以运行的任务
@@ -240,7 +236,7 @@ public class TableService
 
     public List<VwEtlTableWithSource> getValidTableViews()
     {
-        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot("X");
+        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot(TableStatus.EXCLUDE_COLLECT);
     }
 
     @Transactional
