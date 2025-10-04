@@ -61,6 +61,12 @@ public class TaskQueueManager
     @Autowired
     private SystemConfigService configService;
 
+    @Autowired private JobContentService jobContentService;
+    @Autowired private TargetService targetService;
+
+    // 队列监控标志
+    private volatile boolean queueMonitorRunning = false;
+
     // 采集任务队列 - 固定长度100
     private final BlockingQueue<EtlTable> etlTaskQueue = new ArrayBlockingQueue<>(100);
 
@@ -80,10 +86,6 @@ public class TaskQueueManager
         t.setDaemon(true);
         return t;
     });
-
-    // 队列监控标志
-    private volatile boolean queueMonitorRunning = false;
-    @Autowired private JobContentService jobContentService;
 
     @PostConstruct
     public void init()
@@ -257,7 +259,6 @@ public class TaskQueueManager
         log.info("执行采集任务逻辑: taskId={}, destDB={}, tableName={}",
                 taskId, task.getTargetDb(), task.getTargetTable());
         // 生成已提交任务流水
-
         String job = jobContentService.getJobContent(taskId);
         if (job == null || job.isEmpty()) {
             log.warn("模板未生成, taskId = {}", taskId);
@@ -275,26 +276,10 @@ public class TaskQueueManager
         }
         log.info("biz date is {}, dw_clt_date is {}, dw_trade_date is {}", bizDate, dw_clt_date, logDate);
         job = job.replace("${logdate}", bizDate).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", logDate);
-        TaskResultDto taskResult;
         if (!Objects.equals(task.getPartName(), "")) {
             // hive 创建分区, 尝试用 hive 命令行创建分区
-            String partSql = "alter table %s.%s add if not exists partition (%s='%s')"
-                    .formatted(task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDate);
-            String hiveCli = dictService.getHiveCli();
-            String hiveCmd = hiveCli + " -e \"" + partSql + "\"";
-            EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, hiveCmd);
-            taskResult = CommandExecutor.executeWithResult(hiveCmd);
-            if (taskResult.isSuccess()) {
-                etlJour.setStatus(true);
-                etlJour.setDuration(taskResult.getDurationSeconds());
-                jourService.saveJour(etlJour);
-            }
-            else {
-                log.warn("创建Hive分区失败，命令: {}, {}", hiveCmd, taskResult.getMessage());
-                etlJour.setStatus(false);
-                etlJour.setErrorMsg(taskResult.getMessage());
-                etlJour.setDuration(taskResult.getDurationSeconds());
-                jourService.saveJour(etlJour);
+            boolean result = targetService.addPartition(taskId, task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDate);
+            if (!result) {
                 return false;
             }
         }
