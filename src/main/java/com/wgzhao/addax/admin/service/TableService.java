@@ -4,12 +4,9 @@ import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
-import com.wgzhao.addax.admin.repository.EtlColumnRepo;
-import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
-import jakarta.persistence.Table;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -34,23 +31,13 @@ import static java.lang.Math.max;
 public class TableService
 {
 
-    @Autowired
-    private EtlTableRepo etlTableRepo;
-
-    @Autowired
-    private EtlSourceRepo etlSourceRepo;
-
-    @Autowired private EtlColumnRepo etlColumnRepo;
+    @Autowired private EtlTableRepo etlTableRepo;
     @Autowired private ColumnService columnService;
     @Autowired private JobContentService jobContentService;
     @Autowired private DictService dictService;
     @Autowired private EtlJourService jourService;
-
-    @Autowired
-    private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
-
-    @Autowired
-    private TargetService targetService;
+    @Autowired private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
+    @Autowired private TargetService targetService;
 
     public TaskResultDto refreshTableResources(EtlTable table)
     {
@@ -67,7 +54,7 @@ public class TableService
         if (retCode == 0) {
             // 说明字段没有变化，那么就不需要继续后面的流程了
             setStatus(table, TableStatus.NOT_COLLECT);
-            return TaskResultDto.success("No columns updated for table id " + table.getId(),0);
+            return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
         }
         if (retCode == -1) {
             setStatus(table, TableStatus.COLLECT_FAIL);
@@ -75,23 +62,22 @@ public class TableService
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
 
-        TaskResultDto result = targetService.createOrUpdateHiveTable(vwTable);
-        if (!result.isSuccess()) {
+        if (!targetService.createOrUpdateHiveTable(vwTable)) {
             setStatus(table, TableStatus.COLLECT_FAIL);
             log.warn("Failed to create or update Hive table for tid {}", table.getId());
-            return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), result.getDurationSeconds());
+            return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
         }
 
         // 2. 更新任务文件
-        result = jobContentService.updateJob(vwTable);
+        TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.isSuccess()) {
             setStatus(table, TableStatus.NOT_COLLECT);
-            return TaskResultDto.success("Table resources refreshed successfully ", result.getDurationSeconds());
+            return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }
         else {
             setStatus(table, TableStatus.COLLECT_FAIL);
             log.warn("Failed to update job content for tid {}", table.getId());
-            return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), result.getDurationSeconds());
+            return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), 0);
         }
     }
 
@@ -198,7 +184,8 @@ public class TableService
         etlTableRepo.save(task);
     }
 
-    public void setStatus(EtlTable table, String status) {
+    public void setStatus(EtlTable table, String status)
+    {
         table.setStatus(status);
         etlTableRepo.save(table);
     }
@@ -262,7 +249,7 @@ public class TableService
     }
 
     @Transactional
-    public boolean deleteTable(long tableId)
+    public void deleteTable(long tableId)
     {
         // 首先删除列信息
         columnService.deleteByTid(tableId);
@@ -272,7 +259,6 @@ public class TableService
         jourService.deleteByTid(tableId);
         // 最后删除采集表信息
         etlTableRepo.deleteById(tableId);
-        return true;
     }
 
     public EtlTable createTable(EtlTable etl)

@@ -8,9 +8,17 @@ import com.wgzhao.addax.admin.utils.CommandExecutor;
 import com.wgzhao.addax.admin.utils.FileUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
+
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 /**
@@ -23,15 +31,40 @@ import java.util.List;
  */
 @Service
 @Slf4j
-@AllArgsConstructor
 public class TargetService
 {
+    @Autowired
+    @Qualifier("hiveDataSource")
+    private  DataSource hiveDataSource;
 
-    private final DictService dictService;
-    private final ColumnService columnService;
-    private final EtlJourService jourService;
+    @Autowired
+    private  DictService dictService;
 
-    public TaskResultDto createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
+    @Autowired
+    private  ColumnService columnService;
+
+    @Autowired
+    private  EtlJourService jourService;
+
+    public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
+    {
+        String sql = String.format("ALTER TABLE %s.%s ADD IF NOT EXISTS PARTITION (%s=%s)", db, table, partName, partValue);
+        EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
+        try (Connection conn = hiveDataSource.getConnection();
+                Statement stmt = conn.createStatement()) {
+            log.info("Add partition for {}.{}: {}", db, table, sql);
+            stmt.execute(sql);
+            jourService.successJour(etlJour);
+            return true;
+        }
+        catch (SQLException e) {
+            log.error("Failed to add partition for {}.{}: {}", db, table, sql, e);
+            jourService.failJour(etlJour, e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
     {
         List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());
         String createTableSql = """
@@ -49,26 +82,16 @@ public class TargetService
                 dictService.getHdfsCompress(), dictService.getHdfsCompress()
         );
         log.info("create table sql:\n{}", createTableSql);
-        //  write to temporary file
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
-        String sqlPath;
-        try {
-            sqlPath = FileUtils.writeToTempFile("hive_ddl_", createTableSql);
-        }
-        catch (IOException e) {
-            log.warn("failed to write create table sql to temporary file", e);
-            jourService.failJour(etlJour, e.getMessage());
-            return TaskResultDto.failure("写入临时文件失败：" + e.getMessage(), 0);
-        }
-        String cmd = dictService.getHiveCli() + " -f " + sqlPath;
-        TaskResultDto result = CommandExecutor.executeWithResult(cmd);
-        if (result.isSuccess()) {
+        try (Connection conn = hiveDataSource.getConnection();
+                Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSql);
             jourService.successJour(etlJour);
-            return TaskResultDto.success("创建或更新 Hive 表成功", 0);
-        } else {
-            log.warn("failed to create hive table for tid {}, command: {}, output: {}", etlTable.getId(), cmd, result.getMessage());
-            jourService.failJour(etlJour, result.getMessage());
-            return TaskResultDto.failure("创建或更新 Hive 表失败：" + result.getMessage(), 0);
+            return true;
+        }
+        catch (SQLException e) {
+            jourService.failJour(etlJour, e.getMessage());
+            return false;
         }
     }
 }
