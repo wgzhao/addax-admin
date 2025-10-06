@@ -2,8 +2,6 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.model.AddaxLog;
-import com.wgzhao.addax.admin.model.EtlStatistic;
-import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,7 +9,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AddaxLogService

@@ -5,6 +5,10 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
+/**
+ * 采集表字段信息实体类。
+ * 用于描述采集表的字段结构、类型、注释等元数据信息。
+ */
 @Entity
 @Table(name = "etl_column")
 @Data

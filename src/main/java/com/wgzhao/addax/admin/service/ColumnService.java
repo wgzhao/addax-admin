@@ -8,10 +8,12 @@ import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -23,7 +25,7 @@ import java.util.Objects;
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 
 /**
- * 采集表字段信息管理
+ * 采集表字段信息服务类，负责采集表字段的增删改查及同步等业务操作
  */
 @Service
 @Slf4j
@@ -34,21 +36,24 @@ public class ColumnService
     private final DictService dictService;
     private final EtlJourService jourService;
 
+    /**
+     * 获取指定采集表的所有字段信息
+     * @param tid 采集表ID
+     * @return 字段列表
+     */
     public List<EtlColumn> getColumns(long tid) {
         return etlColumnRepo.findAllByTidOrderByColumnId(tid);
     }
 
     /**
-     * 更新当前表的字段信息，主要是涉及到源表字段的变更
-     * 这里表字段变更修改的逻辑是：
-     * 1. 假定如果表有新增字段，那一定是增加在最后，而不是在中间。
-     * 2. 如果源表字段进行了删除，那么我们应该把源表字段名字设置为一个特定的名字( __deleted__），
-     *      而目标表字段不变动，这样做的原因是因为 hive 表每日都有采集，如果直接删除一个字段，那意味着之前采集的数据都无法使用
-     * 3. 如果源表字段的类型进行了更新，那就同步更新源表字段类型和目标表字段类型，并记录本次变更到风险表，用来提醒用户注意变化
-     * 4. 如果新增新增字段，则直接在增加字段记录即可。
-     *
-     * @param etlTable etl_table 表记录
-     * @return 0 表示无需更新, 1 表示字段有更新，-1 表示更新失败
+     * 更新当前表的字段信息，主要涉及到源表字段的变更
+     * 逻辑：
+     * 1. 新增字段一定是追加在最后
+     * 2. 删除字段则将源字段名设置为 __deleted__ 前缀
+     * 3. 字段类型变更则同步更新并记录到风险表
+     * 4. 新增字段直接插入
+     * @param etlTable 采集表视图对象
+     * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败
      */
     @Transactional
     public int updateTableColumns(VwEtlTableWithSource etlTable)
@@ -64,43 +69,22 @@ public class ColumnService
         log.info("updating table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
         // 获取源表的字段信息
-        Connection connection = DbUtil.getConnect(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
-        if (connection == null) {
-            jourService.failJour(etlJour, "no connection info for the table");
-            log.warn("failed to get connection for source {}", etlTable.getUrl());
-            return -1;
-        }
 
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
         String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
 
         boolean changed = false;
 
-        try (ResultSet rs = connection.createStatement().executeQuery(sql)) {
+        try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
+                ResultSet rs = connection.createStatement().executeQuery(sql)) {
             ResultSetMetaData md = rs.getMetaData();
             int n = md.getColumnCount();
 
             // 构造源端列信息列表（保持顺序）
             List<EtlColumn> sourceCols = new ArrayList<>(n);
+            EtlColumn sc;
             for (int i = 1; i <= n; i++) {
-                EtlColumn sc = new EtlColumn();
-                sc.setTid(etlTable.getId());
-                sc.setColumnId(i);
-                sc.setColumnName(md.getColumnName(i));
-                sc.setSourceType(md.getColumnTypeName(i));
-                sc.setDataLength(md.getColumnDisplaySize(i));
-                sc.setDataPrecision(md.getPrecision(i));
-                sc.setDataScale(md.getScale(i));
-                String colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), md.getColumnName(i));
-                sc.setColComment(colComment);
-                String hiveType = hiveTypeMapping.getOrDefault(sc.getSourceType(), "string");
-                sc.setTargetType(hiveType);
-                if (Objects.equals(hiveType, "decimal")) {
-                    hiveType = String.format("decimal(%d,%d)",
-                            sc.getDataPrecision() == null ? 0 : sc.getDataPrecision(),
-                            sc.getDataScale() == null ? 0 : sc.getDataScale());
-                }
-                sc.setTargetTypeFull(hiveType);
+                sc = getEtlColumn(etlTable, i, md, connection, hiveTypeMapping);
                 sourceCols.add(sc);
             }
 
@@ -116,7 +100,7 @@ public class ColumnService
                     o++;
                     continue;
                 }
-                EtlColumn sc = sourceCols.get(s);
+                sc = sourceCols.get(s);
                 if (Objects.equals(oc.getColumnName(), sc.getColumnName())) {
                     // 名称一致 -> 检查类型变化
                     boolean typeChanged = !Objects.equals(oc.getSourceType(), sc.getSourceType())
@@ -167,18 +151,12 @@ public class ColumnService
             // 剩余源列 -> 末尾追加为新增列
             int nextId = m; // 现有最大 columnId 基本等于 m（顺序创建）
             while (s < n) {
-                EtlColumn sc = sourceCols.get(s++);
+                sc = sourceCols.get(s++);
+                // 复制 sc 的所有属性到 nc，然后只设置 columnId
                 EtlColumn nc = new EtlColumn();
-                nc.setTid(sc.getTid());
+                BeanUtils.copyProperties(sc, nc);
+                // 只设置 columnId
                 nc.setColumnId(++nextId);
-                nc.setColumnName(sc.getColumnName());
-                nc.setSourceType(sc.getSourceType());
-                nc.setDataLength(sc.getDataLength());
-                nc.setDataPrecision(sc.getDataPrecision());
-                nc.setDataScale(sc.getDataScale());
-                nc.setColComment(sc.getColComment());
-                nc.setTargetType(sc.getTargetType());
-                nc.setTargetTypeFull(sc.getTargetTypeFull());
                 etlColumnRepo.save(nc);
                 changed = true;
             }
@@ -218,34 +196,15 @@ public class ColumnService
         log.info("first add table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
 
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
-        Connection connection = DbUtil.getConnect(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
-        if (connection == null) {
-            jourService.failJour(etlJour, "no connection info for the table");
-            log.warn("cannot get connection for id {}", etlTable.getUrl());
-            return false;
-        }
+
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
         String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
-        try (ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
+        try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
+                ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
             ResultSetMetaData metaData = resultSet.getMetaData();
             int columnCount = metaData.getColumnCount();
             for (int i = 1; i <= columnCount; i++) {
-                EtlColumn etlColumn = new EtlColumn();
-                etlColumn.setTid(etlTable.getId());
-                etlColumn.setColumnId(i);
-                etlColumn.setColumnName(metaData.getColumnName(i));
-                etlColumn.setSourceType(metaData.getColumnTypeName(i));
-                etlColumn.setDataLength(metaData.getColumnDisplaySize(i));
-                etlColumn.setDataPrecision(metaData.getPrecision(i));
-                etlColumn.setDataScale(metaData.getScale(i));
-                String colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), metaData.getColumnName(i));
-                etlColumn.setColComment(colComment);
-                String hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i), "string");
-                etlColumn.setTargetType(hiveType);
-                if (Objects.equals(hiveType, "decimal")) {
-                    hiveType = String.format("decimal(%d,%d)", metaData.getPrecision(i), metaData.getScale(i));
-                }
-                etlColumn.setTargetTypeFull(hiveType);
+                EtlColumn etlColumn = getEtlColumn(etlTable, i, metaData, connection, hiveTypeMapping);
                 etlColumnRepo.save(etlColumn);
             }
             log.info("table columns created for tid {}, total {} columns", etlTable.getId(), columnCount);
@@ -259,6 +218,33 @@ public class ColumnService
         }
     }
 
+    private static EtlColumn getEtlColumn(VwEtlTableWithSource etlTable, int i, ResultSetMetaData metaData, Connection connection, Map<String, String> hiveTypeMapping)
+            throws SQLException
+    {
+        EtlColumn etlColumn = new EtlColumn();
+        etlColumn.setTid(etlTable.getId());
+        etlColumn.setColumnId(i);
+        etlColumn.setColumnName(metaData.getColumnName(i));
+        etlColumn.setSourceType(metaData.getColumnTypeName(i));
+        etlColumn.setDataLength(metaData.getColumnDisplaySize(i));
+        etlColumn.setDataPrecision(metaData.getPrecision(i));
+        etlColumn.setDataScale(metaData.getScale(i));
+        String colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), metaData.getColumnName(i));
+        etlColumn.setColComment(colComment);
+        String hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i), "string");
+        etlColumn.setTargetType(hiveType);
+        if (Objects.equals(hiveType, "decimal")) {
+            hiveType = String.format("decimal(%d,%d)", metaData.getPrecision(i), metaData.getScale(i));
+        }
+        etlColumn.setTargetTypeFull(hiveType);
+        return etlColumn;
+    }
+
+    /**
+     * 获取指定采集表的Hive列信息并转换为DDL语句
+     * @param tid 采集表ID
+     * @return DDL语句列表
+     */
     public List<String> getHiveColumnsAsDDL(Long tid) {
         List<String> result = new ArrayList<>();
         List<EtlColumn> columns = getColumns(tid);
@@ -278,6 +264,10 @@ public class ColumnService
         return result;
     }
 
+    /**
+     * 根据表ID删除对应的字段信息
+     * @param tableId 表ID
+     */
     public void deleteByTid(long tableId)
     {
         etlColumnRepo.deleteAllByTid(tableId);

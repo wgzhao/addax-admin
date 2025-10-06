@@ -8,6 +8,10 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 
+/**
+ * 采集校验主键实体类。
+ * 用于标识校验内容和更新时间的复合主键。
+ */
 @Embeddable
 @Setter
 @Getter

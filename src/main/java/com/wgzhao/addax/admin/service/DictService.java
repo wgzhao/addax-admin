@@ -14,24 +14,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 字典服务类，负责系统参数字典及字典项的相关业务操作。
+ * 包含参数获取、类型转换、业务日期计算、Hive类型映射、HDFS配置等功能。
+ */
 @Service
 public class DictService
 {
-
     @Autowired
     private SysItemRepo sysItemRepo;
-
     @Autowired
     private SysDictRepo sysDictRepo;
 
+    /** 默认切日时间 */
     private static final String DEFAULT_SWITCH_TIME = "16:30";
+    /** 日期格式化器 yyyyMMdd */
     private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
+    /**
+     * 获取切日时间（如未配置则返回默认值）
+     * @return 切日时间字符串，格式 HH:mm
+     */
     public String getSwitchTime() {
         String res = getItemValue(1000, "SWITCH_TIME", String.class);
         return res == null ? DEFAULT_SWITCH_TIME : res;
     }
 
+    /**
+     * 获取切日时间（LocalTime对象）
+     * @return 切日时间
+     */
     public LocalTime getSwitchTimeAsTime() {
         String res = getSwitchTime();
         String[] split = res.split(":");
@@ -40,6 +52,10 @@ public class DictService
         return LocalTime.of(hour, minute);
     }
 
+    /**
+     * 获取日志路径
+     * @return 日志路径
+     */
     public String getLogPath() {
         String res = getItemValue(1062, "runlog", String.class);
         return res == null ? System.getProperty("user.dir") + "/logs" : res;
@@ -48,10 +64,7 @@ public class DictService
     /**
      * 获得上个业务日期，规则如下：
      * 以切日为界限，如果当前时间在切日时间之前，则业务日期不早于当前时间的最近业务日期，否则为当前时间的业务日期
-     * 举例说明：
-     * 假定切日是 16:30，当前日期是 2025-09-23，如果是 16:30 之前采集，则读取字典表中 1021 编号小于 2025-09-23 的最大业务日期（假定为 2025-09-22)，
-     * 如果是 16:30 之后，则认为业务日期为 2025-09-23
-     * 这里要考虑一个跨日采集的情况，比如如果采集时间定在 03:00，那么当前时间到了 2025-09-24，但业务日期仍然是 2025-09-23
+     * 跨日采集时也做特殊处理
      * @return 业务日期，格式为 yyyyMMdd
      */
     public String getBizDate() {
@@ -66,32 +79,58 @@ public class DictService
         return res == null ? curDate : res;
     }
 
+    /**
+     * 获取 Hive CLI 命令
+     * @return Hive CLI 命令字符串
+     */
     public String getHiveCli() {
         String res = getItemValue(1000, "HIVE_CLI", String.class);
         return res == null ? "hive" : res;
     }
 
+    /**
+     * 获取 Addax 安装路径
+     * @return Addax 路径
+     */
     public String getAddaxHome() {
         String res = getItemValue(1062, "addax", String.class);
         return res == null ? "/opt/app/addax" : res;
     }
 
+    /**
+     * 获取并发限制参数
+     * @return 并发限制
+     */
     public int getConcurrentLimit() {
         Integer res = getItemValue(1000, "CONCURRENT_LIMIT", Integer.class);
         return res == null ? 5 : res;
     }
 
+    /**
+     * 获取队列大小参数
+     * @return 队列大小
+     */
     public int getQueueSize() {
         Integer  res = getItemValue(1000, "QUEUE_SIZE", Integer.class);
         return res == null ? 100 : res;
     }
 
-    //    select entry_content from  tb_dictionary where entry_code = '5001' and entry_value = 'r" + kind + "'"
+    /**
+     * 获取采集任务 reader 模板内容
+     * @param kind 数据库类型标识
+     * @return reader 模板内容
+     */
     public String getReaderTemplate(String kind) {
         return getItemValue(5001, "r" + kind, String.class);
     }
 
-
+    /**
+     * 获取字典项的值并自动类型转换
+     * @param dictCode 字典编码
+     * @param itemKey 字典项键
+     * @param clazz 返回类型
+     * @return 字典项值
+     */
     public <T> T getItemValue(int dictCode, String itemKey, Class<T> clazz) {
       String value = sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey).getItemValue();
         if (value == null) {
@@ -109,12 +148,20 @@ public class DictService
         }
     }
 
+    /**
+     * 获取 Addax 任务模板内容
+     * @param kind 模板类型标识
+     * @return 任务模板内容
+     */
     public String getAddaxJobTemplate(String kind)
     {
         return getItemValue(5000, kind, String.class);
     }
 
-    // 获取 Hive 类型映射
+    /**
+     * 获取 Hive 类型映射表
+     * @return Hive类型映射表
+     */
     public Map<String, String> getHiveTypeMapping() {
         return sysItemRepo.getHiveTypeItems().stream()
                 .collect(java.util.stream.Collectors.toMap(
@@ -122,54 +169,121 @@ public class DictService
                         SysItem::getItemValue));
     }
 
+    /**
+     * 获取 HDFS 路径前缀
+     * @return HDFS 路径前缀
+     */
     public String getHdfsPrefix() {
         String res = getItemValue(1000, "HDFS_PREFIX", String.class);
         return res == null ? "/ods/" : res;
     }
 
+    /**
+     * 获取 HDFS 压缩格式
+     * @return 压缩格式
+     */
     public String getHdfsCompress() {
         String res = getItemValue(1000, "HDFS_COMPRESS_FORMAT", String.class);
         return res == null ? "snappy" : res;
     }
 
+    /**
+     * 获取 HDFS 存储格式
+     * @return 存储格式
+     */
     public String getHdfsStorageFormat() {
         String res = getItemValue(1000, "HDFS_STORAGE_FORMAT", String.class);
         return res == null ? "orc" : res;
     }
 
     // SysDict CRUD
+    /**
+     * 查询所有参数字典
+     * @return 字典列表
+     */
     public List<SysDict> findAllDicts() {
         return sysDictRepo.findAll();
     }
+    /**
+     * 根据编码查询字典
+     * @param dictCode 字典编码
+     * @return 字典对象
+     */
     public Optional<SysDict> findDictById(int dictCode) {
         return sysDictRepo.findById(dictCode);
     }
+    /**
+     * 保存字典对象
+     * @param dict 字典对象
+     * @return 保存后的字典对象
+     */
     public SysDict saveDict(SysDict dict) {
         return sysDictRepo.save(dict);
     }
+    /**
+     * 删除字典
+     * @param dictCode 字典编码
+     */
     public void deleteDict(int dictCode) {
         sysDictRepo.deleteById(dictCode);
     }
+    /**
+     * 检查字典是否存在
+     * @param dictCode 字典编码
+     * @return 是否存在
+     */
     public boolean existsDict(int dictCode) {
         return sysDictRepo.existsById(dictCode);
     }
+    /**
+     * 根据编码查询字典对象
+     * @param code 字典编码
+     * @return 字典对象
+     */
     public SysDict findDictByCode(int code) {
         return sysDictRepo.findByCode(code);
     }
 
     // SysItem CRUD
+    /**
+     * 查询指定字典下的所有字典项
+     * @param dictCode 字典编码
+     * @return 字典项列表
+     */
     public List<SysItem> findItemsByDictCode(int dictCode) {
         return sysItemRepo.findByDictCodeOrderByDictCodeAsc(dictCode);
     }
+    /**
+     * 根据主键查询字典项
+     * @param dictCode 字典编码
+     * @param itemKey 字典项键
+     * @return 字典项对象
+     */
     public Optional<SysItem> findItemById(int dictCode, String itemKey) {
         return sysItemRepo.findById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
+    /**
+     * 保存字典项对象
+     * @param item 字典项对象
+     * @return 保存后的字典项对象
+     */
     public SysItem saveItem(SysItem item) {
         return sysItemRepo.save(item);
     }
+    /**
+     * 删除字典项
+     * @param dictCode 字典编码
+     * @param itemKey 字典项键
+     */
     public void deleteItem(int dictCode, String itemKey) {
         sysItemRepo.deleteById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
+    /**
+     * 检查字典项是否存在
+     * @param dictCode 字典编码
+     * @param itemKey 字典项键
+     * @return 是否存在
+     */
     public boolean existsItem(int dictCode, String itemKey) {
         return sysItemRepo.existsById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }

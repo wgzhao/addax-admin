@@ -12,8 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 采集任务入口管理器
- * 提供修改后的executePlanStart方法，集成队列管理功能
+ * 采集任务管理服务类，负责采集任务队列管理及相关业务操作
  */
 @Service
 @Slf4j
@@ -26,17 +25,22 @@ public class TaskService
     private final EtlJourService jourService;
     private final SystemConfigService configService;
 
+    /**
+     * 执行指定采集源下的所有采集任务，将任务加入队列
+     * @param sourceId 采集源ID
+     */
     public void executeTasksForSource(int sourceId) {
         List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
         for (EtlTable table : tables) {
+            // 将采集表加入队列
             queueManager.getEtlQueue().offer(table);
         }
         log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size());
     }
 
     /**
-     * 计划任务主控制 - 基于队列的采集任务管理
-     * 这是采集任务的入口方法，负责扫描tb_imp_etl表并管理采集队列
+     * 计划任务主控 - 基于队列的采集任务管理
+     * 入口方法，负责扫描tb_imp_etl表并管理采集队列
      */
     public void executePlanStartWithQueue()
     {

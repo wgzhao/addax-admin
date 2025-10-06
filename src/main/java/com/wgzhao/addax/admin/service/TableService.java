@@ -24,13 +24,12 @@ import java.util.List;
 import static java.lang.Math.max;
 
 /**
- * 采集表表信息管理
+ * 采集表信息服务类，负责采集表的增删改查及资源刷新等业务操作
  */
 @Service
 @Slf4j
 public class TableService
 {
-
     @Autowired private EtlTableRepo etlTableRepo;
     @Autowired private ColumnService columnService;
     @Autowired private JobContentService jobContentService;
@@ -39,6 +38,11 @@ public class TableService
     @Autowired private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     @Autowired private TargetService targetService;
 
+    /**
+     * 刷新指定采集表的资源（如字段、模板等）
+     * @param table 采集表对象
+     * @return 任务结果
+     */
     public TaskResultDto refreshTableResources(EtlTable table)
     {
         if (table == null) {
@@ -81,6 +85,11 @@ public class TableService
         }
     }
 
+    /**
+     * 刷新指定ID的采集表资源
+     * @param tableId 采集表ID
+     * @return 任务结果
+     */
     public TaskResultDto refreshTableResources(long tableId)
     {
         EtlTable table = etlTableRepo.findById(tableId)
@@ -88,12 +97,19 @@ public class TableService
         return refreshTableResources(table);
     }
 
+    /**
+     * 异步刷新采集表资源
+     * @param table 采集表对象
+     */
     @Async
     public void refreshTableResourcesAsync(EtlTable table)
     {
         refreshTableResources(table);
     }
 
+    /**
+     * 刷新所有采集表的资源
+     */
     public void refreshAllTableResources()
     {
         List<EtlTable> tables = etlTableRepo.findAll();
@@ -123,43 +139,85 @@ public class TableService
         }
     }
 
+    /**
+     * 根据状态获取视图表信息
+     * @param page 页码
+     * @param pageSize 每页大小
+     * @param q 查询关键字
+     * @param status 表状态
+     * @param sortField 排序字段
+     * @param sortOrder 排序方式
+     * @return 视图表信息分页结果
+     */
     public Page<VwEtlTableWithSource> getVwTablesByStatus(int page, int pageSize, String q, String status, String sortField, String sortOrder)
     {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         return vwEtlTableWithSourceRepo.findByStatusAndFilterColumnContaining(status, q.toUpperCase(), pageable);
     }
 
+    /**
+     * 获取单个表的详细信息
+     * @param tid 表ID
+     * @return 视图表对象
+     */
     public VwEtlTableWithSource findOneTableInfo(long tid)
     {
         return vwEtlTableWithSourceRepo.findById(tid).orElse(null);
     }
 
     // 找到所有需要采集的表
+    /**
+     * 统计所有待采集任务数量
+     * @return 待采集任务数量
+     */
     public int findPendingTasks()
     {
         return etlTableRepo.countByStatusEquals(TableStatus.NOT_COLLECT);
     }
 
+    /**
+     * 统计所有正在运行的任务数量
+     * @return 正在运行的任务数量
+     */
     public int findRunningTasks()
     {
         return etlTableRepo.countByStatusEquals(TableStatus.COLLECTING);
     }
 
+    /**
+     * 根据ID获取表及其数据源信息
+     * @param tid 表ID
+     * @return 表对象
+     */
     public EtlTable getTableAndSource(long tid)
     {
         return etlTableRepo.findById(tid).orElse(null);
     }
 
+    /**
+     * 根据ID获取表信息
+     * @param tid 表ID
+     * @return 表对象
+     */
     public EtlTable getTable(long tid)
     {
         return etlTableRepo.findById(tid).orElse(null);
     }
 
+    /**
+     * 根据ID获取视图表信息
+     * @param tid 表ID
+     * @return 视图表对象
+     */
     public VwEtlTableWithSource getTableView(long tid)
     {
         return vwEtlTableWithSourceRepo.findById(tid).orElse(null);
     }
 
+    /**
+     * 设置任务为正在运行状态
+     * @param task 任务对象
+     */
     public void setRunning(EtlTable task)
     {
         task.setStatus(TableStatus.COLLECTING);
@@ -167,6 +225,10 @@ public class TableService
         etlTableRepo.save(task);
     }
 
+    /**
+     * 设置任务为已完成状态
+     * @param task 任务对象
+     */
     public void setFinished(EtlTable task)
     {
         task.setStatus(TableStatus.COLLECTED);
@@ -176,6 +238,10 @@ public class TableService
         etlTableRepo.save(task);
     }
 
+    /**
+     * 设置任务为失败状态
+     * @param task 任务对象
+     */
     public void setFailed(EtlTable task)
     {
         task.setStatus(TableStatus.COLLECT_FAIL);
@@ -184,6 +250,11 @@ public class TableService
         etlTableRepo.save(task);
     }
 
+    /**
+     * 设置任务状态
+     * @param table 任务对象
+     * @param status 状态值
+     */
     public void setStatus(EtlTable table, String status)
     {
         table.setStatus(status);
@@ -192,6 +263,10 @@ public class TableService
 
     // 找到所有可以运行的任务
     // 要注意切日的问题
+    /**
+     * 获取所有可运行的任务
+     * @return 可运行的任务列表
+     */
     public List<EtlTable> getRunnableTasks()
     {
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
@@ -200,6 +275,11 @@ public class TableService
         return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime);
     }
 
+    /**
+     * 根据数据源ID获取可运行的任务
+     * @param sourceId 数据源ID
+     * @return 可运行的任务列表
+     */
     public List<EtlTable> getRunnableTasks(int sourceId)
     {
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
@@ -211,27 +291,46 @@ public class TableService
                 .toList();
     }
 
+    /**
+     * 获取有效表的数量
+     * @return 有效表的数量
+     */
     public Integer getValidTableCount()
     {
         return etlTableRepo.findValidTableCount();
     }
 
+    /**
+     * 获取所有有效表
+     * @return 有效表列表
+     */
     public List<EtlTable> getValidTables()
     {
         return etlTableRepo.findValidTables();
     }
 
+    /**
+     * 获取所有有效的视图表
+     * @return 视图表列表
+     */
     public List<VwEtlTableWithSource> getValidTableViews()
     {
         return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot(TableStatus.EXCLUDE_COLLECT);
     }
 
+    /**
+     * 重置所有表的标志位
+     */
     @Transactional
     public void resetAllFlags()
     {
         etlTableRepo.resetAllEtlFlags();
     }
 
+    /**
+     * 查找特殊任务
+     * @return 特殊任务列表
+     */
     public List<EtlTable> findSpecialTasks()
     {
         return etlTableRepo.findSpecialTasks();
@@ -248,6 +347,10 @@ public class TableService
                 .toList();
     }
 
+    /**
+     * 删除指定ID的表及其相关信息
+     * @param tableId 表ID
+     */
     @Transactional
     public void deleteTable(long tableId)
     {
@@ -261,11 +364,21 @@ public class TableService
         etlTableRepo.deleteById(tableId);
     }
 
+    /**
+     * 创建新的采集表
+     * @param etl 采集表对象
+     * @return 创建的采集表对象
+     */
     public EtlTable createTable(EtlTable etl)
     {
         return etlTableRepo.save(etl);
     }
 
+    /**
+     * 批量创建采集表
+     * @param tables 采集表对象列表
+     * @return 创建的采集表对象列表
+     */
     public List<EtlTable> batchCreateTable(List<EtlTable> tables)
     {
         return etlTableRepo.saveAll(tables);

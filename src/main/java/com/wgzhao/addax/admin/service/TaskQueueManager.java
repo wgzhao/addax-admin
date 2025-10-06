@@ -6,14 +6,16 @@ import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
-import com.wgzhao.addax.admin.utils.FileUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -284,19 +286,20 @@ public class TaskQueueManager
             }
         }
         // 写入临时文件
-        String tmpFile;
+        File tempFile;
         try {
-            tmpFile = FileUtils.writeToTempFile(task.getTargetDb() + "." + task.getTargetTable() + "_", job);
+            tempFile = File.createTempFile(task.getTargetDb() + "." + task.getTargetTable() + "_", ".json");
+            Files.writeString(tempFile.toPath(), job);
         }
         catch (IOException e) {
             log.error("写入临时文件失败", e);
             return false;
         }
 
-        log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tmpFile);
+        log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tempFile.getAbsolutePath());
         // 设定一个日志文件名的名称
-        String logName = "addax_" + taskId + "_" + System.currentTimeMillis() + ".log";
-        String cmd = dictService.getAddaxHome() + "/bin/addax.sh -p'-DjobName=" + taskId + " -Dlog.file.name=" + logName + "' " + tmpFile;
+        String logName = String.format("addax_%s_%d.log", taskId, System.currentTimeMillis());
+        String cmd = String.format("%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s", dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
         boolean retCode = executeAddax(cmd, taskId, logName);
         log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode;
@@ -405,8 +408,14 @@ public class TaskQueueManager
 
         TaskResultDto taskResult = CommandExecutor.executeWithResult(command);
         // 记录日志
-        String logContent = FileUtils.readFileContent(dictService.getAddaxHome() + "/log/" + logName);
-        addaxLogService.insertLog(tid, logContent);
+        Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
+        try {
+            String logContent = Files.readString(path);
+            addaxLogService.insertLog(tid, logContent);
+        }
+        catch (IOException e) {
+            log.warn("Failed to get the addax log content: {}", path);
+        }
         etlJour.setDuration(taskResult.getDurationSeconds());
         etlJour.setStatus(true);
         if (!taskResult.isSuccess()) {

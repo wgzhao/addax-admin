@@ -1,33 +1,24 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.JourKind;
-import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
-import com.wgzhao.addax.admin.utils.CommandExecutor;
-import com.wgzhao.addax.admin.utils.FileUtils;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.AutoConfigureOrder;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
 /**
- * 采集任务入口管理器
- * 这里主要是针对采集到 Hadoop 上的目标做一些管理工作，比如说：
- * 1. 目标表的创建和删除
- * 2. 目标表的分区管理
- * 3. 目标表的数据清理和归档
- * 4. 目标表的源数据更新
+ * 采集任务目标管理服务。
+ * 主要负责 Hadoop 目标表的创建、分区管理、元数据更新等操作。
+ * 包括 Hive 表的创建/更新、分区添加等功能。
  */
 @Service
 @Slf4j
@@ -46,6 +37,16 @@ public class TargetService
     @Autowired
     private  EtlJourService jourService;
 
+    /**
+     * 为指定 Hive 表添加分区。
+     *
+     * @param taskId 采集任务ID
+     * @param db Hive数据库名
+     * @param table Hive表名
+     * @param partName 分区字段名
+     * @param partValue 分区字段值
+     * @return 是否添加成功
+     */
     public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
     {
         String sql = String.format("ALTER TABLE %s.%s ADD IF NOT EXISTS PARTITION (%s=%s)", db, table, partName, partValue);
@@ -64,6 +65,13 @@ public class TargetService
         }
     }
 
+    /**
+     * 创建或更新 Hive 目标表。
+     * 包括建库、建表、分区、表属性等操作。
+     *
+     * @param etlTable 采集表视图对象
+     * @return 是否创建/更新成功
+     */
     public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
     {
         List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());

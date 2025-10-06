@@ -25,6 +25,9 @@ import java.util.regex.Pattern;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 
+/**
+ * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
+ */
 @Service
 @Slf4j
 public class JobContentService
@@ -47,15 +50,22 @@ public class JobContentService
     @Autowired
     private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
 
+    /**
+     * 获取指定采集表的采集任务模板内容
+     * @param tid 采集表ID
+     * @return 采集任务模板内容（JSON字符串），若不存在则返回null
+     */
     public String getJobContent(long tid)
     {
         return jobRepo.findById(tid).map(EtlJob::getJob).orElse(null);
     }
 
     /**
-     * 更新采集任务的 json 文件表
-     * 他扫描 tb_imp_etl 任务，然后生成 addax 采集需要的 json 文件模板，并写入到 tb_imp_etl_job 表中
-     * 这个方法可以定期运行，确保 tb_imp_etl_job 表中的 json
+     * 更新采集任务的json模板
+     * 扫描tb_imp_etl任务，生成addax采集需要的json模板，并写入tb_imp_etl_job表
+     * 可定期运行，确保tb_imp_etl_job表中的json内容最新
+     * @param etlTable 采集表视图对象
+     * @return 任务结果
      */
     public TaskResultDto updateJob(VwEtlTableWithSource etlTable)
     {
@@ -150,11 +160,19 @@ public class JobContentService
         return result.toString();
     }
 
+    /**
+     * 根据表ID删除对应的采集任务
+     * @param tableId 表ID
+     */
     public void deleteByTid(long tableId)
     {
         jobRepo.deleteById(tableId);
     }
 
+    /**
+     * 根据数据源ID异步更新相关的采集任务
+     * @param sid 数据源ID
+     */
     // 根据数据源 ID 更新相关的任务
     @Async
     public void updateJobBySourceId(int sid)

@@ -7,6 +7,10 @@ import lombok.Setter;
 
 import java.sql.Timestamp;
 
+/**
+ * Addax作业统计信息实体类。
+ * 用于存储作业运行的时间、速率、数据量等统计信息。
+ */
 @Entity
 @Table(name = "tb_addax_sta", schema = "public", catalog = "stg01")
 @Data

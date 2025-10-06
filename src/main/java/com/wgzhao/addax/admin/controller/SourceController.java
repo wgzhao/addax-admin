@@ -25,7 +25,7 @@ import java.util.*;
 import java.util.concurrent.Future;
 
 /**
- * 数据源配置接口
+ * 数据源管理控制器，提供数据源及相关元数据的管理接口
  */
 @Tag(name = "数据源管理", description = "数据源配置相关接口")
 @RestController
@@ -33,10 +33,24 @@ import java.util.concurrent.Future;
 @AllArgsConstructor
 public class SourceController
 {
+    /**
+     * 数据源服务
+     */
     private final SourceService sourceService;
+    /**
+     * 表服务
+     */
     private final TableService tableService;
+    /**
+     * 作业内容服务
+     */
     private final JobContentService jobContentService;
 
+    /**
+     * 查询所有数据源
+     *
+     * @return 数据源列表
+     */
     @Operation(summary = "查询所有数据源", description = "返回所有数据源列表")
     @GetMapping("")
     public ResponseEntity<List<EtlSource>> list()
@@ -44,6 +58,12 @@ public class SourceController
         return ResponseEntity.ok(sourceService.findAll());
     }
 
+    /**
+     * 新建数据源
+     *
+     * @param etlSource 数据源对象
+     * @return 新建的数据源对象
+     */
     @Operation(summary = "新建数据源", description = "创建一个新的数据源")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "数据源对象",
@@ -61,6 +81,13 @@ public class SourceController
         return ResponseEntity.status(201).body(saved);
     }
 
+    /**
+     * 保存数据源
+     *
+     * @param id 数据源ID
+     * @param etlSource 数据源对象
+     * @return 更新的记录数
+     */
     @Operation(summary = "保存数据源", description = "保存数据源对象")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "数据源对象",
@@ -85,6 +112,12 @@ public class SourceController
         return ResponseEntity.ok(1);
     }
 
+    /**
+     * 查询单个数据源
+     *
+     * @param id 数据源ID
+     * @return 数据源对象
+     */
     @Operation(summary = "查询单个数据源", description = "根据ID查询数据源")
     @GetMapping("/{id}")
     public ResponseEntity<EtlSource> get(
@@ -95,6 +128,12 @@ public class SourceController
                 .orElseThrow(() -> new ApiException(404, "Source not found"));
     }
 
+    /**
+     * 删除数据源
+     *
+     * @param id 数据源ID
+     * @return 响应实体
+     */
     @Operation(summary = "删除数据源", description = "根据ID删除数据源")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
@@ -109,6 +148,12 @@ public class SourceController
         }
     }
 
+    /**
+     * 测试数据源连接
+     *
+     * @param payload 连接参数
+     * @return 是否连接成功
+     */
     @Operation(summary = "测试数据源连接", description = "测试指定参数的数据源连接是否可用")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "连接参数",
@@ -126,6 +171,12 @@ public class SourceController
         return ResponseEntity.ok(isConnected);
     }
 
+    /**
+     * 检查编号是否存在
+     *
+     * @param code 数据源编号
+     * @return 编号是否存在
+     */
     @Operation(summary = "检查编号是否存在", description = "检查数据源编号是否已存在")
     @GetMapping("/check-code")
     public ResponseEntity<Boolean> checkCode(
@@ -137,6 +188,12 @@ public class SourceController
         return ResponseEntity.ok(sourceService.checkCode(code));
     }
 
+    /**
+     * 查询采集源下所有数据库
+     *
+     * @param sourceId 数据源ID
+     * @return 数据库名称列表
+     */
     @Operation(summary = "查询采集源下所有数据库", description = "根据 sourceId 查询该采集源下所有数据库名称")
     @GetMapping("/{sourceId}/databases")
     public ResponseEntity<List<String>> listDatabases(
@@ -159,6 +216,13 @@ public class SourceController
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * 查询未采集的表(含表注释)
+     *
+     * @param sourceId 数据源ID
+     * @param dbName 数据库名
+     * @return 表元数据列表
+     */
     @Operation(summary = "查询未采集的表(含表注释)", description = "查询指定采集源和数据库下未采集的表名与表注释")
     @GetMapping("/{sourceId}/databases/{dbName}/tables/uncollected")
     public ResponseEntity<List<TableMetaDto>> listUncollectedTables(
@@ -177,11 +241,10 @@ public class SourceController
         if (source == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
         }
-        try {
-            result = sourceService.getUncollectedTables(source, dbName, existsSet);
-        }
-        catch (SQLException e) {
-            throw new ApiException(500, e.getMessage());
+
+        result = sourceService.getUncollectedTables(source, dbName, existsSet);
+        if (result == null) {
+            throw new ApiException(500, "获取未采集表失败");
         }
         return ResponseEntity.ok(result);
     }

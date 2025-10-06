@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * 采集表管理接口（RESTful 规范）
+ * 采集表管理接口（RESTful规范），提供采集表的分页查询、详情、统计等功能
  */
 @Tag(name = "采集表配置管理接口")
 @RestController
@@ -34,14 +34,27 @@ import java.util.concurrent.CompletableFuture;
 @AllArgsConstructor
 public class TableController
 {
-
+    /** 采集表服务 */
     private final TableService tableService;
+    /** 采集表数据仓库 */
     private final EtlTableRepo etlTableRepo;
+    /** 统计服务 */
     private final StatService statService;
+    /** 列服务 */
     private final ColumnService columnService;
+    /** 作业内容服务 */
     private final JobContentService jobContentService;
 
-    // 分页查询采集表
+    /**
+     * 分页查询采集表
+     * @param page 页码
+     * @param pageSize 每页记录数
+     * @param q 查询关键字
+     * @param status 状态
+     * @param sortField 排序字段
+     * @param sortOrder 排序顺序
+     * @return 采集表分页结果
+     */
     @Operation(summary = "分页查询采集表")
     @GetMapping("")
     public ResponseEntity<Page<VwEtlTableWithSource>> listTables(
@@ -66,7 +79,11 @@ public class TableController
         return ResponseEntity.ok(result);
     }
 
-    // 查询单个采集表
+    /**
+     * 查询单个采集表
+     * @param tableId 采集表ID
+     * @return 采集表详情
+     */
     @Operation(summary = "查询单个采集表")
     @GetMapping("/{tableId}")
     public ResponseEntity<VwEtlTableWithSource> getTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
@@ -77,7 +94,11 @@ public class TableController
         return ResponseEntity.ok(table);
     }
 
-    // 删除采集表
+    /**
+     * 删除采集表
+     * @param tableId 采集表ID
+     * @return 删除结果提示
+     */
     @Operation(summary = "删除采集表")
     @DeleteMapping("/{tableId}")
     public ResponseEntity<String> deleteTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
@@ -88,7 +109,12 @@ public class TableController
         return ResponseEntity.ok("表以及相关资源删除成功");
     }
 
-    // 更新采集表
+    /**
+     * 更新采集表
+     * @param tableId 采集表ID
+     * @param etl 更新的采集表数据
+     * @return 更新后的采集表
+     */
     @Operation(summary = "更新采集表")
     @PutMapping("/{tableId}")
     public ResponseEntity<EtlTable> updateTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId,
@@ -103,7 +129,12 @@ public class TableController
         EtlTable updated = etlTableRepo.save(etl);
         return ResponseEntity.ok(updated);
     }
-    // 查询表字段
+
+    /**
+     * 查询表字段
+     * @param tableId 采集表ID
+     * @return 采集表字段列表
+     */
     @Operation(summary = "查询表字段")
     @GetMapping("/{tableId}/columns")
     public ResponseEntity<List<EtlColumn>> getTableColumns(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
@@ -111,7 +142,11 @@ public class TableController
         return ResponseEntity.ok(columnService.getColumns(tableId));
     }
 
-    // 查询表采集统计
+    /**
+     * 查询表采集统计
+     * @param tableId 采集表ID
+     * @return 采集统计信息
+     */
     @Operation(summary = "查询表采集统计")
     @GetMapping("/{tableId}/statistics")
     public ResponseEntity<List<EtlStatistic>> getTableStatistics(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
@@ -119,7 +154,11 @@ public class TableController
         return ResponseEntity.ok(statService.getLast15Records(tableId));
     }
 
-    // 批量保存采集表
+    /**
+     * 批量保存采集表
+     * @param etls 采集表列表
+     * @return 保存的采集表数量
+     */
     @Operation(summary = "批量保存采集表")
     @PostMapping("/batch")
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
@@ -132,7 +171,11 @@ public class TableController
         return ResponseEntity.status(HttpStatus.CREATED).body(etls.size());
     }
 
-    // 新增单个采集表
+    /**
+     * 新增单个采集表
+     * @param etl 采集表数据
+     * @return 新增的采集表
+     */
     @Operation(summary = "新增单个采集表")
     @PostMapping("")
     public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
@@ -141,6 +184,12 @@ public class TableController
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
+    /**
+     * 刷新所有表的关联资源
+     * 触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件
+     * @param mode 刷新模式
+     * @return 无内容响应
+     */
     @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
     public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode)
@@ -149,6 +198,12 @@ public class TableController
         return ResponseEntity.accepted().build();
     }
 
+    /**
+     * 刷新表关联资源
+     * 触发一个异步任务，用于更新指定表的元数据（字段）和采集任务文件
+     * @param tableId 采集表ID
+     * @return 任务结果
+     */
     @Operation(summary = "刷新表关联资源", description = "触发一个异步任务，用于更新指定表的元数据（字段）和采集任务文件")
     @PostMapping("/{tableId}/actions/refresh")
     public ResponseEntity<TaskResultDto> refreshTableResources(
@@ -166,7 +221,11 @@ public class TableController
         }
     }
 
-    // 批量更新表状态
+    /**
+     * 批量更新表状态
+     * @param params 表状态更新参数
+     * @return 更新的表数量
+     */
     @Operation(summary = "批量更新表状态")
     @PostMapping("/batch/status")
     public ResponseEntity<Integer> batchUpdateStatus(@RequestBody Map<String, Object> params)
@@ -175,7 +234,11 @@ public class TableController
         return ResponseEntity.ok(1);
     }
 
-    // 查询表视图
+    /**
+     * 查询表视图
+     * @param params 查询参数
+     * @return 表视图列表
+     */
     @Operation(summary = "查询表视图")
     @GetMapping("/view")
     public ResponseEntity<List<VwEtlTableWithSource>> listTableViews(@RequestParam Map<String, String> params)
@@ -184,7 +247,11 @@ public class TableController
         return ResponseEntity.ok(new ArrayList<>());
     }
 
-    // 获取Addax Job模板
+    /**
+     * 获取Addax Job模板
+     * @param tableId 采集表ID
+     * @return Addax Job模板内容
+     */
     @Operation(summary = "获取Addax Job模板")
     @GetMapping("/{tableId}/addax-job")
     public ResponseEntity<String> getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)

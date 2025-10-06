@@ -13,53 +13,74 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 监控主页面，主要是汇总信息和图表展示
+ * 监控主页面控制器，主要用于汇总信息和图表展示
  */
 @RestController
 @RequestMapping("/dashboard")
 @AllArgsConstructor
 public class IndexController
 {
-
+    /** 统计服务 */
     private final StatService statService;
+    /** 数据源服务 */
     private final SourceService sourceService;
+    /** 表服务 */
     private final TableService tableService;
 
-    // 各数据源采集完成率，用于图表展示
+    /**
+     * 获取各数据源采集完成率，用于图表展示
+     * @return 完成率列表
+     */
     @RequestMapping("/accomplish-ratio")
     public ResponseEntity<List<Map<String, Object>>> accomplishRatio()
     {
         return ResponseEntity.ok(statService.statLastAccompRatio());
     }
 
-    //  最近5天采集耗时对比
+    /**
+     * 获取最近5天采集耗时对比
+     * @return 耗时数据列表
+     */
     @RequestMapping("/last-5d-collect-time")
     public ResponseEntity<List<Map<String, Object>>> last5DaysEtlTime()
     {
         return ResponseEntity.ok(statService.statLast5DaysTimeBySource());
     }
 
-    // 最近交易日采集的数据量， 以 GB 为单位
+    /**
+     * 获取最近交易日采集的数据量（单位GB）
+     * @return 数据量
+     */
     @RequestMapping("/last-collect-data")
     public ResponseEntity<Double> lastEtlData()
     {
         return ResponseEntity.ok(statService.statTotalData());
     }
 
-    // 获取最近12个月的采集累计数据量，单位为 GiB
+    /**
+     * 获取最近12个月采集累计数据量（单位GiB）
+     * @return 月度数据量列表
+     */
     @RequestMapping("/last-12m-collect-data")
     public ResponseEntity<?> last12MonthsData()
     {
-        // Adjusted method signature for consistency
         return ResponseEntity.ok(statService.statLast12MonthsData());
     }
 
+    /**
+     * 获取采集表数量
+     * @return 表数量
+     */
     @RequestMapping("/collect-table-count")
     public ResponseEntity<Integer> tableCount()
     {
         return ResponseEntity.ok(tableService.getValidTableCount());
     }
 
+    /**
+     * 获取数据源数量
+     * @return 数据源数量
+     */
     @GetMapping("/collect-source-count")
     public ResponseEntity<Integer> sourceCount()
     {

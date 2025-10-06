@@ -23,27 +23,37 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 日志相关接口，主要是根据指定条件，从特定的目录获取特定日志，并进行展示
+ * 日志相关接口，主要用于获取采集日志和作业报告
  */
 @RestController
 @RequestMapping("/log")
 @Slf4j
 public class LogController {
 
+    /** Addax日志服务 */
     @Autowired
     private AddaxLogService addaxLogService;
 
+    /** 统计服务 */
     @Autowired
     private StatService statService;
 
-    // 获取指定 SP 的日志列表
+    /**
+     * 获取指定采集任务的日志列表
+     * @param tid 采集任务ID
+     * @return 日志列表
+     */
     @GetMapping("/{tid}")
     public ApiResponse<List<AddaxLogDto>> getSpLog(@PathVariable("tid") String tid)
     {
         return ApiResponse.success(addaxLogService.getLogEntry(tid));
     }
 
-    // 获取指定日志文件的内容
+    /**
+     * 获取指定日志文件的内容
+     * @param id 日志ID
+     * @return 日志内容
+     */
     @GetMapping("/{id}/content")
     public ResponseEntity<String> getLogFileContent(@PathVariable("id") Long id)
     {
@@ -51,7 +61,11 @@ public class LogController {
         return ResponseEntity.ok(addaxLog);
     }
 
-
+    /**
+     * 作业报告接口
+     * @param dto 作业报告数据
+     * @return 是否成功
+     */
     @PostMapping(value = "/job-report", consumes = "application/json")
     public boolean jobReport(@RequestBody AddaxReportDto dto) {
         log.info("job report: {}", dto);

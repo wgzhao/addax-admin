@@ -12,6 +12,10 @@ import lombok.Setter;
 
 import java.sql.Date;
 
+/**
+ * 计划任务实体类。
+ * 用于描述采集计划的类型、区间、标志、起始时间等信息。
+ */
 @Entity
 @Table(name = "tb_imp_plan")
 @Setter
