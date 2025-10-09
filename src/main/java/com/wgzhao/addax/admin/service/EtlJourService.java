@@ -27,11 +27,11 @@ public class EtlJourService
      * @return 新增的流水对象
      */
     @Transactional
-    public EtlJour addJour(long taskId, JourKind jourKind, String cmd)
+    public EtlJour addJour(long taskId, String jourKind, String cmd)
     {
         EtlJour jour = new EtlJour();
         jour.setTid(taskId);
-        jour.setKind(jourKind.name());
+        jour.setKind(jourKind);
         jour.setCmd(cmd);
         jour.setStartAt(LocalDateTime.now());
         return etlJourRepo.save(jour);
@@ -88,5 +88,9 @@ public class EtlJourService
     public String findLastErrorByTableId(long tableId)
     {
         return etlJourRepo.findLastError(tableId);
+    }
+
+    public String getErrorKindByTid(long tableId) {
+        return etlJourRepo.findFirstByTidAndStatusIsFalse(tableId).map(EtlJour::getKind).orElse(null);
     }
 }

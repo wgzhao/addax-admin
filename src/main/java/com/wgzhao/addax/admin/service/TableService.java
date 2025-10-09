@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -20,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 
 import static java.lang.Math.max;
 
@@ -55,19 +57,28 @@ public class TableService
         }
         // 1. 更新列信息
         int retCode = columnService.updateTableColumns(vwTable);
-        if (retCode == 0) {
-            // 说明字段没有变化，那么就不需要继续后面的流程了
-            setStatus(table, TableStatus.NOT_COLLECT);
-            return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
-        }
+
         if (retCode == -1) {
             setStatus(table, TableStatus.COLLECT_FAIL);
             log.warn("Failed to update columns for table id {}", table.getId());
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
 
+        if (retCode == 0) {
+            // 检查表结构是否已经更新
+            if (Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA)) {
+                if (!targetService.createOrUpdateHiveTable(vwTable)) {
+                    setStatus(table, TableStatus.COLLECT_FAIL);
+                    log.warn("Failed to create or update Hive table for tid {}", table.getId());
+                    return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
+                }
+            }
+            setStatus(table, TableStatus.NOT_COLLECT);
+            return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
+        }
+
         if (!targetService.createOrUpdateHiveTable(vwTable)) {
-            setStatus(table, TableStatus.COLLECT_FAIL);
+            setStatus(table, TableStatus.WAIT_SCHEMA);
             log.warn("Failed to create or update Hive table for tid {}", table.getId());
             return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
         }

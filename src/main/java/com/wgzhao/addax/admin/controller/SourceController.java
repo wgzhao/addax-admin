@@ -105,10 +105,15 @@ public class SourceController
         if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
             throw new ApiException(400, "Source code cannot be modified");
         }
-        boolean needUpdateSchedule = existing.getStartAt() == etlSource.getStartAt();
+        boolean needUpdateSchedule = existing.getStartAt() != etlSource.getStartAt();
         sourceService.save(etlSource, needUpdateSchedule);
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
-        jobContentService.updateJobBySourceId(id);
+        // 如果连接串，账号，密码三者没变更，则不要更新任务模板
+        String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
+        String newPos = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass();
+        if (!Objects.equals(existPos, newPos)) {
+            jobContentService.updateJobBySourceId(id);
+        }
         return ResponseEntity.ok(1);
     }
 

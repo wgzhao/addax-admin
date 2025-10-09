@@ -104,6 +104,15 @@ public class TaskService
     }
 
     /**
+     * 启动队列监控
+     */
+    public String startQueueMonitor()
+    {
+        queueManager.startQueueMonitor();
+        return "队列监控已启动";
+    }
+
+    /**
      * 重启队列监控
      */
     public String restartQueueMonitor()

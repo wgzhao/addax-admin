@@ -1,9 +1,12 @@
 package com.wgzhao.addax.admin.repository;
 
+import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlJour;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 @Repository
 public interface EtlJourRepo
@@ -18,5 +21,7 @@ public interface EtlJourRepo
             limit 1
             """, nativeQuery = true)
     String findLastError(long tableId);
+
+    Optional<EtlJour> findFirstByTidAndStatusIsFalse(long tableId);
     // 可根据需要添加自定义查询方法
 }

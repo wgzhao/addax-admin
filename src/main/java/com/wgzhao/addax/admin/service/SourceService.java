@@ -96,12 +96,14 @@ public class SourceService
      */
     public EtlSource save(EtlSource etlSource, boolean updateSchedule)
     {
+        etlSourceRepo.save(etlSource);
         if (updateSchedule) {
             // 先取消原有调度任务，再重新调度
+            log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
             collectionSchedulingService.cancelTask(etlSource.getCode());
             collectionSchedulingService.scheduleOrUpdateTask(etlSource);
         }
-        return etlSourceRepo.save(etlSource);
+        return etlSource;
     }
 
     /**

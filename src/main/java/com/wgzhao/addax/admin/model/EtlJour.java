@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.model;
 
+import com.wgzhao.addax.admin.common.JourKind;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -38,4 +39,3 @@ public class EtlJour implements Serializable {
     @Column(name = "error_msg", length = 4000)
     private String errorMsg;
 }
-
