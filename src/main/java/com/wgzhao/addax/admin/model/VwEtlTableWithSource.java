@@ -31,7 +31,9 @@ public class VwEtlTableWithSource {
     private String status;
     private String kind;
     private Integer retryCnt;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endTime;
     private Integer sid;
     private Integer duration;

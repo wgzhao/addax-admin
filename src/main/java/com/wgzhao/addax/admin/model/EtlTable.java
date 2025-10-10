@@ -1,17 +1,19 @@
 package com.wgzhao.addax.admin.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
  * TB_IMP_ETL 实体类
  *
- * @author
+ * @author wgzhao
  */
 @Entity
 @Table(name = "etl_table")
@@ -57,9 +59,11 @@ public class EtlTable {
     @Column(name = "retry_cnt")
     private Integer retryCnt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "start_time")
     private Date startTime;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "end_time")
     private Date endTime;
 

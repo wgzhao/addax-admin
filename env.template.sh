@@ -17,6 +17,9 @@ export REDIS_PASSWORD=""                                       # Redis 密码（
 export REDIS_DATABASE="0"                                     # Redis 数据库索引
 
 # Hive Service 2 服务连接信息
+export HIVE_METHOD="jdbc"                                   # 连接方法 jdbc 或 cmd
+
+# 如果使用了 jdbc 方法，则下面的配置项必须填写
 export HIVE_HOST="localhost"                                  # Hive 主机
 export HIVE_PORT="10000"                                      # Hive 端口
 export HIVE_USERNAME="hive"                                   # Hive 用户名
