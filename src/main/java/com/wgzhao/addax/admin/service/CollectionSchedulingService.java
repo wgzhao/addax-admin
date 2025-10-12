@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +45,6 @@ public class CollectionSchedulingService {
         } catch (Exception e) {
             // 记录详细异常，便于排查
            log.error("Error in rescheduleAllTasks: " , e);
-            e.printStackTrace();
         }
     }
 
@@ -58,7 +58,10 @@ public class CollectionSchedulingService {
     public void scheduleOrUpdateTask(EtlSource source) {
         String taskId = "source-" + source.getCode();
         if (source.isEnabled() && source.getStartAt() != null) {
+            log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
+            // cancel existing task if any
+            taskSchedulerService.cancelTask(taskId);
             Runnable task = () -> taskService.executeTasksForSource(source.getId());
             taskSchedulerService.scheduleTask(taskId, task, cronExpression);
         } else {
@@ -73,5 +76,12 @@ public class CollectionSchedulingService {
 
     private String convertLocalTimeToCron(LocalTime time) {
         return String.format("0 %d %d * * ?", time.getMinute(), time.getHour());
+    }
+
+    @EventListener
+    public void handleSourceEvent(SourceUpdatedEvent event) {
+        if (event.isScheduleChanged()) {
+            etlSourceRepo.findById(event.getSourceId()).ifPresent(this::scheduleOrUpdateTask);
+        }
     }
 }

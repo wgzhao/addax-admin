@@ -22,7 +22,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.Future;
 
 /**
  * 数据源管理控制器，提供数据源及相关元数据的管理接口
@@ -37,14 +36,12 @@ public class SourceController
      * 数据源服务
      */
     private final SourceService sourceService;
+
     /**
      * 表服务
      */
     private final TableService tableService;
-    /**
-     * 作业内容服务
-     */
-    private final JobContentService jobContentService;
+
 
     /**
      * 查询所有数据源
@@ -106,13 +103,7 @@ public class SourceController
             throw new ApiException(400, "Source code cannot be modified");
         }
         sourceService.save(etlSource);
-        // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
-        // 如果连接串，账号，密码三者没变更，则不要更新任务模板
-        String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
-        String newPos = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass();
-        if (!Objects.equals(existPos, newPos)) {
-            jobContentService.updateJobBySourceId(id);
-        }
+
         return ResponseEntity.ok(1);
     }
 

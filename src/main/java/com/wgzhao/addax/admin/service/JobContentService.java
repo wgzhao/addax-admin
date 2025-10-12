@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -13,6 +14,7 @@ import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -179,5 +181,12 @@ public class JobContentService
     {
         vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)
                 .forEach(this::updateJob);
+    }
+
+    @EventListener
+    public void handleSourceUpdatedEvent(SourceUpdatedEvent event) {
+        if (event.isConnectionChanged()) {
+            updateJobBySourceId(event.getSourceId());
+        }
     }
 }

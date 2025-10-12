@@ -1,11 +1,13 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.TableMetaDto;
+import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
@@ -14,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,6 +36,8 @@ public class SourceService
      * 采集任务调度服务
      */
     private final CollectionSchedulingService collectionSchedulingService;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 获取有效数据源数量
@@ -98,11 +103,25 @@ public class SourceService
         // 需要和现有数据的调度时间进行对比，如果不相同，则还需要更新调度时间
         EtlSource existing = etlSourceRepo.findById(etlSource.getId()).orElse(null);
         etlSourceRepo.save(etlSource);
-        if (existing != null && existing.getStartAt() != etlSource.getStartAt()) {
-            // 先取消原有调度任务，再重新调度
-            log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
-            collectionSchedulingService.cancelTask(etlSource.getCode());
-            collectionSchedulingService.scheduleOrUpdateTask(etlSource);
+        if (existing == null) {
+             return etlSource;
+        }
+        boolean scheduleChanged =  existing.getStartAt() != etlSource.getStartAt();
+
+//        if (existing.getStartAt() != etlSource.getStartAt()) {
+//            // 先取消原有调度任务，再重新调度
+//            log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
+//            collectionSchedulingService.cancelTask(etlSource.getCode());
+//            collectionSchedulingService.scheduleOrUpdateTask(etlSource);
+//        }
+        // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
+        // 如果连接串，账号，密码三者没变更，则不要更新任务模板
+        String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
+        String newPos = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass();
+        boolean connectionChanged = !Objects.equals(existPos, newPos);
+        if (scheduleChanged || connectionChanged) {
+            SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), connectionChanged, scheduleChanged);
+            eventPublisher.publishEvent(sourceUpdatedEvent);
         }
         return etlSource;
     }
