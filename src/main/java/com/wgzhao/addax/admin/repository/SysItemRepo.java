@@ -23,7 +23,7 @@ public interface SysItemRepo
     @Query("SELECT s FROM SysItem s WHERE s.dictCode = 2011")
     List<SysItem> getHiveTypeItems();
 
-    SysItem findByDictCodeAndItemKey(int dictCode, String itemKey);
+    Optional<SysItem> findByDictCodeAndItemKey(int dictCode, String itemKey);
 
     @Query(value = """
             SELECT item_value FROM sys_item

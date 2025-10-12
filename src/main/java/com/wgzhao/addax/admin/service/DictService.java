@@ -57,7 +57,7 @@ public class DictService
      * @return 日志路径
      */
     public String getLogPath() {
-        String res = getItemValue(1062, "runlog", String.class);
+        String res = getItemValue(1000, "RUN_LOG", String.class);
         return res == null ? System.getProperty("user.dir") + "/logs" : res;
     }
 
@@ -93,7 +93,7 @@ public class DictService
      * @return Addax 路径
      */
     public String getAddaxHome() {
-        String res = getItemValue(1062, "addax", String.class);
+        String res = getItemValue(1000, "ADDAX", String.class);
         return res == null ? "/opt/app/addax" : res;
     }
 
@@ -132,7 +132,11 @@ public class DictService
      * @return 字典项值
      */
     public <T> T getItemValue(int dictCode, String itemKey, Class<T> clazz) {
-      String value = sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey).getItemValue();
+        Optional<SysItem> res = sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey);
+        if (res.isEmpty()) {
+            return null;
+        }
+        String value = res.get().getItemValue();
         if (value == null) {
             return null;
         }
