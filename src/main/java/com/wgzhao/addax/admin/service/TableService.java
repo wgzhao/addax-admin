@@ -394,4 +394,13 @@ public class TableService
     {
         return etlTableRepo.saveAll(tables);
     }
+
+    /**
+     * 根据数据源ID获取采集表数量
+     * @param sid
+     */
+    public int getTableCountBySourceId(int sid)
+    {
+        return etlTableRepo.countBySid(sid);
+    }
 }

@@ -1,21 +1,16 @@
 package com.wgzhao.addax.admin.service.impl;
 
 import com.wgzhao.addax.admin.common.JourKind;
-import com.wgzhao.addax.admin.config.HiveJdbcCondition;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.TargetService;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -27,18 +22,13 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Map;
 import java.text.MessageFormat;
 
 @Service
 @Slf4j
-//@Conditional(HiveJdbcCondition.class)
 public class TargetServiceWithHiveImpl
         implements TargetService
 {
-//    @Autowired
-//    @Qualifier("hiveDataSource")
-//    private DataSource hiveDataSource;
 
     @Autowired
     private DictService dictService;
@@ -68,13 +58,15 @@ public class TargetServiceWithHiveImpl
 
     private volatile DataSource hiveDataSource;
 
-    private Connection getHiveDataSource() {
+    private Connection getHiveDataSource()
+    {
         if (hiveDataSource == null) {
             synchronized (this) {
                 if (hiveDataSource == null) {
                     try {
+                        log.info("try to load hive jdbc driver from {}", driverPath);
                         File hiveJarFile = new File(driverPath);
-                        URL[] jarUrls = new URL[]{hiveJarFile.toURI().toURL()};
+                        URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
                         // 创建独立的类加载器
                         URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
 
@@ -88,7 +80,8 @@ public class TargetServiceWithHiveImpl
                         dataSource.setDriverClassName(driverClassName);
 
                         hiveDataSource = dataSource;
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -96,7 +89,8 @@ public class TargetServiceWithHiveImpl
         }
         try {
             return hiveDataSource.getConnection();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new RuntimeException("Failed to get connection from Hive DataSource", e);
         }
     }
@@ -114,7 +108,7 @@ public class TargetServiceWithHiveImpl
     @Override
     public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
     {
-        String sql = String.format("ALTER TABLE %s.%s ADD IF NOT EXISTS PARTITION (%s=%s)", db, table, partName, partValue);
+        String sql = String.format("ALTER TABLE %s.%s ADD IF NOT EXISTS PARTITION (%s='%s')", db, table, partName, partValue);
         EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
         try (Connection conn = getHiveDataSource();
                 Statement stmt = conn.createStatement()) {
@@ -142,20 +136,19 @@ public class TargetServiceWithHiveImpl
     {
         List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());
 
-
         String createDbSql = MessageFormat.format("create database if not exists `{0}` location ''{1}/{0}''",
-            etlTable.getTargetDb(), dictService.getHdfsPrefix());
+                etlTable.getTargetDb(), dictService.getHdfsPrefix());
         String createTableSql = MessageFormat.format("""
-                create external table if not exists `{0}`.`{1}` (
-                {2}
-                ) comment ''{3}''
-                partitioned by ( `{4}` string )
-                 stored as {5}
-                 location ''{6}/{0}/{1}''
-                 tblproperties (''external.table.purge''=''true'', ''discover.partitions''=''true'', ''orc.compress''=''{7}'', ''snappy.compress''=''{7}'')
-                """,
-            etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
-            etlTable.getPartName(), dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+                        create external table if not exists `{0}`.`{1}` (
+                        {2}
+                        ) comment ''{3}''
+                        partitioned by ( `{4}` string )
+                         stored as {5}
+                         location ''{6}/{0}/{1}''
+                         tblproperties (''external.table.purge''=''true'', ''discover.partitions''=''true'', ''orc.compress''=''{7}'', ''snappy.compress''=''{7}'')
+                        """,
+                etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
+                etlTable.getPartName(), dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
 
         log.info("create table sql:\n{}", createTableSql);
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);

@@ -105,8 +105,7 @@ public class SourceController
         if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
             throw new ApiException(400, "Source code cannot be modified");
         }
-        boolean needUpdateSchedule = existing.getStartAt() != etlSource.getStartAt();
-        sourceService.save(etlSource, needUpdateSchedule);
+        sourceService.save(etlSource);
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
         String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
@@ -144,6 +143,10 @@ public class SourceController
     public ResponseEntity<Void> delete(
             @Parameter(description = "数据源ID", example = "1") @PathVariable("id") int id)
     {
+        int tableCountBySourceId = tableService.getTableCountBySourceId(id);
+        if (tableCountBySourceId > 0) {
+            throw new ApiException(400, "Cannot delete source with associated tables");
+        }
         if (sourceService.existsById(id)) {
             sourceService.deleteById(id);
             return ResponseEntity.noContent().build();

@@ -91,13 +91,14 @@ public class SourceService
      * 保存数据源对象，并根据需要更新调度任务
      *
      * @param etlSource 数据源对象
-     * @param updateSchedule 是否更新调度
      * @return 保存后的数据源对象
      */
-    public EtlSource save(EtlSource etlSource, boolean updateSchedule)
+    public EtlSource save(EtlSource etlSource)
     {
+        // 需要和现有数据的调度时间进行对比，如果不相同，则还需要更新调度时间
+        EtlSource existing = etlSourceRepo.findById(etlSource.getId()).orElse(null);
         etlSourceRepo.save(etlSource);
-        if (updateSchedule) {
+        if (existing != null && existing.getStartAt() != etlSource.getStartAt()) {
             // 先取消原有调度任务，再重新调度
             log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
             collectionSchedulingService.cancelTask(etlSource.getCode());
@@ -113,6 +114,8 @@ public class SourceService
      */
     public void deleteById(int id)
     {
+        // 删除之前，应该先取消该数据源的调度任务
+        etlSourceRepo.findById(id).ifPresent(etlSource -> collectionSchedulingService.cancelTask(etlSource.getCode()));
         etlSourceRepo.deleteById(id);
     }
 
