@@ -19,12 +19,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'HDFS_COMPRESS_FORMAT', 'snappy', '存储 压缩格式，默认 lz4，可选 gz, snappy,zstd'),
 (1000, 'HDFS_PREFIX', '/ods', 'HDFS 目录前缀'),
 (1000, 'HDFS_STORAGE_FORMAT', 'parquet', '存储格式，默认 ORC，可选 parquet'),
-(1000, 'HIVE_CLI', 'hive', 'HIVE 命令行'),
-(1000, 'HIVE_METASTORE', '{
-"url":"jdbc:mysql://nn01:3306/hive",
-"user":"hive",
-"password":"ZEQEJGsNP7NT"
-}', 'Hive 数据库连接信息');
+(1000, 'HIVE_CLI', 'hive', 'HIVE 命令行');
 
 INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'QUEUE_SIZE', '100', '采集队列长度'),
