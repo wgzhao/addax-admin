@@ -34,7 +34,7 @@ public class DbUtil
     // test jdbc is connected or not
     public static boolean testConnection(String url, String username, String password)
     {
-        try(Connection _ = DriverManager.getConnection(url, username, password)) {
+        try(Connection ignore = DriverManager.getConnection(url, username, password)) {
             return true;
         }
         catch (SQLException e) {
