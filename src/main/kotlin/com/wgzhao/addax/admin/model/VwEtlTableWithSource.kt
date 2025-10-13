@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 @Table(name = "vw_etl_table_with_source")
 data class VwEtlTableWithSource(
     @Id
-    val id: Long? = null,
+    val id: Long,
     val sourceDb: String? = null,
     val sourceTable: String? = null,
     val targetDb: String? = null,
@@ -36,7 +36,7 @@ data class VwEtlTableWithSource(
     val duration: Int? = null,
     val code: String? = null,
     val name: String? = null,
-    val url: String? = null,
+    val url: String,
     val username: String? = null,
     val pass: String? = null,
     val startAt: String? = null,

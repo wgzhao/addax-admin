@@ -23,5 +23,5 @@ interface EtlJourRepo
     )
     fun findLastError(tableId: Long): String?
 
-    fun findFirstByTidAndStatusIsFalse(tableId: Long): Optional<EtlJour?>? // 可根据需要添加自定义查询方法
+    fun findFirstByTidAndStatusIsFalse(tableId: Long): EtlJour? // 可根据需要添加自定义查询方法
 }

@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.service
 
 import com.wgzhao.addax.admin.model.EtlJour
 import com.wgzhao.addax.admin.repository.EtlJourRepo
-import lombok.AllArgsConstructor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
@@ -12,9 +11,7 @@ import java.time.LocalDateTime
  * 采集流水服务类，负责采集任务流水的记录与状态管理
  */
 @Service
-@AllArgsConstructor
-class EtlJourService {
-    private val etlJourRepo: EtlJourRepo? = null
+open class EtlJourService(private val etlJourRepo: EtlJourRepo) {
 
     /**
      * 新增一条采集流水
@@ -24,13 +21,9 @@ class EtlJourService {
      * @return 新增的流水对象
      */
     @Transactional
-    fun addJour(taskId: Long, jourKind: String?, cmd: String?): EtlJour {
-        val jour = EtlJour()
-        jour.setTid(taskId)
-        jour.setKind(jourKind)
-        jour.setCmd(cmd)
-        jour.setStartAt(LocalDateTime.now())
-        return etlJourRepo!!.save<EtlJour>(jour)
+    open fun addJour(taskId: Long, jourKind: String?, cmd: String?): EtlJour {
+        val jour = EtlJour(tid=taskId, kind=jourKind, cmd=cmd)
+        return etlJourRepo.save<EtlJour>(jour)
     }
 
     /**
@@ -38,10 +31,10 @@ class EtlJourService {
      * @param jour 流水对象
      */
     @Transactional
-    fun successJour(jour: EtlJour) {
-        jour.setStatus(true)
-        jour.setDuration(Duration.between(jour.getStartAt(), LocalDateTime.now()).toSeconds())
-        etlJourRepo!!.save<EtlJour?>(jour)
+    open fun successJour(jour: EtlJour) {
+        jour.status = true
+        jour.duration = Duration.between(jour.startAt, LocalDateTime.now()).toSeconds()
+        etlJourRepo.save<EtlJour?>(jour)
     }
 
     /**
@@ -50,11 +43,11 @@ class EtlJourService {
      * @param errorMsg 错误信息
      */
     @Transactional
-    fun failJour(jour: EtlJour, errorMsg: String?) {
-        jour.setStatus(false)
-        jour.setErrorMsg(errorMsg)
-        jour.setDuration(Duration.between(jour.getStartAt(), LocalDateTime.now()).toSeconds())
-        etlJourRepo!!.save<EtlJour?>(jour)
+    open fun failJour(jour: EtlJour, errorMsg: String?) {
+        jour.status = false
+        jour.errorMsg = errorMsg
+        jour.duration = Duration.between(jour.startAt, LocalDateTime.now()).toSeconds()
+        etlJourRepo.save<EtlJour?>(jour)
     }
 
     /**
@@ -62,7 +55,7 @@ class EtlJourService {
      * @param etlJour 流水对象
      */
     fun saveJour(etlJour: EtlJour) {
-        etlJourRepo!!.save<EtlJour?>(etlJour)
+        etlJourRepo.save<EtlJour?>(etlJour)
     }
 
     /**
@@ -70,7 +63,7 @@ class EtlJourService {
      * @param tableId 表ID
      */
     fun deleteByTid(tableId: Long) {
-        etlJourRepo!!.deleteAllByTid(tableId)
+        etlJourRepo.deleteAllByTid(tableId)
     }
 
     /**
@@ -79,10 +72,10 @@ class EtlJourService {
      * @return 错误信息
      */
     fun findLastErrorByTableId(tableId: Long): String? {
-        return etlJourRepo!!.findLastError(tableId)
+        return etlJourRepo.findLastError(tableId)
     }
 
     fun getErrorKindByTid(tableId: Long): String? {
-        return etlJourRepo!!.findFirstByTidAndStatusIsFalse(tableId)!!.map<Any?>(EtlJour::getKind).orElse(null)
+        return etlJourRepo.findFirstByTidAndStatusIsFalse(tableId)?.kind
     }
 }

@@ -11,9 +11,8 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource
 import com.wgzhao.addax.admin.repository.EtlJobRepo
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo
 import com.wgzhao.addax.admin.utils.DbUtil
-import lombok.extern.slf4j.Slf4j
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.commons.lang3.StringUtils
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
@@ -38,33 +37,23 @@ import kotlin.text.trimIndent
  * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
  */
 @Service
-@Slf4j
-class JobContentService {
-    @Autowired
-    private val jobRepo: EtlJobRepo? = null
+open class JobContentService(
+    private val jobRepo: EtlJobRepo,
+    private val dictService: DictService,
+    private val columnService: ColumnService,
+    private val configService: SystemConfigService,
+    private val jourService: EtlJourService,
+    private val vwEtlTableWithSourceRepo: VwEtlTableWithSourceRepo
+) {
 
-    @Autowired
-    private val dictService: DictService? = null
-
-    @Autowired
-    private val columnService: ColumnService? = null
-
-    @Autowired
-    private val configService: SystemConfigService? = null
-
-    @Autowired
-    private val jourService: EtlJourService? = null
-
-    @Autowired
-    private val vwEtlTableWithSourceRepo: VwEtlTableWithSourceRepo? = null
-
+    private val log = KotlinLogging.logger {}
     /**
      * 获取指定采集表的采集任务模板内容
      * @param tid 采集表ID
      * @return 采集任务模板内容（JSON字符串），若不存在则返回null
      */
     fun getJobContent(tid: Long): String? {
-        return jobRepo!!.findById(tid).map<String?>(EtlJob::job).orElse(null)
+        return jobRepo.findById(tid).job
     }
 
     /**
@@ -78,13 +67,13 @@ class JobContentService {
         if (etlTable == null) {
             return failure("没有指定采集任务", 0)
         }
-        JobContentService.log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(), etlTable.getId())
-        val etlJour = jourService!!.addJour(etlTable.getId(), JourKind.ADDAX_JOB, null)
+        log.info {"准备更新表 ${etlTable.targetDb}.${etlTable.targetTable}({$etlTable.id}) 的采集任务模板" }
+        val etlJour = jourService.addJour(etlTable.id, JourKind.ADDAX_JOB, null)
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
         // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
         // 需要根据不同数据库类型做不同的处理
-        val kind = DbUtil.getKind(etlTable.getUrl())
-        var addaxReaderContentTemplate = dictService!!.getReaderTemplate(kind)
+        val kind = DbUtil.getKind(etlTable.url)
+        var addaxReaderContentTemplate = dictService.getReaderTemplate(kind)
 
         //        String columns = columnService.getSourceColumns(etlTable.getId());
         val params: MutableMap<String?, String?> = HashMap<String?, String?>()
@@ -139,7 +128,7 @@ class JobContentService {
         val etlJob = EtlJob(etlTable.getId(), job)
         jobRepo!!.save<EtlJob?>(etlJob)
         jourService.successJour(etlJour)
-        JobContentService.log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable())
+        log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable())
         return success("更新采集任务模板成功", 0)
     }
 
@@ -156,7 +145,7 @@ class JobContentService {
             val key = matcher.group(1)
             val value: Any? = values.get(key)
             // 当值为 null 时，使用空字符串 '' 替代
-            val replacement = if (value != null) value.toString() else ""
+            val replacement = value?.toString() ?: ""
             //            String replacement = value != null ? value.toString() : matcher.group(0);
             matcher.appendReplacement(result, Matcher.quoteReplacement(replacement))
         }
@@ -170,7 +159,7 @@ class JobContentService {
      * @param tableId 表ID
      */
     fun deleteByTid(tableId: Long) {
-        jobRepo!!.deleteById(tableId)
+        jobRepo.deleteById(tableId)
     }
 
     /**
@@ -179,15 +168,15 @@ class JobContentService {
      */
     // 根据数据源 ID 更新相关的任务
     @Async
-    fun updateJobBySourceId(sid: Int) {
-        vwEtlTableWithSourceRepo!!.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)!!
+    open fun updateJobBySourceId(sid: Int) {
+        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)!!
             .forEach(Consumer { etlTable: VwEtlTableWithSource? -> this.updateJob(etlTable) })
     }
 
     @EventListener
     fun handleSourceUpdatedEvent(event: SourceUpdatedEvent) {
-        if (event.isConnectionChanged()) {
-            updateJobBySourceId(event.getSourceId())
+        if (event.connectionChanged) {
+            updateJobBySourceId(event.sourceId)
         }
     }
 }

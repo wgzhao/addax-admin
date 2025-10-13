@@ -1,33 +1,31 @@
 package com.wgzhao.addax.admin.service
 
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @Service
-class SystemConfigService {
-    @Autowired
-    private val dictService: DictService? = null
-
+class SystemConfigService(
+    private val dictService: DictService,
+) {
     private val configCache: MutableMap<String?, Any?> = HashMap<String?, Any?>()
 
     fun loadConfig() {
         val curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
-        configCache.put("BIZ_DATE", dictService!!.getBizDate())
-        configCache.put("CUR_DATETIME", curDateTime)
+        configCache["BIZ_DATE"] = dictService.getBizDate()
+        configCache["CUR_DATETIME"] = curDateTime
 
-        configCache.put("LOG_PATH", dictService.getLogPath())
+        configCache["LOG_PATH"] = dictService.getLogPath()
 
         // 切日时间
-        configCache.put("SWITCH_TIME", dictService.getSwitchTime())
+        configCache["SWITCH_TIME"] = dictService.getSwitchTime()
 
         // hive
-        configCache.put("HIVE_CLI", dictService.getHiveCli())
+        configCache["HIVE_CLI"] = dictService.getHiveCli()
 
-        configCache.put("HDFS_PREFIX", dictService.getHdfsPrefix())
+        configCache["HDFS_PREFIX"] = dictService.getHdfsPrefix()
     }
 
     val bizDate: String?
