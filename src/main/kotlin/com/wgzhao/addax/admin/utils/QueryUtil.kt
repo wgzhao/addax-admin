@@ -15,9 +15,9 @@ object QueryUtil {
      */
     fun generateSort(sortBy: SortBy?): Sort {
         var sort = Sort.unsorted()
-        if (sortBy != null && sortBy.getKey() != null && !sortBy.getKey().isEmpty()) {
-            val sortOrder: String? = sortBy.getOrder()
-            val sortField: String = sortBy.getKey()
+        if (sortBy != null && sortBy.key != null && !sortBy.key.isEmpty()) {
+            val sortOrder: String? = sortBy.order
+            val sortField: String = sortBy.key
             if ("asc".equals(sortOrder, ignoreCase = true)) {
                 sort = Sort.by(Sort.Direction.ASC, sortField)
             } else if ("desc".equals(sortOrder, ignoreCase = true)) {

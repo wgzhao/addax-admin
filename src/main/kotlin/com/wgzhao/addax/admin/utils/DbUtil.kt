@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.utils
 
-import lombok.extern.slf4j.Slf4j
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
@@ -10,8 +10,8 @@ import java.util.*
  * 数据库工具类。
  * 提供 JDBC 连接测试、数据库类型识别、表/字段注释获取等通用方法。
  */
-@Slf4j
 object DbUtil {
+    private val log = KotlinLogging.logger {}
     /**
      * 数据库类型与标识映射表。
      * key 为数据库类型关键字，value 为类型标识。
@@ -36,7 +36,7 @@ object DbUtil {
                 return true
             }
         } catch (e: SQLException) {
-            DbUtil.log.error("Failed to connect database", e)
+            log.error(e) { "Failed to connect database" }
             return false
         }
     }
@@ -89,7 +89,7 @@ object DbUtil {
                 }
             }
         } catch (e: SQLException) {
-            DbUtil.log.warn("getColumnComment error", e)
+            log.warn(e) { "getColumnComment error" }
             return ""
         }
         return ""
@@ -131,8 +131,7 @@ object DbUtil {
                 }
             }
         } catch (e: SQLException) {
-            // 可以记录日志
-            DbUtil.log.warn("getTableComment error", e)
+            log.warn(e) { "getTableComment error" }
             return ""
         }
         return ""

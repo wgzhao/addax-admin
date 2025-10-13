@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.service
 
-import lombok.extern.slf4j.Slf4j
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -15,8 +15,10 @@ import java.util.Map
  * support send alert message to WeChat group bot, SMS, Email
  */
 @Service
-@Slf4j
 class AlertService {
+
+    private val log = KotlinLogging.logger {}
+
     @Value("\${alert.wechat.url}")
     private val webchatUrl: String? = null
 
@@ -32,7 +34,7 @@ class AlertService {
      */
     fun sendToWeComRobot(message: String?) {
         if (wechatKey == null || wechatKey.isEmpty()) {
-            AlertService.log.warn("企业微信机器人Key未配置，跳过发送消息")
+            log.warn { "企业微信机器人Key未配置，跳过发送消息" }
             return
         }
         try {
@@ -56,7 +58,7 @@ class AlertService {
             )
             restTemplate!!.postForObject<String?>(webchatUrl, body, String::class.java)
         } catch (e: Exception) {
-            AlertService.log.error("发送企业微信消息失败", e)
+            log.error(e) { "发送企业微信消息失败" }
         }
     }
 
@@ -65,7 +67,7 @@ class AlertService {
             try {
                 return InetAddress.getLocalHost().getHostName()
             } catch (e: Exception) {
-                AlertService.log.error("获取主机名失败", e)
+                log.error(e) { "获取主机名失败" }
                 return "未知主机"
             }
         }

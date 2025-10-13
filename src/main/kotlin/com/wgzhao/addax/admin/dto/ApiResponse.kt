@@ -1,12 +1,6 @@
 package com.wgzhao.addax.admin.dto
 
-import lombok.Builder
-import lombok.Getter
-import lombok.Setter
 
-@Builder
-@Getter
-@Setter
 class ApiResponse<T> {
     private var code = 0
     private var message: String? = null

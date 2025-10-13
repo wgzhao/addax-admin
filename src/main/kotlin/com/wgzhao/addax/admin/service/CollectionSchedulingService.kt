@@ -3,8 +3,7 @@ package com.wgzhao.addax.admin.service
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent
 import com.wgzhao.addax.admin.model.EtlSource
 import com.wgzhao.addax.admin.repository.EtlSourceRepo
-import lombok.extern.slf4j.Slf4j
-import org.springframework.beans.factory.annotation.Autowired
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
@@ -12,19 +11,14 @@ import java.time.LocalTime
 import java.util.function.Consumer
 
 @Service
-@Slf4j
-class CollectionSchedulingService {
-    @Autowired
-    private val taskSchedulerService: TaskSchedulerService? = null
+class CollectionSchedulingService(
+    private val taskSchedulerService: TaskSchedulerService,
+    private val etlSourceRepo: EtlSourceRepo,
+    private val taskService: TaskService,
+    private val systemConfigService: SystemConfigService
+    ) {
 
-    @Autowired
-    private val etlSourceRepo: EtlSourceRepo? = null
-
-    @Autowired
-    private val taskService: TaskService? = null
-
-    @Autowired
-    private val systemConfigService: SystemConfigService? = null
+    private val log = KotlinLogging.logger {}
 
     @EventListener(ApplicationReadyEvent::class)
     fun onApplicationReady() {
@@ -34,7 +28,7 @@ class CollectionSchedulingService {
     fun rescheduleAllTasks() {
         try {
             // Schedule collection tasks for each source
-            val sources: MutableList<EtlSource>? = etlSourceRepo!!.findByEnabled(true)
+            val sources: MutableList<EtlSource>? = etlSourceRepo.findByEnabled(true)
             for (source in sources!!) {
                 scheduleOrUpdateTask(source)
             }
@@ -42,25 +36,25 @@ class CollectionSchedulingService {
             scheduleDailyParamUpdate()
         } catch (e: Exception) {
             // 记录详细异常，便于排查
-            CollectionSchedulingService.log.error("Error in rescheduleAllTasks: ", e)
+            log.error("Error in rescheduleAllTasks: ", e)
         }
     }
 
     private fun scheduleDailyParamUpdate() {
-        val time = systemConfigService!!.getSwitchTimeAsTime()
+        val time = systemConfigService.getSwitchTimeAsTime()
         val cronExpression = convertLocalTimeToCron(time)
         val task = Runnable { taskService!!.updateParams() }
-        taskSchedulerService!!.scheduleTask("dailyParamUpdate", task, cronExpression)
+        taskSchedulerService.scheduleTask("dailyParamUpdate", task, cronExpression)
     }
 
     fun scheduleOrUpdateTask(source: EtlSource) {
-        val taskId = "source-" + source.getCode()
-        if (source.isEnabled() && source.getStartAt() != null) {
-            CollectionSchedulingService.log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt())
-            val cronExpression = convertLocalTimeToCron(source.getStartAt())
+        val taskId = "source-" + source.code
+        if (source.enabled && source.startAt != null) {
+            log.info("Scheduling task for source {} at {}", source.code, source.startAt)
+            val cronExpression = convertLocalTimeToCron(source.startAt)
             // cancel existing task if any
             taskSchedulerService!!.cancelTask(taskId)
-            val task = Runnable { taskService!!.executeTasksForSource(source.getId()) }
+            val task = Runnable { taskService!!.executeTasksForSource(source.id) }
             taskSchedulerService.scheduleTask(taskId, task, cronExpression)
         } else {
             taskSchedulerService!!.cancelTask(taskId)
@@ -78,8 +72,8 @@ class CollectionSchedulingService {
 
     @EventListener
     fun handleSourceEvent(event: SourceUpdatedEvent) {
-        if (event.isScheduleChanged()) {
-            etlSourceRepo!!.findById(event.getSourceId()).ifPresent(Consumer { source: EtlSource? -> this.scheduleOrUpdateTask(source!!) })
+        if (event.connectionChanged) {
+            etlSourceRepo!!.findById(event.sourceId).ifPresent(Consumer { source: EtlSource? -> this.scheduleOrUpdateTask(source!!) })
         }
     }
 }

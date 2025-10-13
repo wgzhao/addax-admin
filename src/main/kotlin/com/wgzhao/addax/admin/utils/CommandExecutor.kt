@@ -3,7 +3,7 @@ package com.wgzhao.addax.admin.utils
 import com.wgzhao.addax.admin.dto.TaskResultDto
 import com.wgzhao.addax.admin.dto.TaskResultDto.Companion.failure
 import com.wgzhao.addax.admin.dto.TaskResultDto.Companion.success
-import lombok.extern.slf4j.Slf4j
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -12,8 +12,9 @@ import java.io.InputStreamReader
  * 命令执行工具类。
  * 提供执行 shell 命令并返回标准化结果的方法。
  */
-@Slf4j
 object CommandExecutor {
+
+    private val log = KotlinLogging.logger {}
     /**
      * 执行指定的 shell 命令，并返回执行结果。
      *
@@ -33,7 +34,7 @@ object CommandExecutor {
             BufferedReader(InputStreamReader(process.getInputStream())).use { reader ->
                 var line: String?
                 while ((reader.readLine().also { line = it }) != null) {
-                    println(line)
+                    log.info { line }
                 }
             }
             val exitCode = process.waitFor()
@@ -45,6 +46,7 @@ object CommandExecutor {
                     var line: String?
                     while ((errorReader.readLine().also { line = it }) != null) {
                         errLine.append(line).append("\n")
+                        log.error { line }
                     }
                 }
                 return failure(errLine.toString(), (System.currentTimeMillis() - startAt) / 1000)
@@ -52,17 +54,12 @@ object CommandExecutor {
                 return success("SUCCESS", (System.currentTimeMillis() - startAt) / 1000)
             }
         } catch (e: IOException) {
-            if (e is InterruptedException) {
-                Thread.currentThread().interrupt()
-            }
-            CommandExecutor.log.error("execute command failed: {}", command, e)
-            return TaskResultDto.failure(e.message!!, (System.currentTimeMillis() - startAt) / 1000)
+            log.error { "execute command ${command }failed: ${e}"}
+            return failure(e.message!!, (System.currentTimeMillis() - startAt) / 1000)
         } catch (e: InterruptedException) {
-            if (e is InterruptedException) {
-                Thread.currentThread().interrupt()
-            }
-            CommandExecutor.log.error("execute command failed: {}", command, e)
-            return TaskResultDto.failure(e.message!!, (System.currentTimeMillis() - startAt) / 1000)
+            Thread.currentThread().interrupt()
+            log.error {"execute command ${command} failed: ${e}"}
+            return failure(e.message!!, (System.currentTimeMillis() - startAt) / 1000)
         }
     }
 }
