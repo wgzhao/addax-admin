@@ -20,7 +20,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.util.concurrent.CompletableFuture
-import org.slf4j.LoggerFactory
 
 /**
  * 采集表管理接口（RESTful规范），提供采集表的分页查询、详情、统计等功能
@@ -35,7 +34,6 @@ class TableController(
     private val columnService: ColumnService,
     private val jobContentService: JobContentService
 ) {
-    private val log = LoggerFactory.getLogger(TableController::class.java)
 
     /**
      * 分页查询采集表
@@ -56,7 +54,7 @@ class TableController(
         @Parameter(description = "状态") @RequestParam(value = "status", required = false) status: String?,
         @Parameter(description = "排序字段") @RequestParam(value = "sortField", required = false) sortField: String?,
         @Parameter(description = "排序顺序") @RequestParam(value = "sortOrder", required = false) sortOrder: String?
-    ): ResponseEntity<Page<VwEtlTableWithSource>> {
+    ): ResponseEntity<Page<VwEtlTableWithSource?>?> {
         val safePage = page.coerceAtLeast(0)
         val safePageSize = if (pageSize == -1) Int.MAX_VALUE else pageSize
         val result = if (!status.isNullOrEmpty()) {
@@ -88,8 +86,8 @@ class TableController(
     @Operation(summary = "删除采集表")
     @DeleteMapping("/{tableId}")
     fun deleteTable(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<String?> {
-        if (!etlTableRepo!!.existsById(tableId)) throw ApiException(404, "Table not found")
-        tableService!!.deleteTable(tableId)
+        if (!etlTableRepo.existsById(tableId)) throw ApiException(404, "Table not found")
+        tableService.deleteTable(tableId)
         return ResponseEntity.ok<String?>("表以及相关资源删除成功")
     }
 
@@ -105,10 +103,10 @@ class TableController(
         @Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long,
         @RequestBody etl: EtlTable
     ): ResponseEntity<EtlTable?> {
-        if (etl.getId() == null || etl.getId() !== tableId) {
+        if (etl.id == null || etl.id != tableId) {
             throw ApiException(400, "Table ID in path and body must match")
         }
-        if (!etlTableRepo!!.existsById(tableId)) {
+        if (!etlTableRepo.existsById(tableId)) {
             throw ApiException(404, "Table not found")
         }
         val updated = etlTableRepo.save<EtlTable>(etl)
@@ -122,8 +120,8 @@ class TableController(
      */
     @Operation(summary = "查询表字段")
     @GetMapping("/{tableId}/columns")
-    fun getTableColumns(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<MutableList<EtlColumn?>?> {
-        return ResponseEntity.ok<MutableList<EtlColumn?>?>(columnService!!.getColumns(tableId))
+    fun getTableColumns(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<List<EtlColumn?>?> {
+        return ResponseEntity.ok<List<EtlColumn?>?>(columnService.getColumns(tableId))
     }
 
     /**
@@ -133,8 +131,8 @@ class TableController(
      */
     @Operation(summary = "查询表采集统计")
     @GetMapping("/{tableId}/statistics")
-    fun getTableStatistics(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<MutableList<EtlStatistic?>?> {
-        return ResponseEntity.ok<MutableList<EtlStatistic?>?>(statService!!.getLast15Records(tableId))
+    fun getTableStatistics(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<List<EtlStatistic?>?> {
+        return ResponseEntity.ok<List<EtlStatistic?>?>(statService.getLast15Records(tableId))
     }
 
     /**
@@ -145,7 +143,7 @@ class TableController(
     @Operation(summary = "批量保存采集表")
     @PostMapping("/batch")
     fun saveBatchTables(@RequestBody etls: MutableList<EtlTable?>): ResponseEntity<Int?> {
-        val saveTables = tableService!!.batchCreateTable(etls)
+        val saveTables = tableService.batchCreateTable(etls)
         // 异步刷新资源
         for (table in saveTables) {
             tableService.refreshTableResourcesAsync(table)
@@ -161,7 +159,7 @@ class TableController(
     @Operation(summary = "新增单个采集表")
     @PostMapping("")
     fun saveTable(@RequestBody etl: EtlTable): ResponseEntity<EtlTable?> {
-        val saved = tableService!!.createTable(etl)
+        val saved = tableService.createTable(etl)
         return ResponseEntity.status(HttpStatus.CREATED).body<EtlTable?>(saved)
     }
 
@@ -174,7 +172,7 @@ class TableController(
     @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
     fun refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") mode: String?): ResponseEntity<Void?> {
-        CompletableFuture.runAsync(Runnable { tableService!!.refreshAllTableResources() })
+        CompletableFuture.runAsync(Runnable { tableService.refreshAllTableResources() })
         return ResponseEntity.accepted().build<Void?>()
     }
 
@@ -189,14 +187,14 @@ class TableController(
     fun refreshTableResources(
         @Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long
     ): ResponseEntity<TaskResultDto?> {
-        if (!etlTableRepo!!.existsById(tableId)) {
+        if (!etlTableRepo.existsById(tableId)) {
             return ResponseEntity.status(400).body<TaskResultDto?>(failure("tableId 对应的采集表不存在", 0))
         }
-        val taskResultDto = tableService!!.refreshTableResources(tableId)
-        if (taskResultDto.isSuccess()) {
-            return ResponseEntity.ok<TaskResultDto?>(taskResultDto)
+        val taskResultDto = tableService.refreshTableResources(tableId)
+        return if (taskResultDto.success) {
+            ResponseEntity.ok<TaskResultDto?>(taskResultDto)
         } else {
-            return ResponseEntity.internalServerError().body<TaskResultDto?>(taskResultDto)
+            ResponseEntity.internalServerError().body<TaskResultDto?>(taskResultDto)
         }
     }
 
@@ -233,12 +231,8 @@ class TableController(
     @GetMapping("/{tableId}/addax-job")
     fun getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<String?> {
         // 具体实现略
-        val job: String? = jobContentService!!.getJobContent(tableId)
-        if (job == null || job.isEmpty()) {
-            return ResponseEntity.badRequest().body<String?>("No job content found for the given table ID")
-        } else {
-            return ResponseEntity.ok<String?>(job)
-        }
+        val job: String? = jobContentService.getJobContent(tableId)
+        return ResponseEntity.badRequest().body<String?>("No job content found for the given table ID")
     }
 } //    // 对单个表执行采集任务
 //    @Operation(summary = "执行采集任务", description = "根据采集表ID立即执行单个采集任务")

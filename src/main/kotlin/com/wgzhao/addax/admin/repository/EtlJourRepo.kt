@@ -18,8 +18,7 @@ interface EtlJourRepo
             where tid = :tableId and status = false
             order by id desc
             limit 1
-            
-            """.trimIndent(), nativeQuery = true
+            """, nativeQuery = true
     )
     fun findLastError(tableId: Long): String?
 

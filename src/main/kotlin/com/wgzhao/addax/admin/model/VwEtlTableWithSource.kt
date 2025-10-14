@@ -15,10 +15,10 @@ import java.time.LocalDateTime
 data class VwEtlTableWithSource(
     @Id
     val id: Long,
-    val sourceDb: String? = null,
-    val sourceTable: String? = null,
-    val targetDb: String? = null,
-    val targetTable: String? = null,
+    val sourceDb: String,
+    val sourceTable: String,
+    val targetDb: String,
+    val targetTable: String,
     val partKind: String? = null,
     val partName: String? = null,
     val partFormat: String? = null,

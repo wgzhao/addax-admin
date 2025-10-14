@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.dto
 
 data class AddaxReportDto(
-    val jobName: String? = null,
+    val jobName: String,
     val startTimeStamp: Long = 0,
     val endTimeStamp: Long = 0,
     val totalCosts: Long = 0,

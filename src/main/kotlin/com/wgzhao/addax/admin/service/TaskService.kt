@@ -65,7 +65,7 @@ class TaskService(
          * 获取采集任务队列的详细状态
          */
         get() {
-            val detailedStatus = queueManager.getQueueStatus().toMutableMap()
+            val detailedStatus = queueManager.getQueueStatus()
 
             try {
                 // 添加数据库中待处理任务数量
@@ -107,6 +107,7 @@ class TaskService(
     // 提交采集任务到队列
     fun submitTask(taskId: Long): TaskResultDto = queueManager.submitTask(taskId)
 
-    val allTaskStatus: List<Map<String, Any>>
-        get() = queueManager.getAllTaskStatus()
+    fun allTaskStatus(): List<Map<String, Any>?>? {
+        return queueManager.getAllTaskStatus()
+    }
 }

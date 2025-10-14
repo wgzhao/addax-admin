@@ -9,9 +9,9 @@ import java.time.LocalDate
 interface AddaxLogRepo : JpaRepository<AddaxLog?, Long?> {
     fun findFirstByTidOrderByRunDateDesc(tid: Long?): AddaxLog?
 
-    fun findTop5ByTidOrderByRunDateDesc(tid: Long?): MutableList<AddaxLog?>?
+    fun findTop5ByTidOrderByRunDateDesc(tid: Long?): List<AddaxLog?>?
 
-    fun findTop5ByTidAndRunDateGreaterThanOrderByIdDesc(tid: Long?, runDate: LocalDate?): MutableList<AddaxLog?>?
+    fun findTop5ByTidAndRunDateGreaterThanOrderByIdDesc(tid: Long?, runDate: LocalDate?): List<AddaxLog?>?
 
     fun findByTidAndRunDate(tid: Long?, runDate: LocalDate?): AddaxLog?
 

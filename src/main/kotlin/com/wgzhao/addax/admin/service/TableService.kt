@@ -20,12 +20,13 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.util.*
 import java.util.function.Supplier
+import kotlin.math.max
 
 /**
  * 采集表信息服务类，负责采集表的增删改查及资源刷新等业务操作
  */
 @Service
-class TableService(
+open class TableService(
     private val etlTableRepo: EtlTableRepo,
     private val columnService: ColumnService,
     private val jobContentService: JobContentService,
@@ -43,40 +44,36 @@ class TableService(
      */
     fun refreshTableResources(table: EtlTable?): TaskResultDto {
         if (table == null) return failure("Table is null", 0)
-        val vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null)
-        if (vwTable == null) {
-            log.warn("Table view not found for tid {}", table.getId())
-            return failure("Table view not found for tid ${table.getId()}", 0)
-        }
+        val vwTable = vwEtlTableWithSourceRepo.findById(table.id).get()
         val retCode = columnService.updateTableColumns(vwTable)
         if (retCode == -1) {
             setStatus(table, TableStatus.COLLECT_FAIL)
-            log.warn("Failed to update columns for table id {}", table.getId())
-            return failure("Failed to update columns for table id ${table.getId()}", 0)
+            log.warn("Failed to update columns for table id {}", table.id)
+            return failure("Failed to update columns for table id ${table.id}", 0)
         }
         if (retCode == 0) {
-            if (vwTable.getStatus() == TableStatus.WAIT_SCHEMA) {
+            if (vwTable.status == TableStatus.WAIT_SCHEMA) {
                 if (!targetService.createOrUpdateHiveTable(vwTable)) {
                     setStatus(table, TableStatus.COLLECT_FAIL)
-                    log.warn("Failed to create or update Hive table for tid {}", table.getId())
-                    return failure("Failed to create or update Hive table for tid ${table.getId()}", 0)
+                    log.warn("Failed to create or update Hive table for tid {}", table.id)
+                    return failure("Failed to create or update Hive table for tid ${table.id}", 0)
                 }
             }
             setStatus(table, TableStatus.NOT_COLLECT)
-            return success("No columns updated for table id ${table.getId()}", 0)
+            return success("No columns updated for table id ${table.id}", 0)
         }
         if (!targetService.createOrUpdateHiveTable(vwTable)) {
             setStatus(table, TableStatus.WAIT_SCHEMA)
-            log.warn("Failed to create or update Hive table for tid {}", table.getId())
-            return failure("Failed to create or update Hive table for tid ${table.getId()}", 0)
+            log.warn("Failed to create or update Hive table for tid {}", table.id)
+            return failure("Failed to create or update Hive table for tid ${table.id}", 0)
         }
         val result = jobContentService.updateJob(vwTable)
-        if (result.isSuccess()) {
+        if (result.success) {
             setStatus(table, TableStatus.NOT_COLLECT)
             return success("Table resources refreshed successfully", 0)
         } else {
             setStatus(table, TableStatus.COLLECT_FAIL)
-            return failure("Failed to update job content for table id ${table.getId()}", 0)
+            return failure("Failed to update job content for table id ${table.id}", 0)
         }
     }
 
@@ -96,7 +93,7 @@ class TableService(
      * @param table 采集表对象
      */
     @Async
-    fun refreshTableResourcesAsync(table: EtlTable?) {
+    open fun refreshTableResourcesAsync(table: EtlTable?) {
         refreshTableResources(table)
     }
 
@@ -104,13 +101,8 @@ class TableService(
      * 刷新所有采集表的资源
      */
     fun refreshAllTableResources() {
-        val tables: MutableList<EtlTable> = etlTableRepo.findAll()
-        for (table in tables) {
-            try {
-                refreshTableResources(table)
-            } catch (e: Exception) {
-                log.error("Failed to refresh resources for table {}", table.getId(), e)
-            }
+        etlTableRepo.findAll().map {
+            refreshTableResources(it)
         }
     }
 
@@ -137,9 +129,9 @@ class TableService(
      * @param sortOrder 排序方式
      * @return 视图表信息分页结果
      */
-    fun getVwTablesByStatus(page: Int, pageSize: Int, q: String, status: String?, sortField: String?, sortOrder: String?): Page<VwEtlTableWithSource?>? {
+    fun getVwTablesByStatus(page: Int, pageSize: Int, q: String?, status: String?, sortField: String?, sortOrder: String?): Page<VwEtlTableWithSource?>? {
         val pageable: Pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder))
-        return vwEtlTableWithSourceRepo.findByStatusAndFilterColumnContaining(status, q.uppercase(Locale.getDefault()), pageable)
+        return vwEtlTableWithSourceRepo.findByStatusAndFilterColumnContaining(status, q?.uppercase(Locale.getDefault()), pageable)
     }
 
     /**
@@ -200,8 +192,8 @@ class TableService(
      * @param task 任务对象
      */
     fun setRunning(task: EtlTable) {
-        task.setStatus(TableStatus.COLLECTING)
-        task.setStartTime(Timestamp(System.currentTimeMillis()))
+        task.status = TableStatus.COLLECTING
+        task.startTime =  Timestamp(System.currentTimeMillis())
         etlTableRepo.save<EtlTable?>(task)
     }
 
@@ -210,10 +202,10 @@ class TableService(
      * @param task 任务对象
      */
     fun setFinished(task: EtlTable) {
-        task.setStatus(TableStatus.COLLECTED)
+        task.status = TableStatus.COLLECTED
         // 重试次数也重置
-        task.setRetryCnt(3)
-        task.setEndTime(Timestamp(System.currentTimeMillis()))
+        task.retryCnt = 3
+        task.endTime = Timestamp(System.currentTimeMillis())
         etlTableRepo.save<EtlTable?>(task)
     }
 
@@ -222,9 +214,9 @@ class TableService(
      * @param task 任务对象
      */
     fun setFailed(task: EtlTable) {
-        task.setStatus(TableStatus.COLLECT_FAIL)
-        task.setEndTime(Timestamp(System.currentTimeMillis()))
-        task.setRetryCnt(max(task.getRetryCnt() - 1, 0))
+        task.status = TableStatus.COLLECT_FAIL
+        task.endTime = Timestamp(System.currentTimeMillis())
+        task.retryCnt = max(task.retryCnt.minus(1) , 0)
         etlTableRepo.save<EtlTable?>(task)
     }
 
@@ -234,7 +226,7 @@ class TableService(
      * @param status 状态值
      */
     fun setStatus(table: EtlTable, status: String?) {
-        table.setStatus(status)
+        table.status = status
         etlTableRepo.save<EtlTable?>(table)
     }
 
@@ -246,7 +238,7 @@ class TableService(
          * @return 可运行的��务列表
          */
         get() {
-            val switchTime = dictService.getSwitchTimeAsTime()
+            val switchTime = dictService.switchTimeAsTime
             val currentTime = LocalDateTime.now().toLocalTime()
             val checkTime = currentTime.isAfter(switchTime)
             return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)
@@ -258,12 +250,12 @@ class TableService(
      * @return 可运行的任务列表
      */
     fun getRunnableTasks(sourceId: Int): MutableList<EtlTable?> {
-        val switchTime = dictService.getSwitchTimeAsTime()
+        val switchTime = dictService.switchTimeAsTime
         val currentTime = LocalDateTime.now().toLocalTime()
         val checkTime = currentTime.isAfter(switchTime)
         return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)!!
             .stream()
-            .filter { t: EtlTable? -> t.getSid() === sourceId }
+            .filter { t: EtlTable? -> t.sid == sourceId }
             .toList()
     }
 
@@ -292,7 +284,7 @@ class TableService(
      * 重置所有表的标志位
      */
     @Transactional
-    fun resetAllFlags() {
+    open fun resetAllFlags() {
         etlTableRepo.resetAllEtlFlags()
     }
 
@@ -307,11 +299,9 @@ class TableService(
     /**
      * 获取指定数据源和库下的所有表
      */
-    fun getTablesBySidAndDb(sid: Int, db: String?): MutableList<String?> {
-        return vwEtlTableWithSourceRepo.findBySidAndSourceDb(sid, db)!!
-            .stream()
-            .map<Any?>(VwEtlTableWithSource::getSourceTable)
-            .toList()
+    fun getTablesBySidAndDb(sid: Int, db: String?): List<String>? {
+        return vwEtlTableWithSourceRepo.findBySidAndSourceDb(sid, db)
+            ?.mapNotNull { it.sourceTable }
     }
 
     /**
@@ -319,7 +309,7 @@ class TableService(
      * @param tableId 表ID
      */
     @Transactional
-    fun deleteTable(tableId: Long) {
+    open fun deleteTable(tableId: Long) {
         // 首先删除列信息
         columnService.deleteByTid(tableId)
         // 然后删除任务信息

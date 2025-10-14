@@ -15,7 +15,7 @@ interface EtlTableRepo
             where t.status not in ( 'X' ,'U')
                   and t.enabled = true
             
-            """.trimIndent()
+            """
     )
     fun findValidTableCount(): Int?
 
@@ -30,7 +30,7 @@ interface EtlTableRepo
             where (t.status='E' or t.duration>=1200 or t.retryCnt<3) and t.status <> 'X'
             order by t.duration desc
             
-            """.trimIndent()
+            """
     )
     fun findSpecialTasks(): MutableList<EtlTable?>?
 
@@ -41,7 +41,7 @@ interface EtlTableRepo
                     set t.status = ?2, t.retryCnt = ?3
                     where t.id in ?1
             
-            """.trimIndent()
+            """
     )
     fun batchUpdateStatusAndFlag(ids: MutableList<Long?>?, status: String?, retryCnt: Int)
 
@@ -56,7 +56,7 @@ interface EtlTableRepo
             (s.startAt > :switchTime AND s.startAt < :currentTime)
         )
     
-    """.trimIndent()
+    """
     )
     fun findRunnableTasks(switchTime: LocalTime?, currentTime: LocalTime?, checkTime: Boolean): MutableList<EtlTable?>?
 

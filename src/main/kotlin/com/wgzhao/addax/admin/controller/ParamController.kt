@@ -113,7 +113,7 @@ class ParamController(
     @GetMapping("/{dictCode}/items")
     fun listItems(
         @Parameter(description = "字典编码", example = "1000") @PathVariable("dictCode") dictCode: Int
-    ): MutableList<SysItem?>? {
+    ): List<SysItem?> {
         return dictService.findItemsByDictCode(dictCode)
     }
 
@@ -133,8 +133,8 @@ class ParamController(
             content = [Content(schema = Schema(implementation = SysItem::class))]
         ) @org.springframework.web.bind.annotation.RequestBody sysItem: SysItem
     ): ResponseEntity<SysItem?> {
-        sysItem.setDictCode(dictCode)
-        if (dictService.existsItem(dictCode, sysItem.getItemKey())) {
+        sysItem.dictCode = dictCode
+        if (dictService.existsItem(dictCode, sysItem.itemKey)) {
             throw ApiException(409, "Item already exists")
         }
         val saved = dictService.saveItem(sysItem)
@@ -168,15 +168,15 @@ class ParamController(
     @PutMapping("/{dictCode}/items/{itemKey}")
     fun updateItem(
         @Parameter(description = "字典编码", example = "1000") @PathVariable("dictCode") dictCode: Int,
-        @Parameter(description = "字典项键", example = "SWITCH_TIME") @PathVariable("itemKey") itemKey: String?,
+        @Parameter(description = "字典项键", example = "SWITCH_TIME") @PathVariable("itemKey") itemKey: String,
         @RequestBody(
             description = "字典项对象",
             required = true,
             content = [Content(schema = Schema(implementation = SysItem::class))]
         ) @org.springframework.web.bind.annotation.RequestBody sysItem: SysItem
     ): SysItem {
-        sysItem.setDictCode(dictCode)
-        sysItem.setItemKey(itemKey)
+        sysItem.dictCode =  dictCode
+        sysItem.itemKey = itemKey
         return dictService.saveItem(sysItem)
     }
 

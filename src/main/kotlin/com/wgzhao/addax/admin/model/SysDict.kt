@@ -10,7 +10,7 @@ data class SysDict(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "code")
     @Schema(description = "字典编码，主键", example = "1000")
-    var code: Int? = null,
+    var code: Int,
 
     @Column(name = "name")
     @Schema(description = "字典名称", example = "系统参数")

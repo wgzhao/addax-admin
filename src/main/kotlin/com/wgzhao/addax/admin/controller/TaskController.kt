@@ -4,6 +4,7 @@ import com.wgzhao.addax.admin.dto.TaskResultDto
 import com.wgzhao.addax.admin.exception.ApiException
 import com.wgzhao.addax.admin.service.*
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
@@ -100,14 +101,14 @@ class TaskController(
     @Operation(summary = "批量异步执行采集任务", description = "根据任务ID列表异步执行多个采集任务")
     @PostMapping("/executions/batch")
     fun executeTasksBatch(
-        @RequestBody(description = "请求体，需包含 taskIds 字段，值为任务ID列表") @org.springframework.web.bind.annotation.RequestBody tids: MutableList<Long>
+        @RequestBody tids: MutableList<Long>
     ): ResponseEntity<TaskResultDto?> {
         var successCount = 0
         var failCount = 0
         var result: TaskResultDto?
         for (tid in tids) {
             result = taskService.submitTask(tid)
-            if (result.isSuccess()) {
+            if (result.success) {
                 successCount++
             } else {
                 failCount++
@@ -120,17 +121,18 @@ class TaskController(
         )
     }
 
-    @get:GetMapping("/status")
-    @get:Operation(summary = "采集任务状态查询", description = "查询采集任务的最新状态")
-    val allTaskStatus: ResponseEntity<MutableList<MutableMap<String?, Any?>?>?>
-        /**
-         * 采集任务状态查询
-         * @return 所有采集任务的最新状态列表
-         */
-        get() {
-            val status = taskService!!.allTaskStatus
-            return ResponseEntity.ok<MutableList<MutableMap<String?, Any?>?>?>(status)
-        }
+    /**
+     * 采集任务状态查询
+     * @return 所有采集任务的最新状态列表
+     */
+    @GetMapping("/status")
+    @Operation(summary = "采集任务状态查询", description = "查询采集任务的最新状态")
+    fun allTaskStatus(): ResponseEntity<List<Map<String, Any>?>?>
+    {
+        val status = taskService.allTaskStatus()
+        return ResponseEntity.ok(status)
+
+    }
 
     /**
      * 获取指定采集表的最后错误信息
@@ -142,7 +144,7 @@ class TaskController(
     fun getLastErrorByTableId(
         @Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long
     ): ResponseEntity<String?> {
-        val errorMsg = jourService!!.findLastErrorByTableId(tableId)
+        val errorMsg = jourService.findLastErrorByTableId(tableId)
         if (errorMsg == null || errorMsg.isEmpty()) {
             return ResponseEntity.ok<String?>("No error message found for the given table ID")
         } else {

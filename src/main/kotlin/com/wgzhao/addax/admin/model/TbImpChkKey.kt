@@ -1,8 +1,7 @@
 package com.wgzhao.addax.admin.model
 
 import jakarta.persistence.Embeddable
-import lombok.Getter
-import lombok.Setter
+
 import java.io.Serializable
 import java.util.*
 
@@ -11,8 +10,6 @@ import java.util.*
  * 用于标识校验内容和更新时间的复合主键。
  */
 @Embeddable
-@Setter
-@Getter
 class TbImpChkKey : Serializable {
     private val chkContent: String? = null
     private val updtDate: Date? = null

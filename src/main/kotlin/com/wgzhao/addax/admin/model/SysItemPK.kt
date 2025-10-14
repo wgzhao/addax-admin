@@ -1,12 +1,8 @@
 package com.wgzhao.addax.admin.model
 
-import lombok.Getter
-import lombok.Setter
 import java.io.Serializable
-import java.util.*
+import java.util.Objects
 
-@Getter
-@Setter
 class SysItemPK
 
     : Serializable {

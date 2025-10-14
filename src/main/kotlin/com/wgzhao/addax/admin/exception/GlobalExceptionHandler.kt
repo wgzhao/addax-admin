@@ -27,14 +27,14 @@ class GlobalExceptionHandler {
     @ExceptionHandler(ApiException::class)
     @ResponseBody
     fun handleApiException(ex: ApiException): ResponseEntity<ApiResponse<Any?>?> {
-        val status = when (ex.getCode()) {
+        val status = when (ex.code) {
             400 -> HttpStatus.BAD_REQUEST
             404 -> HttpStatus.NOT_FOUND
             409 -> HttpStatus.CONFLICT
             else -> HttpStatus.INTERNAL_SERVER_ERROR
         }
-        log.warn("ApiException: code={}, message={}", ex.getCode(), ex.message, ex)
-        return ResponseEntity<ApiResponse<Any?>?>(error<Any?>(ex.getCode(), ex.message), status)
+        log.warn("ApiException: code={}, message={}", ex.code, ex.message, ex)
+        return ResponseEntity<ApiResponse<Any?>?>(error<Any?>(ex.code, ex.message), status)
     }
 
     /**

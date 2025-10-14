@@ -20,8 +20,7 @@ interface EtlStatisticRepo
                 FROM EtlStatistic s2
                 WHERE s2.tid = s1.tid
             )
-            
-            """.trimIndent()
+            """
     )
     fun findErrorTask(): MutableList<EtlStatistic?>?
 
@@ -48,8 +47,7 @@ interface EtlStatisticRepo
                   ) sub
              GROUP BY
                  run_date
-            
-            """.trimIndent(), nativeQuery = true
+            """, nativeQuery = true
     )
     fun findLast5DaysTakeTimes(): MutableList<MutableMap<String?, Any?>?>?
 

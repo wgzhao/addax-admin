@@ -27,7 +27,7 @@ class DictService(
          * 获取切日时间（如未配置则返回默认值）
          * @return 切日时间字符串，格式 HH:mm
          */
-        get() = getItemValue(1000, "SWITCH_TIME", String::class.java) ?: DEFAULT_SWITCH_TIME
+        get() = getItemValue(1000, "SWITCH_TIME", String::class) ?: DEFAULT_SWITCH_TIME
 
     val switchTimeAsTime: LocalTime
         /**
@@ -45,7 +45,7 @@ class DictService(
          * 获取日志路径
          * @return 日志路径
          */
-        get() = getItemValue(1000, "RUN_LOG", String::class.java) ?: System.getProperty("user.dir") + "/logs"
+        get() = getItemValue(1000, "RUN_LOG", String::class) ?: (System.getProperty("user.dir") + "/logs")
 
     val bizDate: String
         /**
@@ -69,14 +69,14 @@ class DictService(
          * 获取 Hive CLI 命令
          * @return Hive CLI 命令字符串
          */
-        get() = getItemValue(1000, "HIVE_CLI", String::class.java) ?: "hive"
+        get() = getItemValue(1000, "HIVE_CLI", String::class) ?: "hive"
 
     val addaxHome: String
         /**
          * 获取 Addax 安装路径
          * @return Addax 路径
          */
-        get() = getItemValue(1000, "ADDAX", String::class.java) ?: "/opt/app/addax"
+        get() = getItemValue(1000, "ADDAX", String::class) ?: "/opt/app/addax"
 
     companion object {
         /** 默认切日时间  */
@@ -93,17 +93,15 @@ class DictService(
      * @param clazz 返回类型
      * @return 字典项值
      */
-    fun <T> getItemValue(dictCode: Int, itemKey: String, clazz: Class<T?>): T? {
+    fun <T : Any> getItemValue(dictCode: Int, itemKey: String, clazz: kotlin.reflect.KClass<T>): T? {
         val item = sysItemRepo.findById(SysItemPK(dictCode, itemKey)).orElse(null) ?: return null
-        val value: String? = item.getItemValue()
-        if (value == null) {
-            return null
-        }
+        val value: String = item.itemValue ?: return null
         return when (clazz) {
-            Int::class.java -> clazz.cast(value.toInt())
-            Long::class.java -> clazz.cast(value.toLong())
-            Boolean::class.java -> clazz.cast(value.toBoolean())
-            else -> clazz.cast(value)
+            Int::class -> value.toInt() as T
+            Long::class -> value.toLong() as T
+            Boolean::class -> value.toBoolean() as T
+            String::class -> value as T
+            else -> clazz.java.cast(value)
         }
     }
 
@@ -145,14 +143,14 @@ class DictService(
      * @param code 字典编码
      * @return 字典对象
      */
-    fun findDictByCode(code: String): SysDict? = sysDictRepo.findByCode(code)
+    fun findDictByCode(code: Int): SysDict? = sysDictRepo.findByCode(code)
 
     /**
      * 查询指定字典下的所有字典项
      * @param dictCode 字典编码
      * @return 字典项列表
      */
-    fun findItemsByDictCode(dictCode: Int): List<SysItem> = sysItemRepo.findByDictCode(dictCode).filterNotNull()
+    fun findItemsByDictCode(dictCode: Int): List<SysItem> = sysItemRepo.findByDictCode(dictCode)
 
     /**
      * 根据主键查询字典项

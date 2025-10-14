@@ -47,7 +47,7 @@ data class EtlTable(
     var kind: String? = null,
 
     @Column(name = "retry_cnt")
-    var retryCnt: Int? = null,
+    var retryCnt: Int = 3,
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "start_time")

@@ -124,7 +124,7 @@ class SourceController(
     )
     @PostMapping("/test-connect")
     fun testConnect(@RequestBody payload: DbConnectDto): ResponseEntity<Boolean?> {
-        val isConnected = testConnection(payload.getUrl(), payload.getUsername(), payload.getPassword())
+        val isConnected = testConnection(payload.url, payload.username, payload.password)
         return ResponseEntity.ok<Boolean?>(isConnected)
     }
 
@@ -157,12 +157,9 @@ class SourceController(
         @Parameter(description = "数据源ID", example = "1") @PathVariable("sourceId") sourceId: Int
     ): ResponseEntity<MutableList<String?>?> {
         val result: MutableList<String?> = ArrayList<String?>()
-        val source = sourceService.getSource(sourceId)
-        if (source == null) {
-            throw ApiException(400, "sourceId 对应的采集源不存在")
-        }
+        val source = sourceService.getSource(sourceId) ?: throw ApiException(400, "sourceId 对应的采集源不存在")
         try {
-            DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass()).use { connection ->
+            DriverManager.getConnection(source.url, source.username, source.pass).use { connection ->
                 val catalogs = connection.getMetaData().getCatalogs()
                 while (catalogs.next()) {
                     result.add(catalogs.getString(1))
@@ -188,17 +185,14 @@ class SourceController(
         @Parameter(description = "数据库名", example = "db") @PathVariable("dbName") dbName: String?
     ): ResponseEntity<MutableList<TableMetaDto?>?> {
         val result: MutableList<TableMetaDto?>?
-        val existsTables: MutableList<String> = tableService.getTablesBySidAndDb(sourceId, dbName)
+        val existsTables: List<String> = tableService.getTablesBySidAndDb(sourceId, dbName) ?: ArrayList()
         // 为了尽量避免大小写带来的不一致，这里做一个双写的Set
         val existsSet: MutableSet<String?> = HashSet<String?>()
         for (t in existsTables) {
             existsSet.add(t)
             existsSet.add(t.lowercase(Locale.getDefault()))
         }
-        val source = sourceService.getSource(sourceId)
-        if (source == null) {
-            throw ApiException(400, "sourceId 对应的采集源不存在")
-        }
+        val source = sourceService.getSource(sourceId) ?: throw ApiException(400, "sourceId 对应的采集源不存在")
 
         result = sourceService.getUncollectedTables(source, dbName, existsSet)
         if (result == null) {

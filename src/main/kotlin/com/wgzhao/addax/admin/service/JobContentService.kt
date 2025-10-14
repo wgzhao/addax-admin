@@ -16,7 +16,6 @@ import org.apache.commons.lang3.StringUtils
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
-import java.lang.String
 import java.util.function.Consumer
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -53,7 +52,7 @@ open class JobContentService(
      * @return 采集任务模板内容（JSON字符串），若不存在则返回null
      */
     fun getJobContent(tid: Long): String? {
-        return jobRepo.findById(tid).job
+        return jobRepo.findById(tid).orElse(null)?.job
     }
 
     /**

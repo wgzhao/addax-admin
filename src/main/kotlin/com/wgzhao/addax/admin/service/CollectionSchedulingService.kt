@@ -41,7 +41,7 @@ class CollectionSchedulingService(
     }
 
     private fun scheduleDailyParamUpdate() {
-        val time = systemConfigService.getSwitchTimeAsTime()
+        val time = systemConfigService.switchTimeAsTime
         val cronExpression = convertLocalTimeToCron(time)
         val task = Runnable { taskService.updateParams() }
         taskSchedulerService.scheduleTask("dailyParamUpdate", task, cronExpression)
@@ -50,8 +50,8 @@ class CollectionSchedulingService(
     fun scheduleOrUpdateTask(source: EtlSource) {
         val taskId = "source-" + source.code
         if (source.enabled && source.startAt != null) {
-            log.info("Scheduling task for source {} at {}", source.code, source.startAt)
-            val cronExpression = convertLocalTimeToCron(source.startAt)
+            log.info {"Scheduling task for source ${source.code} at ${source.startAt}" }
+            val cronExpression = convertLocalTimeToCron(source.startAt!!)
             // cancel existing task if any
             taskSchedulerService.cancelTask(taskId)
             val task = Runnable { taskService.executeTasksForSource(source.id) }

@@ -29,7 +29,7 @@ class LogController(
      * @return 日志列表
      */
     @GetMapping("/{tid}")
-    fun getSpLog(@PathVariable tid: String?): ApiResponse<MutableList<AddaxLogDto?>?> =
+    fun getSpLog(@PathVariable tid: String?): ApiResponse<List<AddaxLogDto?>?> =
         ApiResponse.success(addaxLogService.getLogEntry(tid))
 
     /**
@@ -50,16 +50,16 @@ class LogController(
     fun jobReport(@RequestBody dto: AddaxReportDto): Boolean {
         log.info("job report: {}", dto)
         val sta = EtlStatistic().apply {
-            tid = dto.getJobName().toLong()
-            startAt = LocalDateTime.ofEpochSecond(dto.getStartTimeStamp(), 0, ZoneOffset.ofHours(8))
-            endAt = LocalDateTime.ofEpochSecond(dto.getEndTimeStamp(), 0, ZoneOffset.ofHours(8))
-            takeSecs = dto.getTotalCosts()
-            byteSpeed = dto.getByteSpeedPerSecond()
-            recSpeed = dto.getRecordSpeedPerSecond()
-            totalRecs = dto.getTotalReadRecords()
-            totalErrors = dto.getTotalErrorRecords()
-            runDate = startAt.toLocalDate()
-            totalBytes = dto.getByteSpeedPerSecond() * dto.getTotalCosts()
+            tid = dto.jobName.toLong()
+            startAt = LocalDateTime.ofEpochSecond(dto.startTimeStamp, 0, ZoneOffset.ofHours(8))
+            endAt = LocalDateTime.ofEpochSecond(dto.endTimeStamp, 0, ZoneOffset.ofHours(8))
+            takeSecs = dto.totalCosts
+            byteSpeed = dto.byteSpeedPerSecond
+            recSpeed = dto.recordSpeedPerSecond
+            totalRecs = dto.totalReadRecords
+            totalErrors = dto.totalErrorRecords
+            runDate = startAt?.toLocalDate()
+            totalBytes = dto.byteSpeedPerSecond * dto.totalCosts
         }
         return statService.saveOrUpdate(sta)
     }

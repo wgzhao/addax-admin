@@ -19,14 +19,14 @@ class AddaxLogService(
         addaxLogRepo.save(addaxLog)
     }
 
-    fun getLast5RunDatesByTid(tid: Long): List<LocalDate> =
-        addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid)?.mapNotNull { it.runDate }?.distinct() ?: emptyList()
+    fun getLast5RunDatesByTid(tid: Long): List<LocalDate?>? =
+        addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid)?.mapNotNull { it?.runDate }
 
     fun getLastLogByTid(tid: Long): AddaxLog? =
         addaxLogRepo.findFirstByTidOrderByRunDateDesc(tid)
 
-    fun getLast5LogsById(tid: Long): List<AddaxLog> =
-        addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid) ?: emptyList()
+    fun getLast5LogsById(tid: Long): List<AddaxLog?>? =
+        addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid)
 
     fun getLogContent(id: Long): String? =
         addaxLogRepo.findById(id).orElse(null)?.log

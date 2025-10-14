@@ -11,7 +11,7 @@ data class AddaxLog(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null,
     var tid: Long? = null,
-    var runAt: LocalDateTime? = null,
-    var runDate: LocalDate? = null,
+    var runAt: LocalDateTime,
+    var runDate: LocalDate,
     var log: String? = null
 )

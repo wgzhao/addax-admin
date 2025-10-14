@@ -8,6 +8,6 @@ import jakarta.persistence.Table
 @Table(name = "etl_job")
 data class EtlJob(
     @Id
-    var tid: Long = 0,
-    var job: String? = null
+    val tid: Long = 0,
+    val job: String? = null
 )
