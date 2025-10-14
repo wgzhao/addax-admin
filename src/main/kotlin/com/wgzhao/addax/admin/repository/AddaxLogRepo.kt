@@ -15,18 +15,5 @@ interface AddaxLogRepo : JpaRepository<AddaxLog?, Long?> {
 
     fun findByTidAndRunDate(tid: Long?, runDate: LocalDate?): AddaxLog?
 
-    @Query(
-        value = """
-            select new com.wgzhao.addax.admin.dto.AddaxLogDto(a.id, to_char(a.runAt, 'YYYY-MM-DD HH24:MI:SS'))
-            from AddaxLog a
-            where a.tid = ?1
-            order by a.runAt desc
-            limit 5
-            
-            """.trimIndent()
-    )
-    fun findLogEntry(tid: String?): MutableList<AddaxLogDto?>?
-
-    @Query(value = "select log from addax_log where id = ?1", nativeQuery = true)
-    fun findLogById(id: Long?): String?
+    fun findTop5ByTidOrderByRunAtDesc(tid: String?): List<AddaxLogDto>?
 }

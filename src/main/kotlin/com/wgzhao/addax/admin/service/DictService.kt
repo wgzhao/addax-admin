@@ -21,7 +21,6 @@ class DictService(
     private val sysItemRepo: SysItemRepo,
     private val sysDictRepo: SysDictRepo
 ) {
-    private val log = LoggerFactory.getLogger(DictService::class.java)
 
     val switchTime: String
         /**

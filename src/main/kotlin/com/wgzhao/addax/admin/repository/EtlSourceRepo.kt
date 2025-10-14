@@ -13,6 +13,6 @@ interface EtlSourceRepo
     fun findAllByEnabled(b: Boolean): MutableList<EtlSource?>?
 
     fun existsByCode(code: String?): Boolean
+    fun findByEnabled(bool: Boolean): MutableList<EtlSource>?
 
-    fun findByEnabled(b: Boolean): MutableList<EtlSource?>?
 }

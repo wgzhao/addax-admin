@@ -43,7 +43,7 @@ class CollectionSchedulingService(
     private fun scheduleDailyParamUpdate() {
         val time = systemConfigService.getSwitchTimeAsTime()
         val cronExpression = convertLocalTimeToCron(time)
-        val task = Runnable { taskService!!.updateParams() }
+        val task = Runnable { taskService.updateParams() }
         taskSchedulerService.scheduleTask("dailyParamUpdate", task, cronExpression)
     }
 
@@ -53,27 +53,27 @@ class CollectionSchedulingService(
             log.info("Scheduling task for source {} at {}", source.code, source.startAt)
             val cronExpression = convertLocalTimeToCron(source.startAt)
             // cancel existing task if any
-            taskSchedulerService!!.cancelTask(taskId)
-            val task = Runnable { taskService!!.executeTasksForSource(source.id) }
+            taskSchedulerService.cancelTask(taskId)
+            val task = Runnable { taskService.executeTasksForSource(source.id) }
             taskSchedulerService.scheduleTask(taskId, task, cronExpression)
         } else {
-            taskSchedulerService!!.cancelTask(taskId)
+            taskSchedulerService.cancelTask(taskId)
         }
     }
 
     fun cancelTask(code: String) {
         val taskId = "source-" + code
-        taskSchedulerService!!.cancelTask(taskId)
+        taskSchedulerService.cancelTask(taskId)
     }
 
     private fun convertLocalTimeToCron(time: LocalTime): String {
-        return String.format("0 %d %d * * ?", time.getMinute(), time.getHour())
+        return String.format("0 %d %d * * ?", time.minute, time.hour)
     }
 
     @EventListener
     fun handleSourceEvent(event: SourceUpdatedEvent) {
         if (event.connectionChanged) {
-            etlSourceRepo!!.findById(event.sourceId).ifPresent(Consumer { source: EtlSource? -> this.scheduleOrUpdateTask(source!!) })
+            etlSourceRepo.findById(event.sourceId).ifPresent(Consumer { source: EtlSource? -> this.scheduleOrUpdateTask(source!!) })
         }
     }
 }

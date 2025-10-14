@@ -7,7 +7,7 @@ import org.springframework.context.ApplicationEvent
  * 监听此事件的组件可以根据需要进行相应的处理，例如更新相关作业配置等。
  */
 
-class SourceUpdatedEvent @JvmOverloads constructor(
+class SourceUpdatedEvent (
     source: Any,
     val sourceId: Int,
     val connectionChanged: Boolean = false,

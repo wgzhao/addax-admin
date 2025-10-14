@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.slf4j.LoggerFactory
 
 /**
  * 监控主页面控制器，主要用于汇总信息和图表展示
@@ -19,8 +18,6 @@ class IndexController(
     private val sourceService: SourceService,
     private val tableService: TableService
 ) {
-    private val log = LoggerFactory.getLogger(IndexController::class.java)
-
     /**
      * 获取各数据源采集完成率，用于图表展示
      * @return 完成率列表

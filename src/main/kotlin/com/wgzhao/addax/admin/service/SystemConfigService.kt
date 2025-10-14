@@ -29,16 +29,16 @@ class SystemConfigService(
     }
 
     val bizDate: String?
-        get() = configCache.get("BIZ_DATE") as String?
+        get() = configCache["BIZ_DATE"] as String?
 
     val logPath: String?
-        get() = configCache.get("LOG_PATH") as String?
+        get() = configCache["LOG_PATH"] as String?
 
     val curDateTime: String?
-        get() = configCache.get("CUR_DATETIME") as String?
+        get() = configCache["CUR_DATETIME"] as String?
 
     val switchTime: String
-        get() = configCache.get("SWITCH_TIME") as String
+        get() = configCache["SWITCH_TIME"] as String
 
     val switchTimeAsTime: LocalTime
         get() {

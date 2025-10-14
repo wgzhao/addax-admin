@@ -3,7 +3,7 @@ package com.wgzhao.addax.admin.service
 import com.wgzhao.addax.admin.dto.AddaxLogDto
 import com.wgzhao.addax.admin.model.AddaxLog
 import com.wgzhao.addax.admin.repository.AddaxLogRepo
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -12,15 +12,10 @@ import java.time.LocalDateTime
 class AddaxLogService(
     private val addaxLogRepo: AddaxLogRepo
 ) {
-    private val log = LoggerFactory.getLogger(AddaxLogService::class.java)
+    private val log = KotlinLogging.logger {}
 
     fun insertLog(tid: Long, message: String?) {
-        val addaxLog = AddaxLog().apply {
-            setTid(tid)
-            setLog(message)
-            setRunDate(LocalDate.now())
-            setRunAt(LocalDateTime.now())
-        }
+        val addaxLog = AddaxLog(tid=tid, log=message, runDate = LocalDate.now(), runAt = LocalDateTime.now() )
         addaxLogRepo.save(addaxLog)
     }
 
@@ -34,8 +29,8 @@ class AddaxLogService(
         addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid) ?: emptyList()
 
     fun getLogContent(id: Long): String? =
-        addaxLogRepo.findLogById(id)
+        addaxLogRepo.findById(id).orElse(null)?.log
 
     fun getLogEntry(tid: String?): List<AddaxLogDto> =
-        addaxLogRepo.findLogEntry(tid) ?: emptyList()
+        addaxLogRepo.findTop5ByTidOrderByRunAtDesc(tid) ?: emptyList()
 }
