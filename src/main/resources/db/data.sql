@@ -1,6 +1,8 @@
+---- admin: admin@addax
+---- user: user@123
 insert into users (USERNAME, PASSWORD, ENABLED)
-values  ('user', '$2a$10$7pdkeQNqyfj/H.xSqniqDeVNCq8CnXTVNcoP0fgbzFkR53cDgF0z.', true),
-        ('admin', '$2a$10$B/24QvXSICyz/qUAe9Va0OWmGKOBA./9HiJBvfHw2QDudDBsGZ43K', true);
+values  ('user', '$2a$10$gm.ZqCx7hqDqSaexYimU4.PxGpDcXjSLOiwyYeMz4AzmIydVciUmK', true),
+        ('admin', '$2a$10$NDRfxYZUyrTa3bNrcWR9J.8PwpbmEP9WaVrb0V63Lwyoy5kasr3lK', true);
 
 insert into authorities (username, authority)
 values ('admin', 'admin'), ('user', 'user');
