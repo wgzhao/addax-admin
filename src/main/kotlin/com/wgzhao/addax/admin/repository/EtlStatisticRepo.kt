@@ -49,7 +49,7 @@ interface EtlStatisticRepo
                  run_date
             """, nativeQuery = true
     )
-    fun findLast5DaysTakeTimes(): MutableList<MutableMap<String?, Any?>?>?
+    fun findLast5DaysTakeTimes(): MutableList<MutableMap<String, Any>?>?
 
     fun findTop15ByTidOrderByRunDateDesc(tid: Long): MutableList<EtlStatistic?>?
 }

@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.config
 
 import org.apache.commons.dbcp2.BasicDataSource
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import java.io.File
 import java.io.FilenameFilter
@@ -9,29 +9,17 @@ import java.net.URL
 import java.net.URLClassLoader
 import javax.sql.DataSource
 
-//@Configuration
-//@Conditional(HiveJdbcCondition.class)
-class HiveDataSourceConfig {
-    @Value("\${spring.datasource.hive.url}")
-    private val url: String? = null
-
-    @Value("\${spring.datasource.hive.username}")
-    private val username: String? = null
-
-    @Value("\${spring.datasource.hive.password}")
-    private val password: String? = null
-
-    @Value("\${spring.datasource.hive.driver-class-name}")
-    private val driverClassName: String? = null
+@ConfigurationProperties("spring.datasource.hive")
+class HiveDataSourceConfig(val url: String, val jarPath: String, val username: String?, val password: String?, val driverClassName: String?) {
 
     @Bean(name = ["hiveDataSource"])
     @Throws(Exception::class)
     fun hiveDataSource(): DataSource {
-        val driversFolder: File = File(driversDir)
-        require(!(!driversFolder.exists() || !driversFolder.isDirectory())) { "Drivers directory does not exist: " + driversDir }
+        val driversFolder: File = File(jarPath)
+        require(!(!driversFolder.exists() || !driversFolder.isDirectory())) { "Drivers directory $jarPath does not exist: " }
 
         val jarFiles = driversFolder.listFiles(FilenameFilter { dir: File?, name: String? -> name!!.endsWith(".jar") })
-        require(!(jarFiles == null || jarFiles.size == 0)) { "No JDBC driver found in drivers directory: " + driversDir }
+        require(!(jarFiles == null || jarFiles.size == 0)) { "No JDBC driver found in drivers directory: $jarPath " }
 
         val jarUrls = arrayOfNulls<URL>(jarFiles.size)
         for (i in jarFiles.indices) {
@@ -53,14 +41,10 @@ class HiveDataSourceConfig {
         // 设置 Hive JDBC 驱动的类加载器
         Thread.currentThread().setContextClassLoader(classLoader)
         val dataSource = BasicDataSource()
-        dataSource.setUrl(url)
-        dataSource.setUsername(username)
-        dataSource.setPassword(password)
-        dataSource.setDriverClassName(driverClassName)
+        dataSource.url = url
+        dataSource.username = username
+        dataSource.password = password
+        dataSource.driverClassName = driverClassName
         return dataSource
-    }
-
-    companion object {
-        private const val driversDir = "lib"
     }
 }

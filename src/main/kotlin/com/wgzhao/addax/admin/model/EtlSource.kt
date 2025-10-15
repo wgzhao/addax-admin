@@ -12,7 +12,7 @@ data class EtlSource(
     var id: Int = 0,
 
     @Column(name = "code", length = 10, nullable = false)
-    var code: String? = null,
+    var code: String,
 
     @Column(name = "name", length = 200, nullable = false)
     var name: String? = null,

@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -25,7 +25,7 @@ import java.util.function.Supplier
 class ParamController(
     private val dictService: DictService
 ) {
-    private val log = LoggerFactory.getLogger(ParamController::class.java)
+    private val log = KotlinLogging.logger {}
 
     /**
      * 查询所有字典

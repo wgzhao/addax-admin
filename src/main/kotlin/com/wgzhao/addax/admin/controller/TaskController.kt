@@ -6,7 +6,6 @@ import com.wgzhao.addax.admin.service.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -23,7 +22,6 @@ class TaskController(
     private val jobContentService: JobContentService,
     private val jourService: EtlJourService
 ) {
-    private val log = LoggerFactory.getLogger(TaskController::class.java)
 
     @GetMapping("/queue")
     @Operation(summary = "获取队列状态", description = "获取当前采集任务队列的状态")
@@ -129,7 +127,7 @@ class TaskController(
     @Operation(summary = "采集任务状态查询", description = "查询采集任务的最新状态")
     fun allTaskStatus(): ResponseEntity<List<Map<String, Any>?>?>
     {
-        val status = taskService.allTaskStatus()
+        val status = taskService.getAllTaskStatus()
         return ResponseEntity.ok(status)
 
     }
@@ -139,8 +137,8 @@ class TaskController(
      * @param tableId 采集表ID
      * @return 错误信息
      */
-    @Operation(summary = "获取指定采集表的最后错误信息", description = "根据采集表ID获取该表最近一次采集任务的错误信息")
     @GetMapping("/{tableId}/last-error")
+    @Operation(summary = "获取指定采集表的最后错误信息", description = "根据采集表ID获取该表最近一次采集任务的错误信息")
     fun getLastErrorByTableId(
         @Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long
     ): ResponseEntity<String?> {

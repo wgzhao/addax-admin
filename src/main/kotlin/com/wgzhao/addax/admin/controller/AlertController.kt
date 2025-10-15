@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * 数据中心消息提醒总表接口，提供消息提醒相关数据查询
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory
 class AlertController(
     private val notificationRepo: NotificationRepo
 ) {
-    private val log = LoggerFactory.getLogger(AlertController::class.java)
+    private val log = KotlinLogging.logger {}
 
     @GetMapping("/list")
     @Operation(summary = "查询数据中心消息提醒总表数据", description = "查询数据中心消息提醒总表数据")

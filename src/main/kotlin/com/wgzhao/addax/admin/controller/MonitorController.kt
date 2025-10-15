@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.slf4j.LoggerFactory
 
 /**
  * 监控相关接口，提供采集完成情况、特殊任务、拒绝任务、系统风险等监控数据查询
@@ -37,7 +36,7 @@ class MonitorController(
      * @return 特殊任务列表
      */
     @GetMapping("/special-task")
-    fun specialTask(): ResponseEntity<List<EtlTable>> =
+    fun specialTask(): ResponseEntity<List<EtlTable?>?>? =
         ResponseEntity.ok(taskService.findAllSpecialTask())
 
     /**

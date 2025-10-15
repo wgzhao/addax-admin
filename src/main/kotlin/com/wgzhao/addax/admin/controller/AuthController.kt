@@ -6,7 +6,7 @@ import com.wgzhao.addax.admin.service.JwtService
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.web.bind.annotation.*
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 /**
  * 用户认证接口，提供登录认证功能
@@ -18,7 +18,7 @@ class AuthController(
     private val jwtService: JwtService,
     private val authenticationManager: AuthenticationManager
 ) {
-    private val log = LoggerFactory.getLogger(AuthController::class.java)
+    private val log = KotlinLogging.logger {}
 
     /**
      * 用户登录认证，返回JWT令牌
@@ -30,10 +30,10 @@ class AuthController(
         val authentication = authenticationManager.authenticate(
             UsernamePasswordAuthenticationToken(authRequestDTO.username, authRequestDTO.password)
         )
-        return (if (authentication.isAuthenticated) {
+        return if (authentication.isAuthenticated) {
             ApiResponse.success(jwtService.generateToken(authRequestDTO.username))
         } else {
             ApiResponse.error(401, "failed to authenticate user")
-        }) as ApiResponse<String>
+        }
     }
 }

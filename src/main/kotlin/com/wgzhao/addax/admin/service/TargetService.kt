@@ -20,7 +20,7 @@ interface TargetService {
      * @param partValue 分区字段值
      * @return 是否添加成功
      */
-    fun addPartition(taskId: Long, db: String?, table: String?, partName: String?, partValue: String?): Boolean
+    fun addPartition(taskId: Long, db: String, table: String, partName: String, partValue: String): Boolean
 
     /**
      * 创建或更新 Hive 目标表。
@@ -29,5 +29,5 @@ interface TargetService {
      * @param etlTable 采集表视图对象
      * @return 是否创建/更新成功
      */
-    fun createOrUpdateHiveTable(etlTable: VwEtlTableWithSource?): Boolean
+    fun createOrUpdateHiveTable(etlTable: VwEtlTableWithSource): Boolean
 }

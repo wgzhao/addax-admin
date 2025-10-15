@@ -9,7 +9,7 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource
 import com.wgzhao.addax.admin.repository.EtlTableRepo
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo
 import com.wgzhao.addax.admin.utils.QueryUtil
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -35,37 +35,41 @@ open class TableService(
     private val vwEtlTableWithSourceRepo: VwEtlTableWithSourceRepo,
     private val targetService: TargetService
 ) {
-    private val log = LoggerFactory.getLogger(TableService::class.java)
+    private val log = KotlinLogging.logger {  }
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
      * @param table 采集表对象
      * @return 任务结果
      */
-    fun refreshTableResources(table: EtlTable?): TaskResultDto {
-        if (table == null) return failure("Table is null", 0)
-        val vwTable = vwEtlTableWithSourceRepo.findById(table.id).get()
+    fun refreshTableResources(table: EtlTable): TaskResultDto {
+        val tid = table.id ?: return failure("Table id is null", 0)
+        val vwTable = vwEtlTableWithSourceRepo.findById(tid).orElse(null) ?: run {
+            setStatus(table, TableStatus.COLLECT_FAIL)
+            log.warn { "View not found for table id $tid" }
+            return failure("View not found for table id $tid", 0)
+        }
         val retCode = columnService.updateTableColumns(vwTable)
         if (retCode == -1) {
             setStatus(table, TableStatus.COLLECT_FAIL)
-            log.warn("Failed to update columns for table id {}", table.id)
-            return failure("Failed to update columns for table id ${table.id}", 0)
+            log.warn { "Failed to update columns for table id $tid" }
+            return failure("Failed to update columns for table id ${tid}", 0)
         }
         if (retCode == 0) {
             if (vwTable.status == TableStatus.WAIT_SCHEMA) {
                 if (!targetService.createOrUpdateHiveTable(vwTable)) {
                     setStatus(table, TableStatus.COLLECT_FAIL)
-                    log.warn("Failed to create or update Hive table for tid {}", table.id)
-                    return failure("Failed to create or update Hive table for tid ${table.id}", 0)
+                    log.warn { "Failed to create or update Hive table for tid $tid" }
+                    return failure("Failed to create or update Hive table for tid $tid", 0)
                 }
             }
             setStatus(table, TableStatus.NOT_COLLECT)
-            return success("No columns updated for table id ${table.id}", 0)
+            return success("No columns updated for table id $tid", 0)
         }
         if (!targetService.createOrUpdateHiveTable(vwTable)) {
             setStatus(table, TableStatus.WAIT_SCHEMA)
-            log.warn("Failed to create or update Hive table for tid {}", table.id)
-            return failure("Failed to create or update Hive table for tid ${table.id}", 0)
+            log.warn { "Failed to create or update Hive table for tid $tid" }
+            return failure("Failed to create or update Hive table for tid ${tid}", 0)
         }
         val result = jobContentService.updateJob(vwTable)
         if (result.success) {
@@ -73,7 +77,7 @@ open class TableService(
             return success("Table resources refreshed successfully", 0)
         } else {
             setStatus(table, TableStatus.COLLECT_FAIL)
-            return failure("Failed to update job content for table id ${table.id}", 0)
+            return failure("Failed to update job content for table id ${tid}", 0)
         }
     }
 
@@ -84,7 +88,7 @@ open class TableService(
      */
     fun refreshTableResources(tableId: Long): TaskResultDto {
         val table = etlTableRepo.findById(tableId)
-            .orElseThrow<IllegalArgumentException?>(Supplier { IllegalArgumentException("Table not found with id: " + tableId) })
+            .orElseThrow { IllegalArgumentException("Table not found with id: $tableId") }!!
         return refreshTableResources(table)
     }
 
@@ -94,16 +98,16 @@ open class TableService(
      */
     @Async
     open fun refreshTableResourcesAsync(table: EtlTable?) {
-        refreshTableResources(table)
+        table?.let { refreshTableResources(it) }
     }
 
     /**
      * 刷新所有采集表的资源
      */
     fun refreshAllTableResources() {
-        etlTableRepo.findAll().map {
-            refreshTableResources(it)
-        }
+        etlTableRepo.findAll()
+            .filterNotNull()
+            .forEach { refreshTableResources(it) }
     }
 
     /**
@@ -121,7 +125,7 @@ open class TableService(
 
     /**
      * 根据状态获取视图表信息
-     * @param page 页码
+     * @param page 页��
      * @param pageSize 每页大小
      * @param q 查询关键字
      * @param status 表状态
@@ -230,32 +234,31 @@ open class TableService(
         etlTableRepo.save<EtlTable?>(table)
     }
 
-    // 找到所有可以运行的任务
-    // 要注意切日的问题
-    val runnableTasks: MutableList<EtlTable?>?
-        /**
-         * 获取所有可运行的任务
-         * @return 可运行的��务列表
-         */
-        get() {
-            val switchTime = dictService.switchTimeAsTime
-            val currentTime = LocalDateTime.now().toLocalTime()
-            val checkTime = currentTime.isAfter(switchTime)
-            return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)
-        }
+    /**
+     * 获取所有可运行的任务
+     * @return 可运行的��务列表
+     */
+    fun getRunnableTasks(): List<EtlTable?>? {
+        // 找到所有可以运行的任务
+        // 要注意切日的问题
+        val switchTime = dictService.getSwitchTimeAsTime()
+        val currentTime = LocalDateTime.now().toLocalTime()
+        val checkTime = currentTime.isAfter(switchTime)
+        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)
+    }
 
     /**
      * 根据数据源ID获取可运行的任务
      * @param sourceId 数据源ID
      * @return 可运行的任务列表
      */
-    fun getRunnableTasks(sourceId: Int): MutableList<EtlTable?> {
-        val switchTime = dictService.switchTimeAsTime
+    fun getRunnableTasksBySid(sourceId: Int): MutableList<EtlTable?> {
+        val switchTime = dictService.getSwitchTimeAsTime()
         val currentTime = LocalDateTime.now().toLocalTime()
         val checkTime = currentTime.isAfter(switchTime)
-        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)!!
+        return getRunnableTasks()!!
             .stream()
-            .filter { t: EtlTable? -> t.sid == sourceId }
+            .filter { t: EtlTable? -> t?.sid == sourceId }
             .toList()
     }
 
@@ -297,11 +300,11 @@ open class TableService(
     }
 
     /**
-     * 获取指定数据源和库下的所有表
+     * 获取指定数据源和���下的所有表
      */
     fun getTablesBySidAndDb(sid: Int, db: String?): List<String>? {
         return vwEtlTableWithSourceRepo.findBySidAndSourceDb(sid, db)
-            ?.mapNotNull { it.sourceTable }
+            ?.mapNotNull { it?.sourceTable }
     }
 
     /**

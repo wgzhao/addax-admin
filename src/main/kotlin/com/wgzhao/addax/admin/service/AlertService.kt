@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.service
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.postForObject
 import java.net.InetAddress
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -15,7 +15,7 @@ import java.util.Map
  * support send alert message to WeChat group bot, SMS, Email
  */
 @Service
-class AlertService {
+class AlertService(private val restTemplate: RestTemplate) {
 
     private val log = KotlinLogging.logger {}
 
@@ -25,16 +25,16 @@ class AlertService {
     @Value("\${alert.wechat.key}")
     private val wechatKey: String? = null
 
-
-    @Autowired
-    private val restTemplate: RestTemplate? = null
-
     /**
      * 发送企业微信机器人消息
      */
     fun sendToWeComRobot(message: String?) {
         if (wechatKey == null || wechatKey.isEmpty()) {
             log.warn { "企业微信机器人Key未配置，跳过发送消息" }
+            return
+        }
+        if (webchatUrl == null || webchatUrl.isEmpty()) {
+            log.warn { "企业微信机器人URL未配置，跳过发送消息" }
             return
         }
         try {
@@ -56,7 +56,7 @@ class AlertService {
                 "msgtype", "markdown",
                 "markdown", Map.of<String?, String?>("content", formattedMessage)
             )
-            restTemplate!!.postForObject<String?>(webchatUrl, body, String::class.java)
+            restTemplate.postForObject<String?>(webchatUrl, body, String::class)
         } catch (e: Exception) {
             log.error(e) { "发送企业微信消息失败" }
         }
@@ -65,7 +65,7 @@ class AlertService {
     private val hostname: String?
         get() {
             try {
-                return InetAddress.getLocalHost().getHostName()
+                return InetAddress.getLocalHost().hostName
             } catch (e: Exception) {
                 log.error(e) { "获取主机名失败" }
                 return "未知主机"

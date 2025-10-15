@@ -6,7 +6,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata
 
 class HiveCmdCondition : Condition {
     override fun matches(context: ConditionContext, metadata: AnnotatedTypeMetadata): Boolean {
-        val impl = context.getEnvironment().getProperty("target.service.impl")
+        val impl = context.environment.getProperty("target.service.impl")
         return "cmd".equals(impl, ignoreCase = true)
     }
 }

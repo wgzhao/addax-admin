@@ -18,8 +18,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.scheduling.annotation.Async
 import org.springframework.web.bind.annotation.*
-import java.util.concurrent.CompletableFuture
 
 /**
  * 采集表管理接口（RESTful规范），提供采集表的分页查询、详情、统计等功能
@@ -171,8 +171,9 @@ class TableController(
      */
     @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
+    @Async
     fun refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") mode: String?): ResponseEntity<Void?> {
-        CompletableFuture.runAsync(Runnable { tableService.refreshAllTableResources() })
+        tableService.refreshAllTableResources();
         return ResponseEntity.accepted().build<Void?>()
     }
 
@@ -232,7 +233,7 @@ class TableController(
     fun getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") tableId: Long): ResponseEntity<String?> {
         // 具体实现略
         val job: String? = jobContentService.getJobContent(tableId)
-        return ResponseEntity.badRequest().body<String?>("No job content found for the given table ID")
+        return ResponseEntity.badRequest().body<String>("No job content found for the given table ID")
     }
 } //    // 对单个表执行采集任务
 //    @Operation(summary = "执行采集任务", description = "根据采集表ID立即执行单个采集任务")

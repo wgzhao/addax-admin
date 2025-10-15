@@ -1,8 +1,8 @@
-insert into PUBLIC.users (USERNAME, PASSWORD, ENABLED)
+insert into users (USERNAME, PASSWORD, ENABLED)
 values  ('user', '$2a$10$7pdkeQNqyfj/H.xSqniqDeVNCq8CnXTVNcoP0fgbzFkR53cDgF0z.', true),
         ('admin', '$2a$10$B/24QvXSICyz/qUAe9Va0OWmGKOBA./9HiJBvfHw2QDudDBsGZ43K', true);
 
-INSERT INTO public.sys_dict (code,"name",classification,remark) VALUES
+INSERT INTO sys_dict (code,"name",classification,remark) VALUES
 	 (1000,'系统配置项开关',NULL,'系统常用配置项开关'),
 	 (1011,'短信接收人','FR','统一配送的短信接收人信息'),
 	 (1021,'交易日表','FR','自动从柜台取最新的交易日表信息'),
@@ -14,7 +14,7 @@ INSERT INTO public.sys_dict (code,"name",classification,remark) VALUES
 	 (5000,'JOB模板','AT','JSON的主模板，与5001关联'),
 	 (5001,'JOB模板子模块','AT','实际读写数据库的JSON模块');
 
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'CONCURRENT_LIMIT', '30', '最大采集并发数量'),
 (1000, 'HDFS_COMPRESS_FORMAT', 'snappy', '存储 压缩格式，默认 lz4，可选 gz, snappy,zstd'),
 (1000, 'HDFS_PREFIX', '/ods', 'HDFS 目录前缀'),
@@ -23,7 +23,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'ADDAX', '/opt/app/addax', 'Addax程序目录'),
 (1000, 'RUN_LOG', '/var/tmp/log', '运行日志目录');
 
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'QUEUE_SIZE', '100', '采集队列长度'),
 (1000, 'SWITCH_TIME', '16:30', '切日时间'),
 (1011, '11111111111', '1', '初始化，默认记录'),
@@ -110,7 +110,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (2015, 'dw_trade_date', 'decimal(10,0)', '数据采集时的交易日期(8位)'),
 (2015, 'modifier_no', 'string', '备用,一般标注为系统编号');
 
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'D2H', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'D2H', '{
   "job": {
     "content": [
     {
@@ -126,7 +126,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     }
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2C', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2C', '{
  "job": {
   "setting": {
    "speed": {
@@ -147,7 +147,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   ]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2M', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2M', '{
  "job": {
   "setting": {
    "speed": {
@@ -168,7 +168,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   ]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2O', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2O', '{
  "job": {
   "setting": {
    "speed": {
@@ -189,7 +189,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   ]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2P', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2P', '{
  "job": {
   "setting": {
    "speed": {
@@ -210,7 +210,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   ]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2S', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2S', '{
  "job": {
   "setting": {
    "speed": {
@@ -231,7 +231,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   ]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'I2H', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'I2H', '{
   "job": {
     "setting": {
       "speed": {
@@ -251,7 +251,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     ]
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'M2H', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'M2H', '{
   "job": {
     "content": [
     {
@@ -267,7 +267,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     }
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'O2H', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'O2H', '{
   "job": {
     "content": [
     {
@@ -283,7 +283,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     }
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'P2H', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'P2H', '{
   "job": {
     "content": [
     {
@@ -299,7 +299,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     }
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'S2H', '{
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'S2H', '{
   "job": {
     "content": [
     {
@@ -315,14 +315,14 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     }
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rD', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rD', '"reader": {
  "name": "dbffilereader",
  "parameter": {
   "column": [${col}],
   "path": "/opt/infalog/trans/zdbs/${TD}/${sou_tblname}100007.dbf",
   "encoding": "GBK"
 }}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rH', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rH', '"reader": {
  "name": "rdbmsreader",
  "parameter": {
   "username": "${s_user}",
@@ -334,7 +334,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   }]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rI', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rI', '"reader": {
    "name": "rdbmsreader",
    "parameter": {
    "username": "${sou_user}",
@@ -348,7 +348,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
    "where": "${sou_filter}"
    }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rM', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rM', '"reader": {
  "parameter": {
   "username": "${username}",
   "password": "${pass}",
@@ -363,7 +363,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
  "name": "mysqlreader"
 }
 ', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rO', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rO', '"reader": {
   "parameter": {
     "password": "${sou_pass}",
     "column": [ ${sou_col} ],
@@ -377,7 +377,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   },
   "name": "oraclereader"
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rP', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rP', '"reader": {
   "parameter": {
     "password": "${sou_pass}",
     "column": [ ${sou_col} ],
@@ -391,7 +391,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   },
   "name": "postgresqlreader"
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rS', '"reader": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rS', '"reader": {
   "parameter": {
     "password": "${sou_pass}",
     "column": [ ${sou_col} ],
@@ -405,7 +405,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   },
   "name": "sqlserverreader"
 }', 'sqlserver的reader');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wC', '"writer": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wC', '"writer": {
  "name": "clickhousewriter",
  "parameter": {
   "username": "${d_user}",
@@ -422,7 +422,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   ]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wH', '"writer": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wH', '"writer": {
   "name": "hdfswriter",
   "parameter": {
     "path": "${hdfs_path}",
@@ -438,7 +438,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
     "hdfsSitePath": "/opt/app/addax/cdh-hdfs-site.xml"
   }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wM', '"writer": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wM', '"writer": {
  "name": "mysqlwriter",
  "parameter": {
   "username": "${d_user}",
@@ -452,7 +452,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   }]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wO', '"writer": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wO', '"writer": {
  "name": "oraclewriter",
  "parameter": {
   "username": "${d_user}",
@@ -467,7 +467,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   }]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wP', '"writer": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wP', '"writer": {
  "name": "postgresqlwriter",
  "parameter": {
   "username": "${d_user}",
@@ -481,7 +481,7 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
   }]
  }
 }', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wS', '"writer": {
+INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wS', '"writer": {
  "name": "sqlserverwriter",
  "parameter": {
   "username": "${d_user}",
@@ -507,7 +507,7 @@ BEGIN
         SELECt DISTINCT to_char(date_trunc('day', generate_series(p_year || '-01-01'::date, p_year || '-12-31'::date, '1 day')), 'YYYYmmdd')
         -- SELECT DISTINCT date_trunc('day', generate_series('2025-01-01'::date, '2025-12-31'::date, '1 day'))
     LOOP
-        INSERT INTO public.sys_item (dict_code, item_key, item_value, remark)
+        INSERT INTO sys_item (dict_code, item_key, item_value, remark)
         VALUES (p_dict_code, v_date, v_date, NOW());
     END LOOP;
 END;

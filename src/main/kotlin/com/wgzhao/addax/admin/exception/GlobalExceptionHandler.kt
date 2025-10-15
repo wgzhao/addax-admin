@@ -1,9 +1,7 @@
 package com.wgzhao.addax.admin.exception
 
 import com.wgzhao.addax.admin.dto.ApiResponse
-import com.wgzhao.addax.admin.dto.ApiResponse.Companion.error
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
@@ -17,6 +15,8 @@ import org.springframework.web.bind.annotation.ResponseBody
  */
 @ControllerAdvice
 class GlobalExceptionHandler {
+        private val log = KotlinLogging.logger {}
+
     /**
      * 处理自定义 ApiException 异常。
      * 根据异常 code 映射为 HTTP 状态码，返回标准化错误响应。
@@ -33,8 +33,8 @@ class GlobalExceptionHandler {
             409 -> HttpStatus.CONFLICT
             else -> HttpStatus.INTERNAL_SERVER_ERROR
         }
-        log.warn("ApiException: code={}, message={}", ex.code, ex.message, ex)
-        return ResponseEntity<ApiResponse<Any?>?>(error<Any?>(ex.code, ex.message), status)
+        log.warn(ex) { "ApiException: code=${ex.code}, message=${ex.message}" }
+        return ResponseEntity(ApiResponse.error(ex.code, ex.message), status)
     }
 
     /**
@@ -47,11 +47,8 @@ class GlobalExceptionHandler {
     @ExceptionHandler(Exception::class)
     @ResponseBody
     fun handleOtherException(ex: Exception): ResponseEntity<ApiResponse<Any?>?> {
-        log.error("Unhandled exception: {}", ex.message, ex)
-        return ResponseEntity<ApiResponse<Any?>?>(error<Any?>(500, ex.message), HttpStatus.INTERNAL_SERVER_ERROR)
+        log.error(ex) { "Unhandled exception: ${ex.message}" }
+        return ResponseEntity(ApiResponse.error(500, ex.message), HttpStatus.INTERNAL_SERVER_ERROR)
     }
 
-    companion object {
-        private val log: Logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
-    }
 }

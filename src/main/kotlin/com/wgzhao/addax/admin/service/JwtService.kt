@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.jsonwebtoken.*
 import io.jsonwebtoken.security.Keys
 import io.jsonwebtoken.security.SignatureException
 import jakarta.servlet.http.HttpServletRequest
-import lombok.extern.slf4j.Slf4j
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Component
@@ -17,9 +17,9 @@ import javax.crypto.SecretKey
  * JWT服务类，负责生成、解析和校验JWT令牌。
  * 提供令牌生成、提取声明、校验有效性等功能。
  */
-@Slf4j
 @Component
 class JwtService {
+    private val log = KotlinLogging.logger {  }
     /** 令牌过期时间（毫秒）  */
     @Value("\${jwt.expiration}")
     private val accessTokenExpiration = 0
@@ -148,15 +148,15 @@ class JwtService {
                 .parseSignedClaims(jwtToken)
                 .getPayload()
         } catch (ex: ExpiredJwtException) {
-            JwtService.log.error("Expired JWT token")
+            log.error(ex) { "Expired JWT token" }
         } catch (ex: UnsupportedJwtException) {
-            JwtService.log.error("Unsupported JWT token")
+            log.error(ex) { "Unsupported JWT token" }
         } catch (ex: MalformedJwtException) {
-            JwtService.log.error("Invalid JWT token")
+            log.error(ex) { "Invalid JWT token" }
         } catch (ex: SignatureException) {
-            JwtService.log.error("JWT signature does not match locally computed signature")
+            log.error(ex) { "JWT signature does not match locally computed signature" }
         } catch (ex: IllegalArgumentException) {
-            JwtService.log.error("JWT claims string is empty")
+            log.error(ex) { "JWT claims string is empty" }
         }
         return null
     }

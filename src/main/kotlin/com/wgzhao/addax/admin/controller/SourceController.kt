@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.model.EtlSource
 import com.wgzhao.addax.admin.service.SourceService
 import com.wgzhao.addax.admin.service.TableService
 import com.wgzhao.addax.admin.utils.DbUtil.testConnection
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -17,9 +18,6 @@ import org.springframework.web.bind.annotation.*
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.util.*
-import java.util.function.Function
-import java.util.function.Supplier
-import org.slf4j.LoggerFactory
 
 /**
  * 数据源管理控制器，提供数据源及相关元数据的管理接口
@@ -31,7 +29,7 @@ class SourceController(
     private val sourceService: SourceService,
     private val tableService: TableService
 ) {
-    private val log = LoggerFactory.getLogger(SourceController::class.java)
+    private val log = KotlinLogging.logger {}
 
     /**
      * 查询所有数据源

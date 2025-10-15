@@ -24,7 +24,7 @@ class IndexController(
      */
     @GetMapping("/accomplish-ratio")
     fun accomplishRatio(): ResponseEntity<List<Map<String, Any>>> =
-        ResponseEntity.ok(statService.statLastAccompRatio())
+        ResponseEntity.ok(statService.statLastAccompRatio()?.filterNotNull() ?: emptyList())
 
     /**
      * 获取最近5天采集耗时对比
@@ -56,7 +56,7 @@ class IndexController(
      */
     @GetMapping("/collect-table-count")
     fun tableCount(): ResponseEntity<Int> =
-        ResponseEntity.ok(tableService.validTableCount)
+        ResponseEntity.ok(tableService.validTableCount ?: 0)
 
     /**
      * 获取数据源数量
@@ -64,5 +64,5 @@ class IndexController(
      */
     @GetMapping("/collect-source-count")
     fun sourceCount(): ResponseEntity<Int> =
-        ResponseEntity.ok(sourceService.validSources)
+        ResponseEntity.ok(sourceService.getValidSources())
 }

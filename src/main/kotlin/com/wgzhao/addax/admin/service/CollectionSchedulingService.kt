@@ -36,7 +36,7 @@ class CollectionSchedulingService(
             scheduleDailyParamUpdate()
         } catch (e: Exception) {
             // 记录详细异常，便于排查
-            log.error("Error in rescheduleAllTasks: ", e)
+            log.error(e) { "Error in rescheduleAllTasks" }
         }
     }
 
@@ -48,7 +48,7 @@ class CollectionSchedulingService(
     }
 
     fun scheduleOrUpdateTask(source: EtlSource) {
-        val taskId = "source-" + source.code
+        val taskId = "source-${source.code}"
         if (source.enabled && source.startAt != null) {
             log.info {"Scheduling task for source ${source.code} at ${source.startAt}" }
             val cronExpression = convertLocalTimeToCron(source.startAt!!)
@@ -62,8 +62,7 @@ class CollectionSchedulingService(
     }
 
     fun cancelTask(code: String) {
-        val taskId = "source-" + code
-        taskSchedulerService.cancelTask(taskId)
+        taskSchedulerService.cancelTask("source-${code}")
     }
 
     private fun convertLocalTimeToCron(time: LocalTime): String {

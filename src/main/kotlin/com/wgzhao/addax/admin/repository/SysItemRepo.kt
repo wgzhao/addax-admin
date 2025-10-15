@@ -28,4 +28,5 @@ interface SysItemRepo : JpaRepository<SysItem, SysItemPK> {
             """, nativeQuery = true
     )
     fun findLastBizDateList(curDate: String?): String?
+    fun findByDictCode(dictCode: Int): kotlin.collections.List<com.wgzhao.addax.admin.model.SysItem>
 }

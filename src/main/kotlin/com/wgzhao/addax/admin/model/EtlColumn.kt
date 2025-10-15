@@ -44,5 +44,5 @@ data class EtlColumn(
     var targetTypeFull: String,
 
     @Column(name = "update_at")
-    var updateAt: Timestamp
+    var updateAt: Timestamp = Timestamp(System.currentTimeMillis())
 )

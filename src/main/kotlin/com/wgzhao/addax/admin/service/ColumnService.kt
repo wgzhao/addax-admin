@@ -32,7 +32,7 @@ open class ColumnService(
      * @return 字段列表
      */
     fun getColumns(tid: Long): List<EtlColumn> =
-        etlColumnRepo.findAllByTidOrderByColumnId(tid).filterNotNull()
+        etlColumnRepo.findAllByTidOrderByColumnId(tid)!!.filterNotNull()
 
     /**
      * 更新当前表的字段信息，主要涉及到源表字段的变更
@@ -45,9 +45,8 @@ open class ColumnService(
      * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败
      */
     @Transactional
-    open fun updateTableColumns(etlTable: VwEtlTableWithSource?): Int {
-        if (etlTable == null) return 0
-        val existingColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.id).filterNotNull().toMutableList()
+    open fun updateTableColumns(etlTable: VwEtlTableWithSource): Int {
+        val existingColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.id)!!.filterNotNull().toMutableList()
         if (existingColumns.isEmpty()) {
             return if (createTableColumns(etlTable)) 1 else -1
         }
@@ -76,26 +75,27 @@ open class ColumnService(
                         }
                         val sc = sourceCols[s]
                         if (oc.columnName == sc.columnName) {
-                            val typeChanged = (oc.sourceType != sc.sourceType) || notEq(oc.dataPrecision, sc.dataPrecision) || notEq(oc.dataScale, sc.dataScale) || oc.dataLength != sc.dataLength
+                            val typeChanged =
+                                (oc.sourceType != sc.sourceType) || notEq(oc.dataPrecision, sc.dataPrecision) || notEq(oc.dataScale, sc.dataScale) || oc.dataLength != sc.dataLength
                             if (typeChanged) {
                                 log.warn {
                                     "RISK[COLUMN_TYPE_CHANGE] tid=${etlTable.id}, table=${etlTable.sourceDb}.${etlTable.sourceTable}, column=${sc.columnName}, srcType: ${oc.sourceType}(len=${oc.dataLength},p=${nvl(oc.dataPrecision)},s=${nvl(oc.dataScale)}) -> ${sc.sourceType}(len=${sc.dataLength},p=${nvl(sc.dataPrecision)},s=${nvl(sc.dataScale)})"
                                 }
-                                oc.setSourceType(sc.getSourceType())
-                                oc.setDataLength(sc.getDataLength())
-                                oc.setDataPrecision(sc.getDataPrecision())
-                                oc.setDataScale(sc.getDataScale())
-                                oc.setColComment(sc.getColComment())
-                                oc.setTargetType(sc.getTargetType())
-                                oc.setTargetTypeFull(sc.getTargetTypeFull())
+                                oc.sourceType = sc.sourceType
+                                oc.dataLength = sc.dataLength
+                                oc.dataPrecision = sc.dataPrecision
+                                oc.dataScale = sc.dataScale
+                                oc.colComment = sc.colComment
+                                oc.targetType = sc.targetType
+                                oc.targetTypeFull = sc.targetTypeFull
                                 etlColumnRepo.save(oc)
                                 changed = true
                             }
                             o++
                             s++
                         } else {
-                            val placeholder = DELETED_PLACEHOLDER_PREFIX + oc.getColumnName()
-                            oc.setColumnName(placeholder)
+                            val placeholder = DELETED_PLACEHOLDER_PREFIX + oc.columnName
+                            oc.columnName = placeholder
                             etlColumnRepo.save(oc)
                             changed = true
                             o++
@@ -103,9 +103,9 @@ open class ColumnService(
                     }
                     while (o < m) {
                         val oc = existingColumns[o++]
-                        if (!isDeletedPlaceholder(oc.getColumnName())) {
-                            val placeholder = DELETED_PLACEHOLDER_PREFIX + oc.getColumnName()
-                            oc.setColumnName(placeholder)
+                        if (!isDeletedPlaceholder(oc.columnName)) {
+                            val placeholder = DELETED_PLACEHOLDER_PREFIX + oc.columnName
+                            oc.columnName = placeholder
                             etlColumnRepo.save(oc)
                             changed = true
                         }
@@ -113,9 +113,7 @@ open class ColumnService(
                     var nextId = m
                     while (s < n) {
                         val sc = sourceCols[s++]
-                        val nc = EtlColumn()
-                        BeanUtils.copyProperties(sc, nc)
-                        nc.setColumnId(++nextId)
+                        val nc = sc.copy(columnId =  ++nextId)
                         etlColumnRepo.save(nc)
                         changed = true
                     }
@@ -123,10 +121,10 @@ open class ColumnService(
             }
         } catch (e: SQLException) {
             jourService.failJour(etlJour, e.message)
-            log.error(e) { "failed to update table columns for tid ${etlTable.getId()}" }
+            log.error(e) { "failed to update table columns for tid ${etlTable.id}" }
             return -1
         }
-        log.info { "table columns updated for tid ${etlTable.getId()}, changed=$changed" }
+        log.info { "table columns updated for tid ${etlTable.id}, changed=$changed" }
         jourService.successJour(etlJour)
         return if (changed) 1 else 0
     }
@@ -139,12 +137,12 @@ open class ColumnService(
     @Transactional
     fun createTableColumns(etlTable: VwEtlTableWithSource?): Boolean {
         if (etlTable == null) return false
-        log.info { "first add table columns for tid ${etlTable.getSourceDb()}.${etlTable.getSourceTable()} (${etlTable.getId()})" }
-        val etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null)
+        log.info { "first add table columns for tid ${etlTable.sourceDb}.${etlTable.sourceTable} (${etlTable.id})" }
+        val etlJour = jourService.addJour(etlTable.id, JourKind.CREATE_COLUMN, null)
         val hiveTypeMapping = dictService.getHiveTypeMapping()
-        val sql = "select * from `${etlTable.getSourceDb()}`.`${etlTable.getSourceTable()}` where 1=0"
+        val sql = "select * from `${etlTable.sourceDb}`.`${etlTable.sourceTable}` where 1=0"
         try {
-            DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass()).use { connection ->
+            DriverManager.getConnection(etlTable.url, etlTable.username, etlTable.pass).use { connection ->
                 connection.createStatement().executeQuery(sql).use { resultSet ->
                     val metaData = resultSet.metaData
                     val columnCount = metaData.columnCount
@@ -152,14 +150,14 @@ open class ColumnService(
                         val etlColumn = getEtlColumn(etlTable, i, metaData, connection, hiveTypeMapping)
                         etlColumnRepo.save(etlColumn)
                     }
-                    log.info { "table columns created for tid ${etlTable.getId()}, total $columnCount columns" }
+                    log.info { "table columns created for tid ${etlTable.id}, total $columnCount columns" }
                     jourService.successJour(etlJour)
                     return true
                 }
             }
         } catch (e: SQLException) {
             jourService.failJour(etlJour, e.message)
-            log.error(e) { "failed to create table columns for tid ${etlTable.getId()}" }
+            log.error(e) { "failed to create table columns for tid ${etlTable.id}" }
             return false
         }
     }
@@ -173,15 +171,15 @@ open class ColumnService(
         val result = mutableListOf<String>()
         val columns = getColumns(tid)
         for (col in columns) {
-            val colName = if (isDeletedPlaceholder(col.getColumnName())) {
-                col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length)
+            val colName = if (isDeletedPlaceholder(col.columnName)) {
+                col.columnName.substring(DELETED_PLACEHOLDER_PREFIX.length)
             } else {
-                col.getColumnName()
+                col.columnName
             }
-            if (col.getColComment().isEmpty()) {
-                result.add("$colName ${col.getTargetTypeFull()}")
+            if (col.colComment.isNullOrEmpty()) {
+                result.add("$colName ${col.targetTypeFull}")
             } else {
-                result.add("$colName ${col.getTargetTypeFull()} COMMENT '${nvlStr(col.getColComment())}'")
+                result.add("$colName ${col.targetTypeFull} COMMENT '${nvlStr(col.colComment)}'")
             }
         }
         return result
@@ -211,24 +209,27 @@ open class ColumnService(
             i: Int,
             metaData: ResultSetMetaData,
             connection: Connection,
-            hiveTypeMapping: Map<String?, String?>
+            hiveTypeMapping: Map<String, String>
         ): EtlColumn {
-            val etlColumn = EtlColumn()
-            etlColumn.setTid(etlTable.getId())
-            etlColumn.setColumnId(i)
-            etlColumn.setColumnName(metaData.getColumnName(i))
-            etlColumn.setSourceType(metaData.getColumnTypeName(i))
-            etlColumn.setDataLength(metaData.getColumnDisplaySize(i))
-            etlColumn.setDataPrecision(metaData.getPrecision(i))
-            etlColumn.setDataScale(metaData.getScale(i))
-            val colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), metaData.getColumnName(i))
-            etlColumn.setColComment(colComment)
+            val etlColumn = EtlColumn(
+                tid = etlTable.id,
+                columnId = i,
+                columnName = metaData.getColumnName(i),
+                sourceType = metaData.getColumnTypeName(i),
+                dataLength = metaData.getColumnDisplaySize(i),
+                dataPrecision = metaData.getPrecision(i),
+                dataScale = metaData.getScale(i),
+                targetType =  metaData.getColumnTypeName(i),
+                targetTypeFull = metaData.getColumnTypeName(i)
+            )
+            val colComment = DbUtil.getColumnComment(connection, etlTable.sourceDb, etlTable.sourceTable, metaData.getColumnName(i))
+            etlColumn.colComment = colComment
             var hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i), "string")
-            etlColumn.setTargetType(hiveType)
+            etlColumn.targetType = hiveType
             if (hiveType == "decimal") {
                 hiveType = "decimal(${metaData.getPrecision(i)},${metaData.getScale(i)})"
             }
-            etlColumn.setTargetTypeFull(hiveType)
+            etlColumn.targetTypeFull = hiveType
             return etlColumn
         }
     }

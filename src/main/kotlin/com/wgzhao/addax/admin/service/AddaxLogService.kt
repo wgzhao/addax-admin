@@ -31,6 +31,6 @@ class AddaxLogService(
     fun getLogContent(id: Long): String? =
         addaxLogRepo.findById(id).orElse(null)?.log
 
-    fun getLogEntry(tid: String?): List<AddaxLogDto> =
+    fun getLogEntry(tid: Long?): List<AddaxLogDto> =
         addaxLogRepo.findTop5ByTidOrderByRunAtDesc(tid) ?: emptyList()
 }

@@ -5,13 +5,12 @@ import com.wgzhao.addax.admin.event.SourceUpdatedEvent
 import com.wgzhao.addax.admin.model.EtlSource
 import com.wgzhao.addax.admin.repository.EtlSourceRepo
 import com.wgzhao.addax.admin.utils.DbUtil
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.sql.DriverManager
 import java.sql.SQLException
 import java.util.*
-import java.util.function.Consumer
 
 /**
  * 数据源服务类，负责数据源的增删改查及相关元数据操作。
@@ -22,15 +21,14 @@ class SourceService(
     private val collectionSchedulingService: CollectionSchedulingService,
     private val eventPublisher: ApplicationEventPublisher
 ) {
-    private val log = LoggerFactory.getLogger(SourceService::class.java)
+    private val log = KotlinLogging.logger {}
 
-    val validSources: Int
-        /**
-         * 获取有效数据源数量
-         *
-         * @return 有效数据源数量
-         */
-        get() = etlSourceRepo.countByEnabled(true)
+    /**
+     * 获取有效数据源数量
+     *
+     * @return 有效数据源数量
+     */
+    fun getValidSources(): Int = etlSourceRepo.countByEnabled(true) ?: 0
 
     /**
      * 根据ID获取数据源对象
@@ -71,23 +69,17 @@ class SourceService(
      */
     fun save(etlSource: EtlSource): EtlSource {
         // 需要和现有数据的调度时间进行对比，如果不相同，则还需要更新调度时间
-        val existing = etlSourceRepo.findById(etlSource.getId()).orElse(null)
+        val existing = etlSourceRepo.findById(etlSource.id).get()
         etlSourceRepo.save(etlSource)
-        val scheduleChanged = existing?.getStartAt() != etlSource.getStartAt()
+        val scheduleChanged = existing.startAt != etlSource.startAt
 
-        //        if (existing.getStartAt() != etlSource.getStartAt()) {
-//            // 先取消原有调度任务，再重新调度
-//            log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
-//            collectionSchedulingService.cancelTask(etlSource.getCode());
-//            collectionSchedulingService.scheduleOrUpdateTask(etlSource);
-//        }
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
-        val existPos: String = existing.getUrl() + existing.getUsername() + existing.getPass()
-        val newPos: String = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass()
+        val existPos: String = (existing.url ?: "") + (existing.username ?: "") + (existing.pass ?: "")
+        val newPos: String = (etlSource.url ?: "") + (etlSource.username ?: "") + (etlSource.pass ?: "")
         val connectionChanged = existPos != newPos
         if (scheduleChanged || connectionChanged) {
-            val sourceUpdatedEvent = SourceUpdatedEvent(this, etlSource.getId(), connectionChanged, scheduleChanged)
+            val sourceUpdatedEvent = SourceUpdatedEvent(this, etlSource.id, connectionChanged, scheduleChanged)
             eventPublisher.publishEvent(sourceUpdatedEvent)
         }
         return etlSource
@@ -100,7 +92,9 @@ class SourceService(
      */
     fun deleteById(id: Int) {
         // 删除之前，应该先取消该数据源的调度任务
-        etlSourceRepo.findById(id).ifPresent(Consumer { etlSource: EtlSource? -> collectionSchedulingService.cancelTask(etlSource.getCode()) })
+        etlSourceRepo.findById(id).ifPresent { etlSource ->
+             collectionSchedulingService.cancelTask(etlSource.code)
+        }
         etlSourceRepo.deleteById(id)
     }
 
@@ -140,16 +134,16 @@ class SourceService(
     fun getUncollectedTables(source: EtlSource, dbName: String?, existsSet: Set<String?>): MutableList<TableMetaDto?>? {
         val result: MutableList<TableMetaDto?> = ArrayList<TableMetaDto?>()
         try {
-            DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass()).use { connection ->
+            DriverManager.getConnection(source.url, source.username, source.pass).use { connection ->
                 // 按元数据读取所有表
-                val tables = connection.getMetaData().getTables(dbName, null, "%", arrayOf<String>("TABLE"))
+                val tables = connection.metaData.getTables(dbName, null, "%", arrayOf("TABLE"))
                 while (tables.next()) {
                     val tblName = tables.getString("TABLE_NAME")
                     // 已采集表跳过
                     if (existsSet.contains(tblName) || existsSet.contains(tblName.lowercase(Locale.getDefault()))) {
                         continue
                     }
-                    var remarks = Optional.ofNullable<String>(tables.getString("REMARKS")).orElse("")
+                    var remarks = tables.getString("REMARKS") ?: ""
                     // 优先使用元数据中的注释，否则回退到 commentFallback
                     if (remarks.isEmpty()) {
                         remarks = DbUtil.getTableComment(connection, dbName, tblName)
@@ -158,7 +152,7 @@ class SourceService(
                 }
             }
         } catch (e: SQLException) {
-            log.warn("Failed to get uncollected tables for source {}: {}", source.getId(), e.message)
+            log.warn(e) { "Failed to get uncollected tables for source ${source.id}: ${e.message}" }
             return null
         }
         return result

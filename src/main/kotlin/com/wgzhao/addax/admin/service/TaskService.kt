@@ -1,10 +1,8 @@
 package com.wgzhao.addax.admin.service
 
 import com.wgzhao.addax.admin.dto.TaskResultDto
-import com.wgzhao.addax.admin.dto.TaskResultDto.Companion.failure
-import com.wgzhao.addax.admin.dto.TaskResultDto.Companion.success
 import com.wgzhao.addax.admin.model.EtlTable
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 
@@ -19,16 +17,16 @@ class TaskService(
     private val jourService: EtlJourService,
     private val configService: SystemConfigService
 ) {
-    private val log = LoggerFactory.getLogger(TaskService::class.java)
+    private val log = KotlinLogging.logger {}
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
      * @param sourceId 采集源ID
      */
     fun executeTasksForSource(sourceId: Int) {
-        val tables = tableService.getRunnableTasks(sourceId)
-        tables.forEach { queueManager.getEtlQueue().offer(it) }
-        log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size)
+        val tables = tableService.getRunnableTasksBySid(sourceId)
+        tables.filterNotNull().forEach { queueManager.etlQueue.offer(it) }
+        log.info { "Executing tasks for source ${sourceId}, found ${tables.size} tables" }
     }
 
     /**
@@ -36,14 +34,8 @@ class TaskService(
      * 入口方法，负责扫描tb_imp_etl表并管理采集队列
      */
     fun executePlanStartWithQueue() {
-        //        log.info("基于队列的计划任务主控制开始执行");
-
         // 启动队列监控器（如果还未启动）
-
         queueManager.startQueueMonitor()
-
-        // 处理其他类型任务（judge等非ETL任务）
-//        processNonEtlTasks();
 
         // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
         queueManager.scanAndEnqueueEtlTasks()
@@ -54,7 +46,7 @@ class TaskService(
      */
     fun updateParams() {
         // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
-        log.info("开始执行每日参数更新和任务重置...")
+        log.info { "开始执行每日参数更新和任务重置..." }
         tableService.resetAllFlags()
         // 重载系统配置
         configService.loadConfig()
@@ -74,7 +66,7 @@ class TaskService(
                 val running = tableService.findRunningTasks()
                 if (running > 0) detailedStatus["runningInDatabase"] = running
             } catch (e: Exception) {
-                log.error("获取数据库任务状态失败", e)
+                log.error(e) { "获取数据库任务状态失败" }
             }
 
             return detailedStatus
@@ -102,12 +94,32 @@ class TaskService(
     fun resetQueue(): String = queueManager.resetQueue()
 
     // 特殊任务提醒
-    fun findAllSpecialTask(): List<EtlTable> = tableService.findAllSpecialTask()
+    fun findAllSpecialTask(): List<EtlTable?>? = tableService.findSpecialTasks()
 
     // 提交采集任务到队列
     fun submitTask(taskId: Long): TaskResultDto = queueManager.submitTask(taskId)
 
-    fun allTaskStatus(): List<Map<String, Any>?>? {
-        return queueManager.getAllTaskStatus()
+    fun getAllTaskStatus(): List<Map<String, Any>?>? {
+        val sql = """
+                select
+                id,
+                target_db || '.' ||  target_table as tbl,
+                status,
+                to_char(start_time, 'yyyy-MM-dd HH24:MM:SS') as start_time,
+                round(case when status in ('E','W') then 0 else extract(epoch from now() - t.start_time ) / b.take_secs  end ,2) as progress
+                from etl_table t
+                left join
+                (
+                select tid,
+                take_secs,
+                row_number() over (partition by tid order by start_at desc) as rn
+                from etl_statistic
+                ) b
+                on t.id = b.tid
+                where rn = 1
+                and t.status in ( 'R', 'W')
+                order by id
+                """.trimIndent()
+        return jdbcTemplate.queryForList(sql) as List<Map<String, Any>?>?
     }
 }

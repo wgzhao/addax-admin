@@ -16,17 +16,15 @@ object DbUtil {
      * 数据库类型与标识映射表。
      * key 为数据库类型关键字，value 为类型标识。
      */
-    private val KIND_MAP: MutableMap<String?, String?> = LinkedHashMap<String?, String?>()
-
-    init {
-        KIND_MAP.put("jdbc:mysql", "M")
-        KIND_MAP.put("jdbc:oracle", "O")
-        KIND_MAP.put("jdbc:sqlserver", "S")
-        KIND_MAP.put("jdbc:postgresql", "P")
-        KIND_MAP.put("jdbc:db2", "D")
-        KIND_MAP.put("jdbc:clickhouse", "C")
-        KIND_MAP.put("jdbc/chk", "C")
-    }
+    private val KIND_MAP = mapOf(
+        "jdbc:mysql" to "M",
+        "jdbc:oracle" to "O",
+        "jdbc:sqlserver" to "S",
+        "jdbc:postgresql" to "P",
+        "jdbc:db2" to "D",
+        "jdbc:clickhouse" to "C",
+        "jdbc/chk" to "C"
+    )
 
     // test jdbc is connected or not
     @JvmStatic
@@ -43,17 +41,17 @@ object DbUtil {
 
     /**
      * 根据 JDBC url 查表获取数据库类型标识。
-     * 优先匹配 KIND_MAP 中的 key，未命中则返回 "R"。
+     * 优先匹配 KIND_MAP 中的 key，未命中则返回 "M"。
      * @param jdbcUrl JDBC连接字符串
      * @return 数据库类型标识（如 M、O、S、P、D、C、R）
      */
-    fun getKind(jdbcUrl: String): String? {
+    fun getKind(jdbcUrl: String): String {
         for (entry in KIND_MAP.entries) {
-            if (jdbcUrl.startsWith(entry.key!!)) {
+            if (jdbcUrl.startsWith(entry.key, ignoreCase = true)) {
                 return entry.value
             }
         }
-        return "R"
+        return "M"
     }
 
     fun getColumnComment(conn: Connection, dbName: String?, tableName: String?, columnName: String?): String {

@@ -1,35 +1,18 @@
 package com.wgzhao.addax.admin.dto
 
+import com.fasterxml.jackson.annotation.JsonInclude
 
-class ApiResponse<T> {
-    private var code = 0
-    private var message: String? = null
-    private var data: T? = null
-
-    constructor()
-
-    constructor(code: Int, message: String?, data: T?) {
-        this.code = code
-        this.message = message
-        this.data = data
-    }
-
-    override fun toString(): String {
-        return "CommResponseDto{" +
-                "code=" + code +
-                ", message='" + message +
-                '}'
-    }
-
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ApiResponse<T>(
+    val code: Int,
+    val message: String?,
+    val data: T? = null
+) {
     companion object {
-        // 静态方法构造统一返回结果
-        fun <T> success(data: T?): ApiResponse<T?> {
-            return ApiResponse<T?>(0, "success", data)
-        }
+        fun <T> success(data: T?, message: String? = "success", code: Int = 0): ApiResponse<T> =
+            ApiResponse(code = code, message = message, data = data)
 
-        @JvmStatic
-        fun <T> error(code: Int, message: String?): ApiResponse<T?> {
-            return ApiResponse<T?>(code, message, null)
-        }
+        fun <T> error(code: Int, message: String? = "error"): ApiResponse<T> =
+            ApiResponse(code = code, message = message, data = null)
     }
 }

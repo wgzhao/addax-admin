@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -9,43 +10,25 @@ import java.time.format.DateTimeFormatter
 class SystemConfigService(
     private val dictService: DictService,
 ) {
-    private val configCache: MutableMap<String?, Any?> = HashMap<String?, Any?>()
+    private val logger = KotlinLogging.logger {}
+    private val configCache: MutableMap<String, Any?> = HashMap()
+
+    var bizDate: String = ""
+    var logPath: String = ""
+    var curDateTime: String = ""
+    var switchTime: String = ""
+    var switchTimeAsTime: LocalTime = LocalTime.MIDNIGHT
+    var hdfsPrefix: String = ""
+    var hiveCli: String = ""
 
     fun loadConfig() {
-        val curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-
-        configCache["BIZ_DATE"] = dictService.getBizDate()
-        configCache["CUR_DATETIME"] = curDateTime
-
-        configCache["LOG_PATH"] = dictService.getLogPath()
-
-        // 切日时间
-        configCache["SWITCH_TIME"] = dictService.getSwitchTime()
-
-        // hive
-        configCache["HIVE_CLI"] = dictService.getHiveCli()
-
-        configCache["HDFS_PREFIX"] = dictService.getHdfsPrefix()
+        curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+        bizDate = dictService.getBizDate()
+        logPath = dictService.getLogPath()
+        switchTime = dictService.getSwitchTime()
+        switchTimeAsTime = LocalTime.parse(switchTime)
+        hiveCli = dictService.getHiveCli()
+        hdfsPrefix = dictService.getHdfsPrefix()
+        logger.info { "System config loaded: bizDate=$bizDate, logPath=$logPath, switchTime=$switchTime, hiveCli=$hiveCli, hdfsPrefix=$hdfsPrefix" }
     }
-
-    val bizDate: String?
-        get() = configCache["BIZ_DATE"] as String?
-
-    val logPath: String?
-        get() = configCache["LOG_PATH"] as String?
-
-    val curDateTime: String?
-        get() = configCache["CUR_DATETIME"] as String?
-
-    val switchTime: String
-        get() = configCache["SWITCH_TIME"] as String
-
-    val switchTimeAsTime: LocalTime
-        get() {
-            val switchTime = this.switchTime
-            return LocalTime.parse(switchTime, DateTimeFormatter.ofPattern("HH:mm"))
-        }
-
-    val hDFSPrefix: String?
-        get() = configCache.get("HDFS_PREFIX") as String?
 }

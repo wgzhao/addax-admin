@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface EtlColumnRepo
 
     : JpaRepository<EtlColumn?, EtlColumnPk?> {
-    fun findAllByTidOrderByColumnId(tid: Long): MutableList<EtlColumn?>?
+    fun findAllByTidOrderByColumnId(tid: Long): List<EtlColumn?>?
 
     fun deleteAllByTid(tableId: Long) //    @Modifying
     //    @Transactional

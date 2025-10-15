@@ -6,7 +6,7 @@ import com.wgzhao.addax.admin.dto.ApiResponse
 import com.wgzhao.addax.admin.model.EtlStatistic
 import com.wgzhao.addax.admin.service.AddaxLogService
 import com.wgzhao.addax.admin.service.StatService
-import org.slf4j.LoggerFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
@@ -21,7 +21,7 @@ class LogController(
     private val addaxLogService: AddaxLogService,
     private val statService: StatService
 ) {
-    private val log = LoggerFactory.getLogger(LogController::class.java)
+    private val log = KotlinLogging.logger {}
 
     /**
      * 获取指定采集任务的日志列表
@@ -29,7 +29,7 @@ class LogController(
      * @return 日志列表
      */
     @GetMapping("/{tid}")
-    fun getSpLog(@PathVariable tid: String?): ApiResponse<List<AddaxLogDto?>?> =
+    fun getSpLog(@PathVariable tid: Long?): ApiResponse<List<AddaxLogDto?>?> =
         ApiResponse.success(addaxLogService.getLogEntry(tid))
 
     /**
@@ -48,7 +48,7 @@ class LogController(
      */
     @PostMapping("/job-report", consumes = ["application/json"])
     fun jobReport(@RequestBody dto: AddaxReportDto): Boolean {
-        log.info("job report: {}", dto)
+        log.info { "job report: $dto" }
         val sta = EtlStatistic().apply {
             tid = dto.jobName.toLong()
             startAt = LocalDateTime.ofEpochSecond(dto.startTimeStamp, 0, ZoneOffset.ofHours(8))

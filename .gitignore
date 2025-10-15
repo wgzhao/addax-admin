@@ -37,3 +37,4 @@ sp_alone.sh
 **/.DS_Store
 jdbc-drivers/
 .env
+/addax-admin.db

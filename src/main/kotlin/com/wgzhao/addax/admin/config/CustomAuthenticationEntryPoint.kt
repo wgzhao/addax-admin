@@ -16,13 +16,13 @@ class CustomAuthenticationEntryPoint : AuthenticationEntryPoint {
     @Throws(IOException::class, ServletException::class)
     override fun commence(request: HttpServletRequest?, response: HttpServletResponse, authException: AuthenticationException) {
         // 设置响应状态码和内容类型
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE)
+        response.status = HttpServletResponse.SC_UNAUTHORIZED
+        response.contentType = MediaType.APPLICATION_JSON_VALUE
 
         // 构建统一的错误响应
         val apiResponse = error<Any?>(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized: " + authException.message)
 
         // 写出 JSON 响应
-        response.getWriter().write(objectMapper.writeValueAsString(apiResponse))
+        response.writer.write(objectMapper.writeValueAsString(apiResponse))
     }
 }

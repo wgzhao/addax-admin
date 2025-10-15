@@ -1,19 +1,19 @@
 package com.wgzhao.addax.admin.config
 
 import com.wgzhao.addax.admin.service.SystemConfigService
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.ApplicationArguments
-import org.springframework.boot.ApplicationRunner
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 
 @Component
-class ConfigInitializer : ApplicationRunner {
-    @Autowired
-    private val systemConfigService: SystemConfigService? = null
+class ConfigInitializer(private val systemConfigService: SystemConfigService) {
 
-    @Throws(Exception::class)
-    override fun run(args: ApplicationArguments?) {
-        systemConfigService!!.loadConfig()
-        println("系统配置已加载完成")
+    private val log = KotlinLogging.logger {}
+
+    @EventListener
+    fun onApplicationReady(@Suppress("UNUSED_PARAMETER") event: ApplicationReadyEvent) {
+        systemConfigService.loadConfig()
+        log.info { "系统配置已加载完成" }
     }
 }
