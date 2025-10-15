@@ -2,6 +2,9 @@ insert into users (USERNAME, PASSWORD, ENABLED)
 values  ('user', '$2a$10$7pdkeQNqyfj/H.xSqniqDeVNCq8CnXTVNcoP0fgbzFkR53cDgF0z.', true),
         ('admin', '$2a$10$B/24QvXSICyz/qUAe9Va0OWmGKOBA./9HiJBvfHw2QDudDBsGZ43K', true);
 
+insert into authorities (username, authority)
+values ('admin', 'admin'), ('user', 'user');
+
 INSERT INTO sys_dict (code,"name",classification,remark) VALUES
 	 (1000,'系统配置项开关',NULL,'系统常用配置项开关'),
 	 (1011,'短信接收人','FR','统一配送的短信接收人信息'),
