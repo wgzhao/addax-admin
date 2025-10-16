@@ -11,8 +11,4 @@ import java.util.*
  */
 interface NotificationRepo
 
-    : JpaRepository<Notification?, String?> {
-    fun findDistinctByCreateAtAfter(td: Date?): MutableList<Notification?>?
-
-    fun findAllByImOrderByCreateAtAsc(y: String?): MutableList<Notification?>?
-}
+    : JpaRepository<Notification?, String?>

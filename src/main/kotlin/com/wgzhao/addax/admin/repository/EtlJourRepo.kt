@@ -12,15 +12,8 @@ interface EtlJourRepo
     : JpaRepository<EtlJour?, Long?> {
     fun deleteAllByTid(tableId: Long)
 
-    @Query(
-        value = """
-            select error_msg from etl_jour
-            where tid = :tableId and status = false
-            order by id desc
-            limit 1
-            """, nativeQuery = true
-    )
-    fun findLastError(tableId: Long): String?
 
-    fun findFirstByTidAndStatusIsFalse(tableId: Long): EtlJour? // 可根据需要添加自定义查询方法
+    fun findFirstByTidAndStatusIsFalse(tableId: Long): EtlJour?
+
+    fun findFirstByTidAndStatusIsFalseOrderByIdDesc(tableId: Long): EtlJour?
 }

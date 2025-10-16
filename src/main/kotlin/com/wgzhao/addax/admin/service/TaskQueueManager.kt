@@ -9,16 +9,16 @@ import com.wgzhao.addax.admin.utils.CommandExecutor
 import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.springframework.stereotype.Component
 import java.io.File
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.*
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.Volatile
 import kotlin.math.max
 
@@ -36,32 +36,23 @@ class TaskQueueManager(
     private val queueSize = 100
     private val concurrentLimit = 30
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val etlQueue = Channel<EtlTable>(queueSize)
+    private val semaphore = Semaphore(concurrentLimit)
     @Volatile
     private var queueMonitorRunning = false
-
-    val etlQueue: BlockingQueue<EtlTable> = ArrayBlockingQueue(100)
-
-    private val runningTaskCount = AtomicInteger(0)
-
-    private val queueMonitorExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "etl-queue-monitor").apply { isDaemon = true }
-    }
-    private val etlExecutor: ExecutorService = Executors.newCachedThreadPool { r ->
-        Thread(r, "etl-worker").apply { isDaemon = true }
-    }
 
     @PostConstruct
     fun init() {
         startQueueMonitor()
     }
 
-
-    fun submitTask(taskId: Long): TaskResultDto {
+    suspend fun submitTask(taskId: Long): TaskResultDto {
         val etlTable = tableService.getTable(taskId) ?: return failure("task not found", 0)
-        return if (etlQueue.offer(etlTable)) success("任务已加入队列", 0) else failure("队列已满", 0)
+        return if (etlQueue.trySend(etlTable).isSuccess) success("任务已加入队列", 0) else failure("队列已满", 0)
     }
 
-    fun scanAndEnqueueEtlTasks() {
+    suspend fun scanAndEnqueueEtlTasks() {
         try {
             val tasks = tableService.getRunnableTasks()
             if (tasks.isNullOrEmpty()) return
@@ -69,15 +60,14 @@ class TaskQueueManager(
             var enqueuedCount = 0
             var skippedCount = 0
             for (task in tasks.filterNotNull()) {
-                if (etlQueue.offer(task)) {
+                if (etlQueue.trySend(task).isSuccess) {
                     enqueuedCount++
                 } else {
                     skippedCount++
                 }
             }
             log.info {
-                "任务入队完成: 成功入队 ${enqueuedCount} 个，跳过 ${skippedCount} 个，当前队列大小: ${etlQueue.size}"
-            }
+                "任务入队完成: 成功入队 ${enqueuedCount} 个，跳过 ${skippedCount} 个，当前队列大小: ${etlQueue.capacity}" }
         } catch (e: Exception) {
             log.error(e) { "扫描和入队采集任务失败" }
             alertService.sendToWeComRobot("扫描采集任务失败: " + e.message)
@@ -87,57 +77,38 @@ class TaskQueueManager(
     fun startQueueMonitor() {
         if (!queueMonitorRunning) {
             queueMonitorRunning = true
-            queueMonitorExecutor.submit { queueMonitorLoop() }
+            scope.launch { queueMonitorLoop() }
             log.info { "采集任务队列监控器已启动，队列容量: ${queueSize}, 并发限制: ${concurrentLimit}" }
         }
     }
 
     fun getQueueStatus(): MutableMap<String, Any> = mutableMapOf(
-        "queueSize" to etlQueue.size,
+        "queueSize" to etlQueue.capacity,
         "queueCapacity" to queueSize,
-        "runningTaskCount" to runningTaskCount.get(),
         "concurrentLimit" to concurrentLimit,
         "queueMonitorRunning" to queueMonitorRunning,
         "timestamp" to LocalDateTime.now()
     )
 
-    fun resetQueue(): String {
+    suspend fun resetQueue(): String {
         val cleared = clearQueue()
         scanAndEnqueueEtlTasks()
         return "已清空队列（$cleared 项）并重新扫描"
     }
 
-    private fun queueMonitorLoop() {
+    private suspend fun queueMonitorLoop() {
         log.info { "队列监控器开始运行，并发限制: $concurrentLimit" }
-        while (queueMonitorRunning) {
-            try {
-                if (runningTaskCount.get() >= concurrentLimit) {
-                    Thread.sleep(1000)
-                    continue
-                }
-                val task = etlQueue.poll(5, TimeUnit.SECONDS) ?: continue
-                val currentRunning = runningTaskCount.incrementAndGet()
-                log.info { "从队列获取任务: ${task.id}, 当前并发数: $currentRunning/$concurrentLimit" }
-
-                etlExecutor.submit<TaskResultDto> { executeEtlTaskWithConcurrencyControl(task) }
-            } catch (_: InterruptedException) {
-                log.info { "队列监控器被中断" }
-                Thread.currentThread().interrupt()
-                break
-            } catch (e: Exception) {
-                log.error(e) { "队列监控器异常" }
-                try {
-                    Thread.sleep(5000)
-                } catch (_: InterruptedException) {
-                    Thread.currentThread().interrupt()
-                    break
+        for (task in etlQueue) {
+            semaphore.withPermit {
+                scope.launch {
+                    executeEtlTaskWithConcurrencyControl(task)
                 }
             }
         }
         log.info { "队列监控器已停止" }
     }
 
-    fun executeEtlTaskWithConcurrencyControl(task: EtlTable): TaskResultDto {
+    suspend fun executeEtlTaskWithConcurrencyControl(task: EtlTable): TaskResultDto {
         val tid: Long = task.id ?: -1L
         val startTime = System.currentTimeMillis()
         try {
@@ -161,15 +132,12 @@ class TaskQueueManager(
             }
         } catch (e: Exception) {
             val duration = (System.currentTimeMillis() - startTime) / 1000
-            log.error(e) { "采集任务 ${tid} 执行失败，耗时: ${duration}s" }
+            log.error(e) { "采集任务 $tid 执行失败，耗时: ${duration}s" }
             task.duration = duration
             tableService.setFailed(task)
             val msg = e.message ?: "内部异常"
             alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, msg))
             return failure("执行异常: $msg", duration)
-        } finally {
-            val currentRunning = runningTaskCount.decrementAndGet()
-            log.debug { "任务 ${tid} 执行结束，当前并发数: ${currentRunning}" }
         }
     }
 
@@ -194,13 +162,13 @@ class TaskQueueManager(
             if (!targetService.addPartition(taskId, targetDb, targetTable, partName, bizDate)) return false
         }
         val tempFile: File = try {
-            File.createTempFile("\${'$'}{task.targetDb}.\${'$'}{task.targetTable}_", ".json")
-                .also { Files.writeString(it.toPath(), job) }
+            File.createTempFile("${task.targetDb}.${task.targetTable}_", ".json")
+                .also { it.writeText(job) } // Kotlin 扩展函数
         } catch (e: IOException) {
             log.error(e) { "写入临时文件失败" }
             return false
         }
-        log.debug { "采集任务 ${taskId} 的Job已写入临时文件: ${tempFile.absolutePath}" }
+        log.debug { "采集任务 $taskId 的Job已写入临时文件: ${tempFile.absolutePath}" }
         val logName = String.format("addax_%s_%d.log", taskId, System.currentTimeMillis())
         val cmd = String.format(
             "%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s",
@@ -216,14 +184,16 @@ class TaskQueueManager(
 
     fun stopQueueMonitor() {
         queueMonitorRunning = false
+        scope.cancel()
+        etlQueue.close()
         log.info { "队列监控器停止信号已发送" }
     }
 
     fun getAllTaskStatus(): Map<String, Any> = getQueueStatus()
 
     fun clearQueue(): Int {
-        val size = etlQueue.size
-        etlQueue.clear()
+        val size = etlQueue.capacity
+        etlQueue.close()
         log.info { "已清空队列，清除了 $size 个任务" }
         return size
     }
@@ -232,24 +202,6 @@ class TaskQueueManager(
     fun shutdown() {
         log.info { "开始关闭采集任务队列管理器..." }
         stopQueueMonitor()
-        queueMonitorExecutor.shutdown()
-        etlExecutor.shutdown()
-        try {
-            if (!queueMonitorExecutor.awaitTermination(
-                    30,
-                    TimeUnit.SECONDS
-                )
-            ) queueMonitorExecutor.shutdownNow()
-            if (!etlExecutor.awaitTermination(
-                    30,
-                    TimeUnit.SECONDS
-                )
-            ) etlExecutor.shutdownNow()
-        } catch (_: InterruptedException) {
-            queueMonitorExecutor.shutdownNow()
-            etlExecutor.shutdownNow()
-            Thread.currentThread().interrupt()
-        }
         log.info { "采集任务队列管理器已关闭" }
     }
 
@@ -257,16 +209,16 @@ class TaskQueueManager(
         log.info { "Executing command: $command" }
         val etlJour = jourService.addJour(tid, JourKind.COLLECT, command)
         val taskResult = CommandExecutor.executeWithResult(command)
-        val path = Path.of(dictService.getAddaxHome() + "/log/" + logName)
+        val path = File(dictService.getAddaxHome() + "/log/" + logName)
         try {
-            addaxLogService.insertLog(tid, Files.readString(path))
+            addaxLogService.insertLog(tid, path.readText()) // Kotlin 扩展函数
         } catch (e: IOException) {
             log.warn(e) { "Failed to get the addax log content from  ${path}" }
         }
         etlJour.duration = taskResult.durationSeconds
         etlJour.status = taskResult.success
         if (!taskResult.success) {
-            log.error { "Addax 采集任务 ${tid} 执行失败，退出码: ${taskResult.message}" }
+            log.error { "Addax 采集任务 $tid 执行失败，退出码: ${taskResult.message}" }
             etlJour.status = false
             etlJour.errorMsg = taskResult.message
         }

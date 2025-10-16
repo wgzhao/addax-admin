@@ -29,7 +29,7 @@ class MonitorController(
      */
     @GetMapping("/accomplish")
     fun last2DaysCompleteList(): ResponseEntity<List<Map<String, Any>>> =
-        ResponseEntity.ok(statService.last2DaysCompleteList)
+        ResponseEntity.ok(statService.last2DaysCompleteList())
 
     /**
      * 获取特殊任务提醒列表

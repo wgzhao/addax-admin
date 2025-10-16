@@ -10,6 +10,4 @@ interface EtlColumnRepo
     fun findAllByTidOrderByColumnId(tid: Long): List<EtlColumn?>?
 
     fun deleteAllByTid(tableId: Long) //    @Modifying
-    //    @Transactional
-    //    int updateColumnNameByTidAndColumnId(Long tid, int columnId, String placeholder);
 }

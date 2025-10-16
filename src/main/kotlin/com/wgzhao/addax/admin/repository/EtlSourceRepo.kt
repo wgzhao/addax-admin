@@ -9,9 +9,6 @@ interface EtlSourceRepo
 
     : JpaRepository<EtlSource?, Int?> {
     fun countByEnabled(b: Boolean): Int?
-
-    fun findAllByEnabled(b: Boolean): MutableList<EtlSource?>?
-
     fun existsByCode(code: String?): Boolean
     fun findByEnabled(bool: Boolean): MutableList<EtlSource>?
 

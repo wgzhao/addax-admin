@@ -10,9 +10,5 @@ interface AddaxLogRepo : JpaRepository<AddaxLog?, Long?> {
 
     fun findTop5ByTidOrderByRunDateDesc(tid: Long?): List<AddaxLog?>?
 
-    fun findTop5ByTidAndRunDateGreaterThanOrderByIdDesc(tid: Long?, runDate: LocalDate?): List<AddaxLog?>?
-
-    fun findByTidAndRunDate(tid: Long?, runDate: LocalDate?): AddaxLog?
-
     fun findTop5ByTidOrderByRunAtDesc(tid: Long?): List<AddaxLogDto>?
 }

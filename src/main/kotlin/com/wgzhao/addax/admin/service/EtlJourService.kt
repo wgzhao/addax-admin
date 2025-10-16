@@ -72,7 +72,7 @@ open class EtlJourService(private val etlJourRepo: EtlJourRepo) {
      * @return 错误信息
      */
     fun findLastErrorByTableId(tableId: Long): String? {
-        return etlJourRepo.findLastError(tableId)
+        return etlJourRepo.findFirstByTidAndStatusIsFalseOrderByIdDesc(tableId)?.errorMsg
     }
 
     fun getErrorKindByTid(tableId: Long): String? {

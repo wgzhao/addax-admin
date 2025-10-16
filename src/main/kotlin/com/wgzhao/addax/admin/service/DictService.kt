@@ -66,7 +66,10 @@ class DictService(
         } else {
             LocalDate.now().format(sdf)
         }
-        return sysItemRepo.findLastBizDateList(curDate) ?: curDate
+        sysItemRepo.findFirstByDictCodeAndItemKeyOrderByItemKeyDesc(1021, curDate)?.let {
+            return it.itemValue
+        }
+        return curDate
     }
 
     /**

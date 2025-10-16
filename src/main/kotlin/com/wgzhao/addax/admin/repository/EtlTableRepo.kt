@@ -60,7 +60,7 @@ interface EtlTableRepo
     )
     fun findRunnableTasks(switchTime: LocalTime?, currentTime: LocalTime?, checkTime: Boolean): MutableList<EtlTable?>?
 
-    @Query("SELECT t FROM EtlTable t JOIN EtlSource s WHERE t.status <> 'X' AND s.enabled = true")
+    @Query("SELECT t FROM EtlTable t JOIN EtlSource s WHERE t.status NOT IN ('X','U') AND s.enabled = true")
     fun findValidTables(): MutableList<EtlTable?>?
 
     fun countBySid(sid: Int): Int

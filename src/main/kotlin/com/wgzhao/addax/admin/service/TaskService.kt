@@ -105,8 +105,8 @@ class TaskService(
                 id,
                 target_db || '.' ||  target_table as tbl,
                 status,
-                to_char(start_time, 'yyyy-MM-dd HH24:MM:SS') as start_time,
-                round(case when status in ('E','W') then 0 else extract(epoch from now() - t.start_time ) / b.take_secs  end ,2) as progress
+                strftime('%Y-%m-%d %H:%M:%S', start_time) as start_time,
+                round(case when status in ('E','W') then 0 else (strftime('%s','now') - strftime('%s', t.start_time)) / b.take_secs end, 2) as progress
                 from etl_table t
                 left join
                 (

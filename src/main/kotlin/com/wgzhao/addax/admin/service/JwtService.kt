@@ -32,10 +32,7 @@ class JwtService {
      * @return 声明值
     </T> */
     fun <T> extractClaim(token: String?, claimsResolver: Function<Claims?, T?>): T? {
-        val claims = extractAllClaims(token)
-        if (claims == null) {
-            return null
-        }
+        val claims = extractAllClaims(token) ?: return null
         return claimsResolver.apply(claims)
     }
 
@@ -104,7 +101,7 @@ class JwtService {
      */
     fun validateToken(token: String?, userDetails: UserDetails): Boolean {
         val username = extractUsername(token)
-        return (username != null && username == userDetails.getUsername() && !isTokenExpired(token))
+        return (username != null && username == userDetails.username && !isTokenExpired(token))
     }
 
     /**
@@ -113,7 +110,7 @@ class JwtService {
      * @return 用户名
      */
     fun extractUsername(token: String?): String? {
-        return extractClaim<String?>(token, Function { obj: Claims? -> obj!!.getSubject() })
+        return extractClaim<String?>(token, Function { obj: Claims? -> obj!!.subject })
     }
 
     /**
@@ -122,7 +119,7 @@ class JwtService {
      * @return 过期时间
      */
     private fun extractExpiration(token: String?): Date? {
-        return extractClaim<Date?>(token, Function { obj: Claims? -> obj!!.getExpiration() })
+        return extractClaim<Date?>(token, Function { obj: Claims? -> obj!!.expiration })
     }
 
     /**
