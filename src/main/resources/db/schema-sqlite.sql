@@ -2,8 +2,7 @@
 -- This file contains the table structures for SQLite database
 
 -- Enable foreign keys
-PRAGMA
-foreign_keys = ON;
+PRAGMA foreign_keys = ON;
 
 -- Table: addax_log
 CREATE TABLE addax_log

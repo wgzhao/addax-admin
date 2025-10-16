@@ -125,7 +125,7 @@ open class TableService(
 
     /**
      * 根据状态获取视图表信息
-     * @param page 页��
+     * @param page 页码
      * @param pageSize 每页大小
      * @param q 查询关键字
      * @param status 表状态
@@ -236,7 +236,7 @@ open class TableService(
 
     /**
      * 获取所有可运行的任务
-     * @return 可运行的��务列表
+     * @return 可运行的任务列表
      */
     fun getRunnableTasks(): List<EtlTable?>? {
         // 找到所有可以运行的任务
@@ -300,7 +300,7 @@ open class TableService(
     }
 
     /**
-     * 获取指定数据源和���下的所有表
+     * 获取指定数据源和库下的所有表
      */
     fun getTablesBySidAndDb(sid: Int, db: String?): List<String>? {
         return vwEtlTableWithSourceRepo.findBySidAndSourceDb(sid, db)

@@ -54,7 +54,7 @@ object CommandExecutor {
                 return success("SUCCESS", (System.currentTimeMillis() - startAt) / 1000)
             }
         } catch (e: IOException) {
-            log.error { "execute command ${command }failed: ${e}"}
+            log.error { "execute command ${command} failed: ${e}"}
             return failure(e.message!!, (System.currentTimeMillis() - startAt) / 1000)
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()

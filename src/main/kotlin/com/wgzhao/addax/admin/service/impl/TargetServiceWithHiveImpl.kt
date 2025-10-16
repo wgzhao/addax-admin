@@ -30,7 +30,7 @@ class TargetServiceWithHiveImpl(
 
 
     @Value("\${spring.datasource.hive.url}")
-    lateinit var  url: String
+    lateinit var url: String
 
     @Value("\${spring.datasource.hive.username}")
     private val username: String? = null
