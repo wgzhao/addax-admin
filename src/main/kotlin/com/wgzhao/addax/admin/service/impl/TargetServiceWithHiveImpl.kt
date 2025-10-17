@@ -20,7 +20,6 @@ import kotlin.concurrent.Volatile
 
 @Service
 class TargetServiceWithHiveImpl(
-    private val dictService: DictService,
     private val columnService: ColumnService,
     private val jourService: EtlJourService,
     private val configService: SystemConfigService,
@@ -29,25 +28,19 @@ class TargetServiceWithHiveImpl(
     private val logger = KotlinLogging.logger {}
 
 
-    @Value("\${spring.datasource.hive.url}")
-    lateinit var url: String
-
-    @Value("\${spring.datasource.hive.username}")
-    private val username: String? = null
-
-    @Value("\${spring.datasource.hive.password}")
-    private val password: String? = null
-
-    @Value("\${spring.datasource.hive.driver-class-name}")
-    private val driverClassName: String? = null
-
-    @Value("\${spring.datasource.hive.jar-path}")
-    lateinit var driverPath: String
-
     @Volatile
     private var hiveDataSource: DataSource? = null
 
     private fun getHiveDataSource(): Connection {
+        configService.hiveServer2 ?: throw RuntimeException("Hive Server2 configuration is missing")
+        val hiveConfig = configService.hiveServer2!!
+        hiveConfig["driverPath"] ?: throw RuntimeException("Hive driver path is not configured")
+        val driverPath = hiveConfig["driverPath"]!!
+        val url = hiveConfig["url"] ?: throw RuntimeException("Hive JDBC URL is not configured")
+        val username = hiveConfig["username"] ?: ""
+        val password = hiveConfig["password"] ?: ""
+        val driverClassName = hiveConfig["driverClassName"] ?: "org.apache.hive.jdbc.HiveDriver"
+
         if (hiveDataSource == null) {
             synchronized(this) {
                 if (hiveDataSource == null) {

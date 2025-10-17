@@ -20,6 +20,7 @@ class SystemConfigService(
     var switchTimeAsTime: LocalTime = LocalTime.MIDNIGHT
     var hdfsPrefix: String = ""
     var hiveCli: String = ""
+    var hiveServer2: Map<String, String>? = HashMap()
 
     fun loadConfig() {
         curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
@@ -28,6 +29,7 @@ class SystemConfigService(
         switchTime = dictService.getSwitchTime()
         switchTimeAsTime = LocalTime.parse(switchTime)
         hiveCli = dictService.getHiveCli()
+        hiveServer2 = dictService.getHiveServer2()
         hdfsPrefix = dictService.getHdfsPrefix()
         logger.info { "System config loaded: bizDate=$bizDate, logPath=$logPath, switchTime=$switchTime, hiveCli=$hiveCli, hdfsPrefix=$hdfsPrefix" }
     }

@@ -123,7 +123,7 @@ class SourceController(
     @PostMapping("/test-connect")
     fun testConnect(@RequestBody payload: DbConnectDto): ResponseEntity<String?> {
         val result = testConnection(payload.url, payload.username, payload.password)
-        return if (result.first) ResponseEntity.ok(null) else ResponseEntity.badRequest().body(result.second)
+        return if (result.first) ResponseEntity.ok(result.second) else ResponseEntity.badRequest().body(result.second)
     }
 
     /**

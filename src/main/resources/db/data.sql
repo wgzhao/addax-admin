@@ -7,7 +7,7 @@ values  ('user', '$2a$10$gm.ZqCx7hqDqSaexYimU4.PxGpDcXjSLOiwyYeMz4AzmIydVciUmK',
 insert into authorities (username, authority)
 values ('admin', 'admin'), ('user', 'user');
 
-INSERT INTO sys_dict (code,"name",classification,remark) VALUES
+INSERT INTO sys_dict (code,name,classification,remark) VALUES
 	 (1000,'系统配置项开关',NULL,'系统常用配置项开关'),
 	 (1011,'短信接收人','FR','统一配送的短信接收人信息'),
 	 (1021,'交易日表','FR','自动从柜台取最新的交易日表信息'),
@@ -503,19 +503,62 @@ INSERT INTO sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wS'
 }', '2024-13-30');
 
 
-CREATE OR REPLACE FUNCTION insert_dates_for_year(p_year INTEGER, p_dict_code INTEGER DEFAULT 1021)
-RETURNS VOID AS $$
-DECLARE
-    v_date DATE;
-BEGIN
-    FOR v_date IN
-        SELECt DISTINCT to_char(date_trunc('day', generate_series(p_year || '-01-01'::date, p_year || '-12-31'::date, '1 day')), 'YYYYmmdd')
-        -- SELECT DISTINCT date_trunc('day', generate_series('2025-01-01'::date, '2025-12-31'::date, '1 day'))
-    LOOP
-        INSERT INTO sys_item (dict_code, item_key, item_value, remark)
-        VALUES (p_dict_code, v_date, v_date, NOW());
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql;
+DELIMITER //
 
-insert_dates_for_year(extract(year from now()), 1021);
+CREATE PROCEDURE insert_dates_for_year(
+    IN p_year INT,
+    IN p_dict_code INT
+)
+BEGIN
+    DECLARE v_start_date DATE;
+    DECLARE v_end_date DATE;
+    DECLARE v_current_date DATE;
+    DECLARE v_done INT DEFAULT FALSE;
+
+    -- 游标和变量声明
+    DECLARE cur_date CURSOR FOR
+        SELECT DATE_ADD(v_start_date, INTERVAL seq DAY)
+        FROM (
+            SELECT 0 AS seq UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION
+            SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION
+            SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION
+            SELECT 12 UNION SELECT 13 UNION SELECT 14 UNION SELECT 15 UNION
+            SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 UNION
+            SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION
+            SELECT 24 UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION
+            SELECT 28 UNION SELECT 29 UNION SELECT 30 UNION SELECT 31
+        ) AS numbers
+        WHERE DATE_ADD(v_start_date, INTERVAL seq DAY) <= v_end_date;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
+
+    -- 初始化日期范围
+    SET v_start_date = CONCAT(p_year, '-01-01');
+    SET v_end_date = CONCAT(p_year, '-12-31');
+
+    -- 打开游标
+    OPEN cur_date;
+
+    read_loop: LOOP
+        FETCH cur_date INTO v_current_date;
+        IF v_done THEN
+            LEAVE read_loop;
+        END IF;
+
+        -- 插入数据（使用 DATE_FORMAT 格式化为 YYYYMMDD 格式）
+        INSERT INTO sys_item (dict_code, item_key, item_value, remark)
+        VALUES (
+            p_dict_code,
+            DATE_FORMAT(v_current_date, '%Y%m%d'),
+            v_current_date,
+            NOW()
+        );
+    END LOOP;
+
+    -- 关闭游标
+    CLOSE cur_date;
+END //
+
+DELIMITER ;
+
+call insert_dates_for_year(extract(year from now()), 1021);

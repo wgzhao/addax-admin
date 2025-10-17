@@ -23,7 +23,7 @@ class StatService(
             left join vw_etl_table_with_source b on b.id = t.tid
             group by b.code
         """.trimIndent()
-    ) as List<Map<String, Any>>
+    )
 
     // 最近一次采集的总数据量，单位 GB
     fun statTotalData(): Double = jdbcTemplate.queryForObject(
@@ -48,7 +48,7 @@ class StatService(
             group by month
             order by month
         """.trimIndent()
-    ) as List<Map<String, Any>>
+    )
 
     // 按采集来源统计最近一次采集的耗时
     fun statTimeBySource(): List<Map<String, Any>> = jdbcTemplate.queryForList(
@@ -57,7 +57,7 @@ class StatService(
             from vw_etl_table_with_source
             group by code
         """.trimIndent()
-    ) as List<Map<String, Any>>
+    )
 
     // 按照采集来源统计最近 5 天的耗时，用来形成柱状图表
     fun statLast5DaysTimeBySource(): List<Map<String, Any>> =
@@ -80,7 +80,7 @@ class StatService(
                 GROUP BY code
               ) AS final;
         """.trimIndent()
-    ) as List<Map<String, Any>>
+    )
 
     // 最近采集的完成率
     fun statLastAccompRatio(): List<Map<String, Any>> = jdbcTemplate.queryForList(

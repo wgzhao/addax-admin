@@ -18,7 +18,6 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.scheduling.annotation.Async
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -171,7 +170,6 @@ class TableController(
      */
     @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
-    @Async
     fun refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") mode: String?): ResponseEntity<Void?> {
         tableService.refreshAllTableResources();
         return ResponseEntity.accepted().build<Void?>()

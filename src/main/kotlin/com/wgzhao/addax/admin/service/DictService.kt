@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.service
 
+import cn.hutool.json.JSONObject
+import cn.hutool.json.JSONUtil
 import com.wgzhao.addax.admin.model.SysDict
 import com.wgzhao.addax.admin.model.SysItem
 import com.wgzhao.addax.admin.model.SysItemPK
@@ -76,11 +78,17 @@ class DictService(
      * 获取 Hive CLI 命令
      * @return Hive CLI 命令字符串
      */
-    fun gethiveCli(): String = getItemValue(1000, "HIVE_CLI") ?: "hive"
+    fun getHiveCli(): String = getItemValue(1000, "HIVE_CLI") ?: "hive"
 
-    /** 更标准的命名，保留以兼容旧调用 */
-    fun getHiveCli(): String = gethiveCli()
-
+    /**
+     * 获取 HiveServer2 连接配置
+     * @return HiveServer2 连接配置键值对
+     */
+    fun getHiveServer2(): Map<String, String>? {
+        return getItemValue(1000, "HIVE_SERVER2")?.let { it ->
+            JSONUtil.parseObj(it).associate { it.key to it.value.toString() }
+        }
+    }
     /**
      * 获取 Addax 安装路径
      * @return Addax 路径
@@ -192,7 +200,7 @@ class DictService(
 
     fun getHiveTypeMapping(): Map<String, String> {
         return sysItemRepo.findByDictCode(2011)
-            .associate { it.itemKey to (it.itemValue ?: "") }
+            .associate { it.itemKey to it.itemValue }
     }
 
     fun getReaderTemplate(kind: String): String {

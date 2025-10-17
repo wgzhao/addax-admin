@@ -27,11 +27,10 @@ object DbUtil {
     )
 
     // test jdbc is connected or not
-    @JvmStatic
     fun testConnection(url: String, username: String?, password: String?): Pair<Boolean, String?> {
         try {
             DriverManager.getConnection(url, username, password).use { ignore ->
-                return Pair(true, null)
+                return Pair(true, "success")
             }
         } catch (e: SQLException) {
             log.error(e) { "Failed to connect database" }

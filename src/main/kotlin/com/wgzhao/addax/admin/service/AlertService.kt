@@ -19,10 +19,8 @@ class AlertService(private val restTemplate: RestTemplate) {
 
     private val log = KotlinLogging.logger {}
 
-    @Value("\${alert.wechat.url}")
-    private val webchatUrl: String? = null
+    private val webchatUrl: String = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send"
 
-    @Value("\${alert.wechat.key}")
     private val wechatKey: String? = null
 
     /**
@@ -33,7 +31,7 @@ class AlertService(private val restTemplate: RestTemplate) {
             log.warn { "企业微信机器人Key未配置，跳过发送消息" }
             return
         }
-        if (webchatUrl == null || webchatUrl.isEmpty()) {
+        if (webchatUrl.isEmpty()) {
             log.warn { "企业微信机器人URL未配置，跳过发送消息" }
             return
         }

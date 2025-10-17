@@ -47,7 +47,7 @@ class TaskQueueManager(
         startQueueMonitor()
     }
 
-    suspend fun submitTask(taskId: Long): TaskResultDto {
+    fun submitTask(taskId: Long): TaskResultDto {
         val etlTable = tableService.getTable(taskId) ?: return failure("task not found", 0)
         return if (etlQueue.trySend(etlTable).isSuccess) success("任务已加入队列", 0) else failure("队列已满", 0)
     }
@@ -108,7 +108,7 @@ class TaskQueueManager(
         log.info { "队列监控器已停止" }
     }
 
-    suspend fun executeEtlTaskWithConcurrencyControl(task: EtlTable): TaskResultDto {
+    fun executeEtlTaskWithConcurrencyControl(task: EtlTable): TaskResultDto {
         val tid: Long = task.id ?: -1L
         val startTime = System.currentTimeMillis()
         try {

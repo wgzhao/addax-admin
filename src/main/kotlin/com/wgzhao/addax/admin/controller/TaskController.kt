@@ -69,17 +69,17 @@ class TaskController(
     /**
      * 执行采集任务
      * @param taskId 任务ID
-     * @param isSync 是否同步执行，默认 false
+     * @param type 执行模式，sync, async. 默认 sync
      * @return 任务执行结果
      */
     @Operation(summary = "执行采集任务", description = "根据任务ID立即执行单个采集任务")
     @PostMapping("/{taskId}/executions")
-    suspend fun executeTask(
+    fun executeTask(
         @PathVariable("taskId") taskId: Long,
-        @RequestParam(name = "isSync", required = false, defaultValue = "false") isSync: Boolean
+        @RequestParam(name = "type", required = false, defaultValue = "sync") type: String
     ): ResponseEntity<TaskResultDto?> {
         val result: TaskResultDto?
-        if (isSync) {
+        if (type == "sync") {
             val etlTable = tableService.getTable(taskId) ?: throw ApiException(400, "taskId 对应的采集任务不存在")
             result = queueManager.executeEtlTaskWithConcurrencyControl(etlTable)
         } else {
