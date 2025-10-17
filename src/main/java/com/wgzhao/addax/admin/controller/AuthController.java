@@ -36,9 +36,9 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ApiResponse<String> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO){
-        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.getUsername(), authRequestDTO.getPassword()));
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password()));
         if(authentication.isAuthenticated()){
-            return ApiResponse.success(jwtService.generateToken(authRequestDTO.getUsername()));
+            return ApiResponse.success(jwtService.generateToken(authRequestDTO.username()));
         } else {
             return ApiResponse.error(401, "failed to authenticate user");
         }

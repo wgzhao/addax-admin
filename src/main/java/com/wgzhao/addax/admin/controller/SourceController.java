@@ -4,7 +4,6 @@ import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlSource;
-import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -166,7 +165,7 @@ public class SourceController
     @PostMapping("/test-connect")
     public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload)
     {
-        boolean isConnected = DbUtil.testConnection(payload.getUrl(), payload.getUsername(), payload.getPassword());
+        boolean isConnected = DbUtil.testConnection(payload.url(), payload.username(), payload.password());
         return ResponseEntity.ok(isConnected);
     }
 

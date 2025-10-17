@@ -160,7 +160,7 @@ public class TaskController
         TaskResultDto result;
         for (Long tid : tids) {
             result = taskService.submitTask(tid);
-            if (result.isSuccess()) {
+            if (result.success()) {
                 successCount++;
             }
             else {

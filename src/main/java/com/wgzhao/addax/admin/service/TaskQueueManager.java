@@ -420,15 +420,15 @@ public class TaskQueueManager
         catch (IOException e) {
             log.warn("Failed to get the addax log content: {}", path);
         }
-        etlJour.setDuration(taskResult.getDurationSeconds());
+        etlJour.setDuration(taskResult.durationSeconds());
         etlJour.setStatus(true);
-        if (!taskResult.isSuccess()) {
-            log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.getMessage());
+        if (!taskResult.success()) {
+            log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.message());
             etlJour.setStatus(false);
-            etlJour.setErrorMsg(taskResult.getMessage());
+            etlJour.setErrorMsg(taskResult.message());
         }
         jourService.saveJour(etlJour);
-        return taskResult.isSuccess();
+        return taskResult.success();
     }
 
     /**

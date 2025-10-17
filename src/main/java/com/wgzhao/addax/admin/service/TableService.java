@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -8,8 +7,8 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,15 +29,16 @@ import static java.lang.Math.max;
  */
 @Service
 @Slf4j
+@AllArgsConstructor
 public class TableService
 {
-    @Autowired private EtlTableRepo etlTableRepo;
-    @Autowired private ColumnService columnService;
-    @Autowired private JobContentService jobContentService;
-    @Autowired private DictService dictService;
-    @Autowired private EtlJourService jourService;
-    @Autowired private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
-    @Autowired private TargetService targetService;
+    private final EtlTableRepo etlTableRepo;
+    private final ColumnService columnService;
+    private final JobContentService jobContentService;
+    private final DictService dictService;
+    private final EtlJourService jourService;
+    private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
+    private final TargetService targetService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -85,7 +85,7 @@ public class TableService
 
         // 2. 更新任务文件
         TaskResultDto result = jobContentService.updateJob(vwTable);
-        if (result.isSuccess()) {
+        if (result.success()) {
             setStatus(table, TableStatus.NOT_COLLECT);
             return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }

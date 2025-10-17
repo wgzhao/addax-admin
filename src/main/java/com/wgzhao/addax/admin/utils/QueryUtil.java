@@ -16,9 +16,9 @@ public class QueryUtil
      */
     public static Sort generateSort(SortBy sortBy) {
         Sort sort = Sort.unsorted();
-        if (sortBy != null && sortBy.getKey() != null && !sortBy.getKey().isEmpty()) {
-            String sortOrder = sortBy.getOrder();
-            String sortField = sortBy.getKey();
+        if (sortBy != null && sortBy.key() != null && !sortBy.key().isEmpty()) {
+            String sortOrder = sortBy.order();
+            String sortField = sortBy.key();
             if ("asc".equalsIgnoreCase(sortOrder)) {
                 sort = Sort.by(Sort.Direction.ASC, sortField);
             } else if ("desc".equalsIgnoreCase(sortOrder)) {

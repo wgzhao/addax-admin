@@ -213,7 +213,7 @@ public class TableController
             return ResponseEntity.status(400).body(TaskResultDto.failure("tableId 对应的采集表不存在", 0));
         }
         TaskResultDto taskResultDto = tableService.refreshTableResources(tableId);
-        if (taskResultDto.isSuccess()) {
+        if (taskResultDto.success()) {
             return ResponseEntity.ok(taskResultDto);
         }
         else {

@@ -57,7 +57,7 @@ public class TargetServiceWithHiveImpl
         if (hiveDataSource == null) {
             synchronized (this) {
                 if (hiveDataSource == null) {
-                    log.info("try to load hive jdbc driver from {}", hiveConnectDto.getDriverPath());
+                    log.info("try to load hive jdbc driver from {}", hiveConnectDto.driverPath());
                     hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
                     try {
                         return hiveDataSource.getConnection();
@@ -80,7 +80,7 @@ public class TargetServiceWithHiveImpl
     public DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
     {
         try {
-            File hiveJarFile = new File(hiveConnectDto.getDriverPath());
+            File hiveJarFile = new File(hiveConnectDto.driverPath());
             URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
             // 创建独立的类加载器
             URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
@@ -89,10 +89,10 @@ public class TargetServiceWithHiveImpl
             Thread.currentThread().setContextClassLoader(classLoader);
 
             BasicDataSource dataSource = new BasicDataSource();
-            dataSource.setUrl(hiveConnectDto.getUrl());
-            dataSource.setUsername(hiveConnectDto.getUsername());
-            dataSource.setPassword(hiveConnectDto.getPassword());
-            dataSource.setDriverClassName(hiveConnectDto.getDriverClassName());
+            dataSource.setUrl(hiveConnectDto.url());
+            dataSource.setUsername(hiveConnectDto.username());
+            dataSource.setPassword(hiveConnectDto.password());
+            dataSource.setDriverClassName(hiveConnectDto.driverClassName());
             return dataSource;
         }
         catch (Exception e) {
