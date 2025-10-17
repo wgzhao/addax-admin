@@ -1,0 +1,53 @@
+package com.wgzhao.addax.admin.repository
+
+import com.wgzhao.addax.admin.model.EtlStatistic
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import java.time.LocalDate
+import java.util.*
+
+interface EtlStatisticRepo
+
+    : JpaRepository<EtlStatistic?, Long?> {
+    fun findByTidAndRunDate(tid: Long, runDate: LocalDate?): EtlStatistic?
+
+    @Query(
+        value = """
+            SELECT s1 FROM EtlStatistic s1
+            WHERE s1.totalErrors > 0
+            AND s1.runDate = (
+                SELECT MAX(s2.runDate)
+                FROM EtlStatistic s2
+                WHERE s2.tid = s1.tid
+            )
+            """
+    )
+    fun findErrorTask(): List<EtlStatistic?>?
+
+    @Query(
+        value = """
+            SELECT
+                run_date,
+                GROUP_CONCAT(code) AS sources,
+                GROUP_CONCAT(total_secs) AS total_secs
+            FROM (
+                SELECT
+                    b.code,
+                    t.run_date,
+                    SUM(t.take_secs) AS total_secs
+                FROM
+                    etl_statistic t
+                    LEFT JOIN vw_etl_table_with_source b ON t.tid = b.id
+                WHERE
+                    t.run_date > date('now', '-5 days')
+                GROUP BY
+                    b.code, t.run_date
+            ) sub
+            GROUP BY
+                run_date
+            """, nativeQuery = true
+    )
+    fun findLast5DaysTakeTimes(): MutableList<MutableMap<String, Any>?>?
+
+    fun findTop15ByTidOrderByRunDateDesc(tid: Long): MutableList<EtlStatistic?>?
+}
