@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.HiveConnectDto;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
@@ -11,10 +13,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@AllArgsConstructor
 public class SystemConfigService
 {
-    @Autowired
-    private DictService dictService;
+    private final DictService dictService;
 
     private final Map<String, Object> configCache = new HashMap<>();
 
@@ -34,6 +36,11 @@ public class SystemConfigService
         configCache.put("HIVE_CLI", dictService.getHiveCli());
 
         configCache.put("HDFS_PREFIX", dictService.getHdfsPrefix());
+
+        configCache.put("HIVE_SERVER2", dictService.getHiveServer2());
+
+        configCache.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
+        configCache.put("QUEUE_SIZE", dictService.getQueueSize());
     }
 
     public String getBizDate()
@@ -64,6 +71,20 @@ public class SystemConfigService
     public String getHDFSPrefix()
     {
         return (String) configCache.get("HDFS_PREFIX");
+
+    }
+
+    public HiveConnectDto getHiveServer2() {
+        return configCache.get("HIVE_SERVER2");
+    }
+
+    public int getConcurrentLimit()
+    {
+        return (Integer) configCache.get("CONCURRENT_LIMIT");
+    }
+    public int getQueueSize()
+    {
+        return (Integer) configCache.get("QUEUE_SIZE");
     }
 
 }

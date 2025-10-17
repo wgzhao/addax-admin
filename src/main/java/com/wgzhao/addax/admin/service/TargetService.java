@@ -1,7 +1,10 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import org.springframework.stereotype.Service;
+
+import java.sql.Connection;
 
 /**
  * 采集任务目标管理服务。
@@ -32,4 +35,6 @@ public interface TargetService
      * @return 是否创建/更新成功
      */
     boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable);
+
+    Connection getHiveDataSource();
 }

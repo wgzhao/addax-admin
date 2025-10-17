@@ -1,16 +1,14 @@
 package com.wgzhao.addax.admin.service.impl;
 
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
-import com.wgzhao.addax.admin.service.ColumnService;
-import com.wgzhao.addax.admin.service.DictService;
-import com.wgzhao.addax.admin.service.EtlJourService;
-import com.wgzhao.addax.admin.service.TargetService;
+import com.wgzhao.addax.admin.service.*;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -23,6 +21,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.text.MessageFormat;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -39,45 +38,40 @@ public class TargetServiceWithHiveImpl
     @Autowired
     private EtlJourService jourService;
 
-    @Value("${spring.datasource.hive.url}")
-    private String url;
-
-    @Value("${spring.datasource.hive.username}")
-    private String username;
-
-    @Value("${spring.datasource.hive.password}")
-    private String password;
-
-    @Value("${spring.datasource.hive.driver-class-name}")
-    private String driverClassName;
-
-    @Value("${spring.datasource.hive.jar-path}")
-    private String driverPath;
-
-//    private DataSource hiveDataSource;
+    @Autowired
+    private SystemConfigService configService;
 
     private volatile DataSource hiveDataSource;
 
-    private Connection getHiveDataSource()
+    private  HiveConnectDto hiveConnectDto;
+    @PostConstruct
+    public void init()
+    {
+        log.info("Initialize Hive Target Service");
+        this.hiveConnectDto = configService.getHiveServer2();
+    }
+
+    @Override
+    public Connection getHiveDataSource()
     {
         if (hiveDataSource == null) {
             synchronized (this) {
                 if (hiveDataSource == null) {
                     try {
-                        log.info("try to load hive jdbc driver from {}", driverPath);
-                        File hiveJarFile = new File(driverPath);
+                        log.info("try to load hive jdbc driver from {}", hiveConnectDto.getDriverPath());
+                        File hiveJarFile = new File(hiveConnectDto.getDriverPath());
                         URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
                         // 创建独立的类加载器
                         URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
 
-                        // 设置 Hive JDBC 驱动的类加载器
+                        // Set the context class loader
                         Thread.currentThread().setContextClassLoader(classLoader);
 
                         BasicDataSource dataSource = new BasicDataSource();
-                        dataSource.setUrl(url);
-                        dataSource.setUsername(username);
-                        dataSource.setPassword(password);
-                        dataSource.setDriverClassName(driverClassName);
+                        dataSource.setUrl(hiveConnectDto.getUrl());
+                        dataSource.setUsername(hiveConnectDto.getUsername());
+                        dataSource.setPassword(hiveConnectDto.getPassword());
+                        dataSource.setDriverClassName(hiveConnectDto.getDriverClassName());
 
                         hiveDataSource = dataSource;
                     }

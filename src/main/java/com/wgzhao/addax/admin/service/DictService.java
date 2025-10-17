@@ -1,15 +1,20 @@
 package com.wgzhao.addax.admin.service;
 
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
+import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -290,5 +295,23 @@ public class DictService
      */
     public boolean existsItem(int dictCode, String itemKey) {
         return sysItemRepo.existsById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
+    }
+
+    public HiveConnectDto getHiveServer2() {
+        String hiveServer2 = getItemValue(1000, "HIVE_SERVER2", String.class);
+        JSONObject entries = JSONUtil.parseObj(hiveServer2);
+        String url = entries.getOrDefault("url", "jdbc:hive2://localhost:10000/default").toString();
+        String username = entries.getOrDefault("username", "hive").toString();
+        String password = entries.getOrDefault("password", "").toString();
+        String driverClassName = entries.getOrDefault("driverClassName", "org.apache.hive.jdbc.HiveDriver").toString();
+        String driverPath = entries.getOrDefault("driverPath", "").toString();
+        return new HiveConnectDto(url, username, password, driverClassName, driverPath);
+    }
+
+    public Map<String, String> getSysConfig() {
+        return sysItemRepo.findByDictCode(1000).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        SysItem::getItemKey,
+                        SysItem::getItemValue));
     }
 }

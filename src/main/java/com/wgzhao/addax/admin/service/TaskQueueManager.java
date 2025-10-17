@@ -38,9 +38,11 @@ import static java.lang.Math.max;
 public class TaskQueueManager
 {
 
-    private final int queueSize = 100;
+    private int queueSize;
 
-    private final int concurrentLimit = 30;
+    private int concurrentLimit;
+
+    private BlockingQueue<EtlTable> etlTaskQueue;
 
     @Autowired
     private DictService dictService;
@@ -69,8 +71,6 @@ public class TaskQueueManager
     // 队列监控标志
     private volatile boolean queueMonitorRunning = false;
 
-    // 采集任务队列 - 固定长度100
-    private final BlockingQueue<EtlTable> etlTaskQueue = new ArrayBlockingQueue<>(100);
 
     // 当前执行中的采集任务数
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
@@ -92,6 +92,10 @@ public class TaskQueueManager
     @PostConstruct
     public void init()
     {
+        configService.loadConfig();
+        this.queueSize = configService.getQueueSize();
+        this.concurrentLimit = configService.getConcurrentLimit();
+        this.etlTaskQueue = new ArrayBlockingQueue<>(queueSize);
         startQueueMonitor();
     }
 
