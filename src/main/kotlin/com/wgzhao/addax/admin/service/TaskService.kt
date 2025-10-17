@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.service
 import com.wgzhao.addax.admin.dto.TaskResultDto
 import com.wgzhao.addax.admin.model.EtlTable
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.runBlocking
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 
@@ -25,7 +26,9 @@ class TaskService(
      */
     fun executeTasksForSource(sourceId: Int) {
         val tables = tableService.getRunnableTasksBySid(sourceId)
-        tables.filterNotNull().forEach { queueManager.etlQueue.offer(it) }
+        runBlocking {
+            tables.filterNotNull().forEach { queueManager.submitTask(it.id!!) }
+        }
         log.info { "Executing tasks for source ${sourceId}, found ${tables.size} tables" }
     }
 
@@ -38,7 +41,7 @@ class TaskService(
         queueManager.startQueueMonitor()
 
         // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
-        queueManager.scanAndEnqueueEtlTasks()
+        runBlocking { queueManager.scanAndEnqueueEtlTasks() }
     }
 
     /**
@@ -91,13 +94,13 @@ class TaskService(
     /**
      * 清空队列并重新扫描
      */
-    fun resetQueue(): String = queueManager.resetQueue()
+    fun resetQueue(): String = runBlocking { queueManager.resetQueue() }
 
     // 特殊任务提醒
     fun findAllSpecialTask(): List<EtlTable?>? = tableService.findSpecialTasks()
 
     // 提交采集任务到队列
-    fun submitTask(taskId: Long): TaskResultDto = queueManager.submitTask(taskId)
+    fun submitTask(taskId: Long): TaskResultDto = runBlocking { queueManager.submitTask(taskId) }
 
     fun getAllTaskStatus(): List<Map<String, Any>?>? {
         val sql = """

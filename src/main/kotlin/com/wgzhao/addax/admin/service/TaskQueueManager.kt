@@ -67,7 +67,7 @@ class TaskQueueManager(
                 }
             }
             log.info {
-                "任务入队完成: 成功入队 ${enqueuedCount} 个，跳过 ${skippedCount} 个，当前队列大小: ${etlQueue.capacity}" }
+                "任务入队完成: 成功入队 ${enqueuedCount} 个，跳过 ${skippedCount} 个，当前队列大小: ${queueSize}" }
         } catch (e: Exception) {
             log.error(e) { "扫描和入队采集任务失败" }
             alertService.sendToWeComRobot("扫描采集任务失败: " + e.message)
@@ -83,7 +83,7 @@ class TaskQueueManager(
     }
 
     fun getQueueStatus(): MutableMap<String, Any> = mutableMapOf(
-        "queueSize" to etlQueue.capacity,
+        "queueSize" to queueSize,
         "queueCapacity" to queueSize,
         "concurrentLimit" to concurrentLimit,
         "queueMonitorRunning" to queueMonitorRunning,
@@ -192,7 +192,7 @@ class TaskQueueManager(
     fun getAllTaskStatus(): Map<String, Any> = getQueueStatus()
 
     fun clearQueue(): Int {
-        val size = etlQueue.capacity
+        val size = queueSize
         etlQueue.close()
         log.info { "已清空队列，清除了 $size 个任务" }
         return size

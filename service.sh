@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ### BEGIN INIT INFO
 # Provides:          addax-admin
 # Required-Start:    $remote_fs $syslog
@@ -64,8 +64,8 @@ start() {
     echo $! > "$PID_FILE"
     # check status
     echo -n "Checking port $port..."
-    for i in $(seq 1 30); do
-        echo -n "."
+    for i in $(seq 1 10); do
+        echo -ne "."
         sleep 1
         nc -z localhost $port > /dev/null 2>&1
         if [ $? -eq 0 ]; then
@@ -74,7 +74,7 @@ start() {
         fi
     done
     echo " Failed"
-    stop
+    rm -f "$PID_FILE"
 }
 
 stop() {

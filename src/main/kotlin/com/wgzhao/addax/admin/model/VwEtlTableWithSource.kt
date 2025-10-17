@@ -28,9 +28,7 @@ data class VwEtlTableWithSource(
     val status: String? = null,
     val kind: String? = null,
     val retryCnt: Int? = null,
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     val startTime: LocalDateTime? = null,
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     val endTime: LocalDateTime? = null,
     val sid: Int? = null,
     val duration: Int? = null,

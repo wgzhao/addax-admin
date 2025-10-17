@@ -101,7 +101,7 @@ class DictService(
      */
     fun <T : Any> getItemValue(dictCode: Int, itemKey: String, clazz: KClass<T>): T? {
         val item = sysItemRepo.findById(SysItemPK(dictCode, itemKey)).orElse(null) ?: return null
-        val value: String = item.itemValue ?: return null
+        val value: String = item.itemValue
         return when (clazz) {
             Int::class -> value.toInt() as T
             Long::class -> value.toLong() as T

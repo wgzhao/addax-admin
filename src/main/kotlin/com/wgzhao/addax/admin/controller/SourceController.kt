@@ -121,9 +121,9 @@ class SourceController(
         content = [Content(schema = Schema(example = "{\"url\":\"jdbc:mysql://localhost:3306/test\",\"username\":\"root\",\"password\":\"123456\"}"))]
     )
     @PostMapping("/test-connect")
-    fun testConnect(@RequestBody payload: DbConnectDto): ResponseEntity<Boolean?> {
-        val isConnected = testConnection(payload.url, payload.username, payload.password)
-        return ResponseEntity.ok<Boolean?>(isConnected)
+    fun testConnect(@RequestBody payload: DbConnectDto): ResponseEntity<String?> {
+        val result = testConnection(payload.url, payload.username, payload.password)
+        return if (result.first) ResponseEntity.ok(null) else ResponseEntity.badRequest().body(result.second)
     }
 
     /**
