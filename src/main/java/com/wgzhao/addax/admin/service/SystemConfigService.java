@@ -41,6 +41,7 @@ public class SystemConfigService
 
         configCache.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
         configCache.put("QUEUE_SIZE", dictService.getQueueSize());
+        configCache.put("ADDAX_HOME", dictService.getAddaxHome());
     }
 
     public String getBizDate()
@@ -85,6 +86,11 @@ public class SystemConfigService
     public int getQueueSize()
     {
         return (Integer) configCache.get("QUEUE_SIZE");
+    }
+
+    public String getAddaxHome()
+    {
+        return (String) configCache.get("ADDAX_HOME");
     }
 
 }

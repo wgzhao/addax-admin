@@ -303,10 +303,50 @@ public class TaskQueueManager
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tempFile.getAbsolutePath());
         // 设定一个日志文件名的名称
         String logName = String.format("addax_%s_%d.log", taskId, System.currentTimeMillis());
-        String cmd = String.format("%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s", dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
-        boolean retCode = executeAddax(cmd, taskId, logName);
+        // 不通过 shell 调用，直接以命令和参数列表的形式执行，避免 shell 解析与注入风险
+        List<String> cmdList = List.of(
+                configService.getAddaxHome() + "/bin/addax.sh",
+                "-p",
+                String.format("-DjobName=%d -Dlog.file.name=%s", taskId, logName),
+                tempFile.getAbsolutePath()
+        );
+        boolean retCode = executeAddax(cmdList, taskId, logName);
         log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode;
+    }
+
+    /**
+     * 重载：以命令列表方式执行 Addax（不经过 shell）
+     * @param command 命令与参数列表
+     * @param tid 采集表主键
+     * @param logName 日志文件名
+     * @return 是否成功
+     */
+    private boolean executeAddax(List<String> command, long tid, String logName)
+    {
+        String displayCmd = String.join(" ", command);
+        log.info("Executing command: {}", displayCmd);
+        EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, displayCmd);
+
+        TaskResultDto taskResult = CommandExecutor.executeWithResult(command);
+        // 记录日志
+        Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
+        try {
+            String logContent = Files.readString(path);
+            addaxLogService.insertLog(tid, logContent);
+        }
+        catch (IOException e) {
+            log.warn("Failed to get the addax log content: {}", path);
+        }
+        etlJour.setDuration(taskResult.durationSeconds());
+        etlJour.setStatus(true);
+        if (!taskResult.success()) {
+            log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.message());
+            etlJour.setStatus(false);
+            etlJour.setErrorMsg(taskResult.message());
+        }
+        jourService.saveJour(etlJour);
+        return taskResult.success();
     }
 
     /**
