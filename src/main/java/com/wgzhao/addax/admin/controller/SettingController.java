@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.sql.DataSource;
+
+import java.sql.SQLException;
 import java.util.Map;
 
 /**
@@ -31,11 +34,17 @@ public class SettingController {
 
     @PostMapping("/test-hive-connect")
     public ResponseEntity<String> testHiveConnect(HiveConnectDto hiveConnectDto) {
-        boolean canConnect = targetService.getHiveDataSource();
-        if (canConnect) {
-            return ResponseEntity.ok("Hive connection successful");
-        } else {
-            return ResponseEntity.status(500).body("Failed to connect to Hive");
+        DataSource hiveDataSourceWithConfig = targetService.getHiveDataSourceWithConfig(hiveConnectDto);
+        try {
+            if (hiveDataSourceWithConfig != null && hiveDataSourceWithConfig.getConnection() != null) {
+                return ResponseEntity.ok("Hive connection successful");
+            }
+            else {
+                return ResponseEntity.status(500).body("Failed to connect to Hive");
+            }
+        }
+        catch (SQLException e) {
+            return ResponseEntity.status(500).body("Failed to connect to Hive: " + e.getMessage());
         }
     }
 }

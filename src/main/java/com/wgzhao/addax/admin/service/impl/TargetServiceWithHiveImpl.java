@@ -21,7 +21,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.text.MessageFormat;
-import java.util.Map;
 
 @Service
 @Slf4j
@@ -43,7 +42,8 @@ public class TargetServiceWithHiveImpl
 
     private volatile DataSource hiveDataSource;
 
-    private  HiveConnectDto hiveConnectDto;
+    private HiveConnectDto hiveConnectDto;
+
     @PostConstruct
     public void init()
     {
@@ -52,30 +52,17 @@ public class TargetServiceWithHiveImpl
     }
 
     @Override
-    public Connection getHiveDataSource()
+    public Connection getHiveConnect()
     {
         if (hiveDataSource == null) {
             synchronized (this) {
                 if (hiveDataSource == null) {
+                    log.info("try to load hive jdbc driver from {}", hiveConnectDto.getDriverPath());
+                    hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
                     try {
-                        log.info("try to load hive jdbc driver from {}", hiveConnectDto.getDriverPath());
-                        File hiveJarFile = new File(hiveConnectDto.getDriverPath());
-                        URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
-                        // 创建独立的类加载器
-                        URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
-
-                        // Set the context class loader
-                        Thread.currentThread().setContextClassLoader(classLoader);
-
-                        BasicDataSource dataSource = new BasicDataSource();
-                        dataSource.setUrl(hiveConnectDto.getUrl());
-                        dataSource.setUsername(hiveConnectDto.getUsername());
-                        dataSource.setPassword(hiveConnectDto.getPassword());
-                        dataSource.setDriverClassName(hiveConnectDto.getDriverClassName());
-
-                        hiveDataSource = dataSource;
+                        return hiveDataSource.getConnection();
                     }
-                    catch (Exception e) {
+                    catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -86,6 +73,30 @@ public class TargetServiceWithHiveImpl
         }
         catch (Exception e) {
             throw new RuntimeException("Failed to get connection from Hive DataSource", e);
+        }
+    }
+
+    @Override
+    public DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
+    {
+        try {
+            File hiveJarFile = new File(hiveConnectDto.getDriverPath());
+            URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
+            // 创建独立的类加载器
+            URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
+
+            // Set the context class loader
+            Thread.currentThread().setContextClassLoader(classLoader);
+
+            BasicDataSource dataSource = new BasicDataSource();
+            dataSource.setUrl(hiveConnectDto.getUrl());
+            dataSource.setUsername(hiveConnectDto.getUsername());
+            dataSource.setPassword(hiveConnectDto.getPassword());
+            dataSource.setDriverClassName(hiveConnectDto.getDriverClassName());
+            return dataSource;
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -104,7 +115,7 @@ public class TargetServiceWithHiveImpl
     {
         String sql = String.format("ALTER TABLE %s.%s ADD IF NOT EXISTS PARTITION (%s='%s')", db, table, partName, partValue);
         EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
-        try (Connection conn = getHiveDataSource();
+        try (Connection conn = getHiveConnect();
                 Statement stmt = conn.createStatement()) {
             log.info("Add partition for {}.{}: {}", db, table, sql);
             stmt.execute(sql);
@@ -146,7 +157,7 @@ public class TargetServiceWithHiveImpl
 
         log.info("create table sql:\n{}", createTableSql);
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
-        try (Connection conn = getHiveDataSource();
+        try (Connection conn = getHiveConnect();
                 Statement stmt = conn.createStatement()) {
             stmt.execute(createDbSql);
             stmt.execute(createTableSql);

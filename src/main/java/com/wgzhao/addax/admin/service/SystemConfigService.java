@@ -75,7 +75,7 @@ public class SystemConfigService
     }
 
     public HiveConnectDto getHiveServer2() {
-        return configCache.get("HIVE_SERVER2");
+        return (HiveConnectDto) configCache.get("HIVE_SERVER2");
     }
 
     public int getConcurrentLimit()

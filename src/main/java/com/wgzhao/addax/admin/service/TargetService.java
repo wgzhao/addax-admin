@@ -4,6 +4,8 @@ import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
+
 import java.sql.Connection;
 
 /**
@@ -36,5 +38,7 @@ public interface TargetService
      */
     boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable);
 
-    Connection getHiveDataSource();
+    Connection getHiveConnect();
+
+    DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto);
 }
