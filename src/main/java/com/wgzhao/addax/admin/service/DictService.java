@@ -314,4 +314,9 @@ public class DictService
                         SysItem::getItemKey,
                         SysItem::getItemValue));
     }
+
+    public void updateSysConfig(SysItem sysItem)
+    {
+        sysItemRepo.save(sysItem);
+    }
 }
