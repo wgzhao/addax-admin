@@ -1,16 +1,20 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TargetService;
 import lombok.AllArgsConstructor;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.sql.DataSource;
 
+import java.net.MalformedURLException;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -20,6 +24,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/settings")
 @AllArgsConstructor
+@Slf4j
 public class SettingController
 {
 
@@ -51,19 +56,16 @@ public class SettingController
     }
 
     @PostMapping("/test-hive-connect")
-    public ResponseEntity<String> testHiveConnect(HiveConnectDto hiveConnectDto)
+    public ResponseEntity<String> testHiveConnect(@RequestBody HiveConnectDto hiveConnectDto)
     {
-        DataSource hiveDataSourceWithConfig = targetService.getHiveDataSourceWithConfig(hiveConnectDto);
         try {
-            if (hiveDataSourceWithConfig != null && hiveDataSourceWithConfig.getConnection() != null) {
-                return ResponseEntity.ok("Hive connection successful");
-            }
-            else {
-                return ResponseEntity.status(500).body("Failed to connect to Hive");
-            }
+            DataSource hiveDataSourceWithConfig = targetService.getHiveDataSourceWithConfig(hiveConnectDto);
+            hiveDataSourceWithConfig.getConnection();
+            return ResponseEntity.noContent().build();
         }
-        catch (SQLException e) {
-            return ResponseEntity.status(500).body("Failed to connect to Hive: " + e.getMessage());
+        catch (SQLException | MalformedURLException e) {
+            log.error("Failed to connect to Hive with config: {}", hiveConnectDto, e);
+            throw new ApiException(400, "Failed to connect to Hive: " + e.getMessage());
         }
     }
 }

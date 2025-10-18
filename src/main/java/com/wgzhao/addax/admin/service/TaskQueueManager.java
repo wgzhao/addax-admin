@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 import static java.lang.Math.max;
 
 /**
@@ -328,7 +329,7 @@ public class TaskQueueManager
         log.info("Executing command: {}", displayCmd);
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, displayCmd);
 
-        TaskResultDto taskResult = CommandExecutor.executeWithResult(command);
+        TaskResultDto taskResult = CommandExecutor.executeWithResult(command, ADDAX_EXECUTE_TIME_OUT_SECONDS);
         // 记录日志
         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
         try {

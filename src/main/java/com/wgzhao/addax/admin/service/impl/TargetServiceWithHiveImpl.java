@@ -5,7 +5,6 @@ import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.*;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +13,7 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
@@ -42,27 +42,19 @@ public class TargetServiceWithHiveImpl
 
     private volatile DataSource hiveDataSource;
 
-    private HiveConnectDto hiveConnectDto;
-
-    @PostConstruct
-    public void init()
-    {
-        log.info("Initialize Hive Target Service");
-        this.hiveConnectDto = configService.getHiveServer2();
-    }
-
     @Override
     public Connection getHiveConnect()
     {
         if (hiveDataSource == null) {
             synchronized (this) {
                 if (hiveDataSource == null) {
+                    HiveConnectDto hiveConnectDto = configService.getHiveServer2();
                     log.info("try to load hive jdbc driver from {}", hiveConnectDto.driverPath());
-                    hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
                     try {
+                        hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
                         return hiveDataSource.getConnection();
                     }
-                    catch (SQLException e) {
+                    catch (SQLException | MalformedURLException e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -78,26 +70,23 @@ public class TargetServiceWithHiveImpl
 
     @Override
     public DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
+            throws MalformedURLException
     {
-        try {
-            File hiveJarFile = new File(hiveConnectDto.driverPath());
-            URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
-            // 创建独立的类加载器
-            URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
 
-            // Set the context class loader
-            Thread.currentThread().setContextClassLoader(classLoader);
+        File hiveJarFile = new File(hiveConnectDto.driverPath());
+        URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
+        // 创建独立的类加载器
+        URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
 
-            BasicDataSource dataSource = new BasicDataSource();
-            dataSource.setUrl(hiveConnectDto.url());
-            dataSource.setUsername(hiveConnectDto.username());
-            dataSource.setPassword(hiveConnectDto.password());
-            dataSource.setDriverClassName(hiveConnectDto.driverClassName());
-            return dataSource;
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        // Set the context class loader
+        Thread.currentThread().setContextClassLoader(classLoader);
+
+        BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setUrl(hiveConnectDto.url());
+        dataSource.setUsername(hiveConnectDto.username());
+        dataSource.setPassword(hiveConnectDto.password());
+        dataSource.setDriverClassName(hiveConnectDto.driverClassName());
+        return dataSource;
     }
 
     /**

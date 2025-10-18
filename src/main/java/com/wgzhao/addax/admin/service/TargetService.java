@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 
+import java.net.MalformedURLException;
 import java.sql.Connection;
 
 /**
@@ -40,5 +41,6 @@ public interface TargetService
 
     Connection getHiveConnect();
 
-    DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto);
+    DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
+            throws MalformedURLException;
 }

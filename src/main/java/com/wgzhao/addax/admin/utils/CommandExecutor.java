@@ -108,7 +108,7 @@ public class CommandExecutor
                     while ((line = reader.readLine()) != null) {
                         out.append(line).append('\n');
                         // 同时把 stdout 以 info 级别打印
-                        log.info(line);
+//                        log.info(line);
                     }
                 } catch (IOException e) {
                     log.warn("Error reading stdout: {}", e.getMessage());

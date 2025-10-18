@@ -12,6 +12,6 @@ public final class Constants
 
     public static final String DELETED_PLACEHOLDER_PREFIX = "__deleted__";
 
-    public static final long CMD_TIMEOUT_MS = 60_000L;
+    public static final long ADDAX_EXECUTE_TIME_OUT_SECONDS = 2 * 60 * 60;
 
 }
