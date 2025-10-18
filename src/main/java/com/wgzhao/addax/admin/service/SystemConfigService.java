@@ -2,46 +2,62 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class SystemConfigService
 {
     private final DictService dictService;
 
-    private final Map<String, Object> configCache = new HashMap<>();
+    private final Map<String, Object> configCache = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void initConfig() {
+        // Load configuration at bean initialization so dependent beans can read config in their @PostConstruct
+        loadConfig();
+        log.info("SystemConfigService: configuration initialized");
+    }
 
     public void loadConfig()
     {
+        // Build a temporary map first to reduce the window where partial updates are visible
+        Map<String, Object> tmp = new HashMap<>();
+
         String curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-        configCache.put("BIZ_DATE", dictService.getBizDate());
-        configCache.put("CUR_DATETIME", curDateTime);
+        tmp.put("BIZ_DATE", dictService.getBizDate());
+        tmp.put("CUR_DATETIME", curDateTime);
 
-        configCache.put("LOG_PATH", dictService.getLogPath());
+        tmp.put("LOG_PATH", dictService.getLogPath());
 
         // 切日时间
-        configCache.put("SWITCH_TIME", dictService.getSwitchTime());
+        tmp.put("SWITCH_TIME", dictService.getSwitchTime());
         // hive
 
-        configCache.put("HIVE_CLI", dictService.getHiveCli());
+        tmp.put("HIVE_CLI", dictService.getHiveCli());
 
-        configCache.put("HDFS_PREFIX", dictService.getHdfsPrefix());
+        tmp.put("HDFS_PREFIX", dictService.getHdfsPrefix());
 
-        configCache.put("HIVE_SERVER2", dictService.getHiveServer2());
+        tmp.put("HIVE_SERVER2", dictService.getHiveServer2());
 
-        configCache.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
-        configCache.put("QUEUE_SIZE", dictService.getQueueSize());
-        configCache.put("ADDAX_HOME", dictService.getAddaxHome());
+        tmp.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
+        tmp.put("QUEUE_SIZE", dictService.getQueueSize());
+        tmp.put("ADDAX_HOME", dictService.getAddaxHome());
+
+        // Atomically replace the contents of the ConcurrentHashMap to allow safe reloads
+        configCache.clear();
+        configCache.putAll(tmp);
     }
 
     public String getBizDate()

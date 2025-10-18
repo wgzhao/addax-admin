@@ -3,13 +3,13 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlJour;
-import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -20,7 +20,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +34,7 @@ import static java.lang.Math.max;
  * 负责管理固定长度（100）的采集任务队列，控制30个并发采集程序
  */
 @Component
+@DependsOn("systemConfigService")
 @Slf4j
 public class TaskQueueManager
 {
@@ -50,9 +50,6 @@ public class TaskQueueManager
 
     @Autowired
     private AddaxLogService addaxLogService;
-
-    @Autowired
-    private StatService statService;
 
     @Autowired
     private AlertService alertService;
@@ -76,28 +73,42 @@ public class TaskQueueManager
     // 当前执行中的采集任务数
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
 
+    // 并发控制信号量（在 init() 中初始化）
+    private Semaphore concurrencySemaphore;
+
     // 采集任务监控线程池
-    private final ExecutorService queueMonitorExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "etl-queue-monitor");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService queueMonitorExecutor = createQueueMonitorExecutor();
 
     // 采集任务执行线程池
-    private final ExecutorService etlExecutor = Executors.newCachedThreadPool(r -> {
-        Thread t = new Thread(r, "etl-worker");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService etlExecutor = createEtlExecutor();
 
     @PostConstruct
     public void init()
     {
-        configService.loadConfig();
         this.queueSize = configService.getQueueSize();
         this.concurrentLimit = configService.getConcurrentLimit();
         this.etlTaskQueue = new ArrayBlockingQueue<>(queueSize);
+        // 初始化并发控制信号量
+        this.concurrencySemaphore = new Semaphore(this.concurrentLimit);
         startQueueMonitor();
+    }
+
+    private static ExecutorService createQueueMonitorExecutor()
+    {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "etl-queue-monitor");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    private static ExecutorService createEtlExecutor()
+    {
+        return Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "etl-worker");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     /**
@@ -165,18 +176,21 @@ public class TaskQueueManager
 
         while (queueMonitorRunning) {
             try {
-                // 检查当前并发数是否达到限制
-                if (runningTaskCount.get() >= concurrentLimit) {
-                    // 并发已满，等待一段时间后重试
-                    Thread.sleep(1000);
-                    continue;
-                }
-
                 // 从队列中获取任务（阻塞等待，最多等待5秒）
                 EtlTable task = etlTaskQueue.poll(5, TimeUnit.SECONDS);
                 if (task == null) {
-                    // 队列为空，继续监控
+                    // 队列为空或超时，继续监控
                     continue;
+                }
+
+                // 获取一个并发执行许可（阻塞直到有可用许可或被中断）
+                try {
+                    concurrencySemaphore.acquire();
+                }
+                catch (InterruptedException ie) {
+                    // 如果被中断，退出循环
+                    Thread.currentThread().interrupt();
+                    break;
                 }
 
                 // 增加运行任务计数
@@ -184,8 +198,16 @@ public class TaskQueueManager
                 log.info("从队列获取任务: {}, 当前并发数: {}/{}",
                         task.getId(), currentRunning, concurrentLimit);
 
-                // 提交任务到执行线程池
-                etlExecutor.submit(() -> executeEtlTaskWithConcurrencyControl(task));
+                // 提交任务到执行线程池，任务结束时释放信号量
+                etlExecutor.submit(() -> {
+                    try {
+                        executeEtlTaskWithConcurrencyControl(task);
+                    }
+                    finally {
+                        // 释放一个并发许可
+                        concurrencySemaphore.release();
+                    }
+                });
             }
             catch (InterruptedException e) {
                 log.info("队列监控器被中断");
@@ -194,9 +216,9 @@ public class TaskQueueManager
             }
             catch (Exception e) {
                 log.error("队列监控器异常", e);
-                // 发生异常时等待一段时间再继续
+                // 等待一段时间再继续以避免热循环
                 try {
-                    Thread.sleep(5000);
+                    TimeUnit.SECONDS.sleep(5);
                 }
                 catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -438,98 +460,6 @@ public class TaskQueueManager
         log.info("采集任务队列管理器已关闭");
     }
 
-    /**
-     * 执行 Addax 采集命令，并处理日志输出
-     *
-     * @param command Addax 执行命令
-     * @param tid 采集表主键
-     * @param logName addax 输出的日志文件名
-     * @return 程序退出码
-     */
-    private boolean executeAddax(String command, long tid, String logName)
-    {
-        log.info("Executing command: {}", command);
-        EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
-
-        TaskResultDto taskResult = CommandExecutor.executeWithResult(command);
-        // 记录日志
-        Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
-        try {
-            String logContent = Files.readString(path);
-            addaxLogService.insertLog(tid, logContent);
-        }
-        catch (IOException e) {
-            log.warn("Failed to get the addax log content: {}", path);
-        }
-        etlJour.setDuration(taskResult.durationSeconds());
-        etlJour.setStatus(true);
-        if (!taskResult.success()) {
-            log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.message());
-            etlJour.setStatus(false);
-            etlJour.setErrorMsg(taskResult.message());
-        }
-        jourService.saveJour(etlJour);
-        return taskResult.success();
-    }
-
-    /**
-     * 分析 Addax 采集的最后 8 行信息，提取统计信息，并插入到 tb_addax_sta 表中
-     * 最后 8 行的信息类似如下：
-     * <p>
-     * Job start  at             : 2025-09-16 09:00:50
-     * Job end    at             : 2025-09-16 09:01:00
-     * Job took secs             :                  9s
-     * Total   bytes             :               41841
-     * Average   bps             :            6.81KB/s
-     * Average   rps             :             74rec/s
-     * Number of rec             :                 449
-     * Failed record             :                   0
-     *
-     * @param tid 采集表主键
-     * @param lastLines 最后的统计信息
-     */
-    private void processAddaxStatistics(long tid, LinkedList<String> lastLines)
-    {
-        Map<String, String> stats = new HashMap<>();
-        for (String line : lastLines) {
-            String[] parts = line.split(":", 2);
-            if (parts.length == 2) {
-                stats.put(parts[0].trim(), parts[1].trim());
-            }
-        }
-        if (stats.size() < 8) {
-            log.warn("无法解析 Addax 统计信息，行数不足: {}", stats);
-            return;
-        }
-        if (!stats.containsKey("Job start  at") || stats.get("Job start  at").isEmpty()) {
-            log.error("无法解析 Addax 统计信息，缺少 Job start  at 字段: {}", stats);
-            return;
-        }
-        String jobStart = stats.get("Job start  at").replace(" ", "T");
-        String jobEnd = stats.get("Job end    at").replace(" ", "T");
-
-        EtlStatistic statistic = new EtlStatistic();
-        statistic.setTid(tid);
-        statistic.setRunDate(LocalDate.now());
-        statistic.setStartAt(LocalDateTime.parse(jobStart));
-        statistic.setEndAt(LocalDateTime.parse(jobEnd));
-        long jobTook = Long.parseLong(stats.get("Job took secs").replace("s", ""));
-        statistic.setTakeSecs(jobTook);
-        long totalBytes = Long.parseLong(stats.get("Total   bytes"));
-        statistic.setTotalBytes(totalBytes);
-        long numberOfRec = Long.parseLong(stats.get("Number of rec"));
-        statistic.setTotalRecs(numberOfRec);
-        long failedRecord = Long.parseLong(stats.get("Failed record"));
-        statistic.setTotalErrors(failedRecord);
-        long averageBps = totalBytes / (jobTook == 0 ? 1 : jobTook);
-        statistic.setByteSpeed(averageBps);
-        long averageRps = numberOfRec / (jobTook == 0 ? 1 : jobTook);
-        statistic.setRecSpeed(averageRps);
-
-        if (statService.saveOrUpdate(statistic)) {
-            log.info("Addax 采集统计信息已插入 tb_addax_statistic 表: {}", statistic);
-        }
-    }
 
     public BlockingQueue<EtlTable> getEtlQueue()
     {

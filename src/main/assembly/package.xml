@@ -3,7 +3,8 @@
           xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 https://maven.apache.org/xsd/assembly-1.1.3.xsd">
     <id>${project.version}</id>
     <formats>
-        <format>dir</format>
+        <!-- 改为生成 zip 文件，避免生成目录后被认为不可附加的警告 -->
+        <format>zip</format>
     </formats>
     <includeBaseDirectory>true</includeBaseDirectory>
     <baseDirectory>addax-admin</baseDirectory>
