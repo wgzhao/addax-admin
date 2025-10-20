@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlStatistic;
-import com.wgzhao.addax.admin.model.TbAddaxSta;
 import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

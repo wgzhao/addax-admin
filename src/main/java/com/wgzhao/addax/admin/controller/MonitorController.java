@@ -3,7 +3,6 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.Notification;
-import com.wgzhao.addax.admin.model.TbImpChk;
 import com.wgzhao.addax.admin.repository.NotificationRepo;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TaskService;
@@ -66,7 +65,7 @@ public class MonitorController
      * @return 风险检测结果
      */
     @RequestMapping("/sys-risk")
-    public ResponseEntity<List<TbImpChk>> getSysRisk()
+    public ResponseEntity<List<Map<String, Object>>> getSysRisk()
     {
         // 具体实现略
         return ResponseEntity.ok(null);

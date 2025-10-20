@@ -38,21 +38,10 @@ public class SecurityConfiguration
                         // 放行公开接口
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/addax/**").permitAll()
-                        .requestMatchers("/log/job-report").permitAll()
-                        // 受保护的业务接口，仅这些前缀需要认证
-                        .requestMatchers(
-                                "/dashboard/**",
-                                "/etl/**",
-                                "/alert/**",
-                                "/log/**",
-                                "/monitor/**",
-                                "/param/**",
-                                "/plan/**",
-                                "/risk/**",
-                                "/source/**",
-                                "/table/**",
-                                "/task/**"
-                        ).authenticated()
+                        .requestMatchers("/log/job-report")
+                        .permitAll()
+                        .requestMatchers("/**")
+                        .authenticated()
                         // 其他未匹配路径放行，让 MVC 返回正确的 404/405/500 等
                         .anyRequest().permitAll()
                 )
