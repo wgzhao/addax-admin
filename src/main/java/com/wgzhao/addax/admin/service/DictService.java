@@ -308,11 +308,15 @@ public class DictService
         return new HiveConnectDto(url, username, password, driverClassName, driverPath);
     }
 
-    public Map<String, String> getSysConfig() {
-        return sysItemRepo.findByDictCode(1000).stream()
+    public Map<String, Object> getSysConfig() {
+        Map<String, Object> result =  sysItemRepo.findByDictCode(1000).stream()
                 .collect(java.util.stream.Collectors.toMap(
                         SysItem::getItemKey,
                         SysItem::getItemValue));
+        // HiveServer2 是一个 json 字符串，需要转换成对象返回
+        HiveConnectDto hiveServer2 = getHiveServer2();
+        result.put("HIVE_SERVER2", hiveServer2);
+        return result;
     }
 
     public void updateSysConfig(SysItem sysItem)

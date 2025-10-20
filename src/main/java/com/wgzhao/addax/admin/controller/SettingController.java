@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.sql.DataSource;
 
 import java.net.MalformedURLException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public class SettingController
 
     // 获取 dictCode 为 1000 的系统配置项
     @GetMapping("/sys-config")
-    public ResponseEntity<Map<String, String>> getSysConfig()
+    public ResponseEntity<Map<String, Object>> getSysConfig()
     {
         return ResponseEntity.ok().body(dictService.getSysConfig());
     }
@@ -60,7 +61,8 @@ public class SettingController
     {
         try {
             DataSource hiveDataSourceWithConfig = targetService.getHiveDataSourceWithConfig(hiveConnectDto);
-            hiveDataSourceWithConfig.getConnection();
+            Connection connection = hiveDataSourceWithConfig.getConnection();
+            log.info("Successfully connected to Hive with config: {}, {}", hiveConnectDto, connection);
             return ResponseEntity.noContent().build();
         }
         catch (SQLException | MalformedURLException e) {
