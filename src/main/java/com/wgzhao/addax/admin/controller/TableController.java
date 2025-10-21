@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
@@ -223,14 +224,16 @@ public class TableController
 
     /**
      * 批量更新表状态
-     * @param params 表状态更新参数
+     * @param params 表状态更新参数，类似如下:
+     *  "tids":[32,34,33,36,35],"status":"N","retryCnt":3}
      * @return 更新的表数量
      */
     @Operation(summary = "批量更新表状态")
     @PostMapping("/batch/status")
-    public ResponseEntity<Integer> batchUpdateStatus(@RequestBody Map<String, Object> params)
+    public ResponseEntity<Integer> batchUpdateStatus(@RequestBody BatchTableStatusDto params)
     {
         // 具体实现略
+        tableService.updateTableStatuses(params);
         return ResponseEntity.ok(1);
     }
 

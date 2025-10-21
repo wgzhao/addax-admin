@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -25,7 +26,8 @@ public class EtlJour implements Serializable {
     private String kind;
 
     @Column(name = "start_at")
-    private LocalDateTime startAt = LocalDateTime.now();
+    @CreationTimestamp
+    private LocalDateTime startAt;
 
     @Column(name = "status")
     private boolean status;

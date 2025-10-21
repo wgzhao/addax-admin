@@ -22,13 +22,13 @@ public class DbUtil
      */
     private static final java.util.Map<String, String> KIND_MAP = new java.util.LinkedHashMap<>();
     static {
-        KIND_MAP.put("jdbc:mysql", "M");
-        KIND_MAP.put("jdbc:oracle", "O");
-        KIND_MAP.put("jdbc:sqlserver", "S");
-        KIND_MAP.put("jdbc:postgresql", "P");
-        KIND_MAP.put("jdbc:db2", "D");
-        KIND_MAP.put("jdbc:clickhouse", "C");
-        KIND_MAP.put("jdbc/chk", "C");
+        KIND_MAP.put("jdbc:mysql", "mysql");
+        KIND_MAP.put("jdbc:oracle", "oracle");
+        KIND_MAP.put("jdbc:sqlserver", "sqlserver");
+        KIND_MAP.put("jdbc:postgresql", "postgresql");
+        KIND_MAP.put("jdbc:db2", "db2");
+        KIND_MAP.put("jdbc:clickhouse", "clickhouse");
+        KIND_MAP.put("jdbc/chk", "clickhouse");
     }
 
     // test jdbc is connected or not

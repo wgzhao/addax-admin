@@ -425,3 +425,70 @@ AS SELECT t.id,
     s.enabled
    FROM etl_table t
      LEFT JOIN etl_source s ON t.sid = s.id;
+
+
+-- etl_job_queue: durable job queue for ETL tasks
+-- status in ('pending','running','completed','failed','cancelled')
+CREATE TABLE IF NOT EXISTS public.etl_job_queue (
+    id           bigserial PRIMARY KEY,
+    tid          int8        NOT NULL REFERENCES public.etl_table(id),
+    biz_date     date        NOT NULL,
+    part_name    varchar(64) NULL,
+    payload      jsonb       NULL,
+    priority     int4        NOT NULL DEFAULT 100,
+    status       varchar(16) NOT NULL DEFAULT 'pending',
+    available_at timestamptz NOT NULL DEFAULT now(),
+    attempts     int4        NOT NULL DEFAULT 0,
+    max_attempts int4        NOT NULL DEFAULT 3,
+    claimed_by   varchar(128) NULL,
+    claimed_at   timestamptz  NULL,
+    lease_until  timestamptz  NULL,
+    last_error   text         NULL,
+    created_at   timestamptz  NOT NULL DEFAULT now(),
+    updated_at   timestamptz  NOT NULL DEFAULT now(),
+    CONSTRAINT etl_job_queue_status_chk CHECK (status IN ('pending','running','completed','failed','cancelled'))
+);
+
+-- Unique active job per (tid, biz_date) while pending or running
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_etl_job
+    ON public.etl_job_queue (tid, biz_date)
+    WHERE status IN ('pending','running');
+
+-- Scheduling and lease indexes
+CREATE INDEX IF NOT EXISTS idx_etl_job_queue_status_available
+    ON public.etl_job_queue (status, available_at, priority);
+CREATE INDEX IF NOT EXISTS idx_etl_job_queue_lease
+    ON public.etl_job_queue (status, lease_until);
+
+-- updated_at maintenance trigger
+CREATE OR REPLACE FUNCTION public.etl_job_queue_set_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END; $$;
+
+DROP TRIGGER IF EXISTS trg_etl_job_queue_set_updated_at ON public.etl_job_queue;
+CREATE TRIGGER trg_etl_job_queue_set_updated_at
+BEFORE UPDATE ON public.etl_job_queue
+FOR EACH ROW EXECUTE FUNCTION public.etl_job_queue_set_updated_at();
+
+-- NOTIFY trigger on becoming immediately pending
+CREATE OR REPLACE FUNCTION public.etl_job_queue_notify()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF (NEW.status = 'pending' AND NEW.available_at <= now()) THEN
+    PERFORM pg_notify('etl_jobs', NEW.id::text);
+  END IF;
+  RETURN NEW;
+END; $$;
+
+DROP TRIGGER IF EXISTS trg_etl_job_queue_notify_ins ON public.etl_job_queue;
+CREATE TRIGGER trg_etl_job_queue_notify_ins
+AFTER INSERT ON public.etl_job_queue
+FOR EACH ROW EXECUTE FUNCTION public.etl_job_queue_notify();
+
+DROP TRIGGER IF EXISTS trg_etl_job_queue_notify_upd ON public.etl_job_queue;
+CREATE TRIGGER trg_etl_job_queue_notify_upd
+AFTER UPDATE OF status, available_at ON public.etl_job_queue
+FOR EACH ROW EXECUTE FUNCTION public.etl_job_queue_notify();

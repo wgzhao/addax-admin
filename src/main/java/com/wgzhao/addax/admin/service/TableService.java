@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.TableStatus;
+import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -20,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static java.lang.Math.max;
@@ -47,6 +49,7 @@ public class TableService
      */
     public TaskResultDto refreshTableResources(EtlTable table)
     {
+        boolean columnsUpdated = false;
         if (table == null) {
             return TaskResultDto.failure("Table is null", 0);
         }
@@ -74,13 +77,17 @@ public class TableService
                 }
             }
             setStatus(table, TableStatus.NOT_COLLECT);
-            return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
+            //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
+        } else {
+            columnsUpdated = true;
         }
 
-        if (!targetService.createOrUpdateHiveTable(vwTable)) {
-            setStatus(table, TableStatus.WAIT_SCHEMA);
-            log.warn("Failed to create or update Hive table for tid {}", table.getId());
-            return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
+        if (columnsUpdated) {
+            if (!targetService.createOrUpdateHiveTable(vwTable)) {
+                setStatus(table, TableStatus.WAIT_SCHEMA);
+                log.warn("Failed to create or update Hive table for tid {}", table.getId());
+                return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
+            }
         }
 
         // 2. 更新任务文件
@@ -402,5 +409,13 @@ public class TableService
     public int getTableCountBySourceId(int sid)
     {
         return etlTableRepo.countBySid(sid);
+    }
+
+    public void updateTableStatuses(BatchTableStatusDto params) {
+        if (params.tids().isEmpty()) {
+            return ;
+        }
+
+        etlTableRepo.batchUpdateStatusAndFlag(params.tids(), params.status(), params.retryCnt());
     }
 }

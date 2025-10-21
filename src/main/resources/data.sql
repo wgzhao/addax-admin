@@ -23,6 +23,24 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'ADDAX', '/opt/app/addax', 'Addax程序目录'),
 (1000, 'RUN_LOG', '/var/tmp/log', '运行日志目录');
 
+insert into public.sys_item(dict_code, item_key, item_value, remark) values
+(1000, 'HDFS_CONFIG', '{
+                           "defaultFS": "hdfs://nameservice1",
+                           "hdfsPrefix": "/ods/",
+                           "enableKerberos": true,
+                           "kerberosPrincipal": "hdfs/_HOST@EXAMPLE.COM",
+                           "kerberosKeytabFilePath": "/etc/security/keytabs/hdfs.service.keytab",
+                           "enableHA": true,
+                           "hdfsSitePath": "",
+                           "hadoopConfig": {
+                               "dfs.nameservices": "cluster",
+                               "dfs.ha.namenodes.cluster": "nn1,nn2",
+                               "dfs.namenode.rpc-address.cluster.nn1": "node1.example.com:8020",
+                               "dfs.namenode.rpc-address.cluster.nn2": "node2.example.com:8020",
+                               "dfs.client.failover.proxy.provider.cluster": "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider"
+                           }
+                       }', 'HDFS 配置');
+
 INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'QUEUE_SIZE', '100', '采集队列长度'),
 (1000, 'SWITCH_TIME', '16:30', '切日时间'),
@@ -110,154 +128,12 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (2015, 'dw_trade_date', 'decimal(10,0)', '数据采集时的交易日期(8位)'),
 (2015, 'modifier_no', 'string', '备用,一般标注为系统编号');
 
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'D2H', '{
+INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'R2H', '{
   "job": {
-    "content": [
-    {
-      ${rD},
-      ${wH}
-    }],
-    "setting": {
-      "speed": {
-        "batchSize": 20480,
-        "bytes": -1,
-        "channel": 1
-      }
-    }
-  }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2C', '{
- "job": {
-  "setting": {
-   "speed": {
-    "byte": -1,
-    "channel": 1,
-    "batchSize": 200
-   },
-   "errorLimit": {
-    "record": 0,
-    "percentage": 0.0
-   }
-  },
-  "content": [
-   {
-    ${rH},
-    ${wC}
-   }
-  ]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2M', '{
- "job": {
-  "setting": {
-   "speed": {
-    "byte": -1,
-    "channel": 1,
-    "batchSize": 100
-   },
-   "errorLimit": {
-    "record": 0,
-    "percentage": 0.0
-   }
-  },
-  "content": [
-   {
-    ${rH},
-    ${wM}
-   }
-  ]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2O', '{
- "job": {
-  "setting": {
-   "speed": {
-    "byte": -1,
-    "channel": 1,
-    "batchSize": 100
-   },
-   "errorLimit": {
-    "record": 0,
-    "percentage": 0.0
-   }
-  },
-  "content": [
-   {
-    ${rH},
-    ${wO}
-   }
-  ]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2P', '{
- "job": {
-  "setting": {
-   "speed": {
-    "byte": -1,
-    "channel": 1,
-    "batchSize": 200
-   },
-   "errorLimit": {
-    "record": 0,
-    "percentage": 0.0
-   }
-  },
-  "content": [
-   {
-    ${rH},
-    ${wP}
-   }
-  ]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'H2S', '{
- "job": {
-  "setting": {
-   "speed": {
-    "byte": -1,
-    "channel": 1,
-    "batchSize": 200
-   },
-   "errorLimit": {
-    "record": 0,
-    "percentage": 0.0
-   }
-  },
-  "content": [
-   {
-    ${rH},
-    ${wS}
-   }
-  ]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'I2H', '{
-  "job": {
-    "setting": {
-      "speed": {
-        "byte": -1,
-        "channel": 1
-      },
-      "errorLimit": {
-        "record": 0,
-        "percentage": 0
-      }
+    "content": {
+      __reader__,
+      __writer__
     },
-    "content": [
-      {
-        ${rI},
-        ${wH}
-      }
-    ]
-  }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'M2H', '{
-  "job": {
-    "content": [
-    {
-      ${rM},
-      ${wH}
-    }],
     "setting": {
       "speed": {
         "batchSize": 20480,
@@ -266,236 +142,42 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
       }
     }
   }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'O2H', '{
-  "job": {
-    "content": [
-    {
-      ${rO},
-      ${wH}
-    }],
-    "setting": {
-      "speed": {
-        "batchSize": 20480,
-        "bytes": -1,
-        "channel": 1
-      }
-    }
-  }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'P2H', '{
-  "job": {
-    "content": [
-    {
-      ${rP},
-      ${wH}
-    }],
-    "setting": {
-      "speed": {
-        "batchSize": 20480,
-        "bytes": -1,
-        "channel": 1
-      }
-    }
-  }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5000, 'S2H', '{
-  "job": {
-    "content": [
-    {
-      ${rS},
-      ${wH}
-    }],
-    "setting": {
-      "speed": {
-        "batchSize": 20480,
-        "bytes": -1,
-        "channel": 1
-      }
-    }
-  }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rD', '"reader": {
- "name": "dbffilereader",
- "parameter": {
-  "column": [${col}],
-  "path": "/opt/infalog/trans/zdbs/${TD}/${sou_tblname}100007.dbf",
-  "encoding": "GBK"
-}}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rH', '"reader": {
- "name": "rdbmsreader",
- "parameter": {
-  "username": "${s_user}",
-  "password": "${s_pass}",
-  "passflag": "false",
-  "connection": [{
-   "querySql": ["${s_sql}"],
-   "jdbcUrl": ["${s_conn}"]
-  }]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rI', '"reader": {
+}', '关系型数据库到HDFS的模板');
+
+INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rR', '{
    "name": "rdbmsreader",
    "parameter": {
-   "username": "${sou_user}",
-   "password": "${sou_pass}",
-   "column": [ ${sou_col} ],
-   "connection": [{
-    "table": [ "${sou_tblname}" ],
-    "jdbcUrl": [ "${sou_dbcon}" ]
-    }],
-   "fetchSize": 1024,
-   "where": "${sou_filter}"
+   "username": "__username__",
+   "password": "__password__",
+   "column": [ __column__ ],
+    "where": "__filter__",
+    "autoPk": "true",
+   "connection": {
+    "table": [ "__table__" ],
+    "jdbcUrl": [ "__jdbcUrl__}" ]
+    },
+   "fetchSize": 1024
    }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rM', '"reader": {
- "parameter": {
-  "username": "${username}",
-  "password": "${pass}",
-  "column": [ ${column} ],
-  "autoPk": "true",
-  "where": "${filter}",
-  "connection": [{
-   "table": [ "${table_name}" ],
-   "jdbcUrl": [ "${url}" ]
-  }]
- },
- "name": "mysqlreader"
-}
-', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rO', '"reader": {
-  "parameter": {
-    "password": "${sou_pass}",
-    "column": [ ${sou_col} ],
-    "connection": [{
-      "jdbcUrl": ["${sou_dbcon}"],
-      "table": ["${sou_tblname}"]
-    }],
-    "splitPk": "${sou_split}",
-    "username": "${sou_user}",
-    "where": "${sou_filter}"
-  },
-  "name": "oraclereader"
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rP', '"reader": {
-  "parameter": {
-    "password": "${sou_pass}",
-    "column": [ ${sou_col} ],
-    "connection": [{
-      "jdbcUrl": ["${sou_dbcon}"],
-      "table": ["${sou_tblname}"]
-    }],
-    "splitPk": "${sou_split}",
-    "username": "${sou_user}",
-    "where": "${sou_filter}"
-  },
-  "name": "postgresqlreader"
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'rS', '"reader": {
-  "parameter": {
-    "password": "${sou_pass}",
-    "column": [ ${sou_col} ],
-    "connection": [{
-      "jdbcUrl": ["${sou_dbcon}"],
-      "table": ["${sou_tblname}"]
-    }],
-    "splitPk": "${sou_split}",
-    "username": "${sou_user}",
-    "where": "${sou_filter}"
-  },
-  "name": "sqlserverreader"
-}', 'sqlserver的reader');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wC', '"writer": {
- "name": "clickhousewriter",
- "parameter": {
-  "username": "${d_user}",
-  "password": "${d_pass}",
-  "passflag": "false",
-  "preSql": ["${d_presql}"],
-  "postSql": ["${d_postsql}"],
-  "column": [ ${d_cols} ],
-  "connection": [
-   {
-    "table": [ "${d_tblname}" ],
-    "jdbcUrl": "${d_conn}"
-   }
-  ]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wH', '"writer": {
+}', '通用关系型数据库读取模板');
+
+
+INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'hdfs', '"writer": {
   "name": "hdfswriter",
   "parameter": {
-    "path": "${hdfs_path}",
+    "path": "__hdfsPath__",
     "fileName": "addax",
-    "compress": "lz4",
-    "column": [ ${column} ],
+    "compress": "__compress__",
+    "column": [ __column__ ],
     "defaultFS": "hdfs://nameservice1",
     "writeMode": "overwrite",
     "fieldDelimiter": "\u0001",
     "fileType": "orc",
     "haveKerberos": "false",
     "createPath": true,
-    "hdfsSitePath": "/opt/app/addax/cdh-hdfs-site.xml"
+    "hdfsSitePath": "/opt/app/addax/cdh-hdfs-site.xml",
+    "hadoopConfig": {}
   }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wM', '"writer": {
- "name": "mysqlwriter",
- "parameter": {
-  "username": "${d_user}",
-  "password": "${d_pass}",
-  "preSql": ["${d_presql}"],
-  "postSql": ["${d_postsql}"],
-  "column": [ ${d_cols} ],
-  "connection": [{
-   "jdbcUrl": "${d_conn}",
-   "table": ["${d_tblname}"]
-  }]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wO', '"writer": {
- "name": "oraclewriter",
- "parameter": {
-  "username": "${d_user}",
-  "password": "${d_pass}",
-  "batchSize": 200,
-  "preSql": ["${d_presql}"],
-  "postSql": ["${d_postsql}"],
-  "column": [ ${d_cols} ],
-  "connection": [{
-   "jdbcUrl": "${d_conn}",
-   "table": ["${d_tblname}"]
-  }]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wP', '"writer": {
- "name": "postgresqlwriter",
- "parameter": {
-  "username": "${d_user}",
-  "password": "${d_pass}",
-  "preSql": ["${d_presql}"],
-  "postSql": ["${d_postsql}"],
-  "column": [ ${d_cols} ],
-  "connection": [{
-   "jdbcUrl": "${d_conn}",
-   "table": ["${d_tblname}"]
-  }]
- }
-}', '2024-13-30');
-INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(5001, 'wS', '"writer": {
- "name": "sqlserverwriter",
- "parameter": {
-  "username": "${d_user}",
-  "password": "${d_pass}",
-  "batchSize": 200,
-  "preSql": ["${d_presql}"],
-  "postSql": ["${d_postsql}"],
-  "column": [ ${d_cols} ],
-  "connection": [{
-   "jdbcUrl": "${d_conn}",
-   "table": ["${d_tblname}"]
-  }]
- }
-}', '2024-13-30');
+}', 'HDFS写入模板');
 
 
 CREATE OR REPLACE FUNCTION insert_dates_for_year(p_year INTEGER, p_dict_code INTEGER DEFAULT 1021)

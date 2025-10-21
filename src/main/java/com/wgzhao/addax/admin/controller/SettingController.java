@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import cn.hutool.json.JSONUtil;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.SysItem;
@@ -41,13 +42,10 @@ public class SettingController
     }
 
     @PostMapping("/sys-config")
-    public ResponseEntity<SysItem> updateSysConfig(@RequestBody SysItem sysItem)
+    public ResponseEntity<Void> updateSysConfig(@RequestBody Map<String, Object> payload)
     {
-        if (sysItem.getDictCode() != 1000) {
-            return ResponseEntity.badRequest().build();
-        }
-        dictService.updateSysConfig(sysItem);
-        return ResponseEntity.ok().body(sysItem);
+        dictService.saveSysConfig(payload);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/reload-sys-config")
@@ -69,5 +67,20 @@ public class SettingController
             log.error("Failed to connect to Hive with config: {}", hiveConnectDto, e);
             throw new ApiException(400, "Failed to connect to Hive: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/addax-hdfs-writer-template")
+    public ResponseEntity<Map<String, Object>> getAddaxHdfsWriterTemplate()
+    {
+        // 删除换行字符
+        String template = dictService.getHdfsWriterTemplate();
+        // 已 Json 格式返回
+        return ResponseEntity.ok().body(JSONUtil.parseObj(template));
+    }
+
+    @PostMapping("/addax-hdfs-writer-template")
+    public ResponseEntity<String> updateAddaxHdfsWriterTemplate(@RequestBody @NonNull String template) {
+        dictService.saveHdfsWriteTemplate(template);
+        return ResponseEntity.ok().body("HDFS Writer template updated successfully");
     }
 }

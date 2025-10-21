@@ -129,6 +129,25 @@ public class DictService
         return getItemValue(5001, "r" + kind, String.class);
     }
 
+    public String getHdfsWriterTemplate() {
+        return  getItemValue(1000, "HDFS_CONFIG", String.class);
+    }
+
+    public void saveHdfsWriteTemplate(String template) {
+        Optional<SysItem> itemOpt = sysItemRepo.findByDictCodeAndItemKey(1000, "HDFS_CONFIG");
+        SysItem item;
+        if (itemOpt.isPresent()) {
+            item = itemOpt.get();
+            item.setItemValue(template);
+        } else {
+            item = new SysItem();
+            item.setDictCode(1000);
+            item.setItemKey("HDFS_CONFIG");
+            item.setItemValue(template);
+        }
+        sysItemRepo.save(item);
+    }
+
     /**
      * 获取字典项的值并自动类型转换
      * @param dictCode 字典编码
@@ -221,6 +240,10 @@ public class DictService
     public Optional<SysDict> findDictById(int dictCode) {
         return sysDictRepo.findById(dictCode);
     }
+
+    public Optional<SysItem> findSystemItem(int dictCode, String itemKey) {
+        return sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey);
+    }
     /**
      * 保存字典对象
      * @param dict 字典对象
@@ -308,6 +331,10 @@ public class DictService
         return new HiveConnectDto(url, username, password, driverClassName, driverPath);
     }
 
+    public Map<String, Object> getHadoopConfig() {
+        String hadoopConfig = getItemValue(1000, "HDFS_CONFIG", String.class);
+        return JSONUtil.parseObj(hadoopConfig);
+    }
     public Map<String, Object> getSysConfig() {
         Map<String, Object> result =  sysItemRepo.findByDictCode(1000).stream()
                 .collect(java.util.stream.Collectors.toMap(
@@ -316,11 +343,18 @@ public class DictService
         // HiveServer2 是一个 json 字符串，需要转换成对象返回
         HiveConnectDto hiveServer2 = getHiveServer2();
         result.put("HIVE_SERVER2", hiveServer2);
+        result.put("HDFS_CONFIG", getHadoopConfig());
         return result;
     }
 
-    public void updateSysConfig(SysItem sysItem)
-    {
-        sysItemRepo.save(sysItem);
+    public void saveSysConfig(Map<String, Object> payload) {
+        for(Map.Entry<String, Object> entry: payload.entrySet()) {
+            findSystemItem(1000, entry.getKey()).ifPresent(item -> {
+                if (item.getItemValue() != entry.getValue()) {
+                    item.setItemValue(entry.getValue().toString());
+                    saveItem(item);
+                }
+            });
+        }
     }
 }

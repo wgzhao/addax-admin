@@ -33,7 +33,9 @@ public class TaskService
         List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
         for (EtlTable table : tables) {
             // 将采集表加入队列
-            queueManager.getEtlQueue().offer(table);
+            queueManager.addTaskToQueue(table);
+            // V1
+            // queueManager.getEtlQueue().offer(table);
         }
         log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size());
     }
