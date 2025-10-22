@@ -154,7 +154,7 @@ public class TargetServiceWithHiveImpl
             return true;
         }
         catch (SQLException e) {
-            log.warn("Failed to create or update hive table ", e);
+            log.warn("Failed to create or update hive table ({}.{}) ", etlTable.getTargetDb(), etlTable.getTargetTable(), e);
             jourService.failJour(etlJour, e.getMessage());
             return false;
         }

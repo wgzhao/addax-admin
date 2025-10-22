@@ -14,7 +14,6 @@ import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -26,8 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 

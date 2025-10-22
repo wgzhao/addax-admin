@@ -255,10 +255,14 @@ public class ColumnService
             } else {
                 colName = col.getColumnName();
             }
-            if (col.getColComment().isEmpty()) {
+            String comment = nvlStr(col.getColComment());
+            if (comment.isEmpty()) {
                 result.add(colName + " " +  col.getTargetTypeFull());
             } else {
-                result.add(colName + " " +  col.getTargetTypeFull() + " COMMENT '" + nvlStr(col.getColComment()) + "'");
+                // Normalize whitespace/newlines and escape single quotes for SQL string literal
+                comment = comment.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
+                comment = comment.replace("'", "''");
+                result.add(colName + " " +  col.getTargetTypeFull() + " COMMENT '" + comment + "'");
             }
         }
         return result;

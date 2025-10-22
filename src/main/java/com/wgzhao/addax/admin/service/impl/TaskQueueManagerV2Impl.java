@@ -34,6 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 import static java.lang.Math.max;
 
 /**
@@ -367,7 +368,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     {
         log.info("Executing command: {}", command);
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
-        TaskResultDto taskResult = CommandExecutor.executeWithResult(command);
+        TaskResultDto taskResult = CommandExecutor.executeWithResult(command, ADDAX_EXECUTE_TIME_OUT_SECONDS);
         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
         try {
             String logContent = Files.readString(path);

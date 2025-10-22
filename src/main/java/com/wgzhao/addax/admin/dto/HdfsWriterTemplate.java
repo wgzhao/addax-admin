@@ -47,18 +47,18 @@ public class HdfsWriterTemplate{
                   "parameter": {
                     "defaultFS": "%s",
                     "fileType": "%s",
+                    "compress": "%s",
                     "path": "%s",
                     "fileName": "addax",
                     "writeMode": "overwrite",
                     "column": %s,
-                    "compress": "%s",
                     "createPath": %b,
                 """.formatted(
                 defaultFS,
                 fileType,
+                compress,
                 path,
                 columnJson,
-                compress,
                 createPath
         );
         if (haveKerberos) {
