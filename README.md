@@ -93,14 +93,40 @@ java -jar target/addax-admin-0.0.1-SNAPSHOT.jar
 
 ```bash
 # 构建镜像
-docker build -t addax-admin .
+
+# 三选一即可，jib:buildTar jib:build 不要求构建主机安装 docker
+
+# 构建 tar 包, 导入 docekr
+mvn compile jib:buildTar
+docker load -i ./target/addax-admin.tar
+
+# 构建 docker 镜像到 docker daemon
+mvn compile jib:dockerBuild
+
+# 修改基础镜像，并推送到自建 docker registry
+mvn compile jib:build \
+    # 基础镜像
+    -Djib.from.image=myregistry/eclipse-temurin:21-jre-jammy \
+    -Djib.from.auth.username=$USERNAME \
+    -Djib.from.auth.password=$PASSWORD \
+    # 推送镜像
+    -Djib.to.image=myregistry/addax-admin:latest \
+    -Djib.to.auth.username=$USERNAME \
+    -Djib.to.auth.password=$PASSWORD \
+    # docker 镜像 tags
+    -Djib.to.tags=latest \
+    # 设置代理，用于解决下载镜像慢的问题
+    -Dhttps.proxyHost=xxx.xxx.xxx.xxx \
+    -Dhttps.proxyPort=10808
 
 # 运行容器
 docker run -p 9090:9090 \
   -e SPRING_PROFILES_ACTIVE=prod \
+  -e SERVER_PORT=9090 \
   -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/addax \
   -e SPRING_DATASOURCE_USERNAME=username \
   -e SPRING_DATASOURCE_PASSWORD=password \
+  -v $PWD/jdbc-drivers:/app/drivers \
   addax-admin
 ```
 
