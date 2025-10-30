@@ -150,6 +150,58 @@
                     <target>21</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>3.4.6</version>
+                <configuration>
+                    <from>
+                        <image>eclipse-temurin:21-jre-jammy</image>
+                    </from>
+                    <to>
+                        <image>wgzhao/addax-admin:${project.version}</image>
+                        <tags>
+                            <tag>latest</tag>
+                        </tags>
+                    </to>
+                    <container>
+                        <mainClass>com.wgzhao.addax.admin.AdminApplication</mainClass>
+                        <jvmFlags>
+                            <jvmFlag>-Xms512m</jvmFlag>
+                            <jvmFlag>-Xmx1024m</jvmFlag>
+                        </jvmFlags>
+                        <ports>
+                            <port>9090</port>
+                        </ports>
+                        <format>Docker</format>
+                        <workingDirectory>/app</workingDirectory>
+                        <environment>
+                            <SERVER_PORT>9090</SERVER_PORT>
+                        </environment>
+                        <extraClasspath>
+                            <entry>/app/drivers</entry>
+                        </extraClasspath>
+                        <entrypoint>
+                            <arg>java</arg>
+                            <arg>-cp</arg>
+                            <arg>@/app/jib-classpath-file</arg>
+                            <arg>@/app/jib-main-class-file</arg>
+                        </entrypoint>
+                        <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+                    </container>
+                    <extraDirectories>
+                        <paths>
+                            <path>
+                                <from>${project.basedir}/jdbc-drivers/</from>
+                                <into>/app/drivers/</into>
+                                <includes>
+                                    <include>README.txt</include>
+                                </includes>
+                            </path>
+                        </paths>
+                    </extraDirectories>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
