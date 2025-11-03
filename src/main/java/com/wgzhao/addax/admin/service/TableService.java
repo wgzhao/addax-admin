@@ -411,6 +411,7 @@ public class TableService
         return etlTableRepo.countBySid(sid);
     }
 
+    @Transactional
     public void updateTableStatuses(BatchTableStatusDto params) {
         if (params.tids().isEmpty()) {
             return ;

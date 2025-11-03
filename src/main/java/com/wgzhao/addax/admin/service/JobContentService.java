@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
+import static com.wgzhao.addax.admin.common.Constants.quoteColumnIfNeeded;
 
 /**
  * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
@@ -104,7 +105,8 @@ public class JobContentService {
                 targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
             } else {
                 targetColumn.put("name", columnName);
-                srcColumns.add("\"" + columnName + "\"");
+                // 如果列名是关键字，则还需要加上引号
+                srcColumns.add("\"" + quoteColumnIfNeeded(columnName) + "\"");
             }
             destColumns.add(targetColumn);
         }
