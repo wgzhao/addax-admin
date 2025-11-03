@@ -19,7 +19,9 @@ ENV_FILE="$CONFIG_DIR/env.sh"
 PID_FILE="$APP_HOME/logs/${APP_NAME}.pid"
 LOG_FILE="$APP_HOME/logs/${APP_NAME}.log"
 
-JAVA_OPTS="-Dspring.config.location=${CONFIG_DIR}/application.properties -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
+[ -f "$ENV_FILE" ] && . "$ENV_FILE"
+
+JAVA_OPTS="-Dspring.config.location=${CONFIG_DIR}/application.properties -Dlogging.file.path=${LOG_DIR} -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
 
 # Function to get server port
 get_server_port() {

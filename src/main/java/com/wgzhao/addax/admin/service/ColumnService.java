@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
+import static com.wgzhao.addax.admin.common.Constants.quoteColumnIfNeeded;
 
 /**
  * 采集表字段信息服务类，负责采集表字段的增删改查及同步等业务操作
@@ -251,9 +252,9 @@ public class ColumnService
         for (EtlColumn col : columns) {
             String colName ;
             if (isDeletedPlaceholder(col.getColumnName())) {
-                colName = col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length());
+                colName = quoteColumnIfNeeded(col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length()));
             } else {
-                colName = col.getColumnName();
+                colName = quoteColumnIfNeeded(col.getColumnName());
             }
             String comment = nvlStr(col.getColComment());
             if (comment.isEmpty()) {

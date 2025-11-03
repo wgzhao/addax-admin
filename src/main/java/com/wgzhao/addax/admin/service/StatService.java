@@ -145,6 +145,7 @@ public class StatService
                              t.name,
                              (SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS over_prec_percent
                          FROM vw_etl_table_with_source t
+                         WHERE t.status <> 'X' and t.enabled = true
                          GROUP BY t.code, t.name
                          having count(*) > 0
                      ) AS a
@@ -206,7 +207,7 @@ public class StatService
                     sum(case when status = 'U' then 1 else 0 end ) as no_create_table_cnt
                     from
                     vw_etl_table_with_source s
-                    where s.enabled = true
+                    where s.enabled = true and s.status <> 'X'
                     group by s.code
                 ),
                 last2_info as (
@@ -227,10 +228,11 @@ public class StatService
                         max(end_at) as finish_at,
                         row_number() over(partition by code order by run_date) as rn
                         from etl_statistic es
-                        left join vw_etl_table_with_source vetws
-                        on es.tid = vetws.id
+                        left join vw_etl_table_with_source s
+                        on es.tid = s.id
                         where run_date > now() - interval '10' day
-                        group by vetws.code, vetws.name, run_date
+                        and s.enabled = true and s.status <> 'X'
+                        group by s.code, s.name, run_date
                     )t
                     where t.rn < 3
                     group by code,name
