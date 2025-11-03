@@ -492,3 +492,37 @@ DROP TRIGGER IF EXISTS trg_etl_job_queue_notify_upd ON public.etl_job_queue;
 CREATE TRIGGER trg_etl_job_queue_notify_upd
 AFTER UPDATE OF status, available_at ON public.etl_job_queue
 FOR EACH ROW EXECUTE FUNCTION public.etl_job_queue_notify();
+
+
+-- system_flag table for global coordination
+CREATE TABLE IF NOT EXISTS public.system_flag (
+    flag_key varchar(128) PRIMARY KEY,
+    flag_value varchar(128) DEFAULT '0',
+    last_started_at timestamp NULL,
+    last_finished_at timestamp NULL,
+    updated_at timestamp NULL,
+    updated_by varchar(255) NULL
+);
+
+
+-- schema_change_log: record column additions/deletions/type changes for user review
+CREATE TABLE IF NOT EXISTS public.schema_change_log (
+    id bigserial PRIMARY KEY,
+    tid int8 NOT NULL,
+    source_db varchar(64) NULL,
+    source_table varchar(128) NULL,
+    column_name varchar(255) NULL,
+    change_type varchar(32) NULL,
+    old_source_type varchar(128) NULL,
+    new_source_type varchar(128) NULL,
+    old_data_length int4 NULL,
+    new_data_length int4 NULL,
+    old_data_precision int4 NULL,
+    new_data_precision int4 NULL,
+    old_data_scale int4 NULL,
+    new_data_scale int4 NULL,
+    old_col_comment varchar(2000) NULL,
+    new_col_comment varchar(2000) NULL,
+    change_at timestamp DEFAULT CURRENT_TIMESTAMP NULL
+);
+

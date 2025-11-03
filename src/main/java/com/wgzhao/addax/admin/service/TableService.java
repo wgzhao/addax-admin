@@ -41,6 +41,7 @@ public class TableService
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final TargetService targetService;
+    private final SystemFlagService systemFlagService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -287,6 +288,12 @@ public class TableService
      */
     public List<EtlTable> getRunnableTasks()
     {
+        // If schema refresh in progress, do not return runnable tasks to avoid starting new tasks
+        if (systemFlagService.isRefreshInProgress()) {
+            log.info("Schema refresh in progress, returning no runnable tasks");
+            return List.of();
+        }
+
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);
@@ -300,6 +307,11 @@ public class TableService
      */
     public List<EtlTable> getRunnableTasks(int sourceId)
     {
+        if (systemFlagService.isRefreshInProgress()) {
+            log.info("Schema refresh in progress, returning no runnable tasks for source {}", sourceId);
+            return List.of();
+        }
+
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);

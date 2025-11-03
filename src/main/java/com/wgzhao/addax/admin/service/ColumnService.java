@@ -36,6 +36,7 @@ public class ColumnService
     private final EtlColumnRepo etlColumnRepo;
     private final DictService dictService;
     private final EtlJourService jourService;
+    private final SchemaChangeLogService schemaChangeLogService;
 
     /**
      * 获取指定采集表的所有字段信息
@@ -114,6 +115,13 @@ public class ColumnService
                                 etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
                                 oc.getSourceType(), oc.getDataLength(), nvl(oc.getDataPrecision()), nvl(oc.getDataScale()),
                                 sc.getSourceType(), sc.getDataLength(), nvl(sc.getDataPrecision()), nvl(sc.getDataScale()));
+                        // 记录到 schema change log
+                        schemaChangeLogService.recordTypeChange(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
+                                oc.getSourceType(), sc.getSourceType(),
+                                oc.getDataLength(), sc.getDataLength(),
+                                oc.getDataPrecision(), sc.getDataPrecision(),
+                                oc.getDataScale(), sc.getDataScale(),
+                                oc.getColComment(), sc.getColComment());
                         // 同步更新字段类型映射
                         oc.setSourceType(sc.getSourceType());
                         oc.setDataLength(sc.getDataLength());
@@ -129,6 +137,9 @@ public class ColumnService
                 } else {
                     // 名称不一致 -> 视为源删除了 origin 当前位置的列
                     String placeholder = DELETED_PLACEHOLDER_PREFIX  + oc.getColumnName();
+                    // 记录删除到 schema change log
+                    schemaChangeLogService.recordDelete(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), oc.getColumnName(),
+                            oc.getSourceType(), oc.getDataLength(), oc.getDataPrecision(), oc.getDataScale(), oc.getColComment());
                     oc.setColumnName(placeholder);
                     // 这里要注意该表必须有主键，否则会变成新增记录
                     etlColumnRepo.save(oc);
@@ -142,6 +153,9 @@ public class ColumnService
             while (o < m) {
                 EtlColumn oc = existingColumns.get(o++);
                 if (!isDeletedPlaceholder(oc.getColumnName())) {
+                    // 记录删除
+                    schemaChangeLogService.recordDelete(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), oc.getColumnName(),
+                            oc.getSourceType(), oc.getDataLength(), oc.getDataPrecision(), oc.getDataScale(), oc.getColComment());
                     String placeholder = DELETED_PLACEHOLDER_PREFIX + oc.getColumnName();
                     oc.setColumnName(placeholder);
                     etlColumnRepo.save(oc);
@@ -159,6 +173,9 @@ public class ColumnService
                 // 只设置 columnId
                 nc.setColumnId(++nextId);
                 etlColumnRepo.save(nc);
+                // 记录新增
+                schemaChangeLogService.recordAdd(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
+                        sc.getSourceType(), sc.getDataLength(), sc.getDataPrecision(), sc.getDataScale(), sc.getColComment());
                 changed = true;
             }
         }

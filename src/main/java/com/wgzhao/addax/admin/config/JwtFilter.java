@@ -48,7 +48,11 @@ public class JwtFilter
         // validate token is expired or not
         if (jwtService.isTokenExpired(token)) {
             log.debug("token expired, username: {}", username);
-            filterChain.doFilter(request, response);
+            // return 401 with a JSON message indicating the token is expired
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            // simple JSON body; keep it small to avoid dependencies
+            response.getWriter().write("{\"message\":\"token 已过期\"}");
             return;
         }
 
