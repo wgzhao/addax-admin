@@ -189,7 +189,7 @@ public class JobContentService {
     // 根据数据源 ID 更新相关的任务
     @Async
     public void updateJobBySourceId(int sid) {
-        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)
+        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.DISABLED.getCode())
                 .forEach(this::updateJob);
     }
 

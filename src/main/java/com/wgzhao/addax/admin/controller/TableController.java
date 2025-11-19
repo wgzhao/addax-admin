@@ -12,6 +12,7 @@ import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
+import com.wgzhao.addax.admin.common.TableStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -267,6 +268,57 @@ public class TableController
         else {
             return ResponseEntity.ok(job);
         }
+    }
+
+    /**
+     * 批量修改采集表状态
+     * @param params 表状态更新参数，类似如下:
+     *  "tids":[32,34,33,36,35],"status":"N","retryCnt":3}
+     * @return 更新的表数量
+     */
+    @Operation(summary = "批量修改采集表状态")
+    @PatchMapping("/batch/status")
+    public ResponseEntity<Void> updateTableStatus(@RequestBody BatchTableStatusDto params)
+    {
+        tableService.updateTableStatuses(params);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 刷新单个表的关联资源
+     * @param tableId 采集表ID
+     * @return 任务结果
+     */
+    @Operation(summary = "刷新单个表的关联资源", description = "触发一个异步任务，用于更新指定表的元数据（字段）和采集任务文件")
+    @PostMapping("/{tableId}/actions/refresh")
+    public ResponseEntity<TaskResultDto> refreshTableResources(
+            @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    {
+        if (!etlTableRepo.existsById(tableId)) {
+            return ResponseEntity.status(400).body(TaskResultDto.failure("tableId 对应的采集表不存在", 0));
+        }
+        TaskResultDto taskResultDto = tableService.refreshTableResources(tableId);
+        if (taskResultDto.success()) {
+            return ResponseEntity.ok(taskResultDto);
+        }
+        else {
+            return ResponseEntity.internalServerError().body(taskResultDto);
+        }
+    }
+
+    /**
+     * 获取所有表状态的枚举
+     * @return 表状态列表
+     */
+    @Operation(summary = "获取所有表状态的枚举")
+    @GetMapping("/statuses")
+    public ResponseEntity<List<Map<String, String>>> getAllTableStatuses()
+    {
+        List<Map<String, String>> statuses = new ArrayList<>();
+        for (TableStatus status : TableStatus.values()) {
+            statuses.add(Map.of("code", status.getCode(), "description", status.getDescription()));
+        }
+        return ResponseEntity.ok(statuses);
     }
 }
 

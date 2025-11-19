@@ -7,6 +7,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -36,22 +37,22 @@ public interface EtlTableRepo
     @Modifying
     @Query(value = """
                     update EtlTable t
-                    set t.status = ?2, t.retryCnt = ?3
-                    where t.id in ?1
+                    set t.status = :status, t.retryCnt = :retryCnt
+                    where t.id in :ids
             """)
-    void batchUpdateStatusAndFlag(List<Long> ids, String status, int retryCnt);
+    void batchUpdateStatusAndFlag(@Param("ids") List<Long> ids, @Param("status") String status, @Param("retryCnt") int retryCnt);
 
     int countByStatusEquals(String n);
 
     @Query("""
         SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
-        WHERE t.status NOT IN ('Y','X','U') AND t.retryCnt > 0
+        WHERE t.status IN ('N', 'E') AND t.retryCnt > 0
         AND (
             :checkTime = false OR
             (s.startAt > :switchTime AND s.startAt < :currentTime)
         )
     """)
-    List<EtlTable> findRunnableTasks(LocalTime switchTime, LocalTime currentTime, boolean checkTime);
+    List<EtlTable> findRunnableTasks(@Param("switchTime") LocalTime switchTime, @Param("currentTime") LocalTime currentTime, @Param("checkTime") boolean checkTime);
 
     @Query("SELECT t FROM EtlTable t JOIN EtlSource s WHERE t.status <> 'X' AND s.enabled = true")
     List<EtlTable> findValidTables();

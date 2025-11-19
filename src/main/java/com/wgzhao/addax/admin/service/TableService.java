@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.TableEvent;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -42,6 +43,7 @@ public class TableService
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final TargetService targetService;
     private final SystemFlagService systemFlagService;
+    private final TableStateService tableStateService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -50,42 +52,39 @@ public class TableService
      */
     public TaskResultDto refreshTableResources(EtlTable table)
     {
-        boolean columnsUpdated = false;
         if (table == null) {
             return TaskResultDto.failure("Table is null", 0);
         }
+        // 开始处理，将状态置为 REFRESHING
+        tableStateService.transition(table.getId(), TableEvent.START_PROCESSING);
+
+        boolean columnsUpdated = false;
+
         VwEtlTableWithSource vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null);
         if (vwTable == null) {
             log.warn("Table view not found for tid {}", table.getId());
+            tableStateService.transition(table.getId(), TableEvent.PROCESS_FAIL);
             return TaskResultDto.failure("Table view not found for tid " + table.getId(), 0);
         }
         // 1. 更新列信息
         int retCode = columnService.updateTableColumns(vwTable);
 
         if (retCode == -1) {
-            setStatus(table, TableStatus.COLLECT_FAIL);
+            tableStateService.transition(table.getId(), TableEvent.PROCESS_FAIL);
             log.warn("Failed to update columns for table id {}", table.getId());
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
 
-        if (retCode == 0) {
-            // 检查表结构是否已经更新
-            if (Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA)) {
-                if (!targetService.createOrUpdateHiveTable(vwTable)) {
-                    setStatus(table, TableStatus.COLLECT_FAIL);
-                    log.warn("Failed to create or update Hive table for tid {}", table.getId());
-                    return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
-                }
-            }
-            setStatus(table, TableStatus.NOT_COLLECT);
-            //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
-        } else {
+        if (retCode > 0) {
             columnsUpdated = true;
+            // 标记结构已变更
+            tableStateService.transition(table.getId(), TableEvent.DETECT_SCHEMA_CHANGE);
         }
 
-        if (columnsUpdated) {
+        // 如果表结构有更新，或者之前是等待更新的状态，都需要尝试更新目标表（如Hive）
+        if (columnsUpdated || Objects.equals(vwTable.getStatus(), TableStatus.SCHEMA_CHANGED.getCode())) {
             if (!targetService.createOrUpdateHiveTable(vwTable)) {
-                setStatus(table, TableStatus.WAIT_SCHEMA);
+                tableStateService.transition(table.getId(), TableEvent.PROCESS_FAIL);
                 log.warn("Failed to create or update Hive table for tid {}", table.getId());
                 return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
             }
@@ -94,11 +93,12 @@ public class TableService
         // 2. 更新任务文件
         TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.success()) {
-            setStatus(table, TableStatus.NOT_COLLECT);
+            // 整个刷新流程成功，将状态置为 READY
+            tableStateService.transition(table.getId(), TableEvent.PROCESS_SUCCESS);
             return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }
         else {
-            setStatus(table, TableStatus.COLLECT_FAIL);
+            tableStateService.transition(table.getId(), TableEvent.PROCESS_FAIL);
             log.warn("Failed to update job content for tid {}", table.getId());
             return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), 0);
         }
@@ -191,7 +191,7 @@ public class TableService
      */
     public int findPendingTasks()
     {
-        return etlTableRepo.countByStatusEquals(TableStatus.NOT_COLLECT);
+        return etlTableRepo.countByStatusEquals(TableStatus.READY.getCode());
     }
 
     /**
@@ -200,7 +200,7 @@ public class TableService
      */
     public int findRunningTasks()
     {
-        return etlTableRepo.countByStatusEquals(TableStatus.COLLECTING);
+        return etlTableRepo.countByStatusEquals(TableStatus.COLLECTING.getCode());
     }
 
     /**
@@ -239,7 +239,7 @@ public class TableService
      */
     public void setRunning(EtlTable task)
     {
-        task.setStatus(TableStatus.COLLECTING);
+        tableStateService.transition(task.getId(), TableEvent.START_COLLECT);
         task.setStartTime(new Timestamp(System.currentTimeMillis()));
         etlTableRepo.save(task);
     }
@@ -250,7 +250,7 @@ public class TableService
      */
     public void setFinished(EtlTable task)
     {
-        task.setStatus(TableStatus.COLLECTED);
+        tableStateService.transition(task.getId(), TableEvent.COLLECT_SUCCESS);
         // 重试次数也重置
         task.setRetryCnt(3);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
@@ -263,7 +263,7 @@ public class TableService
      */
     public void setFailed(EtlTable task)
     {
-        task.setStatus(TableStatus.COLLECT_FAIL);
+        tableStateService.transition(task.getId(), TableEvent.COLLECT_FAIL);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
         task.setRetryCnt(max(task.getRetryCnt() - 1, 0));
         etlTableRepo.save(task);
@@ -276,8 +276,27 @@ public class TableService
      */
     public void setStatus(EtlTable table, String status)
     {
-        table.setStatus(status);
-        etlTableRepo.save(table);
+        // This method should be deprecated or used with caution.
+        // For now, delegate to state machine if possible, or perform direct update.
+        TableStatus newStatus = TableStatus.fromCode(status);
+        TableStatus oldStatus;
+        try {
+            oldStatus = TableStatus.fromCode(table.getStatus());
+        } catch (Exception e) {
+            // 兜底：当数据库中的 status 为 null 或未知时，视为 INITIAL
+            oldStatus = TableStatus.INITIAL;
+        }
+
+        // 使用状态机进行显式事件驱动的转换
+        if (newStatus == TableStatus.DISABLED) {
+            tableStateService.transition(table.getId(), TableEvent.DISABLE);
+        } else if (oldStatus == TableStatus.DISABLED && newStatus != TableStatus.DISABLED) {
+            tableStateService.transition(table.getId(), TableEvent.ENABLE);
+        } else {
+            // 其他场景按原逻辑直接更新（保留兼容性）
+            table.setStatus(status);
+            etlTableRepo.save(table);
+        }
     }
 
     // 找到所有可以运行的任务
@@ -345,7 +364,7 @@ public class TableService
      */
     public List<VwEtlTableWithSource> getValidTableViews()
     {
-        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot(TableStatus.EXCLUDE_COLLECT);
+        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot(TableStatus.DISABLED.getCode());
     }
 
     /**
