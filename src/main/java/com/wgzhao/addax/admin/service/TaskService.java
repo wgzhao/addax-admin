@@ -164,13 +164,19 @@ public class TaskService
 
     public List<Map<String, Object>> getAllTaskStatus()
     {
+        // 第一次采集时的估算默认耗时（秒），可按需调整或从配置读取
+        int defaultTakeSecs = 300;
         String sql = """
                 select
                 id,
                 target_db || '.' ||  target_table as tbl,
                 status,
                 to_char(start_time, 'yyyy-MM-dd HH24:MM:SS') as start_time,
-                round(case when status in ('E','W') then 0 else extract(epoch from now() - t.start_time ) / b.take_secs  end ,2) as progress
+                round(
+                case when status in ('E','W') then 0
+                    else  extract(epoch from now() - t.start_time) * 1.0 / COALESCE(b.take_secs, ?)
+                end ,2)
+                as progress
                 from etl_table t
                 left join
                 (
@@ -179,12 +185,11 @@ public class TaskService
                 row_number() over (partition by tid order by start_at desc) as rn
                 from etl_statistic
                 ) b
-                on t.id = b.tid
+                on t.id = b.tid and and t.status in ( 'R', 'W')
                 where rn = 1
-                and t.status in ( 'R', 'W')
                 order by id
                 """;
-        return jdbcTemplate.queryForList(sql);
+        return jdbcTemplate.queryForList(sql, defaultTakeSecs);
     }
 
     public String getLastErrorByTableId(long tableId) {

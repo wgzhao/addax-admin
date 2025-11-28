@@ -89,7 +89,7 @@ CREATE TABLE public.etl_statistic (
 	start_at timestamp NULL, -- 采集开始时间
 	end_at timestamp NULL, -- 采集结束时间
 	take_secs int4 NULL, -- 采集耗时
-	total_bytes int4 NULL, -- 采集的总字节数
+	total_bytes bigint NULL, -- 采集的总字节数
 	byte_speed int4 NULL, -- 采集速度  字节/秒
 	rec_speed int4 NULL, -- 采集速度 行/秒
 	total_recs int8 NULL, -- 采集的总行数
