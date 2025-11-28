@@ -21,7 +21,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import static java.lang.Math.max;
@@ -54,12 +53,22 @@ public class TableService
         if (table == null) {
             return TaskResultDto.failure("Table is null", 0);
         }
+        // Check for thread interruption early to allow cooperative cancellation
+        if (Thread.currentThread().isInterrupted()) {
+            log.info("refreshTableResources interrupted before starting for table {}", table.getId());
+            return TaskResultDto.failure("Refresh interrupted", 0);
+        }
         VwEtlTableWithSource vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null);
         if (vwTable == null) {
             log.warn("Table view not found for tid {}", table.getId());
             return TaskResultDto.failure("Table view not found for tid " + table.getId(), 0);
         }
         // 1. 更新列信息
+        // cooperative check before long-running column update
+        if (Thread.currentThread().isInterrupted()) {
+            log.info("refreshTableResources interrupted before updating columns for table {}", table.getId());
+            return TaskResultDto.failure("Refresh interrupted", 0);
+        }
         int retCode = columnService.updateTableColumns(vwTable);
 
         if (retCode == -1) {
@@ -71,6 +80,10 @@ public class TableService
         if (retCode == 0) {
             // 检查表结构是否已经更新
             if (Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA)) {
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("refreshTableResources interrupted before creating/updating hive table for {}", table.getId());
+                    return TaskResultDto.failure("Refresh interrupted", 0);
+                }
                 if (!targetService.createOrUpdateHiveTable(vwTable)) {
                     setStatus(table, TableStatus.COLLECT_FAIL);
                     log.warn("Failed to create or update Hive table for tid {}", table.getId());
@@ -84,6 +97,10 @@ public class TableService
         }
 
         if (columnsUpdated) {
+            if (Thread.currentThread().isInterrupted()) {
+                log.info("refreshTableResources interrupted before creating/updating hive table for {}", table.getId());
+                return TaskResultDto.failure("Refresh interrupted", 0);
+            }
             if (!targetService.createOrUpdateHiveTable(vwTable)) {
                 setStatus(table, TableStatus.WAIT_SCHEMA);
                 log.warn("Failed to create or update Hive table for tid {}", table.getId());
@@ -92,6 +109,10 @@ public class TableService
         }
 
         // 2. 更新任务文件
+        if (Thread.currentThread().isInterrupted()) {
+            log.info("refreshTableResources interrupted before updating job content for {}", table.getId());
+            return TaskResultDto.failure("Refresh interrupted", 0);
+        }
         TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.success()) {
             setStatus(table, TableStatus.NOT_COLLECT);
@@ -133,11 +154,21 @@ public class TableService
     {
         List<EtlTable> tables = etlTableRepo.findAll();
         for (EtlTable table : tables) {
+            // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
+            if (Thread.currentThread().isInterrupted()) {
+                log.info("refreshAllTableResources interrupted, stopping at table {}", table.getId());
+                break;
+            }
             try {
                 refreshTableResources(table);
             }
             catch (Exception e) {
                 log.error("Failed to refresh resources for table {}", table.getId(), e);
+            }
+            // also check system flag to decide whether to continue (if flag cleared externally)
+            if (!systemFlagService.isRefreshInProgress()) {
+                log.info("Global schema refresh flag cleared, aborting refreshAllTableResources at table {}", table.getId());
+                break;
             }
         }
     }

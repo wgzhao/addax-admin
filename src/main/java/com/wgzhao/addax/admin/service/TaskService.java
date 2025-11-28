@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 
 /**
  * 采集任务管理服务类，负责采集任务队列管理及相关业务操作
@@ -24,6 +25,9 @@ public class TaskService
     private final JdbcTemplate jdbcTemplate;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
+    private final SystemFlagService systemFlagService; // added dependency
+
+    // 超时时间（秒）将从 SystemConfigService 获取（sys_item 字典项: SCHEMA_REFRESH_TIMEOUT），默认 600 秒
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -66,9 +70,91 @@ public class TaskService
     {
         // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
         log.info("开始执行每日参数更新和任务重置...");
-        tableService.resetAllFlags();
-        // 重载系统配置
-        configService.loadConfig();
+
+        boolean locked = false;
+        ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "updateParams-worker");
+            t.setDaemon(true);
+            return t;
+        });
+
+        Future<?> future = null;
+        try {
+            locked = systemFlagService.beginRefresh("updateParams");
+            if (!locked) {
+                log.info("无法获取 schema refresh 锁（可能已有实例在执行刷新），跳过更新参数操作");
+                return;
+            }
+
+            log.info("已获取 schema refresh 锁：正在更新参数与刷新表结构，期间新任务将被拒绝或不被入队。已经在执行的任务不受影响。");
+
+            // Stop the queue monitor to prevent new queued tasks from being dispatched while we refresh.
+            // Note: running tasks are not interrupted.
+            queueManager.stopQueueMonitor();
+
+            // Submit refresh job and wait with timeout
+            future = executor.submit(() -> {
+                try {
+                    // Reset flags so tasks become eligible after refresh
+                    tableService.resetAllFlags();
+                    // Reload system configuration
+                    configService.loadConfig();
+
+                    // Refresh schema / resources for all tables. This checks source schema and updates target metadata when changed.
+                    tableService.refreshAllTableResources();
+                }
+                catch (Exception e) {
+                    // Let outer handler deal with logging
+                    throw new RuntimeException(e);
+                }
+            });
+
+            try {
+                int timeout = configService.getSchemaRefreshTimeoutSeconds();
+                future.get(timeout, TimeUnit.SECONDS);
+                log.info("参数更新与表结构刷新完成");
+            }
+            catch (TimeoutException te) {
+                int timeout = configService.getSchemaRefreshTimeoutSeconds();
+                log.error("参数更新/表结构刷新超时（>{}s），将中止刷新并释放锁", timeout);
+                // try to cancel the running task
+                future.cancel(true);
+            }
+            catch (ExecutionException ee) {
+                log.error("参数更新/表结构刷新发生异常", ee.getCause());
+            }
+            catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.warn("updateParams 被中断");
+            }
+        }
+        catch (Exception e) {
+            log.error("更新参数或刷新表结构过程中发生错误", e);
+        }
+        finally {
+            // Always restart the queue monitor and release the lock if we acquired it
+            try {
+                queueManager.startQueueMonitor();
+            }
+            catch (Exception e) {
+                log.warn("重启队列监控器时发生错误", e);
+            }
+
+            if (locked) {
+                try {
+                    systemFlagService.endRefresh("updateParams");
+                    log.info("已释放 schema refresh 锁，队列监控器已重启，采集任务恢复正常");
+                }
+                catch (Exception e) {
+                    log.warn("释放 schema refresh 锁时发生错误", e);
+                }
+            }
+
+            if (future != null && !future.isDone()) {
+                try { future.cancel(true); } catch (Exception ignored) {}
+            }
+            executor.shutdownNow();
+        }
     }
 
     /**
@@ -140,7 +226,7 @@ public class TaskService
         queueManager.scanAndEnqueueEtlTasks();
         Map<String, Object> status = queueManager.getQueueStatus();
 
-        return String.format("队列已重置，清空了 %d 个任务，重新扫描后队列大小: %d",
+        return String.format("队列已重置，清空了 %d 个任务，重新扫描后队列大小: %s",
                 clearedCount, status.get("queueSize"));
     }
 
@@ -151,10 +237,18 @@ public class TaskService
 
     // 提交采集任务到队列
     public boolean submitTask(EtlTable etlTable) {
+        if (systemFlagService.isRefreshInProgress()) {
+            log.info("当前正在更新参数/刷新表结构，暂时拒绝提交采集任务：{}", etlTable == null ? "null" : etlTable.getId());
+            return false;
+        }
         return queueManager.addTaskToQueue(etlTable);
     }
 
     public TaskResultDto submitTask(long tableId) {
+        if (systemFlagService.isRefreshInProgress()) {
+            log.info("当前正在更新参数/刷新表结构，暂时拒绝提交采集任务：tableId={}", tableId);
+            return TaskResultDto.failure("正在更新参数，暂时无法提交任务", 0);
+        }
         if (queueManager.addTaskToQueue(tableId) ) {
             return TaskResultDto.success("任务已提交到队列", 0);
         } else {

@@ -55,6 +55,10 @@ public class SystemConfigService
         tmp.put("QUEUE_SIZE", dictService.getQueueSize());
         tmp.put("ADDAX_HOME", dictService.getAddaxHome());
 
+        // schema refresh timeout (seconds) - optional config item in sys_item dict code 1000
+        Integer schemaTimeout = dictService.getItemValue(1000, "SCHEMA_REFRESH_TIMEOUT", Integer.class);
+        tmp.put("SCHEMA_REFRESH_TIMEOUT", schemaTimeout == null ? 600 : schemaTimeout);
+
         // Atomically replace the contents of the ConcurrentHashMap to allow safe reloads
         configCache.clear();
         configCache.putAll(tmp);
@@ -107,6 +111,16 @@ public class SystemConfigService
     public String getAddaxHome()
     {
         return (String) configCache.get("ADDAX_HOME");
+    }
+
+    /**
+     * 获取 schema 刷新超时时间（秒），默认为 600 秒
+     * @return 超时时间（秒）
+     */
+    public int getSchemaRefreshTimeoutSeconds() {
+        Object v = configCache.get("SCHEMA_REFRESH_TIMEOUT");
+        if (v instanceof Integer) return (Integer) v;
+        try { return Integer.parseInt(String.valueOf(v)); } catch (Exception e) { return 600; }
     }
 
 }

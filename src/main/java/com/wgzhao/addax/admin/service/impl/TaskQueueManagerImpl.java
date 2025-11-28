@@ -67,6 +67,9 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     @Autowired private JobContentService jobContentService;
     @Autowired private TargetService targetService;
 
+    @Autowired
+    private SystemFlagService systemFlagService; // to prevent enqueuing during schema refresh
+
     // 队列监控标志
     private volatile boolean queueMonitorRunning = false;
 
@@ -327,7 +330,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
         log.debug("采集任务 {} 的Job已写入临时文件: {}", taskId, tempFile.getAbsolutePath());
         // 设定一个日志文件名的名称
         String logName = String.format("addax_%s_%d.log", taskId, System.currentTimeMillis());
-        // 不通过 shell 调用，直接以命令和参数列表的形式执行，避免 shell 解析与注入风险
+        // 不通过 shell 调用，直接以命令和参数的形式执行，避免 shell 解析与注入风险
         List<String> cmdList = List.of(
                 configService.getAddaxHome() + "/bin/addax.sh",
                 "-p",
@@ -383,6 +386,10 @@ public class TaskQueueManagerImpl implements TaskQueueManager
 
     public boolean addTaskToQueue(EtlTable task)
     {
+        if (systemFlagService != null && systemFlagService.isRefreshInProgress()) {
+            log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", task == null ? "null" : task.getId());
+            return false;
+        }
         boolean added = etlTaskQueue.offer(task);
         if (added) {
             log.info("手动添加任务到队列: {}", task.getId());

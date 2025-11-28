@@ -54,6 +54,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     @Autowired private SystemConfigService configService;
     @Autowired private JobContentService jobContentService;
     @Autowired private TargetService targetService;
+    @Autowired private SystemFlagService systemFlagService;
     @Autowired private EtlJobQueueService jobQueueService;
     @Autowired private JdbcTemplate jdbcTemplate;
 
@@ -410,6 +411,10 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
         scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
     }
     public boolean addTaskToQueue(EtlTable etlTable) {
+        if (systemFlagService != null && systemFlagService.isRefreshInProgress()) {
+            log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable == null ? "null" : etlTable.getId());
+            return false;
+        }
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;
     }
