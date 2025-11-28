@@ -19,6 +19,10 @@ ENV_FILE="$CONFIG_DIR/env.sh"
 PID_FILE="$APP_HOME/logs/${APP_NAME}.pid"
 LOG_FILE="$APP_HOME/logs/${APP_NAME}.log"
 
+# How long to wait (seconds) for graceful shutdown before killing
+STOP_TIMEOUT=30
+KILL_WAIT=5
+
 [ -f "$ENV_FILE" ] && . "$ENV_FILE"
 
 JAVA_OPTS="-Dspring.config.location=${CONFIG_DIR}/application.properties -Dlogging.file.path=${LOG_DIR} -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
@@ -81,11 +85,80 @@ start() {
 
 stop() {
     echo "Stopping $APP_NAME..."
-    if [ -f "$PID_FILE" ]; then
-        kill $(cat "$PID_FILE") && rm -f "$PID_FILE"
-        echo "$APP_NAME stopped."
+    if [ ! -f "$PID_FILE" ]; then
+        echo "$APP_NAME is not running (no PID file)."
+        return 0
+    fi
+
+    pid=$(cat "$PID_FILE" 2>/dev/null)
+    if [ -z "$pid" ]; then
+        echo "Empty PID file, removing."
+        rm -f "$PID_FILE"
+        return 0
+    fi
+
+    # Ensure PID is numeric
+    case "$pid" in
+        ''|*[!0-9]*)
+            echo "Invalid PID '$pid' in $PID_FILE, removing."
+            rm -f "$PID_FILE"
+            return 0
+            ;;
+    esac
+
+    # If process already gone
+    if ! kill -0 "$pid" 2>/dev/null; then
+        echo "Process $pid not running, removing PID file."
+        rm -f "$PID_FILE"
+        return 0
+    fi
+
+    echo "Sending TERM to $pid..."
+    kill "$pid" 2>/dev/null
+
+    # Wait for graceful shutdown
+    echo -n "Waiting up to $STOP_TIMEOUT seconds for process to exit"
+    for i in $(seq 1 $STOP_TIMEOUT); do
+        echo -n "."
+        sleep 1
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo " Done"
+            rm -f "$PID_FILE"
+            echo "$APP_NAME stopped."
+            return 0
+        fi
+    done
+    echo " Timeout"
+
+    # If still running, escalate
+    if kill -0 "$pid" 2>/dev/null; then
+        echo "Process still alive after $STOP_TIMEOUT seconds, sending KILL..."
+        kill -9 "$pid" 2>/dev/null
+
+        # Wait a little after KILL
+        echo -n "Waiting $KILL_WAIT seconds after KILL"
+        for i in $(seq 1 $KILL_WAIT); do
+            echo -n "."
+            sleep 1
+            if ! kill -0 "$pid" 2>/dev/null; then
+                echo " Done"
+                rm -f "$PID_FILE"
+                echo "$APP_NAME force-stopped."
+                return 0
+            fi
+        done
+    fi
+
+    # Final check
+    if kill -0 "$pid" 2>/dev/null; then
+        echo ""
+        echo "Failed to stop process $pid."
+        return 1
     else
-        echo "$APP_NAME is not running."
+        echo ""
+        rm -f "$PID_FILE"
+        echo "$APP_NAME stopped."
+        return 0
     fi
 }
 
