@@ -180,13 +180,13 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES(500
 }', 'HDFS写入模板');
 
 
-CREATE OR REPLACE FUNCTION insert_dates_for_year(p_year INTEGER, p_dict_code INTEGER DEFAULT 1021)
+CREATE OR REPLACE FUNCTION public.insert_dates_for_year(p_year INTEGER, p_dict_code INTEGER DEFAULT 1021)
 RETURNS VOID AS $$
 DECLARE
     v_date DATE;
 BEGIN
     FOR v_date IN
-        SELECt DISTINCT to_char(date_trunc('day', generate_series(p_year || '-01-01'::date, p_year || '-12-31'::date, '1 day')), 'YYYYmmdd')
+        SELECT DISTINCT to_char(generate_series(make_date(p_year,1,1), make_date(p_year,12,31), '1 day'::interval), 'YYYYmmdd')
         -- SELECT DISTINCT date_trunc('day', generate_series('2025-01-01'::date, '2025-12-31'::date, '1 day'))
     LOOP
         INSERT INTO public.sys_item (dict_code, item_key, item_value, remark)
@@ -195,4 +195,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-insert_dates_for_year(extract(year from now()), 1021);
+select public.insert_dates_for_year(extract(year from now())::int, 1021);

@@ -87,7 +87,7 @@ mvn clean package
 java -jar target/addax-admin-0.0.1-SNAPSHOT.jar
 ```
 
-应用将在 `http://localhost:9090/api/v1` 启动。
+应用将在 `http://localhost:50601/api/v1` 启动。
 
 ### Docker 部署
 
@@ -96,7 +96,7 @@ java -jar target/addax-admin-0.0.1-SNAPSHOT.jar
 docker build -t addax-admin .
 
 # 运行容器
-docker run -p 9090:9090 \
+docker run -p 50601:50601 \
   -e SPRING_PROFILES_ACTIVE=prod \
   -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/addax \
   -e SPRING_DATASOURCE_USERNAME=username \
