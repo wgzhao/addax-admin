@@ -279,7 +279,7 @@ public class TaskService
                 row_number() over (partition by tid order by start_at desc) as rn
                 from etl_statistic
                 ) b
-                on t.id = b.tid and and t.status in ( 'R', 'W')
+                on t.id = b.tid and t.status in ( 'R', 'W')
                 where rn = 1
                 order by id
                 """;

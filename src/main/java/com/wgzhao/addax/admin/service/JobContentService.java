@@ -81,7 +81,7 @@ public class JobContentService {
         RdbmsReaderTemplate readerTemplate = new RdbmsReaderTemplate();
         readerTemplate.setName(kind + "reader");
         readerTemplate.setUsername(etlTable.getUsername());
-        readerTemplate.setPassword(etlTable.getPass());
+        readerTemplate.setPassword(etlTable.getPass() == null ? "" : etlTable.getPass());
         readerTemplate.setJdbcUrl(etlTable.getUrl());
         readerTemplate.setWhere(etlTable.getFilter());
         // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)

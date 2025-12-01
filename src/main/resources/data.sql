@@ -22,6 +22,8 @@ INSERT INTO public.sys_item (dict_code, item_key, item_value, remark) VALUES
 (1000, 'HIVE_CLI', 'hive', 'HIVE 命令行'),
 (1000, 'ADDAX', '/opt/app/addax', 'Addax程序目录'),
 (1000, 'RUN_LOG', '/var/tmp/log', '运行日志目录');
+(1000, 'HIVE_SERVER2', '{}', 'HIVE SERVER2 连接配置'),
+(1000, 'HDFS_CONFIG', '{}', 'HDFS 连接配置');
 
 insert into public.sys_item(dict_code, item_key, item_value, remark) values
 (1000, 'HDFS_CONFIG', '{

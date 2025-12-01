@@ -207,4 +207,8 @@ public class SourceService
         }
         return result;
     }
+
+    public List<EtlSource> findEnabledSources() {
+        return etlSourceRepo.findByEnabled(true);
+    }
 }

@@ -55,6 +55,18 @@ public class SourceController
     }
 
     /**
+     * 查询有效的数据源
+     *
+     * @return 有效的数据源列表
+     */
+    @Operation(summary = "查询有效的数据源", description = "返回所有有效的数据源列表")
+    @GetMapping("/enabled")
+    public ResponseEntity<List<EtlSource>> listEnabled()
+    {
+        return ResponseEntity.ok(sourceService.findEnabledSources());
+    }
+
+    /**
      * 新建数据源
      *
      * @param etlSource 数据源对象
