@@ -28,3 +28,5 @@ archive/
 **/.DS_Store
 backend/jdbc-drivers/
 .env
+/frontend/.local
+/frontend/.env.local

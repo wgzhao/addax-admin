@@ -72,8 +72,6 @@ export default defineConfig(({ mode }) => {
       },
       extensions: [
         ".json",
-        ".jsx",
-        ".mts",
         ".ts",
         ".vue",
         ".json"

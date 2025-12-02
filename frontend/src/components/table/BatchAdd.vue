@@ -4,7 +4,10 @@
     <v-card-text>
       <v-row>
         <v-col cols="3">
-          <v-select :items="sourceSystemList" item-title="name" v-model="selectedSourceId" item-value="id"
+          <v-select :items="sourceSystemList"             item-title="name"
+            :item-props="item => ({
+              title: `${item.name}(${item.code})`,
+            })" v-model="selectedSourceId" item-value="id"
             density="compact" return-object single-line>
             <template #prepend>
               <span class="me-2">选择采集源</span>
