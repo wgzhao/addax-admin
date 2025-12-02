@@ -1,9 +1,5 @@
 HELP.md
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
+backend/target/
 ### STS ###
 .apt_generated
 .classpath
@@ -19,21 +15,16 @@ target/
 *.iml
 *.ipr
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
+frontend/dist/
+frontend/node_modules
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+frontend/build/
 
 ### VS Code ###
 .vscode/
 *.log
 archive/
-sp_alone.sh
 **/.DS_Store
-jdbc-drivers/
+backend/jdbc-drivers/
 .env

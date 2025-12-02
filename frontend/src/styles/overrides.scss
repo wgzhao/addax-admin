@@ -1,0 +1,18 @@
+html {
+    line-height: 1.6; /* 默认行高 */
+  }
+  
+  body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  }
+
+// 表格选中行样式
+/* 取消 :has 以减少复杂选择器带来的回流成本，改为在行上添加 selected-row 类 */
+.selected-row {
+  background-color: rgba(105, 108, 255, 0.08) !important;
+  border-left: 3px solid #696CFF !important;
+}
+
+.v-theme--dark .selected-row {
+  background-color: rgba(105, 108, 255, 0.15) !important;
+}

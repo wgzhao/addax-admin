@@ -1,0 +1,23 @@
+/**
+ * src/styles/settings.scss
+ *
+ * Configures SASS variables and Vuetify overwrites
+ */
+
+// https://vuetifyjs.com/features/sass-variables/
+@use 'vuetify/settings' with (
+  // 自定义全局字体
+  $body-font-family: ('PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif),
+  $heading-font-family: ('PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif),
+
+  // 根字体大小
+  $font-size-root: 16px,
+
+  // 全局圆角
+  $border-radius-root: 4px,
+
+  // 阴影透明度
+  $shadow-key-umbra-opacity: 0.1,
+  $shadow-key-penumbra-opacity: 0.06,
+  $shadow-key-ambient-opacity: 0.03,
+);

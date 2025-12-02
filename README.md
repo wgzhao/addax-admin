@@ -2,133 +2,152 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.2-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-green.svg)](https://spring.io/projects/spring-boot)
+[![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg)](https://vitejs.dev/)
 
-Addax Admin 是一个现代化的 ETL 管理后端服务，为 [Addax](https://github.com/wgzhao/addax) ETL 工具提供完整的 Web 管理界面支持。
+Addax Admin 是一个现代化的 ETL 管理解决方案的单仓(monorepo)，包含后端服务与前端界面：
+- `backend/`：Spring Boot 3 + Java 21 的后端 API 与调度服务
+- `frontend/`：Vue 3 + Vite + Vuetify 的 Web 管理界面
 
 ## 📋 项目概述
 
-这是一个完整的 ETL 管理解决方案的后端服务，整个解决方案由三个项目组成：
-
+整个解决方案由三个项目组成：
 - **[Addax](https://github.com/wgzhao/addax)** - ETL 核心程序
-- **[Addax Admin](https://github.com/wgzhao/addax-admin)** - ETL 管理后端服务
-- **[Addax UI](https://github.com/wgzhao/addax-ui)** - ETL 管理前端界面
+- **Addax Admin (本仓库)** - 后端服务 + 前端界面
+- （历史上前端为独立仓库，现在已合并到本仓库的 `frontend/` 目录）
 
 ## ✨ 主要特性
 
-- 🚀 **现代化架构** - 基于 Spring Boot 3.5.6 和 Java 21
-- 🔐 **安全认证** - 集成 JWT 令牌认证和 Spring Security
-- 💾 **多数据库支持** - 支持 PostgreSQL、Oracle、SQL Server 等
-- 📊 **RESTful API** - 提供完整的 REST API 接口
-- 🔧 **灵活配置** - 支持多环境配置和动态参数
-- 📈 **监控管理** - ETL 作业监控和状态管理
-- 🎯 **高性能** - Redis 缓存支持，提升响应速度
+- 🚀 现代化架构：Spring Boot 3.5.6 + Vue 3
+- 🔐 安全认证：JWT + Spring Security
+- 💾 多数据库支持：PostgreSQL（推荐）、Oracle、SQL Server 等
+- 📊 完整 REST API：内置 OpenAPI/Swagger 文档
+- 🔧 灵活配置：多环境配置、动态参数
+- 📈 监控与管理：ETL 作业状态监控与日志
+- 🖥️ 友好 UI：基于 Vuetify 的响应式管理界面
 
 ## 🛠 技术栈
 
-### 核心框架
-- **Spring Boot 3.5.6** - 应用框架
-- **Spring Security** - 安全框架
-- **Spring Data JPA** - 数据访问层
-- **Hibernate 6.6.11** - ORM 框架
+- 后端
+  - Spring Boot 3.5.6、Spring Security、Spring Data JPA、Hibernate 6.6.11
+  - PostgreSQL 驱动、Lombok、Hutool、Apache Commons
+- 前端
+  - Vue 3、TypeScript、Vite、Vuetify 3、Pinia、Vue Router、Axios、Chart.js
 
-### 数据库支持
-- **PostgreSQL** - 主要数据库
-- **Redis** - 缓存和会话存储
+## 📦 目录结构
 
-### 工具库
-- **Lombok** - 代码生成工具
-- **HuTool** - Java 工具包
-- **Apache Commons Lang3** - 通用工具库
-- **JWT** - JSON Web Token 认证
-
-## 🚀 快速开始
-
-### 环境要求
-
-- **Java 21** 或更高版本
-- **Maven 3.8+**
-- **PostgreSQL 15+** (推荐)
-- **Redis 6.0+** (可选，用于缓存)
-
-### 安装步骤
-
-1. **克隆项目**
-```bash
-git clone https://github.com/wgzhao/addax-admin.git
-cd addax-admin
+```
+addax-admin/
+├── backend/                # 后端（Spring Boot）
+│   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   ├── schema.sql
+│   │   └── data.sql
+│   └── pom.xml
+├── frontend/               # 前端（Vue 3 + Vite）
+│   ├── src/
+│   ├── public/
+│   ├── vite.config.ts
+│   └── package.json
+├── scripts/                # 可选脚本
+└── README.md
 ```
 
-2. **配置数据库**
-   
-   创建 PostgreSQL 数据库并执行初始化脚本：
+## 🚀 快速开始（开发环境）
+
+### 1) 后端 Backend
+
+前置要求：Java 21、Maven 3.8+、PostgreSQL 15+（推荐）
+
+- 初始化数据库（PostgreSQL）
 ```bash
-psql -U postgres -d your_database -f src/main/resources/schema.sql
-psql -U postgres -d your_database -f src/main/resources/data.sql
+# 在 PostgreSQL 中创建数据库并导入初始化脚本
+psql -U postgres -d your_database -f backend/src/main/resources/schema.sql
+psql -U postgres -d your_database -f backend/src/main/resources/data.sql
 ```
 
-3. **配置应用**
-   
-   编辑 `src/main/resources/application-dev.properties`：
-```properties
-# 数据库配置
-spring.datasource.url=jdbc:postgresql://localhost:5432/addax_admin
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+- 配置应用（开发环境默认使用 `application.properties` 中的 dev 配置）
+  - 默认端口：`50601`
+  - 上下文路径：`/api/v1`
+  - 也可通过环境变量覆盖：`DB_HOST/DB_PORT/DB_NAME/DB_USERNAME/DB_PASSWORD`
 
-# Redis 配置 (可选)
-spring.redis.host=localhost
-spring.redis.port=6379
-```
-
-4. **构建并运行**
+- 启动后端
 ```bash
+cd backend
 mvn clean package
-java -jar target/addax-admin-0.0.1-SNAPSHOT.jar
+java -jar target/addax-admin-1.0.0-SNAPSHOT.jar
+# 服务地址：http://localhost:50601/api/v1
+# OpenAPI 文档：http://localhost:50601/api/v1/swagger-ui/index.html
 ```
 
-应用将在 `http://localhost:50601/api/v1` 启动。
+### 2) 前端 Frontend
 
-### Docker 部署
+前置要求：Node.js ≥ 18（建议 18/20/22 LTS），npm 或 yarn
 
+- 安装依赖
 ```bash
-# 构建镜像
-docker build -t addax-admin .
-
-# 运行容器
-docker run -p 50601:50601 \
-  -e SPRING_PROFILES_ACTIVE=prod \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/addax \
-  -e SPRING_DATASOURCE_USERNAME=username \
-  -e SPRING_DATASOURCE_PASSWORD=password \
-  addax-admin
+cd frontend
+npm install
+# 或
+yarn install
 ```
+
+- 配置本地代理（创建 `frontend/.env.local`）
+```bash
+# 代理到后端 API（与后端默认配置一致）
+VITE_API_BASE_URL=/api/v1
+VITE_API_HOST=http://localhost:50601
+```
+
+- 启动前端（开发模式）
+```bash
+npm run dev
+# 或
+yarn dev
+# 访问：http://localhost:3030
+```
+
+## 🏭 生产构建与部署
+
+- 构建后端
+```bash
+cd backend
+mvn clean package
+# 产物：backend/target/addax-admin-1.0.0-SNAPSHOT.jar
+```
+
+- 构建前端
+```bash
+cd frontend
+npm run build
+# 产物：frontend/dist
+```
+
+- 部署建议
+  - 后端：以独立服务方式部署（Java 21 运行时或容器）
+  - 前端：将 `frontend/dist` 交由 Nginx/静态文件服务器托管
+  - 通过 Nginx/网关将 `/api/`（或 `/api/v1`）反向代理到后端
 
 ## 🔧 配置说明
 
-### 环境配置
+- 多环境配置
+  - 后端：`backend/src/main/resources/application.properties`（可扩展 `-dev`/`-prod`）
+  - 前端：`.env.*` 文件（`VITE_API_BASE_URL`、`VITE_API_HOST`）
+- 日志与安全
+  - 后端默认日志目录为 `./logs`（可通过 `LOG_DIR` 修改）
+  - 认证使用 JWT，过期时间与密钥在后端配置中设置
 
-项目支持多环境配置：
+## 📚 文档与 API
 
-- `application.properties` - 基础配置
-- `application-dev.properties` - 开发环境
-- `application-prod.properties` - 生产环境
-
-### 数据库函数和存储过程
-
-项目包含针对不同数据库的函数和存储过程：
-
-- `src/main/resources/functions/` - 数据库函数
-- `src/main/resources/procedures/` - 存储过程
-
-支持 Oracle 和 PostgreSQL 两种数据库。
+- OpenAPI/Swagger UI：`http://localhost:50601/api/v1/swagger-ui/index.html`
+- 前端项目文档：见 `frontend/README.md`
 
 ## 📝 许可证
 
-本项目采用 [Apache License 2.0](LICENSE) 许可证。
-
+本项目采用 [Apache License 2.0](LICENSE) 许可协议。
 
 ## 🙏 致谢
 
-感谢 [IntelliJ IDEA](https://jetbrains.com) 为本项目提供开发工具的支持！
-
+- 感谢 [IntelliJ IDEA](https://jetbrains.com) 提供开发工具支持
+- 感谢所有参与贡献的开发者
