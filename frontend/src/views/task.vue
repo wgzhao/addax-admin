@@ -59,7 +59,6 @@
   import taskService from '@/service/task-service'
   import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
   import type { DataTableHeader } from 'vuetify'
-  import taskCenter from '@/stores/task-center'
 
   // 如果需要外部控制间隔，可以使用 prop；页面通常不传，默认 3 秒
   const props = defineProps<{ refreshInterval?: number }>()
@@ -208,8 +207,6 @@
     return 0
   }
 
-  // 任务中心 Store 的任务列表（保留，如果需要在页面其他位置展示）
-  const tasks = computed(() => taskCenter.tasks.value)
 </script>
 
 <route lang="json">

@@ -1,6 +1,5 @@
 // 采集监控接口
 import Requests from '@/utils/requests'
-import { ref } from 'process'
 
 class MonitorService {
   prefix = '/monitor'

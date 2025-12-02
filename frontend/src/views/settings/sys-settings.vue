@@ -136,11 +136,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { notify } from '@/stores/notifier'
 import settingsService, {
-    type HiveServer2Config,
-    type SystemConfig
+    type HiveServer2Config
 } from '@/service/settings-service'
 
 // 表单引用和状态

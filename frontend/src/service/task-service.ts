@@ -1,8 +1,3 @@
-interface TaskStatusResponse {
-  status: string
-  progress: string
-  result?: string
-}
 import Requests from '@/utils/requests'
 
 interface ApiResponse {

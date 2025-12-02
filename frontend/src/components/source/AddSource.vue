@@ -130,8 +130,6 @@ const formatTimeInput = (value: string) => {
   return value;
 };
 
-const codeError = ref<string[]>([]);
-
 const rules = {
   required: (value: string) => !!value || '必填项',
   codeExistsRule: async (value: string) => {
@@ -142,32 +140,12 @@ const rules = {
       const exists = await sourceService.checkCode(value);
       return !exists || '编号已存在';
     } catch (error) {
-      notify('检查编号失败: ' + (error.message || error), 'error');
+      notify('检查编号失败: ' + ((error as Error).message || error), 'error');
       return '编号校验失败，请稍后重试';
     }
   }
 };
 
-const codeExistsRule = [
-  value => {
-    if (codeError.value.length > 0) {
-      return sourceService.checkCode(sourceItem.value.code)
-        .then(resp => {
-          if (resp) {
-            return '编号已存在';
-          } else {
-            return true;
-          }
-        })
-        .catch(error => {
-          // 在这种情况下，我们可能不希望在字段上显示错误，
-          // 而是使用 notify，因为这可能是一个网络或服务器问题
-          return true;
-        });
-    }
-    return true;
-  }
-]
 
 const save = async () => {
   if (props.mode === "add" || props.mode === "edit") {

@@ -1,5 +1,4 @@
 import taskService from '@/service/task-service'
-import { ref } from 'vue'
 import taskCenter from './task-center'
 
 // 轮询进行中任务状态
@@ -13,12 +12,18 @@ export function startTaskPolling(interval = 5000) {
     const tasks = taskCenter.tasks.value.filter((t) => t.status === '进行中')
     for (const task of tasks) {
       try {
-        // 这里假设主任务id即为后端任务id
-        const res = await taskService.getAllTaskStatus(task.id)
-        if (res.status && res.status !== task.status) {
-          taskCenter.updateTaskStatus(task.id, res.status, res.progress, res.result)
-        } else if (res.progress) {
-          taskCenter.updateTaskStatus(task.id, task.status, res.progress, res.result)
+        // 从后端获取所有任务状态后匹配当前任务
+        const list = await taskService.getAllTaskStatus()
+        const found = Array.isArray(list)
+          ? (list as Array<Record<string, any>>).find((it) => String(it.id) === String(task.id))
+          : undefined
+        if (found) {
+          const status = found.status ?? task.status
+          const progress = found.progress ?? task.progress
+          const result = found.result
+          if (status !== task.status || progress !== task.progress) {
+            taskCenter.updateTaskStatus(task.id, status, progress, result)
+          }
         }
       } catch (e) {
         // 可选：处理异常

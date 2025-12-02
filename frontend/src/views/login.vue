@@ -87,14 +87,8 @@
   })
 
   const loading = ref<boolean>(false)
-  const sessionExpired = ref<boolean>(false)
   const authStore = useAuthStore()
 
-  function onSubmit() {
-    if (!form.value) return
-    loading.value = true
-    setTimeout(() => (loading.value = false), 2000)
-  }
   function required(v: string): boolean | string {
     return !!v || 'Field is required'
   }

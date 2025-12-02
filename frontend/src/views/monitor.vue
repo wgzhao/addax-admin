@@ -23,7 +23,7 @@
   import { ref, onMounted } from 'vue'
   import type { DataTableHeader } from 'vuetify'
   import { monitorService } from '@/service/monitor-service'
-  import { SortItem, SortProps } from 'vuetify/lib/components/VDataTable/composables/sort.mjs'
+  import { SortItem } from 'vuetify/lib/components/VDataTable/composables/sort.mjs'
 
   const data = ref({
     accomplishList: [] as Array<Map<string, any>>,

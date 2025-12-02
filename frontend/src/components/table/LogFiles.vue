@@ -5,7 +5,7 @@
     <v-col class="text-h6">日志条目</v-col>
     <v-col cols="12" sm="auto">
       <div class="d-flex flex-wrap ga-2">
-        <v-chip v-for="(item, index) in logList" :key="item.id"
+        <v-chip v-for="item in logList" :key="item.id"
           :color="selectedLogId === item.id ? 'primary' : 'default'"
           :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
           @click="getContent(item.id)">
@@ -58,7 +58,7 @@
   </v-row>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted } from "vue";
 import logService from "@/service/log-service";
 
 // const dialog = defineModel({ required: true, default: true });
@@ -68,11 +68,6 @@ const fContent = ref();
 
 const selectedLogId = ref<number | null>(null);
 const loading = ref(false);
-
-
-const closeDialog = () => {
-  fContent.value = null;
-};
 
 const logList = ref([]);
 

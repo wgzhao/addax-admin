@@ -1,5 +1,5 @@
 import Requests from '@/utils/requests'
-import type { EtlTable, VEtlWithSource, EtlColumn, EtlStatistic, EtlSource } from '@/types/database'
+import type { EtlTable, VEtlWithSource, EtlColumn, EtlStatistic } from '@/types/database'
 import type { Page } from '@/types'
 
 class TableService {

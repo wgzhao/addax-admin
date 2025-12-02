@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import * as EnumService from '@/service/enum-service'
+import EnumService from '@/service/enum-service'
 
 export const useDictStore = defineStore('dict', () => {
   const jourKind = ref<Array<{ code: string | number; desc: string; name?: string }>>([])

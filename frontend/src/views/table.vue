@@ -317,37 +317,6 @@
     return statusColorMap[status] || 'grey'
   }
 
-  const selectOptions = [
-    {
-      text: '采集表详情',
-      value: 'TableDetail'
-    },
-    {
-      text: '字段对比',
-      value: 'FieldsCompare'
-    },
-    {
-      text: '命令列表',
-      value: 'CmdList'
-    },
-    {
-      text: '使用场景',
-      value: 'TableUsed'
-    },
-    {
-      text: '采集结果',
-      value: 'AddaxResult'
-    },
-    {
-      text: '采集相关日志',
-      value: 'LogFiles'
-    },
-    {
-      text: '手工采集',
-      value: 'doEtl'
-    }
-  ]
-
   // 使用公共的批量更新状态选项
   const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
 
@@ -381,16 +350,6 @@
   ]
   // 已使用全局 Notifier 替换旧的 alertMsg
 
-  const showModal = ref({
-    TableDetail: false,
-    FieldsCompare: false,
-    CmdList: false,
-    AddaxResult: false,
-    BatchAdd: false,
-    LogFiles1: false,
-    LogFiles2: false
-  })
-
   const errorMsgMap = ref<Record<number, string>>({})
 
   function fetchErrorMsg(tid: number) {
@@ -402,7 +361,8 @@
         errorMsgMap.value[tid] = res || '无详细错误信息'
       })
       .catch((err) => {
-        errorMsgMap.value[tid] = '获取错误信息失败: ' + (err?.message || err)
+        const msg = err instanceof Error ? err.message : String(err)
+        errorMsgMap.value[tid] = '获取错误信息失败: ' + msg
       })
   }
   // 打开对话框并加载相应的组件
@@ -412,7 +372,6 @@
     dialogVisible.value = true // 打开对话框
   }
 
-  // 关闭对话框
   // 关闭对话框
   function closeDialog() {
     dialogVisible.value = false
@@ -501,7 +460,8 @@
         })
         notify('采集任务已提交，可在任务中心查看进展', 'success')
       } catch (err) {
-        notify('采集任务提交失败: ' + (err?.message || err), 'error')
+        const msg = err instanceof Error ? err.message : String(err)
+        notify('采集任务提交失败: ' + msg, 'error')
       }
       return
     }
@@ -518,10 +478,12 @@
           notify('采集任务已提交，可在任务中心查看进展', 'success')
         })
         .catch((err) => {
-          notify('批量采集任务提交失败: ' + (err?.message || err), 'error')
+          const msg = err instanceof Error ? err.message : String(err)
+          notify('批量采集任务提交失败: ' + msg, 'error')
         })
     } catch (err) {
-      notify('批量采集任务提交失败: ' + (err?.message || err), 'error')
+      const msg = err instanceof Error ? err.message : String(err)
+      notify('批量采集任务提交失败: ' + msg, 'error')
     }
   }
 
@@ -532,7 +494,7 @@
     }
   }
 
-  /**
+/**
 *
 * @param payload
 * const payload = {
@@ -573,7 +535,8 @@ retryCnt: retryCnt.value
         loading.value = false
       })
       .catch((error) => {
-        notify(`加载失败: ${error}`, 'error')
+        const msg = error instanceof Error ? error.message : String(error)
+        notify(`加载失败: ${msg}`, 'error')
         loading.value = false
       })
   }
@@ -587,16 +550,6 @@ retryCnt: retryCnt.value
 
   const searchTable = debounce(_searchCore, 400)
 
-  function updateSingleTable(tid: number) {
-    tableService
-      .updateSingleTable(tid)
-      .then((res) => {
-        notify('表信息更新任务已启动', 'success')
-      })
-      .catch((error) => {
-        notify(`更新表信息失败: ${error}`, 'error')
-      })
-  }
   function updateSchema(item: any | null) {
     let params: { mode?: string; tid?: number } = {}
     if (typeof item === 'string' && item === 'all') {

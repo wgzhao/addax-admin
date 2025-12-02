@@ -48,7 +48,7 @@
   </v-card>
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 // 可以选择以下主题之一：
@@ -70,23 +70,7 @@ const props = defineProps({
 
 const jobContent = ref('')
 const loading = ref(false)
-const error = ref('')
-const codeElement = ref<HTMLElement | null>(null)
-
-// 计算属性：高亮后的代码
-const highlightedCode = computed(() => {
-  if (!jobContent.value) return ''
-
-  try {
-    // 尝试格式化 JSON
-    const formatted = JSON.stringify(JSON.parse(jobContent.value), null, 2)
-    // 应用语法高亮
-    return hljs.highlight(formatted, { language: 'json' }).value
-  } catch (e) {
-    // 如果不是有效的 JSON，直接高亮原始内容
-    return hljs.highlight(jobContent.value, { language: 'json' }).value
-  }
-})
+const error = ref('');
 
 
 // 复制到剪贴板，内容为 jobContent.value 字符串
@@ -115,7 +99,7 @@ async function reloadJob() {
       error.value = '获取到的配置内容为空'
     }
   } catch (err) {
-    error.value = err || '获取配置失败'
+    error.value = (err as Error).message || '获取配置失败'
   } finally {
     loading.value = false
   }

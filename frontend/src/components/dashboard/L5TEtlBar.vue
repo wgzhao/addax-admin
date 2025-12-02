@@ -10,10 +10,8 @@
   import requests from '@/utils/requests'
   import { defineAsyncComponent } from 'vue'
   // 动态加载 chart.js 相关（首屏不再打包进主 bundle）
-  let ChartJS: any
   const Bar = defineAsyncComponent(async () => {
     const [{ Bar }, chart] = await Promise.all([import('vue-chartjs'), import('chart.js')])
-    ChartJS = chart.Chart
     chart.Chart.register(
       chart.Title,
       chart.Tooltip,

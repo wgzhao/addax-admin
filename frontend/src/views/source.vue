@@ -105,7 +105,6 @@
   const title = computed(() => {
     return mode.value === 'show' ? '详情' : mode.value === 'edit' ? '编辑' : '新增'
   })
-  const sourceItem = ref({})
   const searchValue = ref('')
   const headers: DataTableHeader[] = [
     { title: '名称', key: 'name' },
@@ -117,12 +116,6 @@
       key: 'startAt'
     },
     { title: '操作', value: 'actions', align: 'center' }
-  ]
-  const actions = [
-    { text: '详情', value: 'show' },
-    { text: '编辑', value: 'edit' },
-    { text: '使用场景', value: 'scene' },
-    { text: '探索源库', value: 'explore' }
   ]
 
   const params = ref({})

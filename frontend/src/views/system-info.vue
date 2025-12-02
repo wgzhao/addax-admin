@@ -74,7 +74,6 @@
     sortBy: null
   })
   const etlTotalItems = ref(0)
-  const dsInfo = ref<any[]>([])
   const filter = ref('')
 
   const etlAndDsHeaders: DataTableHeader[] = [

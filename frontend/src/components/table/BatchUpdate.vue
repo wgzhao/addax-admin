@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import { BATCH_UPDATE_STATUS_OPTIONS } from "@/utils";

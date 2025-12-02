@@ -209,9 +209,6 @@ interface WriterConfig {
     hadoopConfig?: Record<string, any>
 }
 
-const nameservice = ref('nameservice1')
-
-
 // 配置数据
 const writerConfig = ref<WriterConfig>({
     hdfsPrefix: '/ods',
@@ -333,7 +330,6 @@ const loadSavedConfig = async () => {
         const savedConfigResponse = await settingsService.getHdfsWriterConfig()
 
         // 处理后端返回的 JSON 字符串
-        let savedConfig
         if (typeof savedConfigResponse === 'string') {
             writerConfig.value = JSON.parse(savedConfigResponse)
         } else {

@@ -11,7 +11,7 @@ export interface Notice {
 
 const notice = ref<Notice>({ show: false, text: '', color: 'info', timeout: 3000 })
 
-let timeoutId: number | null = null
+let timeoutId: ReturnType<typeof setTimeout> | null = null
 
 watch(notice, (newValue) => {
   if (timeoutId) {

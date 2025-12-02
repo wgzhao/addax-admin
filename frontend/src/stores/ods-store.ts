@@ -1,13 +1,12 @@
 import { defineStore } from 'pinia'
 
-export const useOdsStore = defineStore({
-  id: 'ods',
-  state: () => ({ item: null }),
+export const useOdsStore = defineStore('ods', {
+  state: () => ({ item: null as any }),
   getters: {
     getItem: (state) => state.item
   },
   actions: {
-    setItem(item) {
+    setItem(item: any) {
       this.item = item
     }
   }

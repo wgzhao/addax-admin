@@ -55,47 +55,7 @@ const headers: DataTableHeader[] = [
   { title: "字段备注", key: "columnComment" }
 ];
 
-const headers1 = ref([
-  {
-    title: "序号",
-    value: "idx"
-  },
-  {
-    title: "目标表",
-    align: "center",
-    children: [
-      { title: "字段名", value: "columnName" },
-      { title: "字段类型", value: "colTypeFull" },
-      { title: "字段长度", value: "data_length" },
-      { title: "数值长度", value: "data_precision" },
-      { title: "数值精度", value: "data_scale" },
-      { title: "字段备注", value: "colComment" },
-      { title: "表备注", value: "tblComment" }
-    ]
-  },
-  {
-    title: "源表",
-    align: "center",
-    children: [
-      { title: "字段名", value: "columnName" },
-      { title: "字段类型", value: "data_type" },
-      { title: "字段长度", value: "data_length" },
-      { title: "数值长度", value: "data_precision" },
-      { title: "数值精度", value: "data_scale" },
-      { title: "字段备注", value: "colComment" },
-      { title: "表备注", value: "tblComment" }
-    ]
-  }
-  // {
-  //     title: "映射信息",
-  //     align: "center",
-  //     children: [
-  //         {title: "映射类型", value: "DEST_TYPE"},
-  //         {title: "完整类型", value: "DEST_TYPE_FULL"},
-  //     ]
 
-  // }
-]);
 onMounted(() => {
   tableService.fetchFieldsCompare(Number(props.tid))
     .then(res => {

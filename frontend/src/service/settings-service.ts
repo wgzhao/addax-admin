@@ -47,7 +47,7 @@ class SettingsService {
    * 保存系统配置
    */
   async saveSettings(config: any): Promise<boolean> {
-    const response = await Requests.post(`${this.baseUrl}/sys-config`, config)
+    await Requests.post(`${this.baseUrl}/sys-config`, config)
     return true
   }
 
@@ -83,8 +83,9 @@ class SettingsService {
         configData
       )
       // 处理不同的返回结构
-      if (response && typeof response === 'object' && 'data' in response) {
-        return (response as any).data
+      const respObj: any = response as any
+      if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
+        return respObj.data
       }
       return response as boolean
     } catch (error) {
@@ -125,8 +126,9 @@ class SettingsService {
   async deleteJobConfig(id: string): Promise<boolean> {
     try {
       const response = await Requests.delete<boolean>(`${this.baseUrl}/job-template/${id}`)
-      if (response && typeof response === 'object' && 'data' in response) {
-        return (response as any).data
+      const respObj: any = response as any
+      if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
+        return respObj.data
       }
       return response as boolean
     } catch (error) {

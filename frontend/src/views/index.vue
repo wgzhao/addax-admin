@@ -72,7 +72,7 @@
                     :color="isDark ? 'cyan' : 'blue'"
                     :bg-color="isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'"
                   >
-                    <template v-slot:default="{ value }">
+                    <template v-slot:default="{  }">
                       <span class="progress-text">
                         {{ ratio.source_name }} - {{ ratio.over_prec_str }}
                       </span>
