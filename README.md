@@ -138,6 +138,28 @@ npm run build
   - 后端默认日志目录为 `./logs`（可通过 `LOG_DIR` 修改）
   - 认证使用 JWT，过期时间与密钥在后端配置中设置
 
+
+## 🖼️ 界面截图
+
+### 主控制台
+
+![主控制台](screenshots/home.jpg)
+*实时显示 ETL 任务状态和系统概览*
+
+### 任务配置
+
+![任务配置](screenshots/maintable-modify.jpg)
+*ODS 表配置界面，支持表单验证和实时预览*
+
+### 实时监控
+
+![实时监控](screenshots/etl-monitor.jpg)
+*实时任务监控面板，显示任务执行状态和性能指标*
+
+### 字段对比
+
+![字段对比](screenshots/maintable-fieldcompare.jpg)
+*可视化对比源表和目标表字段，包括字段名、数据类型等*
 ## 📚 文档与 API
 
 - OpenAPI/Swagger UI：`http://localhost:50601/api/v1/swagger-ui/index.html`
