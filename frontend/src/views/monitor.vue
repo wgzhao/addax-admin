@@ -62,10 +62,13 @@
                 class: value === '100%' ? 'text-success' : 'text-warning'
               })
             },
-            { title: '运行', key: 'run_cnt' },
-            { title: '错误', key: 'fail_cnt' },
-            { title: '未执行', key: 'no_run_cnt' },
-            { title: '未建表', key: 'no_create_table_cnt' }
+              {
+                title: '运行/错误/未执行/未建表',
+                key: 'run_fail_noRun_noCreate',
+                // 使用不间断空格确保渲染时空格可见
+                value: (item) => `${item.run_cnt ?? 0}\u00A0/\u00A0${item.fail_cnt ?? 0}\u00A0/\u00A0${item.no_run_cnt ?? 0}\u00A0/\u00A0${item.no_create_table_cnt ?? 0}`,
+                align: 'center'
+              }
           ]
         },
         {
@@ -73,9 +76,9 @@
           align: 'center',
           value: '',
           children: [
-            { title: '开始时间', key: 'y_begin_at' },
-            { title: '结束时间', key: 'y_finish_at' },
-            { title: '耗时(秒)', key: 'y_take_secs' }
+            { title: '开始时间', key: 'y_begin_at', align: 'center' },
+            { title: '结束时间', key: 'y_finish_at', align: 'center' },
+            { title: '耗时', key: 'y_take_secs', align: 'center' }
           ]
         },
         {
@@ -83,9 +86,9 @@
           align: 'center',
           value: '',
           children: [
-            { title: '开始时间', key: 't_begin_at' },
-            { title: '结束时间', key: 't_finish_at' },
-            { title: '耗时', key: 't_take_secs' }
+            { title: '开始时间', key: 't_begin_at', align: 'center' },
+            { title: '结束时间', key: 't_finish_at', align: 'center' },
+            { title: '耗时', key: 't_take_secs', align: 'center' }
           ]
         }
       ]

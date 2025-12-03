@@ -2,8 +2,8 @@
     <v-container fluid>
         <v-row>
             <v-col cols="12">
-                <h2 class="text-h4 mb-4">Addax 采集模板配置</h2>
-                <p class="text-body-1 text-medium-emphasis mb-6">
+                <h2 class="text-h5 mb-2">Addax 采集模板配置</h2>
+                <p class="text-body-2 text-medium-emphasis mb-4">
                     配置 Addax 采集作业的 HDFS/Hive Writer 参数，生成标准的 JSON 配置模板。
                 </p>
             </v-col>
@@ -15,32 +15,31 @@
                 <v-form ref="form" v-model="valid" @submit.prevent="generateTemplate">
                     <!-- 基础配置 -->
                     <v-card class="mb-6" elevation="2">
-                        <v-card-title class="bg-primary text-white">
-                            <v-icon class="mr-2">mdi-cog</v-icon>
-                            HDFS Writer 配置
+                        <v-card-title class="d-flex align-center">
+                            <v-icon class="me-2">mdi-cog</v-icon>
+                            <span class="text-h6">HDFS Writer 配置</span>
                         </v-card-title>
-                        <v-card-text class="pa-6">
+                        <v-card-text class="pa-4">
                             <v-row>
                                 <v-col cols="12" md="6">
-                                    <v-text-field small dense v-model="writerConfig.defaultFS" label="HDFS DefaultFS"
+                                    <v-text-field density="compact" v-model="writerConfig.defaultFS" label="HDFS DefaultFS"
                                         placeholder="hdfs://nameservice1" prepend-inner-icon="mdi-server-network"
                                         :rules="[rules.required, rules.hdfsUrl]" persistent-hint />
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                    <v-text-field small dense v-model="writerConfig.hdfsPrefix" label="保存到 HDFS 的路径前缀"
+                                    <v-text-field density="compact" v-model="writerConfig.hdfsPrefix" label="保存到 HDFS 的路径前缀"
                                         placeholder="/ods" prepend-inner-icon="mdi-server-network"
                                         :rules="[rules.required]" persistent-hint />
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                    <v-switch v-model="writerConfig.enableHA" color="primary" hide-details
-                                        density="compact">
+                                    <v-switch v-model="writerConfig.enableHA" color="primary" hide-details density="compact">
                                         <template v-slot:prepend>
-                                            <v-icon class="mr-2">mdi-server-plus</v-icon>
+                                            <v-icon class="me-2">mdi-server-plus</v-icon>
                                         </template>
                                         <template v-slot:append>
-                                            <v-chip size="small" :color="writerConfig.enableHA ? 'success' : 'default'"
+                                            <v-chip size="small" :color="writerConfig.enableHA ? 'success' : 'surface-variant'"
                                                 :text="writerConfig.enableHA ? 'HDFS 高可用已启用' : 'HDFS 高可用未启用'"
-                                                class="ml-2" />
+                                                class="ms-2" />
                                         </template>
                                     </v-switch>
                                 </v-col>
@@ -49,15 +48,15 @@
                             <!-- HDFS 高可用配置 -->
                             <v-expand-transition>
                                 <div v-if="writerConfig.enableHA">
-                                    <v-row>
+                                    <v-row class="mt-1">
                                         <v-col cols="6">
                                             <v-radio-group v-model="hdfsConfigType" hide-details density="compact">
-                                                <v-radio label="使用 HDFS Site 配置文件" value="file" color="primary" />
-                                                <v-radio label="手动配置 JSON" value="json" color="primary" />
+                                                <v-radio class="text-body-2" label="使用 HDFS Site 配置文件" value="file" color="primary" />
+                                                <v-radio class="text-body-2" label="手动配置 JSON" value="json" color="primary" />
                                             </v-radio-group>
                                         </v-col>
                                         <v-col cols="6">
-                                            <v-text-field small dense v-model="writerConfig.hdfsSitePath"
+                                            <v-text-field density="compact" v-model="writerConfig.hdfsSitePath"
                                                 label="HDFS Site 配置文件路径" placeholder="/opt/app/addax/cdh-hdfs-site.xml"
                                                 prepend-inner-icon="mdi-file-xml"
                                                 :rules="writerConfig.enableHA && hdfsConfigType === 'file' ? [rules.required] : []"
@@ -68,7 +67,7 @@
                                     <!-- 文件路径配置 -->
                                     <v-row v-if="hdfsConfigType === 'file'">
                                         <v-col cols="12">
-                                            <v-text-field small dense v-model="writerConfig.hdfsSitePath"
+                                            <v-text-field density="compact" v-model="writerConfig.hdfsSitePath"
                                                 label="HDFS Site 配置文件路径" placeholder="/opt/app/addax/cdh-hdfs-site.xml"
                                                 prepend-inner-icon="mdi-file-xml"
                                                 :rules="writerConfig.enableHA && hdfsConfigType === 'file' ? [rules.required] : []"
@@ -80,7 +79,7 @@
                                     <div v-if="hdfsConfigType === 'json'">
                                         <v-row>
                                             <v-col cols="12" md="4">
-                                                <v-text-field small dense
+                                                <v-text-field density="compact"
                                                     v-model="writerConfig.hadoopConfig.nameservice" label="NameService"
                                                     placeholder="cluster" prepend-inner-icon="mdi-dns"
                                                     :rules="writerConfig.enableHA && hdfsConfigType === 'json' ? [rules.required] : []"
@@ -88,7 +87,7 @@
                                                     @input="updateHadoopConfig" />
                                             </v-col>
                                             <v-col cols="12" md="6">
-                                                <v-text-field small dense v-model="writerConfig.hadoopConfig.namenodes"
+                                                <v-text-field density="compact" v-model="writerConfig.hadoopConfig.namenodes"
                                                     label="NameNodes" placeholder="nn1,nn2"
                                                     prepend-inner-icon="mdi-server-network-outline"
                                                     :rules="writerConfig.enableHA && hdfsConfigType === 'json' ? [rules.required] : []"
@@ -101,7 +100,7 @@
                                         <v-row>
                                             <v-col cols="12" md="6" v-for="(namenode, index) in namenodeList"
                                                 :key="namenode">
-                                                <v-text-field small dense
+                                                <v-text-field density="compact"
                                                     v-model="writerConfig.hadoopConfig.addresses[namenode]"
                                                     :label="`${namenode} RPC 地址`"
                                                     :placeholder="`node${index + 1}.example.com:8020`"
@@ -118,16 +117,15 @@
                             <v-divider class="my-4"></v-divider>
                             <v-row>
                                 <v-col cols="12">
-                                    <v-switch v-model="writerConfig.haveKerberos" color="primary" hide-details
-                                        density="compact">
+                                    <v-switch v-model="writerConfig.haveKerberos" color="primary" hide-details density="compact">
                                         <template v-slot:prepend>
-                                            <v-icon class="mr-2">mdi-shield-key</v-icon>
+                                            <v-icon class="me-2">mdi-shield-key</v-icon>
                                         </template>
                                         <template v-slot:append>
                                             <v-chip size="small"
-                                                :color="writerConfig.haveKerberos ? 'success' : 'default'"
+                                                :color="writerConfig.haveKerberos ? 'success' : 'surface-variant'"
                                                 :text="writerConfig.haveKerberos ? '已启用 Kerberos' : '未启用 Kerberos'"
-                                                class="ml-2" />
+                                                class="ms-2" />
                                         </template>
                                     </v-switch>
                                 </v-col>
@@ -138,14 +136,14 @@
                                 <div v-if="writerConfig.haveKerberos">
                                     <v-row>
                                         <v-col cols="12" md="6">
-                                            <v-text-field small dense v-model="writerConfig.kerberosKeytabFilePath"
+                                            <v-text-field density="compact" v-model="writerConfig.kerberosKeytabFilePath"
                                                 label="Keytab 文件路径" placeholder="/path/to/user.keytab"
                                                 prepend-inner-icon="mdi-key-variant"
                                                 :rules="writerConfig.haveKerberos ? [rules.required] : []"
                                                 hint="Kerberos Keytab 文件的绝对路径" persistent-hint />
                                         </v-col>
                                         <v-col cols="12" md="6">
-                                            <v-text-field small dense v-model="writerConfig.kerberosPrincipal"
+                                            <v-text-field density="compact" v-model="writerConfig.kerberosPrincipal"
                                                 label="Kerberos Principal" placeholder="user@REALM.COM"
                                                 prepend-inner-icon="mdi-account-key"
                                                 :rules="writerConfig.haveKerberos ? [rules.required, rules.principal] : []"
@@ -156,7 +154,7 @@
                             </v-expand-transition>
                             <v-row>
                                 <v-col cols="12" md="6">
-                                    <v-btn color="success" size="large" block :disabled="!valid"
+                                    <v-btn color="primary" variant="tonal" block :disabled="!valid"
                                         prepend-icon="mdi-content-save" @click="saveConfig" :loading="saving">
                                         保存配置
                                     </v-btn>
@@ -170,14 +168,14 @@
             <!-- 右侧预览区域 -->
             <v-col cols="12" lg="6">
                 <v-card elevation="2" class="sticky-preview">
-                    <v-card-title class="bg-success text-white">
-                        <v-icon class="mr-2">mdi-eye</v-icon>
-                        配置预览
+                    <v-card-title class="d-flex align-center">
+                        <v-icon class="me-2">mdi-eye</v-icon>
+                        <span class="text-h6">配置预览</span>
                         <v-spacer />
-                        <v-chip size="small" :color="valid ? 'white' : 'error'" :text="valid ? '配置有效' : '配置无效'" />
+                        <v-chip size="small" :color="valid ? 'success' : 'error'" :text="valid ? '配置有效' : '配置无效'" />
                     </v-card-title>
-                    <v-card-text class="pa-6">
-                        <v-textarea v-model="generatedJson" label="生成的 JSON 配置" readonly rows="30" variant="outlined"
+                    <v-card-text class="pa-4">
+                        <v-textarea v-model="generatedJson" label="生成的 JSON 配置" readonly rows="28" variant="outlined"
                             class="json-preview" />
                     </v-card-text>
                 </v-card>
@@ -353,74 +351,3 @@ onMounted(() => {
     loadSavedConfig()
 })
 </script>
-
-<style scoped>
-.v-card-title {
-    font-weight: 600;
-}
-
-/* 使用主题适配的表面颜色 */
-.v-card-text {
-    background-color: rgb(var(--v-theme-surface));
-}
-
-/* 深色模式下的优化 */
-.v-theme--dark .v-card-text {
-    background-color: #2B2C40;
-}
-
-/* 深色模式下输入框的背景色优化 */
-.v-theme--dark .v-text-field small dense .v-field__field {
-    background-color: #444463 !important;
-}
-
-.v-theme--dark .v-select .v-field__field {
-    background-color: #444463 !important;
-}
-
-.v-theme--dark .v-textarea .v-field__field {
-    background-color: #444463 !important;
-}
-
-/* 浅色模式下保持合适的背景色 */
-.v-theme--light .v-card-text {
-    background-color: #FAFAFA;
-}
-
-/* JSON 预览区域样式 */
-.json-preview textarea {
-    font-family: 'Courier New', monospace !important;
-    font-size: 12px !important;
-    line-height: 1.4 !important;
-}
-
-/* 右侧预览区域固定位置 */
-.sticky-preview {
-    position: sticky;
-    top: 20px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-}
-
-/* 大屏幕下的间距优化 */
-@media (min-width: 1280px) {
-    .sticky-preview {
-        top: 80px;
-        max-height: calc(100vh - 100px);
-    }
-}
-
-/* 确保预览区域的文本区域填满可用空间 */
-.sticky-preview .v-textarea {
-    height: 100%;
-}
-
-.sticky-preview .v-textarea .v-field {
-    height: 100%;
-}
-
-.sticky-preview .v-textarea textarea {
-    height: 100% !important;
-    resize: none !important;
-}
-</style>
