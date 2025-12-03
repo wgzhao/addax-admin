@@ -26,3 +26,7 @@ export const COLLECTION_MODE_OPTIONS = [
   { value: 'A', label: 'A - 盘后采集' },
   { value: 'R', label: 'R - 实时采集' }
 ]
+
+// HDFS 存储与压缩格式选项（供多个视图复用）
+export const HDFS_STORAGE_FORMATS = ['orc', 'parquet', 'avro', 'textfile']
+export const HDFS_COMPRESS_FORMATS = ['lz4', 'snappy', 'gzip', 'zstd', 'zlib']

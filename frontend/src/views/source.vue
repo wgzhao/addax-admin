@@ -18,6 +18,14 @@
             <v-btn variant="tonal" @click="doAction('-1', 'add')">新增</v-btn>
           </v-col>
           <v-spacer />
+          <v-col cols="auto" class="d-flex align-center">
+            <v-switch
+              v-model="showDisabled"
+              density="compact"
+              color="primary"
+              :label="showDisabled ? '显示全部源' : '仅显示启用源'"
+            />
+          </v-col>
         </v-row>
       </template>
       <v-card-text>
@@ -89,7 +97,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import type { DataTableHeader } from 'vuetify'
   import sourceService from '@/service/source-service'
   import AddDataSource from '@/components/source/AddSource.vue'
@@ -100,6 +108,7 @@
   const deleteDialog = ref(false)
   const itemIdToDelete = ref(null)
   const itemNameToDelete = ref(null)
+  const showDisabled = ref(false) // 默认不显示禁用源
   // 模式： show 显示，edit 编辑， add 新增
   const mode = ref('show')
   const title = computed(() => {
@@ -119,9 +128,11 @@
   ]
 
   const params = ref({})
-  const retrieveImpDB = () => {
-    sourceService
-      .list()
+  const getSources = () => {
+    const loader = showDisabled.value
+      ? sourceService.list()
+      : sourceService.listActiveSources()
+    loader
       .then((resp) => {
         sources.value = resp
       })
@@ -148,7 +159,7 @@
   const handleSave = () => {
     console.log('数据源保存成功，正在刷新列表...')
     // 重新获取数据源列表，确保显示最新数据
-    retrieveImpDB()
+    getSources()
     // 关闭对话框
     closeDialog()
   }
@@ -180,7 +191,7 @@
         sources.value = sources.value.filter((item) => item.id !== id)
         // 如果当前列表被删到 0，可重新拉取一遍（为未来分页兼容）
         if (sources.value.length === 0) {
-          retrieveImpDB()
+          getSources()
         }
         itemIdToDelete.value = null
       })
@@ -189,7 +200,12 @@
       })
   }
   onMounted(() => {
-    retrieveImpDB()
+    getSources()
+  })
+
+  // 切换显示禁用源时，重新加载列表
+  watch(showDisabled, () => {
+    getSources()
   })
 </script>
 <route lang="json">

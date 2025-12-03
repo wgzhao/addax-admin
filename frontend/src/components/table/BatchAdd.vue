@@ -125,6 +125,7 @@ import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import sourceService from "@/service/source-service";
 import dictService from "@/service/dict-service";
+import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from "@/utils/constants";
 import { EtlSource, EtlTable, TableMeta } from "@/types/database";
 import { DataTableHeader } from "vuetify";
 const props = defineProps({
@@ -161,8 +162,8 @@ const partFormat = ref('yyyyMMdd'); // 新增：分区格式
 const storageFormat = ref(''); // 新增：存储格式
 const compressFormat = ref(''); // 新增：压缩格式
 const partitionFormats = ref(['yyyyMMdd', 'yyyy-MM-dd', 'yyyy/MM/dd']);
-const storageFormats = ref(['orc', 'parquet', 'avro', 'textfile']);
-const compressFormats = ref(['lz4', 'snappy', 'gzip', 'zstd', 'zlib']);
+const storageFormats = ref(HDFS_STORAGE_FORMATS);
+const compressFormats = ref(HDFS_COMPRESS_FORMATS);
 
 const partitionFormatExample = computed(() => {
   if (!partFormat.value) return '';

@@ -31,6 +31,30 @@
                                 prepend-inner-icon="mdi-clock" :rules="[rules.required, rules.timeFormat]"
                                 persistent-hint />
                         </v-col>
+                        <v-col cols="12" md="4">
+                            <v-select
+                                v-model="settings['HDFS_STORAGE_FORMAT']"
+                                :items="storageFormats"
+                                label="默认HDFS存储格式"
+                                prepend-inner-icon="mdi-database"
+                                density="comfortable"
+                                :rules="[rules.required]"
+                                persistent-hint
+                                hint="用于ODS表的默认存储格式"
+                            />
+                        </v-col>
+                        <v-col cols="12" md="4">
+                            <v-select
+                                v-model="settings['HDFS_COMPRESS_FORMAT']"
+                                :items="compressFormats"
+                                label="默认压缩格式"
+                                prepend-inner-icon="mdi-compress"
+                                density="comfortable"
+                                :rules="[rules.required]"
+                                persistent-hint
+                                hint="用于ODS表的默认压缩格式"
+                            />
+                        </v-col>
                     </v-row>
                 </v-card-text>
             </v-card>
@@ -141,6 +165,7 @@ import { notify } from '@/stores/notifier'
 import settingsService, {
     type HiveServer2Config
 } from '@/service/settings-service'
+import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants'
 
 // 表单引用和状态
 const form = ref<any>(null)
@@ -151,6 +176,10 @@ const showPassword = ref(false)
 
 // 配置数据
 const settings = ref<any>({})
+
+// 下拉选项（与 BatchAdd.vue 保持一致）
+const storageFormats = HDFS_STORAGE_FORMATS
+const compressFormats = HDFS_COMPRESS_FORMATS
 
 const hiveServer2Config = ref<HiveServer2Config>({
     url: '',
@@ -268,6 +297,14 @@ const saveSettings = async () => {
 const loadSettings = async () => {
     const loadedSettings = await settingsService.getSettings()
     settings.value = loadedSettings
+
+    // 初始化下拉选项默认值（如果未设置）
+    if (!settings.value['HDFS_STORAGE_FORMAT']) {
+        settings.value['HDFS_STORAGE_FORMAT'] = storageFormats[0]
+    }
+    if (!settings.value['HDFS_COMPRESS_FORMAT']) {
+        settings.value['HDFS_COMPRESS_FORMAT'] = compressFormats[0]
+    }
 
     // 检查 HIVE_SERVER2 是否是字符串，如果是则需要解析
     if (loadedSettings['HIVE_SERVER2']) {
