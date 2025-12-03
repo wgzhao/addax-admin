@@ -1,63 +1,78 @@
 <template>
   <v-form ref="form" fast-fail @submit.prevent="save">
-    <v-card density="compact">
-      <v-container>
-        <v-row dense>
-          <v-col cols="12" sm="6" md="2">
-            <v-text-field v-model="sourceItem.code" label="采集编号" placeholder="使用两位大写字母表示" density="compact"
-              autocomplete="off" :rules="[rules.required, rules.codeExistsRule]"
-              :disabled="mode === 'edit'"></v-text-field>
+    <v-card class="compact-card">
+      <v-card-title class="d-flex align-center">
+        <v-icon class="me-2">mdi-database</v-icon>
+        {{ mode === 'add' ? '新增采集源' : mode === 'edit' ? '编辑采集源' : '采集源详情' }}
+        <v-spacer />
+      </v-card-title>
+
+      <v-card-text class="pa-4">
+        <!-- 基本信息区块 -->
+        <v-row dense class="mb-2" align="start" justify="start">
+          <v-col cols="12" md="3">
+            <v-text-field v-model="sourceItem.code" label="采集编号" placeholder="两位大写字母" prepend-inner-icon="mdi-pound"
+              autocomplete="off" :rules="[rules.required, rules.codeExistsRule]" :disabled="mode === 'edit'"
+              variant="outlined" density="compact" />
           </v-col>
-          <v-col cols="12" sm="6" md="2">
+          <v-col cols="12" md="3">
             <v-text-field v-model="sourceItem.name" label="采集名称" :rules="[rules.required]"
-              density="compact"></v-text-field>
+              prepend-inner-icon="mdi-label" variant="outlined" density="compact" />
           </v-col>
-          <v-col cols="12" sm="6" md="2">
-            <v-text-field v-model="sourceItem.startAt" placeholder="HH:mm 或 HH:mm:ss (例如: 08:30 或 08:30:15)"
-              label="采集时间" :rules="[timeFormatRule]" :error-messages="timeError" density="compact">
-            </v-text-field>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="sourceItem.startAt" placeholder="HH:mm 或 HH:mm:ss" label="采集时间"
+              :rules="[timeFormatRule]" :error-messages="timeError" prepend-inner-icon="mdi-clock-outline"
+              variant="outlined" density="compact" />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <div class="d-flex align-center">
-              <v-switch v-model="sourceItem.enabled" color="primary" hide-details density="compact">
-                <template v-slot:append>
-                  <v-chip size="x-small" :color="sourceItem.enabled ? 'success' : 'error'"
-                    :text="sourceItem.enabled ? '已启用' : '已禁用'" class="ml-1"></v-chip>
-                </template>
-              </v-switch>
-            </div>
+          <v-col cols="12" md="3" class="d-flex align-center">
+            <v-switch v-model="sourceItem.enabled" color="primary" hide-details density="compact">
+              <template #append>
+                <v-chip size="x-small" :color="sourceItem.enabled ? 'success' : 'error'"
+                  :text="sourceItem.enabled ? '已启用' : '已禁用'" class="ml-1"></v-chip>
+              </template>
+            </v-switch>
           </v-col>
         </v-row>
-        <v-row dense>
-          <v-col cols="12" sm="12" md="6">
-            <v-text-field v-model="sourceItem.url" placeholder="JDBC 连接串" label="JDBC 连接地址" :rules="[rules.required]"
-              density="compact"></v-text-field>
+
+        <!-- 连接信息区块 -->
+        <v-row dense class="mb-2" align="start" justify="start">
+          <v-col cols="12" md="5">
+            <v-text-field v-model="sourceItem.url" placeholder="jdbc:hive2://host:port" label="JDBC 连接地址"
+              :rules="[rules.required]" prepend-inner-icon="mdi-link" variant="outlined" density="compact" />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <v-text-field v-model="sourceItem.username" label="用户名" density="compact" autocomplete="off"></v-text-field>
+          <v-col cols="12" md="2">
+            <v-text-field v-model="sourceItem.username" label="用户名" prepend-inner-icon="mdi-account" variant="outlined"
+              density="compact" autocomplete="off" />
           </v-col>
-          <v-col cols="12" sm="6" md="3">
+          <v-col cols="12" md="3">
             <v-text-field v-model="sourceItem.pass" :type="showPassword ? 'text' : 'password'" label="密码"
-              density="compact" autocomplete="new-password"
+              prepend-inner-icon="mdi-lock" variant="outlined" density="compact" autocomplete="new-password"
               :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              @click:append-inner="showPassword = !showPassword"></v-text-field>
+              @click:append-inner="showPassword = !showPassword" />
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-btn color="info" text="测试连接" v-if="mode === 'add' || mode === 'edit'" @click="testConnect"
+              prepend-icon="mdi-connection"></v-btn>
           </v-col>
         </v-row>
 
         <!-- 备注信息 -->
-        <v-row dense class="mt-3">
+        <v-row dense>
           <v-col cols="12">
-            <v-textarea v-model="sourceItem.remark" label="备注信息" auto-grow rows="4" density="compact"></v-textarea>
+            <v-textarea v-model="sourceItem.remark" label="备注信息" auto-grow rows="4" variant="outlined"
+              prepend-inner-icon="mdi-text" density="compact" />
           </v-col>
         </v-row>
-      </v-container>
+      </v-card-text>
 
       <v-card-actions class="pa-3">
-        <v-btn color="info" size="small" v-if="mode === 'add' || mode === 'edit'" @click="testConnect">测试连接</v-btn>
         <v-spacer></v-spacer>
-        <v-btn type="submit" color="primary" size="small" v-if="mode === 'add' || mode === 'edit'">保存</v-btn>
-        <v-btn type="reset" color="warning" size="small" v-if="mode === 'add' || mode === 'edit'">重置</v-btn>
-        <v-btn color="secondary" size="small" @click="close">关闭</v-btn>
+        <v-btn color="secondary" @click="close" variant="tonal" prepend-icon="mdi-close">
+          关闭
+        </v-btn>
+        <v-btn type="submit" color="primary" v-if="mode === 'add' || mode === 'edit'" prepend-icon="mdi-content-save">
+          保存
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-form>
@@ -214,3 +229,9 @@ onMounted(() => {
   }
 })
 </script>
+<!-- <style scoped>
+.compact-card {
+  max-width: 1080px; /* 放宽整体宽度，避免拥挤 */
+  margin: 0 auto;   /* 居中显示 */
+}
+</style> -->

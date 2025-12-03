@@ -1,85 +1,83 @@
 <template>
-  <!-- ODS 主表信息 ODS采集主表配置-->
   <!-- <v-sheet class="mx-auto"> -->
-  <v-form fast-fail @submit.prevent="saveOds" title="采集主表配置">
-    <v-container>
-      <v-row>
-        <v-col cols="12" md="3" class="m-0">
-          <v-text-field v-model="table.name" label="源系统"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.filter" label="过滤规则"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"
-            label="状态"></v-select>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.retryCnt" label="剩余次数"></v-text-field>
-        </v-col>
-      </v-row>
+  <v-form fast-fail @submit.prevent="saveOds">
+    <v-card prepend-icon="mdi-table" title="采集主表配置">
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.name" label="源系统"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.filter" label="过滤规则"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"
+              label="状态"></v-select>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.retryCnt" label="剩余次数"></v-text-field>
+          </v-col>
+        </v-row>
 
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.sourceDb" label="源库"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.sourceTable" label="源表"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.targetDb" label="目标库"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.targetTable" label="目标表"></v-text-field>
-        </v-col>
-      </v-row>
+        <v-row>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.sourceDb" label="源库"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.sourceTable" label="源表"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.targetDb" label="目标库"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.targetTable" label="目标表"></v-text-field>
+          </v-col>
+        </v-row>
 
-      <v-row>
-        <v-col cols="12" md="3">
+        <v-row>
+          <!-- <v-col cols="12" md="3">
           <v-text-field v-model="table.partKind" label="分区类型"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.partName" label="分区字段"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.partFormat" label="分区格式"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
+        </v-col> -->
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.partName" label="分区字段"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.partFormat" label="分区格式"></v-text-field>
+          </v-col>
+          <!-- <v-col cols="12" md="3">
           <v-select v-model="table.kind" :items="collectionModeOptions" item-title="label" item-value="value"
             label="采集模式"></v-select>
-        </v-col>
-      </v-row>
+        </v-col> -->
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.storageFormat" label="存储格式"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.compressFormat" label="压缩格式"></v-text-field>
+          </v-col>
+        </v-row>
 
-      <v-row>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="table.storageFormat" label="存储格式"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-text-field v-model="table.compressFormat" label="压缩格式"></v-text-field>
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.startTime" label="开始时间"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.endTime" label="结束时间"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.duration" label="运行耗时"></v-text-field>
-        </v-col>
-        <v-col cols="12" md="3">
-          <v-text-field v-model="table.remark" label="备注"></v-text-field>
-        </v-col>
-      </v-row>
-    </v-container>
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <v-btn type="reset" class="bg-primary">取消</v-btn>
-      <v-btn type="submit" class="btn btn-primary bg-primary">
-        保存</v-btn>
-    </v-card-actions>
+        <v-row>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.startTime" label="开始时间"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.endTime" label="结束时间"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.duration" label="运行耗时"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-text-field v-model="table.remark" label="备注"></v-text-field>
+          </v-col>
+        </v-row>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn type="reset" variant="plain" >取消</v-btn>
+          <v-btn type="submit" class="btn btn-primary bg-primary">
+            保存</v-btn>
+        </v-card-actions>
+      </v-card-text>
+    </v-card>
   </v-form>
   <!-- </v-sheet> -->
   <!-- </dialog-comp> -->

@@ -42,26 +42,6 @@
         <v-col cols="auto">
           <v-btn
             variant="tonal"
-            prepend-icon="mdi-delete"
-            :disabled="selected.length === 0"
-            @click="confirmBatchDelete"
-          >
-            批量删除
-          </v-btn>
-        </v-col>
-        <v-col cols="auto">
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-pencil"
-            :disabled="selected.length === 0"
-            @click="openDialog('BatchUpdate', 'BatchUpdate')"
-          >
-            批量修改
-          </v-btn>
-        </v-col>
-        <v-col cols="auto">
-          <v-btn
-            variant="tonal"
             prepend-icon="mdi-plus"
             @click="openDialog('BatchAdd', 'BatchAdd')"
           >
@@ -77,6 +57,26 @@
         <v-col cols="auto">
           <v-btn variant="tonal" prepend-icon="mdi-update" @click="updateSchema('all')">
             强制更新全部表信息
+          </v-btn>
+        </v-col>
+ <v-col cols="auto">
+          <v-btn
+            variant="tonal"
+            prepend-icon="mdi-delete"
+            :disabled="selected.length === 0"
+            @click="confirmBatchDelete"
+          >
+            批量删除
+          </v-btn>
+        </v-col>
+        <v-col cols="auto">
+          <v-btn
+            variant="tonal"
+            prepend-icon="mdi-pencil"
+            :disabled="selected.length === 0"
+            @click="openDialog('BatchUpdate', 'BatchUpdate')"
+          >
+            批量修改
           </v-btn>
         </v-col>
         <v-col cols="auto">
@@ -214,16 +214,7 @@
   </v-card>
 
   <!-- 对话框 -->
-  <v-dialog v-model="dialogVisible" :retain-focus="false">
-    <v-card>
-      <v-card-title class="d-flex justify-space-between align-center px-4 py-3">
-        <span class="text-h6">{{ getDialogTitle() }}</span>
-        <v-btn variant="text" icon="mdi-close" size="small" @click="closeDialog"></v-btn>
-      </v-card-title>
-
-      <v-divider />
-
-      <v-card-text>
+  <v-dialog v-model="dialogVisible" :retain-focus="false" scrollable>
         <!-- 动态加载的内容 -->
         <component
           :is="currentComponent"
@@ -233,8 +224,7 @@
           @update:batch="handleBatchUpdate"
           @refresh-data="searchTable"
         />
-      </v-card-text>
-    </v-card>
+
   </v-dialog>
 
   <!-- 删除确认对话框 -->

@@ -1,61 +1,63 @@
 <template>
   <!-- 调度和命令日志 -->
   <!-- <dialog-comp v-mode="dialog" title="调度/命令日志"> -->
-  <v-row>
-    <v-col class="text-h6">日志条目</v-col>
-    <v-col cols="12" sm="auto">
-      <div class="d-flex flex-wrap ga-2">
-        <v-chip v-for="item in logList" :key="item.id"
-          :color="selectedLogId === item.id ? 'primary' : 'default'"
-          :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
-          @click="getContent(item.id)">
-          <v-icon start size="small">mdi-file-document-outline</v-icon>
-          {{ item.runAt }}
-        </v-chip>
-      </div>
-    </v-col>
-  </v-row>
-  <v-row>
-    <!-- 展示日志内容-->
-    <v-col cols="12" class="pa-0">
-      <v-card variant="outlined" class="ma-2">
-        <v-card-title class="d-flex flex-column flex-sm-row align-start align-sm-center ga-2">
-          <div class="d-flex align-center">
-            <v-icon class="me-2">mdi-file-document-outline</v-icon>
-            日志内容
+  <v-card prepend-icon="mdi-file-document-outline" title="调度/命令日志">
+    <v-card-text>
+      <v-row>
+        <v-col cols="12" sm="auto">
+          <div class="d-flex flex-wrap ga-2">
+            <v-chip v-for="item in logList" :key="item.id" :color="selectedLogId === item.id ? 'primary' : 'default'"
+              :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
+              @click="getContent(item.id)">
+              <v-icon start size="small">mdi-file-document-outline</v-icon>
+              {{ item.runAt }}
+            </v-chip>
           </div>
-
-        </v-card-title>
-        <v-divider></v-divider>
-        <v-card-text class="pa-0">
-          <!-- 空状态 (没有选择任何日志) -->
-          <div v-if="!selectedLogId" class="text-center pa-8">
-            <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-file-document-outline</v-icon>
-            <div class="text-h6 text-grey-darken-1 mb-2">No log selected</div>
-            <div class="text-body-2 text-grey">Please select a log file from above to view its content.</div>
-          </div>
-          <!-- 日志内容区域 -->
-          <div v-else class="position-relative">
-            <!-- 加载状态覆盖层 -->
-            <v-overlay v-model="loading" contained class="d-flex align-center justify-center">
-              <div class="text-center">
-                <v-progress-circular indeterminate color="primary" class="mb-4"></v-progress-circular>
-                <div class="text-body-1">Loading log content...</div>
+        </v-col>
+      </v-row>
+      <v-row>
+        <!-- 展示日志内容-->
+        <v-col cols="12" class="pa-0">
+          <v-card variant="outlined" class="ma-2">
+            <v-card-title class="d-flex flex-column flex-sm-row align-start align-sm-center ga-2">
+              <div class="d-flex align-center">
+                <v-icon class="me-2">mdi-file-document-outline</v-icon>
+                日志内容
               </div>
-            </v-overlay>
-            <!-- 日志内容 -->
-            <div v-if="fContent" class="text-body-2 pa-4 log-content" v-html="fContent"></div>
-            <!-- 加载失败状态 -->
-            <div v-else-if="!loading" class="text-center pa-8">
-              <v-icon size="48" color="error" class="mb-4">mdi-alert-circle</v-icon>
-              <div class="text-h6 text-error mb-2">Failed to load log</div>
-              <div class="text-body-2 text-grey">Please try selecting the log file again.</div>
-            </div>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-col>
-  </v-row>
+
+            </v-card-title>
+            <v-divider></v-divider>
+            <v-card-text class="pa-0">
+              <!-- 空状态 (没有选择任何日志) -->
+              <div v-if="!selectedLogId" class="text-center pa-8">
+                <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-file-document-outline</v-icon>
+                <div class="text-h6 text-grey-darken-1 mb-2">No log selected</div>
+                <div class="text-body-2 text-grey">Please select a log file from above to view its content.</div>
+              </div>
+              <!-- 日志内容区域 -->
+              <div v-else class="position-relative">
+                <!-- 加载状态覆盖层 -->
+                <v-overlay v-model="loading" contained class="d-flex align-center justify-center">
+                  <div class="text-center">
+                    <v-progress-circular indeterminate color="primary" class="mb-4"></v-progress-circular>
+                    <div class="text-body-1">Loading log content...</div>
+                  </div>
+                </v-overlay>
+                <!-- 日志内容 -->
+                <div v-if="fContent" class="text-body-2 pa-4 log-content" v-html="fContent"></div>
+                <!-- 加载失败状态 -->
+                <div v-else-if="!loading" class="text-center pa-8">
+                  <v-icon size="48" color="error" class="mb-4">mdi-alert-circle</v-icon>
+                  <div class="text-h6 text-error mb-2">Failed to load log</div>
+                  <div class="text-body-2 text-grey">Please try selecting the log file again.</div>
+                </div>
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-card-text>
+  </v-card>
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from "vue";

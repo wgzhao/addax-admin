@@ -46,26 +46,21 @@
           </template>
           <template v-slot:item.actions="{ item }">
             <v-btn
-              color="secondary"
-              class="btn btn-xs btn-info me-2"
-              @click="doAction(item.id, 'show')"
-            >
-              详情
-            </v-btn>
-            <v-btn
+              variant="text"
               color="primary"
-              class="btn btn-xs btn-warning me-2"
+              class="me-2"
               @click="doAction(item.id, 'edit')"
-            >
-              编辑
-            </v-btn>
+              :title="'编辑'"
+              icon="mdi-pencil"
+            ></v-btn>
             <v-btn
+              variant="text"
               color="error"
-              class="btn btn-xs btn-danger"
+              class="me-2"
               @click="openDeleteDialog(item.id, item.name)"
-            >
-              删除
-            </v-btn>
+              :title="'删除'"
+              icon="mdi-delete"
+            ></v-btn>
             <!-- <a href="#" class="btn btn-xs btn-info">使用场景</a>
                         <a href="#" class="btn btn-xs btn-info">探索源库</a> -->
           </template>
@@ -75,12 +70,8 @@
   </div>
   <!-- form -->
 
-  <v-dialog v-model="isShow">
-    <v-card :style="{ width: '80vw', height: 'auto' }" :title="title">
-      <v-card-text>
+  <v-dialog v-model="isShow" max-width="1080" scrollable>
         <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
-      </v-card-text>
-    </v-card>
   </v-dialog>
 
   <!-- 确认删除对话框 -->

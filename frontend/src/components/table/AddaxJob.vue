@@ -31,12 +31,10 @@
         </div>
 
         <v-card variant="outlined" class="code-card">
-          <pre><code>{{ jobContent }}</code></pre>
-          <!-- <pre><code
-            ref="codeElement"
+          <pre><code
             class="language-json hljs"
             v-html="highlightedCode"
-          ></code></pre> -->
+          ></code></pre>
         </v-card>
       </div>
 
@@ -48,7 +46,7 @@
   </v-card>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
 // 可以选择以下主题之一：
@@ -72,6 +70,25 @@ const jobContent = ref('')
 const loading = ref(false)
 const error = ref('');
 
+// 高亮后的 HTML 内容
+const highlightedCode = computed(() => {
+  if (!jobContent.value) return ''
+  let text = jobContent.value as unknown as string
+  try {
+    // 如果后端返回的是对象或可解析的 JSON 字符串，统一美化为字符串
+    if (typeof jobContent.value === 'object') {
+      text = JSON.stringify(jobContent.value, null, 2)
+    } else {
+      // 尝试解析以确保缩进一致
+      const parsed = JSON.parse(text)
+      text = JSON.stringify(parsed, null, 2)
+    }
+  } catch (_) {
+    // 非 JSON 字符串则保持原样
+  }
+  return hljs.highlight(text, { language: 'json' }).value
+})
+
 
 // 复制到剪贴板，内容为 jobContent.value 字符串
 async function copyToClipboard() {
@@ -81,9 +98,9 @@ async function copyToClipboard() {
       text = JSON.stringify(text, null, 2)
     }
     await navigator.clipboard.writeText(text)
-    notify('配置已复制到剪贴板', 'success', 2000, 'mdi-check')
+    notify('配置已复制到剪贴板', 'success', 2000, undefined, 'mdi-check')
   } catch (err) {
-    notify('复制失败，请手动复制', 'error', 3000, 'mdi-alert')
+    notify('复制失败，请手动复制', 'error', 3000, undefined, 'mdi-alert')
   }
 }
 

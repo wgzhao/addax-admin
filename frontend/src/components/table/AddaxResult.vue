@@ -1,8 +1,10 @@
 <template>
-  <!-- 根据 SPNAME 获取 Addax 最近15条采集信息 -->
-  <!-- <dialog-comp title="按照名称显示最近15条记录" v-model="dialog"> -->
+  <v-card prepend-icon="mdi-database-search" title="采集结果">
+    <v-card-text>
   <v-data-table-virtual v-if="tid" :items="results" :headers="headers" density="compact" class="elevation-1">
   </v-data-table-virtual>
+    </v-card-text>
+  </v-card>
   <!-- </dialog-comp> -->
 </template>
 <script setup lang="ts">
