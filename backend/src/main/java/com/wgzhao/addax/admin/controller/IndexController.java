@@ -58,6 +58,16 @@ public class IndexController
     }
 
     /**
+     *  累计采集数据量（单位GiB）
+     *  @return 累计数据量
+     */
+    @RequestMapping("/total-collect-data")
+    public ResponseEntity<Double> totalEtlData()
+    {
+        return ResponseEntity.ok(statService.statAllTotalData());
+    }
+
+    /**
      * 获取最近12个月采集累计数据量（单位GiB）
      * @return 月度数据量列表
      */

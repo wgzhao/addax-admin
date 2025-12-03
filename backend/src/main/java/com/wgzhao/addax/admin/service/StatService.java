@@ -132,23 +132,11 @@ public class StatService
         String sql = """
                 SELECT
                     name || '(' || code || ')' AS source_name,
-                    ROUND(over_prec_percent, 0) || '%' AS over_prec_str,
-                    CASE
-                        WHEN over_prec_percent >= 100 THEN 'bg-success'
-                        WHEN over_prec_percent <= 40 THEN 'bg-danger'
-                        WHEN over_prec_percent <= 60 THEN 'bg-warning'
-                        ELSE 'bg-info'
-                        END AS bg_color
-                FROM (
-                         SELECT
-                             t.code,
-                             t.name,
-                             (SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS over_prec_percent
-                         FROM vw_etl_table_with_source t
-                         WHERE t.status <> 'X' and t.enabled = true
-                         GROUP BY t.code, t.name
-                         having count(*) > 0
-                     ) AS a
+                    round(SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 0) AS pct
+                FROM vw_etl_table_with_source t
+                WHERE t.status <> 'X' and t.enabled = true
+                GROUP BY t.code, t.name
+                having count(*) > 0
                 """;
         return jdbcTemplate.queryForList(sql);
     }
@@ -251,5 +239,14 @@ public class StatService
                 on a.code = b.code
                 """;
         return jdbcTemplate.queryForList(sql);
+    }
+
+    public Double statAllTotalData() {
+        String sql = """
+                select
+                   round(sum(total_bytes)/1024/1024/1024,2) as total_gb
+                from etl_statistic
+                """;
+        return jdbcTemplate.queryForObject(sql, Double.class);
     }
 }
