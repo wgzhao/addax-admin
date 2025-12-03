@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -68,14 +69,14 @@ public class MonitorController
     public ResponseEntity<List<Map<String, Object>>> getSysRisk()
     {
         // 具体实现略
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(Collections.emptyList());
     }
 
     // ODS采集源库的字段变更提醒（T-1日结构与T日结构对比）
     @RequestMapping("/field-change")
     public ResponseEntity<List<Object>> odsFieldChange()
     {
-        return null;
+        return ResponseEntity.ok(Collections.emptyList());
     }
 
     // 短信发送详情
