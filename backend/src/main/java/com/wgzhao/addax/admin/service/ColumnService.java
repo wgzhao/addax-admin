@@ -189,6 +189,129 @@ public class ColumnService
         return changed ? 1 : 0;
     }
 
+    /**
+     * 新版字段更新逻辑：按名称匹配而非按位置对齐
+     * 规则：
+     * 1) 遍历目标表现有列，按列名在源表查找：
+     *    - 存在且类型相同：不变
+     *    - 存在但类型不同：更新目标列类型（及长度/精度/注释），记录到 schema change 日志
+     *    - 不存在：视为源端删除该列，目标列名加删除占位前缀，记录删除日志
+     * 2) 遍历源表，其余未匹配到的列统一追加到目标表最后，记录新增日志
+     * 保持目标表中旧列的相对顺序不变；新增列总是追加到末尾。
+     * @param etlTable 采集表视图对象
+     * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败
+     */
+    @Transactional
+    public int updateTableColumnsV2(VwEtlTableWithSource etlTable) {
+        if (etlTable == null) {
+            return 0;
+        }
+        List<EtlColumn> existingColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.getId());
+        if (existingColumns == null || existingColumns.isEmpty()) {
+            // 第一次创建，直接全量写入
+            return createTableColumns(etlTable) ? 1 : -1;
+        }
+        log.info("[V2] updating table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
+        EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
+
+        Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
+        String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
+        boolean changed = false;
+
+        try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
+             ResultSet rs = connection.createStatement().executeQuery(sql)) {
+            ResultSetMetaData md = rs.getMetaData();
+            int n = md.getColumnCount();
+
+            // 读取源表字段，构造成列名->列信息的映射，便于按名匹配
+            List<EtlColumn> sourceCols = new ArrayList<>(n);
+            for (int i = 1; i <= n; i++) {
+                EtlColumn sc = getEtlColumn(etlTable, i, md, connection, hiveTypeMapping);
+                sourceCols.add(sc);
+            }
+            // name -> source column
+            java.util.HashMap<String, EtlColumn> srcByName = new java.util.HashMap<>(Math.max(16, n * 2));
+            for (EtlColumn sc : sourceCols) {
+                srcByName.put(sc.getColumnName(), sc);
+            }
+            // 记录已匹配的源列名
+            java.util.HashSet<String> matchedNames = new java.util.HashSet<>();
+
+            // 第一阶段：遍历目标表现有列
+            for (EtlColumn oc : existingColumns) {
+                // 跳过已删除占位的历史列
+                if (isDeletedPlaceholder(oc.getColumnName())) {
+                    continue;
+                }
+                EtlColumn sc = srcByName.get(oc.getColumnName());
+                if (sc != null) {
+                    matchedNames.add(sc.getColumnName());
+                    boolean typeChanged = !Objects.equals(oc.getSourceType(), sc.getSourceType())
+                            || notEq(oc.getDataPrecision(), sc.getDataPrecision())
+                            || notEq(oc.getDataScale(), sc.getDataScale())
+                            || oc.getDataLength() != sc.getDataLength();
+                    boolean commentChanged = !Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
+                    if (typeChanged || commentChanged) {
+                        // 记录类型变化
+                        log.warn("[V2] RISK[COLUMN_TYPE_CHANGE] tid={}, table={}.{}, column={}, srcType: {}(len={},p={},s={}) -> {}(len={},p={},s={})",
+                                etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
+                                oc.getSourceType(), oc.getDataLength(), nvl(oc.getDataPrecision()), nvl(oc.getDataScale()),
+                                sc.getSourceType(), sc.getDataLength(), nvl(sc.getDataPrecision()), nvl(sc.getDataScale()));
+                        schemaChangeLogService.recordTypeChange(
+                                etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
+                                oc.getSourceType(), sc.getSourceType(),
+                                oc.getDataLength(), sc.getDataLength(),
+                                oc.getDataPrecision(), sc.getDataPrecision(),
+                                oc.getDataScale(), sc.getDataScale(),
+                                oc.getColComment(), sc.getColComment());
+                        // 同步更新字段信息（源类型、长度/精度/比例、注释、目标类型）
+                        oc.setSourceType(sc.getSourceType());
+                        oc.setDataLength(sc.getDataLength());
+                        oc.setDataPrecision(sc.getDataPrecision());
+                        oc.setDataScale(sc.getDataScale());
+                        oc.setColComment(sc.getColComment());
+                        oc.setTargetType(sc.getTargetType());
+                        oc.setTargetTypeFull(sc.getTargetTypeFull());
+                        etlColumnRepo.save(oc);
+                        changed = true;
+                    }
+                } else {
+                    // 源表中不存在该列 -> 删除占位
+                    schemaChangeLogService.recordDelete(
+                            etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), oc.getColumnName(),
+                            oc.getSourceType(), oc.getDataLength(), oc.getDataPrecision(), oc.getDataScale(), oc.getColComment());
+                    oc.setColumnName(DELETED_PLACEHOLDER_PREFIX + oc.getColumnName());
+                    etlColumnRepo.save(oc);
+                    changed = true;
+                }
+            }
+
+            // 第二阶段：追加源端剩余（未匹配）列到目标表末尾
+            int nextId = existingColumns.size();
+            for (EtlColumn sc : sourceCols) {
+                if (!matchedNames.contains(sc.getColumnName())) {
+                    EtlColumn nc = new EtlColumn();
+                    BeanUtils.copyProperties(sc, nc);
+                    nc.setTid(etlTable.getId());
+                    nc.setColumnId(++nextId);
+                    etlColumnRepo.save(nc);
+                    schemaChangeLogService.recordAdd(
+                            etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
+                            sc.getSourceType(), sc.getDataLength(), sc.getDataPrecision(), sc.getDataScale(), sc.getColComment());
+                    changed = true;
+                }
+            }
+        } catch (SQLException e) {
+            jourService.failJour(etlJour, e.getMessage());
+            log.error("[V2] failed to update table columns for tid {}", etlTable.getId(), e);
+            return -1;
+        }
+
+        log.info("[V2] table columns updated for tid {}, changed={}", etlTable.getId(), changed);
+        jourService.successJour(etlJour);
+        return changed ? 1 : 0;
+    }
+
     private static boolean isDeletedPlaceholder(String name) {
         return name != null && name.startsWith(DELETED_PLACEHOLDER_PREFIX);
     }

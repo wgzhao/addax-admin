@@ -69,7 +69,7 @@ public class TableService
             log.info("refreshTableResources interrupted before updating columns for table {}", table.getId());
             return TaskResultDto.failure("Refresh interrupted", 0);
         }
-        int retCode = columnService.updateTableColumns(vwTable);
+        int retCode = columnService.updateTableColumnsV2(vwTable);
 
         if (retCode == -1) {
             setStatus(table, TableStatus.COLLECT_FAIL);
