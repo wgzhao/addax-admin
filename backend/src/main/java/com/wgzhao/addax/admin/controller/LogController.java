@@ -61,7 +61,7 @@ public class LogController {
      */
     @PostMapping(value = "/job-report", consumes = "application/json")
     public boolean jobReport(@RequestBody AddaxReportDto dto) {
-        log.info("job report: {}", dto);
+        log.debug("job report: {}", dto);
         try {
             Long.parseLong(dto.jobName());
         } catch (NumberFormatException e) {
