@@ -62,6 +62,12 @@ public class LogController {
     @PostMapping(value = "/job-report", consumes = "application/json")
     public boolean jobReport(@RequestBody AddaxReportDto dto) {
         log.info("job report: {}", dto);
+        try {
+            Long.parseLong(dto.jobName());
+        } catch (NumberFormatException e) {
+            log.error("Invalid jobName format: {}", dto.jobName());
+            return false;
+        }
         EtlStatistic sta = new EtlStatistic();
         sta.setTid(Long.parseLong(dto.jobName()));
         sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
