@@ -22,9 +22,8 @@ declare module 'vue-router/auto-routes' {
     '/check': RouteRecordInfo<'/check', '/check', Record<never, never>, Record<never, never>>,
     '/monitor': RouteRecordInfo<'/monitor', '/monitor', Record<never, never>, Record<never, never>>,
     '/param': RouteRecordInfo<'/param', '/param', Record<never, never>, Record<never, never>>,
-    '/settings/job-settings': RouteRecordInfo<'/settings/job-settings', '/settings/job-settings', Record<never, never>, Record<never, never>>,
-    '/settings/sys-settings': RouteRecordInfo<'/settings/sys-settings', '/settings/sys-settings', Record<never, never>, Record<never, never>>,
     '/source': RouteRecordInfo<'/source', '/source', Record<never, never>, Record<never, never>>,
+    '/sys-settings': RouteRecordInfo<'/sys-settings', '/sys-settings', Record<never, never>, Record<never, never>>,
     '/system-info': RouteRecordInfo<'/system-info', '/system-info', Record<never, never>, Record<never, never>>,
     '/table': RouteRecordInfo<'/table', '/table', Record<never, never>, Record<never, never>>,
     '/task': RouteRecordInfo<'/task', '/task', Record<never, never>, Record<never, never>>,
@@ -57,16 +56,12 @@ declare module 'vue-router/auto-routes' {
       routes: '/param'
       views: never
     }
-    'src/views/settings/job-settings.vue': {
-      routes: '/settings/job-settings'
-      views: never
-    }
-    'src/views/settings/sys-settings.vue': {
-      routes: '/settings/sys-settings'
-      views: never
-    }
     'src/views/source.vue': {
       routes: '/source'
+      views: never
+    }
+    'src/views/sys-settings.vue': {
+      routes: '/sys-settings'
       views: never
     }
     'src/views/system-info.vue': {

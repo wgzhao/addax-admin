@@ -11,9 +11,9 @@
 
       <!-- Stats Cards Row -->
       <v-row class="stats-row">
-        <v-col cols="12" xl="4" lg="4" class="mb-4">
+        <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="12" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database</v-icon>
+            <v-icon class="stat-icon" size="36">mdi-database-import</v-icon>
             <v-card-title class="stat-title">采集数据源</v-card-title>
             <v-card-text class="text-center">
               <span class="stat-value">{{ ratios.length }}</span>
@@ -21,7 +21,7 @@
           </v-card>
         </v-col>
 
-        <v-col cols="12" xl="4" lg="4" class="mb-4">
+        <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="12" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-table</v-icon>
             <v-card-title class="stat-title">采集数据表</v-card-title>
@@ -31,12 +31,21 @@
           </v-card>
         </v-col>
 
-        <v-col cols="12" xl="4" lg="4" class="mb-4">
+        <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="12" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-sync</v-icon>
+            <v-icon class="stat-icon" size="36">mdi-database-plus</v-icon>
             <v-card-title class="stat-title">昨日数据采集 (GiB)</v-card-title>
             <v-card-text class="text-center">
               <span class="stat-value">{{ lastEtlData }}</span>
+            </v-card-text>
+          </v-card>
+        </v-col>
+          <v-col cols="12" xl="3" lg="3" class="mb-4">
+          <v-card class="stat-card pa-4" elevation="12" rounded="lg">
+            <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
+            <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
+            <v-card-text class="text-center">
+              <span class="stat-value">{{ totalEtlData }}</span>
             </v-card-text>
           </v-card>
         </v-col>
@@ -63,18 +72,17 @@
             <v-card-title class="detail-title">项目完成率</v-card-title>
             <v-card-text>
               <v-list class="progress-list" dense>
-                <v-list-item v-for="ratio in ratios" :key="ratio.over_prec_str">
+                <v-list-item v-for="ratio in ratios" :key="ratio.pct">
                   <v-progress-linear
-                    :model-value="ratio.over_prec_str"
-                    :class="ratio.bg_color"
+                    :model-value="ratio.pct"
+                    bg-color="grey-lighten-1"
                     height="20"
                     rounded
-                    :color="isDark ? 'cyan' : 'blue'"
-                    :bg-color="isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'"
+                    :color="getProgressColor(ratio.pct)"
                   >
                     <template v-slot:default="{  }">
                       <span class="progress-text">
-                        {{ ratio.source_name }} - {{ ratio.over_prec_str }}
+                        {{ ratio.source_name }} - {{ ratio.pct }}%
                       </span>
                     </template>
                   </v-progress-linear>
@@ -112,12 +120,24 @@
   const ratios = ref([])
   const lastEtlData = ref(0.0)
   const tableCount = ref(0)
+  const totalEtlData = ref(0.0)
+
+  // 根据完成率返回不同颜色：100% 使用 success，其余使用 indigo-darken-1~4
+  function getProgressColor(prec: number) {
+    if (prec >= 100) return 'primary'
+    // 其余分层到 indigo-darken-1 ~ indigo-darken-4
+    if (prec >= 90) return 'indigo-darken-4'
+    if (prec >= 70) return 'indigo-darken-3'
+    if (prec >= 40) return 'indigo-darken-2'
+    return 'indigo-darken-1'
+  }
 
   function fetchRatio() {
     try {
       request.get('/dashboard/accomplish-ratio').then((res) => (ratios.value = res))
       request.get('/dashboard/last-collect-data').then((res) => (lastEtlData.value = res))
       request.get('/dashboard/collect-table-count').then((res) => (tableCount.value = res))
+      request.get('/dashboard/total-collect-data').then((res) => { totalEtlData.value = res })
     } catch (error) {
       console.error('Error fetching ratios:', error)
     }

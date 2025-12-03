@@ -19,41 +19,34 @@
                 <v-card-text class="pa-6">
                     <v-row>
                         <v-col cols="12" md="4">
-                            <v-text-field v-model="settings['ADDAX']" label="Addax程序目录" placeholder="/opt/app/addax"
-                                prepend-inner-icon="mdi-folder" :rules="[rules.required]" persistent-hint />
+                            <div class="field-label">Addax程序目录</div>
+                            <v-text-field v-model="settings['ADDAX']" placeholder="/opt/app/addax"
+                                variant="outlined" density="compact" 
+                                :rules="[rules.required]" />
                         </v-col>
                         <v-col cols="12" md="4">
-                            <v-text-field v-model="settings['HDFS_PREFIX']" label="HDFS 目录前缀" placeholder="/ods"
-                                prepend-inner-icon="mdi-folder-network" :rules="[rules.required]" persistent-hint />
+                            <div class="field-label">HDFS 目录前缀</div>
+                            <v-text-field v-model="settings['HDFS_PREFIX']" placeholder="/ods"
+                                variant="outlined" density="compact" 
+                                :rules="[rules.required]" />
                         </v-col>
                         <v-col cols="12" md="4">
-                            <v-text-field v-model="settings['SWITCH_TIME']" label="切日时间" placeholder="16:30"
-                                prepend-inner-icon="mdi-clock" :rules="[rules.required, rules.timeFormat]"
-                                persistent-hint />
+                            <div class="field-label">切日时间</div>
+                            <v-text-field v-model="settings['SWITCH_TIME']" placeholder="16:30"
+                                variant="outlined" density="compact" 
+                                :rules="[rules.required, rules.timeFormat]" />
                         </v-col>
                         <v-col cols="12" md="4">
-                            <v-select
-                                v-model="settings['HDFS_STORAGE_FORMAT']"
-                                :items="storageFormats"
-                                label="默认HDFS存储格式"
-                                prepend-inner-icon="mdi-database"
-                                density="comfortable"
-                                :rules="[rules.required]"
-                                persistent-hint
-                                hint="用于ODS表的默认存储格式"
-                            />
+                            <div class="field-label">默认HDFS存储格式</div>
+                            <v-select v-model="settings['HDFS_STORAGE_FORMAT']" :items="storageFormats"
+                                variant="outlined" density="compact" 
+                                :rules="[rules.required]" />
                         </v-col>
                         <v-col cols="12" md="4">
-                            <v-select
-                                v-model="settings['HDFS_COMPRESS_FORMAT']"
-                                :items="compressFormats"
-                                label="默认压缩格式"
-                                prepend-inner-icon="mdi-compress"
-                                density="comfortable"
-                                :rules="[rules.required]"
-                                persistent-hint
-                                hint="用于ODS表的默认压缩格式"
-                            />
+                            <div class="field-label">默认压缩格式</div>
+                            <v-select v-model="settings['HDFS_COMPRESS_FORMAT']" :items="compressFormats"
+                                variant="outlined" density="compact" 
+                                :rules="[rules.required]" />
                         </v-col>
                     </v-row>
                 </v-card-text>
@@ -61,41 +54,43 @@
 
             <!-- HiveServer2 配置 -->
             <v-card class="mb-6" elevation="2">
-                <v-card-title class="bg-success text-white">
+                <v-card-title class="bg-secondary text-white">
                     <v-icon class="mr-2">mdi-server</v-icon>
                     HiveServer2 配置
                 </v-card-title>
                 <v-card-text class="pa-6">
                     <v-row>
-                        <v-col cols="12" md="8">
-                            <v-text-field v-model="hiveServer2Config.url" label="JDBC连接地址"
-                                placeholder="jdbc:hive2://188.166.1.96:10000" prepend-inner-icon="mdi-link"
-                                :rules="[rules.required, rules.jdbcUrl]" hint="HiveServer2的JDBC连接地址" persistent-hint />
+                        <v-col cols="12" md="6">
+                            <div class="field-label">JDBC连接地址</div>
+                            <v-text-field v-model="hiveServer2Config.url"
+                                placeholder="jdbc:hive2://<nn01>:10000" 
+                                variant="outlined" density="compact" :rules="[rules.required, rules.jdbcUrl]" />
                         </v-col>
-                        <v-col cols="12" md="4">
-                            <v-text-field v-model="hiveServer2Config.driverClassName" label="驱动类名"
-                                placeholder="org.apache.hive.jdbc.HiveDriver" prepend-inner-icon="mdi-link"
-                                :rules="[rules.required]" hint="HiveServer2的JDBC连接地址" persistent-hint />
+                        <v-col cols="12" md="3">
+                            <div class="field-label">用户名</div>
+                            <v-text-field v-model="hiveServer2Config.username" density="compact" placeholder="hive" :rules="[rules.required]" />
                         </v-col>
+                        <v-col cols="12" md="3">
+                            <div class="field-label">密码</div>
+                            <v-text-field v-model="hiveServer2Config.password" density="compact"
+                                :type="showPassword ? 'text' : 'password'" placeholder="请输入密码"
+                                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                                @click:append-inner="showPassword = !showPassword"  autocomplete="off"/>
+                        </v-col>
+
                     </v-row>
                     <v-row>
-                        <v-col cols="12" md="4">
-                            <v-text-field v-model="hiveServer2Config.username" label="用户名" placeholder="hive"
-                                prepend-inner-icon="mdi-account" :rules="[rules.required]" hint="连接HiveServer2的用户名"
-                                persistent-hint />
+                        <v-col cols="12" md="6">
+                            <div class="field-label">驱动类名</div>
+                            <v-text-field v-model="hiveServer2Config.driverClassName"
+                                placeholder="org.apache.hive.jdbc.HiveDriver" 
+                                variant="outlined" density="compact" :rules="[rules.required]" />
                         </v-col>
-                        <v-col cols="12" md="4">
-                            <v-text-field v-model="hiveServer2Config.password"
-                                :type="showPassword ? 'text' : 'password'" label="密码" placeholder="请输入密码"
-                                prepend-inner-icon="mdi-lock"
-                                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                                @click:append-inner="showPassword = !showPassword" hint="连接HiveServer2的密码"
-                                persistent-hint />
-                        </v-col>
-                        <v-col cols="12" md="4">
-                            <v-text-field v-model="hiveServer2Config.driverPath" label="驱动路径"
-                                placeholder="/path/to/hive-jdbc.jar" prepend-inner-icon="mdi-file-code"
-                                :rules="[rules.required]" hint="Hive JDBC驱动的文件路径" persistent-hint />
+                        <v-col cols="12" md="6">
+                            <div class="field-label">驱动路径</div>
+                            <v-text-field v-model="hiveServer2Config.driverPath"
+                                placeholder="/path/to/hive-jdbc.jar" 
+                                variant="outlined" density="compact" :rules="[rules.required]" />
                         </v-col>
                     </v-row>
                     <v-row>
@@ -118,14 +113,16 @@
                 <v-card-text class="pa-6">
                     <v-row>
                         <v-col cols="12" md="6">
-                            <v-text-field v-model.number="settings['CONCURRENT_LIMIT']" label="最大采集并发数量" type="number"
-                                placeholder="30" prepend-inner-icon="mdi-flash"
-                                :rules="[rules.required, rules.positiveNumber]" persistent-hint />
+                            <div class="field-label">最大采集并发数量</div>
+                            <v-text-field v-model.number="settings['CONCURRENT_LIMIT']" type="number"
+                                placeholder="30" 
+                                :rules="[rules.required, rules.positiveNumber]" />
                         </v-col>
                         <v-col cols="12" md="6">
-                            <v-text-field v-model.number="settings['QUEUE_SIZE']" label="采集队列长度" type="number"
-                                placeholder="100" prepend-inner-icon="mdi-queue-first-in-last-out"
-                                :rules="[rules.required, rules.positiveNumber]" persistent-hint />
+                            <div class="field-label">采集队列长度</div>
+                            <v-text-field v-model.number="settings['QUEUE_SIZE']" type="number"
+                                placeholder="100" 
+                                density="compact" :rules="[rules.required, rules.positiveNumber]" />
                         </v-col>
                     </v-row>
                 </v-card-text>
@@ -133,14 +130,14 @@
 
             <v-card class="mb-6" elevation="2">
                 <v-card-title class="bg-info text-white">
-                    <v-icon class="mr-2">mdi-json</v-icon>Hadoop配置
+                    <v-icon class="mr-2">mdi-cog</v-icon>Hadoop配置
                 </v-card-title>
                 <v-card-text class="pa-6">
                     <v-row>
                         <v-col cols="12">
-                            <v-textarea v-model="hdfsConfig" label="Hadoop配置文件内容" rows="10" variant="outlined"
-                                class="json-editor" :rules="[rules.jsonFormat]" hint="请输入格式化的 JSON 配置"
-                                persistent-hint />
+                            <div class="field-label">Hadoop配置文件内容</div>
+                            <v-textarea v-model="hdfsConfig" rows="10" variant="outlined" class="json-editor"
+                                :rules="[rules.jsonFormat]" hint="请输入格式化的 JSON 配置" />
                         </v-col>
                     </v-row>
                 </v-card-text>
@@ -440,5 +437,14 @@ onMounted(() => {
     font-size: 13px !important;
     line-height: 1.5 !important;
     tab-size: 2;
+}
+
+/* 独立标签样式，使用主题颜色并保持轻权重 */
+.field-label {
+    color: rgb(var(--v-theme-on-surface));
+    opacity: 0.8;
+    /* 轻度强调 */
+    font-size: 0.9rem;
+    margin-bottom: 6px;
 }
 </style>

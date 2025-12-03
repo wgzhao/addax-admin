@@ -26,25 +26,6 @@ routes.push({
   meta: { layout: 'login' }
 })
 
-// 添加 settings 相关路由
-routes.push({
-  path: '/settings/sys-settings',
-  name: 'SysSettings',
-  component: () => import('@/views/settings/sys-settings.vue')
-})
-
-routes.push({
-  path: '/settings/job-settings',
-  name: 'JobSettings',
-  component: () => import('@/views/settings/job-settings.vue')
-})
-
-// 为了向后兼容，重定向旧的 settings 路径到新的 sys-settings
-routes.push({
-  path: '/settings',
-  redirect: '/settings/sys-settings'
-})
-
 const router = createRouter({
   history: createWebHistory(),
   routes

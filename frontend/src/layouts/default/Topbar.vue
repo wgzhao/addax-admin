@@ -73,7 +73,7 @@ const urls = ref<MenuItem[]>([
   {
     path: '/',
     name: 'Home',
-    title: 'Home'
+    title: '首页'
   },
   {
     path: '/monitor',
@@ -97,17 +97,8 @@ const urls = ref<MenuItem[]>([
     title: '采集任务管理'
   },
   {
-    title: '系统配置',
-    children: [
-      {
-        path: '/settings/sys-settings',
-        title: '系统参数配置'
-      },
-      {
-        path: '/settings/job-settings',
-        title: 'HDFS 写入模板配置'
-      }
-    ]
+    path: '/sys-settings',
+    title: '系统配置'
   },
   // {
   //   path: '/param',
