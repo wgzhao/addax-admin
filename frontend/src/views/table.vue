@@ -368,28 +368,6 @@
     currentComponent.value = null // 清空内容
   }
 
-  // 获取对话框标题
-  function getDialogTitle() {
-    const componentTitleMap = {
-      TableDetail: '采集表详情',
-      FieldsCompare: '字段对比',
-      CmdList: '命令列表',
-      TableUsed: '使用场景',
-      AddaxResult: '采集结果',
-      BatchAdd: '批量新增表',
-      LogFiles: '采集日志',
-      BatchUpdate: '批量修改'
-    }
-
-    if (!currentComponent.value) return ''
-
-    const componentName =
-      currentComponent.value.__name ||
-      Object.keys(componentMap).find((key) => componentMap[key] === currentComponent.value)
-
-    return componentTitleMap[componentName] || '详情'
-  }
-
   function setParams(compName: string, comp: any) {
     if (compName == 'BatchUpdate') {
       // 批量修改

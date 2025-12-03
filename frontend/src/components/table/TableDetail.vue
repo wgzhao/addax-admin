@@ -87,7 +87,7 @@ import { ref, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import { VEtlWithSource, EtlTable } from "@/types/database";
-import { TABLE_STATUS_OPTIONS, COLLECTION_MODE_OPTIONS } from "@/utils";
+import { TABLE_STATUS_OPTIONS } from "@/utils";
 
 const props = defineProps({
   table: {
@@ -98,8 +98,6 @@ const props = defineProps({
 
 // 使用公共的状态选项
 const statusOptions = TABLE_STATUS_OPTIONS;
-// 使用公共的采集模式选项
-const collectionModeOptions = COLLECTION_MODE_OPTIONS;
 
 // 创建本地的响应式副本用于编辑
 const table = ref<VEtlWithSource>({ ...props.table });

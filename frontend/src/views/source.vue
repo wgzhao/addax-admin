@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue'
+  import {onMounted, ref, watch } from 'vue'
   import type { DataTableHeader } from 'vuetify'
   import sourceService from '@/service/source-service'
   import AddDataSource from '@/components/source/AddSource.vue'
@@ -102,9 +102,6 @@
   const showDisabled = ref(false) // 默认不显示禁用源
   // 模式： show 显示，edit 编辑， add 新增
   const mode = ref('show')
-  const title = computed(() => {
-    return mode.value === 'show' ? '详情' : mode.value === 'edit' ? '编辑' : '新增'
-  })
   const searchValue = ref('')
   const headers: DataTableHeader[] = [
     { title: '名称', key: 'name' },
