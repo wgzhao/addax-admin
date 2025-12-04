@@ -206,7 +206,6 @@
     if (typeof progress === 'number') return Math.max(0, Math.min(100, Math.floor(progress)))
     return 0
   }
-
 </script>
 
 <route lang="json">

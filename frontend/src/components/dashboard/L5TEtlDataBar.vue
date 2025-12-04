@@ -59,7 +59,7 @@
     const datasets = rawData.value.map((item, index) => {
       return {
         label: item.run_date,
-        data: item.total_secs,
+        data: item.total_bytes,
         backgroundColor: colors[index % colors.length],
         borderColor: colors[index % colors.length],
         borderWidth: 1
@@ -95,7 +95,7 @@
         },
         title: {
           display: true,
-          text: 'Runtime (seconds)',
+          text: '采集量 (MB)',
           color: isDark.value ? '#ffffff' : '#333333'
         }
       }
@@ -126,7 +126,7 @@
 
   const fetchData = async () => {
     try {
-      const res = await requests.get('/dashboard/last-5d-collect-time')
+      const res = await requests.get('/dashboard/last-5d-collect-data')
       rawData.value = res
       chartReady.value = true
     } catch (err) {

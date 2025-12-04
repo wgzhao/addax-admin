@@ -71,7 +71,7 @@
   <!-- form -->
 
   <v-dialog v-model="isShow" max-width="1080" scrollable>
-        <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
+    <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
   </v-dialog>
 
   <!-- 确认删除对话框 -->
@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-  import {onMounted, ref, watch } from 'vue'
+  import { onMounted, ref, watch } from 'vue'
   import type { DataTableHeader } from 'vuetify'
   import sourceService from '@/service/source-service'
   import AddDataSource from '@/components/source/AddSource.vue'
@@ -117,9 +117,7 @@
 
   const params = ref({})
   const getSources = () => {
-    const loader = showDisabled.value
-      ? sourceService.list()
-      : sourceService.listActiveSources()
+    const loader = showDisabled.value ? sourceService.list() : sourceService.listActiveSources()
     loader
       .then((resp) => {
         sources.value = resp

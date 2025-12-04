@@ -59,7 +59,7 @@
             强制更新全部表信息
           </v-btn>
         </v-col>
- <v-col cols="auto">
+        <v-col cols="auto">
           <v-btn
             variant="tonal"
             prepend-icon="mdi-delete"
@@ -215,16 +215,15 @@
 
   <!-- 对话框 -->
   <v-dialog v-model="dialogVisible" :retain-focus="false" scrollable>
-        <!-- 动态加载的内容 -->
-        <component
-          :is="currentComponent"
-          v-bind="currentParams"
-          @closeDialog="closeDialog"
-          @update:record="handleRecordUpdate"
-          @update:batch="handleBatchUpdate"
-          @refresh-data="searchTable"
-        />
-
+    <!-- 动态加载的内容 -->
+    <component
+      :is="currentComponent"
+      v-bind="currentParams"
+      @closeDialog="closeDialog"
+      @update:record="handleRecordUpdate"
+      @update:batch="handleBatchUpdate"
+      @refresh-data="searchTable"
+    />
   </v-dialog>
 
   <!-- 删除确认对话框 -->
@@ -462,7 +461,7 @@
     }
   }
 
-/**
+  /**
 *
 * @param payload
 * const payload = {

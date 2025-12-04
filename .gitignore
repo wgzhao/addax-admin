@@ -30,3 +30,4 @@ backend/jdbc-drivers/
 .env
 /frontend/.local
 /frontend/.env.local
+frontend/tsconfig.tsbuildinfo

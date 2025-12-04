@@ -14,9 +14,9 @@
         <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="12" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-database-import</v-icon>
-            <v-card-title class="stat-title">采集数据源</v-card-title>
+            <v-card-title class="stat-title">在用采集数据源/所有数据源</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">{{ ratios.length }}</span>
+              <span class="stat-value">{{ ratios.length }} / {{ allDbSourceCount }}</span>
             </v-card-text>
           </v-card>
         </v-col>
@@ -24,9 +24,9 @@
         <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="12" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-table</v-icon>
-            <v-card-title class="stat-title">采集数据表</v-card-title>
+            <v-card-title class="stat-title">采集数据表/所有数据表</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">{{ tableCount }}</span>
+              <span class="stat-value">{{ tableCount }} / {{ allTableCount }}</span>
             </v-card-text>
           </v-card>
         </v-col>
@@ -40,7 +40,7 @@
             </v-card-text>
           </v-card>
         </v-col>
-          <v-col cols="12" xl="3" lg="3" class="mb-4">
+        <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="12" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
             <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
@@ -80,10 +80,8 @@
                     rounded
                     :color="getProgressColor(ratio.pct)"
                   >
-                    <template v-slot:default="{  }">
-                      <span class="progress-text">
-                        {{ ratio.source_name }} - {{ ratio.pct }}%
-                      </span>
+                    <template v-slot:default="{}">
+                      <span class="progress-text">{{ ratio.source_name }} - {{ ratio.pct }}%</span>
                     </template>
                   </v-progress-linear>
                 </v-list-item>
@@ -93,14 +91,30 @@
         </v-col>
 
         <v-col cols="6">
-          <v-card class="detail-card pa-6" elevation="12" rounded="lg">
-            <v-card-title class="detail-title">数据采集分析</v-card-title>
-            <v-card-text>
-              <div class="bar-chart-container">
-                <L5TEtlBar />
-              </div>
-            </v-card-text>
-          </v-card>
+          <v-row>
+            <v-col cols="12">
+              <v-card class="detail-card pa-6" elevation="12" rounded="lg">
+                <v-card-title class="detail-title">数据采集耗时分析</v-card-title>
+                <v-card-text>
+                  <div class="bar-chart-container">
+                    <L5TEtlTimeBar />
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-card class="detail-card pa-6" elevation="12" rounded="lg">
+                <v-card-title class="detail-title">数据采集数量分析(MB)</v-card-title>
+                <v-card-text>
+                  <div class="bar-chart-container">
+                    <L5TEtlDataBar />
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-col>
       </v-row>
     </v-container>
@@ -111,7 +125,8 @@
   import request from '@/utils/requests'
   import { ref, onMounted, computed } from 'vue'
   import LineChart from '@/components/dashboard/LineChart.vue'
-  import L5TEtlBar from '@/components/dashboard/L5TEtlBar.vue'
+  import L5TEtlTimeBar from '@/components/dashboard/L5TEtlTimeBar.vue'
+  import L5TEtlDataBar from '@/components/dashboard/L5TEtlDataBar.vue'
   import { useTheme } from 'vuetify' // Vuetify 主题钩子
 
   const vuetifyTheme = useTheme()
@@ -120,6 +135,8 @@
   const ratios = ref([])
   const lastEtlData = ref(0.0)
   const tableCount = ref(0)
+  const allTableCount = ref(0)
+  const allDbSourceCount = ref(0)
   const totalEtlData = ref(0.0)
 
   // 根据完成率返回不同颜色：100% 使用 success，其余使用 indigo-darken-1~4
@@ -137,7 +154,15 @@
       request.get('/dashboard/accomplish-ratio').then((res) => (ratios.value = res))
       request.get('/dashboard/last-collect-data').then((res) => (lastEtlData.value = res))
       request.get('/dashboard/collect-table-count').then((res) => (tableCount.value = res))
-      request.get('/dashboard/total-collect-data').then((res) => { totalEtlData.value = res })
+      request.get('/dashboard/total-collect-data').then((res) => {
+        totalEtlData.value = res
+      })
+      request.get('/dashboard/all-collect-table-count').then((res) => {
+        allTableCount.value = res
+      })
+      request.get('/dashboard/all-collect-source-count').then((res) => {
+        allDbSourceCount.value = res
+      })
     } catch (error) {
       console.error('Error fetching ratios:', error)
     }

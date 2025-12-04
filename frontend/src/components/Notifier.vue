@@ -1,5 +1,11 @@
 <template>
-  <v-snackbar v-model="notice.show" :color="notice.color" :timeout="notice.timeout" location="top" style="top: 80px">
+  <v-snackbar
+    v-model="notice.show"
+    :color="notice.color"
+    :timeout="notice.timeout"
+    location="top"
+    style="top: 80px"
+  >
     <div class="d-flex align-center">
       <v-icon v-if="notice.icon" class="me-2">{{ notice.icon }}</v-icon>
       <div>
@@ -16,6 +22,6 @@
 </template>
 
 <script setup lang="ts">
-import { useNotifier } from '@/stores/notifier'
-const { notice, hide } = useNotifier()
+  import { useNotifier } from '@/stores/notifier'
+  const { notice, hide } = useNotifier()
 </script>
