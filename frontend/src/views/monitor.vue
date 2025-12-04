@@ -1,12 +1,12 @@
 <template>
   <v-container fluid class="pa-6">
     <v-row dense>
-      <!-- 数据源完成情况（占用全宽） -->
+      <!-- 通用多表渲染（每项一个定义） -->
       <v-col v-for="t in allItems" cols="12" :md="t.cols">
         <v-card flat :title="t.title" class="mb-4">
           <v-card-text>
             <v-data-table
-              :items="data.accomplishList"
+              :items="data[t.name]"
               :headers="t.headers"
               density="compact"
               :sort-by="t.sortBy"
@@ -34,14 +34,14 @@
     smsDetail: [] as Array<Map<string, any>>
   })
 
-  const allItems = [
-    {
-      name: 'accomplishList',
-      api: 'accomplishList',
-      title: '数据源完成情况',
-      cols: 12,
-      sortBy: <SortItem[]>[{ key: 'overPrec', order: 'asc' }],
-      headers: <DataTableHeader[]>[
+  // 各表单独定义，便于灵活处理
+  const accomplishListTable = {
+    name: 'accomplishList',
+    api: 'accomplishList',
+    title: '数据源完成情况',
+    cols: 12,
+    sortBy: <SortItem[]>[{ key: 'overPrec', order: 'asc' }],
+    headers: <DataTableHeader[]>[
         {
           title: '启动',
           key: 'start_at'
@@ -92,14 +92,15 @@
           ]
         }
       ]
-    },
-    {
-      name: 'specialTask',
-      api: 'specialTask',
-      title: '特殊任务提醒：错误、耗时过长、有重试、有拒绝行',
-      cols: 6,
-      sortBy: <SortItem[]>[{ key: 'RUNTIME', order: 'desc' }],
-      headers: <DataTableHeader[]>[
+  }
+
+  const specialTaskTable = {
+    name: 'specialTask',
+    api: 'specialTask',
+    title: '特殊任务提醒：错误、耗时过长、有重试、有拒绝行',
+    cols: 6,
+    sortBy: <SortItem[]>[{ key: 'RUNTIME', order: 'desc' }],
+    headers: <DataTableHeader[]>[
         { title: '任务名', key: 'SPNAME' },
         { title: '状态', key: 'FLAG' },
         { title: '剩余', key: 'RETRY_CNT' },
@@ -113,79 +114,89 @@
         { title: '开始时间', key: 'START_TIME' },
         { title: '结束时间', key: 'END_TIME' }
       ]
-    },
-    {
-      name: 'rejectTask',
-      api: 'rejectTask',
-      title: '采集拒绝行信息',
-      cols: 6,
-      sortBy: <SortItem[]>[{ key: 'totalErr', order: 'desc' }],
-      headers: <DataTableHeader[]>[
+  }
+
+  const rejectTaskTable = {
+    name: 'rejectTask',
+    api: 'rejectTask',
+    title: '采集拒绝行信息',
+    cols: 6,
+    sortBy: <SortItem[]>[{ key: 'totalErr', order: 'desc' }],
+    headers: <DataTableHeader[]>[
         { title: '任务名称', key: 'jobname' },
         { title: '拒绝行', key: 'totalErr' },
         { title: '开始时间', key: 'startTs' },
         { title: '结束时间', key: 'endTs' }
       ]
-    },
-    {
-      name: 'sysRisk',
-      api: 'sysRisk',
-      title: '系统风险检测结果',
-      cols: 12,
-      headers: <DataTableHeader[]>[
+  }
+
+  const sysRiskTable = {
+    name: 'sysRisk',
+    api: 'sysRisk',
+    title: '系统风险检测结果',
+    cols: 12,
+    headers: <DataTableHeader[]>[
         { title: '类别', key: 'chkKind' },
         { title: '名称', key: 'chkName' },
         { title: '风险提示', key: 'chkContent' },
         { title: '更新时间', key: 'updtDate' }
       ]
-    },
-    {
-      name: 'fieldChange',
-      api: 'fieldChange',
-      title: '采集源库的字段变更提醒(T-1日结构与T日结构对比)',
-      cols: 12,
-      headers: <DataTableHeader[]>[
-        { title: '连接名', key: 'souDbConn' },
-        { title: '用户名', key: 'owner' },
-        { title: '表名', key: 'tableName' },
-        { title: '字段名  ', key: 'columnName' },
+  }
+
+  const fieldChangeTable = {
+    name: 'fieldChange',
+    api: 'fieldChange',
+    title: '采集源库的字段变更提醒(T-1日结构与T日结构对比)',
+    cols: 12,
+    headers: <DataTableHeader[]>[
+        { title: '库名', key: 'sourceDb' },
+        { title: '表名', key: 'sourceTable' },
+        { title: '字段名', key: 'columnName' },
+        { title: '变更类型', key: 'changeType' },
         {
-          title: '变更详情',
-          value: 'changed',
-          align: 'center',
-          children: [
-            {
-              title: '类型',
-              key: 'dataType',
-              value: (item) => `${item.dataTypeLast} -> ${item.dataType}`
-            },
-            {
-              title: '长度',
-              key: 'dataLen',
-              value: (item) => `${item.dataLengthLast} -> ${item.dataLength}`
-            },
-            {
-              title: '精度',
-              key: 'dataPrec',
-              value: (item) => `${item.dataPrecisionLast} -> ${item.dataPrecision}`
-            },
-            {
-              title: '小数位',
-              key: 'dataScale',
-              value: (item) => `${item.dataScaleLast} -> ${item.dataScale}`
+          title: '变更说明',
+          key: 'change_summary',
+          value: (item) => {
+            const parts: string[] = []
+            // 类型变化
+            if (item.oldSourceType || item.newSourceType) {
+              const oldT = item.oldSourceType ?? '—'
+              const newT = item.newSourceType ?? '—'
+              parts.push(`类型: ${oldT} → ${newT}`)
             }
-          ]
+            // 长度/精度/小数位变化（仅在有值时展示）
+            const oldLen = item.oldDataLength
+            const newLen = item.newDataLength
+            if (oldLen != null || newLen != null) parts.push(`长度: ${oldLen ?? '—'} → ${newLen ?? '—'}`)
+            const oldPrec = item.oldDataPrecision
+            const newPrec = item.newDataPrecision
+            if (oldPrec != null || newPrec != null) parts.push(`精度: ${oldPrec ?? '—'} → ${newPrec ?? '—'}`)
+            const oldScale = item.oldDataScale
+            const newScale = item.newDataScale
+            if (oldScale != null || newScale != null) parts.push(`小数位: ${oldScale ?? '—'} → ${newScale ?? '—'}`)
+            return parts.join('； ')
+          }
         },
-        { title: '现状更新时间', key: 'dwCltDate' },
-        { title: '升级前更新时间', key: 'dwCltDateLast' }
+        {
+          title: '备注变化',
+          key: 'comment_change',
+          value: (item) => {
+            const oldC = item.oldColComment
+            const newC = item.newColComment
+            if (!oldC && !newC) return ''
+            return `${oldC ?? '—'} → ${newC ?? '—'}`
+          }
+        },
+        { title: '变更时间', key: 'changeAt' }
       ]
-    },
-    {
-      name: 'smsDetail',
-      api: '/smsDetail',
-      title: '短信发送情况',
-      cols: 12,
-      headers: <DataTableHeader[]>[
+  }
+
+  const smsDetailTable = {
+    name: 'smsDetail',
+    api: '/smsDetail',
+    title: '短信发送情况',
+    cols: 12,
+    headers: <DataTableHeader[]>[
         {
           title: '短信内容',
           value: 'msg',
@@ -196,7 +207,15 @@
         },
         { title: '发送时间', value: 'dwCltDate' }
       ]
-    }
+  }
+
+  const allItems = [
+    accomplishListTable,
+    specialTaskTable,
+    rejectTaskTable,
+    sysRiskTable,
+    fieldChangeTable,
+    smsDetailTable
   ]
 
   const getData = async () => {

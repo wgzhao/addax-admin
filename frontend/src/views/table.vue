@@ -426,7 +426,7 @@
           result: '',
           extra: { tid: item.id }
         })
-        notify('采集任务已提交，可在任务中心查看进展', 'success')
+        notify('采集任务已提交，可在任务中心查看进展', 'primary')
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         notify('采集任务提交失败: ' + msg, 'error')
@@ -443,7 +443,7 @@
         .executeTasksBatch(tids)
         .then(() => {
           // 所有任务提交成功
-          notify('采集任务已提交，可在任务中心查看进展', 'success')
+          notify('采集任务已提交，可在任务中心查看进展', 'primary')
         })
         .catch((err) => {
           const msg = err instanceof Error ? err.message : String(err)
