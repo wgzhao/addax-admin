@@ -319,7 +319,15 @@ public class TaskQueueManagerImpl implements TaskQueueManager
         // 写入临时文件
         File tempFile;
         try {
-            tempFile = File.createTempFile(task.getTargetDb() + "." + task.getTargetTable() + "_", ".json");
+            // Determine the persistent jobs directory under the parent of program run dir
+            Path runDir = Path.of("").toAbsolutePath();
+            Path parentDir = runDir.getParent() == null ? runDir : runDir.getParent();
+            String jobsDir = parentDir.resolve("job").resolve(bizDate) + "/";
+            // Ensure the directory exists
+            Files.createDirectories(Path.of(jobsDir));
+
+            // Create the temp file in the persistent jobs directory
+            tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + ".json");
             Files.writeString(tempFile.toPath(), job);
         }
         catch (IOException e) {
@@ -338,7 +346,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
                 tempFile.getAbsolutePath()
         );
         boolean retCode = executeAddax(cmdList, taskId, logName);
-        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
+        log.debug("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode;
     }
 

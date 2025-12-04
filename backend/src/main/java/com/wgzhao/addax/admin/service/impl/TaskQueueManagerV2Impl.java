@@ -351,7 +351,14 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
         }
         File tempFile;
         try {
-            tempFile = File.createTempFile(task.getTargetDb() + "." + task.getTargetTable() + "_", ".json");
+            // Determine the persistent jobs directory under the parent of program run dir
+            String curDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            // The env APP_HOME is set in service.sh when starting the application
+            String jobsDir = Path.of(System.getenv("APP_HOME")).resolve("job").resolve(curDate).resolve("/").toString();
+
+            Files.createDirectories(Path.of(jobsDir));
+            // Create the temp file in the persistent jobs directory
+            tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + ".json");
             Files.writeString(tempFile.toPath(), job);
         }
         catch (IOException e) {
