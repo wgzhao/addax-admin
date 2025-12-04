@@ -382,6 +382,9 @@ public class TableService
         return etlTableRepo.findValidTableCount();
     }
 
+    public long getAllTableCount() {
+        return etlTableRepo.count();
+    }
     /**
      * 获取所有有效表
      * @return 有效表列表

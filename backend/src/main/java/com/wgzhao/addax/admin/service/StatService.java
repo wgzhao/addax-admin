@@ -249,4 +249,8 @@ public class StatService
                 """;
         return jdbcTemplate.queryForObject(sql, Double.class);
     }
+
+    public List<Map<String, Object>> statLast5DaysDataBySource() {
+        return etlStatisticRepo.findLast5DaysDataMB();
+    }
 }

@@ -51,5 +51,30 @@ public interface EtlStatisticRepo
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysTakeTimes();
 
+    @Query(value = """
+            select
+                     run_date,
+                     array_agg(code) AS sources,
+                     array_agg(total_bytes) AS total_bytes
+                 FROM (
+                          SELECT
+                              b.code,
+                              t.run_date,
+                              round(SUM(total_bytes) / 1024 / 1024,2) AS total_bytes
+                          FROM
+                              etl_statistic t
+                                  LEFT JOIN
+                              vw_etl_table_with_source b
+                          on t.tid = b.id
+                          WHERE
+                              t.run_date > current_date - INTERVAL '5 days'
+                          GROUP BY
+                              b.code, t.run_date
+                      ) sub
+                 GROUP BY
+                     run_date;
+            """, nativeQuery = true)
+    List<Map<String, Object>> findLast5DaysDataMB();
+
     List<EtlStatistic> findTop15ByTidOrderByRunDateDesc(long tid);
 }

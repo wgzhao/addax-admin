@@ -48,6 +48,15 @@ public class IndexController
     }
 
     /**
+     * 获取最近 5 天的采集数据量对比
+     * @return 数据量列表
+     */
+    @RequestMapping("/last-5d-collect-data")
+    public ResponseEntity<List<Map<String, Object>>> last5DaysEtlData()
+    {
+        return ResponseEntity.ok(statService.statLast5DaysDataBySource());
+    }
+    /**
      * 获取最近交易日采集的数据量（单位GB）
      * @return 数据量
      */
@@ -87,6 +96,24 @@ public class IndexController
         return ResponseEntity.ok(tableService.getValidTableCount());
     }
 
+    /**
+     * 获取所有采集表数量
+     * @return 表数量
+     */
+    @RequestMapping("/all-collect-table-count")
+    public ResponseEntity<Long> allTableCount()
+    {
+        return ResponseEntity.ok(tableService.getAllTableCount());
+    }
+
+    /**
+     * 获取所有的采集源数量
+     */
+    @RequestMapping("/all-collect-source-count")
+    public ResponseEntity<Long> allSourceCount()
+    {
+        return ResponseEntity.ok(sourceService.getAllSources());
+    }
     /**
      * 获取数据源数量
      * @return 数据源数量

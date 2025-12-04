@@ -211,4 +211,8 @@ public class SourceService
     public List<EtlSource> findEnabledSources() {
         return etlSourceRepo.findByEnabled(true);
     }
+
+    public Long getAllSources() {
+        return etlSourceRepo.count();
+    }
 }
