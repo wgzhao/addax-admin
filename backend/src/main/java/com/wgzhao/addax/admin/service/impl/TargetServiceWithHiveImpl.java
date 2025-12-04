@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service.impl;
 
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
+import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.*;
@@ -19,8 +20,12 @@ import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.text.MessageFormat;
+
+import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 
 @Service
 @Slf4j
@@ -148,9 +153,63 @@ public class TargetServiceWithHiveImpl
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
         try (Connection conn = getHiveConnect();
                 Statement stmt = conn.createStatement()) {
+            // 1) Ensure DB and table exist (no-op if already there)
             stmt.execute(createDbSql);
             stmt.execute(createTableSql);
             jourService.successJour(etlJour);
+
+            // 2) ALTER mode: fetch current hive columns and apply diffs
+            List<EtlColumn> desiredCols = columnService.getColumns(etlTable.getId());
+            // build desired active map name -> EtlColumn (skip deleted placeholders)
+            LinkedHashMap<String, EtlColumn> desiredActive = new LinkedHashMap<>();
+            for (EtlColumn c : desiredCols) {
+                String name = c.getColumnName();
+                if (name != null && !name.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
+                    desiredActive.put(name, c);
+                }
+            }
+            // fetch current hive columns via DESCRIBE
+            LinkedHashMap<String, HiveCol> hiveCurrent = describeHiveColumns(stmt, etlTable.getTargetDb(), etlTable.getTargetTable());
+
+            // generate DDLs
+            ArrayList<String> alterDDLs = new ArrayList<>();
+            // additions
+            for (var entry : desiredActive.entrySet()) {
+                String name = entry.getKey();
+                com.wgzhao.addax.admin.model.EtlColumn c = entry.getValue();
+                HiveCol hc = hiveCurrent.get(name);
+                String comment = normalizeComment(c.getColComment());
+                String typeFull = c.getTargetTypeFull();
+                String newComment = comment.isEmpty() ? "" : " COMMENT '" + comment + "'";
+                if (hc == null) {
+                    alterDDLs.add(String.format("ALTER TABLE `%s`.`%s` ADD COLUMNS ( `%s` %s%s )",
+                            etlTable.getTargetDb(), etlTable.getTargetTable(), name, typeFull,
+                            newComment));
+                } else {
+                    // compare type/comment; if different, use CHANGE COLUMN
+                    boolean typeDiff = !java.util.Objects.equals(hc.type, typeFull);
+                    boolean commentDiff = !java.util.Objects.equals(hc.comment, comment);
+                    if (typeDiff || commentDiff) {
+                        alterDDLs.add(String.format("ALTER TABLE `%s`.`%s` CHANGE COLUMN `%s` `%s` %s%s",
+                                etlTable.getTargetDb(), etlTable.getTargetTable(), name, name, typeFull,
+                                newComment));
+                    }
+                }
+            }
+
+            // execute ALTER sequentially
+            for (String ddl : alterDDLs) {
+                EtlJour j = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, ddl);
+                try {
+                    log.info("apply hive alter: {}", ddl);
+                    stmt.execute(ddl);
+                    jourService.successJour(j);
+                } catch (SQLException ex) {
+                    log.error("Failed to apply alter for {}.{}: {}", etlTable.getTargetDb(), etlTable.getTargetTable(), ddl, ex);
+                    jourService.failJour(j, ex.getMessage());
+                    // continue trying next statements; optionally could break depending on config
+                }
+            }
             return true;
         }
         catch (SQLException e) {
@@ -158,5 +217,50 @@ public class TargetServiceWithHiveImpl
             jourService.failJour(etlJour, e.getMessage());
             return false;
         }
+    }
+
+    private static String normalizeComment(String v) {
+        if (v == null) return "";
+        String c = v.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
+        return c.replace("'", "''");
+    }
+
+    // minimal column struct from DESCRIBE output
+    private static class HiveCol {
+        String name;
+        String type;
+        String comment;
+        HiveCol(String n, String t, String c) { this.name = n; this.type = t; this.comment = c; }
+    }
+
+    /**
+     * Parse DESCRIBE `db`.`table` output to current columns map (non-partition columns only).
+     */
+    private LinkedHashMap<String, HiveCol> describeHiveColumns(Statement stmt, String db, String table) throws SQLException {
+        LinkedHashMap<String, HiveCol> cols = new LinkedHashMap<>();
+        String sql = String.format("DESCRIBE `%s`.`%s`", db, table);
+        try (var rs = stmt.executeQuery(sql)) {
+            boolean inCols = true;
+            while (rs.next()) {
+                String col = rs.getString(1);
+                String type = rs.getString(2);
+                String comment = rs.getString(3);
+                if (col == null) continue;
+                col = col.trim();
+                if (col.isEmpty()) {
+                    // blank line separates columns from partition columns in DESCRIBE
+                    inCols = false;
+                    continue;
+                }
+                if (!inCols) {
+                    // skip partition section
+                    continue;
+                }
+                // skip headers like # col_name
+                if (col.startsWith("#")) continue;
+                cols.put(col, new HiveCol(col, type == null ? "" : type.trim(), comment == null ? "" : comment.trim()));
+            }
+        }
+        return cols;
     }
 }
