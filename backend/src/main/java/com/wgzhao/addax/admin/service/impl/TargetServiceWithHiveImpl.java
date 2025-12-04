@@ -24,14 +24,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.text.MessageFormat;
+import java.util.Objects;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 
 @Service
 @Slf4j
 public class TargetServiceWithHiveImpl
-        implements TargetService
-{
+        implements TargetService {
 
     @Autowired
     private DictService dictService;
@@ -48,8 +48,7 @@ public class TargetServiceWithHiveImpl
     private volatile DataSource hiveDataSource;
 
     @Override
-    public Connection getHiveConnect()
-    {
+    public Connection getHiveConnect() {
         if (hiveDataSource == null) {
             synchronized (this) {
                 if (hiveDataSource == null) {
@@ -58,8 +57,7 @@ public class TargetServiceWithHiveImpl
                     try {
                         hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
                         return hiveDataSource.getConnection();
-                    }
-                    catch (SQLException | MalformedURLException e) {
+                    } catch (SQLException | MalformedURLException e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -67,19 +65,17 @@ public class TargetServiceWithHiveImpl
         }
         try {
             return hiveDataSource.getConnection();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to get connection from Hive DataSource", e);
         }
     }
 
     @Override
     public DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
-            throws MalformedURLException
-    {
+            throws MalformedURLException {
 
         File hiveJarFile = new File(hiveConnectDto.driverPath());
-        URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
+        URL[] jarUrls = new URL[]{hiveJarFile.toURI().toURL()};
         // 创建独立的类加载器
         URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
 
@@ -97,26 +93,24 @@ public class TargetServiceWithHiveImpl
     /**
      * 为指定 Hive 表添加分区。
      *
-     * @param taskId 采集任务ID
-     * @param db Hive数据库名
-     * @param table Hive表名
-     * @param partName 分区字段名
+     * @param taskId    采集任务ID
+     * @param db        Hive数据库名
+     * @param table     Hive表名
+     * @param partName  分区字段名
      * @param partValue 分区字段值
      * @return 是否添加成功
      */
     @Override
-    public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
-    {
+    public boolean addPartition(long taskId, String db, String table, String partName, String partValue) {
         String sql = String.format("ALTER TABLE `%s`.`%s` ADD IF NOT EXISTS PARTITION (%s='%s')", db, table, partName, partValue);
         EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
         try (Connection conn = getHiveConnect();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             log.info("Add partition for {}.{}: {}", db, table, sql);
             stmt.execute(sql);
             jourService.successJour(etlJour);
             return true;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             log.error("Failed to add partition ", e);
             jourService.failJour(etlJour, e.getMessage());
             return false;
@@ -131,8 +125,7 @@ public class TargetServiceWithHiveImpl
      * @return 是否创建/更新成功
      */
     @Override
-    public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
-    {
+    public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable) {
         List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());
 
         String createDbSql = MessageFormat.format("create database if not exists `{0}` location ''{1}/{0}''",
@@ -152,12 +145,11 @@ public class TargetServiceWithHiveImpl
         log.info("create table sql:\n{}", createTableSql);
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
         try (Connection conn = getHiveConnect();
-                Statement stmt = conn.createStatement()) {
+             Statement stmt = conn.createStatement()) {
             // 1) Ensure DB and table exist (no-op if already there)
             stmt.execute(createDbSql);
             stmt.execute(createTableSql);
             jourService.successJour(etlJour);
-
             // 2) ALTER mode: fetch current hive columns and apply diffs
             List<EtlColumn> desiredCols = columnService.getColumns(etlTable.getId());
             // build desired active map name -> EtlColumn (skip deleted placeholders)
@@ -186,10 +178,10 @@ public class TargetServiceWithHiveImpl
                             etlTable.getTargetDb(), etlTable.getTargetTable(), name, typeFull,
                             newComment));
                 } else {
-                    // compare type/comment; if different, use CHANGE COLUMN
-                    boolean typeDiff = !java.util.Objects.equals(hc.type, typeFull);
-                    boolean commentDiff = !java.util.Objects.equals(hc.comment, comment);
-                    if (typeDiff || commentDiff) {
+                    // compare type; if different, use CHANGE COLUMN
+                    boolean typeDiff = !Objects.equals(hc.type, typeFull);
+                    // the data type string is the most compatible way in Hive to represent column type
+                    if (typeDiff && !Objects.equals(typeFull, "string")) {
                         alterDDLs.add(String.format("ALTER TABLE `%s`.`%s` CHANGE COLUMN `%s` `%s` %s%s",
                                 etlTable.getTargetDb(), etlTable.getTargetTable(), name, name, typeFull,
                                 newComment));
@@ -211,8 +203,7 @@ public class TargetServiceWithHiveImpl
                 }
             }
             return true;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             log.warn("Failed to create or update hive table ({}.{}) ", etlTable.getTargetDb(), etlTable.getTargetTable(), e);
             jourService.failJour(etlJour, e.getMessage());
             return false;
@@ -230,7 +221,12 @@ public class TargetServiceWithHiveImpl
         String name;
         String type;
         String comment;
-        HiveCol(String n, String t, String c) { this.name = n; this.type = t; this.comment = c; }
+
+        HiveCol(String n, String t, String c) {
+            this.name = n;
+            this.type = t;
+            this.comment = c;
+        }
     }
 
     /**

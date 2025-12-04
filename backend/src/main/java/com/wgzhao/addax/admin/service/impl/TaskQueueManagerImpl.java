@@ -37,8 +37,7 @@ import static java.lang.Math.max;
 @Component
 @DependsOn("systemConfigService")
 @Slf4j
-public class TaskQueueManagerImpl implements TaskQueueManager
-{
+public class TaskQueueManagerImpl implements TaskQueueManager {
 
     private int queueSize;
 
@@ -64,8 +63,10 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     @Autowired
     private SystemConfigService configService;
 
-    @Autowired private JobContentService jobContentService;
-    @Autowired private TargetService targetService;
+    @Autowired
+    private JobContentService jobContentService;
+    @Autowired
+    private TargetService targetService;
 
     @Autowired
     private SystemFlagService systemFlagService; // to prevent enqueuing during schema refresh
@@ -87,8 +88,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     private final ExecutorService etlExecutor = createEtlExecutor();
 
     @PostConstruct
-    public void init()
-    {
+    public void init() {
         this.queueSize = configService.getQueueSize();
         this.concurrentLimit = configService.getConcurrentLimit();
         this.etlTaskQueue = new ArrayBlockingQueue<>(queueSize);
@@ -97,8 +97,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
         startQueueMonitor();
     }
 
-    private static ExecutorService createQueueMonitorExecutor()
-    {
+    private static ExecutorService createQueueMonitorExecutor() {
         return Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "etl-queue-monitor");
             t.setDaemon(true);
@@ -106,8 +105,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
         });
     }
 
-    private static ExecutorService createEtlExecutor()
-    {
+    private static ExecutorService createEtlExecutor() {
         return Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r, "etl-worker");
             t.setDaemon(true);
@@ -124,8 +122,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
      * 当如果采集时间设定的为 14:30，则需要 T+1 日后的 14:30 之后才能采集
      *
      */
-    public void scanAndEnqueueEtlTasks()
-    {
+    public void scanAndEnqueueEtlTasks() {
         try {
 
             List<EtlTable> tasks = tableService.getRunnableTasks();
@@ -143,8 +140,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
                 if (etlTaskQueue.offer(task)) {
                     enqueuedCount++;
                     log.debug("任务 {} 已加入队列", task.getId());
-                }
-                else {
+                } else {
                     skippedCount++;
                     log.warn("队列已满，任务 {} 未能加入队列", task.getId());
                 }
@@ -152,8 +148,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
 
             log.info("任务入队完成: 成功入队 {} 个，跳过 {} 个，当前队列大小: {}",
                     enqueuedCount, skippedCount, etlTaskQueue.size());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("扫描和入队采集任务失败", e);
             alertService.sendToWeComRobot("扫描采集任务失败: " + e.getMessage());
         }
@@ -162,8 +157,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     /**
      * 启动队列监控器
      */
-    public void startQueueMonitor()
-    {
+    public void startQueueMonitor() {
         if (!queueMonitorRunning) {
             queueMonitorRunning = true;
             queueMonitorExecutor.submit(this::queueMonitorLoop);
@@ -174,8 +168,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     /**
      * 队列监控循环 - 从队列获取任务并控制并发执行
      */
-    private void queueMonitorLoop()
-    {
+    private void queueMonitorLoop() {
         log.info("队列监控器开始运行，并发限制: {}", concurrentLimit);
 
         while (queueMonitorRunning) {
@@ -190,8 +183,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
                 // 获取一个并发执行许可（阻塞直到有可用许可或被中断）
                 try {
                     concurrencySemaphore.acquire();
-                }
-                catch (InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     // 如果被中断，退出循环
                     Thread.currentThread().interrupt();
                     break;
@@ -206,25 +198,21 @@ public class TaskQueueManagerImpl implements TaskQueueManager
                 etlExecutor.submit(() -> {
                     try {
                         executeEtlTaskWithConcurrencyControl(task);
-                    }
-                    finally {
+                    } finally {
                         // 释放一个并发许可
                         concurrencySemaphore.release();
                     }
                 });
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.info("队列监控器被中断");
                 Thread.currentThread().interrupt();
                 break;
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("队列监控器异常", e);
                 // 等待一段时间再继续以避免热循环
                 try {
                     TimeUnit.SECONDS.sleep(5);
-                }
-                catch (InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
                 }
@@ -238,8 +226,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
      * 执行采集任务并控制并发
      * 返回详细执行结果，包含成功/失败、错误码、消息、耗时等
      */
-    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task)
-    {
+    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task) {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
 
@@ -256,14 +243,12 @@ public class TaskQueueManagerImpl implements TaskQueueManager
             if (result) {
                 tableService.setFinished(task);
                 return TaskResultDto.success("执行成功", duration);
-            }
-            else {
+            } else {
                 tableService.setFailed(task);
                 alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", tid));
                 return TaskResultDto.failure("执行失败：Addax 退出非0", duration);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000; // seconds
             log.error("采集任务 {} 执行失败，耗时: {}s", tid, duration, e);
             // 更新任务状态为失败
@@ -274,8 +259,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
             alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
             String msg = e.getMessage() == null ? "内部异常" : e.getMessage();
             return TaskResultDto.failure("执行异常: " + msg, duration);
-        }
-        finally {
+        } finally {
             // 减少运行任务计数
             int currentRunning = runningTaskCount.decrementAndGet();
             log.debug("任务 {} 执行结束，当前并发数: {}", tid, currentRunning);
@@ -285,8 +269,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     /**
      * 执行具体的采集逻辑
      */
-    public boolean executeEtlTaskLogic(EtlTable task)
-    {
+    public boolean executeEtlTaskLogic(EtlTable task) {
         long taskId = task.getId();
 
         log.info("执行采集任务逻辑: taskId={}, destDB={}, tableName={}",
@@ -329,8 +312,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
             // Create the temp file in the persistent jobs directory
             tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + ".json");
             Files.writeString(tempFile.toPath(), job);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("写入临时文件失败", e);
             return false;
         }
@@ -352,13 +334,13 @@ public class TaskQueueManagerImpl implements TaskQueueManager
 
     /**
      * 重载：以命令列表方式执行 Addax（不经过 shell）
+     *
      * @param command 命令与参数列表
-     * @param tid 采集表主键
+     * @param tid     采集表主键
      * @param logName 日志文件名
      * @return 是否成功
      */
-    private boolean executeAddax(List<String> command, long tid, String logName)
-    {
+    private boolean executeAddax(List<String> command, long tid, String logName) {
         String displayCmd = String.join(" ", command);
         log.info("Executing command: {}", displayCmd);
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, displayCmd);
@@ -369,8 +351,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
         try {
             String logContent = Files.readString(path);
             addaxLogService.insertLog(tid, logContent);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.warn("Failed to get the addax log content: {}", path);
         }
         etlJour.setDuration(taskResult.durationSeconds());
@@ -387,13 +368,11 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     /**
      * 手动添加任务到队列
      */
-    public boolean addTaskToQueue(long tid)
-    {
+    public boolean addTaskToQueue(long tid) {
         return addTaskToQueue(tableService.getTable(tid));
     }
 
-    public boolean addTaskToQueue(EtlTable task)
-    {
+    public boolean addTaskToQueue(EtlTable task) {
         if (systemFlagService != null && systemFlagService.isRefreshInProgress()) {
             log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", task == null ? "null" : task.getId());
             return false;
@@ -401,8 +380,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
         boolean added = etlTaskQueue.offer(task);
         if (added) {
             log.info("手动添加任务到队列: {}", task.getId());
-        }
-        else {
+        } else {
             log.warn("队列已满，无法添加任务: {}", task.getId());
         }
         return added;
@@ -411,23 +389,25 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     /**
      * 停止队列监控器
      */
-    public void stopQueueMonitor()
-    {
+    public void stopQueueMonitor() {
         queueMonitorRunning = false;
         log.info("队列监控器停止信号已发送");
     }
 
     public void restartQueueMonitor() {
         stopQueueMonitor();
-        try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         startQueueMonitor();
     }
 
     /**
      * 获取队列状态信息
      */
-    public Map<String, Object> getQueueStatus()
-    {
+    public Map<String, Object> getQueueStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("queueSize", etlTaskQueue.size());
         status.put("queueCapacity", queueSize);
@@ -441,8 +421,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     /**
      * 清空队列
      */
-    public int clearQueue()
-    {
+    public int clearQueue() {
         int size = etlTaskQueue.size();
         etlTaskQueue.clear();
         log.info("已清空队列，清除了 {} 个任务", size);
@@ -453,8 +432,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
      * 应用关闭时的清理工作
      */
     @PreDestroy
-    public void shutdown()
-    {
+    public void shutdown() {
         log.info("开始关闭采集任务队列管理器...");
 
         // 停止队列监控
@@ -472,8 +450,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
             if (!etlExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
                 etlExecutor.shutdownNow();
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             queueMonitorExecutor.shutdownNow();
             etlExecutor.shutdownNow();
             Thread.currentThread().interrupt();
@@ -483,8 +460,7 @@ public class TaskQueueManagerImpl implements TaskQueueManager
     }
 
 
-    public BlockingQueue<EtlTable> getEtlQueue()
-    {
+    public BlockingQueue<EtlTable> getEtlQueue() {
         return this.etlTaskQueue;
     }
 }

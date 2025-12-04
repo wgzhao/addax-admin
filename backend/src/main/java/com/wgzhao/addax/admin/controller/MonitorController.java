@@ -3,7 +3,9 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.Notification;
+import com.wgzhao.addax.admin.model.SchemaChangeLog;
 import com.wgzhao.addax.admin.repository.NotificationRepo;
+import com.wgzhao.addax.admin.service.SchemaChangeLogService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
@@ -22,67 +24,71 @@ import java.util.Map;
 @RestController
 @RequestMapping("/monitor")
 @AllArgsConstructor
-public class MonitorController
-{
-    /** 任务服务 */
+public class MonitorController {
+    /**
+     * 任务服务
+     */
     private final TaskService taskService;
-    /** 统计服务 */
+    /**
+     * 统计服务
+     */
     private final StatService statService;
-    /** 消息提醒数据仓库 */
+    /**
+     * 消息提醒数据仓库
+     */
     private final NotificationRepo notificationRepo;
+    private final SchemaChangeLogService schemaChangeLogService;
 
     /**
      * 获取最近两天采集完成情况列表
+     *
      * @return 采集完成情况列表
      */
     @RequestMapping("/accomplish")
-    public ResponseEntity<List<Map<String, Object>>> getLast2DaysCompleteList()
-    {
+    public ResponseEntity<List<Map<String, Object>>> getLast2DaysCompleteList() {
         return ResponseEntity.ok(statService.getLast2DaysCompleteList());
     }
 
     /**
      * 获取特殊任务提醒列表
+     *
      * @return 特殊任务列表
      */
     @GetMapping("/special-task")
-    public ResponseEntity<List<EtlTable>> specialTask()
-    {
+    public ResponseEntity<List<EtlTable>> specialTask() {
         return ResponseEntity.ok(taskService.findAllSpecialTask());
     }
 
     /**
      * 获取拒绝执行的任务列表
+     *
      * @return 拒绝任务列表
      */
     @GetMapping("/reject-task")
-    public ResponseEntity<List<EtlStatistic>> getTaskReject()
-    {
+    public ResponseEntity<List<EtlStatistic>> getTaskReject() {
         return ResponseEntity.ok(statService.findErrorTask());
     }
 
     /**
      * 获取系统风险检测结果
+     *
      * @return 风险检测结果
      */
     @RequestMapping("/sys-risk")
-    public ResponseEntity<List<Map<String, Object>>> getSysRisk()
-    {
+    public ResponseEntity<List<Map<String, Object>>> getSysRisk() {
         // 具体实现略
         return ResponseEntity.ok(Collections.emptyList());
     }
 
     // ODS采集源库的字段变更提醒（T-1日结构与T日结构对比）
     @RequestMapping("/field-change")
-    public ResponseEntity<List<Object>> odsFieldChange()
-    {
-        return ResponseEntity.ok(Collections.emptyList());
+    public ResponseEntity<List<SchemaChangeLog>> odsFieldChange() {
+        return ResponseEntity.ok(schemaChangeLogService.getAllFieldChanges());
     }
 
     // 短信发送详情
     @RequestMapping("/sms-detail")
-    public ResponseEntity<List<Notification>> smsDetail()
-    {
+    public ResponseEntity<List<Notification>> smsDetail() {
         return ResponseEntity.ok(notificationRepo.findAll());
     }
 }

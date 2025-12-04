@@ -148,6 +148,27 @@ public class TableService
     }
 
     /**
+     * 刷新标记为 U 的表资源
+     * /
+     */
+    public void refreshUpdatedTableResources()
+    {
+        List<EtlTable> tables = etlTableRepo.findByStatus("U");
+        for (EtlTable table : tables) {
+            // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
+            if (Thread.currentThread().isInterrupted()) {
+                log.info("refreshUpdatedTableResources interrupted, stopping at table {}", table.getId());
+                break;
+            }
+            try {
+                refreshTableResourcesAsync(table);
+            }
+            catch (Exception e) {
+                log.error("Failed to refresh resources for table {}", table.getId(), e);
+            }
+        }
+    }
+    /**
      * 刷新所有采集表的资源
      */
     public void refreshAllTableResources()

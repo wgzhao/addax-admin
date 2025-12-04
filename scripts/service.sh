@@ -10,7 +10,7 @@
 ### END INIT INFO
 
 APP_HOME="$(cd "$(dirname "$0")/.." && pwd)"
-export APP_NAME="addax-admin"
+APP_NAME="addax-admin"
 LIB_DIR="$APP_HOME/lib"
 DRIVERS_DIR="$APP_HOME/drivers"
 CONFIG_DIR="$APP_HOME/config"
@@ -26,7 +26,7 @@ KILL_WAIT=5
 [ -f "$ENV_FILE" ] && . "$ENV_FILE"
 [ -d ${APP_HOME}/job ] || mkdir ${APP_HOME}/job
 
-JAVA_OPTS="-Dspring.config.location=${CONFIG_DIR}/application.properties -Dlogging.file.path=${LOG_DIR} -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
+JAVA_OPTS="-Dapp.home=${APP_HOME} -Dspring.config.location=${CONFIG_DIR}/application.properties -Dlogging.file.path=${LOG_DIR} -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
 
 # Function to get server port
 get_server_port() {

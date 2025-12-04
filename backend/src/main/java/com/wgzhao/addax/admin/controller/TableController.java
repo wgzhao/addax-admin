@@ -195,7 +195,14 @@ public class TableController
     @PostMapping("/actions/refresh")
     public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode)
     {
-        CompletableFuture.runAsync(tableService::refreshAllTableResources);
+        if (!mode.equals("all") && !mode.equals("need")) {
+            throw new ApiException(400, "Invalid mode parameter");
+        }
+        if (mode.equals("all")) {
+            tableService.refreshAllTableResources();
+        } else {
+            tableService.refreshUpdatedTableResources();
+        }
         return ResponseEntity.accepted().build();
     }
 

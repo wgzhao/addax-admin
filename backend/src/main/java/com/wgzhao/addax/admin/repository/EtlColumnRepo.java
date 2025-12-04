@@ -15,8 +15,4 @@ public interface EtlColumnRepo
     List<EtlColumn> findAllByTidOrderByColumnId(long tid);
 
     void deleteAllByTid(long tableId);
-
-//    @Modifying
-//    @Transactional
-//    int updateColumnNameByTidAndColumnId(Long tid, int columnId, String placeholder);
 }

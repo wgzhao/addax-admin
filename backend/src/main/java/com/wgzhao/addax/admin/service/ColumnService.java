@@ -31,8 +31,7 @@ import static com.wgzhao.addax.admin.common.Constants.quoteColumnIfNeeded;
 @Service
 @Slf4j
 @AllArgsConstructor
-public class ColumnService
-{
+public class ColumnService {
     private final EtlColumnRepo etlColumnRepo;
     private final DictService dictService;
     private final EtlJourService jourService;
@@ -40,6 +39,7 @@ public class ColumnService
 
     /**
      * 获取指定采集表的所有字段信息
+     *
      * @param tid 采集表ID
      * @return 字段列表
      */
@@ -54,12 +54,12 @@ public class ColumnService
      * 2. 删除字段则将源字段名设置为 __deleted__ 前缀
      * 3. 字段类型变更则同步更新并记录到风险表
      * 4. 新增字段直接插入
+     *
      * @param etlTable 采集表视图对象
      * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败
      */
     @Transactional
-    public int updateTableColumns(VwEtlTableWithSource etlTable)
-    {
+    public int updateTableColumns(VwEtlTableWithSource etlTable) {
         if (etlTable == null) {
             return 0;
         }
@@ -78,7 +78,7 @@ public class ColumnService
         boolean changed = false;
 
         try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
-                ResultSet rs = connection.createStatement().executeQuery(sql)) {
+             ResultSet rs = connection.createStatement().executeQuery(sql)) {
             ResultSetMetaData md = rs.getMetaData();
             int n = md.getColumnCount();
 
@@ -133,10 +133,11 @@ public class ColumnService
                         etlColumnRepo.save(oc);
                         changed = true;
                     } // else 类型未变化，不做处理
-                    o++; s++;
+                    o++;
+                    s++;
                 } else {
                     // 名称不一致 -> 视为源删除了 origin 当前位置的列
-                    String placeholder = DELETED_PLACEHOLDER_PREFIX  + oc.getColumnName();
+                    String placeholder = DELETED_PLACEHOLDER_PREFIX + oc.getColumnName();
                     // 记录删除到 schema change log
                     schemaChangeLogService.recordDelete(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), oc.getColumnName(),
                             oc.getSourceType(), oc.getDataLength(), oc.getDataPrecision(), oc.getDataScale(), oc.getColComment());
@@ -178,8 +179,7 @@ public class ColumnService
                         sc.getSourceType(), sc.getDataLength(), sc.getDataPrecision(), sc.getDataScale(), sc.getColComment());
                 changed = true;
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             jourService.failJour(etlJour, e.getMessage());
             log.error("failed to update table columns for tid {}", etlTable.getId(), e);
             return -1;
@@ -193,11 +193,12 @@ public class ColumnService
      * 新版字段更新逻辑：按名称匹配而非按位置对齐
      * 规则：
      * 1) 遍历目标表现有列，按列名在源表查找：
-     *    - 存在且类型相同：不变
-     *    - 存在但类型不同：更新目标列类型（及长度/精度/注释），记录到 schema change 日志
-     *    - 不存在：视为源端删除该列，目标列名加删除占位前缀，记录删除日志
+     * - 存在且类型相同：不变
+     * - 存在但类型不同：更新目标列类型（及长度/精度/注释），记录到 schema change 日志
+     * - 不存在：视为源端删除该列，目标列名加删除占位前缀，记录删除日志
      * 2) 遍历源表，其余未匹配到的列统一追加到目标表最后，记录新增日志
      * 保持目标表中旧列的相对顺序不变；新增列总是追加到末尾。
+     *
      * @param etlTable 采集表视图对象
      * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败
      */
@@ -320,17 +321,22 @@ public class ColumnService
         return !Objects.equals(a, b);
     }
 
-    private static int nvl(Integer v) { return v == null ? 0 : v; }
-    private static String nvlStr(String v) { return v == null ? "" : v; }
+    private static int nvl(Integer v) {
+        return v == null ? 0 : v;
+    }
+
+    private static String nvlStr(String v) {
+        return v == null ? "" : v;
+    }
 
     /**
      * 当新增采集表时，添加表的字段信息到 etl_column 表，他包含了源表的字段信息和目标表的字段信息
+     *
      * @param etlTable etl_table 表记录
      * @return true 成功，false 失败
      */
     @Transactional
-    public boolean createTableColumns(VwEtlTableWithSource etlTable)
-    {
+    public boolean createTableColumns(VwEtlTableWithSource etlTable) {
         if (etlTable == null) {
             return false;
         }
@@ -341,7 +347,7 @@ public class ColumnService
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
         String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
         try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
-                ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
+             ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
             ResultSetMetaData metaData = resultSet.getMetaData();
             int columnCount = metaData.getColumnCount();
             for (int i = 1; i <= columnCount; i++) {
@@ -351,8 +357,7 @@ public class ColumnService
             log.info("table columns created for tid {}, total {} columns", etlTable.getId(), columnCount);
             jourService.successJour(etlJour);
             return true;
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             jourService.failJour(etlJour, e.getMessage());
             log.error("failed to create table columns for tid {}", etlTable.getId(), e);
             return false;
@@ -360,8 +365,7 @@ public class ColumnService
     }
 
     private static EtlColumn getEtlColumn(VwEtlTableWithSource etlTable, int i, ResultSetMetaData metaData, Connection connection, Map<String, String> hiveTypeMapping)
-            throws SQLException
-    {
+            throws SQLException {
         EtlColumn etlColumn = new EtlColumn();
         etlColumn.setTid(etlTable.getId());
         etlColumn.setColumnId(i);
@@ -383,6 +387,7 @@ public class ColumnService
 
     /**
      * 获取指定采集表的Hive列信息并转换为DDL语句
+     *
      * @param tid 采集表ID
      * @return DDL语句列表
      */
@@ -390,7 +395,7 @@ public class ColumnService
         List<String> result = new ArrayList<>();
         List<EtlColumn> columns = getColumns(tid);
         for (EtlColumn col : columns) {
-            String colName ;
+            String colName;
             if (isDeletedPlaceholder(col.getColumnName())) {
                 colName = quoteColumnIfNeeded(col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length()));
             } else {
@@ -398,12 +403,12 @@ public class ColumnService
             }
             String comment = nvlStr(col.getColComment());
             if (comment.isEmpty()) {
-                result.add(colName + " " +  col.getTargetTypeFull());
+                result.add(colName + " " + col.getTargetTypeFull());
             } else {
                 // Normalize whitespace/newlines and escape single quotes for SQL string literal
                 comment = comment.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
                 comment = comment.replace("'", "''");
-                result.add(colName + " " +  col.getTargetTypeFull() + " COMMENT '" + comment + "'");
+                result.add(colName + " " + col.getTargetTypeFull() + " COMMENT '" + comment + "'");
             }
         }
         return result;
@@ -411,10 +416,10 @@ public class ColumnService
 
     /**
      * 根据表ID删除对应的字段信息
+     *
      * @param tableId 表ID
      */
-    public void deleteByTid(long tableId)
-    {
+    public void deleteByTid(long tableId) {
         etlColumnRepo.deleteAllByTid(tableId);
     }
 }

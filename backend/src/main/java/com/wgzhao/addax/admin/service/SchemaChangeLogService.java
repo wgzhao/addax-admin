@@ -74,4 +74,8 @@ public class SchemaChangeLogService {
         LocalDateTime endDt = end.plusDays(1).atStartOfDay();
         return repo.findByTidAndChangeAtBetweenOrderByChangeAtDesc(tid, startDt, endDt);
     }
+
+    public List<SchemaChangeLog> getAllFieldChanges() {
+        return repo.findAll();
+    }
 }

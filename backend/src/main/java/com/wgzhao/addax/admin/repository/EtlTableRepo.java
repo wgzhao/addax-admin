@@ -57,4 +57,6 @@ public interface EtlTableRepo
     List<EtlTable> findValidTables();
 
     int countBySid(int sid);
+
+    List<EtlTable> findByStatus(String status);
 }

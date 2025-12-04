@@ -43,20 +43,31 @@ import static java.lang.Math.max;
 @Component
 @Primary
 @Slf4j
-public class TaskQueueManagerV2Impl implements TaskQueueManager
-{
-    @Autowired private DictService dictService;
-    @Autowired private AddaxLogService addaxLogService;
-    @Autowired private StatService statService;
-    @Autowired private AlertService alertService;
-    @Autowired private TableService tableService;
-    @Autowired private EtlJourService jourService;
-    @Autowired private SystemConfigService configService;
-    @Autowired private JobContentService jobContentService;
-    @Autowired private TargetService targetService;
-    @Autowired private SystemFlagService systemFlagService;
-    @Autowired private EtlJobQueueService jobQueueService;
-    @Autowired private JdbcTemplate jdbcTemplate;
+public class TaskQueueManagerV2Impl implements TaskQueueManager {
+    @Autowired
+    private DictService dictService;
+    @Autowired
+    private AddaxLogService addaxLogService;
+    @Autowired
+    private StatService statService;
+    @Autowired
+    private AlertService alertService;
+    @Autowired
+    private TableService tableService;
+    @Autowired
+    private EtlJourService jourService;
+    @Autowired
+    private SystemConfigService configService;
+    @Autowired
+    private JobContentService jobContentService;
+    @Autowired
+    private TargetService targetService;
+    @Autowired
+    private SystemFlagService systemFlagService;
+    @Autowired
+    private EtlJobQueueService jobQueueService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     // 并发限制 & 入队容量
     private int concurrentLimit;
@@ -88,8 +99,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     private static final int DEFAULT_LEASE_SECONDS = 600;
 
     @PostConstruct
-    public void init()
-    {
+    public void init() {
         configService.loadConfig();
         this.concurrentLimit = configService.getConcurrentLimit();
         this.enqueueCapacity = configService.getQueueSize();
@@ -106,14 +116,12 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
         log.info("DB-backed queue started. concurrentLimit={}, enqueueCapacity={}, instanceId={}", concurrentLimit, enqueueCapacity, instanceId);
     }
 
-    private String resolveInstanceId()
-    {
+    private String resolveInstanceId() {
         try {
             String host = InetAddress.getLocalHost().getHostName();
             String pid = ManagementFactory.getRuntimeMXBean().getName();
             return host + "-" + pid;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return UUID.randomUUID().toString();
         }
     }
@@ -121,8 +129,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     /**
      * 扫描并入队（DB 持久化），遵守容量限制与去重
      */
-    public void scanAndEnqueueEtlTasks()
-    {
+    public void scanAndEnqueueEtlTasks() {
         try {
             long pending = jobQueueService.countPending();
             if (pending >= enqueueCapacity) {
@@ -155,15 +162,13 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
                 }
             }
             log.info("入队完成: 成功 {} 个，跳过 {} 个，队列待处理 {}", enqueued, skipped, jobQueueService.countPending());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("扫描并入队失败", e);
             alertService.sendToWeComRobot("扫描采集任务失败: " + e.getMessage());
         }
     }
 
-    private void listenLoop()
-    {
+    private void listenLoop() {
         try (Connection conn = Objects.requireNonNull(jdbcTemplate.getDataSource()).getConnection();
              java.sql.Statement stmt = conn.createStatement()) {
             conn.setAutoCommit(true);
@@ -183,31 +188,26 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
                         }
                     }
                     Thread.sleep(500L);
-                }
-                catch (InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
-                }
-                catch (SQLException se) {
+                } catch (SQLException se) {
                     log.warn("LISTEN 循环 SQL 异常，将重试", se);
                     Thread.sleep(2000);
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("LISTEN 监听器异常退出", e);
         }
         log.info("LISTEN 监听器结束");
     }
 
-    private void pollAndDispatch()
-    {
+    private void pollAndDispatch() {
         if (!running) return;
         dispatchUntilFull();
     }
 
-    private void dispatchUntilFull()
-    {
+    private void dispatchUntilFull() {
         while (runningTaskCount.get() < concurrentLimit) {
             Optional<EtlJobQueue> maybe = jobQueueService.claimNext(instanceId, DEFAULT_LEASE_SECONDS);
             if (maybe.isEmpty()) {
@@ -220,21 +220,18 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
         }
     }
 
-    private void recoverLeases()
-    {
+    private void recoverLeases() {
         try {
             int n = jobQueueService.recoverExpiredLeases();
             if (n > 0) {
                 log.info("回收过期租约 {} 条", n);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.warn("回收租约失败", e);
         }
     }
 
-    private void executeClaimedJob(EtlJobQueue job)
-    {
+    private void executeClaimedJob(EtlJobQueue job) {
         long start = System.currentTimeMillis();
         try {
             EtlTable task = tableService.getTable(job.getTid());
@@ -248,22 +245,20 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
                 Duration backoff = computeBackoff(job.getAttempts());
                 jobQueueService.failOrReschedule(job, "Addax 退出非0", backoff);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("执行任务失败 jobId={} tid={}", job.getId(), job.getTid(), e);
             Duration backoff = computeBackoff(job.getAttempts());
             try {
                 jobQueueService.failOrReschedule(job, e.getMessage(), backoff);
-            } catch (Exception ignored) { }
-        }
-        finally {
+            } catch (Exception ignored) {
+            }
+        } finally {
             int current = runningTaskCount.decrementAndGet();
-            log.debug("jobId={} 完成，耗时 {}s，当前并发 {}", job.getId(), (System.currentTimeMillis()-start)/1000, current);
+            log.debug("jobId={} 完成，耗时 {}s，当前并发 {}", job.getId(), (System.currentTimeMillis() - start) / 1000, current);
         }
     }
 
-    private Duration computeBackoff(int attempts)
-    {
+    private Duration computeBackoff(int attempts) {
         long secs = BACKOFF_MIN_SECONDS;
         for (int i = 1; i < attempts; i++) {
             secs = Math.min((long) BACKOFF_MAX_SECONDS, secs * BACKOFF_FACTOR);
@@ -272,8 +267,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     }
 
     // 重载，允许用队列中的 bizDate 覆盖默认 bizDate
-    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate)
-    {
+    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate) {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
         try {
@@ -290,8 +284,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
                 alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", tid));
                 return TaskResultDto.failure("执行失败：Addax 退出非0", duration);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000;
             log.error("采集任务 {} 执行失败，耗时: {}s", tid, duration, e);
             task.setDuration(duration);
@@ -299,23 +292,20 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
             alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
             String msg = e.getMessage() == null ? "内部异常" : e.getMessage();
             return TaskResultDto.failure("执行异常: " + msg, duration);
-        }
-        finally {
+        } finally {
             // runningTaskCount 在 submit 前已增加，在 finally 中由调用方减少
         }
     }
 
     // 保留旧接口，走默认 bizDate
-    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task)
-    {
+    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task) {
         return executeEtlTaskWithConcurrencyControl(task, null);
     }
 
     /**
      * 执行具体的采集逻辑，支持覆盖 bizDate
      */
-    public boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate)
-    {
+    public boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate) {
         long taskId = task.getId();
         log.info("执行采集任务逻辑: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
         String job = jobContentService.getJobContent(taskId);
@@ -341,7 +331,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
             }
             bizDateStr = bizDate;
         }
-        log.info("biz date is {}, dw_clt_date is {}, dw_trade_date is {}", bizDateStr, dw_clt_date, defaultLogDate);
+        log.debug("biz date is {}, dw_clt_date is {}, dw_trade_date is {}", bizDateStr, dw_clt_date, defaultLogDate);
         job = job.replace("${logdate}", bizDateStr).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", defaultLogDate);
         if (task.getPartName() != null && !Objects.equals(task.getPartName(), "")) {
             boolean result = targetService.addPartition(taskId, task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDateStr);
@@ -353,27 +343,25 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
         try {
             // Determine the persistent jobs directory under the parent of program run dir
             String curDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            // The env APP_HOME is set in service.sh when starting the application
-            String jobsDir = Path.of(System.getenv("APP_HOME")).resolve("job").resolve(curDate).resolve("/").toString();
+            // The property app.home is set in the service.sh script as the parent directory of the Addax installation
+            String jobsDir = Path.of(System.getProperty("app.home")).resolve("job").resolve(curDate) + "/";
 
             Files.createDirectories(Path.of(jobsDir));
             // Create the temp file in the persistent jobs directory
             tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + ".json");
             Files.writeString(tempFile.toPath(), job);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("写入临时文件失败", e);
             return false;
         }
         String logName = String.format("addax_%s_%d.log", taskId, System.currentTimeMillis());
         String cmd = String.format("%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s", dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
         boolean retCode = executeAddax(cmd, taskId, logName);
-        log.info("采集任务 {} 的日志已写入文件: {}", taskId, logName);
+        log.debug("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode;
     }
 
-    private boolean executeAddax(String command, long tid, String logName)
-    {
+    private boolean executeAddax(String command, long tid, String logName) {
         log.info("Executing command: {}", command);
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
         TaskResultDto taskResult = CommandExecutor.executeWithResult(command, ADDAX_EXECUTE_TIME_OUT_SECONDS);
@@ -391,8 +379,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     }
 
     @PreDestroy
-    public void shutdown()
-    {
+    public void shutdown() {
         running = false;
         scheduler.shutdownNow();
         workerPool.shutdownNow();
@@ -403,14 +390,20 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
     public void stopQueueMonitor() {
         running = false;
     }
+
     public void restartQueueMonitor() {
         stopQueueMonitor();
-        try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         running = true;
         scheduler.execute(this::listenLoop);
         scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
         scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
     }
+
     public boolean addTaskToQueue(EtlTable etlTable) {
         if (systemFlagService != null && systemFlagService.isRefreshInProgress()) {
             log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable == null ? "null" : etlTable.getId());
@@ -419,19 +412,23 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;
     }
+
     public boolean addTaskToQueue(long tableId) {
         EtlTable table = tableService.getTable(tableId);
         return table != null && addTaskToQueue(table);
     }
+
     public int clearQueue() {
         return jobQueueService.clearPending();
     }
+
     public Map<String, Object> getQueueStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("pendingInDatabase", jobQueueService.countPending());
         status.put("runningTasks", runningTaskCount.get());
         return status;
     }
+
     public void startQueueMonitor() {
         running = true;
         scheduler.execute(this::listenLoop);
