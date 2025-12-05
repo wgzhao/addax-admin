@@ -36,21 +36,24 @@
 
         <!-- 连接信息区块 -->
         <v-row dense class="mb-2" align="start" justify="start">
-          <v-col cols="12" md="5">
+          <v-col cols="12" md="12">
             <v-text-field v-model="sourceItem.url" placeholder="jdbc:hive2://host:port" label="JDBC 连接地址"
               :rules="[rules.required]" prepend-inner-icon="mdi-link" variant="outlined" density="compact" />
           </v-col>
-          <v-col cols="12" md="2">
+          </v-row>
+          <v-row dense class="mb-2" align="start" justify="start">
+          <v-col cols="12" md="3">
             <v-text-field v-model="sourceItem.username" label="用户名" prepend-inner-icon="mdi-account" variant="outlined"
               density="compact" autocomplete="off" />
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="7">
             <v-text-field v-model="sourceItem.pass" :type="showPassword ? 'text' : 'password'" label="密码"
               prepend-inner-icon="mdi-lock" variant="outlined" density="compact" autocomplete="new-password"
               :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
               @click:append-inner="showPassword = !showPassword" />
           </v-col>
-          <v-col cols="12" md="2">
+          <v-spacer></v-spacer>
+          <v-col cols="auto">
             <v-btn color="info" text="测试连接" v-if="mode === 'add' || mode === 'edit'" @click="testConnect"
               prepend-icon="mdi-connection"></v-btn>
           </v-col>

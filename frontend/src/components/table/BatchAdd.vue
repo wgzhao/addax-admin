@@ -144,6 +144,7 @@ const headers: DataTableHeader[] = [
   { title: "源用户", key: "sourceDb" },
   { title: "源表名", key: "sourceTable" },
   { title: "表注释", key: "tblComment" },
+  { title: "近似行数", key: "approxRowCount" },
   { title: "目标库", key: "targetDb" },
   { title: "目标表", key: "targetTable" }
 ];
@@ -155,7 +156,8 @@ const tableLoadError = ref('');
 const showSuccessDialog = ref(false);
 const successMessage = ref('');
 const search = ref(''); // 新增：搜索关键字
-const selectedTables = ref<EtlTable[]>([]); // 新增：已选择的表格
+type EtlTableView = EtlTable & { approxRowCount?: number };
+const selectedTables = ref<EtlTableView[]>([]); // 新增：已选择的表格
 const targetDb = ref(''); // 新增：目标库名
 const partName = ref('logdate'); // 新增：分区字段名
 const partFormat = ref('yyyyMMdd'); // 新增：分区格式
@@ -189,7 +191,7 @@ const selectedSourceId = ref<EtlSource | null>(null);
 
 const selectedDb = ref()
 
-const tables = ref<EtlTable[]>([]);
+const tables = ref<EtlTableView[]>([]);
 
 const defaultItem = ref<EtlTable>({
   id: null,
@@ -208,8 +210,10 @@ const defaultItem = ref<EtlTable>({
   retryCnt: 3,
   sid: null,
   duration: 0,
-  tblComment: ""
+  tblComment: "",
 });
+
+const tableRows = ref<number[]>([])
 
 const sourceSystemList = ref([]);
 
@@ -331,7 +335,9 @@ const getTables = async () => {
         newItem.compressFormat = compressFormat.value;
         newItem.targetTable = element.name;
         newItem.tblComment = element.comment;
-        tables.value.push(newItem);
+        const viewItem: EtlTableView = { ...newItem, approxRowCount: element.approxRowCount };
+        tables.value.push(viewItem);
+        tableRows.value.push(element.approxRowCount);
       });
       // Show feedback
       tableLoadError.value = '';

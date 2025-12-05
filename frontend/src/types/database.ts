@@ -217,6 +217,7 @@ export interface EtlTable {
 export interface TableMeta {
   name: string // 表名
   comment?: string // 表注释
+  approxRowCount?: number // 近似行数
 }
 
 export interface VEtlWithSource extends EtlTable {
