@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -12,18 +13,14 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.sql.*;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
-import static com.wgzhao.addax.admin.common.Constants.quoteColumnIfNeeded;
+import static com.wgzhao.addax.admin.common.Constants.*;
 
 /**
  * 采集表字段信息服务类，负责采集表字段的增删改查及同步等业务操作
@@ -216,12 +213,12 @@ public class ColumnService {
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
 
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
-        String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
         boolean changed = false;
 
-        try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
-             ResultSet rs = connection.createStatement().executeQuery(sql)) {
-            ResultSetMetaData md = rs.getMetaData();
+        try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
+            assert connection != null;
+
+            ResultSetMetaData md = getTableMetaData(connection, etlTable);
             int n = md.getColumnCount();
 
             // 读取源表字段，构造成列名->列信息的映射，便于按名匹配
@@ -313,6 +310,25 @@ public class ColumnService {
         return changed ? 1 : 0;
     }
 
+    private ResultSetMetaData getTableMetaData(Connection connection, VwEtlTableWithSource etlTable) {
+        try {
+            String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
+            String schema = connection.getSchema();
+            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
+            if (rs.next()) {
+                ResultSetMetaData metaData = rs.getMetaData();
+                rs.close();
+                return metaData;
+            } else {
+                log.error("Cannot retrieve metadata for table {}.{}", etlTable.getSourceDb(), etlTable.getSourceTable());
+                return null;
+            }
+        } catch (SQLException e) {
+            log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), etlTable.getSourceTable(), e.getMessage());
+            return null;
+        }
+    }
+
     private static boolean isDeletedPlaceholder(String name) {
         return name != null && name.startsWith(DELETED_PLACEHOLDER_PREFIX);
     }
@@ -345,10 +361,9 @@ public class ColumnService {
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
 
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
-        String sql = "select * from `" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "` where 1=0";
-        try (Connection connection = DriverManager.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass());
-             ResultSet resultSet = connection.createStatement().executeQuery(sql)) {
-            ResultSetMetaData metaData = resultSet.getMetaData();
+        try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
+            assert connection != null;
+            ResultSetMetaData metaData = getTableMetaData(connection, etlTable);
             int columnCount = metaData.getColumnCount();
             for (int i = 1; i <= columnCount; i++) {
                 EtlColumn etlColumn = getEtlColumn(etlTable, i, metaData, connection, hiveTypeMapping);
@@ -357,6 +372,7 @@ public class ColumnService {
             log.info("table columns created for tid {}, total {} columns", etlTable.getId(), columnCount);
             jourService.successJour(etlJour);
             return true;
+
         } catch (SQLException e) {
             jourService.failJour(etlJour, e.getMessage());
             log.error("failed to create table columns for tid {}", etlTable.getId(), e);
@@ -376,7 +392,7 @@ public class ColumnService {
         etlColumn.setDataScale(metaData.getScale(i));
         String colComment = DbUtil.getColumnComment(connection, etlTable.getSourceDb(), etlTable.getSourceTable(), metaData.getColumnName(i));
         etlColumn.setColComment(colComment);
-        String hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i), "string");
+        String hiveType = hiveTypeMapping.getOrDefault(metaData.getColumnTypeName(i).toLowerCase(), "string");
         etlColumn.setTargetType(hiveType);
         if (Objects.equals(hiveType, "decimal")) {
             hiveType = String.format("decimal(%d,%d)", metaData.getPrecision(i), metaData.getScale(i));
@@ -397,18 +413,18 @@ public class ColumnService {
         for (EtlColumn col : columns) {
             String colName;
             if (isDeletedPlaceholder(col.getColumnName())) {
-                colName = quoteColumnIfNeeded(col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length()));
+                colName = col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length());
             } else {
-                colName = quoteColumnIfNeeded(col.getColumnName());
+                colName = col.getColumnName();
             }
             String comment = nvlStr(col.getColComment());
             if (comment.isEmpty()) {
-                result.add(colName + " " + col.getTargetTypeFull());
+                result.add("`" + colName + "` " + col.getTargetTypeFull());
             } else {
                 // Normalize whitespace/newlines and escape single quotes for SQL string literal
                 comment = comment.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
                 comment = comment.replace("'", "''");
-                result.add(colName + " " + col.getTargetTypeFull() + " COMMENT '" + comment + "'");
+                result.add("`" + colName + "` " + col.getTargetTypeFull() + " COMMENT '" + comment + "'");
             }
         }
         return result;

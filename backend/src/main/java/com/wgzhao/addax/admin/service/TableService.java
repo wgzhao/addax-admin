@@ -151,6 +151,7 @@ public class TableService
      * 刷新标记为 U 的表资源
      * /
      */
+    @Async
     public void refreshUpdatedTableResources()
     {
         List<EtlTable> tables = etlTableRepo.findByStatus("U");

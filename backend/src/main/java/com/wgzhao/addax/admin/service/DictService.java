@@ -193,7 +193,7 @@ public class DictService
     public Map<String, String> getHiveTypeMapping() {
         return sysItemRepo.getHiveTypeItems().stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        item -> item.getItemKey().toUpperCase(),
+                        SysItem::getItemKey,
                         SysItem::getItemValue));
     }
 

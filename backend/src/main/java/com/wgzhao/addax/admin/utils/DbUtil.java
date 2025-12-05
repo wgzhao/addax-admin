@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.utils;
 
+import com.wgzhao.addax.admin.common.Constants;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -36,12 +37,50 @@ public class DbUtil
     // test jdbc is connected or not
     public static boolean testConnection(String url, String username, String password)
     {
-        try(Connection ignore = DriverManager.getConnection(url, username, password)) {
+        Connection connection = getConnection(url, username, password);
+        if (connection == null) {
+            return false;
+        } else {
+            // close it first
+            try {
+                connection.close();
+            } catch (SQLException e) {
+                log.warn("Failed to close the connection", e);
+            }
             return true;
+        }
+    }
+
+    public static Connection getConnection(String url, String username, String password)
+    {
+        // Ensure driver is loaded for environments where ServiceLoader discovery may not pick up external jars
+        try {
+            if (url.startsWith("jdbc:sqlserver")) {
+                Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            } else if (url.startsWith("jdbc:mysql")) {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+            } else if (url.startsWith("jdbc:postgresql")) {
+                Class.forName("org.postgresql.Driver");
+            } else if (url.startsWith("jdbc:oracle")) {
+                Class.forName("oracle.jdbc.OracleDriver");
+            } else if (url.startsWith("jdbc:clickhouse") || url.startsWith("jdbc:chk")) {
+                try {
+                    Class.forName("com.clickhouse.jdbc.ClickHouseDriver");
+                } catch (ClassNotFoundException e) {
+                    // older artifact coordinates
+                    Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            log.warn("JDBC driver class not found for URL: {}", url, e);
+            return null;
+        }
+        try {
+            return DriverManager.getConnection(url, username, password);
         }
         catch (SQLException e) {
             log.error("Failed to connect database", e);
-            return false;
+            return null;
         }
     }
 
@@ -59,6 +98,23 @@ public class DbUtil
             }
         }
         return "R";
+    }
+
+    public static Constants.DbType getDbType(String jdbcUrl)
+    {
+        for (var entry : KIND_MAP.entrySet()) {
+            if (jdbcUrl.startsWith(entry.getKey())) {
+                return switch (entry.getValue()) {
+                    case "mysql" -> Constants.DbType.MYSQL;
+                    case "postgresql" -> Constants.DbType.POSTGRESQL;
+                    case "oracle" -> Constants.DbType.ORACLE;
+                    case "sqlserver" -> Constants.DbType.SQLSERVER;
+                    case "clickhouse" -> Constants.DbType.HIVE; // use HIVE quotes for ClickHouse
+                    default -> Constants.DbType.DEFAULT;
+                };
+            }
+        }
+        return Constants.DbType.DEFAULT;
     }
 
     public static String getColumnComment(Connection conn, String dbName, String tableName, String columnName)
@@ -338,6 +394,8 @@ public class DbUtil
                         }
                     }
                 }
+            } catch (SQLException e) {
+                log.debug("ClickHouse read create_table_query failed", e);
             }
         } catch (SQLException e) {
             log.debug("ClickHouse read create_table_query failed", e);

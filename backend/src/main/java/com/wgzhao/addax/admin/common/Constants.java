@@ -60,10 +60,10 @@ public final class Constants
     }
 
     // Simple pair to represent left/right quote characters (some DBs use asymmetric quotes like [ ])
-        private record QuoteChars(String left, String right) {
+    public record QuoteChars(String left, String right) {
     }
 
-    private static QuoteChars getQuoteCharsForDb(DbType dbType) {
+    public static QuoteChars getQuoteCharsForDb(DbType dbType) {
         if (dbType == null || dbType == DbType.DEFAULT) {
             dbType = DbType.MYSQL; // default to MySQL when not specified
         }

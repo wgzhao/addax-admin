@@ -52,7 +52,9 @@ class SourceService {
   // 查询未采集的表
   fetchUncollectedTables(sourceId: number, dbName: string): Promise<TableMeta[]> {
     return Requests.get(
-      `${this.prefix}/${sourceId}/databases/${dbName}/tables/uncollected`
+      `${this.prefix}/${sourceId}/databases/${dbName}/tables/uncollected`,
+      undefined,
+      { timeout: 300000 }
     ) as unknown as Promise<TableMeta[]>
   }
 }

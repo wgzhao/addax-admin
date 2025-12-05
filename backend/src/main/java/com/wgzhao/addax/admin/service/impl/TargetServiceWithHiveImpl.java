@@ -49,6 +49,9 @@ public class TargetServiceWithHiveImpl
 
     private volatile DataSource hiveDataSource;
 
+    private static final int HIVE_DECIMAL_MAX_PRECISION = 38;
+    private static final int HIVE_DECIMAL_MAX_SCALE = 10;
+
     @Override
     public Connection getHiveConnect() {
         if (hiveDataSource == null) {
@@ -148,10 +151,19 @@ public class TargetServiceWithHiveImpl
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
         try (Connection conn = getHiveConnect();
              Statement stmt = conn.createStatement()) {
-            // 1) Ensure DB and table exist (no-op if already there)
             stmt.execute(createDbSql);
+            // 1) Check whether table exists before creation
+            boolean existedBefore = hiveTableExists(stmt, etlTable.getTargetDb(), etlTable.getTargetTable());
+            // Ensure DB and table exist (no-op if already there)
             stmt.execute(createTableSql);
             jourService.successJour(etlJour);
+
+            // If table did not exist before, skip ALTER/diff logic on first creation
+            if (!existedBefore) {
+                log.info("Table {}.{} was newly created; skip alter diff on initial creation.", etlTable.getTargetDb(), etlTable.getTargetTable());
+                return true;
+            }
+
             // 2) ALTER mode: fetch current hive columns and apply diffs
             List<EtlColumn> desiredCols = columnService.getColumns(etlTable.getId());
             // build desired active map name -> EtlColumn (skip deleted placeholders)
@@ -169,8 +181,8 @@ public class TargetServiceWithHiveImpl
             ArrayList<String> alterDDLs = new ArrayList<>();
             // additions
             for (var entry : desiredActive.entrySet()) {
-                String name = entry.getKey();
-                com.wgzhao.addax.admin.model.EtlColumn c = entry.getValue();
+                String name = entry.getKey().toLowerCase();
+                EtlColumn c = entry.getValue();
                 HiveCol hc = hiveCurrent.get(name);
                 String comment = normalizeComment(c.getColComment());
                 String typeFull = c.getTargetTypeFull();
@@ -331,19 +343,36 @@ public class TargetServiceWithHiveImpl
     }
 
     private static boolean isNumericWiderOrEqual(HiveType cur, HiveType des) {
+        // Clamp DECIMAL precision/scale to Hive's max supported before any comparisons
+        // This ensures comparisons are made within Hive capabilities (max (38,10))
+        if (cur.base == HiveType.Base.DECIMAL) {
+            int cp = cur.param1OrDefault(HIVE_DECIMAL_MAX_PRECISION);
+            int cs = cur.param2OrDefault(HIVE_DECIMAL_MAX_SCALE);
+            cp = Math.min(cp, HIVE_DECIMAL_MAX_PRECISION);
+            cs = Math.min(cs, HIVE_DECIMAL_MAX_SCALE);
+            cur = new HiveType(HiveType.Base.DECIMAL, cp, cs, cur.raw);
+        }
+        if (des.base == HiveType.Base.DECIMAL) {
+            int dp = des.param1OrDefault(HIVE_DECIMAL_MAX_PRECISION);
+            int ds = des.param2OrDefault(HIVE_DECIMAL_MAX_SCALE);
+            dp = Math.min(dp, HIVE_DECIMAL_MAX_PRECISION);
+            ds = Math.min(ds, HIVE_DECIMAL_MAX_SCALE);
+            des = new HiveType(HiveType.Base.DECIMAL, dp, ds, des.raw);
+        }
+
         // Handle decimal precision/scale
         if (cur.base == HiveType.Base.DECIMAL && des.base == HiveType.Base.DECIMAL) {
-            int cp = cur.param1OrDefault(38);
-            int cs = cur.param2OrDefault(18);
-            int dp = des.param1OrDefault(0);
-            int ds = des.param2OrDefault(0);
+            int cp = cur.param1OrDefault(HIVE_DECIMAL_MAX_PRECISION);
+            int cs = cur.param2OrDefault(HIVE_DECIMAL_MAX_SCALE);
+            int dp = des.param1OrDefault(HIVE_DECIMAL_MAX_PRECISION);
+            int ds = des.param2OrDefault(HIVE_DECIMAL_MAX_SCALE);
             return cp >= dp && cs >= ds;
         }
         // Decimal can hold integers/floats depending on precision/scale; treat decimal as between float and bigint depending on scale
         if (cur.base == HiveType.Base.DECIMAL && (des.base == HiveType.Base.BIGINT || des.base == HiveType.Base.INT || des.base == HiveType.Base.SMALLINT || des.base == HiveType.Base.TINYINT)) {
             // integer desired: decimal with scale 0 and precision high enough is compatible; if unknown, assume compatible
             int cs = cur.param2OrDefault(0);
-            int cp = cur.param1OrDefault(38);
+            int cp = cur.param1OrDefault(HIVE_DECIMAL_MAX_PRECISION);
             int needPrecision = switch (des.base) {
                 case BIGINT -> 19; // up to 9223372036854775807
                 case INT -> 10;
@@ -443,7 +472,12 @@ public class TargetServiceWithHiveImpl
 
             Matcher m;
             if ((m = decimal.matcher(s)).matches()) {
-                return new HiveType(Base.DECIMAL, Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), raw);
+                int p = Integer.parseInt(m.group(1));
+                int sc = Integer.parseInt(m.group(2));
+                // Clamp parsed DECIMAL to Hive max to avoid out-of-range comparisons later
+                p = Math.min(p, HIVE_DECIMAL_MAX_PRECISION);
+                sc = Math.min(sc, HIVE_DECIMAL_MAX_SCALE);
+                return new HiveType(Base.DECIMAL, p, sc, raw);
             }
             if ((m = varchar.matcher(s)).matches()) {
                 return new HiveType(Base.VARCHAR, Integer.parseInt(m.group(1)), null, raw);
@@ -473,6 +507,19 @@ public class TargetServiceWithHiveImpl
                     yield new HiveType(Base.UNKNOWN, null, null, raw);
                 }
             };
+        }
+    }
+
+    /**
+     * Check whether hive table exists by SHOW TABLES IN db LIKE 'table'
+     */
+    private boolean hiveTableExists(Statement stmt, String db, String table)  {
+        String sql = String.format("SHOW TABLES IN `%s` LIKE '%s'", db, table);
+        try (var rs = stmt.executeQuery(sql)) {
+            return rs.next();
+        } catch (SQLException e) {
+            log.error("Failed to check hive table existence for {}.{} ", db, table, e);
+            return false;
         }
     }
 }

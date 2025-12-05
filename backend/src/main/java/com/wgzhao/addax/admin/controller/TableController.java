@@ -24,7 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+
+import com.wgzhao.addax.admin.dto.PageResponse;
 
 /**
  * 采集表管理接口（RESTful规范），提供采集表的分页查询、详情、统计等功能
@@ -58,7 +59,7 @@ public class TableController
      */
     @Operation(summary = "分页查询采集表")
     @GetMapping("")
-    public ResponseEntity<Page<VwEtlTableWithSource>> listTables(
+    public ResponseEntity<PageResponse<VwEtlTableWithSource>> listTables(
             @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
             @Parameter(description = "每页记录数") @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
             @Parameter(description = "查询关键字") @RequestParam(value = "q", required = false) String q,
@@ -77,7 +78,7 @@ public class TableController
         else {
             result = tableService.getVwTablesInfo(page, pageSize, q, sortField, sortOrder);
         }
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(PageResponse.from(result));
     }
 
     /**
