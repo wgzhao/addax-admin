@@ -142,6 +142,7 @@ public class CommandExecutor
                 finished = pWait.waitFor(timeoutSeconds, TimeUnit.SECONDS);
                 if (!finished) {
                     // 超时
+                    log.warn("Process pid={} timed out after {} seconds, destroying...", pid, timeoutSeconds);
                     pWait.destroyForcibly();
                     // 尝试等待进程退出
                     pWait.onExit().join();
