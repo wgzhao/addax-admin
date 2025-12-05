@@ -198,7 +198,8 @@ public class SourceService
                 if (remarks.isEmpty()) {
                     remarks = DbUtil.getTableComment(connection, dbName, tblName);
                 }
-                result.add(new TableMetaDto(tblName, remarks));
+                Long rows = DbUtil.getTableRowCount(connection, dbName, tblName);
+                result.add(new TableMetaDto(tblName, remarks, rows));
             }
         }
         catch (SQLException e) {

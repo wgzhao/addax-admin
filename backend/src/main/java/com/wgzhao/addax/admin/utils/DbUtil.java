@@ -8,6 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 数据库工具类。
@@ -83,6 +85,10 @@ public class DbUtil
             else if (dbType.contains("db2")) {
                 sql = "SELECT REMARKS FROM SYSCAT.COLUMNS WHERE TABSCHEMA=? AND TABNAME=? AND COLNAME=?";
             }
+            else if (dbType.contains("clickhouse")) {
+                // ClickHouse 通过 system.columns 提供列注释
+                sql = "SELECT comment FROM system.columns WHERE database=? AND table=? AND name=?";
+            }
             else {
                 return "";
             }
@@ -132,6 +138,11 @@ public class DbUtil
             }
             else if (dbType.contains("db2")) {
                 sql = "SELECT REMARKS FROM SYSCAT.TABLES WHERE TABSCHEMA=? AND TABNAME=?";
+            }
+            else if (dbType.contains("clickhouse")) {
+                // ClickHouse: 优先从 system.tables.comment 读取，否则回退到 create_table_query 解析
+                String comment = getClickHouseTableComment(conn, dbName, tableName);
+                return comment == null ? "" : comment;
             }
             else {
                 return "";
@@ -197,5 +208,156 @@ public class DbUtil
         catch (SQLException ignore) {
         }
         return result;
+    }
+
+    /**
+     * 获取表近似行数（不同数据库的统计机制不同，均为估算值）。
+     * 返回字符串形式的近似行数，若无法获取则返回空串。
+     */
+    public static Long getTableRowCount(Connection conn, String dbName, String tableName)
+    {
+        Long rows = null;
+        try {
+            String dbType = conn.getMetaData().getDatabaseProductName().toLowerCase();
+            if (dbType.contains("mysql")) {
+                String sql = "SELECT TABLE_ROWS FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, dbName);
+                    ps.setString(2, tableName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            long v = rs.getLong(1);
+                            rows = rs.wasNull() ? null : v;
+                        }
+                    }
+                }
+            }
+            else if (dbType.contains("postgresql")) {
+                String sql = "SELECT c.reltuples FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('r','p') AND n.nspname=? AND c.relname=?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, dbName);
+                    ps.setString(2, tableName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            double est = rs.getDouble(1);
+                            rows = rs.wasNull() ? null : Math.round(est);
+                        }
+                    }
+                }
+            }
+            else if (dbType.contains("oracle")) {
+                String sql = "SELECT t.NUM_ROWS FROM ALL_TABLES t WHERE t.OWNER=? AND t.TABLE_NAME=?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, dbName);
+                    ps.setString(2, tableName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            long v = rs.getLong(1);
+                            rows = rs.wasNull() ? null : v;
+                        }
+                    }
+                }
+            }
+            else if (dbType.contains("microsoft sql server") || dbType.contains("sql server")) {
+                String sql = "SELECT SUM(p.rows) AS row_count\n" +
+                        "FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id\n" +
+                        "JOIN sys.partitions p ON p.object_id = t.object_id AND p.index_id IN (0,1)\n" +
+                        "WHERE s.name=? AND t.name=?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, dbName);
+                    ps.setString(2, tableName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            long v = rs.getLong(1);
+                            rows = rs.wasNull() ? null : v;
+                        }
+                    }
+                }
+            }
+            else if (dbType.contains("db2")) {
+                String sql = "SELECT CARD FROM SYSCAT.TABLES WHERE TABSCHEMA=? AND TABNAME=?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, dbName);
+                    ps.setString(2, tableName);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            long v = rs.getLong(1);
+                            rows = rs.wasNull() ? null : v;
+                        }
+                    }
+                }
+            }
+            else if (dbType.contains("clickhouse")) {
+                Long total = tryQueryLong(conn,
+                        "SELECT total_rows FROM system.tables WHERE database=? AND name=?",
+                        dbName, tableName);
+                if (total != null) {
+                    rows = total;
+                } else {
+                    rows = tryQueryLong(conn,
+                            "SELECT sum(rows) FROM system.parts WHERE active=1 AND database=? AND table=?",
+                            dbName, tableName);
+                }
+            }
+        }
+        catch (SQLException e) {
+            log.warn("getTableCommentAndRowCount error", e);
+        }
+        return rows;
+    }
+
+    private static String getClickHouseTableComment(Connection conn, String dbName, String tableName) {
+        // 尝试直接读取 system.tables.comment
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT comment FROM system.tables WHERE database=? AND name=?")) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String c = rs.getString(1);
+                    if (c != null) return c;
+                }
+            }
+        } catch (SQLException e) {
+            // 可能该版本无 comment 列，忽略并走回退
+            log.debug("ClickHouse read system.tables.comment failed, fallback to parse create_table_query", e);
+        }
+        // 回退：读取 create_table_query 并用正则解析 COMMENT '...'
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT create_table_query FROM system.tables WHERE database=? AND name=?")) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String ddl = rs.getString(1);
+                    if (ddl != null) {
+                        Pattern p = Pattern.compile("COMMENT\\s+'([^']*)'", Pattern.CASE_INSENSITIVE);
+                        Matcher m = p.matcher(ddl);
+                        if (m.find()) {
+                            return m.group(1);
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            log.debug("ClickHouse read create_table_query failed", e);
+        }
+        return null;
+    }
+
+    private static Long tryQueryLong(Connection conn, String sql, String dbName, String tableName) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dbName);
+            ps.setString(2, tableName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    long v = rs.getLong(1);
+                    return rs.wasNull() ? null : v;
+                }
+            }
+        } catch (SQLException e) {
+            log.debug("tryQueryLong failed: {}", sql, e);
+        }
+        return null;
     }
 }
