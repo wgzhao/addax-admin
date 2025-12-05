@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -14,8 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.*;
-import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -207,28 +206,22 @@ public class ColumnService {
         List<EtlColumn> existingColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.getId());
         if (existingColumns == null || existingColumns.isEmpty()) {
             // 第一次创建，直接全量写入
+            log.info("[V2] no existing columns for tid {}, creating all", etlTable.getId());
             return createTableColumns(etlTable) ? 1 : -1;
         }
         log.info("[V2] updating table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
 
-        Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
         boolean changed = false;
 
         try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
             assert connection != null;
-
-            ResultSetMetaData md = getTableMetaData(connection, etlTable);
-            int n = md.getColumnCount();
-
-            // 读取源表字段，构造成列名->列信息的映射，便于按名匹配
-            List<EtlColumn> sourceCols = new ArrayList<>(n);
-            for (int i = 1; i <= n; i++) {
-                EtlColumn sc = getEtlColumn(etlTable, i, md, connection, hiveTypeMapping);
-                sourceCols.add(sc);
+            List<EtlColumn> sourceCols = getEtlColumnV2(connection, etlTable);
+            if (sourceCols == null) {
+                return -1;
             }
             // name -> source column
-            java.util.HashMap<String, EtlColumn> srcByName = new java.util.HashMap<>(Math.max(16, n * 2));
+            HashMap<String, EtlColumn> srcByName = new HashMap<>(Math.max(16, sourceCols.size() * 2));
             for (EtlColumn sc : sourceCols) {
                 srcByName.put(sc.getColumnName(), sc);
             }
@@ -251,10 +244,6 @@ public class ColumnService {
                     boolean commentChanged = !Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
                     if (typeChanged || commentChanged) {
                         // 记录类型变化
-                        log.warn("[V2] RISK[COLUMN_TYPE_CHANGE] tid={}, table={}.{}, column={}, srcType: {}(len={},p={},s={}) -> {}(len={},p={},s={})",
-                                etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
-                                oc.getSourceType(), oc.getDataLength(), nvl(oc.getDataPrecision()), nvl(oc.getDataScale()),
-                                sc.getSourceType(), sc.getDataLength(), nvl(sc.getDataPrecision()), nvl(sc.getDataScale()));
                         schemaChangeLogService.recordTypeChange(
                                 etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
                                 oc.getSourceType(), sc.getSourceType(),
@@ -310,19 +299,40 @@ public class ColumnService {
         return changed ? 1 : 0;
     }
 
-    private ResultSetMetaData getTableMetaData(Connection connection, VwEtlTableWithSource etlTable) {
+    private  List<EtlColumn> getEtlColumnV2(Connection connection, VwEtlTableWithSource etlTable) {
+        List<EtlColumn> sourceCols = new ArrayList<>();
+        Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
         try {
             String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
             String schema = connection.getSchema();
-            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
-            if (rs.next()) {
-                ResultSetMetaData metaData = rs.getMetaData();
-                rs.close();
-                return metaData;
-            } else {
-                log.error("Cannot retrieve metadata for table {}.{}", etlTable.getSourceDb(), etlTable.getSourceTable());
-                return null;
+            if (etlTable.getUrl().startsWith("jdbc:mysql://")) {
+                // force switch to catalog for MySQL
+                catalog = etlTable.getSourceDb();
+                schema =null;
             }
+            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
+            int idx = 1;
+            while (rs.next()) {
+                EtlColumn etlColumn = new EtlColumn();
+                etlColumn.setTid(etlTable.getId());
+                etlColumn.setColumnId(idx);
+                etlColumn.setColumnName(rs.getString("COLUMN_NAME"));
+                String sourceType = rs.getString("TYPE_NAME").toLowerCase();
+                etlColumn.setSourceType(sourceType);
+                etlColumn.setDataLength(rs.getInt("COLUMN_SIZE"));
+                etlColumn.setDataPrecision(rs.getInt("COLUMN_SIZE"));
+                etlColumn.setDataScale(rs.getInt("DECIMAL_DIGITS"));
+                etlColumn.setColComment(rs.getString("REMARKS"));
+                String hiveType = hiveTypeMapping.getOrDefault(sourceType, "string");
+                etlColumn.setTargetType(hiveType);
+                if (Objects.equals(hiveType, "decimal")) {
+                    hiveType = String.format("decimal(%d,%d)", rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"));
+                }
+                etlColumn.setTargetTypeFull(hiveType);
+                sourceCols.add(etlColumn);
+                idx++;
+            }
+            return sourceCols;
         } catch (SQLException e) {
             log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), etlTable.getSourceTable(), e.getMessage());
             return null;
@@ -360,16 +370,16 @@ public class ColumnService {
 
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
 
-        Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
         try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
             assert connection != null;
-            ResultSetMetaData metaData = getTableMetaData(connection, etlTable);
-            int columnCount = metaData.getColumnCount();
-            for (int i = 1; i <= columnCount; i++) {
-                EtlColumn etlColumn = getEtlColumn(etlTable, i, metaData, connection, hiveTypeMapping);
-                etlColumnRepo.save(etlColumn);
+            List<EtlColumn> etlColumns = getEtlColumnV2(connection, etlTable);
+            if (etlColumns == null || etlColumns.isEmpty()) {
+                jourService.failJour(etlJour, "failed to get source table metadata");
+                return false;
             }
-            log.info("table columns created for tid {}, total {} columns", etlTable.getId(), columnCount);
+            etlColumnRepo.saveAll(etlColumns);
+
+            log.info("table columns created for tid {}, total {} columns", etlTable.getId(), etlColumns.size());
             jourService.successJour(etlJour);
             return true;
 
