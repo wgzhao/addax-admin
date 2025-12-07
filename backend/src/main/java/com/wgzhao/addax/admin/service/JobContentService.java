@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.HdfsWriterTemplate;
@@ -27,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
-import static com.wgzhao.addax.admin.common.Constants.quoteColumnIfNeeded;
+import static com.wgzhao.addax.admin.common.Constants.quoteIfNeeded;
 
 /**
  * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
@@ -84,10 +85,12 @@ public class JobContentService {
         readerTemplate.setPassword(etlTable.getPass() == null ? "" : etlTable.getPass());
         readerTemplate.setJdbcUrl(etlTable.getUrl());
         readerTemplate.setWhere(etlTable.getFilter());
-        // 这里对源 DB 和 TABLE 做了 quote，用于处理不规范命名的问题，比如 mysql 中的关键字作为表名等 ，库名包含中划线(-)
-        // TODO 这里直接使用 ` 来做 quote，可能不适用于所有数据库，比如 Oracle 需要使用 " 来做 quote
-        readerTemplate.setTable("`" + etlTable.getSourceDb() + "`.`" + etlTable.getSourceTable() + "`");
-
+        Constants.DbType dbType = DbUtil.getDbType(etlTable.getUrl());
+        if (dbType == Constants.DbType.POSTGRESQL) {
+            readerTemplate.setTable(quoteIfNeeded(etlTable.getSourceTable(), dbType));
+        } else {
+            readerTemplate.setTable(quoteIfNeeded(etlTable.getSourceDb(), dbType) + "." + quoteIfNeeded(etlTable.getSourceTable(), dbType));
+        }
 
         List<EtlColumn> columnList = columnService.getColumns(etlTable.getId());
         List<String> srcColumns = new ArrayList<>();
@@ -106,7 +109,7 @@ public class JobContentService {
             } else {
                 targetColumn.put("name", columnName);
                 // 如果列名是关键字，则还需要加上引号
-                srcColumns.add("\"" + quoteColumnIfNeeded(columnName) + "\"");
+                srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
             }
             destColumns.add(targetColumn);
         }

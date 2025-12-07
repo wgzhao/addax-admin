@@ -18,7 +18,7 @@ public final class Constants
     public static final long ADDAX_EXECUTE_TIME_OUT_SECONDS = 2 * 60 * 60;
 
     public static final Set<String> SQL_RESERVED_KEYWORDS =  Set.of("ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION",
-            "BACKUP", "BEFORE", "BETWEEN", "BREAK", "BROWSE", "BULK", "BY", "CASCADE", "CASE", "CAST", "CATALOG", "CHECK", "CHECKPOINT",
+            "BACKUP", "BEFORE", "BETWEEN", "BREAK", "BROWSE", "BULK", "BY", "CASCADE", "CASE", "CAST", "CATALOG", "CHANGE", "CHECK", "CHECKPOINT",
             "CLOSE", "CLUSTERED", "COALESCE", "COLLATE", "COLUMN", "COMMIT", "COMPUTE", "CONSTRAINT", "CONTAINS", "CONTINUE", "CONVERT",
             "CREATE", "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CURSOR", "DATABASE", "DATE", "DAY",
             "DEALLOCATE", "DECLARE", "DEFAULT", "DELETE", "DESC", "DISK", "DISTINCT", "DISTRIBUTED", "DO", "DROP", "DUMP", "ELSE", "END",
@@ -31,7 +31,7 @@ public final class Constants
             "REPLICATION", "RESTORE", "RESTRICT", "RETURN", "REVOKE", "RIGHT", "ROLLBACK", "ROWCOUNT", "ROWGUIDCOL", "RULE", "SAVE", "SCHEMA",
             "SECURITYAUDIT", "SELECT", "SEMANTICKEYPHRASETABLE", "SESSION_USER", "SET", "SETUSER", "SHOW", "SHUTDOWN", "SOME", "STATISTICS", "SYSTEM",
             "SYSTEM_USER", "TABLE", "TABLESAMPLE", "TEXTSIZE", "THEN", "TO", "TOP", "TRAN", "TRANSACTION", "TRIGGER", "TRUNCATE", "TRY_CONVERT",
-            "TSEQUAL", "UNION", "UNIQUE", "UNPIVOT", "UPDATE", "UPDATETEXT", "USE", "USER", "VALUES", "VARYING", "VIEW", "WAITFOR", "WHEN",
+            "TSEQUAL", "UNION", "UNIQUE", "UNPIVOT", "UPDATE", "UPDATETEXT", "USE", "USER", "USING", "VALUES", "VARYING", "VIEW", "WAITFOR", "WHEN",
             "WHERE", "WHILE", "WITH", "WRITETEXT", "XACT_ABORT",
             // Common SQL data types — treat as reserved for column-name safety
             "INT", "INTEGER", "BIGINT", "SMALLINT", "TINYINT", "DECIMAL", "NUMERIC", "FLOAT", "REAL", "DOUBLE",
@@ -55,8 +55,11 @@ public final class Constants
         ORACLE,
         SQLSERVER,
         HIVE,
+        DB2,
+        SQLITE,
+        SYBASE,
         // fallback/default
-        DEFAULT
+        RDBMS
     }
 
     // Simple pair to represent left/right quote characters (some DBs use asymmetric quotes like [ ])
@@ -64,34 +67,18 @@ public final class Constants
     }
 
     public static QuoteChars getQuoteCharsForDb(DbType dbType) {
-        if (dbType == null || dbType == DbType.DEFAULT) {
-            dbType = DbType.MYSQL; // default to MySQL when not specified
+        if (dbType == null) {
+            dbType = DbType.RDBMS; // default to MySQL when not specified
         }
         return switch (dbType) {
-            case POSTGRESQL, ORACLE -> new QuoteChars("\"", "\"");
+            case POSTGRESQL, ORACLE -> new QuoteChars( "\\" + "\"", "\\" + "\"");
             case SQLSERVER -> new QuoteChars("[", "]");
             default -> new QuoteChars("`", "`");
         };
     }
 
-    // 如果列名是 SQL 关键字或包含空格/中划线，则加上引号（按指定的引号字符对称加引号）
-    public static String quoteColumnIfNeeded(String columnName, String quoteChar) {
-
-        if (columnName == null) {
-            return null;
-        }
-        // already quoted with same char?
-        if (columnName.length() >= 2 && columnName.startsWith(quoteChar) && columnName.endsWith(quoteChar)) {
-            return columnName;
-        }
-        if (isSqlKeyword(columnName) || columnName.contains(" ") || columnName.contains("-")) {
-            return quoteChar + columnName + quoteChar;
-        }
-        return columnName;
-    }
-
     // 新增：按数据库类型决定引号（默认 MySQL）
-    public static String quoteColumnIfNeeded(String columnName, DbType dbType) {
+    public static String quoteIfNeeded(String columnName, DbType dbType) {
         if (columnName == null) {
             return null;
         }
@@ -100,15 +87,19 @@ public final class Constants
         if (columnName.length() >= 2 && columnName.startsWith(q.left) && columnName.endsWith(q.right)) {
             return columnName;
         }
-        if (isSqlKeyword(columnName) || columnName.contains(" ") || columnName.contains("-")) {
+        if (isSqlKeyword(columnName)
+                || columnName.contains(" ")
+                || columnName.contains("-")
+                ||  !(Character.isLetter(columnName.charAt(0)) || columnName.charAt(0) == '_')
+        ) {
             return q.left + columnName + q.right;
         }
         return columnName;
     }
 
-    public static String quoteColumnIfNeeded(String columnName) {
+    public static String quoteIfNeeded(String columnName) {
 
         // 默认使用 MySQL 的反引号
-        return quoteColumnIfNeeded(columnName, DbType.MYSQL);
+        return quoteIfNeeded(columnName, DbType.MYSQL);
     }
 }

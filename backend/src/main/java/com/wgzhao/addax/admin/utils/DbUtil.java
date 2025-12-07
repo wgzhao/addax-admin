@@ -110,11 +110,11 @@ public class DbUtil
                     case "oracle" -> Constants.DbType.ORACLE;
                     case "sqlserver" -> Constants.DbType.SQLSERVER;
                     case "clickhouse" -> Constants.DbType.HIVE; // use HIVE quotes for ClickHouse
-                    default -> Constants.DbType.DEFAULT;
+                    default -> Constants.DbType.RDBMS;
                 };
             }
         }
-        return Constants.DbType.DEFAULT;
+        return Constants.DbType.RDBMS;
     }
 
     public static String getColumnComment(Connection conn, String dbName, String tableName, String columnName)
