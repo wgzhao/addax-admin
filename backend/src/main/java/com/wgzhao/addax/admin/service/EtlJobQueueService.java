@@ -139,4 +139,13 @@ public class EtlJobQueueService {
         String sql = "DELETE FROM public.etl_job_queue WHERE status='pending'";
         return jdbcTemplate.update(sql);
     }
+
+    // Renew lease for a running, claimed job. Returns true if the lease was renewed.
+    @Transactional
+    public boolean renewLease(long jobId, String instanceId, int leaseSeconds) {
+        String sql = "UPDATE public.etl_job_queue SET lease_until = now() + ?::interval WHERE id = ? AND claimed_by = ? AND status = 'running'";
+        String interval = leaseSeconds + " seconds";
+        int updated = jdbcTemplate.update(sql, interval, jobId, instanceId);
+        return updated > 0;
+    }
 }

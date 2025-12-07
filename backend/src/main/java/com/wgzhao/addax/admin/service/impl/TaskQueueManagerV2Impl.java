@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -233,7 +234,23 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     private void executeClaimedJob(EtlJobQueue job) {
         long start = System.currentTimeMillis();
+        // Schedule periodic lease renewal (heartbeat) while this job runs
+        ScheduledFuture<?> renewer = null;
         try {
+            int renewInterval = Math.max(30, DEFAULT_LEASE_SECONDS / 3);
+            renewer = scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    boolean renewed = jobQueueService.renewLease(job.getId(), instanceId, DEFAULT_LEASE_SECONDS);
+                    if (!renewed) {
+                        log.warn("租约续期失败 jobId={}, instanceId={}，该任务可能已被其它实例接管", job.getId(), instanceId);
+                    } else {
+                        log.debug("租约续期成功 jobId={} by {}", job.getId(), instanceId);
+                    }
+                } catch (Exception e) {
+                    log.warn("租约续期异常 jobId={}", job.getId(), e);
+                }
+            }, renewInterval, renewInterval, TimeUnit.SECONDS);
+
             EtlTable task = tableService.getTable(job.getTid());
             if (task == null) {
                 throw new IllegalStateException("任务不存在 tid=" + job.getTid());
@@ -253,6 +270,9 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             } catch (Exception ignored) {
             }
         } finally {
+            if (renewer != null) {
+                try { renewer.cancel(false); } catch (Exception ignored) {}
+            }
             int current = runningTaskCount.decrementAndGet();
             log.debug("jobId={} 完成，耗时 {}s，当前并发 {}", job.getId(), (System.currentTimeMillis() - start) / 1000, current);
         }
