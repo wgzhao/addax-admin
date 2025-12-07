@@ -4,23 +4,23 @@
               class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <pattern>
-                %black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C): %msg%n%throwable
+                %cyan(%d{yyyy-MM-dd HH:mm:ss.SSS}) %highlight(%-5level) [%blue(%t)] %yellow(%C): %msg%n%throwable
             </pattern>
         </encoder>
     </appender>
 
     <appender name="RollingFile"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${logging.file.path}/spring-boot-logger.log</file>
+        <file>${logging.file.path}/addax-admin.log</file>
         <encoder
                 class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>%d %p %C [%t] %m%n</Pattern>
         </encoder>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- rollover daily and when the file reaches 100 MegaBytes -->
-            <fileNamePattern>${logging.file.path}/spring-boot-logger-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>100MB</maxFileSize>
+            <!-- rollover daily and when the file reaches 1000 MegaBytes -->
+            <fileNamePattern>${logging.file.path}/addax-admin-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>1000MB</maxFileSize>
         </rollingPolicy>
     </appender>
 

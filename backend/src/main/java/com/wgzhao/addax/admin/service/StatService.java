@@ -201,12 +201,12 @@ public class StatService
                 last2_info as (
                     select code,
                     name,
-                    max(case when rn = 1 then begin_at else null end) as y_begin_at ,
-                    max(case when rn = 2 then begin_at else null end) as t_begin_at,
-                    max(case when rn =1 then finish_at else null end) as y_finish_at,
-                    max(case when rn =2 then finish_at else null end) as t_finish_at
-                    , max(case when rn =1  then extract( epoch from finish_at - begin_at) else 0 end ) as y_take_secs
-                    , max(case when rn =2  then extract(epoch from finish_at - begin_at) else 0 end ) as t_take_secs
+                    max(case when rn = 2 then begin_at else null end) as y_begin_at ,
+                    max(case when rn = 1 then begin_at else null end) as t_begin_at,
+                    max(case when rn =2 then finish_at else null end) as y_finish_at,
+                    max(case when rn =1 then finish_at else null end) as t_finish_at
+                    , max(case when rn =2  then extract( epoch from finish_at - begin_at) else 0 end ) as y_take_secs
+                    , max(case when rn =1  then extract(epoch from finish_at - begin_at) else 0 end ) as t_take_secs
                     from (
                         select
                         code,
@@ -214,7 +214,7 @@ public class StatService
                         run_date,
                         min(es.start_at) as begin_at,
                         max(end_at) as finish_at,
-                        row_number() over(partition by code order by run_date) as rn
+                        row_number() over(partition by code order by run_date desc) as rn
                         from etl_statistic es
                         left join vw_etl_table_with_source s
                         on es.tid = s.id
