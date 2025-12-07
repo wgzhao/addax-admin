@@ -96,7 +96,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     // 轮询间隔 & 租约
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
-    private static final int DEFAULT_LEASE_SECONDS = 600;
+    private static final int DEFAULT_LEASE_SECONDS = 7300; // 2小时 + 5分钟 buffer,大于 ADDAX_EXECUTE_TIME_OUT_SECONDS
 
     @PostConstruct
     public void init() {
