@@ -365,8 +365,14 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         log.info("Executing command: {}", command);
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
         TaskResultDto taskResult = CommandExecutor.executeWithResult(command, ADDAX_EXECUTE_TIME_OUT_SECONDS);
-//        Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
-        addaxLogService.insertLog(tid, taskResult.message());
+        Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
+        String logContent = null;
+        try {
+             logContent = Files.readString(path);
+        } catch (IOException e) {
+            log.error("读取 Addax 日志文件失败: {}", path, e);
+        }
+        addaxLogService.insertLog(tid, logContent);
         etlJour.setDuration(taskResult.durationSeconds());
         etlJour.setStatus(true);
         if (!taskResult.success()) {

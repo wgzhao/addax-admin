@@ -98,22 +98,6 @@ public class CommandExecutor
             }
             log.info("Started process pid={} cmd={}", pid, displayCmd);
 
-            // 异步读取 stdout
-            CompletableFuture<String> stdoutFuture = CompletableFuture.supplyAsync(() -> {
-                StringBuilder out = new StringBuilder();
-                Process p = processRef.get();
-                if (p == null) return out.toString();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        out.append(line).append('\n');
-                    }
-                } catch (IOException e) {
-                    log.warn("Error reading stdout: {}", e.getMessage());
-                }
-                return out.toString();
-            }, ioPool);
-
             // 异步读取 stderr
             CompletableFuture<String> stderrFuture = CompletableFuture.supplyAsync(() -> {
                 StringBuilder err = new StringBuilder();
@@ -164,7 +148,6 @@ public class CommandExecutor
             }
 
             int exitCode = pWait.exitValue();
-            String stdout = stdoutFuture.join();
             String stderr = stderrFuture.join();
             long duration = (System.currentTimeMillis() - startAt) / 1000;
 
@@ -172,8 +155,7 @@ public class CommandExecutor
                 String err = stderr.isEmpty() ? ("exit code: " + exitCode) : stderr;
                 return TaskResultDto.failure(err, duration);
             } else {
-                String outMsg = stdout.isEmpty() ? "SUCCESS" : stdout;
-                return TaskResultDto.success(outMsg, duration);
+                return TaskResultDto.success("", duration);
             }
         }
         catch (IOException e) {
