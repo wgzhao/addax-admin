@@ -255,4 +255,36 @@ public class StatService {
     public List<Map<String, Object>> statLast5DaysDataBySource() {
         return etlStatisticRepo.findLast5DaysDataMB();
     }
+
+    public List<Map<String, Object>> getNoTableRowsChangeList(int days) {
+        String sql = """
+                WITH latest_per_day AS (
+                  SELECT DISTINCT ON (tid, biz_date)
+                    tid,
+                    biz_date,
+                    total_recs
+                  FROM etl_statistic
+                  where biz_date >  date(now() - interval '?' day)
+                  ORDER BY tid, biz_date DESC
+                ),
+                last_t AS (
+                  SELECT
+                    tid,
+                    biz_date,
+                    total_recs,
+                    ROW_NUMBER() OVER (PARTITION BY tid ORDER BY biz_date DESC) AS rn
+                  FROM latest_per_day
+                )
+                SELECT l.tid, min(biz_date) as start_date, max(biz_date) as end_date, 
+                       max(t.source_db), max(t.source_table), max(total_recs) as total_recs
+                FROM last_t l
+                join etl_table t
+                on l.tid = t.id
+                WHERE l.rn <= 5 and t.status <> 'X'
+                GROUP BY l.tid
+                HAVING COUNT(*) = ?
+                   AND COUNT(DISTINCT total_recs) = 1
+                """;
+        return jdbcTemplate.queryForList(sql, days + 3, days);
+    }
 }

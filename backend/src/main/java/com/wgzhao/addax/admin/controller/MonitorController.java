@@ -97,4 +97,10 @@ public class MonitorController {
     public ResponseEntity<List<Notification>> smsDetail() {
         return ResponseEntity.ok(notificationRepo.findAll());
     }
+
+    // 最近 15 个采集日内，表数据量无变化的表信息
+    @RequestMapping("/no-table-change")
+    public ResponseEntity<List<Map<String, Object>>> noTableChange() {
+        return ResponseEntity.ok(statService.getNoTableRowsChangeList(15));
+    }
 }
