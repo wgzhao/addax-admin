@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.StatService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,6 +34,7 @@ public class LogController {
 
     private final AddaxLogService addaxLogService;
     private final StatService statService;
+    private final SystemConfigService configService;
 
     /**
      * 获取指定采集任务的日志列表
@@ -68,6 +73,8 @@ public class LogController {
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        LocalDate bizDate;
         EtlStatistic sta = new EtlStatistic();
         sta.setTid(Long.parseLong(dto.jobName()));
         sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
@@ -77,8 +84,14 @@ public class LogController {
         sta.setRecSpeed(dto.recordSpeedPerSecond());
         sta.setTotalRecs(dto.totalReadRecords());
         sta.setTotalErrors(dto.totalErrorRecords());
-        sta.setRunDate(sta.getStartAt().toLocalDate());
         sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
+        try {
+            bizDate = LocalDate.ofInstant(sdf.parse(configService.getBizDate()).toInstant(), java.time.ZoneId.systemDefault());
+        } catch (ParseException e) {
+            log.warn("Failed to parse biz date, using start time as biz date");
+            bizDate = sta.getStartAt().toLocalDate();
+        }
+        sta.setBizDate(bizDate);
         return statService.saveOrUpdate(sta);
     }
 }

@@ -46,6 +46,6 @@ public class EtlStatistic {
     @Column(name = "total_errors")
     private Long totalErrors;
 
-    @Column(name = "run_date")
-    private LocalDate runDate;
+    @Column(name = "biz_date")
+    private LocalDate bizDate;
 }

@@ -13,13 +13,13 @@ public interface EtlStatisticRepo
         extends JpaRepository<EtlStatistic, Long>
 {
 
-    Optional<EtlStatistic> findByTidAndRunDate(long tid, LocalDate runDate);
+    Optional<EtlStatistic> findByTidAndBizDate(long tid, LocalDate bizDate);
 
     @Query(value = """
             SELECT s1 FROM EtlStatistic s1
             WHERE s1.totalErrors > 0
-            AND s1.runDate = (
-                SELECT MAX(s2.runDate)
+            AND s1.bizDate = (
+                SELECT MAX(s2.bizDate)
                 FROM EtlStatistic s2
                 WHERE s2.tid = s1.tid
             )
@@ -28,13 +28,13 @@ public interface EtlStatisticRepo
 
     @Query(value = """
              select
-                 run_date,
+                 biz_date,
                  array_agg(code) AS sources,
                  array_agg(total_secs) AS total_secs
              FROM (
                       SELECT
                           b.code,
-                          t.run_date,
+                          t.biz_date,
                           SUM(t.take_secs) AS total_secs
                       FROM
                           etl_statistic t
@@ -42,24 +42,24 @@ public interface EtlStatisticRepo
                           vw_etl_table_with_source b
                       on t.tid = b.id
                       WHERE
-                          t.run_date > current_date - INTERVAL '5 days'
+                          t.biz_date > current_date - INTERVAL '5 days'
                       GROUP BY
-                          b.code, t.run_date
+                          b.code, t.biz_date
                   ) sub
              GROUP BY
-                 run_date
+                 biz_date
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysTakeTimes();
 
     @Query(value = """
             select
-                     run_date,
+                     biz_date,
                      array_agg(code) AS sources,
                      array_agg(total_bytes) AS total_bytes
                  FROM (
                           SELECT
                               b.code,
-                              t.run_date,
+                              t.biz_date,
                               round(SUM(total_bytes) / 1024 / 1024,2) AS total_bytes
                           FROM
                               etl_statistic t
@@ -67,14 +67,14 @@ public interface EtlStatisticRepo
                               vw_etl_table_with_source b
                           on t.tid = b.id
                           WHERE
-                              t.run_date > current_date - INTERVAL '5 days'
+                              t.biz_date > current_date - INTERVAL '5 days'
                           GROUP BY
-                              b.code, t.run_date
+                              b.code, t.biz_date
                       ) sub
                  GROUP BY
-                     run_date;
+                     biz_date;
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysDataMB();
 
-    List<EtlStatistic> findTop15ByTidOrderByRunDateDesc(long tid);
+    List<EtlStatistic> findTop15ByTidOrderByBizDateDesc(long tid);
 }

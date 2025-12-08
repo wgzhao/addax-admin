@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -21,6 +24,9 @@ public class SystemConfigService
     private final DictService dictService;
 
     private final Map<String, Object> configCache = new ConcurrentHashMap<>();
+    private final DateTimeFormatter dateTimeSdf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter dateShortSdf = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private final DateTimeFormatter dateDashSdf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @PostConstruct
     public void initConfig() {
@@ -35,8 +41,16 @@ public class SystemConfigService
         Map<String, Object> tmp = new HashMap<>();
 
         String curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String bizDateStr = dictService.getBizDate();
+        tmp.put("BIZ_DATE", bizDateStr);
+        try {
+            LocalDate bizDate =  LocalDate.ofInstant(new SimpleDateFormat("yyyyMMdd").parse(bizDateStr).toInstant(), java.time.ZoneId.systemDefault());
+            tmp.put("BIZ_DATE_AS_DATE", bizDate);
+        } catch (ParseException e) {
+            log.error("Failed to parse BIZ_DATE: {}", bizDateStr, e);
+            tmp.put("BIZ_DATE_AS_DATE", null);
+        }
 
-        tmp.put("BIZ_DATE", dictService.getBizDate());
         tmp.put("CUR_DATETIME", curDateTime);
 
         tmp.put("LOG_PATH", dictService.getLogPath());
@@ -67,6 +81,11 @@ public class SystemConfigService
     public String getBizDate()
     {
         return (String) configCache.get("BIZ_DATE");
+    }
+
+    public LocalDate getBizDateAsDate()
+    {
+        return (LocalDate) configCache.getOrDefault("BIZ_DATE_AS_DATE", LocalDate.now().plusDays(-1));
     }
 
     public String getLogPath()
