@@ -374,7 +374,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             log.error("写入临时文件失败", e);
             return false;
         }
-        String logName = String.format("addax_%s.%s_%d.log", task.getTargetDb(), task.getTargetTable(), taskId);
+        String logName = String.format("%s.%s_%d.log", task.getTargetDb(), task.getTargetTable(), taskId);
         String cmd = String.format("%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s", dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
         boolean retCode = executeAddax(cmd, taskId, logName);
         log.debug("采集任务 {} 的日志已写入文件: {}", taskId, logName);
