@@ -8,10 +8,13 @@ import com.wgzhao.addax.admin.repository.NotificationRepo;
 import com.wgzhao.addax.admin.service.SchemaChangeLogService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TaskService;
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collections;
@@ -80,10 +83,13 @@ public class MonitorController {
         return ResponseEntity.ok(Collections.emptyList());
     }
 
-    // ODS采集源库的字段变更提醒（T-1日结构与T日结构对比）
+    // 采集源库的字段变更提醒（T-1日结构与T日结构对比）
     @RequestMapping("/field-change")
-    public ResponseEntity<List<SchemaChangeLog>> odsFieldChange() {
-        return ResponseEntity.ok(schemaChangeLogService.getAllFieldChanges());
+    public ResponseEntity<Page<SchemaChangeLog>> odsFieldChange(
+            @io.swagger.v3.oas.annotations.Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
+            @Parameter(description = "每页记录数") @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
+    ) {
+        return ResponseEntity.ok(schemaChangeLogService.getFieldChanges(page, pageSize));
     }
 
     // 短信发送详情

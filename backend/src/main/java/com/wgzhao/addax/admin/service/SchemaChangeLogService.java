@@ -3,6 +3,10 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.SchemaChangeLog;
 import com.wgzhao.addax.admin.repository.SchemaChangeLogRepo;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -77,5 +81,12 @@ public class SchemaChangeLogService {
 
     public List<SchemaChangeLog> getAllFieldChanges() {
         return repo.findAll();
+    }
+
+    public Page<SchemaChangeLog> getFieldChanges(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "id"));
+        return repo.findAll(pageable);
     }
 }

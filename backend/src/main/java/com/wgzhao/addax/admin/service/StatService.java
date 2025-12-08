@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class StatService
-{
+public class StatService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -23,8 +22,7 @@ public class StatService
     private SystemConfigService configService;
 
     // 按采集源统计最近一次采集的数据量
-    public List<Map<String, Object>> statDataBySource()
-    {
+    public List<Map<String, Object>> statDataBySource() {
         String sql = """
                 select
                 b.code ,
@@ -47,8 +45,7 @@ public class StatService
     }
 
     // 最近一次采集的总数据量，单位 GB
-    public Double statTotalData()
-    {
+    public Double statTotalData() {
         LocalDate bizDate = configService.getBizDateAsDate();
         String sql = """
                 select
@@ -60,8 +57,7 @@ public class StatService
     }
 
     // 最近 12个月的采集累计数据量，单位为 GiB
-    public List<Map<String, Object>> statLast12MonthsData()
-    {
+    public List<Map<String, Object>> statLast12MonthsData() {
         String sql = """
                 select
                 to_char(date_trunc('month', biz_date), 'YYYY-MM') as month,
@@ -75,8 +71,7 @@ public class StatService
     }
 
     // 按采集源统计最近一次采集的耗时
-    public List<Map<String, Object>> statTimeBySource()
-    {
+    public List<Map<String, Object>> statTimeBySource() {
         String sql = """
                 select
                 code ,
@@ -90,14 +85,12 @@ public class StatService
     }
 
     // 按照采集来源统计最近 5 天的耗时，用来形成柱状图表
-    public List<Map<String, Object>> statLast5DaysTimeBySource()
-    {
+    public List<Map<String, Object>> statLast5DaysTimeBySource() {
         return etlStatisticRepo.findLast5DaysTakeTimes();
     }
 
     //按采集源统计目前的采集状态统计
-    public List<Map<String, Object>> statStatusBySource()
-    {
+    public List<Map<String, Object>> statStatusBySource() {
         String sql = """
                  SELECT
                     code,
@@ -123,8 +116,7 @@ public class StatService
     }
 
     // 最近采集的完成率
-    public List<Map<String, Object>> statLastAccompRatio()
-    {
+    public List<Map<String, Object>> statLastAccompRatio() {
         String sql = """
                 SELECT
                     name || '(' || code || ')' AS source_name,
@@ -138,8 +130,7 @@ public class StatService
     }
 
     // 目前有效的采集表数量
-    public Integer statValidEtlTables()
-    {
+    public Integer statValidEtlTables() {
         String sql = """
                 select
                 count(*)
@@ -163,8 +154,7 @@ public class StatService
         return true;
     }
 
-    public List<EtlStatistic> findErrorTask()
-    {
+    public List<EtlStatistic> findErrorTask() {
         return etlStatisticRepo.findErrorTask();
     }
 
@@ -175,7 +165,8 @@ public class StatService
 
     /**
      * 已数据源为单位，统计最近两天的采集完成情况
-     * @return
+     *
+     * @return List
      */
     public List<Map<String, Object>> getLast2DaysCompleteList() {
         String sql = """
@@ -195,31 +186,45 @@ public class StatService
                     group by s.code
                 ),
                 last2_info as (
-                    select code,
-                    name,
-                    max(case when rn = 2 then begin_at else null end) as y_begin_at ,
-                    max(case when rn = 1 then begin_at else null end) as t_begin_at,
-                    max(case when rn =2 then finish_at else null end) as y_finish_at,
-                    max(case when rn =1 then finish_at else null end) as t_finish_at
-                    , max(case when rn =2  then extract( epoch from finish_at - begin_at) else 0 end ) as y_take_secs
-                    , max(case when rn =1  then extract(epoch from finish_at - begin_at) else 0 end ) as t_take_secs
-                    from (
-                        select
-                        code,
-                        name,
-                        biz_date,
-                        min(es.start_at) as begin_at,
-                        max(end_at) as finish_at,
-                        row_number() over(partition by code order by biz_date desc) as rn
-                        from etl_statistic es
-                        left join vw_etl_table_with_source s
-                        on es.tid = s.id
-                        where biz_date > now() - interval '10' day
-                        and s.enabled = true and s.status <> 'X'
-                        group by s.code, s.name, biz_date
-                    )t
-                    where t.rn < 3
-                    group by code,name
+                    select code, name,
+                           max(t.y_begin_at)   as y_begin_at,
+                            max(t.y_finish_at)  as y_finish_at,
+                            max(t.y_take_secs)   as y_take_secs,
+                            max(t.t_begin_at)   as t_begin_at,
+                            max(t.t_finish_at)  as t_finish_at,
+                            max(t.t_take_secs)   as t_take_secs
+                        from (select code,
+                                     name,
+                                     min(e.start_at)                                     as y_begin_at,
+                                     null                                                as t_begin_at,
+                                     max(e.end_at)                                       as y_finish_at,
+                                     null                                                as t_finish_at,
+                                     extract(epoch from max(e.end_at) - min(e.start_at)) as y_take_secs,
+                                     0                                                   as t_take_secs
+                              from etl_statistic e
+                                       left join vw_etl_table_with_source s
+                                                 on e.tid = s.id
+                              where biz_date = ?
+                                and s.enabled = true
+                                and s.status <> 'X'
+                              group by s.code, s.name, biz_date
+                              union all
+                              select code,
+                                     name,
+                                     null                                                as y_begin_at,
+                                     min(e.start_at)                                     as t_begin_at,
+                                     null                                                as y_finish_at,
+                                     max(e.end_at)                                       as t_finish_at,
+                                     0                                                   as y_take_secs,
+                                     extract(epoch from max(e.end_at) - min(e.start_at)) as t_take_secs
+                              from etl_statistic e
+                                       left join vw_etl_table_with_source s
+                                                 on e.tid = s.id
+                              where biz_date = ?
+                                and s.enabled = true
+                                and s.status <> 'X'
+                              group by s.code, s.name, biz_date) t
+                        group by t.code, t.name
                 )
                 select b.name || '(' || b.code || ')' as sys_name,
                 a.start_at,
@@ -234,7 +239,8 @@ public class StatService
                 join last2_info b
                 on a.code = b.code
                 """;
-        return jdbcTemplate.queryForList(sql);
+        return jdbcTemplate.queryForList(sql, configService.getBizDateAsDate().plusDays(-1),
+                configService.getBizDateAsDate());
     }
 
     public Double statAllTotalData() {
