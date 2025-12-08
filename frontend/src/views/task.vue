@@ -2,9 +2,12 @@
   <v-card flat title="采集任务管理">
     <v-card-text>
       <v-row align="center" class="mb-2" style="gap: 12px">
+        <v-col cols="auto" md="2">
         <v-btn icon @click="refreshTaskStatus" :loading="loading" class="ml-2" title="手动刷新">
           <v-icon>mdi-refresh</v-icon>
         </v-btn>
+        </v-col>
+        <v-col cols="12" md="6">
         <v-select
           v-model="selectedInterval"
           :items="intervalOptions"
@@ -12,12 +15,14 @@
           item-value="value"
           dense
           hide-details
-          style="width: 180px"
           label="自动刷新间隔"
         ></v-select>
+        </v-col>
+        <v-col>
         <v-chip small class="ml-2" :color="autoRefreshActive ? 'green' : 'grey'" text-color="white">
           {{ autoRefreshActive ? '自动刷新已开启' : '自动刷新已停止' }}
         </v-chip>
+        </v-col>
       </v-row>
       <v-data-table
         :items="taskStatus"

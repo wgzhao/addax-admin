@@ -105,6 +105,19 @@
         v-model="selected"
         :item-class="getRowClass"
       >
+        <!-- 顶部插槽：显示当前选中数量 -->
+        <template #top>
+          <v-row class="mb-2 px-3 py-2" align="center">
+            <v-chip
+              v-if="selected.length > 0"
+              color="secondary"
+              variant="tonal"
+              size="small"
+            >
+              已选择 {{ selected.length }} 行
+            </v-chip>
+          </v-row>
+        </template>
         <template v-slot:item.status="{ item }">
           <v-chip
             :color="getStatusColor(item.status)"

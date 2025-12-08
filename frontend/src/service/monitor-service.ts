@@ -32,6 +32,25 @@ class MonitorService {
     >
   }
 
+  // 字段变更 - 分页接口
+  fieldsChangesPaged(
+    page: number,
+    pageSize: number,
+    sortBy?: { sortField?: string | null; sortOrder?: string | null }
+  ): Promise<{ content: Array<Map<string, any>>; totalElements: number }> {
+    const params = {
+      page,
+      pageSize,
+      sortField: sortBy?.sortField,
+      sortOrder: sortBy?.sortOrder
+    }
+    // 复用同一路径，通过查询参数启用后端分页
+    return Requests.get(this.prefix + '/field-change', params) as unknown as Promise<{
+      content: Array<Map<string, any>>
+      totalElements: number
+    }>
+  }
+
   smsDetail(): Promise<Array<Map<string, any>>> {
     return Requests.get(this.prefix + '/sms-detail') as unknown as Promise<Array<Map<string, any>>>
   }
