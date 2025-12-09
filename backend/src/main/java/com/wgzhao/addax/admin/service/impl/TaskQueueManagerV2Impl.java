@@ -234,7 +234,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                     jobQueueService.releaseClaim(job.getId());
                     // 稍微等待，避免立即再次获取到同一个任务
                     try {
-                        Thread.sleep(500);
+                        TimeUnit.SECONDS.sleep(60);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
