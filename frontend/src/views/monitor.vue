@@ -233,16 +233,6 @@ const fieldChangeTable = {
         return parts.join('； ')
       }
     },
-    {
-      title: '备注变化',
-      key: 'comment_change',
-      value: (item) => {
-        const oldC = item.oldColComment
-        const newC = item.newColComment
-        if (!oldC && !newC) return ''
-        return `${oldC ?? '—'} → ${newC ?? '—'}`
-      }
-    },
     { title: '变更时间', key: 'changeAt' }
   ]
 }
