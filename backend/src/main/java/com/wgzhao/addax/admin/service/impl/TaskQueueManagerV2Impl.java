@@ -41,7 +41,6 @@ import static java.lang.Math.max;
  * 采集任务队列管理器 - 使用 PostgreSQL 持久化队列 + LISTEN/NOTIFY
  */
 @Component
-@Primary
 @Slf4j
 public class TaskQueueManagerV2Impl implements TaskQueueManager {
     @Autowired
@@ -188,13 +187,13 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                             dispatchUntilFull();
                         }
                     }
-                    Thread.sleep(500L);
+                    TimeUnit.MILLISECONDS.sleep(500);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (SQLException se) {
                     log.warn("LISTEN 循环 SQL 异常，将重试", se);
-                    Thread.sleep(2000);
+                    TimeUnit.MILLISECONDS.sleep(2000);
                 }
             }
         } catch (Exception e) {
@@ -234,7 +233,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                     jobQueueService.releaseClaim(job.getId());
                     // 稍微等待，避免立即再次获取到同一个任务
                     try {
-                        Thread.sleep(500);
+                        TimeUnit.MILLISECONDS.sleep(500);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
@@ -474,7 +473,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     public void restartQueueMonitor() {
         stopQueueMonitor();
         try {
-            Thread.sleep(2000);
+            TimeUnit.MILLISECONDS.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }

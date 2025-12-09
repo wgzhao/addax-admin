@@ -213,7 +213,7 @@ public class TaskService
         queueManager.stopQueueMonitor();
         // 等待一下让监控线程停止
         try {
-            Thread.sleep(2000);
+            TimeUnit.MILLISECONDS.sleep(2000);
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
