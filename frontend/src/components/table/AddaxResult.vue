@@ -16,7 +16,7 @@ import tableService from "@/service/table-service";
 const props = defineProps({ tid: String });
 
 const headers: DataTableHeader[] = [
-  { title: "日期", key: "runDate", sortable: true },
+  { title: "日期", key: "bizDate", sortable: true },
   { title: "任务开始时间", key: "startAt", sortable: true },
   { title: "任务结束时间", key: "endAt", sortable: true },
   { title: "运行耗时", key: "takeSecs", sortable: true },
