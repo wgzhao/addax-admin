@@ -12,8 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @Setter
 @Getter
-public class RdbmsReaderTemplate
-{
+public class RdbmsReaderTemplate {
     private String name;
     private String username;
     private String password;
@@ -23,6 +22,7 @@ public class RdbmsReaderTemplate
     private boolean autoPk = true;
     private int fetchSize = 20480;
     private String where = "1=1";
+    private String splitPk = "";
 
     public String toJson() {
         return """
@@ -34,6 +34,7 @@ public class RdbmsReaderTemplate
                         "column": [%s],
                         "where": "%s",
                         "autoPk": "%s",
+                        "splitPk": "%s",
                         "connection": {
                             "jdbcUrl": [ "%s" ],
                             "table": [ "%s" ]
@@ -43,7 +44,7 @@ public class RdbmsReaderTemplate
                 }
                 """.formatted(name, username, password,
                 String.join(", ", column),
-                where, autoPk,jdbcUrl, table, fetchSize
+                where, autoPk, splitPk, jdbcUrl, table, fetchSize
         );
     }
 }

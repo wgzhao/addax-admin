@@ -38,21 +38,33 @@
           <!-- <v-col cols="12" md="3">
           <v-text-field variant="underlined" v-model="table.partKind" label="分区类型"></v-text-field>
         </v-col> -->
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="2">
             <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="2">
             <v-text-field variant="underlined" v-model="table.partFormat" label="分区格式"></v-text-field>
           </v-col>
           <!-- <v-col cols="12" md="3">
           <v-select v-model="table.kind" :items="collectionModeOptions" item-title="label" item-value="value"
             label="采集模式"></v-select>
         </v-col> -->
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="2">
             <v-text-field variant="underlined" v-model="table.storageFormat" label="存储格式"></v-text-field>
           </v-col>
-          <v-col cols="12" md="3">
+          <v-col cols="12" md="2">
             <v-text-field variant="underlined" v-model="table.compressFormat" label="压缩格式"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-text-field variant="underlined" v-model="table.splitPk" label="切分字段"></v-text-field>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex align-center">
+            <v-switch
+              v-model="table.autoPk"
+              inset
+              label="自动获取切分字段"
+              :color="table.autoPk ? 'primary' : undefined"
+              :base-color="table.autoPk ? undefined : 'secondary'"
+            />
           </v-col>
         </v-row>
 
@@ -121,6 +133,8 @@ const saveOds = () => {
     partKind: table.value.partKind,
     partName: table.value.partName,
     partFormat: table.value.partFormat,
+    splitPk: table.value.splitPk,
+    autoPk: table.value.autoPk,
     storageFormat: table.value.storageFormat,
     compressFormat: table.value.compressFormat,
     filter: table.value.filter,

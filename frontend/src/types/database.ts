@@ -200,6 +200,8 @@ export interface EtlTable {
   partKind?: string // 分区类型，D - 按每日分区，如果为空，则表示不分区
   partName?: string // 目标表分区字段名称
   partFormat?: string // 目标表分区字段格式
+  splitPk?: string // 指定切分字段
+  autoPk?: boolean // 是否自动获取切分字段
   storageFormat?: string // 目标表存储格式，默认是 orc
   compressFormat?: string // 目标表的压缩格式，默认是 lz4
   filter?: string // 采集过滤条件，即where条件

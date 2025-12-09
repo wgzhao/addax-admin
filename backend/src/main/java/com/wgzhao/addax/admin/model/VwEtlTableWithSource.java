@@ -48,5 +48,7 @@ public class VwEtlTableWithSource {
     @Formula("UPPER(concat_ws('|', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , code, name))")
     private String filterColumn;
     private Integer maxConcurrency;
+    private String splitPk;
+    private Boolean autoPk;
 }
 

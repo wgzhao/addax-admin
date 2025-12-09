@@ -85,6 +85,8 @@ public class JobContentService {
         readerTemplate.setPassword(etlTable.getPass() == null ? "" : etlTable.getPass());
         readerTemplate.setJdbcUrl(etlTable.getUrl());
         readerTemplate.setWhere(etlTable.getFilter());
+        readerTemplate.setAutoPk(etlTable.getAutoPk());
+        readerTemplate.setSplitPk(etlTable.getSplitPk());
         Constants.DbType dbType = DbUtil.getDbType(etlTable.getUrl());
         if (dbType == Constants.DbType.POSTGRESQL) {
             readerTemplate.setTable(quoteIfNeeded(etlTable.getSourceTable(), dbType));

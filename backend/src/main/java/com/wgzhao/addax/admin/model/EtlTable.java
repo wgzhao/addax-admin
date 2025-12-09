@@ -85,6 +85,12 @@ public class EtlTable {
     @Column(name = "tbl_comment", length = 500)
     private String tblComment;
 
+    @Column(name = "split_pk", length = 64)
+    private String splitPk = "";
+
+    @Column(name = "auto_pk", nullable = false)
+    private Boolean autoPk = true;
+
     @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , filter))")
     private String filterColumn;
 }
