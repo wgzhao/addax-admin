@@ -148,4 +148,9 @@ public class EtlJobQueueService {
         int updated = jdbcTemplate.update(sql, interval, jobId, instanceId);
         return updated > 0;
     }
+
+    @Transactional
+    public void truncateQueueExceptRunningTasks() {
+        jobRepo.deleteByStatusNot("running");
+    }
 }

@@ -322,6 +322,11 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         return executeEtlTaskWithConcurrencyControl(task, null);
     }
 
+    @Override
+    public void truncateQueueExceptRunningTasks() {
+        jobQueueService.truncateQueueExceptRunningTasks();
+    }
+
     /**
      * 执行具体的采集逻辑，支持覆盖 bizDate
      */
@@ -382,7 +387,6 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     }
 
     private boolean executeAddax(String command, long tid, String logName) {
-        log.info("Executing command: {}", command);
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
         TaskResultDto taskResult = CommandExecutor.executeWithResult(command, ADDAX_EXECUTE_TIME_OUT_SECONDS);
         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);

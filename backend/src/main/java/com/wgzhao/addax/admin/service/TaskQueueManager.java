@@ -14,5 +14,7 @@ public interface TaskQueueManager {
     int clearQueue();
     Map<String, Object> getQueueStatus();
     TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable etlTable);
+
+    void truncateQueueExceptRunningTasks();
 }
 

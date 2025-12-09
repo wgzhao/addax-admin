@@ -102,6 +102,11 @@ public class TaskService
 
                     // Refresh schema / resources for all tables. This checks source schema and updates target metadata when changed.
                     tableService.refreshAllTableResources();
+
+                    // truncate the job queue table except for running tasks
+                    // 106 行注释：在完成必要参数配置及初始化后，需要清理 etl_job_queue 中的历史记录
+                    // 这里只保留仍在运行中的任务，删除 completed/failed 等状态的记录，减轻后续查询压力
+                    queueManager.truncateQueueExceptRunningTasks();
                 }
                 catch (Exception e) {
                     // Let outer handler deal with logging

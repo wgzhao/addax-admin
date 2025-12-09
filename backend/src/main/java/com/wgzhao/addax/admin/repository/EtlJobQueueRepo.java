@@ -20,5 +20,7 @@ public interface EtlJobQueueRepo extends JpaRepository<EtlJobQueue, Long> {
 
     @Query("select count(e) from EtlJobQueue e where e.status = 'completed'")
     long countCompleted();
+
+    void deleteByStatusNot(String status);
 }
 
