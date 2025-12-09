@@ -2,14 +2,16 @@ package com.wgzhao.addax.admin.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.*;
 import com.wgzhao.addax.admin.service.*;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -24,7 +26,7 @@ import java.util.concurrent.*;
 
 @Component
 @Slf4j
-public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
+public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager implements ApplicationListener<ContextClosedEvent> {
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -121,6 +123,7 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
             job.setTid(etlTable.getId());
             job.setBizDate(bizDate);
             job.setPriority(100);
+            job.setAttempts(0); // Initialize attempts
             job.setMaxAttempts(etlTable.getRetryCnt() == null ? 3 : etlTable.getRetryCnt());
 
             String jobJson = objectMapper.writeValueAsString(job);
@@ -141,7 +144,7 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
         while (running) {
             try {
                 // Block and pop a task from the queue
-                String jobJson = redisTemplate.opsForList().rightPop(QUEUE_PENDING, 30, TimeUnit.SECONDS);
+                String jobJson = redisTemplate.opsForList().rightPop(QUEUE_PENDING, 5, TimeUnit.SECONDS);
                 if (jobJson == null) {
                     continue;
                 }
@@ -167,12 +170,15 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.info("Redis worker thread interrupted.");
+                log.info("Redis worker thread interrupted because application is shutting down.");
                 break;
             } catch (Exception e) {
-                log.error("Error in Redis dispatch loop", e);
+                if (running) {
+                    log.error("Error in Redis dispatch loop", e);
+                }
             }
         }
+        log.info("Dispatch loop finished.");
     }
 
     private boolean acquireConcurrency(EtlTable table) {
@@ -212,69 +218,50 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
     private void executeClaimedJob(EtlJobQueue job, EtlTable table) {
         long start = System.currentTimeMillis();
         String taskId = table.getId().toString() + ":" + job.getBizDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
-        boolean success = false;
+        // acquire concurrency lock
+        if (!acquireConcurrency(table)) {
+            log.warn("系统繁忙，超出并发限制, 无法执行任务 tid={}", job.getTid());
+            // re-enqueue
+            try {
+                String jobJson = objectMapper.writeValueAsString(job);
+                redisTemplate.opsForList().leftPush(QUEUE_PENDING, jobJson);
+            } catch (JsonProcessingException e) {
+                log.error("Failed to re-queue job", e);
+            }
+            return;
+        }
+
+        // Mark as running and set start_time
+        tableService.setRunning(table);
+        job.setClaimedBy(instanceId);
+        job.setClaimedAt(java.time.Instant.now());
         try {
-            // Mark as running and set start_time
-            tableService.setRunning(table);
-            job.setClaimedBy(instanceId);
-            job.setClaimedAt(java.time.Instant.now());
             redisTemplate.opsForHash().put(HASH_RUNNING_JOBS, taskId, objectMapper.writeValueAsString(job));
             redisTemplate.opsForSet().remove(SET_PENDING_TIDS, taskId);
-
-            // Execute the actual task logic
-            success = executeEtlTaskLogic(table, job.getBizDate());
-
-            if (!success) {
-                handleTaskFailure(job, taskId, "Addax exited with non-zero status");
-                tableService.setFailed(table);
-            } else {
-                tableService.setFinished(table);
-            }
-        } catch (Exception e) {
-            log.error("Failed to execute task tid={}", job.getTid(), e);
-            handleTaskFailure(job, taskId, e.getMessage());
+            TaskResultDto taskResultDto = executeEtlTaskWithConcurrencyControl(table, job.getBizDate());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize running job for Redis", e);
+            tableService.setFailed(table);
         } finally {
             // Release resources
             redisTemplate.opsForHash().delete(HASH_RUNNING_JOBS, taskId);
             releaseConcurrency(table);
             log.debug("Job tid={} from queue finished in {}ms.", job.getTid(), System.currentTimeMillis() - start);
         }
-    }
 
-    @Override
-    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable etlTable, LocalDate overrideBizDate) {
-        if (!acquireConcurrency(etlTable)) {
-            return TaskResultDto.failure("系统繁忙，超出并发限制", 0);
-        }
-        long startTime = System.currentTimeMillis();
-        try {
-            // Manually triggered tasks use the default business date from config
-            LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
-            boolean result = executeEtlTaskLogic(etlTable, bizDate);
-            long duration = (System.currentTimeMillis() - startTime) / 1000;
-            if (result) {
-                tableService.setFinished(etlTable);
-                return TaskResultDto.success("执行成功", duration);
-            } else {
-                tableService.setFailed(etlTable);
-                alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", etlTable.getId()));
-                return TaskResultDto.failure("执行失败：Addax 退出非0", duration);
-            }
-        } finally {
-            releaseConcurrency(etlTable);
-            long duration = (System.currentTimeMillis() - startTime) / 1000;
-            log.debug("Manual job tid={} finished in {}s.", etlTable.getId(), duration);
-        }
     }
 
     private void handleTaskFailure(EtlJobQueue job, String taskId, String errorMessage) {
-        job.setAttempts(job.getAttempts() + 1);
-        if (job.getAttempts() >= job.getMaxAttempts()) {
-            log.warn("Task tid={} failed after max attempts.", job.getTid());
+        int currentAttempts = (job.getAttempts() == null ? 0 : job.getAttempts()) + 1;
+        job.setAttempts(currentAttempts);
+
+        if (currentAttempts >= job.getMaxAttempts()) {
+            log.warn("Task tid={} failed after max attempts. Error: {}", job.getTid(), errorMessage);
             // Optionally move to a failed queue/set
         } else {
             // Re-queue for retry
             try {
+                log.info("Re-queuing task tid={} for attempt {}/{}", job.getTid(), currentAttempts + 1, job.getMaxAttempts());
                 String jobJson = objectMapper.writeValueAsString(job);
                 redisTemplate.opsForList().leftPush(QUEUE_PENDING, jobJson);
                 redisTemplate.opsForSet().add(SET_PENDING_TIDS, taskId);
@@ -307,6 +294,7 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
     @Override
     public void stopQueueMonitor() {
         this.running = false;
+        workerPool.shutdownNow();
     }
 
     @Override
@@ -323,12 +311,16 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
     public void restartQueueMonitor() {
         stopQueueMonitor();
         try {
-            workerPool.awaitTermination(5, TimeUnit.SECONDS);
+            if (!workerPool.awaitTermination(5, TimeUnit.SECONDS)) {
+                workerPool.shutdownNow();
+            }
         } catch (InterruptedException e) {
+            workerPool.shutdownNow();
             Thread.currentThread().interrupt();
         }
         startQueueMonitor();
     }
+
 
     @Override
     public int clearQueue() {
@@ -352,17 +344,31 @@ public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
         clearQueue();
     }
 
-
-    @PreDestroy
     public void shutdown() {
+        log.info("Shutting down Redis Task Queue Manager...");
         running = false;
         scheduler.shutdownNow();
-        workerPool.shutdownNow();
+        workerPool.shutdown();
+        try {
+            if (!workerPool.awaitTermination(30, TimeUnit.SECONDS)) {
+                log.warn("Worker pool did not terminate in 30 seconds. Forcing shutdown.");
+                workerPool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting for worker pool to terminate", e);
+            workerPool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
         log.info("Redis Task Queue Manager has been shut down.");
     }
 
     @Override
     public void close() {
+        shutdown();
+    }
+
+    @Override
+    public void onApplicationEvent(ContextClosedEvent event) {
         shutdown();
     }
 }
