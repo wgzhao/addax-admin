@@ -2,9 +2,7 @@ package com.wgzhao.addax.admin.service.impl;
 
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
-import com.wgzhao.addax.admin.model.EtlJobQueue;
-import com.wgzhao.addax.admin.model.EtlJour;
-import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.*;
 import com.wgzhao.addax.admin.service.*;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
@@ -34,6 +32,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 import static java.lang.Math.max;
@@ -76,6 +75,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     // 并发控制
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
+    private final ConcurrentHashMap<Integer, AtomicInteger> sourceRunningTaskCount = new ConcurrentHashMap<>();
     private final ExecutorService workerPool = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "etl-worker");
         t.setDaemon(true);
@@ -215,8 +215,43 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                 return;
             }
             EtlJobQueue job = maybe.get();
+            // 获取任务对应的数据源信息
+            EtlTable table = tableService.getTable(job.getTid());
+            if (table == null) {
+                log.warn("未找到 tid={} 对应��任务信息，跳过该任务", job.getTid());
+                jobQueueService.completeFailure(job.getId(), "任务信息丢失");
+                continue;
+            }
+            VwEtlTableWithSource source = tableService.getTableView(table.getId());
+            Integer maxConcurrency = source.getMaxConcurrency();
+
+            // 检查数据源并发
+            if (maxConcurrency != null && maxConcurrency > 0) {
+                AtomicInteger sourceCount = sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0));
+                if (sourceCount.get() >= maxConcurrency) {
+                    log.info("数据源 {}({}) 并发已达上限 {}，任务 jobId={} 将被放回队列", source.getName(), source.getCode(), maxConcurrency, job.getId());
+                    // 并发已满，放回队列
+                    jobQueueService.releaseClaim(job.getId());
+                    // 稍微等待，避免立即再次获取到同一个任务
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    continue; // 继续尝试下一个任务
+                }
+            }
+
             int current = runningTaskCount.incrementAndGet();
-            log.info("领取任务 jobId={}, tid={}, attempts={}/{}, 当前并发 {}/{}", job.getId(), job.getTid(), job.getAttempts(), job.getMaxAttempts(), current, concurrentLimit);
+            // 如果需要，增加数据源并发计数
+            if (maxConcurrency != null && maxConcurrency > 0) {
+                sourceRunningTaskCount.get(table.getSid()).incrementAndGet();
+            }
+            log.info("领取任务 jobId={}, tid={}, attempts={}/{}, 当前并发 {}/{}, 数据源 {} 并发 {}/{}",
+                    job.getId(), job.getTid(), job.getAttempts(), job.getMaxAttempts(),
+                    current, concurrentLimit, source.getCode(),
+                    sourceRunningTaskCount.getOrDefault(table.getSid(), new AtomicInteger(0)).get(),
+                    maxConcurrency == null || maxConcurrency <= 0 ? "无限制" : maxConcurrency);
             workerPool.submit(() -> executeClaimedJob(job));
         }
     }
@@ -273,7 +308,22 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             if (renewer != null) {
                 try { renewer.cancel(false); } catch (Exception ignored) {}
             }
+            // 释放并发计数
             int current = runningTaskCount.decrementAndGet();
+            // 释放数据源并发计数
+            EtlTable table = tableService.getTable(job.getTid());
+            if (table != null) {
+                VwEtlTableWithSource source = tableService.getTableView(table.getId());
+                if (source != null) {
+                    Integer maxConcurrency = source.getMaxConcurrency();
+                    if (maxConcurrency != null && maxConcurrency > 0) {
+                        sourceRunningTaskCount.computeIfPresent(table.getSid(), (k, v) -> {
+                            v.decrementAndGet();
+                            return v;
+                        });
+                    }
+                }
+            }
             log.debug("jobId={} 完成，耗时 {}s，当前并发 {}", job.getId(), (System.currentTimeMillis() - start) / 1000, current);
         }
     }

@@ -98,6 +98,18 @@ public class EtlJobQueueService {
     }
 
     @Transactional
+    public void releaseClaim(long jobId) {
+        String sql = "UPDATE public.etl_job_queue SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL, available_at=now() + '5 seconds'::interval WHERE id=?";
+        jdbcTemplate.update(sql, jobId);
+    }
+
+    @Transactional
+    public void completeFailure(long jobId, String error) {
+        String sql = "UPDATE public.etl_job_queue SET status='failed', last_error=? WHERE id=?";
+        jdbcTemplate.update(sql, truncateError(error), jobId);
+    }
+
+    @Transactional
     public void failOrReschedule(EtlJobQueue job, String error, Duration backoff) {
         boolean canRetry = job.getAttempts() < job.getMaxAttempts();
         if (canRetry) {

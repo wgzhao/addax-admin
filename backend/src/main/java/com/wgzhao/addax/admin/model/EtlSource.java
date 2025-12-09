@@ -48,4 +48,7 @@ public class EtlSource {
 
     @Column(name = "enabled")
     private boolean enabled;
+
+    @Column(name = "max_concurrency")
+    private Integer maxConcurrency = 5;
 }
