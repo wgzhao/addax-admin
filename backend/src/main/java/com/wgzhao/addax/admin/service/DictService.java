@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_SWITCH_TIME;
+
 /**
  * 字典服务类，负责系统参数字典及字典项的相关业务操作。
  * 包含参数获取、类型转换、业务日期计算、Hive类型映射、HDFS配置等功能。
@@ -31,8 +33,7 @@ public class DictService
     @Autowired
     private SysDictRepo sysDictRepo;
 
-    /** 默认切日时间 */
-    private static final String DEFAULT_SWITCH_TIME = "16:30";
+
     /** 日期格式化器 yyyyMMdd */
     private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 

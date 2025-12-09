@@ -111,8 +111,8 @@ public class SourceService
 //        if (existing.getStartAt() != etlSource.getStartAt()) {
 //            // 先取消原有调度任务，再重新调度
 //            log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
-//            collectionSchedulingService.cancelTask(etlSource.getCode());
-//            collectionSchedulingService.scheduleOrUpdateTask(etlSource);
+////            collectionSchedulingService.cancelTask(etlSource.getCode());
+////            collectionSchedulingService.scheduleOrUpdateTask(etlSource);
 //        }
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
@@ -134,7 +134,10 @@ public class SourceService
     public void deleteById(int id)
     {
         // 删除之前，应该先取消该数据源的调度任务
-        etlSourceRepo.findById(id).ifPresent(etlSource -> collectionSchedulingService.cancelTask(etlSource.getCode()));
+        etlSourceRepo.findById(id).ifPresent(etlSource -> {
+            SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), false, true);
+            eventPublisher.publishEvent(sourceUpdatedEvent);
+        });
         etlSourceRepo.deleteById(id);
     }
 
@@ -169,7 +172,8 @@ public class SourceService
     {
         EtlSource save = etlSourceRepo.save(etlSource);
         // 新采集源创建时，默认创建一个同步任务
-        collectionSchedulingService.scheduleOrUpdateTask(etlSource);
+        SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, save.getId(), true, true);
+        eventPublisher.publishEvent(sourceUpdatedEvent);
         return save;
     }
 

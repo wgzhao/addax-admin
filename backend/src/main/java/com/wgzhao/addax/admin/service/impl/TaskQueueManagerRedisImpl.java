@@ -2,11 +2,9 @@ package com.wgzhao.addax.admin.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.*;
 import com.wgzhao.addax.admin.service.*;
-import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -16,25 +14,17 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
-import static java.lang.Math.max;
-
 @Component
 @Slf4j
-public class TaskQueueManagerRedisImpl implements TaskQueueManager {
+public class TaskQueueManagerRedisImpl extends AbstractTaskQueueManager {
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -46,26 +36,6 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
     @Autowired
     private TableService tableService;
 
-    @Autowired
-    private SystemConfigService configService;
-
-    @Autowired
-    private JobContentService jobContentService;
-
-    @Autowired
-    private TargetService targetService;
-
-    @Autowired
-    private DictService dictService;
-
-    @Autowired
-    private AddaxLogService addaxLogService;
-
-    @Autowired
-    private EtlJourService jourService;
-
-    @Autowired
-    private AlertService alertService;
 
     private int concurrentLimit;
     private int enqueueCapacity;
@@ -242,18 +212,23 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
     private void executeClaimedJob(EtlJobQueue job, EtlTable table) {
         long start = System.currentTimeMillis();
         String taskId = table.getId().toString() + ":" + job.getBizDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
+        boolean success = false;
         try {
-            // Mark as running
+            // Mark as running and set start_time
+            tableService.setRunning(table);
             job.setClaimedBy(instanceId);
             job.setClaimedAt(java.time.Instant.now());
             redisTemplate.opsForHash().put(HASH_RUNNING_JOBS, taskId, objectMapper.writeValueAsString(job));
             redisTemplate.opsForSet().remove(SET_PENDING_TIDS, taskId);
 
             // Execute the actual task logic
-            TaskResultDto result = executeEtlTaskLogic(table, job.getBizDate());
+            success = executeEtlTaskLogic(table, job.getBizDate());
 
-            if (!result.success()) {
+            if (!success) {
                 handleTaskFailure(job, taskId, "Addax exited with non-zero status");
+                tableService.setFailed(table);
+            } else {
+                tableService.setFinished(table);
             }
         } catch (Exception e) {
             log.error("Failed to execute task tid={}", job.getTid(), e);
@@ -267,7 +242,7 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
     }
 
     @Override
-    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable etlTable) {
+    public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable etlTable, LocalDate overrideBizDate) {
         if (!acquireConcurrency(etlTable)) {
             return TaskResultDto.failure("系统繁忙，超出并发限制", 0);
         }
@@ -275,7 +250,16 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
         try {
             // Manually triggered tasks use the default business date from config
             LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
-            return executeEtlTaskLogic(etlTable, bizDate);
+            boolean result = executeEtlTaskLogic(etlTable, bizDate);
+            long duration = (System.currentTimeMillis() - startTime) / 1000;
+            if (result) {
+                tableService.setFinished(etlTable);
+                return TaskResultDto.success("执行成功", duration);
+            } else {
+                tableService.setFailed(etlTable);
+                alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", etlTable.getId()));
+                return TaskResultDto.failure("执行失败：Addax 退出非0", duration);
+            }
         } finally {
             releaseConcurrency(etlTable);
             long duration = (System.currentTimeMillis() - startTime) / 1000;
@@ -300,71 +284,6 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
         }
     }
 
-    private TaskResultDto executeEtlTaskLogic(EtlTable task, LocalDate bizDate) {
-        // This logic is mostly copied from TaskQueueManagerV2Impl
-        // It should be extracted into a common service to avoid duplication.
-        // For now, we duplicate it for simplicity.
-        long taskId = task.getId();
-        long startTime = System.currentTimeMillis();
-        try {
-            tableService.setRunning(task);
-            String jobContent = jobContentService.getJobContent(taskId);
-            if (jobContent == null || jobContent.isEmpty()) {
-                return TaskResultDto.failure("Job content is empty", 0);
-            }
-
-            String bizDateStr = bizDate.format(DateTimeFormatter.ofPattern(task.getPartFormat() != null ? task.getPartFormat() : "yyyyMMdd"));
-            jobContent = jobContent.replace("${logdate}", bizDateStr)
-                                 .replace("${dw_clt_date}", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                                 .replace("${dw_trade_date}", configService.getBizDate());
-
-            if (task.getPartName() != null && !task.getPartName().isEmpty()) {
-                targetService.addPartition(taskId, task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDateStr);
-            }
-
-            File tempFile = Files.createTempFile("addax-job-", ".json").toFile();
-            Files.writeString(tempFile.toPath(), jobContent);
-
-            String logName = String.format("%s.%s_%d.log", task.getTargetDb(), task.getTargetTable(), taskId);
-            String cmd = String.format("%s/bin/addax.sh -p'-DjobName=%d -Dlog.file.name=%s' %s",
-                    dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
-
-            EtlJour etlJour = jourService.addJour(taskId, JourKind.COLLECT, cmd);
-            TaskResultDto taskResult = CommandExecutor.executeWithResult(cmd, ADDAX_EXECUTE_TIME_OUT_SECONDS);
-
-            String logContent = "";
-            try {
-                logContent = Files.readString(Path.of(dictService.getAddaxHome() + "/log/" + logName));
-            } catch (IOException e) {
-                log.error("Failed to read addax log file", e);
-            }
-            addaxLogService.insertLog(taskId, logContent);
-
-            etlJour.setDuration(taskResult.durationSeconds());
-            etlJour.setStatus(taskResult.success());
-            if (!taskResult.success()) {
-                etlJour.setErrorMsg(taskResult.message());
-            }
-            jourService.saveJour(etlJour);
-
-            long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
-            task.setDuration(duration);
-            if (taskResult.success()) {
-                tableService.setFinished(task);
-            } else {
-                tableService.setFailed(task);
-                alertService.sendToWeComRobot("Task failed: " + taskId);
-            }
-            return new TaskResultDto(taskResult.success(), taskResult.message(), duration);
-        } catch (Exception e) {
-            long duration = (System.currentTimeMillis() - startTime) / 1000;
-            log.error("ETL task execution failed: tid={}", taskId, e);
-            task.setDuration(duration);
-            tableService.setFailed(task);
-            alertService.sendToWeComRobot(String.format("Task failed: %s, Error: %s", taskId, e.getMessage()));
-            return TaskResultDto.failure("Execution exception: " + e.getMessage(), duration);
-        }
-    }
 
     private void recoverStaleTasks() {
         // Recover tasks that were running but the instance died
@@ -433,11 +352,6 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
         clearQueue();
     }
 
-    @Override
-    public boolean addTaskToQueue(long tableId) {
-        EtlTable table = tableService.getTable(tableId);
-        return table != null && addTaskToQueue(table);
-    }
 
     @PreDestroy
     public void shutdown() {
@@ -445,6 +359,11 @@ public class TaskQueueManagerRedisImpl implements TaskQueueManager {
         scheduler.shutdownNow();
         workerPool.shutdownNow();
         log.info("Redis Task Queue Manager has been shut down.");
+    }
+
+    @Override
+    public void close() {
+        shutdown();
     }
 }
 

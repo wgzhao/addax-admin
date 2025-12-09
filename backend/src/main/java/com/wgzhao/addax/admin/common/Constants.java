@@ -13,6 +13,9 @@ public final class Constants
     private Constants() {
     }
 
+    /** 默认切日时间 */
+    public static final String DEFAULT_SWITCH_TIME = "16:30";
+
     public static final String DELETED_PLACEHOLDER_PREFIX = "__deleted__";
 
     public static final long ADDAX_EXECUTE_TIME_OUT_SECONDS = 2 * 60 * 60;

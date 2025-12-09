@@ -20,7 +20,7 @@ import java.util.concurrent.ScheduledFuture;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class SchemaRefreshScheduler implements DisposableBean {
+public class SchemaRefreshScheduler {
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
     private final SystemFlagService systemFlagService;
@@ -28,13 +28,22 @@ public class SchemaRefreshScheduler implements DisposableBean {
 
     private ScheduledFuture<?> scheduledFuture;
 
-    @PostConstruct
     public void schedule() {
+        if (scheduledFuture != null && !scheduledFuture.isDone()) {
+            log.info("Schema refresh task is already scheduled.");
+            return;
+        }
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
-        LocalTime trigger = switchTime.plusMinutes(10);
-        String cron = toCron(trigger);
-        log.info("Scheduling schema refresh at {} (cron: {})", trigger, cron);
+        String cron = toCron(switchTime);
+        log.info("Scheduling schema refresh at {} (cron: {})", switchTime, cron);
         scheduledFuture = taskScheduler.schedule(this::runRefresh, new CronTrigger(cron));
+    }
+
+    public void cancel() {
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            log.info("Cancelled scheduled schema refresh task.");
+        }
     }
 
     private String toCron(LocalTime time) {
@@ -58,13 +67,6 @@ public class SchemaRefreshScheduler implements DisposableBean {
         }
         finally {
             systemFlagService.endRefresh("scheduler");
-        }
-    }
-
-    @Override
-    public void destroy() throws Exception {
-        if (scheduledFuture != null) {
-            scheduledFuture.cancel(false);
         }
     }
 }

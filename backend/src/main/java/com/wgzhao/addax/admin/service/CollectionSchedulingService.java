@@ -5,8 +5,8 @@ import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalTime;
@@ -28,10 +28,9 @@ public class CollectionSchedulingService {
     @Autowired
     private SystemConfigService systemConfigService;
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
-        rescheduleAllTasks();
-    }
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
 
     public void rescheduleAllTasks() {
         try {
@@ -62,11 +61,20 @@ public class CollectionSchedulingService {
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
             // cancel existing task if any
             taskSchedulerService.cancelTask(taskId);
-            Runnable task = () -> taskService.executeTasksForSource(source.getId());
+            Runnable task = () -> redisTemplate.opsForList().leftPush("addax-task-queue", String.valueOf(source.getId()));
             taskSchedulerService.scheduleTask(taskId, task, cronExpression);
         } else {
             taskSchedulerService.cancelTask(taskId);
         }
+    }
+
+    public void cancelAllTasks() {
+        List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
+        for (EtlSource source : sources) {
+            cancelTask(source.getCode());
+        }
+        taskSchedulerService.cancelTask("dailyParamUpdate");
+        log.info("All scheduled tasks have been cancelled.");
     }
 
     public void cancelTask(String code) {
