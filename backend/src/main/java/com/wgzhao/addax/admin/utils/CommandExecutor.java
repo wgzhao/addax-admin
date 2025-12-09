@@ -3,9 +3,11 @@ package com.wgzhao.addax.admin.utils;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -54,8 +56,16 @@ public class CommandExecutor {
             }
             log.info("Started process pid={} cmd={}", pid, command);
 
-            // 启动吞噬线程，防止输出缓冲阻塞导致子进程挂起
-            Thread discarder = startDiscarder(process.getInputStream());
+            // 这里我们既要收集输出，也要避免缓冲区阻塞
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            Thread collector = new Thread(() -> {
+                try (InputStream in = process.getInputStream()) {
+                    in.transferTo(buffer);
+                } catch (IOException ignored) {
+                }
+            }, "cmd-out-collector");
+            collector.setDaemon(true);
+            collector.start();
 
             boolean finished;
             if (timeoutSeconds > 0) {
@@ -71,9 +81,9 @@ public class CommandExecutor {
                 process.waitFor();
             }
 
-            // 进程结束后，尽量等待吞噬线程退出（短暂等待，防止资源泄漏）
+            // 进程结束后，尽量等待收集线程退出（短暂等待，防止资源泄漏）
             try {
-                discarder.join(1000);
+                collector.join(1000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             }
@@ -81,7 +91,13 @@ public class CommandExecutor {
             int exitCode = process.exitValue();
             long duration = (System.currentTimeMillis() - startAt) / 1000;
             if (exitCode != 0) {
-                return TaskResultDto.failure("exit code: " + exitCode, duration);
+                // gather the error log for debugging and display
+                // 收集错误/输出日志用于调试和展示
+                String output = buffer.toString(StandardCharsets.UTF_8);
+                String message = output.isEmpty()
+                        ? ("exit code: " + exitCode)
+                        : ("exit code: " + exitCode + ", output:\n" + output);
+                return TaskResultDto.failure(message, duration);
             }
             return TaskResultDto.success("", duration);
         } catch (IOException e) {
