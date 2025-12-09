@@ -55,10 +55,10 @@
       '#8e24aa' // 深紫色
     ]
 
-    // 为每个 run_date 创建一个数据集
+    // 为每个 biz_date 创建一个数据集
     const datasets = rawData.value.map((item, index) => {
       return {
-        label: item.run_date,
+        label: item.biz_date,
         data: item.total_secs,
         backgroundColor: colors[index % colors.length],
         borderColor: colors[index % colors.length],
