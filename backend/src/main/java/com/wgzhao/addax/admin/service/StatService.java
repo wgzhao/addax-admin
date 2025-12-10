@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -11,15 +12,12 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@AllArgsConstructor
 public class StatService {
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private EtlStatisticRepo etlStatisticRepo;
-
-    @Autowired
-    private SystemConfigService configService;
+    private final JdbcTemplate jdbcTemplate;
+    private final EtlStatisticRepo etlStatisticRepo;
+    private final SystemConfigService configService;
 
     // 按采集源统计最近一次采集的数据量
     public List<Map<String, Object>> statDataBySource() {

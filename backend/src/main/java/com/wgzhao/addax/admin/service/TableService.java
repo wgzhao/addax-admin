@@ -257,16 +257,6 @@ public class TableService
     }
 
     /**
-     * 根据ID获取表及其数据源信息
-     * @param tid 表ID
-     * @return 表对象
-     */
-    public EtlTable getTableAndSource(long tid)
-    {
-        return etlTableRepo.findById(tid).orElse(null);
-    }
-
-    /**
      * 根据ID获取表信息
      * @param tid 表ID
      * @return 表对象
@@ -386,14 +376,6 @@ public class TableService
     public long getAllTableCount() {
         return etlTableRepo.count();
     }
-    /**
-     * 获取所有有效表
-     * @return 有效表列表
-     */
-    public List<EtlTable> getValidTables()
-    {
-        return etlTableRepo.findValidTables();
-    }
 
     /**
      * 获取所有有效的视图表
@@ -472,7 +454,7 @@ public class TableService
 
     /**
      * 根据数据源ID获取采集表数量
-     * @param sid
+     * @param sid source id
      */
     public int getTableCountBySourceId(int sid)
     {

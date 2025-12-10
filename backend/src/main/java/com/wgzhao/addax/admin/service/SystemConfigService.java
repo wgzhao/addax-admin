@@ -24,9 +24,6 @@ public class SystemConfigService
     private final DictService dictService;
 
     private final Map<String, Object> configCache = new ConcurrentHashMap<>();
-    private final DateTimeFormatter dateTimeSdf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private final DateTimeFormatter dateShortSdf = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private final DateTimeFormatter dateDashSdf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @PostConstruct
     public void initConfig() {
@@ -88,16 +85,6 @@ public class SystemConfigService
         return (LocalDate) configCache.getOrDefault("BIZ_DATE_AS_DATE", LocalDate.now().plusDays(-1));
     }
 
-    public String getLogPath()
-    {
-        return (String) configCache.get("LOG_PATH");
-    }
-
-    public String getCurDateTime()
-    {
-        return (String) configCache.get("CUR_DATETIME");
-    }
-
     public String getSwitchTime()
     {
         return (String) configCache.get("SWITCH_TIME");
@@ -106,12 +93,6 @@ public class SystemConfigService
     public LocalTime getSwitchTimeAsTime() {
         String switchTime = getSwitchTime();
         return LocalTime.parse(switchTime, DateTimeFormatter.ofPattern("HH:mm"));
-    }
-
-    public String getHDFSPrefix()
-    {
-        return (String) configCache.get("HDFS_PREFIX");
-
     }
 
     public HiveConnectDto getHiveServer2() {
@@ -125,11 +106,6 @@ public class SystemConfigService
     public int getQueueSize()
     {
         return (Integer) configCache.get("QUEUE_SIZE");
-    }
-
-    public String getAddaxHome()
-    {
-        return (String) configCache.get("ADDAX_HOME");
     }
 
     /**

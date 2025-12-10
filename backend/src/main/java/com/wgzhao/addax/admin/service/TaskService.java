@@ -18,8 +18,7 @@ import java.util.concurrent.*;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class TaskService
-{
+public class TaskService {
     private final TaskQueueManager queueManager;
     private final TableService tableService;
     private final JdbcTemplate jdbcTemplate;
@@ -27,10 +26,9 @@ public class TaskService
     private final SystemConfigService configService;
     private final SystemFlagService systemFlagService; // added dependency
 
-    // 超时时间（秒）将从 SystemConfigService 获取（sys_item 字典项: SCHEMA_REFRESH_TIMEOUT），默认 600 秒
-
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
+     *
      * @param sourceId 采集源ID
      */
     public void executeTasksForSource(int sourceId) {
@@ -45,33 +43,12 @@ public class TaskService
     }
 
     /**
-     * 计划任务主控 - 基于队列的采集任务管理
-     * 入口方法，负责扫描tb_imp_etl表并管理采集队列
-     */
-    public void executePlanStartWithQueue()
-    {
-
-//        log.info("基于队列的计划任务主控制开始执行");
-
-        // 启动队列监控器（如果还未启动）
-        queueManager.startQueueMonitor();
-
-        // 处理其他类型任务（judge等非ETL任务）
-//        processNonEtlTasks();
-
-        // 扫描tb_imp_etl表中flag字段为N的记录并加入队列
-        queueManager.scanAndEnqueueEtlTasks();
-    }
-
-    /**
      * 处理非ETL任务（如judge任务）
      */
-    public void updateParams()
-    {
+    public void updateParams() {
         // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
         log.info("开始执行每日参数更新和任务重置...");
 
-        boolean locked = false;
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "updateParams-worker");
             t.setDaemon(true);
@@ -80,12 +57,6 @@ public class TaskService
 
         Future<?> future = null;
         try {
-            locked = systemFlagService.beginRefresh("updateParams");
-            if (!locked) {
-                log.info("无法获取 schema refresh 锁（可能已有实例在执行刷新），跳过更新参数操作");
-                return;
-            }
-
             log.info("已获取 schema refresh 锁：正在更新参数与刷新表结构，期间新任务将被拒绝或不被入队。已经在执行的任务不受影响。");
 
             // Stop the queue monitor to prevent new queued tasks from being dispatched while we refresh.
@@ -107,8 +78,7 @@ public class TaskService
                     // 106 行注释：在完成必要参数配置及初始化后，需要清理 etl_job_queue 中的历史记录
                     // 这里只保留仍在运行中的任务，删除 completed/failed 等状态的记录，减轻后续查询压力
                     queueManager.truncateQueueExceptRunningTasks();
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     // Let outer handler deal with logging
                     throw new RuntimeException(e);
                 }
@@ -118,45 +88,35 @@ public class TaskService
                 int timeout = configService.getSchemaRefreshTimeoutSeconds();
                 future.get(timeout, TimeUnit.SECONDS);
                 log.info("参数更新与表结构刷新完成");
-            }
-            catch (TimeoutException te) {
+            } catch (TimeoutException te) {
                 int timeout = configService.getSchemaRefreshTimeoutSeconds();
                 log.error("参数更新/表结构刷新超时（>{}s），将中止刷新并释放锁", timeout);
                 // try to cancel the running task
                 future.cancel(true);
-            }
-            catch (ExecutionException ee) {
+            } catch (ExecutionException ee) {
                 log.error("参数更新/表结构刷新发生异常", ee.getCause());
-            }
-            catch (InterruptedException ie) {
+            } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
                 log.warn("updateParams 被中断");
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("更新参数或刷新表结构过程中发生错误", e);
-        }
-        finally {
+        } finally {
             // Always restart the queue monitor and release the lock if we acquired it
             try {
                 queueManager.startQueueMonitor();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.warn("重启队列监控器时发生错误", e);
             }
 
-            if (locked) {
-                try {
-                    systemFlagService.endRefresh("updateParams");
-                    log.info("已释放 schema refresh 锁，队列监控器已重启，采集任务恢复正常");
-                }
-                catch (Exception e) {
-                    log.warn("释放 schema refresh 锁时发生错误", e);
-                }
-            }
+            systemFlagService.endRefresh("updateParams");
+            log.info("已释放 schema refresh 锁，队列监控器已重启，采集任务恢复正常");
 
             if (future != null && !future.isDone()) {
-                try { future.cancel(true); } catch (Exception ignored) {}
+                try {
+                    future.cancel(true);
+                } catch (Exception ignored) {
+                }
             }
             executor.shutdownNow();
         }
@@ -165,13 +125,12 @@ public class TaskService
     /**
      * 获取采集任务队列的详细状态
      */
-    public Map<String, Object> getEtlQueueStatus()
-    {
+    public Map<String, Object> getEtlQueueStatus() {
         Map<String, Object> detailedStatus = new HashMap<>(queueManager.getQueueStatus());
 
         try {
             // 添加数据库中待处理任务数量
-            int result  = tableService.findPendingTasks();
+            int result = tableService.findPendingTasks();
             if (result > 0) {
                 detailedStatus.put("pendingInDatabase", result);
             }
@@ -179,8 +138,7 @@ public class TaskService
             if (result > 0) {
                 detailedStatus.put("runningInDatabase", result);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("获取数据库任务状态失败", e);
         }
 
@@ -190,8 +148,7 @@ public class TaskService
     /**
      * 停止队列监控
      */
-    public String stopQueueMonitor()
-    {
+    public String stopQueueMonitor() {
         queueManager.stopQueueMonitor();
         return "队列监控停止信号已发送";
     }
@@ -199,34 +156,15 @@ public class TaskService
     /**
      * 启动队列监控
      */
-    public String startQueueMonitor()
-    {
+    public String startQueueMonitor() {
         queueManager.startQueueMonitor();
         return "队列监控已启动";
     }
 
     /**
-     * 重启队列监控
-     */
-    public String restartQueueMonitor()
-    {
-        queueManager.stopQueueMonitor();
-        // 等待一下让监控线程停止
-        try {
-            Thread.sleep(2000);
-        }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        queueManager.startQueueMonitor();
-        return "队列监控已重启";
-    }
-
-    /**
      * 清空队列并重新扫描
      */
-    public String resetQueue()
-    {
+    public String resetQueue() {
         int clearedCount = queueManager.clearQueue();
         queueManager.scanAndEnqueueEtlTasks();
         Map<String, Object> status = queueManager.getQueueStatus();
@@ -240,29 +178,19 @@ public class TaskService
         return tableService.findSpecialTasks();
     }
 
-    // 提交采集任务到队列
-    public boolean submitTask(EtlTable etlTable) {
-        if (systemFlagService.isRefreshInProgress()) {
-            log.info("当前正在更新参数/刷新表结构，暂时拒绝提交采集任务：{}", etlTable == null ? "null" : etlTable.getId());
-            return false;
-        }
-        return queueManager.addTaskToQueue(etlTable);
-    }
-
     public TaskResultDto submitTask(long tableId) {
         if (systemFlagService.isRefreshInProgress()) {
             log.info("当前正在更新参数/刷新表结构，暂时拒绝提交采集任务：tableId={}", tableId);
             return TaskResultDto.failure("正在更新参数，暂时无法提交任务", 0);
         }
-        if (queueManager.addTaskToQueue(tableId) ) {
+        if (queueManager.addTaskToQueue(tableId)) {
             return TaskResultDto.success("任务已提交到队列", 0);
         } else {
             return TaskResultDto.failure("任务提交失败，可能是队列已满或任务已存在", 0);
         }
     }
 
-    public List<Map<String, Object>> getAllTaskStatus()
-    {
+    public List<Map<String, Object>> getAllTaskStatus() {
         // 第一次采集时的估算默认耗时（秒），可按需调整或从配置读取
         int defaultTakeSecs = 300;
         String sql = """
