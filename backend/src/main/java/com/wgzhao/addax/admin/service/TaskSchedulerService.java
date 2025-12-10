@@ -32,5 +32,14 @@ public class TaskSchedulerService {
             scheduledTasks.remove(taskId);
         }
     }
-}
 
+    public void cancelAll() {
+        for (Map.Entry<String, ScheduledFuture<?>> entry : scheduledTasks.entrySet()) {
+            ScheduledFuture<?> future = entry.getValue();
+            if (future != null) {
+                future.cancel(true);
+            }
+        }
+        scheduledTasks.clear();
+    }
+}

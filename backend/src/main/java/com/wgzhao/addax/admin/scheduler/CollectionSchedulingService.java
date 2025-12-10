@@ -1,8 +1,13 @@
-package com.wgzhao.addax.admin.service;
+package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.service.LeaderElectionService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.TaskSchedulerService;
+import com.wgzhao.addax.admin.service.TaskService;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -14,7 +19,7 @@ import java.util.List;
 
 @Service
 @Slf4j
-public class CollectionSchedulingService {
+public class CollectionSchedulingService implements LeaderElectionService.LeadershipListener {
 
     @Autowired
     private TaskSchedulerService taskSchedulerService;
@@ -28,12 +33,43 @@ public class CollectionSchedulingService {
     @Autowired
     private SystemConfigService systemConfigService;
 
+    @Autowired
+    private LeaderElectionService leaderElectionService;
+
+    @PostConstruct
+    public void registerAsLeadershipListener() {
+        leaderElectionService.addListener(this);
+    }
+
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
+        // Only leader node should register scheduled tasks
+        if (leaderElectionService.isLeader()) {
+            log.info("Node {} is leader at startup, scheduling all tasks", leaderElectionService.getNodeId());
+            rescheduleAllTasks();
+        } else {
+            log.info("Node {} is not leader at startup, will wait for leadership to schedule tasks", leaderElectionService.getNodeId());
+        }
+    }
+
+    @Override
+    public void onBecameLeader() {
+        log.info("Node {} became leader, rescheduling all tasks", leaderElectionService.getNodeId());
+        taskSchedulerService.cancelAll();
         rescheduleAllTasks();
     }
 
+    @Override
+    public void onLostLeader() {
+        log.info("Node {} lost leadership, cancelling all scheduled tasks", leaderElectionService.getNodeId());
+        taskSchedulerService.cancelAll();
+    }
+
     public void rescheduleAllTasks() {
+        if (!leaderElectionService.isLeader()) {
+            log.info("Current node {} is not leader, skip rescheduleAllTasks", leaderElectionService.getNodeId());
+            return;
+        }
         try {
             // Schedule collection tasks for each source
             List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
@@ -49,6 +85,10 @@ public class CollectionSchedulingService {
     }
 
     private void scheduleDailyParamUpdate() {
+        if (!leaderElectionService.isLeader()) {
+            log.info("Current node {} is not leader, skip scheduling dailyParamUpdate", leaderElectionService.getNodeId());
+            return;
+        }
         LocalTime time = systemConfigService.getSwitchTimeAsTime();
         String cronExpression = convertLocalTimeToCron(time);
         Runnable task = taskService::updateParams;
@@ -56,6 +96,10 @@ public class CollectionSchedulingService {
     }
 
     public void scheduleOrUpdateTask(EtlSource source) {
+        if (!leaderElectionService.isLeader()) {
+            log.info("Current node {} is not leader, skip scheduling task for source {}", leaderElectionService.getNodeId(), source.getCode());
+            return;
+        }
         String taskId = "source-" + source.getCode();
         if (source.isEnabled() && source.getStartAt() != null) {
             log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
