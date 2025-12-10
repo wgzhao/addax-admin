@@ -99,8 +99,15 @@ public class EtlJobQueueService {
 
     @Transactional
     public void releaseClaim(long jobId) {
-        String sql = "UPDATE public.etl_job_queue SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL, available_at=now() + '5 seconds'::interval WHERE id=?";
-        jdbcTemplate.update(sql, jobId);
+        // 兼容老的调用，使用默认 5s 的不可见期
+        releaseClaim(jobId, 5);
+    }
+
+    @Transactional
+    public void releaseClaim(long jobId, int delaySeconds) {
+        String sql = "UPDATE public.etl_job_queue SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL, available_at=now() + ?::interval WHERE id=?";
+        String interval = delaySeconds + " seconds";
+        jdbcTemplate.update(sql, interval, jobId);
     }
 
     @Transactional

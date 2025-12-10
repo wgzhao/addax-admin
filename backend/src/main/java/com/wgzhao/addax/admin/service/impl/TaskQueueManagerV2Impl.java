@@ -230,14 +230,8 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                 AtomicInteger sourceCount = sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0));
                 if (sourceCount.get() >= maxConcurrency) {
                     log.info("数据源 {}({}) 并发已达上限 {}，任务 jobId={} 将被放回队列", source.getName(), source.getCode(), maxConcurrency, job.getId());
-                    // 并发已满，放回队列
-                    jobQueueService.releaseClaim(job.getId());
-                    // 稍微等待，避免立即再次获取到同一个任务
-                    try {
-                        TimeUnit.SECONDS.sleep(60);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
+                    // 并发已满，放回队列，并设置短暂不可见期避免立即再次领取
+                    jobQueueService.releaseClaim(job.getId(), 60);
                     continue; // 继续尝试下一个任务
                 }
             }

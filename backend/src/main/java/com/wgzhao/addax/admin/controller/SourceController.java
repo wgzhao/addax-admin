@@ -214,7 +214,8 @@ public class SourceController
         if (source == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
         }
-        try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
+        try (Connection connection = DbUtil.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
+            assert connection != null;
             ResultSet catalogs = connection.getMetaData().getCatalogs();
             while (catalogs.next()) {
                 result.add(catalogs.getString(1));
