@@ -4,7 +4,7 @@ import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
-import com.wgzhao.addax.admin.scheduler.CollectionSchedulingService;
+import com.wgzhao.addax.admin.scheduler.CollectionScheduler;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class SourceService
     /**
      * 采集任务调度服务
      */
-    private final CollectionSchedulingService collectionSchedulingService;
+    private final CollectionScheduler collectionScheduler;
 
     private final ApplicationEventPublisher eventPublisher;
 
@@ -135,7 +135,7 @@ public class SourceService
     public void deleteById(int id)
     {
         // 删除之前，应该先取消该数据源的调度任务
-        etlSourceRepo.findById(id).ifPresent(etlSource -> collectionSchedulingService.cancelTask(etlSource.getCode()));
+        etlSourceRepo.findById(id).ifPresent(etlSource -> collectionScheduler.cancelTask(etlSource.getCode()));
         etlSourceRepo.deleteById(id);
     }
 
@@ -170,7 +170,7 @@ public class SourceService
     {
         EtlSource save = etlSourceRepo.save(etlSource);
         // 新采集源创建时，默认创建一个同步任务
-        collectionSchedulingService.scheduleOrUpdateTask(etlSource);
+        collectionScheduler.scheduleOrUpdateTask(etlSource);
         return save;
     }
 

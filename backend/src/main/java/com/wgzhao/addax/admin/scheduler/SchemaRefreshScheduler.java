@@ -1,9 +1,6 @@
 package com.wgzhao.addax.admin.scheduler;
 
-import com.wgzhao.addax.admin.service.SystemFlagService;
-import com.wgzhao.addax.admin.service.TableService;
-import com.wgzhao.addax.admin.service.DictService;
-import com.wgzhao.addax.admin.service.LeaderElectionService;
+import com.wgzhao.addax.admin.service.*;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +13,7 @@ import java.time.LocalTime;
 import java.util.concurrent.ScheduledFuture;
 
 /**
- * 每天在切日时间后 10 分钟触发一次，进行表结构刷新。
+ * 每天在切日时间触发一次，进行表结构刷新。
  */
 @Component
 @Slf4j
@@ -25,7 +22,7 @@ public class SchemaRefreshScheduler implements DisposableBean, LeaderElectionSer
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
     private final SystemFlagService systemFlagService;
-    private final TableService tableService;
+    private final TaskService taskService;
     private final LeaderElectionService leaderElectionService;
 
     private volatile ScheduledFuture<?> scheduledFuture;
@@ -80,7 +77,7 @@ public class SchemaRefreshScheduler implements DisposableBean, LeaderElectionSer
             return;
         }
         try {
-            tableService.refreshAllTableResources();
+            taskService.updateParams();
             log.info("Schema refresh finished successfully");
         }
         catch (Exception e) {
