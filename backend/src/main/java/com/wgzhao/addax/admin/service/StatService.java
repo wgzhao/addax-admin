@@ -264,7 +264,7 @@ public class StatService {
                     biz_date,
                     total_recs
                   FROM etl_statistic
-                  where biz_date >  date(now() - interval '?' day)
+                  where biz_date >  current_date - ?
                   ORDER BY tid, biz_date DESC
                 ),
                 last_t AS (
@@ -275,7 +275,7 @@ public class StatService {
                     ROW_NUMBER() OVER (PARTITION BY tid ORDER BY biz_date DESC) AS rn
                   FROM latest_per_day
                 )
-                SELECT l.tid, min(biz_date) as start_date, max(biz_date) as end_date, 
+                SELECT l.tid, min(biz_date) as start_date, max(biz_date) as end_date,
                        max(t.source_db), max(t.source_table), max(total_recs) as total_recs
                 FROM last_t l
                 join etl_table t
