@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +17,7 @@ import java.util.Map;
  */
 @Service
 @Slf4j
+@AllArgsConstructor
 public class AlertService
 {
 
@@ -25,9 +27,7 @@ public class AlertService
     @Value("${alert.wechat.key}")
     private String wechatKey;
 
-
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     /**
      * 发送企业微信机器人消息

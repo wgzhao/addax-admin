@@ -14,6 +14,7 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -35,24 +36,14 @@ import static com.wgzhao.addax.admin.common.Constants.quoteIfNeeded;
  */
 @Service
 @Slf4j
+@AllArgsConstructor
 public class JobContentService {
-    @Autowired
-    private EtlJobRepo jobRepo;
 
-    @Autowired
-    private DictService dictService;
-
-    @Autowired
-    private ColumnService columnService;
-
-    @Autowired
-    private SystemConfigService configService;
-
-    @Autowired
-    private EtlJourService jourService;
-
-    @Autowired
-    private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
+    private final EtlJobRepo jobRepo;
+    private final DictService dictService;
+    private final ColumnService columnService;
+    private final EtlJourService jourService;
+    private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
 
     /**
      * 获取指定采集表的采集任务模板内容

@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -24,12 +25,11 @@ import java.util.Optional;
  * 包含参数获取、类型转换、业务日期计算、Hive类型映射、HDFS配置等功能。
  */
 @Service
+@AllArgsConstructor
 public class DictService
 {
-    @Autowired
-    private SysItemRepo sysItemRepo;
-    @Autowired
-    private SysDictRepo sysDictRepo;
+    private final SysItemRepo sysItemRepo;
+    private final SysDictRepo sysDictRepo;
 
     /** 默认切日时间 */
     private static final String DEFAULT_SWITCH_TIME = "16:30";

@@ -7,8 +7,8 @@ import com.wgzhao.addax.admin.service.*;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -25,12 +25,18 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -43,31 +49,19 @@ import static java.lang.Math.max;
 @Component
 @Primary
 @Slf4j
+@AllArgsConstructor
 public class TaskQueueManagerV2Impl implements TaskQueueManager {
-    @Autowired
-    private DictService dictService;
-    @Autowired
-    private AddaxLogService addaxLogService;
-    @Autowired
-    private StatService statService;
-    @Autowired
-    private AlertService alertService;
-    @Autowired
-    private TableService tableService;
-    @Autowired
-    private EtlJourService jourService;
-    @Autowired
-    private SystemConfigService configService;
-    @Autowired
-    private JobContentService jobContentService;
-    @Autowired
-    private TargetService targetService;
-    @Autowired
-    private SystemFlagService systemFlagService;
-    @Autowired
-    private EtlJobQueueService jobQueueService;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final DictService dictService;
+    private final AddaxLogService addaxLogService;
+    private final AlertService alertService;
+    private final TableService tableService;
+    private final EtlJourService jourService;
+    private final SystemConfigService configService;
+    private final JobContentService jobContentService;
+    private final TargetService targetService;
+    private final SystemFlagService systemFlagService;
+    private final EtlJobQueueService jobQueueService;
+    private final JdbcTemplate jdbcTemplate;
 
     // 并发限制 & 入队容量
     private int concurrentLimit;
@@ -89,6 +83,9 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     private volatile boolean running = false;
     private String instanceId;
+
+    // 在本地任务完成后触发调度的合并标记，避免并发任务完成时重复提交大量 dispatch 任务
+    private final AtomicBoolean dispatchScheduled = new AtomicBoolean(false);
 
     // backoff 策略
     private static final int BACKOFF_MIN_SECONDS = 30;
@@ -188,13 +185,13 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                             dispatchUntilFull();
                         }
                     }
-                    Thread.sleep(500L);
+                    TimeUnit.MILLISECONDS.sleep(500);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (SQLException se) {
                     log.warn("LISTEN 循环 SQL 异常，将重试", se);
-                    Thread.sleep(2000);
+                    TimeUnit.SECONDS.sleep(2);
                 }
             }
         } catch (Exception e) {
@@ -209,7 +206,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     }
 
     private void dispatchUntilFull() {
-        while (runningTaskCount.get() < concurrentLimit) {
+        while (running && runningTaskCount.get() < concurrentLimit) {
             Optional<EtlJobQueue> maybe = jobQueueService.claimNext(instanceId, DEFAULT_LEASE_SECONDS);
             if (maybe.isEmpty()) {
                 return;
@@ -218,7 +215,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             // 获取任务对应的数据源信息
             EtlTable table = tableService.getTable(job.getTid());
             if (table == null) {
-                log.warn("未找到 tid={} 对应��任务信息，跳过该任务", job.getTid());
+                log.warn("未找到 tid={} 对应的任务信息，跳过该任务", job.getTid());
                 jobQueueService.completeFailure(job.getId(), "任务信息丢失");
                 continue;
             }
@@ -230,8 +227,9 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                 AtomicInteger sourceCount = sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0));
                 if (sourceCount.get() >= maxConcurrency) {
                     log.info("数据源 {}({}) 并发已达上限 {}，任务 jobId={} 将被放回队列", source.getName(), source.getCode(), maxConcurrency, job.getId());
-                    // 并发已满，放回队列，并设置短暂不可见期避免立即再次领取
-                    jobQueueService.releaseClaim(job.getId(), 60);
+                    // 并发已满，放回队列，使用较短的不可见期，避免长时间等下一轮
+                    // 这里使用 5 秒的小延迟，在任务完成释放并发后，通过 triggerDispatchAsync() 尽快重新调度
+                    jobQueueService.releaseClaim(job.getId(), 5);
                     continue; // 继续尝试下一个任务
                 }
             }
@@ -250,14 +248,33 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         }
     }
 
-    private void recoverLeases() {
+    /**
+     * 在本地任务完成释放并发槽后，异步触发一次调度。
+     * 使用 dispatchScheduled 进行合并控制，避免并发完成时重复提交大量调度任务。
+     */
+    private void triggerDispatchAsync() {
+        if (!running) {
+            return;
+        }
+        // 如果已经有一次待执行的调度在排队/执行中，则不再重复提交
+        if (!dispatchScheduled.compareAndSet(false, true)) {
+            return;
+        }
         try {
-            int n = jobQueueService.recoverExpiredLeases();
-            if (n > 0) {
-                log.info("回收过期租约 {} 条", n);
-            }
+            scheduler.execute(() -> {
+                try {
+                    // 清除标记，允许后续再次提交调度任务
+                    dispatchScheduled.set(false);
+                    // 尽力填满本节点的并发槽位
+                    dispatchUntilFull();
+                } catch (Throwable t) {
+                    log.warn("本地触发调度任务执行异常", t);
+                }
+            });
         } catch (Exception e) {
-            log.warn("回收租约失败", e);
+            // 提交失败时清理标记，避免永远不再触发
+            dispatchScheduled.set(false);
+            log.warn("提交本地调度任务失败", e);
         }
     }
 
@@ -302,9 +319,10 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             if (renewer != null) {
                 try { renewer.cancel(false); } catch (Exception ignored) {}
             }
-            // 释放并发计数
-            int current = runningTaskCount.decrementAndGet();
-            // 释放数据源并发计数
+            // 释放全局并发计数
+            int afterGlobal = runningTaskCount.decrementAndGet();
+
+            // 释放源级并发计数
             EtlTable table = tableService.getTable(job.getTid());
             if (table != null) {
                 VwEtlTableWithSource source = tableService.getTableView(table.getId());
@@ -312,20 +330,25 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                     Integer maxConcurrency = source.getMaxConcurrency();
                     if (maxConcurrency != null && maxConcurrency > 0) {
                         sourceRunningTaskCount.computeIfPresent(table.getSid(), (k, v) -> {
-                            v.decrementAndGet();
+                            int after = v.decrementAndGet();
+                            log.debug("数据源 {} 并发减少为 {}，maxConcurrency={}", k, after, maxConcurrency);
                             return v;
                         });
                     }
                 }
             }
-            log.debug("jobId={} 完成，耗时 {}s，当前并发 {}", job.getId(), (System.currentTimeMillis() - start) / 1000, current);
+            log.debug("jobId={} 完成，耗时 {}s，当前全局并发 {}，当前队列待处理 {}",
+                    job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
+
+            // 简化触发条件：每个任务完成后都尝试触发一次本地调度，由 dispatchScheduled 合并控制避免风暴
+            triggerDispatchAsync();
         }
     }
 
     private Duration computeBackoff(int attempts) {
         long secs = BACKOFF_MIN_SECONDS;
         for (int i = 1; i < attempts; i++) {
-            secs = Math.min((long) BACKOFF_MAX_SECONDS, secs * BACKOFF_FACTOR);
+            secs = Math.min(BACKOFF_MAX_SECONDS, secs * BACKOFF_FACTOR);
         }
         return Duration.ofSeconds(secs);
     }
@@ -338,7 +361,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             tableService.setRunning(task);
             boolean result = executeEtlTaskLogic(task, overrideBizDate);
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
-            log.info("采集任务 {} 执行完成，耗时: {}s, 结果: {}", tid, duration, result);
+            log.info("采集任务 {}.{}({}) 执行完成，耗时: {}s, 结果: {}", task.getSourceDb(), task.getSourceTable(), tid, duration, result);
             task.setDuration(duration);
             if (result) {
                 tableService.setFinished(task);
@@ -350,7 +373,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             }
         } catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000;
-            log.error("采集任务 {} 执行失败，耗时: {}s", tid, duration, e);
+            log.error("采集任务 {}.{}({}) 执行失败，耗时: {}s", task.getSourceDb(), task.getSourceTable(), tid, duration, e);
             task.setDuration(duration);
             tableService.setFailed(task);
             alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
@@ -450,6 +473,26 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         }
         jourService.saveJour(etlJour);
         return taskResult.success();
+    }
+
+    /**
+     * 定期回收超时未续约的租约，将任务重新标记为可领取状态。
+     * 回收后如果存在任务被恢复，可触发一次调度尝试。
+     */
+    private void recoverLeases() {
+        if (!running) {
+            return;
+        }
+        try {
+            int recovered = jobQueueService.recoverExpiredLeases();
+            if (recovered > 0) {
+                log.info("回收过期租约 {} 个，尝试重新调度", recovered);
+                // 回收了租约，说明可能有任务重新变为可执行，触发一次调度
+                triggerDispatchAsync();
+            }
+        } catch (Exception e) {
+            log.warn("租约回收任务执行异常", e);
+        }
     }
 
     @PreDestroy
