@@ -8,7 +8,9 @@ import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -49,19 +51,29 @@ import static java.lang.Math.max;
 @Component
 @Primary
 @Slf4j
-@AllArgsConstructor
 public class TaskQueueManagerV2Impl implements TaskQueueManager {
-    private final DictService dictService;
-    private final AddaxLogService addaxLogService;
-    private final AlertService alertService;
-    private final TableService tableService;
-    private final EtlJourService jourService;
-    private final SystemConfigService configService;
-    private final JobContentService jobContentService;
-    private final TargetService targetService;
-    private final SystemFlagService systemFlagService;
-    private final EtlJobQueueService jobQueueService;
-    private final JdbcTemplate jdbcTemplate;
+    @Autowired
+    private DictService dictService;
+    @Autowired
+    private AddaxLogService addaxLogService;
+    @Autowired
+    private AlertService alertService;
+    @Autowired
+    private TableService tableService;
+    @Autowired
+    private EtlJourService jourService;
+    @Autowired
+    private SystemConfigService configService;
+    @Autowired
+    private JobContentService jobContentService;
+    @Autowired
+    private TargetService targetService;
+    @Autowired
+    private SystemFlagService systemFlagService;
+    @Autowired
+    private EtlJobQueueService jobQueueService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     // 并发限制 & 入队容量
     private int concurrentLimit;
@@ -317,7 +329,10 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             }
         } finally {
             if (renewer != null) {
-                try { renewer.cancel(false); } catch (Exception ignored) {}
+                try {
+                    renewer.cancel(false);
+                } catch (Exception ignored) {
+                }
             }
             // 释放全局并发计数
             int afterGlobal = runningTaskCount.decrementAndGet();
@@ -459,7 +474,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
         String logContent = null;
         try {
-             logContent = Files.readString(path);
+            logContent = Files.readString(path);
         } catch (IOException e) {
             log.error("读取 Addax 日志文件失败: {}", path, e);
         }

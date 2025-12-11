@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.repository.EtlJobQueueRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -19,11 +20,12 @@ import java.util.Optional;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class EtlJobQueueService {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final EtlJobQueueRepo jobRepo;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private EtlJobQueueRepo jobRepo;
 
     private static final RowMapper<EtlJobQueue> JOB_ROW_MAPPER = (rs, rowNum) -> mapRow(rs);
 
@@ -47,23 +49,37 @@ public class EtlJobQueueService {
         return j;
     }
 
-    public long countActive() { return jobRepo.countActive(); }
-    public long countPending() { return jobRepo.countPending(); }
-    public long countRunning() { return jobRepo.countRunning(); }
-    public long countFailed() { return jobRepo.countFailed(); }
-    public long countCompleted() { return jobRepo.countCompleted(); }
+    public long countActive() {
+        return jobRepo.countActive();
+    }
+
+    public long countPending() {
+        return jobRepo.countPending();
+    }
+
+    public long countRunning() {
+        return jobRepo.countRunning();
+    }
+
+    public long countFailed() {
+        return jobRepo.countFailed();
+    }
+
+    public long countCompleted() {
+        return jobRepo.countCompleted();
+    }
 
     @Transactional
     public int enqueue(EtlTable table, LocalDate bizDate, int priority) {
         int maxAttempts = table.getRetryCnt() == null ? 3 : table.getRetryCnt();
         String sql = """
-            INSERT INTO public.etl_job_queue (tid, biz_date, part_name, priority, status, available_at, attempts, max_attempts)
-            SELECT ?, ?, ?, ?, 'pending', now(), 0, ?
-            WHERE NOT EXISTS (
-                SELECT 1 FROM public.etl_job_queue
-                WHERE tid = ? AND biz_date = ? AND status IN ('pending','running')
-            )
-        """;
+                    INSERT INTO public.etl_job_queue (tid, biz_date, part_name, priority, status, available_at, attempts, max_attempts)
+                    SELECT ?, ?, ?, ?, 'pending', now(), 0, ?
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM public.etl_job_queue
+                        WHERE tid = ? AND biz_date = ? AND status IN ('pending','running')
+                    )
+                """;
         return jdbcTemplate.update(sql,
                 table.getId(), bizDate, table.getPartName(), priority, maxAttempts,
                 table.getId(), bizDate);
@@ -72,20 +88,20 @@ public class EtlJobQueueService {
     @Transactional
     public Optional<EtlJobQueue> claimNext(String instanceId, int leaseSeconds) {
         String sql = """
-        WITH cte AS (
-            SELECT id
-            FROM public.etl_job_queue
-            WHERE status='pending' AND available_at <= now()
-            ORDER BY priority ASC, available_at ASC
-            FOR UPDATE SKIP LOCKED
-            LIMIT 1
-        )
-        UPDATE public.etl_job_queue q
-        SET status='running', claimed_by=?, claimed_at=now(), lease_until=now() + ?::interval, attempts=attempts+1
-        FROM cte
-        WHERE q.id = cte.id
-        RETURNING q.*
-        """;
+                WITH cte AS (
+                    SELECT id
+                    FROM public.etl_job_queue
+                    WHERE status='pending' AND available_at <= now()
+                    ORDER BY priority ASC, available_at ASC
+                    FOR UPDATE SKIP LOCKED
+                    LIMIT 1
+                )
+                UPDATE public.etl_job_queue q
+                SET status='running', claimed_by=?, claimed_at=now(), lease_until=now() + ?::interval, attempts=attempts+1
+                FROM cte
+                WHERE q.id = cte.id
+                RETURNING q.*
+                """;
         String leaseInterval = leaseSeconds + " seconds";
         List<EtlJobQueue> list = jdbcTemplate.query(sql, JOB_ROW_MAPPER, instanceId, leaseInterval);
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
@@ -121,19 +137,19 @@ public class EtlJobQueueService {
         boolean canRetry = job.getAttempts() < job.getMaxAttempts();
         if (canRetry) {
             String sql = """
-                UPDATE public.etl_job_queue
-                SET status='pending', available_at = now() + ?::interval,
-                    lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                WHERE id=?
-            """;
+                        UPDATE public.etl_job_queue
+                        SET status='pending', available_at = now() + ?::interval,
+                            lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
+                        WHERE id=?
+                    """;
             String interval = backoff.getSeconds() + " seconds";
             jdbcTemplate.update(sql, interval, truncateError(error), job.getId());
         } else {
             String sql = """
-                UPDATE public.etl_job_queue
-                SET status='failed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                WHERE id=?
-            """;
+                        UPDATE public.etl_job_queue
+                        SET status='failed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
+                        WHERE id=?
+                    """;
             jdbcTemplate.update(sql, truncateError(error), job.getId());
         }
     }
@@ -146,10 +162,10 @@ public class EtlJobQueueService {
     @Transactional
     public int recoverExpiredLeases() {
         String sql = """
-            UPDATE public.etl_job_queue
-            SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL
-            WHERE status='running' AND lease_until < now()
-        """;
+                    UPDATE public.etl_job_queue
+                    SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL
+                    WHERE status='running' AND lease_until < now()
+                """;
         return jdbcTemplate.update(sql);
     }
 

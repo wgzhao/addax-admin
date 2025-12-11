@@ -18,6 +18,11 @@ public final class Constants
 
     public static final long ADDAX_EXECUTE_TIME_OUT_SECONDS = 2 * 60 * 60;
 
+    // 默认的切日时间
+    public static final String DEFAULT_SWITCH_TIME = "16:30";
+
+    public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern("yyyyMMdd");
+
     public static final Set<String> SQL_RESERVED_KEYWORDS =  Set.of("ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION",
             "BACKUP", "BEFORE", "BETWEEN", "BREAK", "BROWSE", "BULK", "BY", "CASCADE", "CASE", "CAST", "CATALOG", "CHANGE", "CHECK", "CHECKPOINT",
             "CLOSE", "CLUSTERED", "COALESCE", "COLLATE", "COLUMN", "COMMIT", "COMPUTE", "CONSTRAINT", "CONTAINS", "CONTINUE", "CONVERT",

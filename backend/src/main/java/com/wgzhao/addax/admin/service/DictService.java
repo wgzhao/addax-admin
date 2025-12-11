@@ -8,17 +8,17 @@ import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_SWITCH_TIME;
+import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 
 /**
  * 字典服务类，负责系统参数字典及字典项的相关业务操作。
@@ -30,11 +30,6 @@ public class DictService
 {
     private final SysItemRepo sysItemRepo;
     private final SysDictRepo sysDictRepo;
-
-    /** 默认切日时间 */
-    private static final String DEFAULT_SWITCH_TIME = "16:30";
-    /** 日期格式化器 yyyyMMdd */
-    private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     /**
      * 获取切日时间（如未配置则返回默认值）
@@ -76,9 +71,9 @@ public class DictService
         LocalTime localTime = LocalTime.now();
         String curDate;
         if (localTime.isAfter(getSwitchTimeAsTime()) && localTime.isBefore(LocalTime.of(23, 59))) {
-             curDate = LocalDate.now().plusDays(1).format(sdf);
+             curDate = LocalDate.now().plusDays(1).format(shortSdf);
         } else {
-             curDate = LocalDate.now().format(sdf);
+             curDate = LocalDate.now().format(shortSdf);
         }
         String res = sysItemRepo.findLastBizDateList(curDate);
         return res == null ? curDate : res;
