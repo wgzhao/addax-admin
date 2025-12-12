@@ -138,6 +138,19 @@ class SettingsService {
   }
 
   /**
+   * 触发切日调度任务重新注册
+   */
+  async rescheduleSwitchTimeTask(): Promise<any> {
+    try {
+      const response = await Requests.post('/reschedule-switch-time-task')
+      return response
+    } catch (error) {
+      console.error('触发切日调度任务失败:', error)
+      throw error
+    }
+  }
+
+  /**
    * 获取Addax作业内容
    */
   async getAddaxJobContent(path: string): Promise<any> {

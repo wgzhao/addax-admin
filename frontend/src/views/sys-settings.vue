@@ -162,6 +162,8 @@ const showPassword = ref(false)
 
 // 配置数据
 const settings = ref<any>({})
+// 保存原始的切日时间用于变更检测
+const originalSwitchTime = ref<string>('')
 
 // 下拉选项（与 BatchAdd.vue 保持一致）
 const storageFormats = HDFS_STORAGE_FORMATS
@@ -269,6 +271,20 @@ const saveSettings = async () => {
     const result = await settingsService.saveSettings(settings.value)
     if (result) {
       notify('系统配置保存成功', 'success')
+      // 如果切日时间发生变化，则调用后端接口重新注册调度任务
+      const newSwitchTime = settings.value['SWITCH_TIME']
+      if (originalSwitchTime.value && newSwitchTime && originalSwitchTime.value !== newSwitchTime) {
+        try {
+          const resp = await settingsService.rescheduleSwitchTimeTask()
+          // 尽量从响应中取信息，否则给出默认成功提示
+          const msg = (resp && (resp.message || resp.data)) || '切日调度任务已重新注册'
+          notify(msg, 'success')
+        } catch (err: any) {
+          notify('切日调度任务重新注册失败: ' + (err?.message || err), 'error')
+        }
+        // 更新原始值为最新保存的值
+        originalSwitchTime.value = newSwitchTime
+      }
     } else {
       notify('保存配置失败', 'warning')
     }
@@ -337,6 +353,11 @@ const loadSettings = async () => {
   }
 
   console.log('loaded config:', loadedSettings)
+
+  // 记录初始切日时间
+  if (settings.value && typeof settings.value['SWITCH_TIME'] === 'string') {
+    originalSwitchTime.value = settings.value['SWITCH_TIME']
+  }
 }
 
 // 组件挂载时加载配置
