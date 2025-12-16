@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -29,18 +28,9 @@ import java.util.*;
 @RestController
 @RequestMapping("/sources")
 @AllArgsConstructor
-public class SourceController
-{
-    /**
-     * 数据源服务
-     */
+public class SourceController {
     private final SourceService sourceService;
-
-    /**
-     * 表服务
-     */
     private final TableService tableService;
-
 
     /**
      * 查询所有数据源
@@ -49,8 +39,7 @@ public class SourceController
      */
     @Operation(summary = "查询所有数据源", description = "返回所有数据源列表")
     @GetMapping("")
-    public ResponseEntity<List<EtlSource>> list()
-    {
+    public ResponseEntity<List<EtlSource>> list() {
         return ResponseEntity.ok(sourceService.findAll());
     }
 
@@ -61,8 +50,7 @@ public class SourceController
      */
     @Operation(summary = "查询有效的数据源", description = "返回所有有效的数据源列表")
     @GetMapping("/enabled")
-    public ResponseEntity<List<EtlSource>> listEnabled()
-    {
+    public ResponseEntity<List<EtlSource>> listEnabled() {
         return ResponseEntity.ok(sourceService.findEnabledSources());
     }
 
@@ -80,8 +68,7 @@ public class SourceController
     )
 
     @PostMapping("")
-    public ResponseEntity<EtlSource> createSource(@RequestBody EtlSource etlSource)
-    {
+    public ResponseEntity<EtlSource> createSource(@RequestBody EtlSource etlSource) {
         if (etlSource.getId() > 0) {
             throw new ApiException(400, "Source ID must not be provided when creating a new source");
         }
@@ -92,7 +79,7 @@ public class SourceController
     /**
      * 保存数据源
      *
-     * @param id 数据源ID
+     * @param id        数据源ID
      * @param etlSource 数据源对象
      * @return 更新的记录数
      */
@@ -103,8 +90,7 @@ public class SourceController
             content = @Content(schema = @Schema(implementation = EtlSource.class))
     )
     @PutMapping("/{id}")
-    public ResponseEntity<Integer> updateSource(@PathVariable(value = "id") int id, @RequestBody EtlSource etlSource)
-    {
+    public ResponseEntity<Integer> updateSource(@PathVariable(value = "id") int id, @RequestBody EtlSource etlSource) {
         if (etlSource.getId() != id) {
             throw new ApiException(400, "ID in path and body do not match");
         }
@@ -127,8 +113,7 @@ public class SourceController
     @Operation(summary = "查询单个数据源", description = "根据ID查询数据源")
     @GetMapping("/{id}")
     public ResponseEntity<EtlSource> get(
-            @Parameter(description = "数据源ID", example = "1") @PathVariable(value = "id") int id)
-    {
+            @Parameter(description = "数据源ID", example = "1") @PathVariable(value = "id") int id) {
         return sourceService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ApiException(404, "Source not found"));
@@ -143,8 +128,7 @@ public class SourceController
     @Operation(summary = "删除数据源", description = "根据ID删除数据源")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
-            @Parameter(description = "数据源ID", example = "1") @PathVariable("id") int id)
-    {
+            @Parameter(description = "数据源ID", example = "1") @PathVariable("id") int id) {
         int tableCountBySourceId = tableService.getTableCountBySourceId(id);
         if (tableCountBySourceId > 0) {
             throw new ApiException(400, "Cannot delete source with associated tables");
@@ -152,8 +136,7 @@ public class SourceController
         if (sourceService.existsById(id)) {
             sourceService.deleteById(id);
             return ResponseEntity.noContent().build();
-        }
-        else {
+        } else {
             throw new ApiException(404, "Source not found");
         }
     }
@@ -175,8 +158,7 @@ public class SourceController
             )
     )
     @PostMapping("/test-connect")
-    public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload)
-    {
+    public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload) {
         boolean isConnected = DbUtil.testConnection(payload.url(), payload.username(), payload.password());
         return ResponseEntity.ok(isConnected);
     }
@@ -190,8 +172,7 @@ public class SourceController
     @Operation(summary = "检查编号是否存在", description = "检查数据源编号是否已存在")
     @GetMapping("/check-code")
     public ResponseEntity<Boolean> checkCode(
-            @Parameter(description = "数据源编号", example = "SRC001", required = true) @RequestParam(value = "code") String code)
-    {
+            @Parameter(description = "数据源编号", example = "SRC001", required = true) @RequestParam(value = "code") String code) {
         if (code == null || code.isEmpty()) {
             return ResponseEntity.ok(false);
         }
@@ -207,8 +188,7 @@ public class SourceController
     @Operation(summary = "查询采集源下所有数据库", description = "根据 sourceId 查询该采集源下所有数据库名称")
     @GetMapping("/{sourceId}/databases")
     public ResponseEntity<List<String>> listDatabases(
-            @Parameter(description = "数据源ID", example = "1") @PathVariable("sourceId") int sourceId)
-    {
+            @Parameter(description = "数据源ID", example = "1") @PathVariable("sourceId") int sourceId) {
         List<String> result = new ArrayList<>();
         EtlSource source = sourceService.getSource(sourceId);
         if (source == null) {
@@ -220,8 +200,7 @@ public class SourceController
             while (catalogs.next()) {
                 result.add(catalogs.getString(1));
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new ApiException(500, e.getMessage());
         }
         return ResponseEntity.ok(result);
@@ -231,15 +210,14 @@ public class SourceController
      * 查询未采集的表(含表注释)
      *
      * @param sourceId 数据源ID
-     * @param dbName 数据库名
+     * @param dbName   数据库名
      * @return 表元数据列表
      */
     @Operation(summary = "查询未采集的表(含表注释)", description = "查询指定采集源和数据库下未采集的表名与表注释")
     @GetMapping("/{sourceId}/databases/{dbName}/tables/uncollected")
     public ResponseEntity<List<TableMetaDto>> listUncollectedTables(
             @Parameter(description = "数据源ID", example = "1") @PathVariable("sourceId") int sourceId,
-            @Parameter(description = "数据库名", example = "db") @PathVariable("dbName") String dbName)
-    {
+            @Parameter(description = "数据库名", example = "db") @PathVariable("dbName") String dbName) {
         List<TableMetaDto> result;
         List<String> existsTables = tableService.getTablesBySidAndDb(sourceId, dbName);
         // 为了尽量避免大小写带来的不一致，这里做一个双写的Set
