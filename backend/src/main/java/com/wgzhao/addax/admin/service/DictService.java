@@ -115,18 +115,30 @@ public class DictService
         return res == null ? 100 : res;
     }
 
-    /**
-     * 获取采集任务 reader 模板内容
-     * @param kind 数据库类型标识
-     * @return reader 模板内容
-     */
-    public String getReaderTemplate(String kind) {
-        return getItemValue(5001, "r" + kind, String.class);
+    public String getRdbms2HdfsJobTemplate() {
+        return getItemValue(5000, "R2H", String.class);
     }
 
-    public String getHdfsWriterTemplate() {
-        return  getItemValue(1000, "HDFS_CONFIG", String.class);
+    // 读取 RDBMS Reader 模板
+    public String getRdbmsReaderTemplate() {
+        return getItemValue(5001, "rR", String.class);
     }
+
+    // 获取 HDFS Writer 模板
+    public String getHdfsWriterTemplate() {
+        return getItemValue(5001, "wH", String.class);
+    }
+
+    /**
+     * 获取 Addax 任务模板内容
+     * @param kind 模板类型标识
+     * @return 任务模板内容
+     */
+    public String getAddaxJobTemplate(String kind)
+    {
+        return getItemValue(5000, kind, String.class);
+    }
+
 
     public void saveHdfsWriteTemplate(String template) {
         Optional<SysItem> itemOpt = sysItemRepo.findByDictCodeAndItemKey(1000, "HDFS_CONFIG");
@@ -169,16 +181,6 @@ public class DictService
             // 默认 String 类型
             return clazz.cast(value);
         }
-    }
-
-    /**
-     * 获取 Addax 任务模板内容
-     * @param kind 模板类型标识
-     * @return 任务模板内容
-     */
-    public String getAddaxJobTemplate(String kind)
-    {
-        return getItemValue(5000, kind, String.class);
     }
 
     /**
@@ -326,10 +328,6 @@ public class DictService
         return new HiveConnectDto(url, username, password, driverClassName, driverPath);
     }
 
-    public Map<String, Object> getHadoopConfig() {
-        String hadoopConfig = getItemValue(1000, "HDFS_CONFIG", String.class);
-        return JSONUtil.parseObj(hadoopConfig);
-    }
     public Map<String, Object> getSysConfig() {
         Map<String, Object> result =  sysItemRepo.findByDictCode(1000).stream()
                 .collect(java.util.stream.Collectors.toMap(
@@ -338,7 +336,6 @@ public class DictService
         // HiveServer2 是一个 json 字符串，需要转换成对象返回
         HiveConnectDto hiveServer2 = getHiveServer2();
         result.put("HIVE_SERVER2", hiveServer2);
-        result.put("HDFS_CONFIG", getHadoopConfig());
         return result;
     }
 
@@ -358,5 +355,22 @@ public class DictService
         defaults.put("storageFormat", getHdfsStorageFormat());
         defaults.put("compressFormat", getHdfsCompress());
         return defaults;
+    }
+
+    // 获取三个模板
+    public Map<String, SysItem> getJobTemplates() {
+        return sysItemRepo.findByDictCodeIn(List.of(5000, 5001)).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        SysItem::getItemKey,
+                        item -> item));
+    }
+
+    public void updateJobTemplates(List<SysItem> templates) {
+        for (SysItem item : templates) {
+            if (item.getDictCode() != 5000 && item.getDictCode() != 5001) {
+                continue;
+            }
+            saveItem(item);
+        }
     }
 }

@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-card class="pa-4">
     <v-row>
       <v-col cols="12">
         <h2 class="text-h4 mb-4">系统配置</h2>
@@ -10,141 +10,170 @@
     </v-row>
 
     <v-form ref="form" v-model="valid" @submit.prevent="saveSettings">
-      <!-- 基础系统配置 -->
-      <v-card class="mb-6" elevation="2">
-        <v-card-title class="bg-primary text-white">
-          <v-icon class="mr-2">mdi-cog</v-icon>
-          基础系统配置
-        </v-card-title>
-        <v-card-text class="pa-6">
-          <v-row>
-            <v-col cols="12" md="4">
-              <div class="field-label">Addax程序目录</div>
-              <v-text-field v-model="settings['ADDAX']" placeholder="/opt/app/addax" variant="outlined"
-                density="compact" :rules="[rules.required]" />
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="field-label">HDFS 目录前缀</div>
-              <v-text-field v-model="settings['HDFS_PREFIX']" placeholder="/ods" variant="outlined" density="compact"
-                :rules="[rules.required]" />
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="field-label">切日时间</div>
-              <v-text-field v-model="settings['SWITCH_TIME']" placeholder="16:30" variant="outlined" density="compact"
-                :rules="[rules.required, rules.timeFormat]" />
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="field-label">默认HDFS存储格式</div>
-              <v-select v-model="settings['HDFS_STORAGE_FORMAT']" :items="storageFormats" variant="outlined"
-                density="compact" :rules="[rules.required]" />
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="field-label">默认压缩格式</div>
-              <v-select v-model="settings['HDFS_COMPRESS_FORMAT']" :items="compressFormats" variant="outlined"
-                density="compact" :rules="[rules.required]" />
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
+      <v-row>
+        <!-- 左列：基础配置 (4/12 = 33%) -->
+        <v-col cols="12" md="4">
+          <!-- 基础系统配置 -->
+          <v-card class="mb-4" elevation="2">
+            <v-card-title class="bg-primary text-white">
+              <v-icon class="mr-2">mdi-cog</v-icon>
+              基础系统配置
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <v-row>
+                <v-col cols="12">
+                  <div class="field-label">Addax程序目录</div>
+                  <v-text-field v-model="settings['ADDAX']" placeholder="/opt/app/addax" variant="outlined"
+                    density="compact" :rules="[rules.required]" />
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-label">HDFS 目录前缀</div>
+                  <v-text-field v-model="settings['HDFS_PREFIX']" placeholder="/ods" variant="outlined"
+                    density="compact" :rules="[rules.required]" />
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-label">切日时间</div>
+                  <v-text-field v-model="settings['SWITCH_TIME']" placeholder="16:30" variant="outlined"
+                    density="compact" :rules="[rules.required, rules.timeFormat]" />
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-label">默认HDFS存储格式</div>
+                  <v-select v-model="settings['HDFS_STORAGE_FORMAT']" :items="storageFormats" variant="outlined"
+                    density="compact" :rules="[rules.required]" />
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-label">默认压缩格式</div>
+                  <v-select v-model="settings['HDFS_COMPRESS_FORMAT']" :items="compressFormats" variant="outlined"
+                    density="compact" :rules="[rules.required]" />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
-      <!-- HiveServer2 配置 -->
-      <v-card class="mb-6" elevation="2">
-        <v-card-title class="bg-secondary text-white">
-          <v-icon class="mr-2">mdi-server</v-icon>
-          HiveServer2 配置
-        </v-card-title>
-        <v-card-text class="pa-6">
-          <v-row>
-            <v-col cols="12" md="6">
-              <div class="field-label">JDBC连接地址</div>
-              <v-text-field v-model="hiveServer2Config.url" placeholder="jdbc:hive2://<nn01>:10000" variant="outlined"
-                density="compact" :rules="[rules.required, rules.jdbcUrl]" />
-            </v-col>
-            <v-col cols="12" md="3">
-              <div class="field-label">用户名</div>
-              <v-text-field v-model="hiveServer2Config.username" density="compact" placeholder="hive"
-                :rules="[rules.required]" />
-            </v-col>
-            <v-col cols="12" md="3">
-              <div class="field-label">密码</div>
-              <v-text-field v-model="hiveServer2Config.password" density="compact"
-                :type="showPassword ? 'text' : 'password'" placeholder="请输入密码"
-                :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                @click:append-inner="showPassword = !showPassword" autocomplete="off" />
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="12" md="6">
-              <div class="field-label">驱动类名</div>
-              <v-text-field v-model="hiveServer2Config.driverClassName" placeholder="org.apache.hive.jdbc.HiveDriver"
-                variant="outlined" density="compact" :rules="[rules.required]" />
-            </v-col>
-            <v-col cols="12" md="6">
-              <div class="field-label">驱动路径</div>
-              <v-text-field v-model="hiveServer2Config.driverPath" placeholder="/path/to/hive-jdbc.jar"
-                variant="outlined" density="compact" :rules="[rules.required]" />
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="12">
-              <v-btn color="info" variant="outlined" prepend-icon="mdi-connection" @click="testHiveConnection"
-                :loading="testingConnection">
-                测试连接
-              </v-btn>
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
+          <!-- HiveServer2 配置 -->
+          <v-card class="mb-4" elevation="2">
+            <v-card-title class="bg-secondary text-white">
+              <v-icon class="mr-2">mdi-server</v-icon>
+              HiveServer2 配置
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <v-row>
+                <v-col cols="12">
+                  <div class="field-label">JDBC连接地址</div>
+                  <v-text-field v-model="hiveServer2Config.url" placeholder="jdbc:hive2://<nn01>:10000"
+                    variant="outlined" density="compact" :rules="[rules.required, rules.jdbcUrl]" />
+                </v-col>
+                <v-col cols="5">
+                  <div class="field-label">用户名</div>
+                  <v-text-field v-model="hiveServer2Config.username" density="compact" placeholder="hive"
+                    variant="outlined" :rules="[rules.required]" />
+                </v-col>
+                <v-col cols="7">
+                  <div class="field-label">密码</div>
+                  <v-text-field v-model="hiveServer2Config.password" density="compact" variant="outlined"
+                    :type="showPassword ? 'text' : 'password'" placeholder="请输入密码"
+                    :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                    @click:append-inner="showPassword = !showPassword" autocomplete="off" />
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-label">驱动类名</div>
+                  <v-text-field v-model="hiveServer2Config.driverClassName"
+                    placeholder="org.apache.hive.jdbc.HiveDriver" variant="outlined" density="compact"
+                    :rules="[rules.required]" />
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-label">驱动路径</div>
+                  <v-text-field v-model="hiveServer2Config.driverPath" placeholder="/path/to/hive-jdbc.jar"
+                    variant="outlined" density="compact" :rules="[rules.required]" />
+                </v-col>
+                <v-col cols="12">
+                  <v-btn color="info" variant="outlined" prepend-icon="mdi-connection" @click="testHiveConnection"
+                    :loading="testingConnection">
+                    测试连接
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
-      <!-- 性能配置 -->
-      <v-card class="mb-6" elevation="2">
-        <v-card-title class="bg-warning text-white">
-          <v-icon class="mr-2">mdi-speedometer</v-icon>
-          性能配置
-        </v-card-title>
-        <v-card-text class="pa-6">
-          <v-row>
-            <v-col cols="12" md="6">
-              <div class="field-label">最大采集并发数量</div>
-              <v-text-field v-model.number="settings['CONCURRENT_LIMIT']" type="number" placeholder="30"
-                density="compact" :rules="[rules.required, rules.positiveNumber]" />
-            </v-col>
-            <v-col cols="12" md="6">
-              <div class="field-label">采集队列长度</div>
-              <v-text-field v-model.number="settings['QUEUE_SIZE']" type="number" placeholder="100" density="compact"
-                :rules="[rules.required, rules.positiveNumber]" />
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
+          <!-- 性能配置 -->
+          <v-card class="mb-4" elevation="2">
+            <v-card-title class="bg-warning text-white">
+              <v-icon class="mr-2">mdi-speedometer</v-icon>
+              性能配置
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <v-row>
+                <v-col cols="6">
+                  <div class="field-label">最大采集并发数量</div>
+                  <v-text-field v-model.number="settings['CONCURRENT_LIMIT']" type="number" placeholder="30"
+                    variant="outlined" density="compact" :rules="[rules.required, rules.positiveNumber]" />
+                </v-col>
+                <v-col cols="6">
+                  <div class="field-label">采集队列长度</div>
+                  <v-text-field v-model.number="settings['QUEUE_SIZE']" type="number" placeholder="100"
+                    variant="outlined" density="compact" :rules="[rules.required, rules.positiveNumber]" />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-col>
 
-      <v-card class="mb-6" elevation="2">
-        <v-card-title class="bg-info text-white">
-          <v-icon class="mr-2">mdi-cog</v-icon>
-          Hadoop配置
-        </v-card-title>
-        <v-card-text class="pa-6">
-          <v-row>
-            <v-col cols="12">
-              <div class="field-label">Hadoop配置文件内容</div>
-              <v-textarea v-model="hdfsConfig" rows="10" variant="outlined" class="json-editor"
-                :rules="[rules.jsonFormat]" hint="请输入格式化的 JSON 配置" />
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
+        <!-- 右列：作业模板配置 (8/12 = 67%, 使用6来达到4:6比例) -->
+        <v-col cols="12" md="8">
+          <!-- 作业模板配置 -->
+          <v-card class="mb-4" elevation="2">
+            <v-card-title class="bg-success text-white">
+              <v-icon class="mr-2">mdi-file-code</v-icon>
+              作业模板配置
+            </v-card-title>
+            <v-card-text class="pa-4">
+              <!-- 采集主模板 -->
+              <v-row class="mb-4">
+                <v-col cols="12">
+                  <div class="field-label">采集主模板</div>
+                  <v-textarea v-model="R2HJobTemplate" rows="12" variant="outlined" class="json-editor"
+                    hint="变量 ${reader} 指向 RDBMS 读取子模板 / ${writer} 指向 HDFS 写入子模板" />
+                </v-col>
+              </v-row>
+
+              <!-- RDBMS 读取子模板 -->
+              <v-row class="mb-4">
+                <v-col cols="12">
+                  <div class="field-label">RDBMS 读取子模板</div>
+                  <v-textarea v-model="rRJobTemplate" rows="12" variant="outlined" class="json-editor"
+                    hint="包含 ${var} 占位符的 JSON；此处保留变量解释区" />
+                </v-col>
+              </v-row>
+
+              <!-- HDFS 写入子模板 -->
+              <v-row class="mb-4">
+                <v-col cols="12">
+                  <div class="field-label">HDFS 写入子模板</div>
+                  <v-textarea v-model="wHJobTemplate" rows="12" variant="outlined" class="json-editor"
+                    hint="包含 ${var} 占位符的 JSON；此处保留变量解释区" />
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+
       <!-- 操作按钮 -->
-      <v-card elevation="2">
-        <v-card-actions class="pa-6">
-          <v-spacer />
-          <v-btn color="primary" size="large" type="submit" :disabled="!valid" :loading="saving"
-            prepend-icon="mdi-content-save">
-            保存配置
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+      <v-row>
+        <v-col cols="12">
+          <v-card elevation="2">
+            <v-card-actions class="pa-6">
+              <v-btn color="primary" size="large" type="submit" :disabled="!valid" :loading="saving"
+                prepend-icon="mdi-content-save">
+                保存配置
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+      </v-row>
     </v-form>
-  </v-container>
+  </v-card>
 </template>
 
 <script setup lang="ts">
@@ -152,6 +181,7 @@ import { ref, onMounted } from 'vue'
 import { notify } from '@/stores/notifier'
 import settingsService, { type HiveServer2Config } from '@/service/settings-service'
 import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants'
+import { SysItem } from '@/types/database'
 
 // 表单引用和状态
 const form = ref<any>(null)
@@ -177,8 +207,10 @@ const hiveServer2Config = ref<HiveServer2Config>({
   driverPath: ''
 })
 
-// HDFS 配置（用于展示格式化的 JSON）
-const hdfsConfig = ref<string>('')
+const templates = ref<Map<string, SysItem>>(new Map())
+const rRJobTemplate = ref<string>('')
+const wHJobTemplate = ref<string>('')
+const R2HJobTemplate = ref<string>('')
 
 // 验证规则
 const rules = {
@@ -225,19 +257,6 @@ const testHiveConnection = () => {
       notify(error || '连接失败', 'error')
     })
   testingConnection.value = false
-  // 假设 response 结构为 { status: 200/500, data: 消息字符串 }
-  //   if (response && response.status === 200) {
-  //     notify(response.data || '连接成功', 'success')
-  //   } else if (response && response.status === 500) {
-  //     notify(response.data || '连接失败', 'error')
-  //   } else {
-  //     notify('未知错误', 'error')
-  //   }
-  // } catch (error: any) {
-  //   notify(error?.response?.data || '连接失败', 'error')
-  // } finally {
-  //   testingConnection.value = false
-  // }
 }
 
 // 保存配置
@@ -251,23 +270,36 @@ const saveSettings = async () => {
   // 将 hiveServer2Config 的值更新到 settings 中
   settings.value['HIVE_SERVER2'] = JSON.stringify(hiveServer2Config.value)
 
-  // 处理 HDFS_CONFIG，如果是有效的 JSON 则压缩存储，否则直接存储
-  try {
-    if (hdfsConfig.value.trim()) {
-      // 验证并压缩 JSON
-      const parsed = JSON.parse(hdfsConfig.value)
-      settings.value['HDFS_CONFIG'] = JSON.stringify(parsed)
-    } else {
-      settings.value['HDFS_CONFIG'] = ''
-    }
-  } catch (error) {
-    console.error('HDFS_CONFIG JSON 格式错误:', error)
-    notify('HDFS配置格式错误，请检查 JSON 格式', 'error')
-    return
-  }
-
   saving.value = true
   try {
+    const payload: SysItem[] = [];
+    payload.push(
+      {
+        dictCode: templates.value['rR'].dictCode,
+        itemKey: 'rR',
+        itemValue: rRJobTemplate.value,
+        remark: templates.value['rR'].remark
+      }
+    );
+    payload.push(
+      {
+        dictCode: templates.value['wH'].dictCode,
+        itemKey: 'wH',
+        itemValue: wHJobTemplate.value,
+        remark: templates.value['wH'].remark
+      }
+    );
+    payload.push(
+      {
+        dictCode: templates.value['R2H'].dictCode,
+        itemKey: 'R2H',
+        itemValue: R2HJobTemplate.value,
+        remark: templates.value['R2H'].remark
+      }
+    );
+
+    await settingsService.saveJobTemplates(payload)
+
     const result = await settingsService.saveSettings(settings.value)
     if (result) {
       notify('系统配置保存成功', 'success')
@@ -298,7 +330,13 @@ const saveSettings = async () => {
 // 加载现有配置
 const loadSettings = async () => {
   const loadedSettings = await settingsService.getSettings()
+  const loadTemplates = await settingsService.getJobConfig()
   settings.value = loadedSettings
+  templates.value = loadTemplates
+
+  rRJobTemplate.value = loadTemplates['rR']?.itemValue || ''
+  wHJobTemplate.value = loadTemplates['wH']?.itemValue || ''
+  R2HJobTemplate.value = loadTemplates['R2H']?.itemValue || ''
 
   // 初始化下拉选项默认值（如果未设置）
   if (!settings.value['HDFS_STORAGE_FORMAT']) {
@@ -330,29 +368,6 @@ const loadSettings = async () => {
       hiveServer2Config.value = loadedSettings['HIVE_SERVER2']
     }
   }
-
-  // 检查 HDFS_CONFIG 是否是字符串，如果是则需要格式化显示
-  if (loadedSettings['HDFS_CONFIG']) {
-    if (typeof loadedSettings['HDFS_CONFIG'] === 'string') {
-      try {
-        // 尝试解析 JSON 并格式化
-        const parsed = JSON.parse(loadedSettings['HDFS_CONFIG'])
-        hdfsConfig.value = JSON.stringify(parsed, null, 2)
-      } catch (error) {
-        console.error('解析 HDFS_CONFIG 配置失败，使用原始字符串:', error)
-        // 如果不是有效的 JSON，直接使用原始字符串
-        hdfsConfig.value = loadedSettings['HDFS_CONFIG']
-      }
-    } else {
-      // 如果已经是对象，格式化为字符串
-      hdfsConfig.value = JSON.stringify(loadedSettings['HDFS_CONFIG'], null, 2)
-    }
-  } else {
-    // 如果没有配置，使用空字符串
-    hdfsConfig.value = ''
-  }
-
-  console.log('loaded config:', loadedSettings)
 
   // 记录初始切日时间
   if (settings.value && typeof settings.value['SWITCH_TIME'] === 'string') {
