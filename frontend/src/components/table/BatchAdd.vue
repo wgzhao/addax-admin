@@ -42,6 +42,16 @@
         </v-col>
         <v-col cols="2">
           <v-text-field v-model="partName" label="分区字段名" density="compact" hint="目标表的分区字段" persistent-hint>
+            <template #append>
+              <v-tooltip bottom>
+                <template #activator="{ props }">
+                  <v-icon v-bind="props" color="info" size="small" @click="showPartitionInfo">
+                    mdi-information-outline
+                  </v-icon>
+                </template>
+                <span>如果为空，则表示选中的表将创建为非分区表</span>
+              </v-tooltip>
+            </template>
           </v-text-field>
         </v-col>
         <v-col cols="2">
@@ -118,6 +128,58 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Partition Info Dialog -->
+  <v-dialog v-model="showPartitionInfoDialog" max-width="600px">
+    <v-card>
+      <v-card-title class="text-h6 bg-info text-white">
+        <v-icon class="me-2">mdi-information-outline</v-icon>
+        分区字段说明
+      </v-card-title>
+      <v-card-text class="pt-4">
+        <div class="mb-3">
+          <h4 class="text-h6 mb-2">分区表 vs 非分区表</h4>
+        </div>
+        
+        <v-row>
+          <v-col cols="6">
+            <v-card variant="outlined" class="pa-3">
+              <h5 class="text-subtitle-1 text-success mb-2">
+                <v-icon class="me-1" color="success">mdi-folder-table</v-icon>
+                分区表
+              </h5>
+              <p class="text-body-2 mb-2"><strong>分区字段名:</strong> 有值（如：logdate、dt）</p>
+              <p class="text-body-2 mb-2"><strong>数据组织:</strong> 按分区目录存储</p>
+              <p class="text-body-2 mb-2"><strong>查询优势:</strong> 可按分区过滤，提高查询效率</p>
+              <p class="text-body-2"><strong>适用场景:</strong> 时间序列数据、大数据量表</p>
+            </v-card>
+          </v-col>
+          
+          <v-col cols="6">
+            <v-card variant="outlined" class="pa-3">
+              <h5 class="text-subtitle-1 text-primary mb-2">
+                <v-icon class="me-1" color="primary">mdi-table</v-icon>
+                非分区表
+              </h5>
+              <p class="text-body-2 mb-2"><strong>分区字段名:</strong> 为空</p>
+              <p class="text-body-2 mb-2"><strong>数据组织:</strong> 直接存储在表目录下</p>
+              <p class="text-body-2 mb-2"><strong>结构简单:</strong> 无分区维护成本</p>
+              <p class="text-body-2"><strong>适用场景:</strong> 配置表、小数据量表</p>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <v-alert type="info" variant="tonal" class="mt-4">
+          <v-icon>mdi-lightbulb-outline</v-icon>
+          <strong>提示：</strong>如果分区字段名为空，系统将为所有选中的表创建非分区表。
+        </v-alert>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" @click="showPartitionInfoDialog = false">知道了</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
@@ -155,6 +217,7 @@ const loadingSave = ref(false);
 const tableLoadError = ref('');
 const showSuccessDialog = ref(false);
 const successMessage = ref('');
+const showPartitionInfoDialog = ref(false);
 const search = ref(''); // 新增：搜索关键字
 type EtlTableView = EtlTable & { approxRowCount?: number };
 const selectedTables = ref<EtlTableView[]>([]); // 新增：已选择的表格
@@ -304,6 +367,10 @@ const handleSuccessConfirm = () => {
   // emit('closeDialog');
   emit('refresh-data');
   selectedTables.value = [];
+};
+
+const showPartitionInfo = () => {
+  showPartitionInfoDialog.value = true;
 };
 
 const getTables = async () => {
