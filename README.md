@@ -6,16 +6,25 @@
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg)](https://vitejs.dev/)
 
-Addax Admin 是一个现代化的 ETL 管理解决方案的单仓(monorepo)，包含后端服务与前端界面：
-- `backend/`：Spring Boot 3 + Java 21 的后端 API 与调度服务
-- `frontend/`：Vue 3 + Vite + Vuetify 的 Web 管理界面
+Addax Admin 是一个现代化的 ETL 管理解决方案的 **Monorepo** 项目，包含完整的前后端解决方案：
+
+## 🏗️ 项目结构
+
+```ini
+addax-admin/
+├── backend/                 # Spring Boot 3 + Java 21 后端 API 服务
+├── frontend/                # Vue 3 + Vite + Vuetify 前端管理界面
+├── pom.xml                  # Maven 父项目配置
+└── package.json             # NPM 工作区配置
+```
 
 ## 📋 项目概述
 
-整个解决方案由三个项目组成：
-- **[Addax](https://github.com/wgzhao/addax)** - ETL 核心程序
-- **Addax Admin (本仓库)** - 后端服务 + 前端界面
-- （历史上前端为独立仓库，现在已合并到本仓库的 `frontend/` 目录）
+整个解决方案由以下组件组成：
+
+- **[Addax](https://github.com/wgzhao/addax)** - ETL 核心执行引擎
+- **Addax Admin Backend** - Spring Boot 后端 API 与任务调度服务 (`backend/`)
+- **Addax Admin Frontend** - Vue.js 前端管理界面 (`frontend/`)
 
 ## ✨ 主要特性
 
@@ -37,7 +46,7 @@ Addax Admin 是一个现代化的 ETL 管理解决方案的单仓(monorepo)，�
 
 ## 📦 目录结构
 
-```
+```ini
 addax-admin/
 ├── backend/                # 后端（Spring Boot）
 │   ├── src/main/resources/
@@ -54,80 +63,55 @@ addax-admin/
 └── README.md
 ```
 
-## 🚀 快速开始（开发环境）
+## 🚀 快速开始
 
-### 1) 后端 Backend
+### 📋 开发环境要求
 
-前置要求：Java 21、Maven 3.8+、PostgreSQL 15+（推荐）
+- **Java 21** + Maven 3.8+
+- **Node.js 18+** + npm/pnpm
+- **PostgreSQL 15+** （推荐）
 
-- 初始化数据库（PostgreSQL）
+### 🏃‍♂️ 一键启动（推荐）
+
+```bash
+# 克隆项目并进入目录
+git clone https://github.com/wgzhao/addax-admin.git
+cd addax-admin
+
+# 一键启动前后端开发环境
+./start-dev.sh
+```
+
+启动后访问：
+
+- 🎨 **前端界面**: http://localhost:5173
+- 🔧 **后端 API**: http://localhost:8080
+
+### 🔧 手动启动
+
+#### 1. 初始化数据库
+
 ```bash
 # 在 PostgreSQL 中创建数据库并导入初始化脚本
 psql -U postgres -d your_database -f backend/src/main/resources/schema.sql
 psql -U postgres -d your_database -f backend/src/main/resources/data.sql
 ```
 
-- 配置应用（开发环境默认使用 `application.properties` 中的 dev 配置）
-  - 默认端口：`50601`
-  - 上下文路径：`/api/v1`
-  - 也可通过环境变量覆盖：`DB_HOST/DB_PORT/DB_NAME/DB_USERNAME/DB_PASSWORD`
+#### 2. 启动后端服务
 
-- 启动后端
 ```bash
 cd backend
-mvn clean package
-java -jar target/addax-admin-1.0.0-SNAPSHOT.jar
-# 服务地址：http://localhost:50601/api/v1
-# OpenAPI 文档：http://localhost:50601/api/v1/swagger-ui/index.html
+mvn spring-boot:run
+# 或者在 IDEA 中直接运行 AdminApplication.java
 ```
 
-### 2) 前端 Frontend
+#### 3. 启动前端服务
 
-前置要求：Node.js ≥ 18（建议 18/20/22 LTS），npm 或 yarn
-
-- 安装依赖
 ```bash
 cd frontend
 npm install
-# 或
-yarn install
-```
-
-- 配置本地代理（创建 `frontend/.env.local`）
-```bash
-# 代理到后端 API（与后端默认配置一致）
-VITE_API_BASE_URL=/api/v1
-VITE_API_HOST=http://localhost:50601
-```
-
-- 启动前端（开发模式）
-```bash
 npm run dev
-# 或
-yarn dev
-# 访问：http://localhost:3030
 ```
-
-## 🏭 生产构建与部署
-
-- 构建后端
-```bash
-cd backend
-mvn clean package
-# 产物：backend/target/addax-admin-1.0.0-SNAPSHOT.jar
-```
-
-- 构建前端
-```bash
-cd frontend
-npm run build
-# 产物：frontend/dist
-```
-
-- 部署建议
-  - 后端：以独立服务方式部署（Java 21 运行时或容器）
-  - 前端：将 `frontend/dist` 交由 Nginx/静态文件服务器托管
-  - 通过 Nginx/网关将 `/api/`（或 `/api/v1`）反向代理到后端
 
 ## 🔧 配置说明
 
@@ -160,6 +144,7 @@ npm run build
 
 ![字段对比](screenshots/maintable-fieldcompare.jpg)
 *可视化对比源表和目标表字段，包括字段名、数据类型等*
+
 ## 📚 文档与 API
 
 - OpenAPI/Swagger UI：`http://localhost:50601/api/v1/swagger-ui/index.html`

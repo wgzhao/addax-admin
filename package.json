@@ -1,0 +1,28 @@
+{
+  "name": "addax-admin-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Addax Admin Management System - Monorepo workspace configuration",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "install": "yarn install",
+    "install:frontend": "yarn workspace addax-ui install",
+    "dev": "yarn dev:frontend",
+    "dev:frontend": "yarn workspace addax-ui dev",
+    "dev:backend": "cd backend && mvn spring-boot:run",
+    "build": "yarn run build:all",
+    "build:frontend": "yarn workspace addax-ui build",
+    "build:backend": "cd backend && mvn clean package",
+    "build:all": "yarn run build:frontend && yarn run build:backend",
+    "preview": "yarn workspace addax-ui preview",
+    "type-check": "yarn workspace addax-ui type-check",
+    "lint": "yarn workspace addax-ui lint",
+    "format": "yarn workspace addax-ui format"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+}
