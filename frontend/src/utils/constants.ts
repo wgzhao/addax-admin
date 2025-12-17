@@ -10,6 +10,7 @@ export const TABLE_STATUS_OPTIONS: StatusOption[] = [
   { value: 'N', label: 'N - 未采集', text: 'N - 未采集' },
   { value: 'Y', label: 'Y - 已采集', text: 'Y - 已采集' },
   { value: 'X', label: 'X - 不采集', text: 'X - 不采集' },
+  { value: 'W', label: 'W - 等待采集', text: 'W - 等待采集' },
   { value: 'E', label: 'E - 采集错误', text: 'E - 采集错误' },
   { value: 'R', label: 'R - 正在采集', text: 'R - 正在采集' },
   { value: 'U', label: 'U - 等待更新', text: 'U - 等待更新' }

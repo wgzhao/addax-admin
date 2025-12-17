@@ -166,8 +166,8 @@
         align: 'center',
         value: '',
         children: [
-          { title: '开始时间', key: 'y_begin_at', align: 'center' },
-          { title: '结束时间', key: 'y_finish_at', align: 'center' },
+          { title: '开始时间', key: 'y_begin_at', align: 'center'},
+          { title: '结束时间', key: 'y_finish_at', align: 'center'},
           { title: '耗时', key: 'y_take_secs', align: 'center' }
         ]
       },
@@ -176,8 +176,8 @@
         align: 'center',
         value: '',
         children: [
-          { title: '开始时间', key: 't_begin_at', align: 'center' },
-          { title: '结束时间', key: 't_finish_at', align: 'center' },
+          { title: '开始时间', key: 't_begin_at', align: 'center'},
+          { title: '结束时间', key: 't_finish_at', align: 'center'},
           { title: '耗时', key: 't_take_secs', align: 'center' }
         ]
       }

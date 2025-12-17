@@ -188,6 +188,7 @@ export interface EtlSource {
   preScript?: string // 标志符合条件后的前置脚本
   remark?: string // 系统备注信息
   enabled?: boolean // 是否有效
+  maxConcurrency?: number // 最大并发数
 }
 
 // 采集表信息 etl_table

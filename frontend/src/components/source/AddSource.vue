@@ -11,20 +11,25 @@
         <!-- 基本信息区块 -->
         <v-row dense class="mb-2" align="start" justify="start">
           <v-col cols="12" md="3">
-            <v-text-field v-model="sourceItem.code" label="采集编号" placeholder="两位大写字母" prepend-inner-icon="mdi-pound"
+            <v-text-field v-model="sourceItem.code" label="采集编号" placeholder="两位大写字母" 
               autocomplete="off" :rules="[rules.required, rules.codeExistsRule]" :disabled="mode === 'edit'"
               variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="3">
             <v-text-field v-model="sourceItem.name" label="采集名称" :rules="[rules.required]"
-              prepend-inner-icon="mdi-label" variant="outlined" density="compact" />
+               variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="3">
             <v-text-field v-model="sourceItem.startAt" placeholder="HH:mm 或 HH:mm:ss" label="采集时间"
-              :rules="[timeFormatRule]" :error-messages="timeError" prepend-inner-icon="mdi-clock-outline"
+              :rules="[timeFormatRule]" :error-messages="timeError" 
               variant="outlined" density="compact" />
           </v-col>
-          <v-col cols="12" md="3" class="d-flex align-center">
+          <v-col cols="12" md="2">
+            <v-text-field v-model.number="sourceItem.maxConcurrency" type="number" label="最大并发数"
+               variant="outlined" density="compact"
+              placeholder="默认10" hint="留空则使用系统默认值" />
+          </v-col>
+          <v-col cols="12" md="1" class="d-flex align-center">
             <v-switch v-model="sourceItem.enabled" color="primary" hide-details density="compact">
               <template #append>
                 <v-chip size="x-small" :color="sourceItem.enabled ? 'success' : 'error'"
@@ -38,17 +43,17 @@
         <v-row dense class="mb-2" align="start" justify="start">
           <v-col cols="12" md="12">
             <v-text-field v-model="sourceItem.url" placeholder="jdbc:hive2://host:port" label="JDBC 连接地址"
-              :rules="[rules.required]" prepend-inner-icon="mdi-link" variant="outlined" density="compact" />
+              :rules="[rules.required]"  variant="outlined" density="compact" />
           </v-col>
           </v-row>
           <v-row dense class="mb-2" align="start" justify="start">
           <v-col cols="12" md="3">
-            <v-text-field v-model="sourceItem.username" label="用户名" prepend-inner-icon="mdi-account" variant="outlined"
+            <v-text-field v-model="sourceItem.username" label="用户名"  variant="outlined"
               density="compact" autocomplete="off" />
           </v-col>
           <v-col cols="12" md="7">
             <v-text-field v-model="sourceItem.pass" :type="showPassword ? 'text' : 'password'" label="密码"
-              prepend-inner-icon="mdi-lock" variant="outlined" density="compact" autocomplete="new-password"
+               variant="outlined" density="compact" autocomplete="new-password"
               :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
               @click:append-inner="showPassword = !showPassword" />
           </v-col>
@@ -63,7 +68,7 @@
         <v-row dense>
           <v-col cols="12">
             <v-textarea v-model="sourceItem.remark" label="备注信息" auto-grow rows="4" variant="outlined"
-              prepend-inner-icon="mdi-text" density="compact" />
+               density="compact" />
           </v-col>
         </v-row>
       </v-card-text>
@@ -106,7 +111,8 @@ const sourceItem = ref<EtlSource>({
   prerequisite: "",
   preScript: "",
   remark: "",
-  enabled: true
+  enabled: true,
+  maxConcurrency: 10
 })
 
 const emit = defineEmits(["closeDialog", "save"]);
