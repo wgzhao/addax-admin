@@ -7,8 +7,6 @@ import com.wgzhao.addax.admin.service.*;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -242,6 +240,12 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                     // 并发已满，放回队列，使用较短的不可见期，避免长时间等下一轮
                     // 这里使用 5 秒的小延迟，在任务完成释放并发后，通过 triggerDispatchAsync() 尽快重新调度
                     jobQueueService.releaseClaim(job.getId(), 5);
+                    // 标记任务为等待采集，这样可以在界面上看到任务处于排队状态
+                    try {
+                        tableService.setWaiting(table);
+                    } catch (Exception e) {
+                        log.warn("设置任务为 WAITING_COLLECT 失败 tid={}, err={}", table.getId(), e.getMessage());
+                    }
                     continue; // 继续尝试下一个任务
                 }
             }

@@ -72,7 +72,7 @@ public class TableService
         int retCode = columnService.updateTableColumnsV2(vwTable);
 
         if (retCode == -1) {
-            setStatus(table, TableStatus.COLLECT_FAIL);
+            setFailed(table);
             log.warn("Failed to update columns for table id {}", table.getId());
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
@@ -85,12 +85,12 @@ public class TableService
                     return TaskResultDto.failure("Refresh interrupted", 0);
                 }
                 if (!targetService.createOrUpdateHiveTable(vwTable)) {
-                    setStatus(table, TableStatus.COLLECT_FAIL);
+                    setFailed(table);
                     log.warn("Failed to create or update Hive table for tid {}", table.getId());
                     return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
                 }
             }
-            setStatus(table, TableStatus.NOT_COLLECT);
+            setNotCollect(table);
             //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
         } else {
             columnsUpdated = true;
@@ -102,7 +102,7 @@ public class TableService
                 return TaskResultDto.failure("Refresh interrupted", 0);
             }
             if (!targetService.createOrUpdateHiveTable(vwTable)) {
-                setStatus(table, TableStatus.WAIT_SCHEMA);
+                setUpdateSchema(table);
                 log.warn("Failed to create or update Hive table for tid {}", table.getId());
                 return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
             }
@@ -115,11 +115,11 @@ public class TableService
         }
         TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.success()) {
-            setStatus(table, TableStatus.NOT_COLLECT);
+            setNotCollect(table);
             return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }
         else {
-            setStatus(table, TableStatus.COLLECT_FAIL);
+            setFailed(table);
             log.warn("Failed to update job content for tid {}", table.getId());
             return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), 0);
         }
@@ -313,18 +313,26 @@ public class TableService
     }
 
     /**
-     * 设置任务状态
-     * @param table 任务对象
-     * @param status 状态值
+     * 设置任务为等待状态
      */
-    public void setStatus(EtlTable table, String status)
+    public void setWaiting(EtlTable task)
     {
-        table.setStatus(status);
-        etlTableRepo.save(table);
+        task.setStatus(TableStatus.WAITING_COLLECT);
+        etlTableRepo.save(task);
     }
 
-    // 找到所有可以运行的任务
-    // 要注意切日的问题
+    public void setNotCollect(EtlTable task)
+    {
+        task.setStatus(TableStatus.NOT_COLLECT);
+        etlTableRepo.save(task);
+    }
+
+    public void setUpdateSchema(EtlTable task)
+    {
+        task.setStatus(TableStatus.WAIT_SCHEMA);
+        etlTableRepo.save(task);
+    }
+
     /**
      * 获取所有可运行的任务
      * @return 可运行的任务列表

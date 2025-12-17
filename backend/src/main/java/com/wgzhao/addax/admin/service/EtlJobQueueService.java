@@ -3,7 +3,6 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.repository.EtlJobQueueRepo;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;

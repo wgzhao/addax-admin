@@ -196,7 +196,7 @@ public class StatService {
                                      null                                                as t_begin_at,
                                      max(e.end_at)                                       as y_finish_at,
                                      null                                                as t_finish_at,
-                                     extract(epoch from max(e.end_at) - min(e.start_at)) as y_take_secs,
+                                     sum(e.take_secs)                                    as y_take_secs,
                                      0                                                   as t_take_secs
                               from etl_statistic e
                                        left join vw_etl_table_with_source s
@@ -213,7 +213,7 @@ public class StatService {
                                      null                                                as y_finish_at,
                                      max(e.end_at)                                       as t_finish_at,
                                      0                                                   as y_take_secs,
-                                     extract(epoch from max(e.end_at) - min(e.start_at)) as t_take_secs
+                                     sum(e.take_secs)                                    as t_take_secs
                               from etl_statistic e
                                        left join vw_etl_table_with_source s
                                                  on e.tid = s.id
@@ -226,15 +226,16 @@ public class StatService {
                 select b.name || '(' || b.code || ')' as sys_name,
                 a.start_at,
                 a.total_cnt, a.succ_cnt, a.run_cnt, a.fail_cnt, a.no_run_cnt, a.no_create_table_cnt,
-                to_char(b.y_begin_at, 'YYYY-mm-dd HH:MM:ss') as y_begin_at,
-                to_char(b.y_finish_at, 'YYYY-mm-dd HH:MM:ss') as y_finish_at,
+                to_char(b.y_begin_at, 'YYYY-mm-dd HH24:MI:SS') as y_begin_at,
+                to_char(b.y_finish_at, 'YYYY-mm-dd HH24:MI:SS') as y_finish_at,
                 b.y_take_secs,
-                to_char(b.t_begin_at, 'YYYY-mm-dd HH:MM:ss') as t_begin_at,
-                to_char(b.t_finish_at, 'YYYY-mm-dd HH:MM:ss') as t_finish_at,
+                to_char(b.t_begin_at, 'YYYY-mm-dd HH24:MI:SS') as t_begin_at,
+                to_char(b.t_finish_at, 'YYYY-mm-dd HH24:MI:SS') as t_finish_at,
                 b.t_take_secs
                 from total_info a
                 join last2_info b
                 on a.code = b.code
+                order by a.start_at
                 """;
         return jdbcTemplate.queryForList(sql, configService.getBizDateAsDate().plusDays(-1),
                 configService.getBizDateAsDate());

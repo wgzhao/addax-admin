@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,9 +24,11 @@ public class EtlStatistic {
     private Long tid;
 
     @Column(name = "start_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startAt;
 
     @Column(name = "end_at")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime endAt;
 
     @Column(name = "take_secs")
