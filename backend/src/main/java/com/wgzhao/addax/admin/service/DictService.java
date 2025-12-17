@@ -7,34 +7,29 @@ import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_SWITCH_TIME;
+import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 
 /**
  * 字典服务类，负责系统参数字典及字典项的相关业务操作。
  * 包含参数获取、类型转换、业务日期计算、Hive类型映射、HDFS配置等功能。
  */
 @Service
+@AllArgsConstructor
 public class DictService
 {
-    @Autowired
-    private SysItemRepo sysItemRepo;
-    @Autowired
-    private SysDictRepo sysDictRepo;
-
-    /** 默认切日时间 */
-    private static final String DEFAULT_SWITCH_TIME = "16:30";
-    /** 日期格式化器 yyyyMMdd */
-    private static final DateTimeFormatter sdf = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private final SysItemRepo sysItemRepo;
+    private final SysDictRepo sysDictRepo;
 
     /**
      * 获取切日时间（如未配置则返回默认值）
@@ -76,9 +71,9 @@ public class DictService
         LocalTime localTime = LocalTime.now();
         String curDate;
         if (localTime.isAfter(getSwitchTimeAsTime()) && localTime.isBefore(LocalTime.of(23, 59))) {
-             curDate = LocalDate.now().plusDays(1).format(sdf);
+             curDate = LocalDate.now().plusDays(1).format(shortSdf);
         } else {
-             curDate = LocalDate.now().format(sdf);
+             curDate = LocalDate.now().format(shortSdf);
         }
         String res = sysItemRepo.findLastBizDateList(curDate);
         return res == null ? curDate : res;
@@ -120,18 +115,30 @@ public class DictService
         return res == null ? 100 : res;
     }
 
-    /**
-     * 获取采集任务 reader 模板内容
-     * @param kind 数据库类型标识
-     * @return reader 模板内容
-     */
-    public String getReaderTemplate(String kind) {
-        return getItemValue(5001, "r" + kind, String.class);
+    public String getRdbms2HdfsJobTemplate() {
+        return getItemValue(5000, "R2H", String.class);
     }
 
-    public String getHdfsWriterTemplate() {
-        return  getItemValue(1000, "HDFS_CONFIG", String.class);
+    // 读取 RDBMS Reader 模板
+    public String getRdbmsReaderTemplate() {
+        return getItemValue(5001, "rR", String.class);
     }
+
+    // 获取 HDFS Writer 模板
+    public String getHdfsWriterTemplate() {
+        return getItemValue(5001, "wH", String.class);
+    }
+
+    /**
+     * 获取 Addax 任务模板内容
+     * @param kind 模板类型标识
+     * @return 任务模板内容
+     */
+    public String getAddaxJobTemplate(String kind)
+    {
+        return getItemValue(5000, kind, String.class);
+    }
+
 
     public void saveHdfsWriteTemplate(String template) {
         Optional<SysItem> itemOpt = sysItemRepo.findByDictCodeAndItemKey(1000, "HDFS_CONFIG");
@@ -174,16 +181,6 @@ public class DictService
             // 默认 String 类型
             return clazz.cast(value);
         }
-    }
-
-    /**
-     * 获取 Addax 任务模板内容
-     * @param kind 模板类型标识
-     * @return 任务模板内容
-     */
-    public String getAddaxJobTemplate(String kind)
-    {
-        return getItemValue(5000, kind, String.class);
     }
 
     /**
@@ -331,10 +328,6 @@ public class DictService
         return new HiveConnectDto(url, username, password, driverClassName, driverPath);
     }
 
-    public Map<String, Object> getHadoopConfig() {
-        String hadoopConfig = getItemValue(1000, "HDFS_CONFIG", String.class);
-        return JSONUtil.parseObj(hadoopConfig);
-    }
     public Map<String, Object> getSysConfig() {
         Map<String, Object> result =  sysItemRepo.findByDictCode(1000).stream()
                 .collect(java.util.stream.Collectors.toMap(
@@ -343,7 +336,6 @@ public class DictService
         // HiveServer2 是一个 json 字符串，需要转换成对象返回
         HiveConnectDto hiveServer2 = getHiveServer2();
         result.put("HIVE_SERVER2", hiveServer2);
-        result.put("HDFS_CONFIG", getHadoopConfig());
         return result;
     }
 
@@ -363,5 +355,22 @@ public class DictService
         defaults.put("storageFormat", getHdfsStorageFormat());
         defaults.put("compressFormat", getHdfsCompress());
         return defaults;
+    }
+
+    // 获取三个模板
+    public Map<String, SysItem> getJobTemplates() {
+        return sysItemRepo.findByDictCodeIn(List.of(5000, 5001)).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        SysItem::getItemKey,
+                        item -> item));
+    }
+
+    public void updateJobTemplates(List<SysItem> templates) {
+        for (SysItem item : templates) {
+            if (item.getDictCode() != 5000 && item.getDictCode() != 5001) {
+                continue;
+            }
+            saveItem(item);
+        }
     }
 }

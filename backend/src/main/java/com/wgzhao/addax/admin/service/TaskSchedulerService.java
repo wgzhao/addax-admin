@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
@@ -10,10 +10,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
+@AllArgsConstructor
 public class TaskSchedulerService {
 
-    @Autowired
-    private TaskScheduler taskScheduler;
+    private final TaskScheduler taskScheduler;
 
     private final Map<String, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
@@ -32,5 +32,14 @@ public class TaskSchedulerService {
             scheduledTasks.remove(taskId);
         }
     }
-}
 
+    public void cancelAll() {
+        for (Map.Entry<String, ScheduledFuture<?>> entry : scheduledTasks.entrySet()) {
+            ScheduledFuture<?> future = entry.getValue();
+            if (future != null) {
+                future.cancel(true);
+            }
+        }
+        scheduledTasks.clear();
+    }
+}

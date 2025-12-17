@@ -104,8 +104,9 @@
   const mode = ref('show')
   const searchValue = ref('')
   const headers: DataTableHeader[] = [
+    { title: 'ID', key: 'id' },
     { title: '名称', key: 'name' },
-    { title: '采集编号', key: 'code' },
+    { title: '采集代码', key: 'code' },
     { title: '连接串', key: 'url' },
     { title: '是否启用', key: 'enabled' },
     {

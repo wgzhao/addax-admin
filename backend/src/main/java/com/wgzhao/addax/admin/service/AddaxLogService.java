@@ -3,7 +3,7 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@AllArgsConstructor
 public class AddaxLogService
 {
-    @Autowired
-    private AddaxLogRepo addaxLogRepo;
+    private final AddaxLogRepo addaxLogRepo;
 
     public void insertLog(long tid,  String message) {
         AddaxLog addaxLog = new AddaxLog();

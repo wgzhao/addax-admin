@@ -1,3 +1,4 @@
+import { SysItem } from '@/types/database'
 import Requests from '@/utils/requests'
 
 export interface ConfigItem {
@@ -110,12 +111,29 @@ class SettingsService {
   /**
    * 获取所有作业配置模板列表
    */
-  async getJobConfigList(): Promise<any[]> {
+  async getJobConfig(): Promise<Map<string, SysItem>> {
     try {
-      const response = await Requests.get<any[]>(`${this.baseUrl}/job-templates`)
-      return response as any[]
+      const response = await Requests.get<Map<string, SysItem>>(`${this.baseUrl}/job-templates`)
+      return response as Map<string, SysItem>
     } catch (error) {
       console.error('获取作业配置列表失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 保存作业配置模板列表
+   */
+  async saveJobTemplates(templates: SysItem[]): Promise<boolean> {
+    try {
+      const response = await Requests.put<boolean>(`${this.baseUrl}/job-templates`, templates)
+      const respObj: any = response as any
+      if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
+        return respObj.data
+      }
+      return response as boolean
+    } catch (error) {
+      console.error('保存作业配置模板失败:', error)
       throw error
     }
   }
@@ -133,6 +151,19 @@ class SettingsService {
       return response as boolean
     } catch (error) {
       console.error('删除作业配置失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 触发切日调度任务重新注册
+   */
+  async rescheduleSwitchTimeTask(): Promise<any> {
+    try {
+      const response = await Requests.post('/reschedule-switch-time-task')
+      return response
+    } catch (error) {
+      console.error('触发切日调度任务失败:', error)
       throw error
     }
   }

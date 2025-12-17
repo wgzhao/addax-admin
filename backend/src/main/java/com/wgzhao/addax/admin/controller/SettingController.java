@@ -18,6 +18,7 @@ import javax.sql.DataSource;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,18 +70,32 @@ public class SettingController
         }
     }
 
-    @GetMapping("/addax-hdfs-writer-template")
-    public ResponseEntity<Map<String, Object>> getAddaxHdfsWriterTemplate()
-    {
-        // 删除换行字符
-        String template = dictService.getHdfsWriterTemplate();
-        // 已 Json 格式返回
-        return ResponseEntity.ok().body(JSONUtil.parseObj(template));
-    }
+//    @GetMapping("/addax-hdfs-writer-template")
+//    public ResponseEntity<Map<String, Object>> getAddaxHdfsWriterTemplate()
+//    {
+//        // 已 Json 格式返回
+//        return ResponseEntity.ok().body(dictService.getHadoopConfig());
+//    }
 
     @PostMapping("/addax-hdfs-writer-template")
     public ResponseEntity<String> updateAddaxHdfsWriterTemplate(@RequestBody @NonNull String template) {
         dictService.saveHdfsWriteTemplate(template);
         return ResponseEntity.ok().body("HDFS Writer template updated successfully");
+    }
+
+    // 获取采集模板，这里主要是三个模板
+    // 采集主模板，关系性数据库读取模板，HDFS写入模板
+    @GetMapping("/job-templates")
+    public ResponseEntity<Map<String, SysItem>> getJobTemplates()
+    {
+        Map<String, SysItem> templates = dictService.getJobTemplates();
+        return ResponseEntity.ok().body(templates);
+    }
+
+    @PutMapping("/job-templates")
+    public ResponseEntity<String> updateJobTemplates(@RequestBody List<SysItem> templates)
+    {
+        dictService.updateJobTemplates(templates);
+        return ResponseEntity.ok().body("Job templates updated successfully");
     }
 }

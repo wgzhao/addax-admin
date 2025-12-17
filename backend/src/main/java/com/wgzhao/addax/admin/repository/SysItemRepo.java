@@ -32,4 +32,6 @@ public interface SysItemRepo
             LIMIT 1
             """, nativeQuery = true)
     String findLastBizDateList(String curDate);
+
+    List<SysItem> findByDictCodeIn(List<Integer> dictCodes);
 }

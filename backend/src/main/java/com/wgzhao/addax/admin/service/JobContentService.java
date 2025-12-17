@@ -1,21 +1,19 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
-import com.wgzhao.addax.admin.dto.HdfsWriterTemplate;
-import com.wgzhao.addax.admin.dto.RdbmsReaderTemplate;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
-import com.wgzhao.addax.admin.model.EtlColumn;
-import com.wgzhao.addax.admin.model.EtlJob;
-import com.wgzhao.addax.admin.model.EtlJour;
-import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.model.*;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.text.StringSubstitutor;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -35,24 +33,14 @@ import static com.wgzhao.addax.admin.common.Constants.quoteIfNeeded;
  */
 @Service
 @Slf4j
+@AllArgsConstructor
 public class JobContentService {
-    @Autowired
-    private EtlJobRepo jobRepo;
 
-    @Autowired
-    private DictService dictService;
-
-    @Autowired
-    private ColumnService columnService;
-
-    @Autowired
-    private SystemConfigService configService;
-
-    @Autowired
-    private EtlJourService jourService;
-
-    @Autowired
-    private VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
+    private final EtlJobRepo jobRepo;
+    private final DictService dictService;
+    private final ColumnService columnService;
+    private final EtlJourService jourService;
+    private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -78,103 +66,109 @@ public class JobContentService {
         }
         log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(), etlTable.getId());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.ADDAX_JOB, null);
-        String kind = DbUtil.getKind(etlTable.getUrl());
-        RdbmsReaderTemplate readerTemplate = new RdbmsReaderTemplate();
-        readerTemplate.setName(kind + "reader");
-        readerTemplate.setUsername(etlTable.getUsername());
-        readerTemplate.setPassword(etlTable.getPass() == null ? "" : etlTable.getPass());
-        readerTemplate.setJdbcUrl(etlTable.getUrl());
-        readerTemplate.setWhere(etlTable.getFilter());
-        readerTemplate.setAutoPk(etlTable.getAutoPk());
-        readerTemplate.setSplitPk(etlTable.getSplitPk());
-        Constants.DbType dbType = DbUtil.getDbType(etlTable.getUrl());
-        if (dbType == Constants.DbType.POSTGRESQL) {
-            readerTemplate.setTable(quoteIfNeeded(etlTable.getSourceTable(), dbType));
-        } else {
-            readerTemplate.setTable(quoteIfNeeded(etlTable.getSourceDb(), dbType) + "." + quoteIfNeeded(etlTable.getSourceTable(), dbType));
-        }
 
-        List<EtlColumn> columnList = columnService.getColumns(etlTable.getId());
-        List<String> srcColumns = new ArrayList<>();
-        List<Map<String, String>> destColumns = new ArrayList<>();
-        for (EtlColumn etlColumn : columnList) {
-            String columnName = etlColumn.getColumnName();
-//            String targetColumn = typeTemplate.formatted(columnName, etlColumn.getTargetTypeFull());
-            Map<String, String> targetColumn = new HashMap<>();
-            targetColumn.put("type", etlColumn.getTargetTypeFull());
+        Map<String, String> values = new HashMap<>();
+        values.put("reader", fillRdbmsReaderJob(etlTable));
+        values.put("writer", fillHdfsWriterJob(etlTable));
 
-            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                // 被标记为删除的字段，那么使用 null 来填充该字段
-                srcColumns.add("\"NULL\"");
-                // 目标表字段名还是正常的字段名
-                targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
-            } else {
-                targetColumn.put("name", columnName);
-                // 如果列名是关键字，则还需要加上引号
-                srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
-            }
-            destColumns.add(targetColumn);
-        }
-        readerTemplate.setColumn(srcColumns);
-
-        HdfsWriterTemplate hdfsWriterTemplate = new HdfsWriterTemplate();
-        hdfsWriterTemplate.setColumn(destColumns);
-        hdfsWriterTemplate.setCompress(etlTable.getCompressFormat());
-        hdfsWriterTemplate.setFileType(etlTable.getStorageFormat());
-
-        Map<String, Object> hdfsConfig = dictService.getHadoopConfig();
-
-        hdfsWriterTemplate.setDefaultFS(hdfsConfig.getOrDefault("defaultFS", "").toString());
-        // col_idx = 1000 的字段为分区字段，不参与 select
-        //TODO 路径结合应该考虑尾部 / 的问题
-        Path hdfsPath = Paths.get(hdfsConfig.getOrDefault("hdfsPrefix", "/ods").toString(),
-                etlTable.getTargetDb(), etlTable.getTargetTable());
-
-        if (!etlTable.getPartName().isEmpty()) {
-            hdfsPath = hdfsPath.resolve(etlTable.getPartName() + "=${logdate}");
-        }
-        hdfsWriterTemplate.setPath(hdfsPath.toString());
-        if (hdfsConfig.getOrDefault("enableKerberos", "false").toString().equals("true")) {
-            hdfsWriterTemplate.setHaveKerberos(true);
-            hdfsWriterTemplate.setKerberosKeytabFilePath(
-                    hdfsConfig.getOrDefault("kerberosKeytabFilePath", "").toString());
-            hdfsWriterTemplate.setKerberosPrincipal(
-                    hdfsConfig.getOrDefault("kerberosPrincipal", "").toString());
-        }
-        boolean enableHA = (boolean) hdfsConfig.getOrDefault("enableHA", false);
-        hdfsWriterTemplate.setEnableHA(enableHA);
-        if (enableHA) {
-            String hdfsSitePath = hdfsConfig.getOrDefault("hdfsSitePath", "").toString();
-            if (!hdfsSitePath.isEmpty()) {
-                hdfsWriterTemplate.setHdfsSitePath(hdfsSitePath);
-            } else {
-                hdfsWriterTemplate.setHadoopConfig(hdfsConfig.get("hadoopConfig").toString());
-            }
-        }
-
-        String job = """
-                {
-                  "job": {
-                    "content": {
-                        "reader": %s,
-                        "writer": %s,
-                      "setting": {
-                        "speed": {
-                          "batchSize": 20480,
-                          "bytes": -1,
-                          "channel": 1
-                        }
-                      }
-                    }
-                  }
-                }
-                """.formatted(readerTemplate.toJson(), hdfsWriterTemplate.toJson());
+        String jobTemplate = dictService.getRdbms2HdfsJobTemplate();
+        StringSubstitutor substitutor = new StringSubstitutor(values);
+        String job = substitutor.replace(jobTemplate);
 
         EtlJob etlJob = new EtlJob(etlTable.getId(), job);
         jobRepo.save(etlJob);
         jourService.successJour(etlJour);
         log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
         return TaskResultDto.success("更新采集任务模板成功", 0);
+    }
+
+    private String fillRdbmsReaderJob(VwEtlTableWithSource vTable) {
+        String template = dictService.getRdbmsReaderTemplate();
+
+        String kind = DbUtil.getKind(vTable.getUrl());
+        Map<String, String> values = new HashMap<>();
+
+        values.put("name", kind + "reader");
+        values.put("username", vTable.getUsername());
+        values.put("password", vTable.getPass() == null ? "" : vTable.getPass());
+        values.put("jdbcUrl", vTable.getUrl());
+        values.put("where", vTable.getFilter());
+        values.put("autoPk", String.valueOf(vTable.getAutoPk()));
+        values.put("splitPk", vTable.getSplitPk() == null ? "" : vTable.getSplitPk());
+        values.put("fetchSize", "20480");
+        Constants.DbType dbType = DbUtil.getDbType(vTable.getUrl());
+        if (dbType == Constants.DbType.POSTGRESQL) {
+            values.put("table", quoteIfNeeded(vTable.getSourceTable(), dbType));
+        } else {
+            values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(vTable.getSourceTable(), dbType));
+        }
+
+        // 处理列信息
+        List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
+        List<String> srcColumns = new ArrayList<>();
+        for (EtlColumn etlColumn : columnList) {
+            String columnName = etlColumn.getColumnName();
+            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
+                // 被标记为删除的字段，那么使用 null 来填充该字段
+                srcColumns.add("\"NULL\"");
+            } else {
+                // 如果列名是关键字，则还需要加上引号
+                srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
+            }
+        }
+        values.put("column", String.join(", ", srcColumns));
+        StringSubstitutor substitutor = new StringSubstitutor(values);
+        return substitutor.replace(template);
+    }
+
+    private String fillHdfsWriterJob(VwEtlTableWithSource vTable) {
+
+        Map<String, String> values = new HashMap<>();
+        values.put("compress", vTable.getCompressFormat());
+        values.put("fileType", vTable.getStorageFormat());
+
+        // 处理列信息
+        String columnJson = getHdfsWriteColumns(vTable, values);
+        values.put("column", columnJson);
+
+        // hdfs path 的前缀路径已经在模板中定义，这里只需要补充后缀路径
+        Path hdfsPath = Paths.get(vTable.getTargetDb(), vTable.getTargetTable());
+
+        if (!vTable.getPartName().isEmpty()) {
+            hdfsPath = hdfsPath.resolve(vTable.getPartName() + "=${logdate}");
+        }
+
+        values.put("path", hdfsPath.toString());
+        // 所有变量都需要处理，以防止模板替换错误
+
+        String template = dictService.getHdfsWriterTemplate();
+        StringSubstitutor substitutor = new StringSubstitutor(values);
+
+        return substitutor.replace(template);
+    }
+
+    private String getHdfsWriteColumns(VwEtlTableWithSource vTable, Map<String, String> values) {
+        List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
+        List<Map<String, String>> columns = new ArrayList<>();
+        for (EtlColumn etlColumn : columnList) {
+            String columnName = etlColumn.getColumnName();
+            Map<String, String> targetColumn = new HashMap<>();
+            targetColumn.put("type", etlColumn.getTargetTypeFull());
+            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
+                // 目标表字段名还是正常的字段名
+                targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
+            } else {
+                targetColumn.put("name", columnName);
+            }
+            columns.add(targetColumn);
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.writeValueAsString(columns);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("column 转换为 JSON 失败", e);
+        }
     }
 
     /**

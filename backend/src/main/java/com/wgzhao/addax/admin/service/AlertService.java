@@ -25,7 +25,6 @@ public class AlertService
     @Value("${alert.wechat.key}")
     private String wechatKey;
 
-
     @Autowired
     private RestTemplate restTemplate;
 

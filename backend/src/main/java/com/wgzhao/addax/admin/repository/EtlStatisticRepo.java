@@ -10,8 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface EtlStatisticRepo
-        extends JpaRepository<EtlStatistic, Long>
-{
+        extends JpaRepository<EtlStatistic, Long> {
 
     Optional<EtlStatistic> findByTidAndBizDate(long tid, LocalDate bizDate);
 
@@ -27,27 +26,29 @@ public interface EtlStatisticRepo
     List<EtlStatistic> findErrorTask();
 
     @Query(value = """
-             select
-                 biz_date,
-                 array_agg(code) AS sources,
-                 array_agg(total_secs) AS total_secs
-             FROM (
-                      SELECT
-                          b.code,
-                          t.biz_date,
-                          SUM(t.take_secs) AS total_secs
-                      FROM
-                          etl_statistic t
-                              LEFT JOIN
-                          vw_etl_table_with_source b
-                      on t.tid = b.id
-                      WHERE
-                          t.biz_date > current_date - INTERVAL '5 days'
-                      GROUP BY
-                          b.code, t.biz_date
-                  ) sub
-             GROUP BY
-                 biz_date
+            select
+                biz_date,
+                array_agg(code) AS sources,
+                array_agg(total_secs) AS total_secs
+            FROM (
+                     SELECT
+                         b.code,
+                         t.biz_date,
+                         SUM(t.take_secs) AS total_secs
+                     FROM
+                         etl_statistic t
+                             LEFT JOIN
+                         vw_etl_table_with_source b
+                     on t.tid = b.id
+                     WHERE
+                         t.biz_date > current_date - 5
+                     GROUP BY
+                         b.code, t.biz_date
+                 ) sub
+            GROUP BY
+                biz_date
+            ORDER BY
+                biz_date;
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysTakeTimes();
 
@@ -72,7 +73,9 @@ public interface EtlStatisticRepo
                               b.code, t.biz_date
                       ) sub
                  GROUP BY
-                     biz_date;
+                     biz_date
+            ORDER BY
+                biz_date
             """, nativeQuery = true)
     List<Map<String, Object>> findLast5DaysDataMB();
 
