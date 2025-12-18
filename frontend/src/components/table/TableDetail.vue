@@ -64,6 +64,7 @@
               label="自动获取切分字段"
               :color="table.autoPk ? 'primary' : undefined"
               :base-color="table.autoPk ? undefined : 'secondary'"
+              density="compact"
             />
           </v-col>
         </v-row>
@@ -84,9 +85,8 @@
         </v-row>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn type="reset" variant="plain" >取消</v-btn>
-          <v-btn type="submit" class="btn btn-primary bg-primary">
-            保存</v-btn>
+          <v-btn type="submit" class="btn btn-primary bg-primary">保存</v-btn>
+          <v-btn type="button" variant="plain" @click="emit('closeDialog')">关闭</v-btn>
         </v-card-actions>
       </v-card-text>
     </v-card>
