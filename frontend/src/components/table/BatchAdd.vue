@@ -1,12 +1,12 @@
 <template>
   <!-- ODS 采集 - 批量新增表 -->
-  <v-card flat>
+  <v-card flat title="批量新增表">
     <v-card-text>
       <v-row>
         <v-col cols="3">
           <v-select :items="sourceSystemList"             item-title="name"
             :item-props="item => ({
-              title: `${item.name}(${item.code})`,
+              title: `${item.code}_${item.name}`,
             })" v-model="selectedSourceId" item-value="id"
             density="compact" return-object single-line>
             <template #prepend>
@@ -18,40 +18,23 @@
           <v-select :items="sourceDbs" :disabled="!selectedSourceId?.url" v-model="selectedDb" density="compact"
             single-line>
             <template #prepend>
-              <span class="me-2">选择库</span>
+              <span class="me-2">选择源库</span>
             </template>
             <template #append>
               <v-btn color="primary" @click="getTables" :loading="loadingTables" :disabled="!selectedDb">获取表</v-btn>
             </template>
           </v-select>
         </v-col>
-
         <v-spacer />
-        <v-col cols="4">
+        <v-col cols="4" >
           <v-btn color="primary" @click="saveItems" :loading="loadingSave"
             :disabled="selectedCnt === 0 || !targetDb">保存</v-btn>
+          <v-btn color="secondary" class="ms-3" @click="closeDialog">关闭</v-btn>
         </v-col>
       </v-row>
       <v-row>
-        <!-- 目标库名设置行 -->
 
-        <v-col cols="2">
-          <v-text-field v-model="targetDb" label="目标库名" density="compact" hint="默认库名: ods + 源系统编号" persistent-hint
-            :rules="[rules.required]">
-          </v-text-field>
-        </v-col>
-        <v-col cols="3">
-          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact" 
-            hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
-            placeholder="${table}">
-            <template #append>
-              <v-btn size="small" color="primary" @click="applyTargetTableTemplate" 
-                :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
-            </template>
-          </v-text-field>
-        </v-col>
-        </v-row>
-        <v-row>
+
         <v-col cols="2">
           <v-text-field v-model="partName" label="分区字段名" density="compact" hint="目标表的分区字段" persistent-hint>
             <template #append>
@@ -67,24 +50,39 @@
           </v-text-field>
         </v-col>
         <v-col cols="2">
-          <v-select v-model="partFormat" :items="partitionFormats" label="分区格式" density="compact" hint="分区日期格式"
+          <v-select v-model="partFormat" :items="partitionFormats" label="分区日期格式" density="compact"
             persistent-hint>
             <template #append>
               <span class="text-caption">{{ partitionFormatExample }}</span>
             </template>
           </v-select>
         </v-col>
-        <v-col cols="2">
-          <v-combobox v-model="storageFormat" :items="storageFormats" label="存储格式" density="compact" hint="目标表存储格式"
+        <v-col cols="1">
+          <v-combobox v-model="storageFormat" :items="storageFormats" label="存储格式" density="compact"
             persistent-hint>
           </v-combobox>
         </v-col>
-        <v-col cols="2">
-          <v-combobox v-model="compressFormat" :items="compressFormats" label="压缩格式" density="compact" hint="目标表压缩格式"
+        <v-col cols="1">
+          <v-combobox v-model="compressFormat" :items="compressFormats" label="压缩格式" density="compact"
             persistent-hint>
           </v-combobox>
         </v-col>
-
+        <!-- 目标库名设置行 -->
+        <v-col cols="1">
+          <v-text-field v-model="targetDb" label="目标库名" density="compact" placeholder="ods + 源系统编号" persistent-hint
+            :rules="[rules.required]">
+          </v-text-field>
+        </v-col>
+        <v-col cols="3">
+          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact" 
+            hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
+            placeholder="${table}">
+            <template #append>
+              <v-btn size="small" color="primary" @click="applyTargetTableTemplate" 
+                :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
+            </template>
+          </v-text-field>
+        </v-col>
       </v-row>
 
       <!-- Search field for tables - fixed width to prevent icon overlap -->
@@ -380,6 +378,11 @@ const handleSuccessConfirm = () => {
   // emit('closeDialog');
   emit('refresh-data');
   selectedTables.value = [];
+};
+
+// Emit to parent to request closing the dialog containing this component
+const closeDialog = () => {
+  emit('closeDialog');
 };
 
 const showPartitionInfo = () => {

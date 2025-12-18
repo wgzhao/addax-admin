@@ -317,17 +317,17 @@
   // 使用公共的批量更新状态选项
   const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
 
-  const runStatus = ref('')
+  const runStatus = ref<string[]>([])
 
   const headers: DataTableHeader[] = [
     {
       title: '编号',
       key: 'id',
       align: 'center' as const,
-      width: '2%'
+      width: '3%'
     },
     {
-      title: '系统名称',
+      title: '系统名称及代码',
       key: 'name',
       align: 'center' as const,
       sortable: true,
