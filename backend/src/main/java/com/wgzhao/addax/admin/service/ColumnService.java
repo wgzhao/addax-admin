@@ -74,6 +74,8 @@ public class ColumnService {
 
         try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
             assert connection != null;
+            // 注意，这里的获取到的表字段类型是已经通过 hive 字段映射过后的，而不是原始字段类型
+            // 比如原始类型是 varchar(255)，但映射后是 string
             List<EtlColumn> sourceCols = getEtlColumnV2(connection, etlTable);
             if (sourceCols == null) {
                 return -1;
@@ -95,12 +97,22 @@ public class ColumnService {
                 EtlColumn sc = srcByName.get(oc.getColumnName());
                 if (sc != null) {
                     matchedNames.add(sc.getColumnName());
-                    boolean typeChanged = !Objects.equals(oc.getSourceType(), sc.getSourceType())
-                            || notEq(oc.getDataPrecision(), sc.getDataPrecision())
+                    // 如果源类型不同，则进一步用目标 Hive 类型判断兼容性：
+                    // 当新的 Hive 类型能够覆盖旧的 Hive 类型表达的值范围时，视为兼容，不认为类型变化
+                    boolean sourceTypeDifferent = !Objects.equals(oc.getSourceType(), sc.getSourceType());
+                    boolean precisionChanged = notEq(oc.getDataPrecision(), sc.getDataPrecision())
                             || notEq(oc.getDataScale(), sc.getDataScale())
                             || oc.getDataLength() != sc.getDataLength();
-                    boolean commentChanged = !Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
-                    if (typeChanged || commentChanged) {
+                    boolean typeChanged;
+                    if (sourceTypeDifferent) {
+                        String existingTarget = oc.getTargetType();
+                        String newTarget = sc.getTargetType();
+                        typeChanged = !isHiveTypeCompatible(existingTarget, newTarget, oc, sc);
+                    } else {
+                        typeChanged = precisionChanged;
+                    }
+                   // boolean commentChanged = !Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
+                    if (typeChanged) {
                         // 记录类型变化
                         schemaChangeLogService.recordTypeChange(
                                 etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), sc.getColumnName(),
@@ -280,5 +292,94 @@ public class ColumnService {
      */
     public void deleteByTid(long tableId) {
         etlColumnRepo.deleteAllByTid(tableId);
+    }
+
+    // 判断新的 Hive 目标类型是否兼容（能够表示）已有的目标类型。
+    // existingTarget / newTarget 期望为 hive 映射后的类型名（如 int, double, decimal, string）
+    private static boolean isHiveTypeCompatible(String existingTarget, String newTarget, EtlColumn oc, EtlColumn sc) {
+        if (existingTarget == null || newTarget == null) {
+            return false;
+        }
+        existingTarget = existingTarget.toLowerCase();
+        newTarget = newTarget.toLowerCase();
+        if (existingTarget.equals(newTarget)) {
+            return true;
+        }
+        // string 视为最宽泛，可兼容任何类型
+        if ("string".equals(newTarget)) {
+            return true;
+        }
+        // 如果现有是 string，而新类型不是 string，则不兼容（可能丢失信息）
+        if ("string".equals(existingTarget)) {
+            return false;
+        }
+
+        // 数值类型顺序：越后面表示范围越大（更宽泛）
+        Map<String, Integer> rank = new HashMap<>();
+        // boolean 视为最窄的类型（rank=0），以支持 boolean -> int/double/decimal 的兼容判断
+        rank.put("boolean", 0);
+        rank.put("tinyint", 1);
+        rank.put("smallint", 2);
+        rank.put("int", 3);
+        rank.put("bigint", 4);
+        rank.put("float", 5);
+        rank.put("double", 6);
+
+        Integer rExisting = rank.get(existingTarget);
+        Integer rNew = rank.get(newTarget);
+        if (rExisting != null && rNew != null) {
+            return rNew >= rExisting;
+        }
+
+        // 处理 decimal 的兼容性
+        if (newTarget.startsWith("decimal")) {
+            // 新类型为 decimal，通常能兼容普通数值类型
+            if (rExisting != null) {
+                return true;
+            }
+            if (existingTarget.startsWith("decimal")) {
+                int[] ex = parseDecimalPrecisionScale(oc.getTargetTypeFull());
+                int[] nw = parseDecimalPrecisionScale(sc.getTargetTypeFull());
+                if (ex != null && nw != null) {
+                    // 若新 decimal 的 precision/scale 都 >= 旧的，则兼容
+                    return nw[0] >= ex[0] && nw[1] >= ex[1];
+                }
+                return false;
+            }
+            return true;
+        }
+
+        // 如果现有是 decimal 且新类型不是 decimal，则通常不兼容（可能丢精度）
+        if (existingTarget.startsWith("decimal") && !newTarget.startsWith("decimal")) {
+            return false;
+        }
+
+        // 其它未明确的类型组合，采取保守策略认为不兼容
+        return false;
+    }
+
+    private static int[] parseDecimalPrecisionScale(String typeFull) {
+        if (typeFull == null) {
+            return null;
+        }
+        String s = typeFull.toLowerCase();
+        int start = s.indexOf("decimal(");
+        if (start < 0) {
+            return null;
+        }
+        int l = s.indexOf('(', start);
+        int r = s.indexOf(')', l);
+        if (l < 0 || r < 0 || r <= l + 1) {
+            return null;
+        }
+        String inside = s.substring(l + 1, r);
+        String[] parts = inside.split(",");
+        try {
+            int p = Integer.parseInt(parts[0].trim());
+            int sc = parts.length > 1 ? Integer.parseInt(parts[1].trim()) : 0;
+            return new int[]{p, sc};
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }
