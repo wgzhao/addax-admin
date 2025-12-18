@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- 默认日志路径：如果没有通过 Spring 配置 logging.file.path 提供，则使用 ./logs -->
+    <property name="LOG_PATH" value="${logging.file.path:-./logs}" />
+
     <appender name="Console"
               class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -11,7 +14,7 @@
 
     <appender name="RollingFile"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${logging.file.path}/addax-admin.log</file>
+        <file>${LOG_PATH}/addax-admin.log</file>
         <encoder
                 class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>%d %p %C [%t] %m%n</Pattern>
@@ -19,7 +22,7 @@
 
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- rollover daily and when the file reaches 1000 MegaBytes -->
-            <fileNamePattern>${logging.file.path}/addax-admin-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>${LOG_PATH}/addax-admin-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
             <maxFileSize>1000MB</maxFileSize>
         </rollingPolicy>
     </appender>
