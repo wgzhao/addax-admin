@@ -46,6 +46,12 @@ public class SettingController
     public ResponseEntity<Void> updateSysConfig(@RequestBody Map<String, Object> payload)
     {
         dictService.saveSysConfig(payload);
+        try {
+            // Refresh centralized config in Redis so other nodes see changes
+            systemConfigService.reloadFromDictAndBroadcast();
+        } catch (Exception e) {
+            log.warn("Failed to reload system config into Redis after update: {}", e.getMessage());
+        }
         return ResponseEntity.ok().build();
     }
 

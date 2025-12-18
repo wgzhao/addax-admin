@@ -37,7 +37,6 @@ import static com.wgzhao.addax.admin.common.Constants.quoteIfNeeded;
 public class JobContentService {
 
     private final EtlJobRepo jobRepo;
-    private final DictService dictService;
     private final ColumnService columnService;
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
@@ -72,7 +71,7 @@ public class JobContentService {
         values.put("reader", fillRdbmsReaderJob(etlTable));
         values.put("writer", fillHdfsWriterJob(etlTable));
 
-        String jobTemplate = dictService.getRdbms2HdfsJobTemplate();
+        String jobTemplate = configService.getRdbms2HdfsJobTemplate();
         StringSubstitutor substitutor = new StringSubstitutor(values);
         String job = substitutor.replace(jobTemplate);
 
@@ -84,7 +83,7 @@ public class JobContentService {
     }
 
     private String fillRdbmsReaderJob(VwEtlTableWithSource vTable) {
-        String template = dictService.getRdbmsReaderTemplate();
+        String template = configService.getRdbmsReaderTemplate();
 
         String kind = DbUtil.getKind(vTable.getUrl());
         Map<String, String> values = new HashMap<>();
@@ -129,7 +128,7 @@ public class JobContentService {
         values.put("fileType", vTable.getStorageFormat());
 
         // 处理列信息
-        String columnJson = getHdfsWriteColumns(vTable, values);
+        String columnJson = getHdfsWriteColumns(vTable);
         values.put("column", columnJson);
 
         // hdfs path 的前缀路径不应该在模板中填写，而应该从配置中获取
@@ -142,13 +141,13 @@ public class JobContentService {
         values.put("path", hdfsPath.toString());
         // 所有变量都需要处理，以防止模板替换错误
 
-        String template = dictService.getHdfsWriterTemplate();
+        String template = configService.getHdfsWriterTemplate();
         StringSubstitutor substitutor = new StringSubstitutor(values);
 
         return substitutor.replace(template);
     }
 
-    private String getHdfsWriteColumns(VwEtlTableWithSource vTable, Map<String, String> values) {
+    private String getHdfsWriteColumns(VwEtlTableWithSource vTable) {
         List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
         List<Map<String, String>> columns = new ArrayList<>();
         for (EtlColumn etlColumn : columnList) {

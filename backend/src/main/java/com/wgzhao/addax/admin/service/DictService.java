@@ -8,6 +8,7 @@ import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ import static com.wgzhao.addax.admin.common.Constants.shortSdf;
  */
 @Service
 @AllArgsConstructor
+@Slf4j
 public class DictService
 {
     private final SysItemRepo sysItemRepo;
