@@ -97,16 +97,23 @@ public class TargetServiceWithHiveImpl
 
     /**
      * 为指定 Hive 表添加分区。
+     * 对于非分区表（partName 为空），直接返回 true，不执行任何操作。
      *
      * @param taskId    采集任务ID
      * @param db        Hive数据库名
      * @param table     Hive表名
-     * @param partName  分区字段名
+     * @param partName  分区字段名（为空表示非分区表）
      * @param partValue 分区字段值
      * @return 是否添加成功
      */
     @Override
     public boolean addPartition(long taskId, String db, String table, String partName, String partValue) {
+        // 检查是否为非分区表
+        if (partName == null || partName.trim().isEmpty()) {
+            log.info("Table {}.{} is non-partitioned, skip partition operation", db, table);
+            return true;
+        }
+        
         String sql = String.format("ALTER TABLE `%s`.`%s` ADD IF NOT EXISTS PARTITION (%s='%s')", db, table, partName, partValue);
         EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
         try (Connection conn = getHiveConnect();
@@ -125,6 +132,7 @@ public class TargetServiceWithHiveImpl
     /**
      * 创建或更新 Hive 目标表。
      * 包括建库、建表、分区、表属性等操作。
+     * 支持分区表和非分区表：当 partName 为空时创建非分区表。
      *
      * @param etlTable 采集表视图对象
      * @return 是否创建/更新成功
@@ -135,17 +143,37 @@ public class TargetServiceWithHiveImpl
 
         String createDbSql = MessageFormat.format("create database if not exists `{0}` location ''{1}/{0}''",
                 etlTable.getTargetDb(), dictService.getHdfsPrefix());
-        String createTableSql = MessageFormat.format("""
-                        create external table if not exists `{0}`.`{1}` (
-                        {2}
-                        ) comment ''{3}''
-                        partitioned by ( `{4}` string )
-                         stored as {5}
-                         location ''{6}/{0}/{1}''
-                         tblproperties (''external.table.purge''=''true'', ''discover.partitions''=''true'', ''orc.compress''=''{7}'', ''snappy.compress''=''{7}'')
-                        """,
-                etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
-                etlTable.getPartName(), dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+        
+        // 检查是否为分区表
+        boolean isPartitioned = etlTable.getPartName() != null && !etlTable.getPartName().trim().isEmpty();
+        
+        String createTableSql;
+        if (isPartitioned) {
+            // 分区表
+            createTableSql = MessageFormat.format("""
+                            create external table if not exists `{0}`.`{1}` (
+                            {2}
+                            ) comment ''{3}''
+                            partitioned by ( `{4}` string )
+                             stored as {5}
+                             location ''{6}/{0}/{1}''
+                             tblproperties (''external.table.purge''=''true'', ''discover.partitions''=''true'', ''orc.compress''=''{7}'', ''snappy.compress''=''{7}'')
+                            """,
+                    etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
+                    etlTable.getPartName(), dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+        } else {
+            // 非分区表
+            createTableSql = MessageFormat.format("""
+                            create external table if not exists `{0}`.`{1}` (
+                            {2}
+                            ) comment ''{3}''
+                             stored as {4}
+                             location ''{5}/{0}/{1}''
+                             tblproperties (''external.table.purge''=''true'', ''orc.compress''=''{6}'', ''snappy.compress''=''{6}'')
+                            """,
+                    etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
+                    dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+        }
 
         log.info("create table sql:\n{}", createTableSql);
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);

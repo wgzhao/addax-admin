@@ -20,6 +20,7 @@ frontend/node_modules
 /nbdist/
 /.nb-gradle/
 frontend/build/
+node_modules
 
 ### VS Code ###
 .vscode/
