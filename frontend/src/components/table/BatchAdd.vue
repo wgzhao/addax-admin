@@ -40,6 +40,18 @@
             :rules="[rules.required]">
           </v-text-field>
         </v-col>
+        <v-col cols="3">
+          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact" 
+            hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
+            placeholder="${table}">
+            <template #append>
+              <v-btn size="small" color="primary" @click="applyTargetTableTemplate" 
+                :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
+            </template>
+          </v-text-field>
+        </v-col>
+        </v-row>
+        <v-row>
         <v-col cols="2">
           <v-text-field v-model="partName" label="分区字段名" density="compact" hint="目标表的分区字段" persistent-hint>
             <template #append>
@@ -222,6 +234,7 @@ const search = ref(''); // 新增：搜索关键字
 type EtlTableView = EtlTable & { approxRowCount?: number };
 const selectedTables = ref<EtlTableView[]>([]); // 新增：已选择的表格
 const targetDb = ref(''); // 新增：目标库名
+const targetTableTemplate = ref('${table}'); // 新增：目标表名模板
 const partName = ref('logdate'); // 新增：分区字段名
 const partFormat = ref('yyyyMMdd'); // 新增：分区格式
 const storageFormat = ref(''); // 新增：存储格式
@@ -371,6 +384,37 @@ const handleSuccessConfirm = () => {
 
 const showPartitionInfo = () => {
   showPartitionInfoDialog.value = true;
+};
+
+/**
+ * Apply target table name template and target database to all selected tables
+ * Supports placeholders: ${table} for source table name, ${db} for source database name
+ */
+const applyTargetTableTemplate = () => {
+  if (!targetTableTemplate.value || selectedTables.value.length === 0) {
+    notify('请输入模板并选择表', 'warning');
+    return;
+  }
+
+  if (!targetDb.value) {
+    notify('请先设置目标库名', 'warning');
+    return;
+  }
+
+  let appliedCount = 0;
+  selectedTables.value.forEach(item => {
+    // Apply target database name
+    item.targetDb = targetDb.value;
+    
+    // Apply target table name template
+    const targetName = targetTableTemplate.value
+      .replace(/\$\{table\}/g, item.sourceTable)
+      .replace(/\$\{db\}/g, item.sourceDb);
+    item.targetTable = targetName;
+    appliedCount++;
+  });
+
+  notify(`已应用目标库名和表名模板到 ${appliedCount} 个表`, 'success');
 };
 
 const getTables = async () => {

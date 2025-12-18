@@ -212,7 +212,17 @@
               <!-- RDBMS 读取子模板 -->
               <v-row class="mb-4">
                 <v-col cols="12">
-                  <div class="field-label">RDBMS 读取子模板(参考 <a href="https://wgzhao.github.io/Addax/latest/reader/rdbmsreader/" target="_blank" rel="noopener noreferrer">RDBMS 读取插件</a>)</div>
+                  <div class="field-label">
+                    RDBMS 读取子模板(参考
+                    <a
+                      href="https://wgzhao.github.io/Addax/latest/reader/rdbmsreader/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      RDBMS 读取插件
+                    </a>
+                    )
+                  </div>
                   <v-textarea
                     v-model="rRJobTemplate"
                     rows="16"
@@ -226,7 +236,17 @@
               <!-- HDFS 写入子模板 -->
               <v-row class="mb-4">
                 <v-col cols="12">
-                  <div class="field-label">HDFS 写入子模板(参考 <a href="https://wgzhao.github.io/Addax/latest/writer/hdfswriter/" target="_blank" rel="noopener noreferrer">HDFS 写入插件</a>)</div>
+                  <div class="field-label">
+                    HDFS 写入子模板(参考
+                    <a
+                      href="https://wgzhao.github.io/Addax/latest/writer/hdfswriter/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      HDFS 写入插件
+                    </a>
+                    )
+                  </div>
                   <v-textarea
                     v-model="wHJobTemplate"
                     rows="18"
