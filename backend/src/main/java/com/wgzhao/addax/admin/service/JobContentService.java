@@ -41,6 +41,7 @@ public class JobContentService {
     private final ColumnService columnService;
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
+    private final SystemConfigService configService;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -131,8 +132,8 @@ public class JobContentService {
         String columnJson = getHdfsWriteColumns(vTable, values);
         values.put("column", columnJson);
 
-        // hdfs path 的前缀路径已经在模板中定义，这里只需要补充后缀路径
-        Path hdfsPath = Paths.get(vTable.getTargetDb(), vTable.getTargetTable());
+        // hdfs path 的前缀路径不应该在模板中填写，而应该从配置中获取
+        Path hdfsPath = Paths.get(configService.getHdfsPrefix(), vTable.getTargetDb(), vTable.getTargetTable());
 
         if (!vTable.getPartName().isEmpty()) {
             hdfsPath = hdfsPath.resolve(vTable.getPartName() + "=${logdate}");

@@ -118,4 +118,9 @@ public class SystemConfigService
         try { return Integer.parseInt(String.valueOf(v)); } catch (Exception e) { return 600; }
     }
 
+    public String getHdfsPrefix()
+    {
+        return (String) configCache.get("HDFS_PREFIX");
+    }
+
 }
