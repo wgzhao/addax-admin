@@ -22,6 +22,9 @@ public final class Constants
     // 默认的切日时间
     public static final String DEFAULT_SWITCH_TIME = "16:30";
 
+    public static final int HIVE_DECIMAL_MAX_PRECISION = 38;
+    public static final int HIVE_DECIMAL_MAX_SCALE = 10;
+
     // Redis key for schema refresh lock (used to prevent submits/enqueues while schema refresh runs)
     public static final String SCHEMA_REFRESH_LOCK_KEY = "schema:refresh:lock";
 

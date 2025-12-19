@@ -46,7 +46,7 @@ public class JobContentService {
     /**
      * 获取指定采集表的采集任务模板内容
      *
-     * @param tid 采集表ID
+     * @param tid 采集表 ID
      * @return 采集任务模板内容（JSON字符串），若不存在则返回null
      */
     public String getJobContent(long tid) {
@@ -173,7 +173,7 @@ public class JobContentService {
     }
 
     /**
-     * 根据表ID删除对应的采集任务
+     * 根据表 ID 删除对应的采集任务
      *
      * @param tableId 表ID
      */
@@ -182,9 +182,9 @@ public class JobContentService {
     }
 
     /**
-     * 根据数据源ID异步更新相关的采集任务
+     * 根据数据源 ID 异步更新相关的采集任务
      *
-     * @param sid 数据源ID
+     * @param sid 数据源 ID
      */
     // 根据数据源 ID 更新相关的任务
     @Async

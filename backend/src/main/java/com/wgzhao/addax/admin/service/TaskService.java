@@ -3,8 +3,10 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.redis.RedisLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -27,23 +29,20 @@ public class TaskService {
     private final JdbcTemplate jdbcTemplate;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
-    private final SystemFlagService systemFlagService; // added dependency
-    private final com.wgzhao.addax.admin.redis.RedisLockService redisLockService;
-    private final com.wgzhao.addax.admin.service.ExecutionManager executionManager;
-    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    private final RedisLockService redisLockService;
+    private final ExecutionManager executionManager;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
      *
-     * @param sourceId 采集源ID
+     * @param sourceId 采集源 ID
      */
     public void executeTasksForSource(int sourceId) {
         List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
         for (EtlTable table : tables) {
             // 将采集表加入队列
             queueManager.addTaskToQueue(table);
-            // V1
-            // queueManager.getEtlQueue().offer(table);
         }
         log.info("Executing tasks for source {}, found {} tables", sourceId, tables.size());
     }
@@ -115,7 +114,6 @@ public class TaskService {
                 log.warn("重启队列监控器时发生错误", e);
             }
 
-            systemFlagService.endRefresh("updateParams");
             log.info("已释放 schema refresh 锁，队列监控器已重启，采集任务恢复正常");
 
             if (future != null && !future.isDone()) {
@@ -187,16 +185,12 @@ public class TaskService {
     public TaskResultDto submitTask(long tableId) {
         // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
         try {
-            if (redisLockService != null && redisLockService.isLocked(com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY)) {
-                log.info("当前正在刷新表结构（由 {} 控制），拒绝直接提交任务：tableId={}", com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY, tableId);
+            if (redisLockService != null && redisLockService.isRefreshInProgress()) {
+                log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
                 return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
             }
         } catch (Exception e) {
             log.warn("检查 schema 刷新锁失败，继续按 DB flag 逻辑处理", e);
-        }
-        if (systemFlagService.isRefreshInProgress()) {
-            log.info("当前正在更新参数/刷新表结构，暂时拒绝提交采集任务：tableId={}", tableId);
-            return TaskResultDto.failure("正在更新参数，暂时无法提交任务", 0);
         }
         if (queueManager.addTaskToQueue(tableId)) {
             return TaskResultDto.success("任务已提交到队列", 0);

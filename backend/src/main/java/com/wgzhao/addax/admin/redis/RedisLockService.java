@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.redis;
 
+import com.wgzhao.addax.admin.common.Constants;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -136,5 +137,9 @@ public class RedisLockService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public boolean isRefreshInProgress() {
+        return  isLocked(Constants.SCHEMA_REFRESH_LOCK_KEY);
     }
 }

@@ -103,7 +103,7 @@ public class EtlJobQueueService {
                 """;
         String leaseInterval = leaseSeconds + " seconds";
         List<EtlJobQueue> list = jdbcTemplate.query(sql, JOB_ROW_MAPPER, instanceId, leaseInterval);
-        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
     }
 
     @Transactional

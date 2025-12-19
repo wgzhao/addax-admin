@@ -24,15 +24,21 @@ import java.util.concurrent.*;
 public class SchemaRefreshScheduler implements DisposableBean {
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
-    private final SystemFlagService systemFlagService;
     private final TaskService taskService;
     private final RedisLockService redisLockService;
 
     private volatile ScheduledFuture<?> scheduledFuture;
 
     // Lock TTL and renewal interval
-    private static final Duration LOCK_TTL = Duration.ofSeconds(60);
-    private static final Duration LOCK_RENEW_INTERVAL = Duration.ofSeconds(20);
+    private static final Duration LOCK_TTL = Duration.ofSeconds(600);
+    private static final Duration LOCK_RENEW_INTERVAL = Duration.ofSeconds(60);
+
+    // Shared renewer thread to avoid creating one per run
+    private final ScheduledExecutorService renewer = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "schema-refresh-lock-renewer");
+        t.setDaemon(true);
+        return t;
+    });
 
     @PostConstruct
     public void init() {
@@ -69,7 +75,6 @@ public class SchemaRefreshScheduler implements DisposableBean {
         final String lockKey = Constants.SCHEMA_REFRESH_LOCK_KEY;
         String token = null;
 
-        ScheduledExecutorService renewer = null;
         Future<?> renewTaskFuture = null;
 
         try {
@@ -79,15 +84,8 @@ public class SchemaRefreshScheduler implements DisposableBean {
                 return;
             }
 
-            // start a small renewer to extend lock periodically while we run the long job
-            renewer = Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "schema-refresh-lock-renewer");
-                t.setDaemon(true);
-                return t;
-            });
-
             final String localToken = token;
-            renewTaskFuture = ((ScheduledExecutorService) renewer).scheduleAtFixedRate(() -> {
+            renewTaskFuture = renewer.scheduleAtFixedRate(() -> {
                 try {
                     boolean ok = redisLockService.extend(lockKey, localToken, LOCK_TTL);
                     if (!ok) {
@@ -98,20 +96,11 @@ public class SchemaRefreshScheduler implements DisposableBean {
                 }
             }, LOCK_RENEW_INTERVAL.toMillis(), LOCK_RENEW_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
 
-            // Secondary DB-level guard (existing): try set system flag in DB too
-            boolean acquired = systemFlagService.beginRefresh("scheduler");
-            if (!acquired) {
-                log.info("Another instance is refreshing schema according to DB flag, skip this run");
-                return;
-            }
-
             try {
                 taskService.updateParams();
                 log.info("Schema refresh finished successfully");
             } catch (Exception e) {
                 log.error("Schema refresh failed", e);
-            } finally {
-                systemFlagService.endRefresh("scheduler");
             }
         } catch (Exception ex) {
             log.error("Error while attempting schema refresh or acquiring lock", ex);
@@ -120,12 +109,6 @@ public class SchemaRefreshScheduler implements DisposableBean {
             if (renewTaskFuture != null) {
                 try {
                     renewTaskFuture.cancel(true);
-                } catch (Exception ignored) {
-                }
-            }
-            if (renewer != null) {
-                try {
-                    renewer.shutdownNow();
                 } catch (Exception ignored) {
                 }
             }
@@ -140,7 +123,15 @@ public class SchemaRefreshScheduler implements DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         cancelInternal();
+        try {
+            renewer.shutdownNow();
+        } catch (Exception ignored) {
+        }
+    }
+
+    public boolean isRefreshInProgress() {
+        return  redisLockService.isLocked(Constants.SCHEMA_REFRESH_LOCK_KEY);
     }
 }

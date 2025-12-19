@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
@@ -40,7 +41,7 @@ public class TableService
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final TargetService targetService;
-    private final SystemFlagService systemFlagService;
+    private final RedisLockService redisLockService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -188,7 +189,7 @@ public class TableService
                 log.error("Failed to refresh resources for table {}", table.getId(), e);
             }
             // also check system flag to decide whether to continue (if flag cleared externally)
-            if (!systemFlagService.isRefreshInProgress()) {
+            if (!redisLockService.isRefreshInProgress()) {
                 log.info("Global schema refresh flag cleared, aborting refreshAllTableResources at table {}", table.getId());
                 break;
             }
@@ -340,7 +341,7 @@ public class TableService
     public List<EtlTable> getRunnableTasks()
     {
         // If schema refresh in progress, do not return runnable tasks to avoid starting new tasks
-        if (systemFlagService.isRefreshInProgress()) {
+        if (redisLockService.isRefreshInProgress()) {
             log.info("Schema refresh in progress, returning no runnable tasks");
             return List.of();
         }
@@ -358,7 +359,7 @@ public class TableService
      */
     public List<EtlTable> getRunnableTasks(int sourceId)
     {
-        if (systemFlagService.isRefreshInProgress()) {
+        if (redisLockService.isRefreshInProgress()) {
             log.info("Schema refresh in progress, returning no runnable tasks for source {}", sourceId);
             return List.of();
         }

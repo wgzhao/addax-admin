@@ -34,7 +34,7 @@ public class IndexController
     @RequestMapping("/accomplish-ratio")
     public ResponseEntity<List<Map<String, Object>>> accomplishRatio()
     {
-        return ResponseEntity.ok(statService.statLastAccompRatio());
+        return ResponseEntity.ok(statService.statLastAccompliRatio());
     }
 
     /**

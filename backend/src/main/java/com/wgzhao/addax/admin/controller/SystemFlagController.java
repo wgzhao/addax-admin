@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
-import com.wgzhao.addax.admin.service.SystemFlagService;
+import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 @AllArgsConstructor
 @RequestMapping("/system")
 public class SystemFlagController {
-    private final SystemFlagService systemFlagService;
+    private final RedisLockService redisLockService;
     private final TaskService taskService;
 
     @GetMapping("/refresh/status")
     public RefreshStatus status() {
-        boolean inProgress = systemFlagService.isRefreshInProgress();
+        boolean inProgress = redisLockService.isRefreshInProgress();
         return new RefreshStatus(inProgress, inProgress ? "刷新进行中" : "空闲");
     }
 

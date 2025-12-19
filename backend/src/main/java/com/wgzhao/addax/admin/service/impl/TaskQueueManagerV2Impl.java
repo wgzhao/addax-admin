@@ -70,8 +70,6 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     @Autowired
     private TargetService targetService;
     @Autowired
-    private SystemFlagService systemFlagService;
-    @Autowired
     private EtlJobQueueService jobQueueService;
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -692,14 +690,9 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     }
 
     public boolean addTaskToQueue(@NonNull  EtlTable etlTable) {
-        if (systemFlagService != null && systemFlagService.isRefreshInProgress()) {
-            log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable.getId());
-            return false;
-        }
-        // 拒绝在 schema 刷新期间新增任务：检查 redis 锁
         try {
             if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
-                log.info("当前正在刷新表结构（由 {} 控制），拒绝将任务 {} 加入队列", SCHEMA_REFRESH_LOCK_KEY, etlTable.getId());
+                log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable.getId());
                 return false;
             }
         } catch (Exception e) {

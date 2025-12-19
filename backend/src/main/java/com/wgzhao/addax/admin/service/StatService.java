@@ -113,7 +113,7 @@ public class StatService {
     }
 
     // 最近采集的完成率
-    public List<Map<String, Object>> statLastAccompRatio() {
+    public List<Map<String, Object>> statLastAccompliRatio() {
         String sql = """
                 SELECT
                     name || '(' || code || ')' AS source_name,
@@ -196,7 +196,7 @@ public class StatService {
                                      null                                                as t_begin_at,
                                      max(e.end_at)                                       as y_finish_at,
                                      null                                                as t_finish_at,
-                                     sum(e.take_secs)                                    as y_take_secs,
+                                     extract(epoch from max(e.end_at) - min(e.start_at)) as y_take_secs,
                                      0                                                   as t_take_secs
                               from etl_statistic e
                                        left join vw_etl_table_with_source s
@@ -213,7 +213,7 @@ public class StatService {
                                      null                                                as y_finish_at,
                                      max(e.end_at)                                       as t_finish_at,
                                      0                                                   as y_take_secs,
-                                     sum(e.take_secs)                                    as t_take_secs
+                                     extract(epoch from max(e.end_at) - min(e.start_at)) as t_take_secs
                               from etl_statistic e
                                        left join vw_etl_table_with_source s
                                                  on e.tid = s.id
