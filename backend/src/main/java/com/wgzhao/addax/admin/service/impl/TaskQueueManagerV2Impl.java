@@ -5,7 +5,6 @@ import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.*;
 import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.service.*;
-import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NonNull;
@@ -78,6 +77,8 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private RedisLockService redisLockService;
+    @Autowired
+    private ExecutionManager executionManager;
 
     // 并发限制 & 入队容量
     private int concurrentLimit;
@@ -509,7 +510,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                 return TaskResultDto.success("执行成功", duration);
             } else {
                 tableService.setFailed(task);
-                alertService.sendToWeComRobot(String.format("采集任务执行失败: %s", tid));
+                alertService.sendToWeComRobot(String.format("采集任务 %s.%s(%d) 执行失败: %s", task.getSourceDb(), task.getSourceTable(), tid, "Addax 非0退出"));
                 return TaskResultDto.failure("执行失败：Addax 退出非0", duration);
             }
         } catch (Exception e) {
@@ -517,7 +518,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             log.error("采集任务 {}.{}({}) 执行失败，耗时: {}s", task.getSourceDb(), task.getSourceTable(), tid, duration, e);
             task.setDuration(duration);
             tableService.setFailed(task);
-            alertService.sendToWeComRobot(String.format("采集任务执行失败: %s, 错误: %s", tid, e.getMessage()));
+            alertService.sendToWeComRobot(String.format("采集任务 %s.%s(%d) 执行失败: %s", task.getSourceDb(), task.getSourceTable(), tid, e.getMessage()));
             String msg = e.getMessage() == null ? "内部异常" : e.getMessage();
             return TaskResultDto.failure("执行异常: " + msg, duration);
         } finally {
@@ -596,24 +597,52 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     private boolean executeAddax(String command, long tid, String logName) {
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
-        TaskResultDto taskResult = CommandExecutor.executeWithResult(command, ADDAX_EXECUTE_TIME_OUT_SECONDS);
-        Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
-        String logContent = null;
+        java.lang.Process process = null;
+        TaskResultDto taskResult;
+        long pid = -1;
         try {
-            logContent = Files.readString(path);
-        } catch (IOException e) {
-            log.error("读取 Addax 日志文件失败: {}", path, e);
+            process = com.wgzhao.addax.admin.utils.CommandExecutor.startProcess(command);
+            try {
+                pid = process.pid();
+            } catch (UnsupportedOperationException ignored) {
+            }
+            // register running process for kill support
+            try {
+                // resolve instanceId from this manager
+                String instance = this.instanceId == null ? java.util.UUID.randomUUID().toString() : this.instanceId;
+                executionManager.register(tid, process, pid, instance);
+            } catch (Exception e) {
+                log.warn("Failed to register process in ExecutionManager for tid={} pid={}", tid, pid, e);
+            }
+
+            taskResult = com.wgzhao.addax.admin.utils.CommandExecutor.waitForProcessWithResult(process, ADDAX_EXECUTE_TIME_OUT_SECONDS, command);
+        } catch (IOException ioe) {
+            log.error("Failed to start process for command: {}", command, ioe);
+            taskResult = TaskResultDto.failure(ioe.getMessage(), 0);
+        } finally {
+            // ensure unregister
+            try {
+                executionManager.unregister(tid);
+            } catch (Exception ignored) {
+            }
         }
-        addaxLogService.insertLog(tid, logContent);
-        etlJour.setDuration(taskResult.durationSeconds());
-        etlJour.setStatus(true);
-        if (!taskResult.success()) {
-            log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.message());
-            etlJour.setStatus(false);
-            etlJour.setErrorMsg(taskResult.message());
-        }
-        jourService.saveJour(etlJour);
-        return taskResult.success();
+         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
+         String logContent = null;
+         try {
+             logContent = Files.readString(path);
+         } catch (IOException e) {
+             log.error("读取 Addax 日志文件失败: {}", path, e);
+         }
+         addaxLogService.insertLog(tid, logContent);
+         etlJour.setDuration(taskResult.durationSeconds());
+         etlJour.setStatus(true);
+         if (!taskResult.success()) {
+             log.error("Addax 采集任务 {} 执行失败，退出码: {}", tid, taskResult.message());
+             etlJour.setStatus(false);
+             etlJour.setErrorMsg(taskResult.message());
+         }
+         jourService.saveJour(etlJour);
+         return taskResult.success();
     }
 
     /**

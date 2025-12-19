@@ -201,4 +201,18 @@ public class TaskController
             return ResponseEntity.ok(errorMsg);
         }
     }
+
+    /**
+     * 终止正在运行的任务
+     * @param taskId 任务ID
+     * @return 任务终止结果
+     */
+    @Operation(summary = "终止正在运行的任务", description = "向运行该任务的节点下发杀死请求，或在本节点强制结束任务")
+    @PostMapping("/{taskId}/kill")
+    public ResponseEntity<TaskResultDto> killTask(
+            @Parameter(description = "任务ID") @PathVariable("taskId") long taskId)
+    {
+        TaskResultDto result = taskService.killTask(taskId);
+        return ResponseEntity.ok(result);
+    }
 }

@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 @Configuration
 public class AppConfig
@@ -12,7 +13,11 @@ public class AppConfig
     @Bean
     public RestTemplate restTemplate()
     {
-        return new RestTemplate();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        // sensible defaults: 2s connect, 5s read
+        requestFactory.setConnectTimeout(2000);
+        requestFactory.setReadTimeout(5000);
+        return new RestTemplate(requestFactory);
     }
 
     @Bean

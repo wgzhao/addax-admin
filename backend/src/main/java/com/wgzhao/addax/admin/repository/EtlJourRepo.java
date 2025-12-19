@@ -23,5 +23,7 @@ public interface EtlJourRepo
     String findLastError(long tableId);
 
     Optional<EtlJour> findFirstByTidAndStatusIsFalse(long tableId);
+
+    Optional<EtlJour> findFirstByTidAndKindOrderByIdDesc(long tableId, String kind);
     // 可根据需要添加自定义查询方法
 }

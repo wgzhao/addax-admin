@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 /**
  * 采集流水服务类，负责采集任务流水的记录与状态管理
@@ -92,5 +93,12 @@ public class EtlJourService
 
     public String getErrorKindByTid(long tableId) {
         return etlJourRepo.findFirstByTidAndStatusIsFalse(tableId).map(EtlJour::getKind).orElse(null);
+    }
+
+    public EtlJour getLastByTidWithKind(long tableId, String kind) {
+        if (kind == null || kind.isEmpty()) {
+            kind = JourKind.COLLECT;
+        }
+        return etlJourRepo.findFirstByTidAndKindOrderByIdDesc(tableId, kind).orElse(null);
     }
 }

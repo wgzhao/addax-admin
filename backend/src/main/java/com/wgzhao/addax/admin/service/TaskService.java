@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,8 @@ public class TaskService {
     private final SystemConfigService configService;
     private final SystemFlagService systemFlagService; // added dependency
     private final com.wgzhao.addax.admin.redis.RedisLockService redisLockService;
+    private final com.wgzhao.addax.admin.service.ExecutionManager executionManager;
+    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -184,8 +187,8 @@ public class TaskService {
     public TaskResultDto submitTask(long tableId) {
         // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
         try {
-            if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
-                log.info("当前正在刷新表结构（由 {} 控制），拒绝直接提交任务：tableId={}", SCHEMA_REFRESH_LOCK_KEY, tableId);
+            if (redisLockService != null && redisLockService.isLocked(com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY)) {
+                log.info("当前正在刷新表结构（由 {} 控制），拒绝直接提交任务：tableId={}", com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY, tableId);
                 return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
             }
         } catch (Exception e) {
@@ -199,6 +202,49 @@ public class TaskService {
             return TaskResultDto.success("任务已提交到队列", 0);
         } else {
             return TaskResultDto.failure("任务提交失败，可能是队列已满或任务已存在", 0);
+        }
+    }
+
+    /**
+     * Kill a running task by job id. If running on this instance, kill locally; otherwise publish a Redis kill message.
+     */
+    public TaskResultDto killTask(long jobId) {
+        try {
+            // try local kill first
+            boolean killedLocal = executionManager.killLocal(jobId);
+            EtlJour etlJour =  jourService.getLastByTidWithKind(jobId, null);
+            if (killedLocal) {
+                log.warn("Killed local job {} by request", jobId);
+                try {
+                    jourService.failJour(etlJour, "Killed by user request");
+                } catch (Exception e) {
+                    log.warn("Failed to record kill reason to etl_jour for job {}", jobId, e);
+                }
+                return TaskResultDto.success("Killed local job", 0);
+            }
+
+            // publish kill to redis channel for remote nodes to handle
+            String channel = "etl:kill";
+            String payload = String.valueOf(jobId);
+            try {
+                stringRedisTemplate.convertAndSend(channel, payload);
+                // set fallback signal key for a short period so target node can detect if pub/sub missed
+                String signalKey = "etl:kill:signal:" + jobId;
+                stringRedisTemplate.opsForValue().set(signalKey, "1", java.time.Duration.ofSeconds(30));
+                log.info("Published kill request for job {} to channel {}", jobId, channel);
+                try {
+                    jourService.failJour(etlJour, "Kill requested by user (remote)");
+                } catch (Exception e) {
+                    log.warn("Failed to record kill request to etl_jour for job {}", jobId, e);
+                }
+                return TaskResultDto.success("Kill request published", 0);
+            } catch (Exception e) {
+                log.error("Failed to publish kill request for job {}", jobId, e);
+                return TaskResultDto.failure("Failed to publish kill request: " + e.getMessage(), 0);
+            }
+        } catch (Exception e) {
+            log.error("killTask failed for job {}", jobId, e);
+            return TaskResultDto.failure(e.getMessage() == null ? "internal error" : e.getMessage(), 0);
         }
     }
 
