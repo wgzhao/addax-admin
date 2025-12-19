@@ -317,7 +317,7 @@
   // 使用公共的批量更新状态选项
   const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
 
-  const runStatus = ref<string[]>([])
+  const runStatus = ref<string>()
 
   const headers: DataTableHeader[] = [
     {
@@ -516,12 +516,14 @@ retryCnt: retryCnt.value
       })
   }
 
-  const _searchCore = () =>
+  const _searchCore = () => {
+    selected.value = []
     loadItems({
       page: 0,
       itemsPerPage: currPageSize.value,
       sortBy: currentSortParam.value
     })
+  }
 
   const searchTable = debounce(_searchCore, 400)
 
