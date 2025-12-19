@@ -16,3 +16,59 @@ html {
 .v-theme--dark .selected-row {
   background-color: rgba(105, 108, 255, 0.15) !important;
 }
+
+/* Compact UI tweaks: reduce paddings/margins for buttons, chips, icons and table cells */
+.v-btn {
+  padding: 4px 8px !important;
+  min-width: 36px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+}
+
+.v-btn .v-icon,
+.v-btn .v-icon--left,
+.v-btn .v-icon--right {
+  margin: 0 6px !important;
+}
+
+.v-chip {
+  padding: 2px 6px !important;
+  font-size: 12px !important;
+  height: 24px !important;
+}
+
+/* Reduce table cell padding to make table more compact */
+.v-data-table-server .v-data-table th,
+.v-data-table-server .v-data-table td {
+  padding: 6px 8px !important;
+  font-size: 13px;
+}
+
+/* Tighter form fields */
+.v-text-field .v-field {
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+}
+
+/* Slightly reduce row gaps in toolbar rows */
+.v-row.mb-2.px-3.py-2 {
+  gap: 8px !important;
+}
+
+/* Ensure icons keep square aspect ratio and center vertically */
+.v-icon {
+  display: inline-block !important;
+  width: 1em !important;
+  height: 1em !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+/* More specific fixes for icons inside chips/toolbars */
+.v-chip .v-icon,
+.v-row .v-icon,
+.v-data-table-server .v-icon {
+  width: 1em !important;
+  height: 1em !important;
+  line-height: 1 !important;
+}

@@ -64,6 +64,11 @@ class TaskService {
   getLastError(taskId: number): Promise<string> {
     return Requests.get(`${this.prefix}/${taskId}/last-error`) as unknown as Promise<string>
   }
+
+  // Kill a running task
+  killTask(taskId: number): Promise<ApiResponse> {
+    return Requests.post(`${this.prefix}/${taskId}/kill`, {}) as unknown as Promise<ApiResponse>
+  }
 }
 
 export default new TaskService()

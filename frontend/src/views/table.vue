@@ -120,7 +120,24 @@
             variant="flat"
             class="font-weight-bold"
           >
-            {{ item.status }}
+              {{ item.status }}
+              <!-- Kill icon for running tasks: move to right, match E icon style -->
+              <template v-if="item.status === 'R'">
+                <v-tooltip location="top">
+                  <template #activator="{ props }">
+                    <v-icon
+                      v-bind="props"
+                      size="16"
+                      color="error"
+                      class="ml-1 align-middle cursor-pointer"
+                      @click.stop="confirmKill(item)"
+                    >
+                      mdi-close
+                    </v-icon>
+                  </template>
+                  <span>点击中止当前运行任务</span>
+                </v-tooltip>
+              </template>
             <template v-if="item.status === 'U' || item.status === 'E'">
               <v-menu open-on-click :close-on-content-click="false" min-width="220" offset-y>
                 <template #activator="{ props }">
@@ -321,7 +338,7 @@
 
   const headers: DataTableHeader[] = [
     {
-      title: '编号',
+      title: '#',
       key: 'id',
       align: 'center' as const,
       width: '3%'
@@ -334,11 +351,8 @@
       width: '12%',
       value: (item) => `${item.name} (${item.code})`
     },
-    { title: '源库', key: 'sourceDb', align: 'center' as const, sortable: true, width: '5%' },
-    { title: '目标库', key: 'targetDb', align: 'center' as const, sortable: false, width: '4%' },
-    { title: '目标表', key: 'targetTable', align: 'center' as const, sortable: true, width: '15%' },
-    // { title: '分区字段', key: 'partName', align: 'center' as const, sortable: true, width: '5%' },
-    // { title: '分区格式', key: 'partFormat', align: 'center' as const, sortable: true, width: '5%' },
+    { title: '源库表', key: 'sourceTableCombined', align: 'start' as const, sortable: true, width: '12%', value: (item) => `${item.sourceDb || ''}.${item.sourceTable || ''}` },
+    { title: '目标库表', key: 'targetTableCombined', align: 'start' as const, sortable: true, width: '18%', value: (item) => `${item.targetDb || ''}.${item.targetTable || ''}` },
     { title: '状态', key: 'status', align: 'center' as const, sortable: true, width: '3%' },
     { title: '剩余', key: 'retryCnt', align: 'center' as const, sortable: true, width: '2%' },
     { title: '耗时', key: 'duration', align: 'center' as const, sortable: true, width: '3%' },
@@ -608,6 +622,31 @@ retryCnt: retryCnt.value
         deleteDialogVisible.value = false
         _searchCore()
       })
+  }
+
+  // Confirm and trigger kill for a running task
+  function confirmKill(item: any) {
+    // simple browser confirm – replace with nicer dialog if desired
+    const ok = window.confirm(`确定要中止任务 ${item.id} 吗？`)
+    if (!ok) return
+    killTask(item)
+  }
+
+  async function killTask(item: any) {
+    try {
+      const res = await taskService.killTask(item.id)
+      if (res && (res as any).success) {
+        notify(`已发送中止请求：${item.id}`, 'primary')
+        // optimistically update status to indicate kill requested
+        const idx = table.value.findIndex((t) => t.id === item.id)
+        if (idx > -1) table.value[idx].status = 'W'
+      } else {
+        notify(`中止请求失败：${(res as any)?.message || '未知错误'}`, 'error')
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      notify('中止任务失败: ' + msg, 'error')
+    }
   }
 </script>
 
