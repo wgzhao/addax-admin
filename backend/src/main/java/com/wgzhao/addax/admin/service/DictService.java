@@ -13,10 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_SWITCH_TIME;
 import static com.wgzhao.addax.admin.common.Constants.shortSdf;
@@ -374,5 +372,17 @@ public class DictService
             }
             saveItem(item);
         }
+    }
+
+    public Set<String> getSqlReservedKeywords() {
+        return sysItemRepo.findByDictCodeOrderByDictCodeAsc(2010).stream()
+                .map(SysItem::getItemKey)
+                .collect(Collectors.toSet());
+    }
+
+    // 表结构刷新超时时间，单位秒
+    public int getSchemaRefreshTimeout() {
+        Integer res = getItemValue(1000, "SCHEMA_REFRESH_TIMEOUT", Integer.class);
+        return res == null ? 600 : res;
     }
 }

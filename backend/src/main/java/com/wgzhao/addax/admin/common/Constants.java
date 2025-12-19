@@ -1,7 +1,8 @@
 package com.wgzhao.addax.admin.common;
 
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -21,9 +22,18 @@ public final class Constants
     // 默认的切日时间
     public static final String DEFAULT_SWITCH_TIME = "16:30";
 
+    // Redis key for schema refresh lock (used to prevent submits/enqueues while schema refresh runs)
+    public static final String SCHEMA_REFRESH_LOCK_KEY = "schema:refresh:lock";
+
+    // JDBC URL prefix -> kind mapping (preserve insertion order)
+    // This map will be initialized during application startup by a Spring component (JdbcKindInitializer).
+    public static java.util.Map<String, String> JDBC_KIND_MAP = java.util.Collections.emptyMap();
+
     public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-    public static final Set<String> SQL_RESERVED_KEYWORDS =  Set.of("ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION",
+    // Default SQL reserved keywords (used as fallback and baseline). Stored in upper-case.
+    private static final Set<String> DEFAULT_SQL_RESERVED_KEYWORDS = Set.of(
+            "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION",
             "BACKUP", "BEFORE", "BETWEEN", "BREAK", "BROWSE", "BULK", "BY", "CASCADE", "CASE", "CAST", "CATALOG", "CHANGE", "CHECK", "CHECKPOINT",
             "CLOSE", "CLUSTERED", "COALESCE", "COLLATE", "COLUMN", "COMMIT", "COMPUTE", "CONSTRAINT", "CONTAINS", "CONTINUE", "CONVERT",
             "CREATE", "CURRENT", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "CURSOR", "DATABASE", "DATE", "DAY",
@@ -42,70 +52,12 @@ public final class Constants
             // Common SQL data types — treat as reserved for column-name safety
             "INT", "INTEGER", "BIGINT", "SMALLINT", "TINYINT", "DECIMAL", "NUMERIC", "FLOAT", "REAL", "DOUBLE",
             "BOOLEAN", "BOOL", "CHAR", "VARCHAR", "NVARCHAR", "TEXT", "TIME", "YEAR", "DATETIME", "TIMESTAMP", "TIMESTAMP_WITH_TIMEZONE",
-            "BINARY", "VARBINARY", "BLOB", "CLOB", "JSON");
+            "BINARY", "VARBINARY", "BLOB", "CLOB", "JSON"
+    );
 
     /**
-     * 判断给定名称是否为 SQL 保留关键字（大小写不敏感）。
+     * The effective set of SQL reserved keywords in upper-case. May be replaced at startup by DB-loaded values.
      */
-    public static boolean isSqlKeyword(String name) {
-        if (name == null) {
-            return false;
-        }
-        return SQL_RESERVED_KEYWORDS.contains(name.toUpperCase(Locale.ROOT));
-    }
+    public static volatile Set<String> SQL_RESERVED_KEYWORDS = Collections.unmodifiableSet(new LinkedHashSet<>(DEFAULT_SQL_RESERVED_KEYWORDS));
 
-    // Database types for selecting identifier quote characters
-    public enum DbType {
-        MYSQL,
-        POSTGRESQL,
-        ORACLE,
-        SQLSERVER,
-        HIVE,
-        DB2,
-        SQLITE,
-        SYBASE,
-        // fallback/default
-        RDBMS
-    }
-
-    // Simple pair to represent left/right quote characters (some DBs use asymmetric quotes like [ ])
-    public record QuoteChars(String left, String right) {
-    }
-
-    public static QuoteChars getQuoteCharsForDb(DbType dbType) {
-        if (dbType == null) {
-            dbType = DbType.RDBMS; // default to MySQL when not specified
-        }
-        return switch (dbType) {
-            case POSTGRESQL, ORACLE -> new QuoteChars( "\\" + "\"", "\\" + "\"");
-            case SQLSERVER -> new QuoteChars("[", "]");
-            default -> new QuoteChars("`", "`");
-        };
-    }
-
-    // 新增：按数据库类型决定引号（默认 MySQL）
-    public static String quoteIfNeeded(String columnName, DbType dbType) {
-        if (columnName == null) {
-            return null;
-        }
-        QuoteChars q = getQuoteCharsForDb(dbType);
-        // already quoted with chosen quote characters?
-        if (columnName.length() >= 2 && columnName.startsWith(q.left) && columnName.endsWith(q.right)) {
-            return columnName;
-        }
-        if (isSqlKeyword(columnName)
-                || columnName.contains(" ")
-                || columnName.contains("-")
-                ||  !(Character.isLetter(columnName.charAt(0)) || columnName.charAt(0) == '_')
-        ) {
-            return q.left + columnName + q.right;
-        }
-        return columnName;
-    }
-
-    public static String quoteIfNeeded(String columnName) {
-
-        // 默认使用 MySQL 的反引号
-        return quoteIfNeeded(columnName, DbType.MYSQL);
-    }
 }

@@ -169,6 +169,9 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                  <compilerArgs>
+                    <arg>-parameters</arg>
+                  </compilerArgs>
                 </configuration>
             </plugin>
         </plugins>

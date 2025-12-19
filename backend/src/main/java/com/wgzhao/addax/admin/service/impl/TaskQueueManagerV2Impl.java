@@ -3,10 +3,12 @@ package com.wgzhao.addax.admin.service.impl;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.*;
+import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.service.*;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,13 +41,14 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
+import static com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY;
 import static java.lang.Math.max;
 
 /**
  * 采集任务队列管理器 - 使用 PostgreSQL 持久化队列 + LISTEN/NOTIFY
+ * 并发与锁控制从数据库迁移为 Redis
  */
 @Component
 @Primary
@@ -72,14 +76,22 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     private EtlJobQueueService jobQueueService;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private RedisLockService redisLockService;
 
     // 并发限制 & 入队容量
     private int concurrentLimit;
     private int enqueueCapacity;
 
-    // 并发控制
+    // 本地并发统计（仅用于快速短期判断/指标）
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
     private final ConcurrentHashMap<Integer, AtomicInteger> sourceRunningTaskCount = new ConcurrentHashMap<>();
+
+    // token maps: store redis tokens associated with a jobId
+    private final ConcurrentHashMap<Long, String> jobLockToken = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, String> jobGlobalPermitToken = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, String> jobSourcePermitToken = new ConcurrentHashMap<>();
+
     private final ExecutorService workerPool = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "etl-worker");
         t.setDaemon(true);
@@ -104,7 +116,7 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     // 轮询间隔 & 租约
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
-    private static final int DEFAULT_LEASE_SECONDS = 7300; // 2小时 + 5分钟 buffer,大于 ADDAX_EXECUTE_TIME_OUT_SECONDS
+    private static final int DEFAULT_LEASE_SECONDS = 7300; // 2小时 + 5分钟 buffer
 
     @PostConstruct
     public void init() {
@@ -119,9 +131,9 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         scheduler.execute(this::listenLoop);
         // 启动定时轮询兜底
         scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        // 启动租约回收
+        // 启动租约回收（仍保留 DB 层回收以保证兼容）
         scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
-        log.info("DB-backed queue started. concurrentLimit={}, enqueueCapacity={}, instanceId={}", concurrentLimit, enqueueCapacity, instanceId);
+        log.info("Redis-backed arbitration queue started. concurrentLimit={}, enqueueCapacity={}, instanceId={}", concurrentLimit, enqueueCapacity, instanceId);
     }
 
     private String resolveInstanceId() {
@@ -216,13 +228,13 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
     }
 
     private void dispatchUntilFull() {
+        // 使用 Redis 全局并发许可和数据源级许可来决定是否真正执行任务
         while (running && runningTaskCount.get() < concurrentLimit) {
             Optional<EtlJobQueue> maybe = jobQueueService.claimNext(instanceId, DEFAULT_LEASE_SECONDS);
             if (maybe.isEmpty()) {
                 return;
             }
             EtlJobQueue job = maybe.get();
-            // 获取任务对应的数据源信息
             EtlTable table = tableService.getTable(job.getTid());
             if (table == null) {
                 log.warn("未找到 tid={} 对应的任务信息，跳过该任务", job.getTid());
@@ -232,35 +244,85 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
             VwEtlTableWithSource source = tableService.getTableView(table.getId());
             Integer maxConcurrency = source.getMaxConcurrency();
 
-            // 检查数据源并发
-            if (maxConcurrency != null && maxConcurrency > 0) {
-                AtomicInteger sourceCount = sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0));
-                if (sourceCount.get() >= maxConcurrency) {
-                    log.info("数据源 {}({}) 并发已达上限 {}，任务 jobId={} 将被放回队列", source.getName(), source.getCode(), maxConcurrency, job.getId());
-                    // 并发已满，放回队列，使用较短的不可见期，避免长时间等下一轮
-                    // 这里使用 5 秒的小延迟，在任务完成释放并发后，通过 triggerDispatchAsync() 尽快重新调度
+            final long jobId = job.getId();
+            final String jobLockKey = "etl:job:" + jobId + ":lock";
+            final Duration jobLockTtl = Duration.ofSeconds(DEFAULT_LEASE_SECONDS);
+
+            // Try to acquire per-job redis lock to ensure only one node proceeds with this job
+            String jtoken = null;
+            try {
+                jtoken = redisLockService.tryLock(jobLockKey, jobLockTtl);
+                if (jtoken == null) {
+                    log.info("Could not acquire redis job lock {} for jobId={}, releasing DB claim", jobLockKey, jobId);
                     jobQueueService.releaseClaim(job.getId(), 5);
-                    // 标记任务为等待采集，这样可以在界面上看到任务处于排队状态
-                    try {
-                        tableService.setWaiting(table);
-                    } catch (Exception e) {
-                        log.warn("设置任务为 WAITING_COLLECT 失败 tid={}, err={}", table.getId(), e.getMessage());
+                    continue;
+                }
+                jobLockToken.put(jobId, jtoken);
+
+                // Try to acquire global permit
+                String globalPermitKey = "concurrent:holders";
+                String globalToken = redisLockService.tryAcquirePermit(globalPermitKey, concurrentLimit, jobLockTtl);
+                if (globalToken == null) {
+                    log.info("Global concurrency limit reached, releasing job {}", jobId);
+                    // cleanup
+                    redisLockService.release(jobLockKey, jtoken);
+                    jobLockToken.remove(jobId);
+                    jobQueueService.releaseClaim(job.getId(), 5);
+                    continue;
+                }
+                jobGlobalPermitToken.put(jobId, globalToken);
+
+                // Try to acquire source-level permit if needed
+                String sourcePermitToken = null;
+                if (maxConcurrency != null && maxConcurrency > 0) {
+                    String sourcePermitKey = "source:holders:" + table.getSid();
+                    sourcePermitToken = redisLockService.tryAcquirePermit(sourcePermitKey, maxConcurrency, jobLockTtl);
+                    if (sourcePermitToken == null) {
+                        log.info("Source {} concurrency reached, releasing job {}", source.getCode(), jobId);
+                        // cleanup global and job lock
+                        redisLockService.release(globalPermitKey, globalToken);
+                        jobGlobalPermitToken.remove(jobId);
+                        redisLockService.release(jobLockKey, jtoken);
+                        jobLockToken.remove(jobId);
+                        jobQueueService.releaseClaim(job.getId(), 5);
+                        // mark waiting
+                        try {
+                            tableService.setWaiting(table);
+                        } catch (Exception e) {
+                            log.warn("设置任务为 WAITING_COLLECT 失败 tid={}, err={}", table.getId(), e.getMessage());
+                        }
+                        continue;
                     }
-                    continue; // 继续尝试下一个任务
+                    jobSourcePermitToken.put(jobId, sourcePermitToken);
+                }
+
+                // Successfully acquired all required permits; now update local counters and submit
+                int current = runningTaskCount.incrementAndGet();
+                if (maxConcurrency != null && maxConcurrency > 0) {
+                    sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0)).incrementAndGet();
+                }
+                log.info("领取任务 jobId={}, tid={}, attempts={}/{}, 当前本地并发 {}/{}, 数据源 {} 并发 {}/{}",
+                        job.getId(), job.getTid(), job.getAttempts(), job.getMaxAttempts(),
+                        current, concurrentLimit, source.getCode(),
+                        sourceRunningTaskCount.getOrDefault(table.getSid(), new AtomicInteger(0)).get(),
+                        maxConcurrency == null || maxConcurrency <= 0 ? "无限制" : maxConcurrency);
+
+                workerPool.submit(() -> executeClaimedJob(job));
+
+            } catch (Exception e) {
+                log.error("Dispatch error for jobId={}", job.getId(), e);
+                // best-effort cleanup
+                if (jtoken != null) {
+                    redisLockService.release(jobLockKey, jtoken);
+                    jobLockToken.remove(jobId);
+                }
+                if (jobQueueService != null) {
+                    try {
+                        jobQueueService.releaseClaim(job.getId(), 5);
+                    } catch (Exception ignored) {
+                    }
                 }
             }
-
-            int current = runningTaskCount.incrementAndGet();
-            // 如果需要，增加数据源并发计数
-            if (maxConcurrency != null && maxConcurrency > 0) {
-                sourceRunningTaskCount.get(table.getSid()).incrementAndGet();
-            }
-            log.info("领取任务 jobId={}, tid={}, attempts={}/{}, 当前并发 {}/{}, 数据源 {} 并发 {}/{}",
-                    job.getId(), job.getTid(), job.getAttempts(), job.getMaxAttempts(),
-                    current, concurrentLimit, source.getCode(),
-                    sourceRunningTaskCount.getOrDefault(table.getSid(), new AtomicInteger(0)).get(),
-                    maxConcurrency == null || maxConcurrency <= 0 ? "无限制" : maxConcurrency);
-            workerPool.submit(() -> executeClaimedJob(job));
         }
     }
 
@@ -296,20 +358,52 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
 
     private void executeClaimedJob(EtlJobQueue job) {
         long start = System.currentTimeMillis();
-        // Schedule periodic lease renewal (heartbeat) while this job runs
+        // Schedule periodic redis-based lease/permit renewal while this job runs
         ScheduledFuture<?> renewer = null;
+        final long jobId = job.getId();
+        final String jobLockKey = "etl:job:" + jobId + ":lock";
+        final Duration jobLockTtl = Duration.ofSeconds(DEFAULT_LEASE_SECONDS);
+
         try {
             int renewInterval = Math.max(30, DEFAULT_LEASE_SECONDS / 3);
             renewer = scheduler.scheduleAtFixedRate(() -> {
                 try {
-                    boolean renewed = jobQueueService.renewLease(job.getId(), instanceId, DEFAULT_LEASE_SECONDS);
-                    if (!renewed) {
-                        log.warn("租约续期失败 jobId={}, instanceId={}，该任务可能已被其它实例接管", job.getId(), instanceId);
-                    } else {
-                        log.debug("租约续期成功 jobId={} by {}", job.getId(), instanceId);
+                    // renew job lock
+                    String jt = jobLockToken.get(jobId);
+                    if (jt != null) {
+                        boolean ok = redisLockService.extend(jobLockKey, jt, jobLockTtl);
+                        if (!ok) {
+                            log.warn("Failed to renew redis job lock for jobId={}", jobId);
+                        }
+                    }
+                    // renew global permit
+                    String gk = jobGlobalPermitToken.get(jobId);
+                    if (gk != null) {
+                        boolean ok = redisLockService.extendPermit("concurrent:holders", gk, jobLockTtl);
+                        if (!ok) {
+                            log.warn("Failed to renew global permit for jobId={}", jobId);
+                        }
+                    }
+                    // renew source permit
+                    String sk = jobSourcePermitToken.get(jobId);
+                    if (sk != null) {
+                        String sourcePermitKey = "source:holders:" + (tableService.getTable(job.getTid()).getSid());
+                        boolean ok = redisLockService.extendPermit(sourcePermitKey, sk, jobLockTtl);
+                        if (!ok) {
+                            log.warn("Failed to renew source permit for jobId={}", jobId);
+                        }
+                    }
+                    // Still keep DB lease renewal as a fallback for compatibility
+                    try {
+                        boolean dbRenewed = jobQueueService.renewLease(job.getId(), instanceId, DEFAULT_LEASE_SECONDS);
+                        if (!dbRenewed) {
+                            log.warn("DB lease renewal failed jobId={}, instanceId={}", job.getId(), instanceId);
+                        }
+                    } catch (Exception e) {
+                        log.warn("DB lease renewal exception jobId={}", job.getId(), e);
                     }
                 } catch (Exception e) {
-                    log.warn("租约续期异常 jobId={}", job.getId(), e);
+                    log.warn("Lease/permit renewal exception for jobId={}", jobId, e);
                 }
             }, renewInterval, renewInterval, TimeUnit.SECONDS);
 
@@ -338,10 +432,10 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                 } catch (Exception ignored) {
                 }
             }
-            // 释放全局并发计数
+            // 释放本地并发计数
             int afterGlobal = runningTaskCount.decrementAndGet();
 
-            // 释放源级并发计数
+            // 释放源级并发计数（本地指标）
             EtlTable table = tableService.getTable(job.getTid());
             if (table != null) {
                 VwEtlTableWithSource source = tableService.getTableView(table.getId());
@@ -356,10 +450,38 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
                     }
                 }
             }
-            log.debug("jobId={} 完成，耗时 {}s，当前全局并发 {}，当前队列待处理 {}",
+
+            log.debug("jobId={} 完成，耗时 {}s，当前本地并发 {}，当前队列待处理 {}",
                     job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
 
-            // 简化触发条件：每个任务完成后都尝试触发一次本地调度，由 dispatchScheduled 合并控制避免风暴
+            // Release Redis tokens/permits and cleanup
+            try {
+                String sk = jobSourcePermitToken.remove(jobId);
+                if (sk != null) {
+                    String sourcePermitKey = "source:holders:" + (table != null ? table.getSid() : "unknown");
+                    redisLockService.releasePermit(sourcePermitKey, sk);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to release source permit for jobId={}", jobId, e);
+            }
+            try {
+                String gk = jobGlobalPermitToken.remove(jobId);
+                if (gk != null) {
+                    redisLockService.releasePermit("concurrent:holders", gk);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to release global permit for jobId={}", jobId, e);
+            }
+            try {
+                String jt = jobLockToken.remove(jobId);
+                if (jt != null) {
+                    redisLockService.release(jobLockKey, jt);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to release job lock for jobId={}", jobId, e);
+            }
+
+            // 完成 DB 层任务后触发调度
             triggerDispatchAsync();
         }
     }
@@ -540,10 +662,19 @@ public class TaskQueueManagerV2Impl implements TaskQueueManager {
         scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
     }
 
-    public boolean addTaskToQueue(EtlTable etlTable) {
+    public boolean addTaskToQueue(@NonNull  EtlTable etlTable) {
         if (systemFlagService != null && systemFlagService.isRefreshInProgress()) {
-            log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable == null ? "null" : etlTable.getId());
+            log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable.getId());
             return false;
+        }
+        // 拒绝在 schema 刷新期间新增任务：检查 redis 锁
+        try {
+            if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
+                log.info("当前正在刷新表结构（由 {} 控制），拒绝将任务 {} 加入队列", SCHEMA_REFRESH_LOCK_KEY, etlTable.getId());
+                return false;
+            }
+        } catch (Exception e) {
+            log.warn("检查 schema 刷新锁失败，继续按默认逻辑处理入队", e);
         }
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;

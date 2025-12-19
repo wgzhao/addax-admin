@@ -35,6 +35,7 @@ addax-admin/
 - 🔧 灵活配置：多环境配置、动态参数
 - 📈 监控与管理：ETL 作业状态监控与日志
 - 🖥️ 友好 UI：基于 Vuetify 的响应式管理界面
+- 🔁 多节点并发支持：数据库持久化队列 + Redis 仲裁，保证多实例部署下任务并发可控与高可用
 
 ## 🛠 技术栈
 
@@ -121,6 +122,45 @@ npm run dev
 - 日志与安全
   - 后端默认日志目录为 `./logs`（可通过 `LOG_DIR` 修改）
   - 认证使用 JWT，过期时间与密钥在后端配置中设置
+
+
+## 多节点并发支持
+
+为了在多实例部署（多节点）下保证任务调度的高可用与并发可控，项目采用了“数据库持久化队列 + Redis 仲裁”的混合方案：
+
+- 架构概览
+  - 任务持久化存储仍保留在 PostgreSQL 的 `etl_job_queue` 表，负责可靠存储、审计与重试语义（pending/running/completed/failed）。
+  - 每个节点为 peer-to-peer 模式都会注册本地触发器（例如定时调度或 LISTEN/NOTIFY 驱动的分发），不再做选举。真正执行前通过 Redis 做第三方仲裁以保证集群内只有一个节点拿到执行许可。
+
+- 执行仲裁（Redis）
+  - per-job 独占锁：key = `etl:job:{jobId}:lock`，使用 SET NX + TTL + token，释放使用 Lua 脚本（保证 token 匹配后删除）。
+  - 全局并发许可：key = `concurrent:holders`（集合实现信号量），限制全局并发槽位。
+  - 源级并发许可：key = `source:holders:{sourceId}`（集合实现），限制单个数据源的并发数。
+  - schema 刷新保护：key = `schema:refresh:lock`（Constants 中配置），当存在时拒绝新增/提交采集任务，避免刷新期间不一致。
+  - 续租（renewal）：执行中周期性延长锁与 permit 的 TTL（守护定时任务），TTL 与续租间隔可配置，保证长任务不会被误回收。
+
+- 工作流（要点）
+  1. 节点从 DB 领取任务（claimNext）以获得持久化语义；领取后，节点尝试获取 Redis per-job lock 与相应的 permit（全局/源级）。
+  2. 若任一 Redis 授权失败：释放 DB claim（短期不可见后重试），不执行任务。若全部获授权，则进入执行，并在执行期间定期续租 Redis 授权和 DB 租约。
+  3. 执行完成后：释放 Redis token/permit，更新 DB 状态（complete/fail），并触发本地调度尝试填满并发槽位。
+
+- 优点快速说明
+  - 保留 DB 的持久化和审计能力；使用 Redis 降低 DB 在高并发场景下的争用与写负载。
+  - Redis 的锁+permit 使并发控制更细粒度、延迟更低且更易扩展。
+
+- 关键配置点（代码/常量）
+  - `Constants.SCHEMA_REFRESH_LOCK_KEY`（schema 刷新锁 key）
+  - Redis 锁/permit TTL、续租间隔（在代码中易于配置化，建议外放至 application.properties）
+  - 数据源并发限制来源：在源配置中定义 maxConcurrency，系统在分发时使用该值作为 source permit 的容量。
+
+- 运行与测试建议
+  - 在测试环境使用 Postgres + Redis（Testcontainers）做集成验证：并发领取、schema 刷新期间拒绝入队、节点崩溃后的恢复等场景。
+  - 监控指标建议：锁续租成功率、permit 获取失败率、被拒绝入队次数、pending/ running 数量、任务重复执行报警。
+
+- 备注
+  - 该混合策略兼顾可靠性与性能：保留 DB 做可信存储，使用 Redis 做实时仲裁与并发控制；如需更高吞吐可考虑把部分低持久化需求的任务迁移到 Redis Streams 或消息队列（Kafka）。
+
+（以上为实现摘要，更多参数化与运维细节见后端代码中的注释与 `Constants` 配置。）
 
 
 ## 🖼️ 界面截图

@@ -6,10 +6,11 @@ create sequence tb_imp_etl_tid_seq;
 
 alter sequence tb_imp_etl_tid_seq owner to addax;
 
-create sequence leader_election_id_seq
-    as integer;
+-- leader_election sequence removed as leader election via DB was removed in favor of Redis locks
+-- create sequence leader_election_id_seq
+--     as integer;
 
-alter sequence leader_election_id_seq owner to addax;
+-- alter sequence leader_election_id_seq owner to addax;
 
 create table addax_log
 (
@@ -475,23 +476,7 @@ create table authorities
 create unique index ix_auth_username
     on authorities (username, authority);
 
-create table leader_election
-(
-    id         integer,
-    node_id    varchar(100),
-    expires_at timestamp with time zone,
-    updated_at timestamp with time zone
-);
-
-comment on table leader_election is 'leader 选举表';
-
-comment on column leader_election.node_id is '节点ID';
-
-comment on column leader_election.expires_at is '过期时间';
-
-comment on column leader_election.updated_at is '更新时间';
-
-alter sequence leader_election_id_seq owned by leader_election.id;
+-- (The previous version contained a leader_election table and related sequence which have been removed.)
 
 create view vw_etl_table_with_source
             (id, source_db, source_table, target_db, target_table, part_kind, part_name, filter, kind, retry_cnt,

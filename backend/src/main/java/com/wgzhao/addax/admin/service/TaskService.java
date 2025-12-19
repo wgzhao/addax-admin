@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 
+import static com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY;
+
 /**
  * 采集任务管理服务类，负责采集任务队列管理及相关业务操作
  */
@@ -25,6 +27,7 @@ public class TaskService {
     private final EtlJourService jourService;
     private final SystemConfigService configService;
     private final SystemFlagService systemFlagService; // added dependency
+    private final com.wgzhao.addax.admin.redis.RedisLockService redisLockService;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -179,6 +182,15 @@ public class TaskService {
     }
 
     public TaskResultDto submitTask(long tableId) {
+        // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
+        try {
+            if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
+                log.info("当前正在刷新表结构（由 {} 控制），拒绝直接提交任务：tableId={}", SCHEMA_REFRESH_LOCK_KEY, tableId);
+                return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
+            }
+        } catch (Exception e) {
+            log.warn("检查 schema 刷新锁失败，继续按 DB flag 逻辑处理", e);
+        }
         if (systemFlagService.isRefreshInProgress()) {
             log.info("当前正在更新参数/刷新表结构，暂时拒绝提交采集任务：tableId={}", tableId);
             return TaskResultDto.failure("正在更新参数，暂时无法提交任务", 0);

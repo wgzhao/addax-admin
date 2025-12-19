@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.utils;
 
 import com.wgzhao.addax.admin.common.Constants;
+import com.wgzhao.addax.admin.common.DbType;
+import com.wgzhao.addax.admin.common.QuoteChars;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -8,9 +10,12 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static com.wgzhao.addax.admin.common.Constants.SQL_RESERVED_KEYWORDS;
 
 /**
  * 数据库工具类。
@@ -18,22 +23,6 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 public class DbUtil {
-    /**
-     * 数据库类型与标识映射表。
-     * key 为数据库类型关键字，value 为类型标识。
-     */
-    private static final java.util.Map<String, String> KIND_MAP = new java.util.LinkedHashMap<>();
-
-    static {
-        KIND_MAP.put("jdbc:mysql", "mysql");
-        KIND_MAP.put("jdbc:oracle", "oracle");
-        KIND_MAP.put("jdbc:sqlserver", "sqlserver");
-        KIND_MAP.put("jdbc:postgresql", "postgresql");
-        KIND_MAP.put("jdbc:db2", "db2");
-        KIND_MAP.put("jdbc:clickhouse", "clickhouse");
-        KIND_MAP.put("jdbc/chk", "clickhouse");
-    }
-
     // test jdbc is connected or not
     public static boolean testConnection(String url, String username, String password) {
         Connection connection = getConnection(url, username, password);
@@ -67,7 +56,7 @@ public class DbUtil {
      * @return 数据库类型标识（如 M、O、S、P、D、C、R）
      */
     public static String getKind(String jdbcUrl) {
-        for (var entry : KIND_MAP.entrySet()) {
+        for (var entry : Constants.JDBC_KIND_MAP.entrySet()) {
             if (jdbcUrl.startsWith(entry.getKey())) {
                 return entry.getValue();
             }
@@ -75,20 +64,20 @@ public class DbUtil {
         return "R";
     }
 
-    public static Constants.DbType getDbType(String jdbcUrl) {
-        for (var entry : KIND_MAP.entrySet()) {
+    public static DbType getDbType(String jdbcUrl) {
+        for (var entry : Constants.JDBC_KIND_MAP.entrySet()) {
             if (jdbcUrl.startsWith(entry.getKey())) {
                 return switch (entry.getValue()) {
-                    case "mysql" -> Constants.DbType.MYSQL;
-                    case "postgresql" -> Constants.DbType.POSTGRESQL;
-                    case "oracle" -> Constants.DbType.ORACLE;
-                    case "sqlserver" -> Constants.DbType.SQLSERVER;
-                    case "clickhouse" -> Constants.DbType.HIVE; // use HIVE quotes for ClickHouse
-                    default -> Constants.DbType.RDBMS;
+                    case "mysql" -> DbType.MYSQL;
+                    case "postgresql" -> DbType.POSTGRESQL;
+                    case "oracle" -> DbType.ORACLE;
+                    case "sqlserver" -> DbType.SQLSERVER;
+                    case "clickhouse" -> DbType.HIVE; // use HIVE quotes for ClickHouse
+                    default -> DbType.RDBMS;
                 };
             }
         }
-        return Constants.DbType.RDBMS;
+        return DbType.RDBMS;
     }
 
     public static String getColumnComment(Connection conn, String dbName, String tableName, String columnName) {
@@ -191,8 +180,8 @@ public class DbUtil {
         // PostgreSQL: pg_class + pg_namespace + obj_description
         else if (url.startsWith("jdbc:postgresql")) {
             sql = """
-                    SELECT obj_description(c.oid) AS comment 
-                    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                    SELECT obj_description(c.oid) AS comment
+                    FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                     WHERE c.relkind='r' AND n.nspname=? AND c.relname = ?
                     """;
         }
@@ -367,4 +356,54 @@ public class DbUtil {
         }
         return null;
     }
+
+
+
+    public static QuoteChars getQuoteCharsForDb(DbType dbType) {
+        if (dbType == null) {
+            dbType = DbType.RDBMS; // default to MySQL when not specified
+        }
+        return switch (dbType) {
+            case POSTGRESQL, ORACLE -> new QuoteChars( "\\" + "\"", "\\" + "\"");
+            case SQLSERVER -> new QuoteChars("[", "]");
+            default -> new QuoteChars("`", "`");
+        };
+    }
+
+    // 新增：按数据库类型决定引号（默认 MySQL）
+    public static String quoteIfNeeded(String columnName, DbType dbType) {
+        if (columnName == null) {
+            return null;
+        }
+        QuoteChars q = getQuoteCharsForDb(dbType);
+        // already quoted with chosen quote characters?
+        if (columnName.length() >= 2 && columnName.startsWith(q.left()) && columnName.endsWith(q.right())) {
+            return columnName;
+        }
+        if (isSqlKeyword(columnName)
+            || columnName.contains(" ")
+            || columnName.contains("-")
+            ||  !(Character.isLetter(columnName.charAt(0)) || columnName.charAt(0) == '_')
+        ) {
+            return q.left() + columnName + q.right();
+        }
+        return columnName;
+    }
+
+    public static String quoteIfNeeded(String columnName) {
+
+        // 默认使用 MySQL 的反引号
+        return quoteIfNeeded(columnName, DbType.MYSQL);
+    }
+
+    /**
+     * 判断给定名称是否为 SQL 保留关键字（大小写不敏感）。
+     */
+    public static boolean isSqlKeyword(String name) {
+        if (name == null) {
+            return false;
+        }
+        return SQL_RESERVED_KEYWORDS.contains(name.toUpperCase(Locale.ROOT));
+    }
+
 }

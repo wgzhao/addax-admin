@@ -101,8 +101,7 @@ public class SystemConfigService
         tmp.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
         tmp.put("QUEUE_SIZE", dictService.getQueueSize());
         tmp.put("ADDAX_HOME", dictService.getAddaxHome());
-        Integer schemaTimeout = dictService.getItemValue(1000, "SCHEMA_REFRESH_TIMEOUT", Integer.class);
-        tmp.put("SCHEMA_REFRESH_TIMEOUT", schemaTimeout == null ? 600 : schemaTimeout);
+        tmp.put("SCHEMA_REFRESH_TIMEOUT", dictService.getSchemaRefreshTimeout());
         tmp.put("RDBMS_READER_TEMPLATE", dictService.getRdbmsReaderTemplate());
         tmp.put("HDFS_WRITER_TEMPLATE", dictService.getHdfsWriterTemplate());
         tmp.put("RDBMS2HDFS_JOB_TEMPLATE", dictService.getRdbms2HdfsJobTemplate());

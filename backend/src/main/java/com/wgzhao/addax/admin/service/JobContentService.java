@@ -2,7 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wgzhao.addax.admin.common.Constants;
+import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
-import static com.wgzhao.addax.admin.common.Constants.quoteIfNeeded;
+import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
+import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
 
 /**
  * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
@@ -96,8 +97,8 @@ public class JobContentService {
         values.put("autoPk", String.valueOf(vTable.getAutoPk()));
         values.put("splitPk", vTable.getSplitPk() == null ? "" : vTable.getSplitPk());
         values.put("fetchSize", "20480");
-        Constants.DbType dbType = DbUtil.getDbType(vTable.getUrl());
-        if (dbType == Constants.DbType.POSTGRESQL) {
+        DbType dbType = getDbType(vTable.getUrl());
+        if (dbType == DbType.POSTGRESQL) {
             values.put("table", quoteIfNeeded(vTable.getSourceTable(), dbType));
         } else {
             values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(vTable.getSourceTable(), dbType));
