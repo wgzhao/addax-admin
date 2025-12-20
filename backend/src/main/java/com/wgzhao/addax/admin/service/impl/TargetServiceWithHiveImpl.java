@@ -6,11 +6,10 @@ import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.*;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -27,13 +26,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.sql.Driver;
+import java.sql.DriverManager;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.HiveType.isHiveTypeCompatible;
 
 @Service
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class TargetServiceWithHiveImpl
     implements TargetService
 {
@@ -44,6 +45,8 @@ public class TargetServiceWithHiveImpl
     private final SystemConfigService configService;
 
     private volatile DataSource hiveDataSource;
+    // keep a reference to the registered driver shim so we can deregister it if we ever reinit
+    private volatile Driver registeredHiveDriver;
 
     @Override
     public Connection getHiveConnect()
@@ -77,18 +80,85 @@ public class TargetServiceWithHiveImpl
     {
 
         File hiveJarFile = new File(hiveConnectDto.driverPath());
+        if (!hiveJarFile.exists() || !hiveJarFile.isFile()) {
+            String msg = String.format("Hive driver jar not found at path: %s", hiveConnectDto.driverPath());
+            log.error(msg);
+            throw new IllegalArgumentException(msg);
+        }
+
         URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
         // 创建独立的类加载器
         URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
 
-        // Set the context class loader
-        Thread.currentThread().setContextClassLoader(classLoader);
+        // We'll set the context class loader only for the period of loading/registering the driver
+        ClassLoader previousCl = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(classLoader);
+
+            // Explicitly load and instantiate the driver class from the custom classloader
+            try {
+                Class<?> drvClass = Class.forName(hiveConnectDto.driverClassName(), true, classLoader);
+                Object drvObj = drvClass.getDeclaredConstructor().newInstance();
+                if (!(drvObj instanceof Driver)) {
+                    String msg = String.format("Configured driver class %s is not a java.sql.Driver", hiveConnectDto.driverClassName());
+                    log.error(msg);
+                    throw new IllegalArgumentException(msg);
+                }
+
+                // If there's already a registered shim from previous init, deregister it first
+                try {
+                    if (registeredHiveDriver != null) {
+                        try {
+                            DriverManager.deregisterDriver(registeredHiveDriver);
+                        }
+                        catch (SQLException ex) {
+                            log.warn("Failed to deregister previous hive driver shim", ex);
+                        }
+                        registeredHiveDriver = null;
+                    }
+                }
+                catch (Exception ex) {
+                    log.debug("No previous hive driver to deregister", ex);
+                }
+
+                Driver realDriver = (Driver) drvObj;
+                Driver shim = new DriverShim(realDriver);
+                try {
+                    DriverManager.registerDriver(shim);
+                    registeredHiveDriver = shim;
+                }
+                catch (SQLException se) {
+                    String msg = String.format("Failed to register hive driver shim: %s", se.getMessage());
+                    log.error(msg, se);
+                    throw new IllegalArgumentException(msg, se);
+                }
+
+            }
+            catch (ClassNotFoundException cnfe) {
+                String msg = String.format("Hive driver class not found: %s", hiveConnectDto.driverClassName());
+                log.error(msg, cnfe);
+                throw new IllegalArgumentException(msg, cnfe);
+            }
+            catch (ReflectiveOperationException roe) {
+                String msg = String.format("Failed to instantiate hive driver class: %s", hiveConnectDto.driverClassName());
+                log.error(msg, roe);
+                throw new IllegalArgumentException(msg, roe);
+            }
+
+        }
+        finally {
+            // restore previous classloader to avoid side effects for other parts of the application
+            Thread.currentThread().setContextClassLoader(previousCl);
+        }
 
         BasicDataSource dataSource = new BasicDataSource();
         dataSource.setUrl(hiveConnectDto.url());
         dataSource.setUsername(hiveConnectDto.username());
         dataSource.setPassword(hiveConnectDto.password());
-        dataSource.setDriverClassName(hiveConnectDto.driverClassName());
+        // Do not set driverClassName here: we loaded the driver via a custom classloader
+        // and registered a DriverShim with DriverManager. Let DriverManager find the
+        // registered driver for the URL to avoid ClassNotFoundException from
+        // commons-dbcp2 trying to load the driver via the app classloader.
         return dataSource;
     }
 
@@ -99,7 +169,7 @@ public class TargetServiceWithHiveImpl
      * @param taskId 采集任务 ID
      * @param db Hive 数据库名
      * @param table Hive 表名
-     * @param partName 分区字段名（为空表示非分区表）
+     * @param partName 分区字段名（为空表示非分区表)
      * @param partValue 分区字段值
      * @return 是否添加成功
      */
@@ -340,8 +410,8 @@ public class TargetServiceWithHiveImpl
         String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'", columnName, tableName, table.getPartName(), partValue);
         log.info("getMaxValue sql: {}", sql);
         try (Connection conn = getHiveConnect();
-             Statement stmt = conn.createStatement();
-             var rs = stmt.executeQuery(sql)) {
+            Statement stmt = conn.createStatement();
+            var rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 Object maxVal = rs.getObject("max_val");
                 if (maxVal == null) {
@@ -354,6 +424,56 @@ public class TargetServiceWithHiveImpl
         } catch (SQLException e) {
             log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
             return null;
+        }
+    }
+
+    // Driver shim to wrap a driver loaded from a custom classloader so DriverManager can use it
+    private static final class DriverShim implements java.sql.Driver {
+        private final java.sql.Driver driver;
+
+        DriverShim(java.sql.Driver d) {
+            this.driver = d;
+        }
+
+        @Override
+        public boolean acceptsURL(String u) throws SQLException {
+            return driver.acceptsURL(u);
+        }
+
+        @Override
+        public Connection connect(String u, java.util.Properties p) throws SQLException {
+            return driver.connect(u, p);
+        }
+
+        @Override
+        public int getMajorVersion() {
+            return driver.getMajorVersion();
+        }
+
+        @Override
+        public int getMinorVersion() {
+            return driver.getMinorVersion();
+        }
+
+        @Override
+        public java.sql.DriverPropertyInfo[] getPropertyInfo(String u, java.util.Properties p) throws SQLException {
+            return driver.getPropertyInfo(u, p);
+        }
+
+        @Override
+        public boolean jdbcCompliant() {
+            return driver.jdbcCompliant();
+        }
+
+        @Override
+        public java.util.logging.Logger getParentLogger() throws java.sql.SQLFeatureNotSupportedException {
+            try {
+                return driver.getParentLogger();
+            }
+            catch (AbstractMethodError ame) {
+                // some older drivers don't implement this
+                throw new java.sql.SQLFeatureNotSupportedException(ame);
+            }
         }
     }
 }
