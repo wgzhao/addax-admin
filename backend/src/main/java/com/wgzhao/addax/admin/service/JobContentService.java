@@ -89,10 +89,9 @@ public class JobContentService {
     private String fillRdbmsReaderJob(VwEtlTableWithSource vTable) {
         String template = configService.getRdbmsReaderTemplate();
 
-        String kind = DbUtil.getKind(vTable.getUrl());
         Map<String, String> values = new HashMap<>();
 
-        values.put("name", kind + "reader");
+        values.put("name", vTable.getDbType() + "reader");
         values.put("username", vTable.getUsername());
         values.put("password", vTable.getPass() == null ? "" : vTable.getPass());
         values.put("jdbcUrl", vTable.getUrl());

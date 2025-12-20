@@ -130,8 +130,4 @@ public class SchemaRefreshScheduler implements DisposableBean {
         } catch (Exception ignored) {
         }
     }
-
-    public boolean isRefreshInProgress() {
-        return  redisLockService.isLocked(Constants.SCHEMA_REFRESH_LOCK_KEY);
-    }
 }

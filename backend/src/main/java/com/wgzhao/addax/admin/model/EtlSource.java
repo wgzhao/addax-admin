@@ -7,6 +7,8 @@ import lombok.Setter;
 
 import java.time.LocalTime;
 
+import com.wgzhao.addax.admin.common.DbType;
+
 @Entity
 @Table(name = "etl_source")
 @Setter
@@ -51,4 +53,7 @@ public class EtlSource {
 
     @Column(name = "max_concurrency")
     private Integer maxConcurrency = 5;
+
+    @Column(name = "db_type", length = 50)
+    private String dbType = DbType.RDBMS.getValue();
 }

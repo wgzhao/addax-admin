@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -42,6 +43,7 @@ public class VwEtlTableWithSource {
     private String url;
     private String username;
     private String pass;
+    private String dbType;
     private String startAt;
     private Boolean enabled;
     private String tblComment;
@@ -51,4 +53,3 @@ public class VwEtlTableWithSource {
     private String splitPk;
     private Boolean autoPk;
 }
-

@@ -58,7 +58,22 @@ public class TargetServiceWithHiveImpl
                     log.info("try to load hive jdbc driver from {}", hiveConnectDto.driverPath());
                     try {
                         hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
-                        return hiveDataSource.getConnection();
+                        Connection conn = hiveDataSource.getConnection();
+                        try {
+                            if (conn != null) {
+                                try {
+                                    var md = conn.getMetaData();
+                                    log.info("Obtained Hive connection: driver={} url={}", md.getDriverName(), md.getURL());
+                                }
+                                catch (Throwable ignore) {
+                                    // ignore metadata logging failures
+                                }
+                            }
+                        }
+                        finally {
+                            // return the connection to caller (do not close here)
+                        }
+                        return conn;
                     }
                     catch (SQLException | MalformedURLException e) {
                         throw new RuntimeException(e);
@@ -126,6 +141,7 @@ public class TargetServiceWithHiveImpl
                 try {
                     DriverManager.registerDriver(shim);
                     registeredHiveDriver = shim;
+                    log.info("Registered Hive driver shim for {}", hiveConnectDto.driverClassName());
                 }
                 catch (SQLException se) {
                     String msg = String.format("Failed to register hive driver shim: %s", se.getMessage());

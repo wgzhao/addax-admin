@@ -391,6 +391,8 @@ CREATE TABLE public.etl_source (
     prerequisite character varying(4000),
     pre_script character varying(4000),
     remark character varying(2000),
+    max_concurrency integer DEFAULT 5,
+    db_type character varying(50),
     enabled boolean DEFAULT true
 );
 
@@ -451,6 +453,11 @@ COMMENT ON COLUMN public.etl_source.pass IS '采集源连接的密码';
 COMMENT ON COLUMN public.etl_source.start_at IS '采集的定时启动时间点，一般只考虑到小时和分钟，秒钟默认为 0';
 
 
+-- 新增列注释
+COMMENT ON COLUMN public.etl_source.max_concurrency IS '同时采集的最大并发数';
+
+COMMENT ON COLUMN public.etl_source.db_type IS '解析自 JDBC URL 的数据库类型标识，例如 MYSQL/POSTGRESQL/ORACLE 等';
+
 --
 -- Name: COLUMN etl_source.prerequisite; Type: COMMENT; Schema: public; Owner: -
 --
@@ -469,7 +476,7 @@ COMMENT ON COLUMN public.etl_source.pre_script IS '标志符合条件后的前�
 -- Name: COLUMN etl_source.remark; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.etl_source.remark IS '系统备注信息';
+COMMENT ON COLUMN public.etl_source.remark IS '采集源备注';
 
 
 --

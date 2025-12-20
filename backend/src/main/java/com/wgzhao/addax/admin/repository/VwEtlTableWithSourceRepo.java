@@ -14,7 +14,7 @@ public interface VwEtlTableWithSourceRepo
         extends JpaRepository<VwEtlTableWithSource, Long>
 {
 
-    Page<VwEtlTableWithSource> findByStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);
+    Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);
 
     Page<VwEtlTableWithSource> findByFilterColumnContaining(String filterContent, Pageable pageable);
 

@@ -10,14 +10,13 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.IdGeneratorType;
 
 import java.util.Date;
 
 /**
  * 数据中心消息提醒总表 实体类
  *
- * @author 
+ * @author
  */
 @Entity
 @Table(name="notification")
@@ -35,12 +34,12 @@ public class Notification
 
     // 接收人号码或者其他唯一标识，用逗号分隔
 
-    @Column(name = "phone") 
+    @Column(name = "phone")
     private String phone;
 
     // 消息内容
 
-    @Column(name = "msg") 
+    @Column(name = "msg")
     private String msg;
 
     // 是否发送短信，发送成功后置为y
@@ -48,13 +47,13 @@ public class Notification
     @Column(name = "sms")
     private String sms;
 
-    
+
     // 是否发送KK，发送成功后置为y
 
     @Column(name = "im")
     private String im;
 
-    
+
     // 是否拨打语音，拨打成功后置为y
 
     @Column(name = "call")

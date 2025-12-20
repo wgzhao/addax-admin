@@ -28,10 +28,6 @@ public final class Constants
     // Redis key for schema refresh lock (used to prevent submits/enqueues while schema refresh runs)
     public static final String SCHEMA_REFRESH_LOCK_KEY = "schema:refresh:lock";
 
-    // JDBC URL prefix -> kind mapping (preserve insertion order)
-    // This map will be initialized during application startup by a Spring component (JdbcKindInitializer).
-    public static java.util.Map<String, String> JDBC_KIND_MAP = java.util.Collections.emptyMap();
-
     public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     // Default SQL reserved keywords (used as fallback and baseline). Stored in upper-case.

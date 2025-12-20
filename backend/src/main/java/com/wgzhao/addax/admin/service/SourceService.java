@@ -21,6 +21,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import com.wgzhao.addax.admin.common.DbType;
+
 /**
  * 数据源服务类，负责数据源的增删改查及相关元数据操作。
  */
@@ -103,18 +105,19 @@ public class SourceService
     {
         // 需要和现有数据的调度时间进行对比，如果不相同，则还需要更新调度时间
         EtlSource existing = etlSourceRepo.findById(etlSource.getId()).orElse(null);
+
+        // If URL changed or dbType is null/default, parse dbType from URL
+        if (etlSource.getUrl() != null) {
+            DbType parsed = DbUtil.getDbType(etlSource.getUrl());
+            etlSource.setDbType(parsed.getValue());
+        }
+
         etlSourceRepo.save(etlSource);
         if (existing == null) {
              return etlSource;
         }
         boolean scheduleChanged =  existing.getStartAt() != etlSource.getStartAt();
 
-//        if (existing.getStartAt() != etlSource.getStartAt()) {
-//            // 先取消原有调度任务，再重新调度
-//            log.warn("The scheduling of source {}({}) is being updated", etlSource.getName(), etlSource.getCode());
-//            collectionSchedulingService.cancelTask(etlSource.getCode());
-//            collectionSchedulingService.scheduleOrUpdateTask(etlSource);
-//        }
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
         String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
@@ -128,9 +131,9 @@ public class SourceService
     }
 
     /**
-     * 根据ID删除数据源
+     * 根据 ID 删除数据源
      *
-     * @param id 数据源ID
+     * @param id 数据源 ID
      */
     public void deleteById(int id)
     {
@@ -140,9 +143,9 @@ public class SourceService
     }
 
     /**
-     * 检查数据源ID是否存在
+     * 检查数据源 ID 是否存在
      *
-     * @param id 数据源ID
+     * @param id 数据源 ID
      * @return 是否存在
      */
     public boolean existsById(int id)
@@ -168,6 +171,12 @@ public class SourceService
      */
     public EtlSource create(EtlSource etlSource)
     {
+        // parse dbType from URL for new sources
+        if (etlSource.getUrl() != null) {
+            DbType parsed = DbUtil.getDbType(etlSource.getUrl());
+            etlSource.setDbType(parsed.getValue());
+        }
+
         EtlSource save = etlSourceRepo.save(etlSource);
         // 新采集源创建时，默认创建一个同步任务
         collectionScheduler.scheduleOrUpdateTask(etlSource);

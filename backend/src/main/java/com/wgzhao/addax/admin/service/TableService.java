@@ -175,7 +175,7 @@ public class TableService
      */
     public void refreshAllTableResources()
     {
-        List<EtlTable> tables = etlTableRepo.findAll();
+        List<EtlTable> tables = etlTableRepo.findCanRefreshTables();
         for (EtlTable table : tables) {
             // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
             if (Thread.currentThread().isInterrupted()) {
@@ -225,7 +225,7 @@ public class TableService
     public Page<VwEtlTableWithSource> getVwTablesByStatus(int page, int pageSize, String q, String status, String sortField, String sortOrder)
     {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
-        return vwEtlTableWithSourceRepo.findByStatusAndFilterColumnContaining(status, q.toUpperCase(), pageable);
+        return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusAndFilterColumnContaining(status, q.toUpperCase(), pageable);
     }
 
     /**

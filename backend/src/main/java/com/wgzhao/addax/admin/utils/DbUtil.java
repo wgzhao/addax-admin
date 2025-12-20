@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.utils;
 
-import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.QuoteChars;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +10,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,33 +48,15 @@ public class DbUtil {
         }
     }
 
-    /**
-     * 根据 JDBC url 查表获取数据库类型标识。
-     * 优先匹配 KIND_MAP 中的 key，未命中则返回 "R"。
-     *
-     * @param jdbcUrl JDBC连接字符串
-     * @return 数据库类型标识（如 M、O、S、P、D、C、R）
-     */
-    public static String getKind(String jdbcUrl) {
-        for (var entry : Constants.JDBC_KIND_MAP.entrySet()) {
-            if (jdbcUrl.startsWith(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-        return "R";
-    }
-
     public static DbType getDbType(String jdbcUrl) {
-        for (var entry : Constants.JDBC_KIND_MAP.entrySet()) {
+        // Use DbType's jdbcKindMap to resolve the DB type. This keeps all jdbc prefixes
+        // centralized in DbType. For backward compatibility we keep ClickHouse mapped
+        // to HIVE (so existing quote behavior remains unchanged).
+        Map<String, String> kindMap = DbType.jdbcKindMap();
+        for (var entry : kindMap.entrySet()) {
             if (jdbcUrl.startsWith(entry.getKey())) {
-                return switch (entry.getValue()) {
-                    case "mysql" -> DbType.MYSQL;
-                    case "postgresql" -> DbType.POSTGRESQL;
-                    case "oracle" -> DbType.ORACLE;
-                    case "sqlserver" -> DbType.SQLSERVER;
-                    case "clickhouse" -> DbType.HIVE; // use HIVE quotes for ClickHouse
-                    default -> DbType.RDBMS;
-                };
+                String val = entry.getValue();
+                return DbType.fromValue(val).orElse(DbType.RDBMS);
             }
         }
         return DbType.RDBMS;
