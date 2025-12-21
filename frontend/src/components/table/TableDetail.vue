@@ -8,7 +8,22 @@
             <v-text-field variant="underlined" v-model="table.name" label="源系统"></v-text-field>
           </v-col>
           <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.filter" label="过滤规则"></v-text-field>
+            <div class="d-flex align-center">
+              <v-text-field
+                variant="underlined"
+                v-model="table.filter"
+                label="过滤规则"
+                class="flex-grow-1"
+              ></v-text-field>
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-icon v-bind="props" size="18" class="ms-2" color="info">mdi-information-outline</v-icon>
+                </template>
+                <div style="max-width:320px; white-space:normal; font-size:13px;">
+                  增强过滤说明：以 __max__&lt;列名&gt; 开头表示使用目标表该列的最大值作为过滤条件。示例：__max__id 会被替换为 id &gt; &lt;最大值&gt;；当目标表无数据或出错时，使用 1=1。
+                </div>
+              </v-tooltip>
+            </div>
           </v-col>
           <v-col cols="12" md="3">
             <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"

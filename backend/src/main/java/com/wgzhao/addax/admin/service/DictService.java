@@ -80,6 +80,18 @@ public class DictService
     }
 
     /**
+     * 业务日期加减运算
+     * 根据传入的业务日期和天数，计算新的业务日期，日期为正数，表示比当前业务日期早，负数表示比当前业务日期晚
+     * @param bizDate 当前业务日期，格式为 yyyyMMdd
+     * @param days 天数，正数表示加，负数表示减
+     * @return 计算后的业务日期，格式为 yyyyMMdd
+     */
+    public String bizDateAdd(String bizDate, int days) {
+        String res = sysItemRepo.getBizDateOffset(bizDate, days);
+        return res == null ? bizDate : res;
+    }
+
+    /**
      * 获取 Hive CLI 命令
      * @return Hive CLI 命令字符串
      */

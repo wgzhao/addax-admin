@@ -105,6 +105,7 @@ public class SystemConfigService
         tmp.put("RDBMS_READER_TEMPLATE", dictService.getRdbmsReaderTemplate());
         tmp.put("HDFS_WRITER_TEMPLATE", dictService.getHdfsWriterTemplate());
         tmp.put("RDBMS2HDFS_JOB_TEMPLATE", dictService.getRdbms2HdfsJobTemplate());
+        tmp.put("L2TD", dictService.bizDateAdd(bizDateStr, -1));
         return tmp;
     }
 
@@ -115,6 +116,16 @@ public class SystemConfigService
         } catch (Exception e) {
             log.warn("Failed to read BIZ_DATE from redis: {}", e.getMessage());
             return (String) dictService.getBizDate();
+        }
+    }
+
+    public String getL2TD() {
+        try {
+            return redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "L2TD");
+        } catch (Exception e) {
+            log.warn("Failed to read L2TD from redis: {}", e.getMessage());
+            String bizDateStr = dictService.getBizDate();
+            return dictService.bizDateAdd(bizDateStr, -1);
         }
     }
 

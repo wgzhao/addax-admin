@@ -34,4 +34,11 @@ public interface SysItemRepo
     String findLastBizDateList(String curDate);
 
     List<SysItem> findByDictCodeIn(List<Integer> dictCodes);
+
+    @Query(value = """
+        select item_key from sys_item
+        where dict_code = 1021 and cast(item_key as timestamp) >= cast(?1 as timestamp) - interval '?2' day
+        order by item_key asc limit 1
+        """, nativeQuery = true)
+    String getBizDateOffset(String bizDate, int days);
 }

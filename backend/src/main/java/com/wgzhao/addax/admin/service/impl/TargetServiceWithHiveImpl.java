@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.service.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -328,6 +329,31 @@ public class TargetServiceWithHiveImpl
         catch (SQLException e) {
             log.error("Failed to check hive table existence for {}.{} ", db, table, e);
             return false;
+        }
+    }
+
+    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue) {
+        if (StringUtils.isEmpty(table.getPartName())) {
+            return null;
+        }
+        String tableName = String.format("`%s`.`%s`", table.getTargetDb(), table.getTargetTable());
+        String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'", columnName, tableName, table.getPartName(), partValue);
+        log.info("getMaxValue sql: {}", sql);
+        try (Connection conn = getHiveConnect();
+             Statement stmt = conn.createStatement();
+             var rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                Object maxVal = rs.getObject("max_val");
+                if (maxVal == null) {
+                    return null;
+                }
+                return Long.parseLong(maxVal.toString());
+            } else {
+                return null;
+            }
+        } catch (SQLException e) {
+            log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
+            return null;
         }
     }
 }

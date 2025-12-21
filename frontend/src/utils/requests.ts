@@ -19,7 +19,7 @@ class Requests {
   private instance: AxiosInstance
   private authStore: ReturnType<typeof useAuthStore>
 
-  constructor(baseURL: string, timeout = 5000, authStore: ReturnType<typeof useAuthStore>) {
+  constructor(baseURL: string, timeout = 60000, authStore: ReturnType<typeof useAuthStore>) {
     // 创建 Axios 实例
     this.authStore = authStore
     this.instance = axios.create({

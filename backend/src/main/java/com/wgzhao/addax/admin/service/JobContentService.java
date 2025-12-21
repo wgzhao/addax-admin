@@ -42,6 +42,9 @@ public class JobContentService {
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final SystemConfigService configService;
+    private final TargetService targetService;
+
+    private static String SPECIAL_FILTER_PLACEHOLDER = "__max__";
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -93,7 +96,13 @@ public class JobContentService {
         values.put("username", vTable.getUsername());
         values.put("password", vTable.getPass() == null ? "" : vTable.getPass());
         values.put("jdbcUrl", vTable.getUrl());
-        values.put("where", vTable.getFilter());
+        if (vTable.getFilter().startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
+            // 需要解析过滤条件
+            String parsedFilter = parseFilterCondition(vTable, vTable.getFilter());
+            values.put("where", parsedFilter);
+        } else {
+            values.put("where", vTable.getFilter());
+        }
         values.put("autoPk", String.valueOf(vTable.getAutoPk()));
         values.put("splitPk", vTable.getSplitPk() == null ? "" : vTable.getSplitPk());
         values.put("fetchSize", "20480");
@@ -181,6 +190,27 @@ public class JobContentService {
         jobRepo.deleteById(tableId);
     }
 
+    /**
+     * 解析特定过滤条件，并返回满足 Addax 要求的值
+     * 如果过滤条件字符串是是以__max__开头，我们认定这是特定过滤条件
+     * 他的格式为 __max__&lt;column_name&gt;
+     * 代表需要取目标表中该列的最大值作为过滤条件
+     * 这里的 &lt;column_name&gt; 我们要求比如整形数值类型，一般都是指向自增主键这样的字段
+     */
+    public String parseFilterCondition(VwEtlTableWithSource table, String filterCondition) {
+        if (filterCondition.length() < 8 || ! filterCondition.startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
+            return "1=1";
+        }
+        // 提取字段
+        String columnName = filterCondition.substring(SPECIAL_FILTER_PLACEHOLDER.length());
+        String partValue = configService.getL2TD();
+        Long maxValue = targetService.getMaxValue(table, columnName, partValue);
+        if (maxValue == null) {
+            // 说明目标表还没有数据或者异常了，那么直接返回 1=1
+            return "1=1";
+        }
+        return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
+    }
     /**
      * 根据数据源 ID 异步更新相关的采集任务
      *
