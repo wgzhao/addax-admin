@@ -9,10 +9,11 @@ import java.util.List;
 /**
  * 数据中心消息提醒总表
  *
- * @author 
+ * @author
  */
 public interface NotificationRepo
-        extends JpaRepository<Notification, String> {
+    extends JpaRepository<Notification, String>
+{
     List<Notification> findDistinctByCreateAtAfter(Date td);
 
     List<Notification> findAllByImOrderByCreateAtAsc(String y);

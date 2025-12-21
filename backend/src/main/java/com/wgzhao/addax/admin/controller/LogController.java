@@ -17,9 +17,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,7 +30,8 @@ import java.util.List;
 @RequestMapping("/log")
 @Slf4j
 @AllArgsConstructor
-public class LogController {
+public class LogController
+{
 
     private final AddaxLogService addaxLogService;
     private final StatService statService;
@@ -38,6 +39,7 @@ public class LogController {
 
     /**
      * 获取指定采集任务的日志列表
+     *
      * @param tid 采集任务ID
      * @return 日志列表
      */
@@ -49,6 +51,7 @@ public class LogController {
 
     /**
      * 获取指定日志文件的内容
+     *
      * @param id 日志ID
      * @return 日志内容
      */
@@ -61,15 +64,18 @@ public class LogController {
 
     /**
      * 作业报告接口
+     *
      * @param dto 作业报告数据
      * @return 是否成功
      */
     @PostMapping(value = "/job-report", consumes = "application/json")
-    public boolean jobReport(@RequestBody AddaxReportDto dto) {
+    public boolean jobReport(@RequestBody AddaxReportDto dto)
+    {
         log.debug("job report: {}", dto);
         try {
             Long.parseLong(dto.jobName());
-        } catch (NumberFormatException e) {
+        }
+        catch (NumberFormatException e) {
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
@@ -78,7 +84,7 @@ public class LogController {
         EtlStatistic sta = new EtlStatistic();
         sta.setTid(Long.parseLong(dto.jobName()));
         sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
-        sta.setEndAt( LocalDateTime.ofEpochSecond(dto.endTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
+        sta.setEndAt(LocalDateTime.ofEpochSecond(dto.endTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
         sta.setTakeSecs(dto.totalCosts());
         sta.setByteSpeed(dto.byteSpeedPerSecond());
         sta.setRecSpeed(dto.recordSpeedPerSecond());
@@ -87,7 +93,8 @@ public class LogController {
         sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
         try {
             bizDate = LocalDate.ofInstant(sdf.parse(configService.getBizDate()).toInstant(), java.time.ZoneId.systemDefault());
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             log.warn("Failed to parse biz date, using start time as biz date");
             bizDate = sta.getStartAt().toLocalDate();
         }

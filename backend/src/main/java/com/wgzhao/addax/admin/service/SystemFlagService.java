@@ -14,18 +14,22 @@ import org.springframework.stereotype.Service;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class SystemFlagService {
+public class SystemFlagService
+{
     public static final String KEY_SCHEMA_REFRESH = Constants.SCHEMA_REFRESH_LOCK_KEY;
 
     private final StringRedisTemplate stringRedisTemplate;
+
     /**
      * 检查刷新是否正在进行：直接检查 Redis key
      */
-    public boolean isRefreshInProgress() {
+    public boolean isRefreshInProgress()
+    {
         try {
             Boolean exists = stringRedisTemplate.hasKey(KEY_SCHEMA_REFRESH);
-            return Boolean.TRUE.equals(exists);
-        } catch (Exception e) {
+            return exists;
+        }
+        catch (Exception e) {
             log.error("isRefreshInProgress failed (redis error)", e);
             throw e;
         }

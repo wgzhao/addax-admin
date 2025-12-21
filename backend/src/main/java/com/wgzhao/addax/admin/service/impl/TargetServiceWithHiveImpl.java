@@ -5,7 +5,11 @@ import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
-import com.wgzhao.addax.admin.service.*;
+import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.EtlJourService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.TargetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -19,15 +23,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.text.MessageFormat;
 import java.util.Objects;
-import java.sql.Driver;
-import java.sql.DriverManager;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.HiveType.isHiveTypeCompatible;
@@ -48,6 +56,15 @@ public class TargetServiceWithHiveImpl
     // keep a reference to the registered driver shim so we can deregister it if we ever reinit
     private volatile Driver registeredHiveDriver;
 
+    private static String normalizeComment(String v)
+    {
+        if (v == null) {
+            return "";
+        }
+        String c = v.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
+        return c.replace("'", "''");
+    }
+
     @Override
     public Connection getHiveConnect()
     {
@@ -59,19 +76,14 @@ public class TargetServiceWithHiveImpl
                     try {
                         hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
                         Connection conn = hiveDataSource.getConnection();
-                        try {
-                            if (conn != null) {
-                                try {
-                                    var md = conn.getMetaData();
-                                    log.info("Obtained Hive connection: driver={} url={}", md.getDriverName(), md.getURL());
-                                }
-                                catch (Throwable ignore) {
-                                    // ignore metadata logging failures
-                                }
+                        if (conn != null) {
+                            try {
+                                var md = conn.getMetaData();
+                                log.info("Obtained Hive connection: driver={} url={}", md.getDriverName(), md.getURL());
                             }
-                        }
-                        finally {
-                            // return the connection to caller (do not close here)
+                            catch (Throwable ignore) {
+                                // ignore metadata logging failures
+                            }
                         }
                         return conn;
                     }
@@ -114,7 +126,7 @@ public class TargetServiceWithHiveImpl
             try {
                 Class<?> drvClass = Class.forName(hiveConnectDto.driverClassName(), true, classLoader);
                 Object drvObj = drvClass.getDeclaredConstructor().newInstance();
-                if (!(drvObj instanceof Driver)) {
+                if (!(drvObj instanceof Driver realDriver)) {
                     String msg = String.format("Configured driver class %s is not a java.sql.Driver", hiveConnectDto.driverClassName());
                     log.error(msg);
                     throw new IllegalArgumentException(msg);
@@ -136,7 +148,6 @@ public class TargetServiceWithHiveImpl
                     log.debug("No previous hive driver to deregister", ex);
                 }
 
-                Driver realDriver = (Driver) drvObj;
                 Driver shim = new DriverShim(realDriver);
                 try {
                     DriverManager.registerDriver(shim);
@@ -148,7 +159,6 @@ public class TargetServiceWithHiveImpl
                     log.error(msg, se);
                     throw new IllegalArgumentException(msg, se);
                 }
-
             }
             catch (ClassNotFoundException cnfe) {
                 String msg = String.format("Hive driver class not found: %s", hiveConnectDto.driverClassName());
@@ -160,7 +170,6 @@ public class TargetServiceWithHiveImpl
                 log.error(msg, roe);
                 throw new IllegalArgumentException(msg, roe);
             }
-
         }
         finally {
             // restore previous classloader to avoid side effects for other parts of the application
@@ -342,30 +351,6 @@ public class TargetServiceWithHiveImpl
         }
     }
 
-    private static String normalizeComment(String v)
-    {
-        if (v == null) {
-            return "";
-        }
-        String c = v.replace('\r', ' ').replace('\n', ' ').replace('\t', ' ').trim();
-        return c.replace("'", "''");
-    }
-
-    // minimal column struct from DESCRIBE output
-    private static class HiveCol
-    {
-        String name;
-        String type;
-        String comment;
-
-        HiveCol(String n, String t, String c)
-        {
-            this.name = n;
-            this.type = t;
-            this.comment = c;
-        }
-    }
-
     /**
      * Parse DESCRIBE `db`.`table` output to current columns map (non-partition columns only).
      */
@@ -418,7 +403,8 @@ public class TargetServiceWithHiveImpl
         }
     }
 
-    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue) {
+    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    {
         if (StringUtils.isEmpty(table.getPartName())) {
             return null;
         }
@@ -434,62 +420,87 @@ public class TargetServiceWithHiveImpl
                     return null;
                 }
                 return Long.parseLong(maxVal.toString());
-            } else {
+            }
+            else {
                 return null;
             }
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
             return null;
         }
     }
 
-    // Driver shim to wrap a driver loaded from a custom classloader so DriverManager can use it
-    private static final class DriverShim implements java.sql.Driver {
-        private final java.sql.Driver driver;
+    // minimal column struct from DESCRIBE output
+    private static class HiveCol
+    {
+        String name;
+        String type;
+        String comment;
 
-        DriverShim(java.sql.Driver d) {
-            this.driver = d;
-        }
-
-        @Override
-        public boolean acceptsURL(String u) throws SQLException {
-            return driver.acceptsURL(u);
-        }
-
-        @Override
-        public Connection connect(String u, java.util.Properties p) throws SQLException {
-            return driver.connect(u, p);
-        }
-
-        @Override
-        public int getMajorVersion() {
-            return driver.getMajorVersion();
-        }
-
-        @Override
-        public int getMinorVersion() {
-            return driver.getMinorVersion();
-        }
-
-        @Override
-        public java.sql.DriverPropertyInfo[] getPropertyInfo(String u, java.util.Properties p) throws SQLException {
-            return driver.getPropertyInfo(u, p);
-        }
-
-        @Override
-        public boolean jdbcCompliant() {
-            return driver.jdbcCompliant();
-        }
-
-        @Override
-        public java.util.logging.Logger getParentLogger() throws java.sql.SQLFeatureNotSupportedException {
-            try {
-                return driver.getParentLogger();
-            }
-            catch (AbstractMethodError ame) {
-                // some older drivers don't implement this
-                throw new java.sql.SQLFeatureNotSupportedException(ame);
-            }
+        HiveCol(String n, String t, String c)
+        {
+            this.name = n;
+            this.type = t;
+            this.comment = c;
         }
     }
+
+    // Driver shim to wrap a driver loaded from a custom classloader so DriverManager can use it
+        private record DriverShim(Driver driver)
+            implements Driver
+        {
+
+            @Override
+            public boolean acceptsURL(String u)
+                throws SQLException
+            {
+                return driver.acceptsURL(u);
+            }
+
+            @Override
+            public Connection connect(String u, Properties p)
+                throws SQLException
+            {
+                return driver.connect(u, p);
+            }
+
+            @Override
+            public int getMajorVersion()
+            {
+                return driver.getMajorVersion();
+            }
+
+            @Override
+            public int getMinorVersion()
+            {
+                return driver.getMinorVersion();
+            }
+
+            @Override
+            public DriverPropertyInfo[] getPropertyInfo(String u, Properties p)
+                throws SQLException
+            {
+                return driver.getPropertyInfo(u, p);
+            }
+
+            @Override
+            public boolean jdbcCompliant()
+            {
+                return driver.jdbcCompliant();
+            }
+
+            @Override
+            public Logger getParentLogger()
+                throws SQLFeatureNotSupportedException
+            {
+                try {
+                    return driver.getParentLogger();
+                }
+                catch (AbstractMethodError ame) {
+                    // some older drivers don't implement this
+                    throw new SQLFeatureNotSupportedException(ame);
+                }
+            }
+        }
 }

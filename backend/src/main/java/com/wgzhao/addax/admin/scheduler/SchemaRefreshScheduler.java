@@ -2,7 +2,8 @@ package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.redis.RedisLockService;
-import com.wgzhao.addax.admin.service.*;
+import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.TaskService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,11 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalTime;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 每天在切日时间触发一次，进行表结构刷新。
@@ -21,33 +26,34 @@ import java.util.concurrent.*;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class SchemaRefreshScheduler implements DisposableBean {
+public class SchemaRefreshScheduler
+    implements DisposableBean
+{
+    // Lock TTL and renewal interval
+    private static final Duration LOCK_TTL = Duration.ofSeconds(600);
+    private static final Duration LOCK_RENEW_INTERVAL = Duration.ofSeconds(60);
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
     private final TaskService taskService;
     private final RedisLockService redisLockService;
-
-    private volatile ScheduledFuture<?> scheduledFuture;
-
-    // Lock TTL and renewal interval
-    private static final Duration LOCK_TTL = Duration.ofSeconds(600);
-    private static final Duration LOCK_RENEW_INTERVAL = Duration.ofSeconds(60);
-
     // Shared renewer thread to avoid creating one per run
     private final ScheduledExecutorService renewer = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "schema-refresh-lock-renewer");
         t.setDaemon(true);
         return t;
     });
+    private volatile ScheduledFuture<?> scheduledFuture;
 
     @PostConstruct
-    public void init() {
+    public void init()
+    {
         // Always schedule locally; actual execution is guarded by Redis lock so only one node will run.
         log.info("Initializing SchemaRefreshScheduler and scheduling local trigger");
         scheduleInternal();
     }
 
-    private void scheduleInternal() {
+    private void scheduleInternal()
+    {
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         String cron = toCron(switchTime);
         log.info("Scheduling schema refresh at {} (cron: {})", switchTime, cron);
@@ -56,7 +62,8 @@ public class SchemaRefreshScheduler implements DisposableBean {
         scheduledFuture = taskScheduler.schedule(this::runRefresh, new CronTrigger(cron));
     }
 
-    private void cancelInternal() {
+    private void cancelInternal()
+    {
         ScheduledFuture<?> future = this.scheduledFuture;
         if (future != null) {
             future.cancel(false);
@@ -64,12 +71,14 @@ public class SchemaRefreshScheduler implements DisposableBean {
         }
     }
 
-    private String toCron(LocalTime time) {
+    private String toCron(LocalTime time)
+    {
         // cron format: second minute hour day-of-month month day-of-week
         return String.format("0 %d %d * * *", time.getMinute(), time.getHour());
     }
 
-    public void runRefresh() {
+    public void runRefresh()
+    {
         log.info("Schema refresh triggered");
 
         final String lockKey = Constants.SCHEMA_REFRESH_LOCK_KEY;
@@ -91,7 +100,8 @@ public class SchemaRefreshScheduler implements DisposableBean {
                     if (!ok) {
                         log.warn("Failed to renew redis lock {} with token {}", lockKey, localToken);
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     log.warn("Exception while renewing redis lock {}: {}", lockKey, e.getMessage());
                 }
             }, LOCK_RENEW_INTERVAL.toMillis(), LOCK_RENEW_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
@@ -99,17 +109,21 @@ public class SchemaRefreshScheduler implements DisposableBean {
             try {
                 taskService.updateParams();
                 log.info("Schema refresh finished successfully");
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 log.error("Schema refresh failed", e);
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             log.error("Error while attempting schema refresh or acquiring lock", ex);
-        } finally {
+        }
+        finally {
             // stop renew task
             if (renewTaskFuture != null) {
                 try {
                     renewTaskFuture.cancel(true);
-                } catch (Exception ignored) {
+                }
+                catch (Exception ignored) {
                 }
             }
 
@@ -123,11 +137,13 @@ public class SchemaRefreshScheduler implements DisposableBean {
     }
 
     @Override
-    public void destroy() {
+    public void destroy()
+    {
         cancelInternal();
         try {
             renewer.shutdownNow();
-        } catch (Exception ignored) {
+        }
+        catch (Exception ignored) {
         }
     }
 }

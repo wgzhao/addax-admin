@@ -6,11 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public interface SysItemRepo
-        extends JpaRepository<SysItem, SysItemPK>
+    extends JpaRepository<SysItem, SysItemPK>
 {
 
     List<SysItem> findByDictCode(int dictCode);
@@ -26,11 +25,11 @@ public interface SysItemRepo
     Optional<SysItem> findByDictCodeAndItemKey(int dictCode, String itemKey);
 
     @Query(value = """
-            SELECT item_value FROM sys_item
-            WHERE dict_code = 1021 AND item_key < ?1
-            ORDER BY item_key DESC
-            LIMIT 1
-            """, nativeQuery = true)
+        SELECT item_value FROM sys_item
+        WHERE dict_code = 1021 AND item_key < ?1
+        ORDER BY item_key DESC
+        LIMIT 1
+        """, nativeQuery = true)
     String findLastBizDateList(String curDate);
 
     List<SysItem> findByDictCodeIn(List<Integer> dictCodes);

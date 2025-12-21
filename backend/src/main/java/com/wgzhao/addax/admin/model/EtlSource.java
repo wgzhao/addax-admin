@@ -1,20 +1,25 @@
 package com.wgzhao.addax.admin.model;
 
-import jakarta.persistence.*;
+import com.wgzhao.addax.admin.common.DbType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalTime;
 
-import com.wgzhao.addax.admin.common.DbType;
-
 @Entity
 @Table(name = "etl_source")
 @Setter
 @Getter
 @Data
-public class EtlSource {
+public class EtlSource
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

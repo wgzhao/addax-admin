@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -16,7 +15,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "vw_etl_table_with_source")
 @Data
-public class VwEtlTableWithSource {
+public class VwEtlTableWithSource
+{
     @Id
     private Long id;
     private String sourceDb;

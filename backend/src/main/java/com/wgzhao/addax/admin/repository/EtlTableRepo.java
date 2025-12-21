@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.repository;
 
-import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.model.EtlTable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -9,8 +8,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalTime;
 import java.util.List;
-
-import static com.wgzhao.addax.admin.common.TableStatus.EXCLUDE_COLLECT;
 
 public interface EtlTableRepo
     extends JpaRepository<EtlTable, Long>

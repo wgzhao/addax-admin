@@ -45,6 +45,7 @@ public class TableService
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
+     *
      * @param table 采集表对象
      * @return 任务结果
      */
@@ -93,7 +94,8 @@ public class TableService
             }
             setNotCollect(table);
             //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
-        } else {
+        }
+        else {
             columnsUpdated = true;
         }
 
@@ -128,18 +130,20 @@ public class TableService
 
     /**
      * 刷新指定ID的采集表资源
+     *
      * @param tableId 采集表ID
      * @return 任务结果
      */
     public TaskResultDto refreshTableResources(long tableId)
     {
         EtlTable table = etlTableRepo.findById(tableId)
-                .orElseThrow(() -> new IllegalArgumentException("Table not found with id: " + tableId));
+            .orElseThrow(() -> new IllegalArgumentException("Table not found with id: " + tableId));
         return refreshTableResources(table);
     }
 
     /**
      * 异步刷新采集表资源
+     *
      * @param table 采集表对象
      */
     @Async
@@ -170,6 +174,7 @@ public class TableService
             }
         }
     }
+
     /**
      * 刷新所有采集表的资源
      */
@@ -214,6 +219,7 @@ public class TableService
 
     /**
      * 根据状态获取视图表信息
+     *
      * @param page 页码
      * @param pageSize 每页大小
      * @param q 查询关键字
@@ -230,6 +236,7 @@ public class TableService
 
     /**
      * 获取单个表的详细信息
+     *
      * @param tid 表ID
      * @return 视图表对象
      */
@@ -239,8 +246,10 @@ public class TableService
     }
 
     // 找到所有需要采集的表
+
     /**
      * 统计所有待采集任务数量
+     *
      * @return 待采集任务数量
      */
     public int findPendingTasks()
@@ -250,6 +259,7 @@ public class TableService
 
     /**
      * 统计所有正在运行的任务数量
+     *
      * @return 正在运行的任务数量
      */
     public int findRunningTasks()
@@ -259,6 +269,7 @@ public class TableService
 
     /**
      * 根据ID获取表信息
+     *
      * @param tid 表ID
      * @return 表对象
      */
@@ -269,6 +280,7 @@ public class TableService
 
     /**
      * 根据ID获取视图表信息
+     *
      * @param tid 表ID
      * @return 视图表对象
      */
@@ -279,6 +291,7 @@ public class TableService
 
     /**
      * 设置任务为正在运行状态
+     *
      * @param task 任务对象
      */
     public void setRunning(EtlTable task)
@@ -290,6 +303,7 @@ public class TableService
 
     /**
      * 设置任务为已完成状态
+     *
      * @param task 任务对象
      */
     public void setFinished(EtlTable task)
@@ -303,6 +317,7 @@ public class TableService
 
     /**
      * 设置任务为失败状态
+     *
      * @param task 任务对象
      */
     public void setFailed(EtlTable task)
@@ -336,6 +351,7 @@ public class TableService
 
     /**
      * 获取所有可运行的任务
+     *
      * @return 可运行的任务列表
      */
     public List<EtlTable> getRunnableTasks()
@@ -354,6 +370,7 @@ public class TableService
 
     /**
      * 根据数据源ID获取可运行的任务
+     *
      * @param sourceId 数据源ID
      * @return 可运行的任务列表
      */
@@ -368,13 +385,14 @@ public class TableService
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);
         return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)
-                .stream()
-                .filter(t -> t.getSid() == sourceId)
-                .toList();
+            .stream()
+            .filter(t -> t.getSid() == sourceId)
+            .toList();
     }
 
     /**
      * 获取有效表的数量
+     *
      * @return 有效表的数量
      */
     public Integer getValidTableCount()
@@ -382,12 +400,14 @@ public class TableService
         return etlTableRepo.findValidTableCount();
     }
 
-    public long getAllTableCount() {
+    public long getAllTableCount()
+    {
         return etlTableRepo.count();
     }
 
     /**
      * 获取所有有效的视图表
+     *
      * @return 视图表列表
      */
     public List<VwEtlTableWithSource> getValidTableViews()
@@ -406,6 +426,7 @@ public class TableService
 
     /**
      * 查找特殊任务
+     *
      * @return 特殊任务列表
      */
     public List<EtlTable> findSpecialTasks()
@@ -419,13 +440,14 @@ public class TableService
     public List<String> getTablesBySidAndDb(int sid, String db)
     {
         return vwEtlTableWithSourceRepo.findBySidAndSourceDb(sid, db)
-                .stream()
-                .map(VwEtlTableWithSource::getSourceTable)
-                .toList();
+            .stream()
+            .map(VwEtlTableWithSource::getSourceTable)
+            .toList();
     }
 
     /**
      * 删除指定ID的表及其相关信息
+     *
      * @param tableId 表ID
      */
     @Transactional
@@ -443,6 +465,7 @@ public class TableService
 
     /**
      * 创建新的采集表
+     *
      * @param etl 采集表对象
      * @return 创建的采集表对象
      */
@@ -453,6 +476,7 @@ public class TableService
 
     /**
      * 批量创建采集表
+     *
      * @param tables 采集表对象列表
      * @return 创建的采集表对象列表
      */
@@ -463,6 +487,7 @@ public class TableService
 
     /**
      * 根据数据源ID获取采集表数量
+     *
      * @param sid source id
      */
     public int getTableCountBySourceId(int sid)
@@ -471,9 +496,10 @@ public class TableService
     }
 
     @Transactional
-    public void updateTableStatuses(BatchTableStatusDto params) {
+    public void updateTableStatuses(BatchTableStatusDto params)
+    {
         if (params.tids().isEmpty()) {
-            return ;
+            return;
         }
 
         etlTableRepo.batchUpdateStatusAndFlag(params.tids(), params.status(), params.retryCnt());

@@ -17,13 +17,16 @@ import java.util.concurrent.TimeUnit;
  * 提供执行 shell 命令并返回标准化结果的方法。
  */
 @Slf4j
-public class CommandExecutor {
+public class CommandExecutor
+{
     // 轻量级输出吞噬线程，避免子进程因缓冲区满而阻塞
-    private static Thread startDiscarder(InputStream in) {
+    private static Thread startDiscarder(InputStream in)
+    {
         Thread t = new Thread(() -> {
             try (in; OutputStream nullOut = OutputStream.nullOutputStream()) {
                 in.transferTo(nullOut);
-            } catch (IOException ignored) {
+            }
+            catch (IOException ignored) {
             }
         }, "cmd-out-discarder");
         t.setDaemon(true);
@@ -34,7 +37,9 @@ public class CommandExecutor {
     /**
      * Start a process for the given shell command and return the Process object.
      */
-    public static Process startProcess(String command) throws IOException {
+    public static Process startProcess(String command)
+        throws IOException
+    {
         boolean isWindows = System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("win");
         List<String> cmd = isWindows ? List.of("cmd.exe", "/c", command) : List.of("bash", "-c", command);
         ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -46,13 +51,15 @@ public class CommandExecutor {
      * Wait for an already started process and collect output, supporting timeout.
      * Returns TaskResultDto similar to executeWithResult.
      */
-    public static TaskResultDto waitForProcessWithResult(Process process, long timeoutSeconds, String command) {
+    public static TaskResultDto waitForProcessWithResult(Process process, long timeoutSeconds, String command)
+    {
         long startAt = System.currentTimeMillis();
         try {
             long pid;
             try {
                 pid = process.pid();
-            } catch (UnsupportedOperationException e) {
+            }
+            catch (UnsupportedOperationException e) {
                 pid = -1;
             }
             log.info("Started process pid={} cmd={}", pid, command);
@@ -61,7 +68,8 @@ public class CommandExecutor {
             Thread collector = new Thread(() -> {
                 try (InputStream in = process.getInputStream()) {
                     in.transferTo(buffer);
-                } catch (IOException ignored) {
+                }
+                catch (IOException ignored) {
                 }
             }, "cmd-out-collector");
             collector.setDaemon(true);
@@ -77,13 +85,15 @@ public class CommandExecutor {
                     long duration = (System.currentTimeMillis() - startAt) / 1000;
                     return TaskResultDto.failure("Process timed out after " + timeoutSeconds + " seconds", duration);
                 }
-            } else {
+            }
+            else {
                 process.waitFor();
             }
 
             try {
                 collector.join(1000);
-            } catch (InterruptedException ie) {
+            }
+            catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             }
 
@@ -92,16 +102,18 @@ public class CommandExecutor {
             if (exitCode != 0) {
                 String output = buffer.toString(StandardCharsets.UTF_8);
                 String message = output.isEmpty()
-                        ? ("exit code: " + exitCode)
-                        : ("exit code: " + exitCode + ", output:\n" + output);
+                    ? ("exit code: " + exitCode)
+                    : ("exit code: " + exitCode + ", output:\n" + output);
                 return TaskResultDto.failure(message, duration);
             }
             return TaskResultDto.success("", duration);
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             long duration = (System.currentTimeMillis() - startAt) / 1000;
             return TaskResultDto.failure("Interrupted", duration);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             long duration = (System.currentTimeMillis() - startAt) / 1000;
             log.error("execute command failed: {}", command, e);
             return TaskResultDto.failure(e.getMessage(), duration);
@@ -111,18 +123,21 @@ public class CommandExecutor {
     /**
      * 可设置超时的执行方法。保留兼容性实现（内部直接启动并等待）。
      */
-    public static TaskResultDto executeWithResult(String command, long timeoutSeconds) {
+    public static TaskResultDto executeWithResult(String command, long timeoutSeconds)
+    {
         try {
             Process p = startProcess(command);
             return waitForProcessWithResult(p, timeoutSeconds, command);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             log.error("execute command failed: {}", command, e);
             return TaskResultDto.failure(e.getMessage(), 0);
         }
     }
 
     // 便捷重载：不设置超时
-    public static TaskResultDto executeWithResult(String command) {
+    public static TaskResultDto executeWithResult(String command)
+    {
         return executeWithResult(command, 0);
     }
 }

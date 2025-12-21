@@ -21,18 +21,18 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 public class JwtFilter
-        extends OncePerRequestFilter
+    extends OncePerRequestFilter
 {
 
     private final JwtService jwtService;
 
     @Override
     protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain filterChain
     )
-            throws ServletException, IOException
+        throws ServletException, IOException
     {
         log.debug("doFilterInternal with jwtFilter");
         String username = null;
@@ -58,7 +58,7 @@ public class JwtFilter
 
         log.debug("valid token, username: {}", username);
         UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(username, null, List.of());
+            new UsernamePasswordAuthenticationToken(username, null, List.of());
 
         authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);

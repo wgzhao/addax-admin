@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.common;
 
-public class JourKind {
+public class JourKind
+{
     // 流水类型
     public static final String COLLECT = "COLLECT"; // 表采集
     public static final String ADDAX_JOB = "ADDAX_JOB"; // 生成采集模板

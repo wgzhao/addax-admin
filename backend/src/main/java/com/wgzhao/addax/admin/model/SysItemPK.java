@@ -9,7 +9,7 @@ import java.util.Objects;
 @Getter
 @Setter
 public class SysItemPK
-        implements Serializable
+    implements Serializable
 {
     private Integer dictCode;
     private String itemKey;

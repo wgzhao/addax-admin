@@ -6,7 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public enum DbType {
+public enum DbType
+{
     MYSQL("mysql", "jdbc:mysql"),
     POSTGRESQL("postgresql", "jdbc:postgresql"),
     ORACLE("oracle", "jdbc:oracle"),
@@ -26,7 +27,8 @@ public enum DbType {
     @Getter private final String value;
     private final String[] jdbcPrefixes;
 
-    DbType(String value, String... jdbcPrefixes) {
+    DbType(String value, String... jdbcPrefixes)
+    {
         this.value = value;
         this.jdbcPrefixes = jdbcPrefixes == null ? new String[0] : jdbcPrefixes;
     }
@@ -34,8 +36,11 @@ public enum DbType {
     /**
      * 根据 value 查找对应枚举（不区分大小写）
      */
-    public static Optional<DbType> fromValue(String v) {
-        if (v == null) return Optional.empty();
+    public static Optional<DbType> fromValue(String v)
+    {
+        if (v == null) {
+            return Optional.empty();
+        }
         String normalized = v.trim();
         for (DbType t : values()) {
             if (t.value.equalsIgnoreCase(normalized) || t.name().equalsIgnoreCase(normalized)) {
@@ -48,7 +53,8 @@ public enum DbType {
     /**
      * 返回一个有序的 Map，将每个 jdbcPrefix 映射到对应的 value（比如 "jdbc:mysql" -> "mysql"）
      */
-    public static Map<String, String> jdbcKindMap() {
+    public static Map<String, String> jdbcKindMap()
+    {
         Map<String, String> m = new LinkedHashMap<>();
         for (DbType t : values()) {
             for (String p : t.jdbcPrefixes) {

@@ -1,6 +1,12 @@
 package com.wgzhao.addax.admin.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -11,11 +17,12 @@ import java.time.LocalDate;
 @Data
 @Entity
 @Table(name = "etl_job_queue", schema = "public",
-        indexes = {
-                @Index(name = "idx_etl_job_queue_status_available", columnList = "status,available_at,priority"),
-                @Index(name = "idx_etl_job_queue_lease", columnList = "status,lease_until")
-        })
-public class EtlJobQueue {
+    indexes = {
+        @Index(name = "idx_etl_job_queue_status_available", columnList = "status,available_at,priority"),
+        @Index(name = "idx_etl_job_queue_lease", columnList = "status,lease_until")
+    })
+public class EtlJobQueue
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

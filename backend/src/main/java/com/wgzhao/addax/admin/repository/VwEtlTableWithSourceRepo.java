@@ -7,11 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Map;
 
 @Repository
 public interface VwEtlTableWithSourceRepo
-        extends JpaRepository<VwEtlTableWithSource, Long>
+    extends JpaRepository<VwEtlTableWithSource, Long>
 {
 
     Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);

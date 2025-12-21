@@ -8,6 +8,7 @@ import java.util.List;
 
 /**
  * Stable page serialization DTO to avoid returning PageImpl directly.
+ *
  * @param <T> element type
  */
 @Setter
@@ -36,14 +37,13 @@ public class PageResponse<T>
     public static <T> PageResponse<T> from(Page<T> page)
     {
         return new PageResponse<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isEmpty()
+            page.getContent(),
+            page.getNumber(),
+            page.getSize(),
+            page.getTotalElements(),
+            page.getTotalPages(),
+            page.isEmpty()
         );
     }
-
 }
 

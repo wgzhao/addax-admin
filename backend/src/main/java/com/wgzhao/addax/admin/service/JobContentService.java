@@ -7,10 +7,12 @@ import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
-import com.wgzhao.addax.admin.model.*;
+import com.wgzhao.addax.admin.model.EtlColumn;
+import com.wgzhao.addax.admin.model.EtlJob;
+import com.wgzhao.addax.admin.model.EtlJour;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
-import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
+import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
 
@@ -35,7 +38,8 @@ import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
 @Service
 @Slf4j
 @AllArgsConstructor
-public class JobContentService {
+public class JobContentService
+{
 
     private final EtlJobRepo jobRepo;
     private final ColumnService columnService;
@@ -44,15 +48,14 @@ public class JobContentService {
     private final SystemConfigService configService;
     private final TargetService targetService;
 
-    private static String SPECIAL_FILTER_PLACEHOLDER = "__max__";
-
     /**
      * 获取指定采集表的采集任务模板内容
      *
      * @param tid 采集表 ID
      * @return 采集任务模板内容（JSON字符串），若不存在则返回null
      */
-    public String getJobContent(long tid) {
+    public String getJobContent(long tid)
+    {
         return jobRepo.findById(tid).map(EtlJob::getJob).orElse(null);
     }
 
@@ -64,7 +67,8 @@ public class JobContentService {
      * @param etlTable 采集表视图对象
      * @return 任务结果
      */
-    public TaskResultDto updateJob(VwEtlTableWithSource etlTable) {
+    public TaskResultDto updateJob(VwEtlTableWithSource etlTable)
+    {
         if (etlTable == null) {
             return TaskResultDto.failure("没有指定采集任务", 0);
         }
@@ -86,7 +90,8 @@ public class JobContentService {
         return TaskResultDto.success("更新采集任务模板成功", 0);
     }
 
-    private String fillRdbmsReaderJob(VwEtlTableWithSource vTable) {
+    private String fillRdbmsReaderJob(VwEtlTableWithSource vTable)
+    {
         String template = configService.getRdbmsReaderTemplate();
 
         Map<String, String> values = new HashMap<>();
@@ -99,7 +104,8 @@ public class JobContentService {
             // 需要解析过滤条件
             String parsedFilter = parseFilterCondition(vTable, vTable.getFilter());
             values.put("where", parsedFilter);
-        } else {
+        }
+        else {
             values.put("where", vTable.getFilter());
         }
         values.put("autoPk", String.valueOf(vTable.getAutoPk()));
@@ -108,7 +114,8 @@ public class JobContentService {
         DbType dbType = getDbType(vTable.getUrl());
         if (dbType == DbType.POSTGRESQL) {
             values.put("table", quoteIfNeeded(vTable.getSourceTable(), dbType));
-        } else {
+        }
+        else {
             values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(vTable.getSourceTable(), dbType));
         }
 
@@ -120,7 +127,8 @@ public class JobContentService {
             if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
                 // 被标记为删除的字段，那么使用 null 来填充该字段
                 srcColumns.add("\"NULL\"");
-            } else {
+            }
+            else {
                 // 如果列名是关键字，则还需要加上引号
                 srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
             }
@@ -130,7 +138,8 @@ public class JobContentService {
         return substitutor.replace(template);
     }
 
-    private String fillHdfsWriterJob(VwEtlTableWithSource vTable) {
+    private String fillHdfsWriterJob(VwEtlTableWithSource vTable)
+    {
 
         Map<String, String> values = new HashMap<>();
         values.put("compress", vTable.getCompressFormat());
@@ -156,7 +165,8 @@ public class JobContentService {
         return substitutor.replace(template);
     }
 
-    private String getHdfsWriteColumns(VwEtlTableWithSource vTable) {
+    private String getHdfsWriteColumns(VwEtlTableWithSource vTable)
+    {
         List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
         List<Map<String, String>> columns = new ArrayList<>();
         for (EtlColumn etlColumn : columnList) {
@@ -166,7 +176,8 @@ public class JobContentService {
             if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
                 // 目标表字段名还是正常的字段名
                 targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
-            } else {
+            }
+            else {
                 targetColumn.put("name", columnName);
             }
             columns.add(targetColumn);
@@ -175,7 +186,8 @@ public class JobContentService {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             return objectMapper.writeValueAsString(columns);
-        } catch (JsonProcessingException e) {
+        }
+        catch (JsonProcessingException e) {
             throw new RuntimeException("column 转换为 JSON 失败", e);
         }
     }
@@ -185,7 +197,8 @@ public class JobContentService {
      *
      * @param tableId 表ID
      */
-    public void deleteByTid(long tableId) {
+    public void deleteByTid(long tableId)
+    {
         jobRepo.deleteById(tableId);
     }
 
@@ -196,8 +209,9 @@ public class JobContentService {
      * 代表需要取目标表中该列的最大值作为过滤条件
      * 这里的 &lt;column_name&gt; 我们要求比如整形数值类型，一般都是指向自增主键这样的字段
      */
-    public String parseFilterCondition(VwEtlTableWithSource table, String filterCondition) {
-        if (filterCondition.length() < 8 || ! filterCondition.startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
+    public String parseFilterCondition(VwEtlTableWithSource table, String filterCondition)
+    {
+        if (filterCondition.length() < 8 || !filterCondition.startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
             return "1=1";
         }
         // 提取字段
@@ -210,6 +224,7 @@ public class JobContentService {
         }
         return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
     }
+
     /**
      * 根据数据源 ID 异步更新相关的采集任务
      *
@@ -217,13 +232,15 @@ public class JobContentService {
      */
     // 根据数据源 ID 更新相关的任务
     @Async
-    public void updateJobBySourceId(int sid) {
+    public void updateJobBySourceId(int sid)
+    {
         vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)
-                .forEach(this::updateJob);
+            .forEach(this::updateJob);
     }
 
     @EventListener
-    public void handleSourceUpdatedEvent(SourceUpdatedEvent event) {
+    public void handleSourceUpdatedEvent(SourceUpdatedEvent event)
+    {
         if (event.isConnectionChanged()) {
             updateJobBySourceId(event.getSourceId());
         }

@@ -7,71 +7,31 @@ import java.util.regex.Pattern;
 import static com.wgzhao.addax.admin.common.Constants.HIVE_DECIMAL_MAX_PRECISION;
 import static com.wgzhao.addax.admin.common.Constants.HIVE_DECIMAL_MAX_SCALE;
 
-/** Lightweight Hive type struct */
-public class HiveType {
-    enum Base {
-        STRING, VARCHAR, CHAR, BINARY,
-        BOOLEAN,
-        TINYINT, SMALLINT, INT, BIGINT,
-        FLOAT, DOUBLE,
-        DECIMAL,
-        DATE, TIMESTAMP,
-        // others: complex
-        ARRAY, MAP, STRUCT, UNION, UNKNOWN;
-
-        public boolean isNumeric() {
-            return this == TINYINT || this == SMALLINT || this == INT || this == BIGINT || this == FLOAT || this == DOUBLE || this == DECIMAL;
-        }
-
-        public int numericRank() {
-            // smaller -> lower rank; wider -> higher rank
-            return switch (this) {
-                case TINYINT -> 1;
-                case SMALLINT -> 2;
-                case INT -> 3;
-                case BIGINT -> 4;
-                case DECIMAL -> 5; // treat decimal as wider than BIGINT for integers
-                case FLOAT -> 6;
-                case DOUBLE -> 7;
-                default -> -1;
-            };
-        }
-    }
-
+/**
+ * Lightweight Hive type struct
+ */
+public class HiveType
+{
     final HiveType.Base base;
     final Integer param1; // e.g., length or precision
     final Integer param2; // e.g., scale
     final String raw;
-
-    HiveType(HiveType.Base base, Integer p1, Integer p2, String raw) {
+    HiveType(HiveType.Base base, Integer p1, Integer p2, String raw)
+    {
         this.base = base;
         this.param1 = p1;
         this.param2 = p2;
         this.raw = raw;
     }
 
-    public boolean isPrimitive() {
-        return base != HiveType.Base.ARRAY && base != HiveType.Base.MAP && base != HiveType.Base.STRUCT && base != HiveType.Base.UNION && base != HiveType.Base.UNKNOWN;
-    }
-
-    public int param1OrDefault(int def) { return param1 == null ? def : param1; }
-    public int param2OrDefault(int def) { return param2 == null ? def : param2; }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof HiveType other)) return false;
-        return Objects.equals(normalizeBase(this.base), normalizeBase(other.base)) &&
-            Objects.equals(this.param1, other.param1) &&
-            Objects.equals(this.param2, other.param2);
-    }
-
-    static HiveType.Base normalizeBase(HiveType.Base b) {
+    static HiveType.Base normalizeBase(HiveType.Base b)
+    {
         // treat STRING/VARCHAR/CHAR distinct for equality, but compatibility handles relaxation
         return b;
     }
 
-    public static HiveType parse(String raw) {
+    public static HiveType parse(String raw)
+    {
         String s = raw.trim().toLowerCase();
         // strip extra spaces
         s = s.replaceAll("\\s+", " ");
@@ -110,10 +70,18 @@ public class HiveType {
             case "timestamp" -> new HiveType(HiveType.Base.TIMESTAMP, null, null, raw);
             default -> {
                 // detect complex types roughly
-                if (s.startsWith("array<")) yield new HiveType(HiveType.Base.ARRAY, null, null, raw);
-                if (s.startsWith("map<")) yield new HiveType(HiveType.Base.MAP, null, null, raw);
-                if (s.startsWith("struct<")) yield new HiveType(HiveType.Base.STRUCT, null, null, raw);
-                if (s.startsWith("uniontype<")) yield new HiveType(HiveType.Base.UNION, null, null, raw);
+                if (s.startsWith("array<")) {
+                    yield new HiveType(HiveType.Base.ARRAY, null, null, raw);
+                }
+                if (s.startsWith("map<")) {
+                    yield new HiveType(HiveType.Base.MAP, null, null, raw);
+                }
+                if (s.startsWith("struct<")) {
+                    yield new HiveType(HiveType.Base.STRUCT, null, null, raw);
+                }
+                if (s.startsWith("uniontype<")) {
+                    yield new HiveType(HiveType.Base.UNION, null, null, raw);
+                }
                 yield new HiveType(HiveType.Base.UNKNOWN, null, null, raw);
             }
         };
@@ -123,7 +91,8 @@ public class HiveType {
      * Determine whether current Hive column type is compatible (equal or more relaxed) than desired type.
      * If compatible, we skip changing the column type.
      */
-    public static boolean isHiveTypeCompatible(String currentTypeRaw, String desiredTypeRaw) {
+    public static boolean isHiveTypeCompatible(String currentTypeRaw, String desiredTypeRaw)
+    {
         if (currentTypeRaw == null || desiredTypeRaw == null) {
             return false;
         }
@@ -157,14 +126,18 @@ public class HiveType {
         // CHAR/VARCHAR compatibility
         if (current.base == HiveType.Base.VARCHAR || current.base == HiveType.Base.CHAR) {
             // string desired always compatible
-            if (desired.base == HiveType.Base.STRING) return true;
+            if (desired.base == HiveType.Base.STRING) {
+                return true;
+            }
             if (desired.base == HiveType.Base.VARCHAR || desired.base == HiveType.Base.CHAR) {
                 int curLen = current.param1OrDefault(65535); // assume large defaults
                 int desLen = desired.param1OrDefault(0);
                 return curLen >= desLen;
             }
             // numeric to varchar/char shouldn't be forced; treat current varchar/char as relaxed
-            if (desired.base.isNumeric()) return true;
+            if (desired.base.isNumeric()) {
+                return true;
+            }
         }
 
         // DATE/TIMESTAMP: timestamp can represent date
@@ -187,7 +160,8 @@ public class HiveType {
         return false;
     }
 
-    private static boolean isNumericWiderOrEqual(HiveType cur, HiveType des) {
+    private static boolean isNumericWiderOrEqual(HiveType cur, HiveType des)
+    {
         // Clamp DECIMAL precision/scale to Hive's max supported before any comparisons
         // This ensures comparisons are made within Hive capabilities (max (38,10))
         if (cur.base == HiveType.Base.DECIMAL) {
@@ -241,4 +215,58 @@ public class HiveType {
         return curRank >= desRank; // higher rank means wider
     }
 
+    public boolean isPrimitive()
+    {
+        return base != HiveType.Base.ARRAY && base != HiveType.Base.MAP && base != HiveType.Base.STRUCT && base != HiveType.Base.UNION && base != HiveType.Base.UNKNOWN;
+    }
+
+    public int param1OrDefault(int def) {return param1 == null ? def : param1;}
+
+    public int param2OrDefault(int def) {return param2 == null ? def : param2;}
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof HiveType other)) {
+            return false;
+        }
+        return Objects.equals(normalizeBase(this.base), normalizeBase(other.base)) &&
+            Objects.equals(this.param1, other.param1) &&
+            Objects.equals(this.param2, other.param2);
+    }
+
+    enum Base
+    {
+        STRING, VARCHAR, CHAR, BINARY,
+        BOOLEAN,
+        TINYINT, SMALLINT, INT, BIGINT,
+        FLOAT, DOUBLE,
+        DECIMAL,
+        DATE, TIMESTAMP,
+        // others: complex
+        ARRAY, MAP, STRUCT, UNION, UNKNOWN;
+
+        public boolean isNumeric()
+        {
+            return this == TINYINT || this == SMALLINT || this == INT || this == BIGINT || this == FLOAT || this == DOUBLE || this == DECIMAL;
+        }
+
+        public int numericRank()
+        {
+            // smaller -> lower rank; wider -> higher rank
+            return switch (this) {
+                case TINYINT -> 1;
+                case SMALLINT -> 2;
+                case INT -> 3;
+                case BIGINT -> 4;
+                case DECIMAL -> 5; // treat decimal as wider than BIGINT for integers
+                case FLOAT -> 6;
+                case DOUBLE -> 7;
+                default -> -1;
+            };
+        }
+    }
 }

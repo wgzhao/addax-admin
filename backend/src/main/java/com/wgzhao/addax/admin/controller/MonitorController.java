@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.Notification;
@@ -27,7 +28,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/monitor")
 @AllArgsConstructor
-public class MonitorController {
+public class MonitorController
+{
     /**
      * 任务服务
      */
@@ -48,7 +50,8 @@ public class MonitorController {
      * @return 采集完成情况列表
      */
     @RequestMapping("/accomplish")
-    public ResponseEntity<List<Map<String, Object>>> getLast2DaysCompleteList() {
+    public ResponseEntity<List<Map<String, Object>>> getLast2DaysCompleteList()
+    {
         return ResponseEntity.ok(statService.getLast2DaysCompleteList());
     }
 
@@ -58,7 +61,8 @@ public class MonitorController {
      * @return 特殊任务列表
      */
     @GetMapping("/special-task")
-    public ResponseEntity<List<EtlTable>> specialTask() {
+    public ResponseEntity<List<EtlTable>> specialTask()
+    {
         return ResponseEntity.ok(taskService.findAllSpecialTask());
     }
 
@@ -68,7 +72,8 @@ public class MonitorController {
      * @return 拒绝任务列表
      */
     @GetMapping("/reject-task")
-    public ResponseEntity<List<EtlStatistic>> getTaskReject() {
+    public ResponseEntity<List<EtlStatistic>> getTaskReject()
+    {
         return ResponseEntity.ok(statService.findErrorTask());
     }
 
@@ -78,29 +83,40 @@ public class MonitorController {
      * @return 风险检测结果
      */
     @RequestMapping("/sys-risk")
-    public ResponseEntity<List<Map<String, Object>>> getSysRisk() {
+    public ResponseEntity<List<Map<String, Object>>> getSysRisk()
+    {
         // 具体实现略
         return ResponseEntity.ok(Collections.emptyList());
     }
 
     // 采集源库的字段变更提醒（T-1日结构与T日结构对比）
     @RequestMapping("/field-change")
-    public ResponseEntity<Page<SchemaChangeLog>> odsFieldChange(
-            @io.swagger.v3.oas.annotations.Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
-            @Parameter(description = "每页记录数") @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
-    ) {
-        return ResponseEntity.ok(schemaChangeLogService.getFieldChanges(page, pageSize));
+    public ResponseEntity<PageResponse<SchemaChangeLog>> odsFieldChange(
+        @io.swagger.v3.oas.annotations.Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
+        @Parameter(description = "每页记录数") @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
+    )
+    {
+        if (page < 0) {
+            page = 0;
+        }
+        if (pageSize == -1) {
+            pageSize = Integer.MAX_VALUE;
+        }
+        Page<SchemaChangeLog> result = schemaChangeLogService.getFieldChanges(page, pageSize);
+        return ResponseEntity.ok(PageResponse.from(result));
     }
 
     // 短信发送详情
     @RequestMapping("/sms-detail")
-    public ResponseEntity<List<Notification>> smsDetail() {
+    public ResponseEntity<List<Notification>> smsDetail()
+    {
         return ResponseEntity.ok(notificationRepo.findAll());
     }
 
     // 最近 15 个采集日内，表数据量无变化的表信息
     @RequestMapping("/no-table-change")
-    public ResponseEntity<List<Map<String, Object>>> noTableChange() {
+    public ResponseEntity<List<Map<String, Object>>> noTableChange()
+    {
         return ResponseEntity.ok(statService.getNoTableRowsChangeList(15));
     }
 }

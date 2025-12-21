@@ -8,7 +8,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
-public class AdminApplication {
+public class AdminApplication
+{
     public static void main(String[] args)
     {
         SpringApplication.run(AdminApplication.class, args);

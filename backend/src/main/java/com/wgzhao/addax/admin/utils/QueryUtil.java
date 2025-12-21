@@ -11,17 +11,20 @@ public class QueryUtil
 {
     /**
      * 根据 SortBy 对象生成排序条件。
+     *
      * @param sortBy 排序参数对象，包含字段名和排序方式
      * @return Sort 排序条件对象
      */
-    public static Sort generateSort(SortBy sortBy) {
+    public static Sort generateSort(SortBy sortBy)
+    {
         Sort sort = Sort.unsorted();
         if (sortBy != null && sortBy.key() != null && !sortBy.key().isEmpty()) {
             String sortOrder = sortBy.order();
             String sortField = sortBy.key();
             if ("asc".equalsIgnoreCase(sortOrder)) {
                 sort = Sort.by(Sort.Direction.ASC, sortField);
-            } else if ("desc".equalsIgnoreCase(sortOrder)) {
+            }
+            else if ("desc".equalsIgnoreCase(sortOrder)) {
                 sort = Sort.by(Sort.Direction.DESC, sortField);
             }
         }
@@ -30,11 +33,13 @@ public class QueryUtil
 
     /**
      * 根据字段名和排序方式生成排序条件。
+     *
      * @param key 字段名
      * @param order 排序方式（asc/desc）
      * @return Sort 排序条件对象
      */
-    public static Sort generateSort(String key, String order) {
+    public static Sort generateSort(String key, String order)
+    {
         return generateSort(new SortBy(key, order));
     }
 }

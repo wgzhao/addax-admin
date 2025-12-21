@@ -1,8 +1,12 @@
 package com.wgzhao.addax.admin.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.Table;
 import lombok.Data;
-import java.math.BigDecimal;
+
 import java.sql.Timestamp;
 
 /**
@@ -13,7 +17,8 @@ import java.sql.Timestamp;
 @Table(name = "etl_column")
 @Data
 @IdClass(EtlColumnPk.class)
-public class EtlColumn {
+public class EtlColumn
+{
 
     @Id
     @Column(name = "tid", nullable = false)

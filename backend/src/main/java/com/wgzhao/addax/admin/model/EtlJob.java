@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name="etl_job")
+@Table(name = "etl_job")
 @Setter
 @Getter
 @Data

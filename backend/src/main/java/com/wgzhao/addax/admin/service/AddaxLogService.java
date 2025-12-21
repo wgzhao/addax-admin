@@ -16,7 +16,8 @@ public class AddaxLogService
 {
     private final AddaxLogRepo addaxLogRepo;
 
-    public void insertLog(long tid,  String message) {
+    public void insertLog(long tid, String message)
+    {
         AddaxLog addaxLog = new AddaxLog();
         addaxLog.setTid(tid);
         addaxLog.setLog(message);
@@ -25,21 +26,26 @@ public class AddaxLogService
         addaxLogRepo.save(addaxLog);
     }
 
-    public List<LocalDate> getLast5RunDatesByTid(long tid) {
+    public List<LocalDate> getLast5RunDatesByTid(long tid)
+    {
         return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid).stream()
-                .map(AddaxLog::getRunDate)
-                .distinct()
-                .toList();
+            .map(AddaxLog::getRunDate)
+            .distinct()
+            .toList();
     }
-    public AddaxLog getLastLogByTid(long tid) {
+
+    public AddaxLog getLastLogByTid(long tid)
+    {
         return addaxLogRepo.findFirstByTidOrderByRunDateDesc(tid);
     }
 
-    public List<AddaxLog> getLast5LogsById(long tid) {
+    public List<AddaxLog> getLast5LogsById(long tid)
+    {
         return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid);
     }
 
-    public String getLogContent(long id) {
+    public String getLogContent(long id)
+    {
         return addaxLogRepo.findLogById(id);
     }
 
@@ -47,5 +53,4 @@ public class AddaxLogService
     {
         return addaxLogRepo.findLogEntry(tid);
     }
-
 }

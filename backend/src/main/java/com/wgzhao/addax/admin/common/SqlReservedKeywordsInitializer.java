@@ -13,16 +13,19 @@ import java.util.Set;
  */
 @Component
 @Slf4j
-public class SqlReservedKeywordsInitializer {
+public class SqlReservedKeywordsInitializer
+{
 
     private final DictService dictService;
 
-    public SqlReservedKeywordsInitializer(DictService dictService) {
+    public SqlReservedKeywordsInitializer(DictService dictService)
+    {
         this.dictService = dictService;
     }
 
     @PostConstruct
-    public void init() {
+    public void init()
+    {
         try {
             Set<String> sqlReservedKeywords = dictService.getSqlReservedKeywords();
             if (sqlReservedKeywords == null || sqlReservedKeywords.isEmpty()) {
@@ -32,7 +35,8 @@ public class SqlReservedKeywordsInitializer {
             // merge two sets into one
             sqlReservedKeywords.addAll(Constants.SQL_RESERVED_KEYWORDS);
             Constants.SQL_RESERVED_KEYWORDS = sqlReservedKeywords;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.warn("Failed to initialize SQL reserved keywords from dict code", e);
         }
     }

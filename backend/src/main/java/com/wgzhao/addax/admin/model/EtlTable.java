@@ -1,13 +1,17 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
 
-import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -20,7 +24,8 @@ import java.util.Date;
 @Setter
 @Getter
 @Data
-public class EtlTable {
+public class EtlTable
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -47,10 +52,10 @@ public class EtlTable {
     @Column(name = "part_format", length = 10)
     private String partFormat;
 
-    @Column(name = "storage_format", length=10)
+    @Column(name = "storage_format", length = 10)
     private String storageFormat;
 
-    @Column(name = "compress_format", length=10)
+    @Column(name = "compress_format", length = 10)
     private String compressFormat;
 
     @Column(name = "filter", length = 2000, nullable = false)

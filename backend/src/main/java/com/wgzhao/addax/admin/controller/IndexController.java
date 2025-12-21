@@ -20,15 +20,22 @@ import java.util.Map;
 @AllArgsConstructor
 public class IndexController
 {
-    /** 统计服务 */
+    /**
+     * 统计服务
+     */
     private final StatService statService;
-    /** 数据源服务 */
+    /**
+     * 数据源服务
+     */
     private final SourceService sourceService;
-    /** 表服务 */
+    /**
+     * 表服务
+     */
     private final TableService tableService;
 
     /**
      * 获取各数据源采集完成率，用于图表展示
+     *
      * @return 完成率列表
      */
     @RequestMapping("/accomplish-ratio")
@@ -39,6 +46,7 @@ public class IndexController
 
     /**
      * 获取最近5天采集耗时对比
+     *
      * @return 耗时数据列表
      */
     @RequestMapping("/last-5d-collect-time")
@@ -49,6 +57,7 @@ public class IndexController
 
     /**
      * 获取最近 5 天的采集数据量对比
+     *
      * @return 数据量列表
      */
     @RequestMapping("/last-5d-collect-data")
@@ -56,8 +65,10 @@ public class IndexController
     {
         return ResponseEntity.ok(statService.statLast5DaysDataBySource());
     }
+
     /**
      * 获取最近交易日采集的数据量（单位GB）
+     *
      * @return 数据量
      */
     @RequestMapping("/last-collect-data")
@@ -67,8 +78,9 @@ public class IndexController
     }
 
     /**
-     *  累计采集数据量（单位GiB）
-     *  @return 累计数据量
+     * 累计采集数据量（单位GiB）
+     *
+     * @return 累计数据量
      */
     @RequestMapping("/total-collect-data")
     public ResponseEntity<Double> totalEtlData()
@@ -78,6 +90,7 @@ public class IndexController
 
     /**
      * 获取最近12个月采集累计数据量（单位GiB）
+     *
      * @return 月度数据量列表
      */
     @RequestMapping("/last-12m-collect-data")
@@ -88,6 +101,7 @@ public class IndexController
 
     /**
      * 获取采集表数量
+     *
      * @return 表数量
      */
     @RequestMapping("/collect-table-count")
@@ -98,6 +112,7 @@ public class IndexController
 
     /**
      * 获取所有采集表数量
+     *
      * @return 表数量
      */
     @RequestMapping("/all-collect-table-count")
@@ -114,8 +129,10 @@ public class IndexController
     {
         return ResponseEntity.ok(sourceService.getAllSources());
     }
+
     /**
      * 获取数据源数量
+     *
      * @return 数据源数量
      */
     @GetMapping("/collect-source-count")

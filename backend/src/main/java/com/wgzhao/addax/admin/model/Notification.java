@@ -19,7 +19,7 @@ import java.util.Date;
  * @author
  */
 @Entity
-@Table(name="notification")
+@Table(name = "notification")
 @Setter
 @Getter
 @Data
@@ -47,12 +47,10 @@ public class Notification
     @Column(name = "sms")
     private String sms;
 
-
     // 是否发送KK，发送成功后置为y
 
     @Column(name = "im")
     private String im;
-
 
     // 是否拨打语音，拨打成功后置为y
 
@@ -62,5 +60,4 @@ public class Notification
     @Column(name = "create_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createAt;
-
 }

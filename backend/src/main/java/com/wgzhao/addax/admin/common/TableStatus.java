@@ -18,6 +18,5 @@ public class TableStatus
     //等待同步表结构
     public static final String WAIT_SCHEMA = "U";
 
-
     private TableStatus() {}
 }

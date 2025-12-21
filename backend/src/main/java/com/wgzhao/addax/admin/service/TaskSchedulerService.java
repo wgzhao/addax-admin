@@ -11,13 +11,15 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 @AllArgsConstructor
-public class TaskSchedulerService {
+public class TaskSchedulerService
+{
 
     private final TaskScheduler taskScheduler;
 
     private final Map<String, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-    public void scheduleTask(String taskId, Runnable task, String cronExpression) {
+    public void scheduleTask(String taskId, Runnable task, String cronExpression)
+    {
         // Cancel any existing task with the same ID
         cancelTask(taskId);
         // Schedule the new task
@@ -25,7 +27,8 @@ public class TaskSchedulerService {
         scheduledTasks.put(taskId, future);
     }
 
-    public void cancelTask(String taskId) {
+    public void cancelTask(String taskId)
+    {
         ScheduledFuture<?> existingTask = scheduledTasks.get(taskId);
         if (existingTask != null) {
             existingTask.cancel(true);
@@ -33,7 +36,8 @@ public class TaskSchedulerService {
         }
     }
 
-    public void cancelAll() {
+    public void cancelAll()
+    {
         for (Map.Entry<String, ScheduledFuture<?>> entry : scheduledTasks.entrySet()) {
             ScheduledFuture<?> future = entry.getValue();
             if (future != null) {

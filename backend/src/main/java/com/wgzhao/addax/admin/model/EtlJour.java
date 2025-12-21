@@ -1,20 +1,23 @@
 package com.wgzhao.addax.admin.model;
 
-import com.wgzhao.addax.admin.common.JourKind;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "etl_jour")
 @Data
-public class EtlJour implements Serializable {
+public class EtlJour
+    implements Serializable
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -32,10 +35,10 @@ public class EtlJour implements Serializable {
     @Column(name = "status")
     private boolean status;
 
-    @Column(name="cmd")
+    @Column(name = "cmd")
     private String cmd;
 
-    @Column(name ="duration")
+    @Column(name = "duration")
     private Long duration = 0L;
 
     @Column(name = "error_msg", length = 4000)

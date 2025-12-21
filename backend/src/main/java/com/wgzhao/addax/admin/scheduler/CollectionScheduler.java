@@ -2,8 +2,8 @@ package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
-import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.redis.RedisLockService;
+import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.service.TaskSchedulerService;
 import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
@@ -19,31 +19,36 @@ import java.util.List;
 @Component
 @Slf4j
 @AllArgsConstructor
-public class CollectionScheduler {
+public class CollectionScheduler
+{
     private final TaskSchedulerService taskSchedulerService;
     private final EtlSourceRepo etlSourceRepo;
     private final TaskService taskService;
     private final RedisLockService redisLockService;
 
     @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
+    public void onApplicationReady()
+    {
         // schedule tasks once when the application context is fully ready
         rescheduleAllTasks();
     }
 
-    public void rescheduleAllTasks() {
+    public void rescheduleAllTasks()
+    {
         try {
             // Schedule collection tasks for each source
             List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
             for (EtlSource source : sources) {
                 scheduleOrUpdateTask(source);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Error in rescheduleAllTasks: ", e);
         }
     }
 
-    public void scheduleOrUpdateTask(EtlSource source) {
+    public void scheduleOrUpdateTask(EtlSource source)
+    {
         String taskId = "source-" + source.getCode();
         if (source.isEnabled() && source.getStartAt() != null) {
             log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
@@ -61,9 +66,11 @@ public class CollectionScheduler {
                         return;
                     }
                     taskService.executeTasksForSource(source.getId());
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     log.error("Error executing scheduled collection for source {}", source.getCode(), e);
-                } finally {
+                }
+                finally {
                     if (token != null) {
                         boolean released = redisLockService.release(lockKey, token);
                         if (!released) {
@@ -73,22 +80,26 @@ public class CollectionScheduler {
                 }
             };
             taskSchedulerService.scheduleTask(taskId, task, cronExpression);
-        } else {
+        }
+        else {
             taskSchedulerService.cancelTask(taskId);
         }
     }
 
-    public void cancelTask(String code) {
+    public void cancelTask(String code)
+    {
         String taskId = "source-" + code;
         taskSchedulerService.cancelTask(taskId);
     }
 
-    private String convertLocalTimeToCron(LocalTime time) {
+    private String convertLocalTimeToCron(LocalTime time)
+    {
         return String.format("0 %d %d * * ?", time.getMinute(), time.getHour());
     }
 
     @EventListener
-    public void handleSourceEvent(SourceUpdatedEvent event) {
+    public void handleSourceEvent(SourceUpdatedEvent event)
+    {
         if (event.isScheduleChanged()) {
             etlSourceRepo.findById(event.getSourceId()).ifPresent(this::scheduleOrUpdateTask);
         }

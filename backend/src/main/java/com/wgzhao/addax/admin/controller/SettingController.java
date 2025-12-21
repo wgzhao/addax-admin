@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.controller;
 
-import cn.hutool.json.JSONUtil;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.SysItem;
@@ -11,7 +10,12 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.sql.DataSource;
 
@@ -49,14 +53,16 @@ public class SettingController
         try {
             // Refresh centralized config in Redis so other nodes see changes
             systemConfigService.reloadFromDictAndBroadcast();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.warn("Failed to reload system config into Redis after update: {}", e.getMessage());
         }
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/reload-sys-config")
-    public ResponseEntity<String> reloadSysConfig() {
+    public ResponseEntity<String> reloadSysConfig()
+    {
         systemConfigService.loadConfig();
         return ResponseEntity.ok("System configuration reloaded successfully");
     }
@@ -84,7 +90,8 @@ public class SettingController
 //    }
 
     @PostMapping("/addax-hdfs-writer-template")
-    public ResponseEntity<String> updateAddaxHdfsWriterTemplate(@RequestBody @NonNull String template) {
+    public ResponseEntity<String> updateAddaxHdfsWriterTemplate(@RequestBody @NonNull String template)
+    {
         dictService.saveHdfsWriteTemplate(template);
         return ResponseEntity.ok().body("HDFS Writer template updated successfully");
     }

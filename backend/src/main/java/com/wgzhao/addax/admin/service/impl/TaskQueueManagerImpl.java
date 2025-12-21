@@ -30,7 +30,7 @@
 //import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 //import static java.lang.Math.max;
 //
-///**
+/// **
 // * 采集任务队列管理器
 // * 负责管理固定长度（100）的采集任务队列，控制30个并发采集程序
 // */

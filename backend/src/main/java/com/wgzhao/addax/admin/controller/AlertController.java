@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.model.Notification;
 import com.wgzhao.addax.admin.repository.NotificationRepo;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -21,16 +20,20 @@ import java.util.List;
 @AllArgsConstructor
 public class AlertController
 {
-    /** 消息提醒数据仓库 */
+    /**
+     * 消息提醒数据仓库
+     */
     private final NotificationRepo notificationRepo;
 
     /**
      * 查询数据中心消息提醒总表数据
+     *
      * @return 消息提醒列表
      */
     @Operation(summary = "查询数据中心消息提醒总表数据", description = "查询数据中心消息提醒总表数据")
     @GetMapping(value = "/list")
-    public List<Notification> getList() {
+    public List<Notification> getList()
+    {
         return notificationRepo.findAll();
     }
 }

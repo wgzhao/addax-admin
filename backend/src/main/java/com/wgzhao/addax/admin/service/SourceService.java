@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
@@ -20,8 +21,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
-import com.wgzhao.addax.admin.common.DbType;
 
 /**
  * 数据源服务类，负责数据源的增删改查及相关元数据操作。
@@ -114,9 +113,9 @@ public class SourceService
 
         etlSourceRepo.save(etlSource);
         if (existing == null) {
-             return etlSource;
+            return etlSource;
         }
-        boolean scheduleChanged =  existing.getStartAt() != etlSource.getStartAt();
+        boolean scheduleChanged = existing.getStartAt() != etlSource.getStartAt();
 
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
@@ -219,11 +218,13 @@ public class SourceService
         return result;
     }
 
-    public List<EtlSource> findEnabledSources() {
+    public List<EtlSource> findEnabledSources()
+    {
         return etlSourceRepo.findByEnabled(true);
     }
 
-    public Long getAllSources() {
+    public Long getAllSources()
+    {
         return etlSourceRepo.count();
     }
 }

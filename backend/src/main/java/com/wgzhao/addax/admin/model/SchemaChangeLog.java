@@ -1,7 +1,12 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -12,7 +17,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "schema_change_log")
 @Data
-public class SchemaChangeLog {
+public class SchemaChangeLog
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,7 +35,9 @@ public class SchemaChangeLog {
     @Column(name = "column_name", length = 255)
     private String columnName;
 
-    /** ADD / DELETE / TYPE_CHANGE */
+    /**
+     * ADD / DELETE / TYPE_CHANGE
+     */
     @Column(name = "change_type", length = 32)
     private String changeType;
 

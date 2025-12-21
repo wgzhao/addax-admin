@@ -30,34 +30,33 @@ public class SecurityConfiguration
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception
+        throws Exception
     {
         http.csrf(AbstractHttpConfigurer::disable)
-                .cors(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests((authorize) -> authorize
-                        // 放行公开接口
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/addax/**").permitAll()
-                        .requestMatchers("/log/job-report")
-                        .permitAll()
-                        .requestMatchers("/**")
-                        .authenticated()
-                        // 其他未匹配路径放行，让 MVC 返回正确的 404/405/500 等
-                        .anyRequest().permitAll()
-                )
-                .httpBasic(Customizer.withDefaults())
-                .formLogin(Customizer.withDefaults())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling((exceptionHandling) -> exceptionHandling
-                        // 无 token/无效 token -> 401
-                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
-                        // 已认证但权限不足 -> 403
-                        .accessDeniedHandler(new CustomAccessDeniedHandler())
-                );
+            .cors(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests((authorize) -> authorize
+                // 放行公开接口
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/addax/**").permitAll()
+                .requestMatchers("/log/job-report")
+                .permitAll()
+                .requestMatchers("/**")
+                .authenticated()
+                // 其他未匹配路径放行，让 MVC 返回正确的 404/405/500 等
+                .anyRequest().permitAll()
+            )
+            .httpBasic(Customizer.withDefaults())
+            .formLogin(Customizer.withDefaults())
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling((exceptionHandling) -> exceptionHandling
+                // 无 token/无效 token -> 401
+                .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+                // 已认证但权限不足 -> 403
+                .accessDeniedHandler(new CustomAccessDeniedHandler())
+            );
 
         return http.build();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder()
@@ -66,41 +65,46 @@ public class SecurityConfiguration
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+        throws Exception
+    {
         return config.getAuthenticationManager();
     }
 
     @Bean
-    UserDetailsManager users(DataSource dataSource, PasswordEncoder passwordEncoder) {
+    UserDetailsManager users(DataSource dataSource, PasswordEncoder passwordEncoder)
+    {
         UserDetails user = User.builder()
-                .username("user")
-                .password(passwordEncoder.encode("user123"))
-                .roles("USER")
-                .build();
+            .username("user")
+            .password(passwordEncoder.encode("user123"))
+            .roles("USER")
+            .build();
         UserDetails admin = User.builder()
-                .username("admin")
-                .password(passwordEncoder.encode("389f89beb8d7"))
-                .roles("USER", "ADMIN")
-                .build();
+            .username("admin")
+            .password(passwordEncoder.encode("389f89beb8d7"))
+            .roles("USER", "ADMIN")
+            .build();
         JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
-        if (! users.userExists("user")) {
+        if (!users.userExists("user")) {
             users.createUser(user);
         }
-        if (! users.userExists("admin")) {
+        if (!users.userExists("admin")) {
             users.createUser(admin);
         }
         return users;
     }
 
-
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
+    public WebMvcConfigurer corsConfigurer()
+    {
+        return new WebMvcConfigurer()
+        {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
+            public void addCorsMappings(CorsRegistry registry)
+            {
                 registry.addMapping("/**")
-                        .allowedOrigins("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+                    .allowedOrigins("*")
+                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
             }
         };
     }

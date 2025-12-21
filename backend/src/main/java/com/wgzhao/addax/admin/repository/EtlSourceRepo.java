@@ -8,7 +8,8 @@ import java.util.List;
 
 @Repository
 public interface EtlSourceRepo
-        extends JpaRepository<EtlSource, Integer> {
+    extends JpaRepository<EtlSource, Integer>
+{
 
     Integer countByEnabled(boolean b);
 

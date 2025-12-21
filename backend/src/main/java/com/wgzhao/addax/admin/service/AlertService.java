@@ -1,14 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +9,15 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Alert Service
@@ -28,17 +28,14 @@ import org.springframework.web.client.RestTemplate;
 public class AlertService
 {
 
-    @Value("${alert.wechat.url}")
-    private String webchatUrl;
-
-    @Value("${alert.wechat.key}")
-    private String wechatKey;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
     // Scheduler used to perform non-blocking delayed retries
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    @Value("${alert.wechat.url}")
+    private String webchatUrl;
+    @Value("${alert.wechat.key}")
+    private String wechatKey;
+    @Autowired
+    private RestTemplate restTemplate;
 
     /**
      * 发送企业微信机器人消息
@@ -66,7 +63,8 @@ public class AlertService
             String encodedKey = URLEncoder.encode(wechatKey == null ? "" : wechatKey, StandardCharsets.UTF_8);
             if (targetUrl.contains("?")) {
                 targetUrl = targetUrl + "&key=" + encodedKey;
-            } else {
+            }
+            else {
                 targetUrl = targetUrl + "?key=" + encodedKey;
             }
         }
@@ -79,14 +77,16 @@ public class AlertService
         final int maxRetries = 3;
         final AtomicInteger attempt = new AtomicInteger(0);
         final long initialDelayMs = 2000L; // initial backoff
-        final long[] delayMs = new long[] { initialDelayMs };
+        final long[] delayMs = new long[] {initialDelayMs};
         try {
-             Runnable task = new Runnable() {
-                 @Override
-                 public void run() {
-                     int curAttempt = attempt.incrementAndGet();
-                     try {
-                         @SuppressWarnings("unchecked")
+            Runnable task = new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    int curAttempt = attempt.incrementAndGet();
+                    try {
+                        @SuppressWarnings("unchecked")
                         Map<String, Object> respMap = restTemplate.postForObject(finalTargetUrl, request, Map.class);
                         log.info("WeCom robot call response (attempt {}): {}", curAttempt, respMap);
 
@@ -99,10 +99,12 @@ public class AlertService
                         int errcode = 0;
                         if (errObj instanceof Number) {
                             errcode = ((Number) errObj).intValue();
-                        } else if (errObj instanceof String) {
+                        }
+                        else if (errObj instanceof String) {
                             try {
                                 errcode = Integer.parseInt((String) errObj);
-                            } catch (NumberFormatException ignored) {
+                            }
+                            catch (NumberFormatException ignored) {
                             }
                         }
 
@@ -119,13 +121,16 @@ public class AlertService
                                 long delayForThis = delayMs[0];
                                 delayMs[0] = delayMs[0] * 2; // exponential backoff for next time
                                 scheduler.schedule(this, delayForThis, TimeUnit.MILLISECONDS);
-                            } else {
+                            }
+                            else {
                                 log.warn("WeCom API rate limit and reached max retries ({}). last errmsg: {}", maxRetries, errmsg);
                             }
-                        } else {
+                        }
+                        else {
                             log.warn("WeCom API returned errcode {}: {}", errcode, errmsg);
                         }
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         log.error("发送企业微信消息尝试失败（异步）", e);
                     }
                 }
@@ -133,16 +138,18 @@ public class AlertService
 
             // schedule first run immediately (non-blocking)
             scheduler.execute(task);
-
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("发送企业微信消息失败", e);
         }
     }
 
-    private String getHostname() {
+    private String getHostname()
+    {
         try {
             return java.net.InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("获取主机名失败", e);
             return "未知主机";
         }

@@ -22,24 +22,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @Slf4j
-public class AuthController {
+public class AuthController
+{
 
-    /** JWT服务 */
+    /**
+     * JWT服务
+     */
     private final JwtService jwtService;
-    /** Spring Security认证管理器 */
+    /**
+     * Spring Security认证管理器
+     */
     private final AuthenticationManager authenticationManager;
 
     /**
      * 用户登录认证，返回JWT令牌
+     *
      * @param authRequestDTO 登录请求参数
      * @return JWT令牌或认证失败信息
      */
     @PostMapping("/login")
-    public ApiResponse<String> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO){
+    public ApiResponse<String> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO)
+    {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password()));
-        if(authentication.isAuthenticated()){
+        if (authentication.isAuthenticated()) {
             return ApiResponse.success(jwtService.generateToken(authRequestDTO.username()));
-        } else {
+        }
+        else {
             return ApiResponse.error(401, "failed to authenticate user");
         }
     }

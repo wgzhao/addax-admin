@@ -42,7 +42,7 @@ public interface TargetService
     Connection getHiveConnect();
 
     DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
-            throws MalformedURLException;
+        throws MalformedURLException;
 
     Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
 }

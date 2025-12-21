@@ -1,10 +1,12 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
+import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import jakarta.annotation.PostConstruct;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -15,33 +17,29 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 @Service
 @AllArgsConstructor
 @Slf4j
 public class SystemConfigService
 {
-    private final DictService dictService;
-
-    private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper;
-
     // No local cache: read templates/config on demand from Redis keys with prefix
     private static final String REDIS_CONFIG_PREFIX = "system:config:"; // full key = prefix + CONFIG_KEY
     private static final String REDIS_CONFIG_CHANNEL = "system:config:reload";
+    private final DictService dictService;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @PostConstruct
-    public void initConfig() {
+    public void initConfig()
+    {
         // Ensure Redis has configuration; if not, bootstrap from dict
         try {
             Boolean exists = redisTemplate.hasKey(REDIS_CONFIG_PREFIX + "RDBMS_READER_TEMPLATE");
             if (!exists) {
                 reloadFromDictAndBroadcast();
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.warn("Failed to read redis config key, falling back to bootstrap: {}", e.getMessage());
             reloadFromDictAndBroadcast();
         }
@@ -56,39 +54,47 @@ public class SystemConfigService
             // Convert all values to JSON/string and store each as a separate Redis key under prefix
             for (Map.Entry<String, Object> e : tmp.entrySet()) {
                 Object val = e.getValue();
-                if (val == null) continue;
+                if (val == null) {
+                    continue;
+                }
                 String s;
                 if (val instanceof String) {
                     s = (String) val;
-                } else {
+                }
+                else {
                     try {
                         s = objectMapper.writeValueAsString(val);
-                    } catch (Exception ex) {
+                    }
+                    catch (Exception ex) {
                         s = val.toString();
                     }
                 }
                 try {
                     redisTemplate.opsForValue().set(REDIS_CONFIG_PREFIX + e.getKey(), s);
-                } catch (Exception ex) {
+                }
+                catch (Exception ex) {
                     log.warn("Failed to set redis key for {}: {}", e.getKey(), ex.getMessage());
                 }
             }
             // publish a simple reload notification
             redisTemplate.convertAndSend(REDIS_CONFIG_CHANNEL, String.valueOf(System.currentTimeMillis()));
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Failed to write config to redis hash: {}", e.getMessage());
         }
     }
 
-    private Map<String, Object> buildConfigFromDict() {
+    private Map<String, Object> buildConfigFromDict()
+    {
         Map<String, Object> tmp = new HashMap<>();
         String curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String bizDateStr = dictService.getBizDate();
         tmp.put("BIZ_DATE", bizDateStr);
         try {
-            LocalDate bizDate =  LocalDate.ofInstant(new SimpleDateFormat("yyyyMMdd").parse(bizDateStr).toInstant(), java.time.ZoneId.systemDefault());
+            LocalDate bizDate = LocalDate.ofInstant(new SimpleDateFormat("yyyyMMdd").parse(bizDateStr).toInstant(), java.time.ZoneId.systemDefault());
             tmp.put("BIZ_DATE_AS_DATE", bizDate);
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             log.error("Failed to parse BIZ_DATE: {}", bizDateStr, e);
             tmp.put("BIZ_DATE_AS_DATE", null);
         }
@@ -113,16 +119,19 @@ public class SystemConfigService
     {
         try {
             return redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "BIZ_DATE");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.warn("Failed to read BIZ_DATE from redis: {}", e.getMessage());
-            return (String) dictService.getBizDate();
+            return dictService.getBizDate();
         }
     }
 
-    public String getL2TD() {
+    public String getL2TD()
+    {
         try {
             return redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "L2TD");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.warn("Failed to read L2TD from redis: {}", e.getMessage());
             String bizDateStr = dictService.getBizDate();
             return dictService.bizDateAdd(bizDateStr, -1);
@@ -132,10 +141,13 @@ public class SystemConfigService
     public LocalDate getBizDateAsDate()
     {
         String bizDateStr = getBizDate();
-        if (bizDateStr == null) return LocalDate.now().plusDays(-1);
+        if (bizDateStr == null) {
+            return LocalDate.now().plusDays(-1);
+        }
         try {
             return LocalDate.ofInstant(new SimpleDateFormat("yyyyMMdd").parse(bizDateStr).toInstant(), java.time.ZoneId.systemDefault());
-        } catch (ParseException e) {
+        }
+        catch (ParseException e) {
             log.error("Failed to parse BIZ_DATE: {}", bizDateStr, e);
             return LocalDate.now().plusDays(-1);
         }
@@ -145,24 +157,28 @@ public class SystemConfigService
     {
         try {
             return redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "SWITCH_TIME");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.warn("Failed to read SWITCH_TIME from redis: {}", e.getMessage());
             return dictService.getSwitchTime();
         }
     }
 
-    public LocalTime getSwitchTimeAsTime() {
+    public LocalTime getSwitchTimeAsTime()
+    {
         String switchTime = getSwitchTime();
         return LocalTime.parse(switchTime, DateTimeFormatter.ofPattern("HH:mm"));
     }
 
-    public HiveConnectDto getHiveServer2() {
+    public HiveConnectDto getHiveServer2()
+    {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "HIVE_SERVER2");
             if (s != null) {
                 return objectMapper.readValue(s, HiveConnectDto.class);
             }
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("Failed to parse HIVE_SERVER2 config: {}", e.getMessage());
         }
         return dictService.getHiveServer2();
@@ -172,18 +188,25 @@ public class SystemConfigService
     {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "CONCURRENT_LIMIT");
-            if (s != null) return Integer.parseInt(s);
-        } catch (Exception e) {
+            if (s != null) {
+                return Integer.parseInt(s);
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read CONCURRENT_LIMIT from redis: {}", e.getMessage());
         }
         return dictService.getConcurrentLimit();
     }
+
     public int getQueueSize()
     {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "QUEUE_SIZE");
-            if (s != null) return Integer.parseInt(s);
-        } catch (Exception e) {
+            if (s != null) {
+                return Integer.parseInt(s);
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read QUEUE_SIZE from redis: {}", e.getMessage());
         }
         return dictService.getQueueSize();
@@ -191,13 +214,18 @@ public class SystemConfigService
 
     /**
      * 获取 schema 刷新超时时间（秒），默认为 600 秒
+     *
      * @return 超时时间（秒）
      */
-    public int getSchemaRefreshTimeoutSeconds() {
+    public int getSchemaRefreshTimeoutSeconds()
+    {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "SCHEMA_REFRESH_TIMEOUT");
-            if (s != null) return Integer.parseInt(s);
-        } catch (Exception e) {
+            if (s != null) {
+                return Integer.parseInt(s);
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read SCHEMA_REFRESH_TIMEOUT from redis: {}", e.getMessage());
         }
         return 600;
@@ -207,38 +235,53 @@ public class SystemConfigService
     {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "HDFS_PREFIX");
-            if (s != null) return s;
-        } catch (Exception e) {
+            if (s != null) {
+                return s;
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read HDFS_PREFIX from redis: {}", e.getMessage());
         }
         return dictService.getHdfsPrefix();
     }
 
-    public String getRdbmsReaderTemplate() {
+    public String getRdbmsReaderTemplate()
+    {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "RDBMS_READER_TEMPLATE");
-            if (s != null && !s.isEmpty()) return s;
-        } catch (Exception e) {
+            if (s != null && !s.isEmpty()) {
+                return s;
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read RDBMS_READER_TEMPLATE from redis: {}", e.getMessage());
         }
         return dictService.getRdbmsReaderTemplate();
     }
 
-    public String getHdfsWriterTemplate() {
+    public String getHdfsWriterTemplate()
+    {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "HDFS_WRITER_TEMPLATE");
-            if (s != null && !s.isEmpty()) return s;
-        } catch (Exception e) {
+            if (s != null && !s.isEmpty()) {
+                return s;
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read HDFS_WRITER_TEMPLATE from redis: {}", e.getMessage());
         }
         return dictService.getHdfsWriterTemplate();
     }
 
-    public String getRdbms2HdfsJobTemplate() {
+    public String getRdbms2HdfsJobTemplate()
+    {
         try {
             String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "RDBMS2HDFS_JOB_TEMPLATE");
-            if (s != null && !s.isEmpty()) return s;
-        } catch (Exception e) {
+            if (s != null && !s.isEmpty()) {
+                return s;
+            }
+        }
+        catch (Exception e) {
             log.warn("Failed to read RDBMS2HDFS_JOB_TEMPLATE from redis: {}", e.getMessage());
         }
         return dictService.getRdbms2HdfsJobTemplate();
@@ -247,7 +290,8 @@ public class SystemConfigService
     /**
      * Backwards-compatible alias used by existing callers. This will reload from dict and broadcast to other instances.
      */
-    public void loadConfig() {
+    public void loadConfig()
+    {
         reloadFromDictAndBroadcast();
     }
 }
