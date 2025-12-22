@@ -559,3 +559,21 @@ $$;
 
 alter function insert_dates_for_year(integer, integer) owner to postgres;
 
+-- log cleanup audit table
+create table log_cleanup_audit
+(
+    id          bigserial primary key,
+    task_id     varchar(64),
+    operator    varchar(128),
+    table_name  varchar(64),
+    criteria_json text,
+    requested_rows bigint,
+    deleted_rows  bigint,
+    status         varchar(32),
+    started_at     timestamp,
+    finished_at    timestamp,
+    message        text,
+    created_at     timestamp default CURRENT_TIMESTAMP
+);
+
+create index idx_log_cleanup_task_id on log_cleanup_audit(task_id);

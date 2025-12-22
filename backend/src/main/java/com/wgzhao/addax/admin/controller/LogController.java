@@ -3,19 +3,18 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.PageResponse;
+import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
+import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -32,31 +31,62 @@ import java.util.List;
 @AllArgsConstructor
 public class LogController
 {
-
     private final AddaxLogService addaxLogService;
     private final StatService statService;
     private final SystemConfigService configService;
+    private final EtlJourService jourService;
+
+    @GetMapping("/addax")
+    public PageResponse<AddaxLog> listAddaxLog(
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+        @RequestParam(value = "q", required = false) String q,
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "sortField", required = false) String sortField,
+        @RequestParam(value = "sortOrder", required = false) String sortOrder)
+    {
+        if (page < 0) {
+            page = 0;
+        }
+        if (pageSize == -1) {
+            pageSize = Integer.MAX_VALUE;
+        }
+        return PageResponse.from(addaxLogService.listWithPage(page, pageSize));
+    }
 
     /**
      * 获取指定采集任务的日志列表
      *
-     * @param tid 采集任务ID
+     * @param tid 采集任务 ID
      * @return 日志列表
      */
-    @GetMapping("/{tid}")
-    public ApiResponse<List<AddaxLogDto>> getSpLog(@PathVariable("tid") String tid)
+    @GetMapping("/addax/{tid}")
+    public ApiResponse<List<AddaxLogDto>> getSpLog(@PathVariable String tid)
     {
         return ApiResponse.success(addaxLogService.getLogEntry(tid));
+    }
+
+    @PostMapping("/addax/cleanup")
+    public ApiResponse<String> cleanupAddaxLogs(@RequestParam("before") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate before)
+    {
+        addaxLogService.cleanupLogsBefore(before);
+        return ApiResponse.success("日志清理任务已提交");
+    }
+
+    @GetMapping("/jour/{tid}")
+    public ApiResponse<String> getJourLog(@PathVariable Long tid)
+    {
+        return ApiResponse.success(jourService.findLastErrorByTableId(tid));
     }
 
     /**
      * 获取指定日志文件的内容
      *
-     * @param id 日志ID
+     * @param id 日志 ID
      * @return 日志内容
      */
-    @GetMapping("/{id}/content")
-    public ResponseEntity<String> getLogFileContent(@PathVariable("id") Long id)
+    @GetMapping("/addax/{id}/content")
+    public ResponseEntity<String> getLogFileContent(@PathVariable Long id)
     {
         String addaxLog = addaxLogService.getLogContent(id);
         return ResponseEntity.ok(addaxLog);

@@ -1,9 +1,15 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
+import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -52,5 +58,17 @@ public class AddaxLogService
     public List<AddaxLogDto> getLogEntry(String tid)
     {
         return addaxLogRepo.findLogEntry(tid);
+    }
+
+    public Page<AddaxLog> listWithPage(int page, int pageSize)
+    {
+        Pageable pageRequest = PageRequest.of(page, pageSize);
+        return addaxLogRepo.findAllByOrderByIdDesc(pageRequest);
+    }
+
+    @Async
+    @Transactional
+    public void cleanupLogsBefore(LocalDate before) {
+        addaxLogRepo.deleteByRunAtBefore(before);
     }
 }

@@ -12,12 +12,14 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AddaxJob: typeof import('./../components/table/AddaxJob.vue')['default']
+    AddaxLogList: typeof import('./../components/logs/AddaxLogList.vue')['default']
     AddaxResult: typeof import('./../components/table/AddaxResult.vue')['default']
     AddSource: typeof import('./../components/source/AddSource.vue')['default']
     AppBreadcrumb: typeof import('./../components/AppBreadcrumb.vue')['default']
     AppRegister: typeof import('./../components/AppRegister.vue')['default']
     BatchAdd: typeof import('./../components/table/BatchAdd.vue')['default']
     BatchUpdate: typeof import('./../components/table/BatchUpdate.vue')['default']
+    CleanupDialog: typeof import('./../components/logs/CleanupDialog.vue')['default']
     DialogComp: typeof import('./../components/table/DialogComp.vue')['default']
     FieldsCompare: typeof import('./../components/table/FieldsCompare.vue')['default']
     L5TEtlDataBar: typeof import('./../components/dashboard/L5TEtlDataBar.vue')['default']
@@ -25,6 +27,7 @@ declare module 'vue' {
     LineChart: typeof import('./../components/dashboard/LineChart.vue')['default']
     LogFiles: typeof import('./../components/table/LogFiles.vue')['default']
     LogModal: typeof import('./../components/table/LogModal.vue')['default']
+    LogTable: typeof import('./../components/logs/LogTable.vue')['default']
     NavbarThemeSwitcher: typeof import('./../components/NavbarThemeSwitcher.vue')['default']
     Notifier: typeof import('./../components/Notifier.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

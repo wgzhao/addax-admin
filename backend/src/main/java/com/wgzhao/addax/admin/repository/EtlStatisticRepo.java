@@ -81,4 +81,27 @@ public interface EtlStatisticRepo
     List<Map<String, Object>> findLast5DaysDataMB();
 
     List<EtlStatistic> findTop15ByTidOrderByBizDateDesc(long tid);
+
+    @Query(value = """
+        SELECT id FROM etl_statistic
+        WHERE (:source_tid IS NULL OR tid = :source_tid)
+          AND (:before IS NULL OR start_at < :before)
+        ORDER BY id
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Long> findIdsToDeleteBatch(@org.springframework.data.repository.query.Param("source_tid") Long sourceTid,
+        @org.springframework.data.repository.query.Param("before") java.time.LocalDateTime before,
+        @org.springframework.data.repository.query.Param("limit") int limit);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query(value = "delete from etl_statistic where id in :ids", nativeQuery = true)
+    int deleteByIdInBatch(@org.springframework.data.repository.query.Param("ids") List<Long> ids);
+
+    @Query(value = """
+        select count(1) from etl_statistic
+        where (:source_tid is null or tid = :source_tid)
+          and (:before is null or start_at < :before)
+        """, nativeQuery = true)
+    long countToDelete(@org.springframework.data.repository.query.Param("source_tid") Long sourceTid,
+        @org.springframework.data.repository.query.Param("before") java.time.LocalDateTime before);
 }
