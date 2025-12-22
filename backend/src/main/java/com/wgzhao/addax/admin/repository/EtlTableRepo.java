@@ -39,7 +39,11 @@ public interface EtlTableRepo
         """)
     void batchUpdateStatusAndFlag(List<Long> ids, String status, int retryCnt);
 
-    int countByStatusEquals(String n);
+    @Query(value = """
+        select count(*) from etl_table t left join etl_source s on t.sid = s.id
+        where t.status = ?1 and s.enabled = true
+        """, nativeQuery = true)
+    int countByStatusEquals(String status);
 
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
