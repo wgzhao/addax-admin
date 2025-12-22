@@ -13,25 +13,27 @@ class LogService {
   }
   // get the content of special file
   getContent(id: number): Promise<string> {
-    return Requests.get(`${this.prefix}/addax/${id}/content`, { timeout: 120000 }) as Promise<string>
+    return Requests.get(`${this.prefix}/addax/${id}/content`, {
+      timeout: 120000
+    }) as Promise<string>
   }
 
   estimate(table: string, params: Record<string, any>) {
-      const qp = new URLSearchParams({ table, ...params })
-      return Requests.get(`${this.prefix}/estimate?${qp.toString()}`)
-    }
-  
+    const qp = new URLSearchParams({ table, ...params })
+    return Requests.get(`${this.prefix}/estimate?${qp.toString()}`)
+  }
+
   cleanupAddaxLog(before: string) {
-      return Requests.post(`${this.prefix}/addax/cleanup?before=${before}`)
-    }
-  
-    getTask(taskId: string) {
-      return Requests.get(`${this.prefix}/addax/cleanup/${taskId}`)
-    }
-  
-    getSources(table: string) {
-      return Requests.get(`${this.prefix}/sources?table=${encodeURIComponent(table)}`)
-    }
+    return Requests.post(`${this.prefix}/addax/cleanup?before=${before}`)
+  }
+
+  getTask(taskId: string) {
+    return Requests.get(`${this.prefix}/addax/cleanup/${taskId}`)
+  }
+
+  getSources(table: string) {
+    return Requests.get(`${this.prefix}/sources?table=${encodeURIComponent(table)}`)
+  }
 }
 
 export default new LogService()

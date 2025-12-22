@@ -120,24 +120,24 @@
             variant="flat"
             class="font-weight-bold"
           >
-              {{ item.status }}
-              <!-- Kill icon for running tasks: move to right, match E icon style -->
-              <template v-if="item.status === 'R'">
-                <v-tooltip location="top">
-                  <template #activator="{ props }">
-                    <v-icon
-                      v-bind="props"
-                      size="16"
-                      color="error"
-                      class="ml-1 align-middle cursor-pointer"
-                      @click.stop="confirmKill(item)"
-                    >
-                      mdi-close
-                    </v-icon>
-                  </template>
-                  <span>点击中止当前运行任务</span>
-                </v-tooltip>
-              </template>
+            {{ item.status }}
+            <!-- Kill icon for running tasks: move to right, match E icon style -->
+            <template v-if="item.status === 'R'">
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-icon
+                    v-bind="props"
+                    size="16"
+                    color="error"
+                    class="ml-1 align-middle cursor-pointer"
+                    @click.stop="confirmKill(item)"
+                  >
+                    mdi-close
+                  </v-icon>
+                </template>
+                <span>点击中止当前运行任务</span>
+              </v-tooltip>
+            </template>
             <template v-if="item.status === 'U' || item.status === 'E'">
               <v-menu open-on-click :close-on-content-click="false" min-width="220" offset-y>
                 <template #activator="{ props }">
@@ -351,8 +351,22 @@
       width: '12%',
       value: (item) => `${item.name} (${item.code})`
     },
-    { title: '源库表', key: 'sourceTableCombined', align: 'start' as const, sortable: true, width: '12%', value: (item) => `${item.sourceDb || ''}.${item.sourceTable || ''}` },
-    { title: '目标库表', key: 'targetTableCombined', align: 'start' as const, sortable: true, width: '18%', value: (item) => `${item.targetDb || ''}.${item.targetTable || ''}` },
+    {
+      title: '源库表',
+      key: 'sourceTableCombined',
+      align: 'start' as const,
+      sortable: true,
+      width: '12%',
+      value: (item) => `${item.sourceDb || ''}.${item.sourceTable || ''}`
+    },
+    {
+      title: '目标库表',
+      key: 'targetTableCombined',
+      align: 'start' as const,
+      sortable: true,
+      width: '18%',
+      value: (item) => `${item.targetDb || ''}.${item.targetTable || ''}`
+    },
     { title: '状态', key: 'status', align: 'center' as const, sortable: true, width: '3%' },
     { title: '剩余', key: 'retryCnt', align: 'center' as const, sortable: true, width: '2%' },
     { title: '耗时', key: 'duration', align: 'center' as const, sortable: true, width: '3%' },

@@ -37,8 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import AddaxLogList from '@/components/logs/AddaxLogList.vue';
-const tab = ref('addax_log')
+  import { ref } from 'vue'
+  import AddaxLogList from '@/components/logs/AddaxLogList.vue'
+  const tab = ref('addax_log')
 </script>
-

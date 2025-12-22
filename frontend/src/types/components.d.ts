@@ -27,7 +27,6 @@ declare module 'vue' {
     LineChart: typeof import('./../components/dashboard/LineChart.vue')['default']
     LogFiles: typeof import('./../components/table/LogFiles.vue')['default']
     LogModal: typeof import('./../components/table/LogModal.vue')['default']
-    LogTable: typeof import('./../components/logs/LogTable.vue')['default']
     NavbarThemeSwitcher: typeof import('./../components/NavbarThemeSwitcher.vue')['default']
     Notifier: typeof import('./../components/Notifier.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

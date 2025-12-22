@@ -59,25 +59,6 @@ function onClose() {
 }
 
 async function onSubmit() {
-  const payload: any = { table: props.table, dryRun: dryRun.value, async: async.value, batchSize: Number(batchSize.value), maxRows: Number(maxRows.value) }
-  if (sourceTid.value) payload.sourceTid = Number(sourceTid.value)
-  if (before.value) payload.before = before.value
-  if (dryRun.value) {
-    const res: any = await LogService.cleanup(payload)
-    const result = res.data ?? res
-    estimated.value = result.estimated
-  }
-  else {
-    await LogService.cleanup(payload)
-    // emit done for parent components
-    emit('done')
-    // @ts-ignore
-    ;(window as any).$notify && (window as any).$notify('删除任务已提交')
-    visible.value = false
-    // emit custom event for legacy listeners
-    // @ts-ignore
-    ;(window as any).dispatchEvent(new CustomEvent('logs-cleanup-done'))
-  }
 }
 
 defineExpose({ open })

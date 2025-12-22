@@ -116,14 +116,6 @@ const selectedLog = ref('')
 // cleanup dialog state
 const cleanupDialog = ref(false)
 const selectedCleanupDate = ref('')
-const menu = ref(false)
-const today = new Date().toISOString().slice(0, 10)
-
-function openCleanupDialog() {
-  // default to 1 month retention
-  quickSelect(1)
-  cleanupDialog.value = true
-}
 
 function quickSelect(months: number) {
   const d = new Date()
