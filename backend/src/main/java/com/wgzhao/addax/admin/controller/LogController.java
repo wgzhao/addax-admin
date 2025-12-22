@@ -16,8 +16,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -109,8 +107,6 @@ public class LogController
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        LocalDate bizDate;
         EtlStatistic sta = new EtlStatistic();
         sta.setTid(Long.parseLong(dto.jobName()));
         sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
@@ -121,14 +117,7 @@ public class LogController
         sta.setTotalRecs(dto.totalReadRecords());
         sta.setTotalErrors(dto.totalErrorRecords());
         sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
-        try {
-            bizDate = LocalDate.ofInstant(sdf.parse(configService.getBizDate()).toInstant(), java.time.ZoneId.systemDefault());
-        }
-        catch (ParseException e) {
-            log.warn("Failed to parse biz date, using start time as biz date");
-            bizDate = sta.getStartAt().toLocalDate();
-        }
-        sta.setBizDate(bizDate);
+        sta.setBizDate(configService.getBizDateAsDate());
         return statService.saveOrUpdate(sta);
     }
 }
