@@ -210,10 +210,10 @@ public class TableService
 
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
         if (q != null && !q.isEmpty()) {
-            return vwEtlTableWithSourceRepo.findByFilterColumnContaining(q.toUpperCase(), pageable);
+            return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndFilterColumnContaining(q.toUpperCase(), pageable);
         }
         else {
-            return vwEtlTableWithSourceRepo.findAll(pageable);
+            return vwEtlTableWithSourceRepo.findByEnabledIsTrue(pageable);
         }
     }
 

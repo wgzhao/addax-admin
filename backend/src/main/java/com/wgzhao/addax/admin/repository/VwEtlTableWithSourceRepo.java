@@ -15,7 +15,9 @@ public interface VwEtlTableWithSourceRepo
 
     Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);
 
-    Page<VwEtlTableWithSource> findByFilterColumnContaining(String filterContent, Pageable pageable);
+    Page<VwEtlTableWithSource> findByEnabledIsTrueAndFilterColumnContaining(String filterContent, Pageable pageable);
+
+    Page<VwEtlTableWithSource> findByEnabledIsTrue(Pageable pageable);
 
     List<VwEtlTableWithSource> findBySidAndSourceDb(int sid, String db);
 
