@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -18,21 +17,33 @@ import lombok.Setter;
 @IdClass(SysItemPK.class)
 public class SysItem
 {
+    /**
+     * 字典编码，外键
+     * 示例: 1000
+     */
     @Id
     @Column(name = "dict_code")
-    @Schema(description = "字典编码，外键", example = "1000")
     private Integer dictCode;
 
+    /**
+     * 字典项键
+     * 示例: SWITCH_TIME
+     */
     @Id
     @Column(name = "item_key", length = 255)
-    @Schema(description = "字典项键", example = "SWITCH_TIME")
     private String itemKey;
 
+    /**
+     * 字典项值
+     * 示例: 16:30
+     */
     @Column(name = "item_value", length = 2000)
-    @Schema(description = "字典项值", example = "16:30")
     private String itemValue;
 
+    /**
+     * 备注
+     * 示例: 切日时间
+     */
     @Column(name = "remark", length = 4000)
-    @Schema(description = "备注", example = "切日时间")
     private String remark;
 }

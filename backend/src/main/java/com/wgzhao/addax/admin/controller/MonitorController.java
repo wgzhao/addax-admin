@@ -9,7 +9,6 @@ import com.wgzhao.addax.admin.repository.NotificationRepo;
 import com.wgzhao.addax.admin.service.SchemaChangeLogService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TaskService;
-import io.swagger.v3.oas.annotations.Parameter;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -90,10 +89,17 @@ public class MonitorController
     }
 
     // 采集源库的字段变更提醒（T-1日结构与T日结构对比）
+    /**
+     * 查询字段变更
+     *
+     * @param page 页码（查询参数），默认 0
+     * @param pageSize 每页记录数（查询参数），默认 10，-1 表示不分页
+     * @return 分页的字段变更记录
+     */
     @RequestMapping("/field-change")
     public ResponseEntity<PageResponse<SchemaChangeLog>> odsFieldChange(
-        @io.swagger.v3.oas.annotations.Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
-        @Parameter(description = "每页记录数") @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize
     )
     {
         if (page < 0) {

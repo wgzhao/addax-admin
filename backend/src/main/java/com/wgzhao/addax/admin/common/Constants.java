@@ -21,7 +21,8 @@ public final class Constants
     public static final int HIVE_DECIMAL_MAX_SCALE = 10;
     // Redis key for schema refresh lock (used to prevent submits/enqueues while schema refresh runs)
     public static final String SCHEMA_REFRESH_LOCK_KEY = "schema:refresh:lock";
-    public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern("yyyyMMdd");
+    public static final String DEFAULT_PART_FORMAT = "yyyyMMdd";
+    public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT);
     // Default SQL reserved keywords (used as fallback and baseline). Stored in upper-case.
     private static final Set<String> DEFAULT_SQL_RESERVED_KEYWORDS = Set.of(
         "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "AUTHORIZATION",

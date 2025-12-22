@@ -13,9 +13,6 @@ import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -37,7 +34,6 @@ import java.util.Map;
 /**
  * 采集表管理接口（RESTful规范），提供采集表的分页查询、详情、统计等功能
  */
-@Tag(name = "采集表配置管理接口")
 @RestController
 @RequestMapping("/tables")
 @AllArgsConstructor
@@ -67,23 +63,22 @@ public class TableController
     /**
      * 分页查询采集表
      *
-     * @param page 页码
-     * @param pageSize 每页记录数
-     * @param q 查询关键字
-     * @param status 状态
-     * @param sortField 排序字段
-     * @param sortOrder 排序顺序
+     * @param page 页码（查询参数），默认 0
+     * @param pageSize 每页记录数（查询参数），默认 10，-1 表示不分页
+     * @param q 查询关键字（查询参数），可选
+     * @param status 状态（查询参数），可选
+     * @param sortField 排序字段（查询参数），可选
+     * @param sortOrder 排序顺序（查询参数），可选
      * @return 采集表分页结果
      */
-    @Operation(summary = "分页查询采集表")
     @GetMapping("")
     public ResponseEntity<PageResponse<VwEtlTableWithSource>> listTables(
-        @Parameter(description = "页码") @RequestParam(value = "page", defaultValue = "0") int page,
-        @Parameter(description = "每页记录数") @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
-        @Parameter(description = "查询关键字") @RequestParam(value = "q", required = false) String q,
-        @Parameter(description = "状态") @RequestParam(value = "status", required = false) String status,
-        @Parameter(description = "排序字段") @RequestParam(value = "sortField", required = false) String sortField,
-        @Parameter(description = "排序顺序") @RequestParam(value = "sortOrder", required = false) String sortOrder)
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+        @RequestParam(value = "q", required = false) String q,
+        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "sortField", required = false) String sortField,
+        @RequestParam(value = "sortOrder", required = false) String sortOrder)
     {
         if (page < 0) {
             page = 0;
@@ -104,12 +99,11 @@ public class TableController
     /**
      * 查询单个采集表
      *
-     * @param tableId 采集表ID
+     * @param tableId 采集表ID（路径参数）
      * @return 采集表详情
      */
-    @Operation(summary = "查询单个采集表")
     @GetMapping("/{tableId}")
-    public ResponseEntity<VwEtlTableWithSource> getTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    public ResponseEntity<VwEtlTableWithSource> getTable(@PathVariable("tableId") long tableId)
     {
         VwEtlTableWithSource table = tableService.findOneTableInfo(tableId);
         if (table == null) {
@@ -121,12 +115,11 @@ public class TableController
     /**
      * 删除采集表
      *
-     * @param tableId 采集表ID
+     * @param tableId 采集表ID（路径参数）
      * @return 删除结果提示
      */
-    @Operation(summary = "删除采集表")
     @DeleteMapping("/{tableId}")
-    public ResponseEntity<String> deleteTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    public ResponseEntity<String> deleteTable(@PathVariable("tableId") long tableId)
     {
         if (!etlTableRepo.existsById(tableId)) {
             throw new ApiException(404, "Table not found");
@@ -138,13 +131,12 @@ public class TableController
     /**
      * 更新采集表
      *
-     * @param tableId 采集表ID
-     * @param etl 更新的采集表数据
+     * @param tableId 采集表ID（路径参数）
+     * @param etl 更新的采集表数据（请求体）
      * @return 更新后的采集表
      */
-    @Operation(summary = "更新采集表")
     @PutMapping("/{tableId}")
-    public ResponseEntity<EtlTable> updateTable(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId,
+    public ResponseEntity<EtlTable> updateTable(@PathVariable("tableId") long tableId,
         @RequestBody EtlTable etl)
     {
         if (etl.getId() == null || etl.getId() != tableId) {
@@ -160,12 +152,11 @@ public class TableController
     /**
      * 查询表字段
      *
-     * @param tableId 采集表ID
+     * @param tableId 采集表ID（路径参数）
      * @return 采集表字段列表
      */
-    @Operation(summary = "查询表字段")
     @GetMapping("/{tableId}/columns")
-    public ResponseEntity<List<EtlColumn>> getTableColumns(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    public ResponseEntity<List<EtlColumn>> getTableColumns(@PathVariable("tableId") long tableId)
     {
         return ResponseEntity.ok(columnService.getColumns(tableId));
     }
@@ -173,12 +164,11 @@ public class TableController
     /**
      * 查询表采集统计
      *
-     * @param tableId 采集表ID
+     * @param tableId 采集表ID（路径参数）
      * @return 采集统计信息
      */
-    @Operation(summary = "查询表采集统计")
     @GetMapping("/{tableId}/statistics")
-    public ResponseEntity<List<EtlStatistic>> getTableStatistics(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    public ResponseEntity<List<EtlStatistic>> getTableStatistics(@PathVariable("tableId") long tableId)
     {
         return ResponseEntity.ok(statService.getLast15Records(tableId));
     }
@@ -186,10 +176,9 @@ public class TableController
     /**
      * 批量保存采集表
      *
-     * @param etls 采集表列表
+     * @param etls 采集表列表（请求体）
      * @return 保存的采集表数量
      */
-    @Operation(summary = "批量保存采集表")
     @PostMapping("/batch")
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
@@ -204,10 +193,9 @@ public class TableController
     /**
      * 新增单个采集表
      *
-     * @param etl 采集表数据
+     * @param etl 采集表数据（请求体）
      * @return 新增的采集表
      */
-    @Operation(summary = "新增单个采集表")
     @PostMapping("")
     public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
     {
@@ -219,10 +207,9 @@ public class TableController
      * 刷新所有表的关联资源
      * 触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件
      *
-     * @param mode 刷新模式
-     * @return 无内容响应
+     * @param mode 刷新模式（查询参数），可选值: "all" 或 "need"，默认 "need"
+     * @return 无内容响应（202 Accepted）或 400 当 mode 非法
      */
-    @Operation(summary = "刷新所有表的关联资源", description = "触发一个异步任务，用于更新所有表的元数据（字段）和采集任务文件")
     @PostMapping("/actions/refresh")
     public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode)
     {
@@ -242,13 +229,11 @@ public class TableController
      * 刷新表关联资源
      * 触发一个异步任务，用于更新指定表的元数据（字段）和采集任务文件
      *
-     * @param tableId 采集表ID
+     * @param tableId 采集表ID（路径参数）
      * @return 任务结果
      */
-    @Operation(summary = "刷新表关联资源", description = "触发一个异步任务，用于更新指定表的元数据（字段）和采集任务文件")
     @PostMapping("/{tableId}/actions/refresh")
-    public ResponseEntity<TaskResultDto> refreshTableResources(
-        @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    public ResponseEntity<TaskResultDto> refreshTableResources(@PathVariable long tableId)
     {
         if (!etlTableRepo.existsById(tableId)) {
             return ResponseEntity.status(400).body(TaskResultDto.failure("tableId 对应的采集表不存在", 0));
@@ -265,15 +250,12 @@ public class TableController
     /**
      * 批量更新表状态
      *
-     * @param params 表状态更新参数，类似如下:
-     * "tids":[32,34,33,36,35],"status":"N","retryCnt":3}
+     * @param params 表状态更新参数（请求体），示例: {"tids":[32,34],"status":"N","retryCnt":3}
      * @return 更新的表数量
      */
-    @Operation(summary = "批量更新表状态")
     @PostMapping("/batch/status")
     public ResponseEntity<Integer> batchUpdateStatus(@RequestBody BatchTableStatusDto params)
     {
-        // 具体实现略
         tableService.updateTableStatuses(params);
         return ResponseEntity.ok(1);
     }
@@ -281,26 +263,23 @@ public class TableController
     /**
      * 查询表视图
      *
-     * @param params 查询参数
+     * @param params 查询参数（查询字符串形式）
      * @return 表视图列表
      */
-    @Operation(summary = "查询表视图")
     @GetMapping("/view")
     public ResponseEntity<List<VwEtlTableWithSource>> listTableViews(@RequestParam Map<String, String> params)
     {
-        // 具体实现略
         return ResponseEntity.ok(new ArrayList<>());
     }
 
     /**
      * 获取Addax Job模板
      *
-     * @param tableId 采集表ID
+     * @param tableId 采集表ID（路径参数）
      * @return Addax Job模板内容
      */
-    @Operation(summary = "获取Addax Job模板")
     @GetMapping("/{tableId}/addax-job")
-    public ResponseEntity<String> getAddaxJob(@Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+    public ResponseEntity<String> getAddaxJob(@PathVariable long tableId)
     {
         // 具体实现略
         String job = jobContentService.getJobContent(tableId);
@@ -312,13 +291,3 @@ public class TableController
         }
     }
 }
-
-//    // 对单个表执行采集任务
-//    @Operation(summary = "执行采集任务", description = "根据采集表ID立即执行单个采集任务")
-//    @PostMapping("/{tableId}/actions/collect")
-//    public ResponseEntity<Map<String, Object>> executeTableTask(
-//            @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId) {
-//        EtlTable etlTable = tableService.getTable(tableId);
-//        if (etlTable == null) {
-//            throw new ApiException(404, "Table not found");
-//        }

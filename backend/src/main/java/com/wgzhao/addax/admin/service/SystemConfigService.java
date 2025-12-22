@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import jakarta.annotation.PostConstruct;
@@ -8,14 +9,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 
 @Service
 @AllArgsConstructor
@@ -87,18 +87,11 @@ public class SystemConfigService
     private Map<String, Object> buildConfigFromDict()
     {
         Map<String, Object> tmp = new HashMap<>();
-        String curDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String bizDateStr = dictService.getBizDate();
         tmp.put("BIZ_DATE", bizDateStr);
-        try {
-            LocalDate bizDate = LocalDate.ofInstant(new SimpleDateFormat("yyyyMMdd").parse(bizDateStr).toInstant(), java.time.ZoneId.systemDefault());
-            tmp.put("BIZ_DATE_AS_DATE", bizDate);
-        }
-        catch (ParseException e) {
-            log.error("Failed to parse BIZ_DATE: {}", bizDateStr, e);
-            tmp.put("BIZ_DATE_AS_DATE", null);
-        }
-        tmp.put("CUR_DATETIME", curDateTime);
+        LocalDate bizDate = DateUtil.parse(bizDateStr, shortSdf).toLocalDateTime().toLocalDate();
+        tmp.put("BIZ_DATE_AS_DATE", bizDate);
+        tmp.put("CUR_DATETIME", DateUtil.now());
         tmp.put("LOG_PATH", dictService.getLogPath());
         tmp.put("SWITCH_TIME", dictService.getSwitchTime());
         tmp.put("HIVE_CLI", dictService.getHiveCli());
@@ -140,17 +133,16 @@ public class SystemConfigService
 
     public LocalDate getBizDateAsDate()
     {
-        String bizDateStr = getBizDate();
-        if (bizDateStr == null) {
-            return LocalDate.now().plusDays(-1);
-        }
         try {
-            return LocalDate.ofInstant(new SimpleDateFormat("yyyyMMdd").parse(bizDateStr).toInstant(), java.time.ZoneId.systemDefault());
+            String s =  redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "BIZ_DATE_AS_DATE");
+            if (s != null) {
+                return objectMapper.readValue(s, LocalDate.class);
+            }
         }
-        catch (ParseException e) {
-            log.error("Failed to parse BIZ_DATE: {}", bizDateStr, e);
-            return LocalDate.now().plusDays(-1);
+        catch (Exception e) {
+           log.error("Failed to parse BIZ_DATE_AS_DATE from redis: {}", e.getMessage());
         }
+        return  DateUtil.parse(dictService.getBizDate(), shortSdf).toLocalDateTime().toLocalDate();
     }
 
     public String getSwitchTime()

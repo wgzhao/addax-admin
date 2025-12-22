@@ -38,7 +38,7 @@ public class AuthController
      * 用户登录认证，返回JWT令牌
      *
      * @param authRequestDTO 登录请求参数
-     * @return JWT令牌或认证失败信息
+     * @return JWT 令牌或认证失败信息
      */
     @PostMapping("/login")
     public ApiResponse<String> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO)

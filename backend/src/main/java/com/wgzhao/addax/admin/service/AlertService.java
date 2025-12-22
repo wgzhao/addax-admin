@@ -95,25 +95,11 @@ public class AlertService
                             return;
                         }
 
-                        Object errObj = respMap.get("errcode");
-                        int errcode = 0;
-                        if (errObj instanceof Number) {
-                            errcode = ((Number) errObj).intValue();
-                        }
-                        else if (errObj instanceof String) {
-                            try {
-                                errcode = Integer.parseInt((String) errObj);
-                            }
-                            catch (NumberFormatException ignored) {
-                            }
-                        }
-
+                        int errcode = Integer.parseInt(respMap.getOrDefault("errcode", "0").toString());
                         if (errcode == 0) {
                             // success
                             return;
                         }
-
-                        String errmsg = respMap.getOrDefault("errmsg", "").toString();
 
                         if (errcode == 45009) {
                             if (curAttempt < maxRetries) {
@@ -123,11 +109,11 @@ public class AlertService
                                 scheduler.schedule(this, delayForThis, TimeUnit.MILLISECONDS);
                             }
                             else {
-                                log.warn("WeCom API rate limit and reached max retries ({}). last errmsg: {}", maxRetries, errmsg);
+                                log.warn("WeCom API rate limit and reached max retries ({}).", maxRetries);
                             }
                         }
                         else {
-                            log.warn("WeCom API returned errcode {}: {}", errcode, errmsg);
+                            log.warn("WeCom API returned errcode {}: {}", errcode, respMap.get("errmsg"));
                         }
                     }
                     catch (Exception e) {

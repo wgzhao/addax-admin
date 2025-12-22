@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -16,22 +15,34 @@ import lombok.Setter;
 @Getter
 public class SysDict
 {
+    /**
+     * 字典编码，主键
+     * 示例: 1000
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "code")
-    @Schema(description = "字典编码，主键", example = "1000")
     private Integer code;
 
+    /**
+     * 字典名称
+     * 示例: 系统参数
+     */
     @Column(name = "name")
-    @Schema(description = "字典名称", example = "系统参数")
     private String name;
 
     // 列名在 DDL 中为 "classification "（尾随空格），这里使用转义以精确映射
+    /**
+     * 字典分类
+     * 示例: system
+     */
     @Column(name = "classification")
-    @Schema(description = "字典分类", example = "system")
     private String classification;
 
+    /**
+     * 备注
+     * 示例: 系统参数相关字典
+     */
     @Column(name = "remark")
-    @Schema(description = "备注", example = "系统参数相关字典")
     private String remark;
 }

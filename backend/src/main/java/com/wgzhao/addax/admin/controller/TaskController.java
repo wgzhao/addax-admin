@@ -9,10 +9,6 @@ import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.TaskService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +17,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,7 +28,6 @@ import java.util.Map;
 /**
  * 采集任务管理接口（RESTful规范），提供采集任务及队列相关操作
  */
-@Tag(name = "采集任务管理", description = "采集任务及队列相关接口")
 @RestController
 @RequestMapping("/tasks")
 @Slf4j
@@ -64,7 +60,6 @@ public class TaskController
      *
      * @return 当前采集任务队列状态
      */
-    @Operation(summary = "获取队列状态", description = "获取当前采集任务队列的状态")
     @GetMapping("/queue")
     public ResponseEntity<Map<String, Object>> getQueueStatus()
     {
@@ -73,15 +68,14 @@ public class TaskController
 
     /**
      * 更改队列监控器状态（启动或停止）
+     * 请求体: { "state": "running" | "stopped" }
      *
      * @param payload 请求体，需包含 state 字段，值为 'running' 或 'stopped'
      * @return 操作结果
      */
-    @Operation(summary = "更改队列监控器状态", description = "启动或停止队列监控器")
     @PatchMapping("/queue")
     public ResponseEntity<Map<String, Object>> configureQueue(
-        @RequestBody(description = "请求体，需包含 state 字段，值为 'running' 或 'stopped'")
-        @org.springframework.web.bind.annotation.RequestBody Map<String, String> payload)
+        @RequestBody Map<String, String> payload)
     {
         String state = payload.get("state");
         String result;
@@ -102,7 +96,6 @@ public class TaskController
      *
      * @return 操作结果
      */
-    @Operation(summary = "重置队列", description = "重置采集任务队列，清空所有等待中的任务")
     @PostMapping("/queue/actions/reset")
     public ResponseEntity<Map<String, Object>> resetQueue()
     {
@@ -115,7 +108,6 @@ public class TaskController
      *
      * @return 操作结果
      */
-    @Operation(summary = "立即更新所有任务", description = "立即更新所有有效的采集任务的配置")
     @PostMapping("/addax-jobs")
     public ResponseEntity<Map<String, Object>> updateAllJobs()
     {
@@ -128,13 +120,11 @@ public class TaskController
     /**
      * 立即更新单任务
      *
-     * @param taskId 任务ID
+     * @param taskId 任务ID（路径参数）
      * @return 操作结果
      */
-    @Operation(summary = "立即更新单个任务", description = "根据任务ID立即更新单个采集任务的配置")
     @PutMapping("/{taskId}/addax-job")
-    public ResponseEntity<Map<String, Object>> updateJob(
-        @Parameter(description = "任务ID") @PathVariable("taskId") long taskId)
+    public ResponseEntity<Map<String, Object>> updateJob(@PathVariable long taskId)
     {
         jobContentService.updateJob(tableService.getTableView(taskId));
         return ResponseEntity.ok(Map.of("success", true, "message", "success"));
@@ -143,15 +133,14 @@ public class TaskController
     /**
      * 执行采集任务
      *
-     * @param taskId 任务ID
-     * @param isSync 是否同步执行，默认 false
+     * @param taskId 任务ID（路径参数）
+     * @param isSync 是否同步执行，默认 false（查询参数）
      * @return 任务执行结果
      */
-    @Operation(summary = "执行采集任务", description = "根据任务ID立即执行单个采集任务")
     @PostMapping("/{taskId}/executions")
     public ResponseEntity<TaskResultDto> executeTask(
-        @Parameter(description = "任务ID") @PathVariable("taskId") long taskId,
-        @Parameter(description = "是否同步执行，默认 false") @RequestParam(name = "isSync", required = false, defaultValue = "false") boolean isSync)
+        @PathVariable long taskId,
+        @RequestParam(name = "isSync", required = false, defaultValue = "false") boolean isSync)
     {
         TaskResultDto result;
         if (isSync) {
@@ -169,15 +158,14 @@ public class TaskController
 
     /**
      * 批量异步执行采集任务
+     * 请求体: List<Long> tids
      *
-     * @param tids 任务ID列表
+     * @param tids 任务ID列表（请求体）
      * @return 执行结果摘要
      */
-    @Operation(summary = "批量异步执行采集任务", description = "根据任务ID列表异步执行多个采集任务")
     @PostMapping("/executions/batch")
     public ResponseEntity<TaskResultDto> executeTasksBatch(
-        @RequestBody(description = "请求体，需包含 taskIds 字段，值为任务ID列表")
-        @org.springframework.web.bind.annotation.RequestBody List<Long> tids)
+        @RequestBody List<Long> tids)
     {
         int successCount = 0;
         int failCount = 0;
@@ -200,7 +188,6 @@ public class TaskController
      *
      * @return 所有采集任务的最新状态列表
      */
-    @Operation(summary = "采集任务状态查询", description = "查询采集任务的最新状态")
     @GetMapping("/status")
     public ResponseEntity<List<Map<String, Object>>> getAllTaskStatus()
     {
@@ -211,13 +198,12 @@ public class TaskController
     /**
      * 获取指定采集表的最后错误信息
      *
-     * @param tableId 采集表ID
-     * @return 错误信息
+     * @param tableId 采集表ID（路径参数）
+     * @return 错误信息或提示
      */
-    @Operation(summary = "获取指定采集表的最后错误信息", description = "根据采集表ID获取该表最近一次采集任务的错误信息")
     @GetMapping("/{tableId}/last-error")
     public ResponseEntity<String> getLastErrorByTableId(
-        @Parameter(description = "采集表ID") @PathVariable("tableId") long tableId)
+        @PathVariable long tableId)
     {
         String errorMsg = jourService.findLastErrorByTableId(tableId);
         if (errorMsg == null || errorMsg.isEmpty()) {
@@ -231,13 +217,12 @@ public class TaskController
     /**
      * 终止正在运行的任务
      *
-     * @param taskId 任务ID
+     * @param taskId 任务ID（路径参数）
      * @return 任务终止结果
      */
-    @Operation(summary = "终止正在运行的任务", description = "向运行该任务的节点下发杀死请求，或在本节点强制结束任务")
     @PostMapping("/{taskId}/kill")
     public ResponseEntity<TaskResultDto> killTask(
-        @Parameter(description = "任务ID") @PathVariable("taskId") long taskId)
+        @PathVariable long taskId)
     {
         TaskResultDto result = taskService.killTask(taskId);
         return ResponseEntity.ok(result);

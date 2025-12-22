@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service.impl;
 
+import cn.hutool.core.date.DateUtil;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
@@ -55,7 +56,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
 import static com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY;
+import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 import static java.lang.Math.max;
 
 /**
@@ -588,28 +591,15 @@ public class TaskQueueManagerV2Impl
             log.warn("模板未生成, taskId = {}", taskId);
             return false;
         }
-        String defaultLogDate = configService.getBizDate(); // yyyyMMdd
-        String dw_clt_date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         String partFormat = task.getPartFormat();
-        String bizDateStr;
+        String bizDateStr = configService.getBizDate();
+        DateTimeFormatter dtf = shortSdf;
+        if (partFormat != null && !partFormat.isBlank() && !DEFAULT_PART_FORMAT.equals(partFormat)) {
+            dtf = DateTimeFormatter.ofPattern(partFormat);
+        }
         if (overrideBizDate != null) {
-            // 将 override 的 date 按 partFormat 格式化
-            if (partFormat != null && !partFormat.isBlank() && !"yyyyMMdd".equals(partFormat)) {
-                bizDateStr = overrideBizDate.format(DateTimeFormatter.ofPattern(partFormat));
-            }
-            else {
-                bizDateStr = overrideBizDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-            }
+            bizDateStr = overrideBizDate.format(dtf);
         }
-        else {
-            String bizDate = defaultLogDate;
-            if (partFormat != null && !partFormat.isBlank() && !partFormat.equals("yyyyMMdd")) {
-                bizDate = LocalDate.parse(defaultLogDate, DateTimeFormatter.ofPattern("yyyyMMdd")).format(DateTimeFormatter.ofPattern(partFormat));
-            }
-            bizDateStr = bizDate;
-        }
-        log.debug("biz date is {}, dw_clt_date is {}, dw_trade_date is {}", bizDateStr, dw_clt_date, defaultLogDate);
-        job = job.replace("${logdate}", bizDateStr).replace("${dw_clt_date}", dw_clt_date).replace("${dw_trade_date}", defaultLogDate);
         if (task.getPartName() != null && !Objects.equals(task.getPartName(), "")) {
             boolean result = targetService.addPartition(taskId, task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDateStr);
             if (!result) {
@@ -619,7 +609,7 @@ public class TaskQueueManagerV2Impl
         File tempFile;
         try {
             // Determine the persistent jobs directory under the parent of program run dir
-            String curDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            String curDate = DateUtil.date().toDateStr(); // "yyyy-MM-dd"
             // The property app.home is set in the service.sh script as the parent directory of the Addax installation
             String jobsDir = Path.of(System.getProperty("app.home")).resolve("job").resolve(curDate) + "/";
 

@@ -82,13 +82,6 @@ public class SettingController
         }
     }
 
-//    @GetMapping("/addax-hdfs-writer-template")
-//    public ResponseEntity<Map<String, Object>> getAddaxHdfsWriterTemplate()
-//    {
-//        // 已 Json 格式返回
-//        return ResponseEntity.ok().body(dictService.getHadoopConfig());
-//    }
-
     @PostMapping("/addax-hdfs-writer-template")
     public ResponseEntity<String> updateAddaxHdfsWriterTemplate(@RequestBody @NonNull String template)
     {

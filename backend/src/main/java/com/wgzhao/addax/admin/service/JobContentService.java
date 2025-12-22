@@ -22,13 +22,17 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
+import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
 
@@ -153,7 +157,12 @@ public class JobContentService
         Path hdfsPath = Paths.get(configService.getHdfsPrefix(), vTable.getTargetDb(), vTable.getTargetTable());
 
         if (!vTable.getPartName().isEmpty()) {
-            hdfsPath = hdfsPath.resolve(vTable.getPartName() + "=${logdate}");
+            String bizDate = configService.getBizDate();
+            if (!Objects.equals(vTable.getPartFormat(), DEFAULT_PART_FORMAT)) {
+                // 不是默认则 bizDate 日期格式，则需要进行转换
+                bizDate = configService.getBizDateAsDate().format(DateTimeFormatter.ofPattern(vTable.getPartFormat()));
+            }
+            hdfsPath = hdfsPath.resolve(vTable.getPartName() + "=" + bizDate);
         }
 
         values.put("path", hdfsPath.toString());
