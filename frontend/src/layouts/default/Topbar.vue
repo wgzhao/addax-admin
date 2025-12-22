@@ -100,6 +100,10 @@ const urls = ref<MenuItem[]>([
     path: '/sys-settings',
     title: '系统配置'
   },
+  {
+    path: '/logs',
+    title: '日志管理'
+  },
   // {
   //   path: '/param',
   //   title: '参数管理'

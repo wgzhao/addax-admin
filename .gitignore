@@ -34,3 +34,4 @@ backend/target
 /frontend/.env.local
 frontend/tsconfig.tsbuildinfo
 frontend/tsconfig.node.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
