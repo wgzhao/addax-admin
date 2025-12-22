@@ -29,7 +29,7 @@
     <java.version>21</java.version>
     <file.encoding>UTF-8</file.encoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jsonwebtoken.version>0.12.3</jsonwebtoken.version>
+    <jsonwebtoken.version>0.13.0</jsonwebtoken.version>
     <lombok.version>1.18.42</lombok.version>
   </properties>
 
@@ -176,7 +176,7 @@
             <path>
               <groupId>org.projectlombok</groupId>
               <artifactId>lombok</artifactId>
-              <version>1.18.42</version>
+              <version>${lombok.version}</version>
             </path>
           </annotationProcessorPaths>
           <compilerArgs>
