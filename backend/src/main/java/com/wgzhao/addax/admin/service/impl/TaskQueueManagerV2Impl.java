@@ -38,7 +38,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
@@ -284,7 +283,8 @@ public class TaskQueueManagerV2Impl
                 jobLockToken.put(jobId, jtoken);
 
                 // Try to acquire global permit
-                String globalPermitKey = "concurrent:holders";
+                // Use instance-scoped permit keys so concurrency limits are per-node (not cluster-wide).
+                String globalPermitKey = "concurrent:holders:" + this.instanceId;
                 String globalToken = redisLockService.tryAcquirePermit(globalPermitKey, concurrentLimit, jobLockTtl);
                 if (globalToken == null) {
                     log.info("Global concurrency limit reached, releasing job {}", jobId);
@@ -299,12 +299,13 @@ public class TaskQueueManagerV2Impl
                 // Try to acquire source-level permit if needed
                 String sourcePermitToken = null;
                 if (maxConcurrency != null && maxConcurrency > 0) {
-                    String sourcePermitKey = "source:holders:" + table.getSid();
+                    // scope source permit by instanceId so source.maxConcurrency applies per-node
+                    String sourcePermitKey = "source:holders:" + this.instanceId + ":" + table.getSid();
                     sourcePermitToken = redisLockService.tryAcquirePermit(sourcePermitKey, maxConcurrency, jobLockTtl);
                     if (sourcePermitToken == null) {
                         log.info("Source {} concurrency reached, releasing job {}", source.getCode(), jobId);
                         // cleanup global and job lock
-                        redisLockService.release(globalPermitKey, globalToken);
+                        redisLockService.releasePermit(globalPermitKey, globalToken);
                         jobGlobalPermitToken.remove(jobId);
                         redisLockService.release(jobLockKey, jtoken);
                         jobLockToken.remove(jobId);
@@ -409,7 +410,8 @@ public class TaskQueueManagerV2Impl
                     // renew global permit
                     String gk = jobGlobalPermitToken.get(jobId);
                     if (gk != null) {
-                        boolean ok = redisLockService.extendPermit("concurrent:holders", gk, jobLockTtl);
+                        String globalPermitKey = "concurrent:holders:" + this.instanceId;
+                        boolean ok = redisLockService.extendPermit(globalPermitKey, gk, jobLockTtl);
                         if (!ok) {
                             log.warn("Failed to renew global permit for jobId={}", jobId);
                         }
@@ -417,7 +419,7 @@ public class TaskQueueManagerV2Impl
                     // renew source permit
                     String sk = jobSourcePermitToken.get(jobId);
                     if (sk != null) {
-                        String sourcePermitKey = "source:holders:" + (tableService.getTable(job.getTid()).getSid());
+                        String sourcePermitKey = "source:holders:" + this.instanceId + ":" + (tableService.getTable(job.getTid()).getSid());
                         boolean ok = redisLockService.extendPermit(sourcePermitKey, sk, jobLockTtl);
                         if (!ok) {
                             log.warn("Failed to renew source permit for jobId={}", jobId);
@@ -492,34 +494,35 @@ public class TaskQueueManagerV2Impl
                 job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
 
             // Release Redis tokens/permits and cleanup
-            try {
-                String sk = jobSourcePermitToken.remove(jobId);
-                if (sk != null) {
-                    String sourcePermitKey = "source:holders:" + (table != null ? table.getSid() : "unknown");
+             try {
+                 String sk = jobSourcePermitToken.remove(jobId);
+                 if (sk != null) {
+                    String sourcePermitKey = "source:holders:" + this.instanceId + ":" + (table != null ? table.getSid() : "unknown");
                     redisLockService.releasePermit(sourcePermitKey, sk);
-                }
-            }
-            catch (Exception e) {
-                log.warn("Failed to release source permit for jobId={}", jobId, e);
-            }
-            try {
-                String gk = jobGlobalPermitToken.remove(jobId);
-                if (gk != null) {
-                    redisLockService.releasePermit("concurrent:holders", gk);
-                }
-            }
-            catch (Exception e) {
-                log.warn("Failed to release global permit for jobId={}", jobId, e);
-            }
-            try {
-                String jt = jobLockToken.remove(jobId);
-                if (jt != null) {
+                 }
+             }
+             catch (Exception e) {
+                 log.warn("Failed to release source permit for jobId={}", jobId, e);
+             }
+             try {
+                 String gk = jobGlobalPermitToken.remove(jobId);
+                 if (gk != null) {
+                    String globalPermitKey = "concurrent:holders:" + this.instanceId;
+                    redisLockService.releasePermit(globalPermitKey, gk);
+                 }
+             }
+             catch (Exception e) {
+                 log.warn("Failed to release global permit for jobId={}", jobId, e);
+             }
+             try {
+                 String jt = jobLockToken.remove(jobId);
+                 if (jt != null) {
                     redisLockService.release(jobLockKey, jt);
-                }
-            }
-            catch (Exception e) {
-                log.warn("Failed to release job lock for jobId={}", jobId, e);
-            }
+                 }
+             }
+             catch (Exception e) {
+                 log.warn("Failed to release job lock for jobId={}", jobId, e);
+             }
 
             // 完成 DB 层任务后触发调度
             triggerDispatchAsync();
