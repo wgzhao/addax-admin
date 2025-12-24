@@ -41,6 +41,14 @@
               <v-row>
                 <v-col>
                   <v-btn color="primary" @click="openItemDialog()">新增明细</v-btn>
+                  <v-btn
+                    v-if="selectedDict && selectedDict.code === 1021"
+                    color="secondary"
+                    class="ml-2"
+                    @click="openBatchDialog()"
+                  >
+                    批量新增交易日
+                  </v-btn>
                 </v-col>
               </v-row>
               <v-data-table
@@ -103,6 +111,30 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Batch add trade dates dialog (for dict code 1021) -->
+    <v-dialog v-model="batchDialog" max-width="600px">
+      <v-card>
+        <v-card-title>批量新增交易日</v-card-title>
+            <v-card-text>
+              <v-form>
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field v-model="batchForm.year" type="number" label="年份 (YYYY)" />
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-checkbox v-model="batchForm.includeWeekend" label="包含周末" />
+                  </v-col>
+                </v-row>
+              </v-form>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn text @click="batchDialog = false">取消</v-btn>
+              <v-btn color="primary" @click="batchAddDates">生成并保存</v-btn>
+            </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -120,6 +152,31 @@ const itemDialog = ref(false)
 
 const dictFormModel = ref<any>({ code: null, name: '', remark: '', codeExists: false })
 const itemFormModel = ref<any>({ dictCode: null, itemKey: '', itemValue: '', remark: '' })
+
+// batch add trade dates (for dict code 1021) -- simplified: collect year + includeWeekend
+const batchDialog = ref(false)
+const batchForm = ref<{ year: number | null; includeWeekend: boolean }>({ year: new Date().getFullYear(), includeWeekend: true })
+
+const openBatchDialog = () => {
+  batchForm.value = { year: new Date().getFullYear(), includeWeekend: true }
+  batchDialog.value = true
+}
+
+const batchAddDates = async () => {
+  if (!selectedDict.value || selectedDict.value.code !== 1021) return alert('仅支持交易日字典 (1021)')
+  const year = batchForm.value.year
+  if (!year || year < 1900 || year > 9999) return alert('请输入有效年份')
+  const include = batchForm.value.includeWeekend
+  try {
+    await dictService.generateTradeCalendar(year, include)
+    batchDialog.value = false
+    if (selectedDict.value) loadItems(selectedDict.value.code)
+    alert('已请求后端生成交易日，完成后请刷新明细查看结果')
+  } catch (err) {
+    console.error(err)
+    alert('后端生成失败，请查看控制台')
+  }
+}
 
 const dictHeaders = [
   { title: '编码', key: 'code' },

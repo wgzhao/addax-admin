@@ -222,4 +222,15 @@ public class ParamController
         Map<String, String> defaults = dictService.getHdfsDefaultFormats();
         return ResponseEntity.ok(defaults);
     }
+
+    /**
+     * 生成指定年份的交易日历,同时包含一个可选参数，是否包含周末
+     */
+    @PostMapping("/generate-trade-calendar/{year}/{includeWeekend}")
+    public ResponseEntity<Void> generateTradeCalendar(@PathVariable int year,
+                                                      @PathVariable boolean includeWeekend)
+    {
+        dictService.generateTradeCalendar(year, includeWeekend);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
 }

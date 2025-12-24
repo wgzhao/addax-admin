@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -479,5 +480,33 @@ public class DictService
     {
         Integer res = getItemValue(1000, "SCHEMA_REFRESH_TIMEOUT", Integer.class);
         return res == null ? 600 : res;
+    }
+
+    /* 生成指定年份的交易日历
+     * 日期格式为 yyyyMMdd，比如 20260112
+     * 保存在 code = 1021 的字典中，item_key ，item_value 均为日期字符串
+     * remark 设定为自动生成
+     * @param year 指定年份，比如 2026
+     * @param includeWeekend 是否包含周末, true 包含，false 不包含
+     */
+    public void generateTradeCalendar(int year, boolean includeWeekend)
+    {
+        LocalDate start = LocalDate.of(year, 1, 1);
+        LocalDate end = LocalDate.of(year, 12, 31);
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            if (!includeWeekend) {
+                int dayOfWeek = date.getDayOfWeek().getValue();
+                if (dayOfWeek == 6 || dayOfWeek == 7) {
+                    continue;
+                }
+            }
+            String dateStr = date.format(shortSdf);
+            SysItem item = new SysItem();
+            item.setDictCode(1021);
+            item.setItemKey(dateStr);
+            item.setItemValue(dateStr);
+            item.setRemark("自动生成");
+            sysItemRepo.save(item);
+        }
     }
 }
