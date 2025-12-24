@@ -1,0 +1,42 @@
+package com.wgzhao.addax.admin.service;
+
+import com.wgzhao.addax.admin.model.RiskLog;
+import com.wgzhao.addax.admin.repository.RiskLogRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@AllArgsConstructor
+public class RiskLogService {
+
+    private final RiskLogRepository repository;
+
+    @Transactional
+    public void recordRisk(String source, String level, String message, String details, Long referenceId) {
+        RiskLog r = new RiskLog();
+        r.setRiskLevel(level == null ? "WARN" : level);
+        r.setSource(source == null ? "unknown" : source);
+        r.setMessage(message == null ? "" : message);
+        r.setDetails(details);
+        r.setTid(referenceId);
+        repository.save(r);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RiskLog> getRecentRisks(int limit) {
+        Pageable p = PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return repository.findAllByOrderByCreatedAtDesc(p);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RiskLog> getRecentRisksBySource(String source, int limit) {
+        Pageable p = PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return repository.findBySourceOrderByCreatedAtDesc(source, p);
+    }
+}

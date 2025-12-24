@@ -577,3 +577,35 @@ create table log_cleanup_audit
 );
 
 create index idx_log_cleanup_task_id on log_cleanup_audit(task_id);
+
+create table risk_log
+(
+  id         bigserial,
+  risk_level varchar(30) not null,
+  source     varchar(30),
+  message    varchar(1000),
+  details    text,
+  tid        integer,
+  created_at timestamp default CURRENT_TIMESTAMP
+);
+
+comment on table risk_log is '风险记录表';
+
+comment on column risk_log.risk_level is '风险级别';
+
+comment on column risk_log.source is '风险来源';
+
+comment on column risk_log.message is '风险摘要';
+
+comment on column risk_log.details is '风险详情';
+
+comment on column risk_log.tid is '关联表 ID';
+
+comment on column risk_log.created_at is '创建时间';
+
+alter table risk_log
+  owner to addax;
+
+create index risk_log__index_createat
+  on risk_log (created_at);
+

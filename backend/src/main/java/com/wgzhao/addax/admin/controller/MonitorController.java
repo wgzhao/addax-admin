@@ -4,8 +4,10 @@ import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.Notification;
+import com.wgzhao.addax.admin.model.RiskLog;
 import com.wgzhao.addax.admin.model.SchemaChangeLog;
 import com.wgzhao.addax.admin.repository.NotificationRepo;
+import com.wgzhao.addax.admin.service.RiskLogService;
 import com.wgzhao.addax.admin.service.SchemaChangeLogService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TaskService;
@@ -29,19 +31,12 @@ import java.util.Map;
 @AllArgsConstructor
 public class MonitorController
 {
-    /**
-     * 任务服务
-     */
+
     private final TaskService taskService;
-    /**
-     * 统计服务
-     */
     private final StatService statService;
-    /**
-     * 消息提醒数据仓库
-     */
     private final NotificationRepo notificationRepo;
     private final SchemaChangeLogService schemaChangeLogService;
+    private final RiskLogService riskLogService;
 
     /**
      * 获取最近两天采集完成情况列表
@@ -82,13 +77,12 @@ public class MonitorController
      * @return 风险检测结果
      */
     @RequestMapping("/sys-risk")
-    public ResponseEntity<List<Map<String, Object>>> getSysRisk()
+    public ResponseEntity<List<RiskLog>> getSysRisk()
     {
         // 具体实现略
-        return ResponseEntity.ok(Collections.emptyList());
+        return ResponseEntity.ok(riskLogService.getRecentRisks(10));
     }
 
-    // 采集源库的字段变更提醒（T-1日结构与T日结构对比）
     /**
      * 查询字段变更
      *

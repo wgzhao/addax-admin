@@ -10,10 +10,12 @@ import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TargetService;
+import com.wgzhao.addax.admin.service.RiskLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
@@ -51,6 +53,7 @@ public class TargetServiceWithHiveImpl
     private final ColumnService columnService;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
+    private final RiskLogService riskLogService;
 
     private volatile DataSource hiveDataSource;
     // keep a reference to the registered driver shim so we can deregister it if we ever reinit
@@ -339,6 +342,15 @@ public class TargetServiceWithHiveImpl
                 catch (SQLException ex) {
                     log.error("Failed to apply alter for {}.{}: {}", etlTable.getTargetDb(), etlTable.getTargetTable(), ddl, ex);
                     jourService.failJour(j, ex.getMessage());
+                    // 记录到风险日志表，提示用户后续人工处理
+                    try {
+                        String msg = String.format("Failed to apply alter %s on %s.%s: %s", ddl, etlTable.getTargetDb(), etlTable.getTargetTable(), ex.getMessage());
+                        String details = ExceptionUtils.getStackTrace(ex);
+                        riskLogService.recordRisk("TargetServiceWithHiveImpl", "ERROR", msg, details, etlTable.getId());
+                    }
+                    catch (Exception logEx) {
+                        log.warn("Failed to record risk log for alter failure: {}", logEx.getMessage());
+                    }
                     // continue trying next statements; optionally could break depending on config
                 }
             }

@@ -32,7 +32,6 @@ import java.util.Objects;
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
-import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
 
@@ -51,6 +50,7 @@ public class JobContentService
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final SystemConfigService configService;
     private final TargetService targetService;
+    private final RiskLogService riskLogService;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -229,6 +229,14 @@ public class JobContentService
         Long maxValue = targetService.getMaxValue(table, columnName, partValue);
         if (maxValue == null) {
             // 说明目标表还没有数据或者异常了，那么直接返回 1=1
+            // 记录一条风险日志，提醒用户可能存在类型不兼容或查询异常
+            try {
+                String details = String.format("parseFilterCondition failed to get max value for tableId=%d, column=%s, part=%s", table.getId(), columnName, partValue);
+                riskLogService.recordRisk("JobContentService", "WARN", "无法获取目标表最大值，使用默认过滤 1=1", details, table.getId());
+            }
+            catch (Exception ex) {
+                log.warn("记录风险日志时出现异常: {}", ex.getMessage());
+            }
             return "1=1";
         }
         return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
