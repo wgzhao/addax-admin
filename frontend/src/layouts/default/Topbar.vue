@@ -104,6 +104,10 @@ const urls = ref<MenuItem[]>([
     path: '/logs',
     title: '日志管理'
   },
+  {
+    path: '/dicts',
+    title: '字典维护'
+  }
   // {
   //   path: '/param',
   //   title: '参数管理'

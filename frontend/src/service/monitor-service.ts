@@ -23,7 +23,9 @@ class MonitorService {
   }
 
   sysRisks(): Promise<Array<Map<string, any>>> {
-    return Requests.get(this.prefix + '/sys-risk') as unknown as Promise<Array<Map<string, any>>>
+    return Requests.get(this.prefix + '/sys-risk') as unknown as Promise<
+      Array<Map<string, any>>
+    >
   }
 
   fieldsChanges(): Promise<Array<Map<string, any>>> {

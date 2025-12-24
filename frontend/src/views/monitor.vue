@@ -225,10 +225,12 @@
     title: '系统风险检测结果',
     sortBy: <SortItem[]>[],
     headers: <DataTableHeader[]>[
-      { title: '类别', key: 'chkKind' },
-      { title: '名称', key: 'chkName' },
-      { title: '风险提示', key: 'chkContent' },
-      { title: '更新时间', key: 'updtDate' }
+      {title: '风险来源', key: 'source' },
+      { title: '类别', key: 'riskLevel' },
+      { title: '风险摘要', key: 'message' },
+      { title: '风险详情', key: ' details' },
+      {title: '关联表 ID', key: 'tid' },
+      { title: '创建时间', key: 'createdAt' }
     ]
   }
 
@@ -328,7 +330,7 @@
 
   const getData = async () => {
     try {
-      const [accomplishList, specialTask, rejectTask, sysRisk, smsDetail] = await Promise.all([
+      const [accomplishList, specialTask, rejectTask, rawSysRisk, smsDetail] = await Promise.all([
         monitorService.fetchAccomplishList(),
         monitorService.fetchSpecialTask(),
         monitorService.fetchRejectTask(),
@@ -338,7 +340,7 @@
       data.value.accomplishList = accomplishList
       data.value.specialTask = specialTask
       data.value.rejectTask = rejectTask
-      data.value.sysRisk = sysRisk
+      data.value.sysRisk = rawSysRisk
       data.value.smsDetail = smsDetail
     } catch (error) {
       console.error('Error fetching data:', error)

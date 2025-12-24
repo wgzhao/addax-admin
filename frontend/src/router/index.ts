@@ -26,6 +26,14 @@ routes.push({
   meta: { layout: 'login' }
 })
 
+// 字典维护页面
+routes.push({
+  path: '/dicts',
+  name: 'DictMaintenance',
+  component: () => import('@/views/dicts.vue'),
+  meta: { title: '字典维护', icon: 'mdi-book-open-page-variant' }
+})
+
 const router = createRouter({
   history: createWebHistory(),
   routes

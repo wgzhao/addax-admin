@@ -82,11 +82,10 @@ const currPageSize = ref(10)
 const totalItems = ref(0)
 const loading = ref(false)
 const headers = ref([
-  { title: 'ID', value: 'id' },
-  { title: '表 ID', value: 'tid' },
-  { title: '采集时间', value: 'runAt' },
-  { title: '业务日期', value: 'runDate' },
-  { title: '消息', value: 'log' }
+  { title: '表 ID', value: 'tid',width: '5%' },
+  { title: '采集时间', value: 'runAt',width: '35%' },
+  { title: '业务日期', value: 'runDate', width: '12%' },
+  { title: '消息', value: 'log', width: '40%' }
 ])
 
 const loadItems = ({ page, itemsPerPage }) => {
