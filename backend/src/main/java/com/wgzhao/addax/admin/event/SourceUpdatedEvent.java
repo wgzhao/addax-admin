@@ -13,21 +13,13 @@ import org.springframework.context.ApplicationEvent;
 public class SourceUpdatedEvent
     extends ApplicationEvent
 {
-
     private final int sourceId;
     private final boolean connectionChanged;
-    private final boolean scheduleChanged;
 
-    public SourceUpdatedEvent(Object source, int sourceId, boolean connectionChanged, boolean scheduleUpdated)
+    public SourceUpdatedEvent(Object source, int sourceId, boolean connectionChanged)
     {
         super(source);
         this.sourceId = sourceId;
         this.connectionChanged = connectionChanged;
-        this.scheduleChanged = scheduleUpdated;
-    }
-
-    public SourceUpdatedEvent(Object source, int sourceId)
-    {
-        this(source, sourceId, false, false);
     }
 }

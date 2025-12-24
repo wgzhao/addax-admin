@@ -1,6 +1,5 @@
 package com.wgzhao.addax.admin.scheduler;
 
-import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
@@ -95,13 +94,5 @@ public class CollectionScheduler
     private String convertLocalTimeToCron(LocalTime time)
     {
         return String.format("0 %d %d * * ?", time.getMinute(), time.getHour());
-    }
-
-    @EventListener
-    public void handleSourceEvent(SourceUpdatedEvent event)
-    {
-        if (event.isScheduleChanged()) {
-            etlSourceRepo.findById(event.getSourceId()).ifPresent(this::scheduleOrUpdateTask);
-        }
     }
 }

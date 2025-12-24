@@ -10,6 +10,7 @@ import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
@@ -30,6 +31,8 @@ import java.util.Set;
 @Slf4j
 public class SourceService
 {
+    private static final String REDIS_SOURCE_UPDATE_CHANNEL = "etl:source:updated";
+
     /**
      * 数据源仓库
      */
@@ -40,6 +43,9 @@ public class SourceService
     private final CollectionScheduler collectionScheduler;
 
     private final ApplicationEventPublisher eventPublisher;
+
+    // Redis template used to broadcast source updates across cluster nodes
+    private final StringRedisTemplate redisTemplate;
 
     /**
      * 获取有效数据源数量
@@ -122,10 +128,23 @@ public class SourceService
         String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
         String newPos = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass();
         boolean connectionChanged = !Objects.equals(existPos, newPos);
-        if (scheduleChanged || connectionChanged) {
-            SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), connectionChanged, scheduleChanged);
+        // 连接源的修改，仅需要一个节点去更新任务模板即可，其他节点通过 Redis 消息通知来更新
+        if (connectionChanged) {
+            SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), scheduleChanged);
             eventPublisher.publishEvent(sourceUpdatedEvent);
         }
+
+        // 如果调度时间发生变更，则广播到集群中的其他节点，通知它们重新注册定时任务
+        if (scheduleChanged) {
+            try {
+                redisTemplate.convertAndSend(REDIS_SOURCE_UPDATE_CHANNEL, String.valueOf(etlSource.getId()));
+                log.info("Published source schedule change for sourceId={} to redis channel {}", etlSource.getId(), REDIS_SOURCE_UPDATE_CHANNEL);
+            }
+            catch (Exception e) {
+                log.warn("Failed to publish source schedule change to redis: {}", e.getMessage());
+            }
+        }
+
         return etlSource;
     }
 

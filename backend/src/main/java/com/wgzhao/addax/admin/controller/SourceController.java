@@ -85,7 +85,7 @@ public class SourceController
      * @return 更新的记录数
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Integer> updateSource(@PathVariable(value = "id") int id, @RequestBody EtlSource etlSource)
+    public ResponseEntity<Integer> updateSource(@PathVariable int id, @RequestBody EtlSource etlSource)
     {
         if (etlSource.getId() != id) {
             throw new ApiException(400, "ID in path and body do not match");
