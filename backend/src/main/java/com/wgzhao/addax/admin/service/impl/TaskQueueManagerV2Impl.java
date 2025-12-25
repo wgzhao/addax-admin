@@ -19,6 +19,7 @@ import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TargetService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
+import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NonNull;
@@ -646,11 +647,11 @@ public class TaskQueueManagerV2Impl
     private boolean executeAddax(String command, long tid, String logName)
     {
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
-        java.lang.Process process = null;
+        Process process = null;
         TaskResultDto taskResult;
         long pid = -1;
         try {
-            process = com.wgzhao.addax.admin.utils.CommandExecutor.startProcess(command);
+            process = CommandExecutor.startProcess(command);
             try {
                 pid = process.pid();
             }
@@ -666,7 +667,7 @@ public class TaskQueueManagerV2Impl
                 log.warn("Failed to register process in ExecutionManager for tid={} pid={}", tid, pid, e);
             }
 
-            taskResult = com.wgzhao.addax.admin.utils.CommandExecutor.waitForProcessWithResult(process, ADDAX_EXECUTE_TIME_OUT_SECONDS, command);
+            taskResult = CommandExecutor.waitForProcessWithResult(process, ADDAX_EXECUTE_TIME_OUT_SECONDS, command);
         }
         catch (IOException ioe) {
             log.error("Failed to start process for command: {}", command, ioe);

@@ -223,49 +223,49 @@ public class TaskService
     }
 
     /**
-     * Kill a running task by job id. If running on this instance, kill locally; otherwise publish a Redis kill message.
+     * Kill a running task by table id. If running on this instance, kill locally; otherwise publish a Redis kill message.
      */
-    public TaskResultDto killTask(long jobId)
+    public TaskResultDto killTask(long tid)
     {
         try {
             // try local kill first
-            boolean killedLocal = executionManager.killLocal(jobId);
-            EtlJour etlJour = jourService.getLastByTidWithKind(jobId, null);
+            boolean killedLocal = executionManager.killLocal(tid);
+            EtlJour etlJour = jourService.getLastByTidWithKind(tid, null);
             if (killedLocal) {
-                log.warn("Killed local job {} by request", jobId);
+                log.warn("Killed local collecting table {} by request", tid);
                 try {
                     jourService.failJour(etlJour, "Killed by user request");
                 }
                 catch (Exception e) {
-                    log.warn("Failed to record kill reason to etl_jour for job {}", jobId, e);
+                    log.warn("Failed to record kill reason to etl_jour for table {}", tid, e);
                 }
-                return TaskResultDto.success("Killed local job", 0);
+                return TaskResultDto.success("Killed local collecting job", 0);
             }
 
             // publish kill to redis channel for remote nodes to handle
             String channel = "etl:kill";
-            String payload = String.valueOf(jobId);
+            String payload = String.valueOf(tid);
             try {
                 stringRedisTemplate.convertAndSend(channel, payload);
                 // set fallback signal key for a short period so target node can detect if pub/sub missed
-                String signalKey = "etl:kill:signal:" + jobId;
+                String signalKey = "etl:kill:signal:" + tid;
                 stringRedisTemplate.opsForValue().set(signalKey, "1", java.time.Duration.ofSeconds(30));
-                log.info("Published kill request for job {} to channel {}", jobId, channel);
+                log.info("Published kill request for job {} to channel {}", tid, channel);
                 try {
                     jourService.failJour(etlJour, "Kill requested by user (remote)");
                 }
                 catch (Exception e) {
-                    log.warn("Failed to record kill request to etl_jour for job {}", jobId, e);
+                    log.warn("Failed to record kill request to etl_jour for job {}", tid, e);
                 }
                 return TaskResultDto.success("Kill request published", 0);
             }
             catch (Exception e) {
-                log.error("Failed to publish kill request for job {}", jobId, e);
+                log.error("Failed to publish kill request for job {}", tid, e);
                 return TaskResultDto.failure("Failed to publish kill request: " + e.getMessage(), 0);
             }
         }
         catch (Exception e) {
-            log.error("killTask failed for job {}", jobId, e);
+            log.error("killTask failed for job {}", tid, e);
             return TaskResultDto.failure(e.getMessage() == null ? "internal error" : e.getMessage(), 0);
         }
     }

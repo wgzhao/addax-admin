@@ -217,14 +217,14 @@ public class TaskController
     /**
      * 终止正在运行的任务
      *
-     * @param taskId 任务ID（路径参数）
+     * @param tid 表 ID（路径参数）
      * @return 任务终止结果
      */
-    @PostMapping("/{taskId}/kill")
+    @PostMapping("/{tid}/kill")
     public ResponseEntity<TaskResultDto> killTask(
-        @PathVariable long taskId)
+        @PathVariable long tid)
     {
-        TaskResultDto result = taskService.killTask(taskId);
+        TaskResultDto result = taskService.killTask(tid);
         return ResponseEntity.ok(result);
     }
 }

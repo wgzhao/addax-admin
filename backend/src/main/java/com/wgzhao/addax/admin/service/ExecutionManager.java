@@ -25,7 +25,7 @@ public class ExecutionManager
     implements MessageListener
 {
     private static final String KILL_CHANNEL = "etl:kill";
-    // in-memory registry of running jobs on this instance
+    // in-memory registry of collecting table(s) on this instance
     private final ConcurrentHashMap<Long, ProcessHolder> running = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RedisMessageListenerContainer listenerContainer;
@@ -35,50 +35,50 @@ public class ExecutionManager
     {
         try {
             listenerContainer.addMessageListener(this, new ChannelTopic(KILL_CHANNEL));
-            log.info("Subscribed to redis kill channel {}");
+            log.info("Subscribed to redis kill channel {}", KILL_CHANNEL);
         }
         catch (Exception e) {
             log.warn("Failed to subscribe to kill channel", e);
         }
     }
 
-    public void register(long jobId, Process process, long pid, String instanceId)
+    public void register(long tid, Process process, long pid, String instanceId)
     {
         ProcessHolder h = new ProcessHolder(process, pid, instanceId, Instant.now());
-        running.put(jobId, h);
-        log.info("Registered running job {} pid={} on instance={}", jobId, pid, instanceId);
+        running.put(tid, h);
+        log.info("Registered collecting table {} pid={} on instance={}", tid, pid, instanceId);
     }
 
-    public void unregister(long jobId)
+    public void unregister(long tid)
     {
-        ProcessHolder removed = running.remove(jobId);
+        ProcessHolder removed = running.remove(tid);
         if (removed != null) {
-            log.info("Unregistered running job {} pid={} instance={}", jobId, removed.pid(), removed.instanceId());
+            log.info("Unregistered collecting table {} pid={} instance={}", tid, removed.pid(), removed.instanceId());
         }
     }
 
-    public Optional<ProcessHolder> getLocal(long jobId)
+    public Optional<ProcessHolder> getLocal(long tid)
     {
-        return Optional.ofNullable(running.get(jobId));
+        return Optional.ofNullable(running.get(tid));
     }
 
     /**
      * Kill local process if present. Returns true if kill attempted (process existed), false if not found locally.
      */
-    public boolean killLocal(long jobId)
+    public boolean killLocal(long tid)
     {
-        ProcessHolder holder = running.get(jobId);
+        ProcessHolder holder = running.get(tid);
         if (holder == null) {
             return false;
         }
         try {
             Process p = holder.process();
-            log.warn("Killing local job {} pid={} requested", jobId, holder.pid());
+            log.warn("Killing local collecting table {} , pid={} requested", tid, holder.pid());
             p.destroyForcibly();
             return true;
         }
         catch (Exception e) {
-            log.error("Failed to kill local job {}", jobId, e);
+            log.error("Failed to kill local collecting table {} ", tid, e);
             return false;
         }
     }
