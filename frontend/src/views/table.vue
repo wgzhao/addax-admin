@@ -2,7 +2,7 @@
   <v-card flat title="采集表配置">
     <template v-slot:text>
       <v-row justify="center" align-content="center">
-        <v-col cols="col-2">
+        <v-col cols="3">
           <v-text-field
             v-model="search"
             density="compact"
@@ -19,7 +19,7 @@
             </template>
           </v-text-field>
         </v-col>
-        <v-col cols="auto">
+        <v-col cols="col-1">
           <!-- 状态下拉框选择 statusOptions -->
           <v-select
             v-model="runStatus"
@@ -35,53 +35,51 @@
           </v-select>
         </v-col>
         <!-- add search button -->
-        <v-col cols="auto">
+        <v-col cols="1">
           <v-btn variant="tonal" @click="searchTable">查询</v-btn>
         </v-col>
-        <v-spacer />
+        <v-spacer></v-spacer>
         <v-col cols="auto">
           <v-btn
+            class="mr-2"
             variant="tonal"
             prepend-icon="mdi-plus"
             @click="openDialog('BatchAdd', 'BatchAdd')"
           >
             新增表
           </v-btn>
-        </v-col>
-        <v-col cols="auto">
-          <!-- old function doEtl('source') -->
-          <v-btn variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
+          <v-btn class="mr-2" variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
             更新表信息
           </v-btn>
-        </v-col>
-        <v-col cols="auto">
-          <v-btn variant="tonal" prepend-icon="mdi-update" @click="updateSchema('all')">
+          <v-btn
+            class="mr-2"
+            variant="tonal"
+            prepend-icon="mdi-update"
+            @click="updateSchema('all')"
+          >
             强制更新全部表信息
           </v-btn>
-        </v-col>
-        <v-col cols="auto">
           <v-btn
             variant="tonal"
+            class="mr-2"
             prepend-icon="mdi-delete"
             :disabled="selected.length === 0"
             @click="confirmBatchDelete"
           >
             批量删除
           </v-btn>
-        </v-col>
-        <v-col cols="auto">
           <v-btn
             variant="tonal"
+            class="mr-2"
             prepend-icon="mdi-pencil"
             :disabled="selected.length === 0"
             @click="openDialog('BatchUpdate', 'BatchUpdate')"
           >
             批量修改
           </v-btn>
-        </v-col>
-        <v-col cols="auto">
           <v-btn
             variant="tonal"
+            class="mr-2"
             prepend-icon="mdi-database"
             :disabled="selected.length === 0"
             @click="doEtl(null)"

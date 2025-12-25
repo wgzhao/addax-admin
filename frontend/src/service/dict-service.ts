@@ -54,7 +54,9 @@ const getHdfsStorageDefaults = (): Promise<{ storageFormat: string; compressForm
 // year: 四位年份；includeWeekend: true/false
 const generateTradeCalendar = (year: number, includeWeekend: boolean): Promise<void> => {
   const include = includeWeekend ? 'true' : 'false'
-  return Requests.post(`${apiPrefix.value}/generate-trade-calendar/${year}/${include}`) as unknown as Promise<void>
+  return Requests.post(
+    `${apiPrefix.value}/generate-trade-calendar/${year}/${include}`
+  ) as unknown as Promise<void>
 }
 
 export default {
@@ -65,7 +67,6 @@ export default {
   createDictItem,
   updateDictItem,
   deleteDictItem,
-  getHdfsStorageDefaults
-  ,generateTradeCalendar
+  getHdfsStorageDefaults,
+  generateTradeCalendar
 }
-

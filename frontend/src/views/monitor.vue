@@ -225,11 +225,11 @@
     title: '系统风险检测结果',
     sortBy: <SortItem[]>[],
     headers: <DataTableHeader[]>[
-      {title: '风险来源', key: 'source' },
+      { title: '风险来源', key: 'source' },
       { title: '类别', key: 'riskLevel' },
       { title: '风险摘要', key: 'message' },
       { title: '风险详情', key: ' details' },
-      {title: '关联表 ID', key: 'tid' },
+      { title: '关联表 ID', key: 'tid' },
       { title: '创建时间', key: 'createdAt' }
     ]
   }

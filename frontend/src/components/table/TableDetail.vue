@@ -79,6 +79,7 @@
               label="自动获取切分字段"
               :color="table.autoPk ? 'primary' : undefined"
               :base-color="table.autoPk ? undefined : 'secondary'"
+              :disabled="!!table.splitPk"
               density="compact"
             />
           </v-col>
@@ -136,6 +137,20 @@ watch(() => props.table, (newTable) => {
 
 // define emit
 const emit = defineEmits(["closeDialog", "update:record"]);
+
+// 如果用户手动填写了切分字段(splitPk)，自动获取切分字段应被关闭并禁用
+watch(
+  () => table.value.splitPk,
+  (val) => {
+    // 如果用户填写了切分字段，则关闭并禁用自动获取；
+    // 如果用户清空切分字段，则恢复自动获取（打开）。
+    if (val) {
+      table.value.autoPk = false
+    } else {
+      table.value.autoPk = true
+    }
+  }
+)
 
 const saveOds = () => {
   // 从VEtlWithSource中提取EtlTable相关的属性
