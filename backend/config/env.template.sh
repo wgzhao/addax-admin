@@ -6,16 +6,19 @@
 # 数据库连接信息
 export DB_HOST="localhost"                                    # 数据库主机
 export DB_PORT="5432"                                         # 数据库端口
-export DB_NAME="addax_admin"                                     # 数据库名称
+export DB_NAME="addax_admin"                                   # 数据库名称
 export DB_USERNAME="addax_admin"                               # 数据库用户名
-export DB_PASSWORD="addax_admin@123"                           # 数据库密码
+export DB_PASSWORD="password"                                  # 数据库密码
 export DB_DRIVER="org.postgresql.Driver"                       # JDBC 驱动类名
 
 export REDIS_HOST="localhost"                                  # Redis 主机
 export REDIS_PORT="6379"                                       # Redis 端口
 export REDIS_PASSWORD=""                                       # Redis 密码（如有）
-export REDIS_DB="0"                                     # Redis 数据库索引
+export REDIS_DATABASE="0"                                      # Redis 数据库索引
 
+export WEIGHT = 0.5                                            # 调度权重, (0-1]
+
+export LOG_DIR="./logs"                                   # 日志目录
 # 企业微信通知
 export WECOM_ROBOT_KEY=""                                # 企业微信机器人 Key（如有）
 # 其他可选环境变量

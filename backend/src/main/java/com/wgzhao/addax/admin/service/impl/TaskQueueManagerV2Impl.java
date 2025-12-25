@@ -125,12 +125,19 @@ public class TaskQueueManagerV2Impl
     private int enqueueCapacity;
     private volatile boolean running = false;
     private String instanceId;
+    // node-level concurrency weight in (0.0,1.0]
+    private double concurrencyWeight = 1.0;
 
     @PostConstruct
     public void init()
     {
         configService.loadConfig();
-        this.concurrentLimit = configService.getConcurrentLimit();
+        // original concurrent limit from config (before applying weight)
+        int originalConcurrentLimit = configService.getConcurrentLimit();
+        // read weight from config service (default 1.0)
+        this.concurrencyWeight = configService.getNodeConcurrencyWeight();
+        // apply weight to determine effective concurrent limit (at least 1)
+        this.concurrentLimit = Math.max(1, (int) Math.floor(originalConcurrentLimit * this.concurrencyWeight));
         this.enqueueCapacity = configService.getQueueSize();
         this.instanceId = resolveInstanceId();
 
@@ -142,7 +149,7 @@ public class TaskQueueManagerV2Impl
         scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
         // 启动租约回收（仍保留 DB 层回收以保证兼容）
         scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
-        log.info("Redis-backed arbitration queue started. concurrentLimit={}, enqueueCapacity={}, instanceId={}", concurrentLimit, enqueueCapacity, instanceId);
+        log.info("Redis-backed arbitration queue started. originalConcurrentLimit={} weight={} effectiveConcurrentLimit={} enqueueCapacity={} instanceId={} ", originalConcurrentLimit, concurrencyWeight, concurrentLimit, enqueueCapacity, instanceId);
     }
 
     private String resolveInstanceId()
@@ -299,11 +306,13 @@ public class TaskQueueManagerV2Impl
                 // Try to acquire source-level permit if needed
                 String sourcePermitToken = null;
                 if (maxConcurrency != null && maxConcurrency > 0) {
+                    // apply node-level weight to per-source concurrency
+                    int effectiveSourceLimit = Math.max(1, (int) Math.floor(maxConcurrency * this.concurrencyWeight));
                     // scope source permit by instanceId so source.maxConcurrency applies per-node
                     String sourcePermitKey = "source:holders:" + this.instanceId + ":" + table.getSid();
-                    sourcePermitToken = redisLockService.tryAcquirePermit(sourcePermitKey, maxConcurrency, jobLockTtl);
+                    sourcePermitToken = redisLockService.tryAcquirePermit(sourcePermitKey, effectiveSourceLimit, jobLockTtl);
                     if (sourcePermitToken == null) {
-                        log.info("Source {} concurrency reached, releasing job {}", source.getCode(), jobId);
+                        log.info("Source {} concurrency reached (maxConcurrency={} weight={} effective={}), releasing job {}", source.getCode(), maxConcurrency, this.concurrencyWeight, effectiveSourceLimit, jobId);
                         // cleanup global and job lock
                         redisLockService.releasePermit(globalPermitKey, globalToken);
                         jobGlobalPermitToken.remove(jobId);
@@ -327,11 +336,12 @@ public class TaskQueueManagerV2Impl
                 if (maxConcurrency != null && maxConcurrency > 0) {
                     sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0)).incrementAndGet();
                 }
-                log.info("领取任务 jobId={}, tid={}, attempts={}/{}, 当前本地并发 {}/{}, 数据源 {} 并发 {}/{}",
+                log.info("领取任务 jobId={}, tid={}, attempts={}/{}, 当前本地并发 {}/{}, 数据源 {} 并发 {}/{} (weight={})",
                     job.getId(), job.getTid(), job.getAttempts(), job.getMaxAttempts(),
                     current, concurrentLimit, source.getCode(),
                     sourceRunningTaskCount.getOrDefault(table.getSid(), new AtomicInteger(0)).get(),
-                    maxConcurrency == null || maxConcurrency <= 0 ? "无限制" : maxConcurrency);
+                    maxConcurrency == null || maxConcurrency <= 0 ? "无限制" : maxConcurrency,
+                    this.concurrencyWeight);
 
                 workerPool.submit(() -> executeClaimedJob(job));
             }
@@ -483,7 +493,8 @@ public class TaskQueueManagerV2Impl
                     if (maxConcurrency != null && maxConcurrency > 0) {
                         sourceRunningTaskCount.computeIfPresent(table.getSid(), (k, v) -> {
                             int after = v.decrementAndGet();
-                            log.debug("数据源 {} 并发减少为 {}，maxConcurrency={}", k, after, maxConcurrency);
+                            int effectiveSourceLimit = Math.max(1, (int) Math.floor(maxConcurrency * this.concurrencyWeight));
+                            log.debug("数据源 {} 并发减少为 {}，maxConcurrency={}, weight={}, effective={}", k, after, maxConcurrency, this.concurrencyWeight, effectiveSourceLimit);
                             return v;
                         });
                     }

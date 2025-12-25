@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,7 @@ public class SystemConfigService
     private static final String REDIS_CONFIG_CHANNEL = "system:config:reload";
     private final DictService dictService;
     private final StringRedisTemplate redisTemplate;
+    private final Environment env;
     private final ObjectMapper objectMapper;
 
     @PostConstruct
@@ -202,6 +204,43 @@ public class SystemConfigService
             log.warn("Failed to read QUEUE_SIZE from redis: {}", e.getMessage());
         }
         return dictService.getQueueSize();
+    }
+
+    /**
+     * Node-level concurrency weight factor in range [0.0, 1.0].
+     * Default is 1.0 when not configured.
+     */
+    public double getNodeConcurrencyWeight()
+    {
+        try {
+            String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "NODE_CONCURRENCY_WEIGHT");
+            if (s != null) {
+                double v = Double.parseDouble(s);
+                if (Double.isFinite(v)) {
+                    if (v < 0.0) return 0.2;
+                    return Math.min(v, 1.0);
+                }
+            }
+        }
+        catch (Exception e) {
+            log.warn("Failed to read NODE_CONCURRENCY_WEIGHT from redis: {}", e.getMessage());
+        }
+        // try application.properties / environment variable
+        try {
+            String s2 = env.getProperty("node.concurrency.weight");
+            if (s2 != null) {
+                double v2 = Double.parseDouble(s2);
+                if (Double.isFinite(v2)) {
+                    if (v2 < 0.0) return 0.0;
+                    return Math.min(v2, 1.0);
+                }
+            }
+        }
+        catch (Exception e) {
+            // ignore
+        }
+        // fallback default
+        return 1.0;
     }
 
     /**

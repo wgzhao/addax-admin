@@ -137,7 +137,7 @@ public class DictService
     public int getConcurrentLimit()
     {
         Integer res = getItemValue(1000, "CONCURRENT_LIMIT", Integer.class);
-        return res == null ? 5 : res;
+        return res == null ? 20 : res;
     }
 
     /**

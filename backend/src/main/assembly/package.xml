@@ -36,7 +36,6 @@
             <outputDirectory>config</outputDirectory>
             <includes>
                 <include>env.template.sh</include>
-                <include>env.sh</include>
             </includes>
         </fileSet>
         <fileSet>
