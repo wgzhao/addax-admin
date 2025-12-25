@@ -55,6 +55,7 @@
           <v-btn
             class="mr-2"
             variant="tonal"
+            color="warning"
             prepend-icon="mdi-update"
             @click="updateSchema('all')"
           >
