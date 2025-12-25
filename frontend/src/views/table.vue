@@ -27,6 +27,7 @@
             item-title="label"
             item-value="value"
             density="compact"
+            single-line
             style="min-width: 150px"
           >
             <template #prepend>
@@ -176,60 +177,64 @@
         </template>
         <template v-slot:item.action="{ item }">
           <v-row justify="center" no-gutters>
+            <!-- 常用按钮：详情、模板、采集、表更新 -->
             <v-btn
-              small
-              density="compact"
+             size="small"
               color="primary"
               class="mr-1"
               @click="openDialog('TableDetail', item)"
             >
               详情
             </v-btn>
+
             <v-btn
-              small
-              density="compact"
-              color="secondary"
-              class="mr-1"
-              @click="openDialog('FieldsCompare', item)"
-            >
-              字段
-            </v-btn>
-            <v-btn
-              small
-              density="compact"
-              color="info"
+              size="small"
+              color="indigo"
               class="mr-1"
               @click="openDialog('AddaxJob', item)"
             >
               模板
             </v-btn>
-            <v-btn
-              small
-              density="compact"
-              color="success"
-              class="mr-1"
-              @click="openDialog('AddaxResult', item)"
-            >
-              结果
-            </v-btn>
-            <v-btn
-              small
-              density="compact"
-              color="info"
-              class="mr-1"
-              @click="openDialog('LogFiles', item)"
-            >
-              日志
-            </v-btn>
-            <v-btn small density="compact" color="error" class="mr-1" @click="confirmDelete(item)">
-              删除
-            </v-btn>
-            <v-btn small density="compact" color="info" class="mr-1" @click="doEtl(item)">
+
+            <v-btn size="small" color="info" class="mr-1" @click="doEtl(item)">
               采集
             </v-btn>
-            <v-btn small density="compact" color="secondary" @click="updateSchema(item)">
+            <v-btn size="small" color="green" class="mr-1" @click="openDialog('LogFiles', item)">
+              日志
+            </v-btn>
+
+            <v-btn size="small" color="warning" class="mr-1" @click="updateSchema(item)">
               表更新
             </v-btn>
+
+            <!-- 更多按钮：将不常用操作移到下拉菜单中 -->
+            <v-menu offset-y>
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  icon
+                  class="mr-1 d-flex align-center"
+                  style="height:32px; min-width:36px;"
+                >
+                  <v-icon size="20">mdi-dots-vertical</v-icon>
+                </v-btn>
+              </template>
+              <v-list dense>
+                <v-list-item dense @click="openDialog('FieldsCompare', item)">
+                  <v-list-item-title class="text-body-2">字段</v-list-item-title>
+                </v-list-item>
+                <v-list-item dense @click="openDialog('AddaxResult', item)">
+                  <v-list-item-title class="text-body-2">结果</v-list-item-title>
+                </v-list-item>
+                <!-- <v-list-item dense @click="openDialog('LogFiles', item)">
+                  <v-list-item-title class="text-body-2">日志</v-list-item-title>
+                </v-list-item> -->
+                <v-list-item dense @click="confirmDelete(item)">
+                  <v-list-item-title class="text-body-2">删除</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
           </v-row>
         </template>
       </v-data-table-server>
@@ -346,7 +351,7 @@
       key: 'name',
       align: 'center' as const,
       sortable: true,
-      width: '12%',
+      width: '10%',
       value: (item) => `${item.name} (${item.code})`
     },
     {
@@ -365,11 +370,11 @@
       width: '18%',
       value: (item) => `${item.targetDb || ''}.${item.targetTable || ''}`
     },
-    { title: '状态', key: 'status', align: 'center' as const, sortable: true, width: '3%' },
-    { title: '剩余', key: 'retryCnt', align: 'center' as const, sortable: true, width: '2%' },
-    { title: '耗时', key: 'duration', align: 'center' as const, sortable: true, width: '3%' },
-    { title: '最后采集', key: 'startTime', align: 'center' as const, sortable: true, width: '12%' },
-    { title: '操作', key: 'action', align: 'center' as const, sortable: false, width: '40%' }
+    { title: '状态', key: 'status', align: 'center' as const, sortable: true, width: '5%' },
+    { title: '剩余', key: 'retryCnt', align: 'center' as const, sortable: true, width: '5%' },
+    { title: '耗时', key: 'duration', align: 'center' as const, sortable: true, width: '5%' },
+    { title: '完成时间', key: 'endTime', align: 'center' as const, sortable: true, width: '12%' },
+    { title: '操作', key: 'action', align: 'center' as const, sortable: false, width: '30%' }
   ]
   // 已使用全局 Notifier 替换旧的 alertMsg
 
