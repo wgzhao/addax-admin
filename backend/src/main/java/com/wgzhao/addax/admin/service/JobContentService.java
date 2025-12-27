@@ -22,6 +22,9 @@ import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -115,6 +118,10 @@ public class JobContentService
         values.put("autoPk", String.valueOf(vTable.getAutoPk()));
         values.put("splitPk", vTable.getSplitPk() == null ? "" : vTable.getSplitPk());
         values.put("fetchSize", "20480");
+
+        // date time special values
+        values.putAll(bizDateValues());
+
         DbType dbType = getDbType(vTable.getUrl());
         if (dbType == DbType.POSTGRESQL) {
             values.put("table", quoteIfNeeded(vTable.getSourceTable(), dbType));
@@ -152,6 +159,8 @@ public class JobContentService
         // 处理列信息
         String columnJson = getHdfsWriteColumns(vTable);
         values.put("column", columnJson);
+
+        values.putAll(bizDateValues());
 
         // hdfs path 的前缀路径不应该在模板中填写，而应该从配置中获取
         Path hdfsPath = Paths.get(configService.getHdfsPrefix(), vTable.getTargetDb(), vTable.getTargetTable());
@@ -261,5 +270,35 @@ public class JobContentService
         if (event.isConnectionChanged()) {
             updateJobBySourceId(event.getSourceId());
         }
+    }
+
+    private Map<String, String> bizDateValues()
+    {
+
+        Map<String, String> values = new HashMap<>();
+        LocalDate bizDate = configService.getBizDateAsDate();
+        values.put("biz_date_short", configService.getBizDate());
+
+        values.put("biz_date_dash", bizDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        values.put("biz_year", String.valueOf(bizDate.getYear()));
+        values.put("biz_month", String.format("%02d", bizDate.getMonthValue()));
+        values.put("biz_day", String.format("%02d", bizDate.getDayOfMonth()));
+        values.put("biz_ym", bizDate.format(DateTimeFormatter.ofPattern("yyyyMM")));
+
+        LocalDateTime dt = bizDate.atTime(LocalTime.now());
+        values.put("biz_datetime_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        values.put("biz_datetime_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        values.put("biz_datetime_0_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
+        values.put("biz_datetime_0_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
+
+        // current date time
+        LocalDateTime now = LocalDateTime.now();
+        values.put("current_date_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+        values.put("current_date_dash", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        values.put("current_datetime_short", now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        values.put("current_datetime_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        values.put("current_datetime_0_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
+        values.put("current_datetime_0_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
+        return values;
     }
 }
