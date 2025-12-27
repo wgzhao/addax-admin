@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -324,5 +325,35 @@ public class SystemConfigService
     public void loadConfig()
     {
         reloadFromDictAndBroadcast();
+    }
+
+    public Map<String, String> getBizDateValues()
+    {
+
+        Map<String, String> values = new HashMap<>();
+        LocalDate bizDate = getBizDateAsDate();
+        values.put("biz_date_short", getBizDate());
+
+        values.put("biz_date_dash", bizDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        values.put("biz_year", String.valueOf(bizDate.getYear()));
+        values.put("biz_month", String.format("%02d", bizDate.getMonthValue()));
+        values.put("biz_day", String.format("%02d", bizDate.getDayOfMonth()));
+        values.put("biz_ym", bizDate.format(DateTimeFormatter.ofPattern("yyyyMM")));
+
+        LocalDateTime dt = bizDate.atTime(LocalTime.now());
+        values.put("biz_datetime_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        values.put("biz_datetime_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        values.put("biz_datetime_0_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
+        values.put("biz_datetime_0_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
+
+        // current date time
+        LocalDateTime now = LocalDateTime.now();
+        values.put("current_date_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+        values.put("current_date_dash", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        values.put("current_datetime_short", now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        values.put("current_datetime_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        values.put("current_datetime_0_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
+        values.put("current_datetime_0_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
+        return values;
     }
 }

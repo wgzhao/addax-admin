@@ -8,6 +8,7 @@ import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.StringSubstitutor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ public class ColumnService
     private final DictService dictService;
     private final EtlJourService jourService;
     private final SchemaChangeLogService schemaChangeLogService;
+    private final SystemConfigService configService;
 
     private static boolean isDeletedPlaceholder(String name)
     {
@@ -146,7 +148,7 @@ public class ColumnService
     /**
      * 获取指定采集表的所有字段信息
      *
-     * @param tid 采集表ID
+     * @param tid 采集表 ID
      * @return 字段列表
      */
     public List<EtlColumn> getColumns(long tid)
@@ -288,6 +290,14 @@ public class ColumnService
     {
         List<EtlColumn> sourceCols = new ArrayList<>();
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
+
+        String sourceTable = etlTable.getSourceTable();
+        if (sourceTable.contains("${")) {
+            // 动态表名，无法获取元数据
+            log.info("Source table name {} contains dynamic variable, replace placeholder", sourceTable);
+            StringSubstitutor substitutor = new StringSubstitutor(configService.getBizDateValues());
+            sourceTable = substitutor.replace(sourceTable);
+        }
         try {
             String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
             String schema = connection.getSchema();
@@ -296,7 +306,7 @@ public class ColumnService
                 catalog = etlTable.getSourceDb();
                 schema = null;
             }
-            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
+            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, sourceTable, null);
             int idx = 1;
             while (rs.next()) {
                 EtlColumn etlColumn = new EtlColumn();
@@ -321,7 +331,7 @@ public class ColumnService
             return sourceCols;
         }
         catch (SQLException e) {
-            log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), etlTable.getSourceTable(), e.getMessage());
+            log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), sourceTable, e.getMessage());
             return null;
         }
     }
@@ -363,10 +373,10 @@ public class ColumnService
     }
 
     /**
-     * 获取指定采集表的Hive列信息并转换为DDL语句
+     * 获取指定采集表的 Hive 列信息并转换为DDL语句
      *
-     * @param tid 采集表ID
-     * @return DDL语句列表
+     * @param tid 采集表 ID
+     * @return DDL 语句列表
      */
     public List<String> getHiveColumnsAsDDL(Long tid)
     {
@@ -395,7 +405,7 @@ public class ColumnService
     }
 
     /**
-     * 根据表ID删除对应的字段信息
+     * 根据表 ID 删除对应的字段信息
      *
      * @param tableId 表ID
      */
