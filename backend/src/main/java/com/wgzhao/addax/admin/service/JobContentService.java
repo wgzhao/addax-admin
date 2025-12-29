@@ -129,7 +129,6 @@ public class JobContentService
             StringSubstitutor stringSubstitutor = new StringSubstitutor(configService.getBizDateValues());
             sourceTable = stringSubstitutor.replace(sourceTable);
         }
-        else
         if (dbType == DbType.POSTGRESQL) {
             values.put("table", quoteIfNeeded(sourceTable, dbType));
         }
