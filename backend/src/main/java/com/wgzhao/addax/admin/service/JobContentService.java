@@ -123,11 +123,18 @@ public class JobContentService
         values.putAll(configService.getBizDateValues());
 
         DbType dbType = getDbType(vTable.getUrl());
+        String sourceTable = vTable.getSourceTable();
+        if (sourceTable.contains("${")) {
+            // 包含变量占位符，一般是日期变量，需要替换，主要考虑日期值可能包含特殊字符（如 - ）
+            StringSubstitutor stringSubstitutor = new StringSubstitutor(configService.getBizDateValues());
+            sourceTable = stringSubstitutor.replace(sourceTable);
+        }
+        else
         if (dbType == DbType.POSTGRESQL) {
-            values.put("table", quoteIfNeeded(vTable.getSourceTable(), dbType));
+            values.put("table", quoteIfNeeded(sourceTable, dbType));
         }
         else {
-            values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(vTable.getSourceTable(), dbType));
+            values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(sourceTable, dbType));
         }
 
         // 处理列信息
@@ -270,5 +277,11 @@ public class JobContentService
         if (event.isConnectionChanged()) {
             updateJobBySourceId(event.getSourceId());
         }
+    }
+
+    public void updateJobContent(long tableId, String jobContent) {
+        EtlJob etlJob = jobRepo.findById(tableId).orElse(new EtlJob());
+        etlJob.setJob(jobContent);
+        jobRepo.save(etlJob);
     }
 }
