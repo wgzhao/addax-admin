@@ -1,5 +1,5 @@
 <template>
-  <v-card class="mx-auto" max-width="100%">
+  <v-card class="mx-auto" max-width="1200" min-width="800">
     <v-card-title class="d-flex align-center">
       <v-icon left class="mr-2">mdi-code-json</v-icon>
       Addax 采集任务配置
@@ -23,18 +23,35 @@
             JSON 配置
           </v-chip>
           <div>
-            <v-btn size="small" variant="outlined" class="mr-2" @click="copyToClipboard"
-              prepend-icon="mdi-content-copy">
-              复制
-            </v-btn>
+            <template v-if="!editing">
+              <v-btn size="small" variant="outlined" class="mr-2" @click="copyToClipboard" prepend-icon="mdi-content-copy">
+                复制
+              </v-btn>
+              <v-btn size="small" variant="tonal" class="mr-2" @click="startEdit" prepend-icon="mdi-pencil">
+                编辑
+              </v-btn>
+            </template>
+            <template v-else>
+              <v-btn size="small" variant="text" class="mr-2" @click="cancelEdit">取消</v-btn>
+              <v-btn size="small" color="primary" :disabled="!dirty" @click="saveEdit">保存</v-btn>
+            </template>
           </div>
         </div>
 
         <v-card variant="outlined" class="code-card">
-          <pre><code
-            class="language-json hljs"
-            v-html="highlightedCode"
-          ></code></pre>
+          <div v-if="!editing">
+            <pre><code class="language-json hljs" v-html="highlightedCode"></code></pre>
+          </div>
+          <div v-else>
+            <v-textarea
+              v-model="editContent"
+              auto-grow
+              rows="10"
+              class="mono-text"
+              style="width:100%"
+              @input="onEditInput"
+            />
+          </div>
         </v-card>
       </div>
 
@@ -69,6 +86,9 @@ const props = defineProps({
 const jobContent = ref('')
 const loading = ref(false)
 const error = ref('');
+const editing = ref(false)
+const editContent = ref('')
+const dirty = ref(false)
 
 // 高亮后的 HTML 内容
 const highlightedCode = computed(() => {
@@ -125,6 +145,55 @@ async function reloadJob() {
 onMounted(() => {
   reloadJob()
 })
+
+function startEdit() {
+  editing.value = true
+  dirty.value = false
+  // ensure editContent is a prettified string
+  if (typeof jobContent.value === 'object') {
+    editContent.value = JSON.stringify(jobContent.value, null, 2)
+  } else {
+    try {
+      const parsed = JSON.parse(String(jobContent.value))
+      editContent.value = JSON.stringify(parsed, null, 2)
+    } catch (_err) {
+      editContent.value = String(jobContent.value || '')
+    }
+  }
+}
+
+function cancelEdit() {
+  editing.value = false
+  dirty.value = false
+}
+
+function onEditInput() {
+  dirty.value = true
+}
+
+async function saveEdit() {
+  if (!props.tid) return
+  try {
+    loading.value = true
+    // validate JSON where possible
+    try {
+      JSON.parse(editContent.value)
+    } catch (err) {
+      notify('JSON 格式错误，请修正后保存', 'error')
+      return
+    }
+    await tableService.updateAddaxJob(props.tid, editContent.value)
+    jobContent.value = editContent.value
+    editing.value = false
+    dirty.value = false
+    notify('保存成功', 'success')
+  } catch (err) {
+    const msg = (err as Error).message || String(err)
+    notify('保存失败: ' + msg, 'error')
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 <style scoped>
 .json-container {
@@ -149,6 +218,13 @@ onMounted(() => {
   line-height: 1.6;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.mono-text textarea {
+  width: 100% !important;
+  min-height: 300px !important;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 13px;
 }
 
 .code-card code {
