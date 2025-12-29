@@ -357,7 +357,7 @@
     },
     {
       title: '源库表',
-      key: 'sourceTableCombined',
+      key: 'sourceTable',
       align: 'start' as const,
       sortable: true,
       width: '12%',
@@ -365,7 +365,7 @@
     },
     {
       title: '目标库表',
-      key: 'targetTableCombined',
+      key: 'targetTable',
       align: 'start' as const,
       sortable: true,
       width: '18%',

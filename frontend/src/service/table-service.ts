@@ -103,8 +103,8 @@ class TableService {
     return Requests.get(`${this.prefix}/${tableId}/addax-job`) as unknown as Promise<string>
   }
 
-  updateAddaxJob(tableId) {
-    return Requests.put(`${this.prefix}/${tableId}/addax-job`, {}) as unknown as Promise<string>
+  updateAddaxJob(tableId: number, data: string | object) {
+    return Requests.put(`${this.prefix}/${tableId}/addax-job`, data) as unknown as Promise<string>
   }
 
   // --- 以下接口在变更表中未定义，暂时保留旧逻辑或标记为待处理 ---
