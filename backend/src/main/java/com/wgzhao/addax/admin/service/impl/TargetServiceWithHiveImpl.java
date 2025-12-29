@@ -345,8 +345,7 @@ public class TargetServiceWithHiveImpl
                     // 记录到风险日志表，提示用户后续人工处理
                     try {
                         String msg = String.format("Failed to apply alter %s on %s.%s: %s", ddl, etlTable.getTargetDb(), etlTable.getTargetTable(), ex.getMessage());
-                        String details = ExceptionUtils.getStackTrace(ex);
-                        riskLogService.recordRisk("TargetServiceWithHiveImpl", "ERROR", msg, details, etlTable.getId());
+                        riskLogService.recordRisk("TargetServiceWithHiveImpl", "ERROR", msg, etlTable.getId());
                     }
                     catch (Exception logEx) {
                         log.warn("Failed to record risk log for alter failure: {}", logEx.getMessage());

@@ -246,8 +246,7 @@ public class JobContentService
             // 说明目标表还没有数据或者异常了，那么直接返回 1=1
             // 记录一条风险日志，提醒用户可能存在类型不兼容或查询异常
             try {
-                String details = String.format("parseFilterCondition failed to get max value for tableId=%d, column=%s, part=%s", table.getId(), columnName, partValue);
-                riskLogService.recordRisk("JobContentService", "WARN", "无法获取目标表最大值，使用默认过滤 1=1", details, table.getId());
+                riskLogService.recordRisk("JobContentService", "WARN", "无法获取目标表(" +  table.getTargetDb() + "." + table.getTargetTable() + ")最大值，使用默认过滤 1=1", table.getId());
             }
             catch (Exception ex) {
                 log.warn("记录风险日志时出现异常: {}", ex.getMessage());

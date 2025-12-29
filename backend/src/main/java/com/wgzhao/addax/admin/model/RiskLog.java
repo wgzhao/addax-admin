@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,13 +27,11 @@ public class RiskLog {
     @Column(name = "message", nullable = false)
     private String message;
 
-    @Column(name = "details", columnDefinition = "TEXT")
-    private String details;
-
     @Column(name = "tid", length = 100)
     private Long tid;
 
     @Column(name = "created_at", nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 
     @PrePersist

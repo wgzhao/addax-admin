@@ -18,12 +18,11 @@ public class RiskLogService {
     private final RiskLogRepository repository;
 
     @Transactional
-    public void recordRisk(String source, String level, String message, String details, Long referenceId) {
+    public void recordRisk(String source, String level, String message, Long referenceId) {
         RiskLog r = new RiskLog();
         r.setRiskLevel(level == null ? "WARN" : level);
         r.setSource(source == null ? "unknown" : source);
         r.setMessage(message == null ? "" : message);
-        r.setDetails(details);
         r.setTid(referenceId);
         repository.save(r);
     }
