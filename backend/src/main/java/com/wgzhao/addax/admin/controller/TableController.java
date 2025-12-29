@@ -290,4 +290,19 @@ public class TableController
             return ResponseEntity.ok(job);
         }
     }
+
+    /**
+     * 更新模板，这里允许用户临时更新模板
+     * 比如临时修改某些参数进行测试或采集等
+     * @param tableId 采集表ID（路径参数）
+     * @param jobContent 作业内容（请求体）
+     * @return 更新结果提示
+     */
+    @PutMapping("/{tableId}/addax-job")
+    public ResponseEntity<String> updateAddaxJob(@PathVariable long tableId, @RequestBody String jobContent)
+    {
+        // 具体实现略
+        jobContentService.updateJobContent(tableId, jobContent);
+        return ResponseEntity.ok("Job content updated successfully");
+    }
 }
