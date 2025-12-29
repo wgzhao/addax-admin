@@ -8,7 +8,6 @@ import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.text.StringSubstitutor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,7 +35,6 @@ public class ColumnService
     private final DictService dictService;
     private final EtlJourService jourService;
     private final SchemaChangeLogService schemaChangeLogService;
-    private final SystemConfigService configService;
 
     private static boolean isDeletedPlaceholder(String name)
     {
@@ -290,14 +288,6 @@ public class ColumnService
     {
         List<EtlColumn> sourceCols = new ArrayList<>();
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
-
-        String sourceTable = etlTable.getSourceTable();
-        if (sourceTable.contains("${")) {
-            // 动态表名，无法获取元数据
-            log.info("Source table name {} contains dynamic variable, replace placeholder", sourceTable);
-            StringSubstitutor substitutor = new StringSubstitutor(configService.getBizDateValues());
-            sourceTable = substitutor.replace(sourceTable);
-        }
         try {
             String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
             String schema = connection.getSchema();
@@ -306,7 +296,7 @@ public class ColumnService
                 catalog = etlTable.getSourceDb();
                 schema = null;
             }
-            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, sourceTable, null);
+            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
             int idx = 1;
             while (rs.next()) {
                 EtlColumn etlColumn = new EtlColumn();
@@ -331,7 +321,7 @@ public class ColumnService
             return sourceCols;
         }
         catch (SQLException e) {
-            log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), sourceTable, e.getMessage());
+            log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), etlTable.getSourceTable(), e.getMessage());
             return null;
         }
     }

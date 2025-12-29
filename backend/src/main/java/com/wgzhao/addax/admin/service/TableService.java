@@ -11,6 +11,7 @@ import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.StringSubstitutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,7 @@ public class TableService
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final TargetService targetService;
     private final RedisLockService redisLockService;
+    private final SystemConfigService configService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -65,6 +67,16 @@ public class TableService
             log.warn("Table view not found for tid {}", table.getId());
             return TaskResultDto.failure("Table view not found for tid " + table.getId(), 0);
         }
+
+        String sourceTable = vwTable.getSourceTable();
+        if (sourceTable.contains("${")) {
+            // 动态表名，进行替换
+            log.info("Source table name {} contains dynamic variable, replace placeholder", sourceTable);
+            StringSubstitutor substitutor = new StringSubstitutor(configService.getBizDateValues());
+            sourceTable = substitutor.replace(sourceTable);
+            vwTable.setSourceTable(sourceTable);
+        }
+
         // 1. 更新列信息
         // cooperative check before long-running column update
         if (Thread.currentThread().isInterrupted()) {
