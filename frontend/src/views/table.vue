@@ -180,7 +180,7 @@
           <v-row justify="center" no-gutters>
             <!-- 常用按钮：详情、模板、采集、表更新 -->
             <v-btn
-             size="small"
+              size="small"
               color="primary"
               class="mr-1"
               @click="openDialog('TableDetail', item)"
@@ -188,18 +188,11 @@
               详情
             </v-btn>
 
-            <v-btn
-              size="small"
-              color="indigo"
-              class="mr-1"
-              @click="openDialog('AddaxJob', item)"
-            >
+            <v-btn size="small" color="indigo" class="mr-1" @click="openDialog('AddaxJob', item)">
               模板
             </v-btn>
 
-            <v-btn size="small" color="info" class="mr-1" @click="doEtl(item)">
-              采集
-            </v-btn>
+            <v-btn size="small" color="info" class="mr-1" @click="doEtl(item)">采集</v-btn>
             <v-btn size="small" color="green" class="mr-1" @click="openDialog('LogFiles', item)">
               日志
             </v-btn>
@@ -216,7 +209,7 @@
                   size="small"
                   icon
                   class="mr-1 d-flex align-center"
-                  style="height:32px; min-width:36px;"
+                  style="height: 32px; min-width: 36px"
                 >
                   <v-icon size="20">mdi-dots-vertical</v-icon>
                 </v-btn>
