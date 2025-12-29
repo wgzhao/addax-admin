@@ -5,7 +5,9 @@ import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.service.SourceService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
+import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * 数据源管理控制器，提供数据源及相关元数据的管理接口
@@ -38,6 +42,7 @@ public class SourceController
 {
     private final SourceService sourceService;
     private final TableService tableService;
+    private final SystemConfigService configService;
 
     /**
      * 查询所有数据源
@@ -73,6 +78,8 @@ public class SourceController
         if (etlSource.getId() > 0) {
             throw new ApiException(400, "Source ID must not be provided when creating a new source");
         }
+        // 校验采集时间与切日时间的距离，创建时如果不满足规则则直接失败并返回提示
+        validateStartAt(etlSource.getStartAt());
         EtlSource saved = sourceService.create(etlSource);
         return ResponseEntity.status(201).body(saved);
     }
@@ -95,6 +102,8 @@ public class SourceController
         if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
             throw new ApiException(400, "Source code cannot be modified");
         }
+        // 校验采集时间与切日时间的距离，更新时如果不满足规则则直接失败并返回提示
+        validateStartAt(etlSource.getStartAt());
         sourceService.save(etlSource);
 
         return ResponseEntity.ok(1);
@@ -225,5 +234,19 @@ public class SourceController
             throw new ApiException(500, "获取未采集表失败");
         }
         return ResponseEntity.ok(result);
+    }
+
+    // 验证采集时间与系统配置的切日时间间隔是否过近（最小间隔 10 分钟）
+    private void validateStartAt(LocalTime startAt)
+    {
+        if (startAt == null) {
+            return;
+        }
+        LocalTime switchTime = configService.getSwitchTimeAsTime();
+        long diffMinutes = Math.abs(ChronoUnit.MINUTES.between(startAt, switchTime));
+        long minDiff = Math.min(diffMinutes, 24 * 60 - diffMinutes);
+        if (minDiff < 10) {
+            throw new ApiException(400, "采集时间与切日时间(" + switchTime + ")过于接近（" + minDiff + " 分钟）。请确保至少相差 10 分钟以上，推荐前后间隔为 30 分钟。");
+        }
     }
 }
