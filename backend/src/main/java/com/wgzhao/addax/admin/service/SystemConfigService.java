@@ -348,12 +348,12 @@ public class SystemConfigService
 
         // current date time
         LocalDateTime now = LocalDateTime.now();
-        values.put("current_date_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
-        values.put("current_date_dash", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
-        values.put("current_datetime_short", now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
-        values.put("current_datetime_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        values.put("current_datetime_0_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
-        values.put("current_datetime_0_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
+        values.put("curr_date_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+        values.put("curr_date_dash", now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        values.put("curr_datetime_short", now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+        values.put("curr_datetime_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        values.put("curr_datetime_0_dash", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
+        values.put("curr_datetime_0_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
         return values;
     }
 }
