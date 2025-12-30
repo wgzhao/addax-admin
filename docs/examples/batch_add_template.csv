@@ -1,0 +1,10 @@
+# Batch Add Template for Addax Admin
+# Columns:
+# source_schema,source_table,target_db,target_table,partition_columns,columns_definition,comment
+# - partition_columns: comma separated list of partition columns (leave empty if none)
+# - columns_definition: semicolon-separated column definitions in format name:type (e.g. id:bigint;name:string;ts:timestamp)
+# - comment: optional description
+
+source_schema,source_table,target_db,target_table,partition_columns,columns_definition,comment
+public,user_20250101,ods_db,user_20250101,dt;hour,id:bigint;name:string;email:string;updated_at:timestamp,Example daily table
+public/orders_2025,ods_db,orders_2025,dt,order_id:bigint;amount:decimal;created_at:timestamp,Batch import example

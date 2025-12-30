@@ -4,75 +4,57 @@
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-green.svg)](https://spring.io/projects/spring-boot)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-7.x-646CFF.svg)](https://vitejs.dev/)
 
-Addax Admin 是一个现代化的 ETL 管理解决方案的 **Monorepo** 项目，包含完整的前后端解决方案：
+Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管理与监控控制台。项目以 Monorepo 的形式组织，包含完整的后端 API 服务与前端管理界面，旨在提供从任务配置、调度执行、运行监控到日志审计的一站式运维体验。
 
-## 🏗️ 项目结构
+核心目标：让数据工程师和运维人员更容易地管理 Addax 作业、观察运行状态、调优并发与重试策略，并在多节点部署下保证高可用与并发控制。
 
-```ini
+---
+
+目录结构（简要）
+
+```
 addax-admin/
-├── backend/                 # Spring Boot 3 + Java 21 后端 API 服务
-├── frontend/                # Vue 3 + Vite + Vuetify 前端管理界面
-├── pom.xml                  # Maven 父项目配置
-└── package.json             # NPM 工作区配置
+├── backend/                 # Spring Boot 3 + Java 21 后端服务（API、调度、持久化、Redis 仲裁）
+├── frontend/                # Vue 3 + Vite + TypeScript + Vuetify 管理界面
+├── scripts/                 # 部署与运维脚本（DB 初始化、systemd service 模板等）
+├── start-dev.sh             # 一键本地开发启动脚本
+├── SKILLS.md                # AI/协作与代码库能力说明（由 AI 生成）
+└── README.md                # 本文档
 ```
 
-## 📋 项目概述
+主要组成
 
-整个解决方案由以下组件组成：
+- Addax Admin Backend：Spring Boot 实现，负责任务持久化（Postgres）、分发逻辑、Redis 锁与仲裁、权限与 JWT、调度（cron/周期）等。
+- Addax Admin Frontend：基于 Vue 3 + Vuetify 的单页应用，提供任务配置、ODS 表管理、日志查看、实时监控与告警配置。
+- 数据库初始化：backend/src/main/resources/schema.sql 和 data.sql 提供数据库 schema 与默认数据。
 
-- **[Addax](https://github.com/wgzhao/addax)** - ETL 核心执行引擎
-- **Addax Admin Backend** - Spring Boot 后端 API 与任务调度服务 (`backend/`)
-- **Addax Admin Frontend** - Vue.js 前端管理界面 (`frontend/`)
+---
 
-## ✨ 主要特性
+亮点与特色
 
-- 🚀 现代化架构：Spring Boot 3.5.6 + Vue 3
-- 🔐 安全认证：JWT + Spring Security
-- 💾 多数据库支持：PostgreSQL（推荐）、Oracle、SQL Server 等
-- 📊 完整 REST API：内置 OpenAPI/Swagger 文档
-- 🔧 灵活配置：多环境配置、动态参数
-- 📈 监控与管理：ETL 作业状态监控与日志
-- 🖥️ 友好 UI：基于 Vuetify 的响应式管理界面
-- 🔁 多节点并发支持：数据库持久化队列 + Redis 仲裁，保证多实例部署下任务并发可控与高可用
+- 混合并发控制架构：DB 持久化队列 + Redis 仲裁（per-job 锁、全局/源级 permit），兼顾可靠性与性能。
+- 快速批量创建采集表：在 UI 中只需点击几下即可批量新增数百到上千张采集表；并支持一键在目标存储（例如 Hive）中同步创建表与分区，显著提升大规模数据接入效率。
+- 表结构演化支持：自动探测源端表结构变化（字段类型变更、新增/删除字段等），并可自动同步修改目标表结构；对有分区的表提供历史数据兼容策略，最大限度减少中断与人工干预。
+- 动态表名采集：原生支持日表、月表等动态表名模板（例如 my_table_{yyyyMMdd}），自动解析时间规则并生成相应的采集任务，方便处理按时间切分的数据源。
+- 增量采集与智能过滤：支持使用上一次采集结果（例如前一日最大 ID 或指定字段）作为本次增量采集的过滤条件；同时支持自定义过滤表达式，适合复杂增量场景。
+- 多节点并发与权重：采用 sharing-nothing 架构与 Redis 仲裁，支持节点权重设定（node.concurrency.weight），实现全局/源级并发控制、任务高可用与负载均衡。
+- 可视化管理：完整的任务配置、字段对比、实时执行进度与历史日志查询，提升运维效率。
+- 企业级安全与可扩展性：JWT + Spring Security 做权限与认证，采用 Spring Data JPA 与模块化前端设计，方便定制与扩展。
 
-## 🛠 技术栈
+---
 
-- 后端
-  - Spring Boot 3.5.6、Spring Security、Spring Data JPA、Hibernate 6.6.11
-  - PostgreSQL 驱动、Lombok、Hutool、Apache Commons
-- 前端
-  - Vue 3、TypeScript、Vite、Vuetify 3、Pinia、Vue Router、Axios、Chart.js
+快速开始（本地开发）
 
-## 📦 目录结构
+先决条件
 
-```ini
-addax-admin/
-├── backend/                # 后端（Spring Boot）
-│   ├── src/main/resources/
-│   │   ├── application.properties
-│   │   ├── schema.sql
-│   │   └── data.sql
-│   └── pom.xml
-├── frontend/               # 前端（Vue 3 + Vite）
-│   ├── src/
-│   ├── public/
-│   ├── vite.config.ts
-│   └── package.json
-├── scripts/                # 可选脚本
-└── README.md
-```
+- Java 21
+- Maven 3.8+
+- Node.js >= 16.x
+- Yarn（或 npm）
+- PostgreSQL（建议 15+）、Redis（用于任务仲裁）
 
-## 🚀 快速开始
-
-### 📋 开发环境要求
-
-- **Java 21** + Maven 3.8+
-- **Node.js 18+** + npm/pnpm
-- **PostgreSQL 15+** （推荐）
-
-### 🏃‍♂️ 一键启动（推荐）
+一键启动（推荐）
 
 ```bash
 # 克隆项目并进入目录
@@ -83,118 +65,136 @@ cd addax-admin
 ./start-dev.sh
 ```
 
-启动后访问：
+若选择手动启动：
 
-- 🎨 **前端界面**: http://localhost:5173
-- 🔧 **后端 API**: http://localhost:8080
-
-### 🔧 手动启动
-
-#### 1. 初始化数据库
+后端（开发）
 
 ```bash
-# 在 PostgreSQL 中创建数据库并导入初始化脚本
+# 1. 初始化数据库（在 PostgreSQL 中创建数据库 addax_admin）
 psql -U postgres -d your_database -f backend/src/main/resources/schema.sql
 psql -U postgres -d your_database -f backend/src/main/resources/data.sql
-```
 
-#### 2. 启动后端服务
-
-```bash
+# 2. 运行后端服务
 cd backend
 mvn spring-boot:run
-# 或者在 IDEA 中直接运行 AdminApplication.java
 ```
 
-#### 3. 启动前端服务
+前端（开发）
 
 ```bash
 cd frontend
-npm install
-npm run dev
+yarn install
+yarn dev
 ```
 
-## 🔧 配置说明
+默认访问地址（开发）
 
-- 多环境配置
-  - 后端：`backend/src/main/resources/application.properties`（可扩展 `-dev`/`-prod`）
-  - 前端：`.env.*` 文件（`VITE_API_BASE_URL`、`VITE_API_HOST`）
-- 日志与安全
-  - 后端默认日志目录为 `./logs`（可通过 `LOG_DIR` 修改）
-  - 认证使用 JWT，过期时间与密钥在后端配置中设置
+- 前端（Vite dev server）：<http://localhost:3030>
+- 后端 API（Spring Boot）：<http://localhost:50601/api/v1>
 
+生产构建与运行
 
-## 多节点并发支持
+后端打包并运行：
 
-为了在多实例部署（多节点）下保证任务调度的高可用与并发可控，项目采用了“数据库持久化队列 + Redis 仲裁”的混合方案：
+```bash
+mvn clean package
+java -jar backend/target/addax-admin-<version>.jar
+```
 
-- 架构概览
-  - 任务持久化存储仍保留在 PostgreSQL 的 `etl_job_queue` 表，负责可靠存储、审计与重试语义（pending/running/completed/failed）。
-  - 每个节点为 peer-to-peer 模式都会注册本地触发器（例如定时调度或 LISTEN/NOTIFY 驱动的分发），不再做选举。真正执行前通过 Redis 做第三方仲裁以保证集群内只有一个节点拿到执行许可。
+前端构建并静态部署：
 
-- 执行仲裁（Redis）
-  - per-job 独占锁：key = `etl:job:{jobId}:lock`，使用 SET NX + TTL + token，释放使用 Lua 脚本（保证 token 匹配后删除）。
-  - 全局并发许可：key = `concurrent:holders`（集合实现信号量），限制全局并发槽位。
-  - 源级并发许可：key = `source:holders:{sourceId}`（集合实现），限制单个数据源的并发数。
-  - schema 刷新保护：key = `schema:refresh:lock`（Constants 中配置），当存在时拒绝新增/提交采集任务，避免刷新期间不一致。
-  - 续租（renewal）：执行中周期性延长锁与 permit 的 TTL（守护定时任务），TTL 与续租间隔可配置，保证长任务不会被误回收。
+```bash
+yarn build
+```
 
-- 工作流（要点）
-  1. 节点从 DB 领取任务（claimNext）以获得持久化语义；领取后，节点尝试获取 Redis per-job lock 与相应的 permit（全局/源级）。
-  2. 若任一 Redis 授权失败：释放 DB claim（短期不可见后重试），不执行任务。若全部获授权，则进入执行，并在执行期间定期续租 Redis 授权和 DB 租约。
-  3. 执行完成后：释放 Redis token/permit，更新 DB 状态（complete/fail），并触发本地调度尝试填满并发槽位。
+建议在生产环境使用 docker + docker-compose 将 Postgres / Redis / 后端 / 前端（静态）组合部署。
 
-- 优点快速说明
-  - 保留 DB 的持久化和审计能力；使用 Redis 降低 DB 在高并发场景下的争用与写负载。
-  - Redis 的锁+permit 使并发控制更细粒度、延迟更低且更易扩展。
+---
 
-- 关键配置点（代码/常量）
-  - `Constants.SCHEMA_REFRESH_LOCK_KEY`（schema 刷新锁 key）
-  - Redis 锁/permit TTL、续租间隔（在代码中易于配置化，建议外放至 application.properties）
-  - 数据源并发限制来源：在源配置中定义 maxConcurrency，系统在分发时使用该值作为 source permit 的容量。
+配置（环境变量）
 
-- 运行与测试建议
-  - 在测试环境使用 Postgres + Redis（Testcontainers）做集成验证：并发领取、schema 刷新期间拒绝入队、节点崩溃后的恢复等场景。
-  - 监控指标建议：锁续租成功率、permit 获取失败率、被拒绝入队次数、pending/ running 数量、任务重复执行报警。
+后端配置位于：backend/src/main/resources/application.properties
+可以通过环境变量覆盖（示例：backend/config/env.template.sh）
 
-- 备注
-  - 该混合策略兼顾可靠性与性能：保留 DB 做可信存储，使用 Redis 做实时仲裁与并发控制；如需更高吞吐可考虑把部分低持久化需求的任务迁移到 Redis Streams 或消息队列（Kafka）。
+重要环境变量（后端）：
 
-（以上为实现摘要，更多参数化与运维细节见后端代码中的注释与 `Constants` 配置。）
+- DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD
+- REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB
+- LOG_DIR（默认 ./logs）
+- node.concurrency.weight（调度权重）
+- WECOM_ROBOT_KEY（企业微信机器人，用于告警）
 
+前端环境变量（vite）
 
-## 🖼️ 界面截图
+- VITE_API_BASE_URL（如 /api 或 /api/v1）
+- VITE_API_HOST（后端地址，例如 <http://localhost:50601）>
 
-### 主控制台
+文档链接
 
-![主控制台](screenshots/home.jpg)
-*实时显示 ETL 任务状态和系统概览*
+- 功能详解（含批量创建、schema 变更、动态表、增量过滤、多节点并发等）：docs/FEATURES.md
+- 示例与模板：docs/examples/
 
-### 任务配置
+---
 
-![任务配置](screenshots/maintable-modify.jpg)
-*ODS 表配置界面，支持表单验证和实时预览*
+数据库与迁移
 
-### 实时监控
+项目自带初始化脚本：
 
-![实时监控](screenshots/etl-monitor.jpg)
-*实时任务监控面板，显示任务执行状态和性能指标*
+- backend/src/main/resources/schema.sql（表结构与索引）
+- backend/src/main/resources/data.sql（初始数据）
 
-### 字段对比
+如果你在生产环境部署，建议：
 
-![字段对比](screenshots/maintable-fieldcompare.jpg)
-*可视化对比源表和目标表字段，包括字段名、数据类型等*
+- 在单独的数据库实例创建专用用户与数据库
+- 使用备份与版本化迁移工具（Flyway / Liquibase）管理 schema 变更
 
-## 📚 文档与 API
+---
 
-- OpenAPI/Swagger UI：`http://localhost:50601/api/v1/swagger-ui/index.html`
-- 前端项目文档：见 `frontend/README.md`
+调度与并发控制机制概览
 
-## 📝 许可证
+核心思路：保留数据库持久化语义（任务队列、审计、重试），用 Redis 做实时仲裁以避免数据库争用并支持低延迟并发限制。
 
-本项目采用 [Apache License 2.0](LICENSE) 许可协议。
+- 每个任务在 DB 持久化为 etl_job_queue，节点领取任务时会获取 Redis per-job 独占锁以及 permit（全局或源级）。
+- Redis 锁使用 SETNX + TTL 并通过 Lua 脚本释放以保证 token 匹配。
+- 执行中节点会周期性续租锁与 permit，完成后释放资源并更新 DB 状态。
 
-## 🙏 致谢
+充分利用此机制可以在多实例部署下保证高可用与并发可控。
 
-- 感谢 [IntelliJ IDEA](https://jetbrains.com) 提供开发工具支持
-- 感谢所有参与贡献的开发者
+---
+
+日志与监控
+
+- 默认日志目录：./logs（可通过 LOG_DIR 覆盖）
+- 后端日志配置：backend/src/main/resources/logback-spring.xml
+- 建议在生产通过日志聚合（ELK / Loki）和监控（Prometheus + Grafana）汇总指标与告警
+
+---
+
+常见故障排查
+
+- 应用无法连接数据库：检查 DB_* 环境变量与 schema.sql 是否已应用
+- Redis 连接失败：确认 spring.data.redis.* 环境变量与网络可达
+- JWT 认证错误：检查后端 JwtService 配置（jwt.expiration、密钥等）
+- 前端 API 跨域或代理异常：检查 VITE_API_BASE_URL 与 vite.config.ts 的 proxy 配置
+- 端口冲突：默认前端 3030，后端 50601，请确认端口未被占用
+
+---
+
+开发者与贡献指南
+
+欢迎贡献！建议流程：
+
+1. Fork && 新建分支（feature/xxx 或 fix/xxx）
+2. 本地开发并保证 lint / type check 通过
+3. 提交并发起 Pull Request，描述变更理由和回归测试步骤
+
+代码质量工具
+
+- 前端：ESLint + Prettier + TypeScript（vue-tsc）
+- 后端：建议在 CI 中运行 mvn -DskipTests=false test
+
+---
+
+许可证
+
+本项目基于 Apache License 2.0（详见 LICENSE 文件）。

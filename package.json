@@ -7,8 +7,6 @@
     "frontend"
   ],
   "scripts": {
-    "install": "yarn install",
-    "install:frontend": "yarn workspace addax-ui install",
     "dev": "yarn dev:frontend",
     "dev:frontend": "yarn workspace addax-ui dev",
     "dev:backend": "cd backend && mvn spring-boot:run",
