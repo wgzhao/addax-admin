@@ -1,7 +1,6 @@
 <template>
-  <!-- <v-sheet class="mx-auto"> -->
-  <v-form fast-fail @submit.prevent="saveOds">
-    <v-card prepend-icon="mdi-table" title="采集主表配置">
+  <v-card prepend-icon="mdi-table" title="采集表详情">
+    <v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form">
       <v-card-text>
         <v-row>
           <v-col cols="12" md="3">
@@ -9,18 +8,14 @@
           </v-col>
           <v-col cols="12" md="3">
             <div class="d-flex align-center">
-              <v-text-field
-                variant="underlined"
-                v-model="table.filter"
-                label="过滤规则"
-                class="flex-grow-1"
-              ></v-text-field>
+              <v-text-field variant="underlined" v-model="table.filter" label="过滤规则" class="flex-grow-1"></v-text-field>
               <v-tooltip location="top">
                 <template #activator="{ props }">
                   <v-icon v-bind="props" size="18" class="ms-2" color="info">mdi-information-outline</v-icon>
                 </template>
                 <div style="max-width:320px; white-space:normal; font-size:13px;">
-                  增强过滤说明：以 __max__&lt;列名&gt; 开头表示使用目标表该列的最大值作为过滤条件。示例：__max__id 会被替换为 id &gt; &lt;最大值&gt;；当目标表无数据或出错时，使用 1=1。
+                  增强过滤说明：以 __max__&lt;列名&gt; 开头表示使用目标表该列的最大值作为过滤条件。示例：__max__id 会被替换为 id &gt; &lt;最大值&gt;；当目标表无数据或出错时，使用
+                  1=1。
                 </div>
               </v-tooltip>
             </div>
@@ -30,7 +25,7 @@
               label="状态"></v-select>
           </v-col>
           <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数"></v-text-field>
+            <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数" :rules="[rules.nonNegative]"></v-text-field>
           </v-col>
         </v-row>
 
@@ -57,43 +52,53 @@
             <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
           </v-col>
           <v-col cols="12" md="2">
-            <v-text-field variant="underlined" v-model="table.partFormat" label="分区格式"></v-text-field>
+            <v-select
+              variant="underlined"
+              v-model="table.partFormat"
+              :items="PARTITION_FORMATS"
+              label="分区格式"
+              :rules="[rules.dateFormat]"
+            ></v-select>
           </v-col>
           <!-- <v-col cols="12" md="3">
           <v-select v-model="table.kind" :items="collectionModeOptions" item-title="label" item-value="value"
             label="采集模式"></v-select>
         </v-col> -->
           <v-col cols="12" md="2">
-            <v-text-field variant="underlined" v-model="table.storageFormat" label="存储格式"></v-text-field>
+            <v-select
+              variant="underlined"
+              v-model="table.storageFormat"
+              :items="storageOptions"
+              label="存储格式"
+              :rules="[rules.required]"
+            ></v-select>
           </v-col>
           <v-col cols="12" md="2">
-            <v-text-field variant="underlined" v-model="table.compressFormat" label="压缩格式"></v-text-field>
+            <v-select
+              variant="underlined"
+              v-model="table.compressFormat"
+              :items="compressFormats"
+              label="压缩格式"
+            ></v-select>
           </v-col>
           <v-col cols="12" md="2">
             <v-text-field variant="underlined" v-model="table.splitPk" label="切分字段"></v-text-field>
           </v-col>
           <v-col cols="12" md="2" class="d-flex align-center">
-            <v-switch
-              v-model="table.autoPk"
-              inset
-              label="自动获取切分字段"
-              :color="table.autoPk ? 'primary' : undefined"
-              :base-color="table.autoPk ? undefined : 'secondary'"
-              :disabled="!!table.splitPk"
-              density="compact"
-            />
+            <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined"
+              :base-color="table.autoPk ? undefined : 'secondary'" :disabled="!!table.splitPk" density="compact" />
           </v-col>
         </v-row>
 
         <v-row>
           <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.startTime" label="开始时间"></v-text-field>
+            <v-text-field variant="underlined" v-model="table.startTime" label="开始时间" readonly></v-text-field>
           </v-col>
           <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.endTime" label="结束时间"></v-text-field>
+            <v-text-field variant="underlined" v-model="table.endTime" label="结束时间" readonly></v-text-field>
           </v-col>
           <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.duration" label="运行耗时"></v-text-field>
+            <v-text-field variant="underlined" v-model="table.duration" label="运行耗时" readonly></v-text-field>
           </v-col>
           <v-col cols="12" md="3">
             <v-text-field variant="underlined" v-model="table.remark" label="备注"></v-text-field>
@@ -105,17 +110,15 @@
           <v-btn type="button" variant="plain" @click="emit('closeDialog')">关闭</v-btn>
         </v-card-actions>
       </v-card-text>
-    </v-card>
-  </v-form>
-  <!-- </v-sheet> -->
-  <!-- </dialog-comp> -->
+    </v-form>
+  </v-card>
 </template>
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import { VEtlWithSource, EtlTable } from "@/types/database";
-import { TABLE_STATUS_OPTIONS } from "@/utils";
+import { TABLE_STATUS_OPTIONS, PARTITION_FORMATS, HDFS_COMPRESS_FORMATS } from "@/utils";
 
 const props = defineProps({
   table: {
@@ -127,6 +130,23 @@ const props = defineProps({
 // 使用公共的状态选项
 const statusOptions = TABLE_STATUS_OPTIONS;
 
+// storage options as requested
+const storageOptions = ['orc', 'parquet', 'text']
+
+// reuse compress formats from constants
+const compressFormats = HDFS_COMPRESS_FORMATS || []
+
+// validation rules
+const rules = {
+  required: (v) => !!v || '此字段为必填项',
+  nonNegative: (v) => {
+    if (v === null || v === undefined || v === '') return true
+    const n = Number(v)
+    return (!Number.isNaN(n) && n >= 0) || '必须为非负数'
+  },
+  dateFormat: (v) => PARTITION_FORMATS.includes(v) || '请选择有效的日期格式'
+}
+
 // 创建本地的响应式副本用于编辑
 const table = ref<VEtlWithSource>({ ...props.table });
 
@@ -137,6 +157,9 @@ watch(() => props.table, (newTable) => {
 
 // define emit
 const emit = defineEmits(["closeDialog", "update:record"]);
+
+// form ref for programmatic validation
+const formRef = ref(null)
 
 // 如果用户手动填写了切分字段(splitPk)，自动获取切分字段应被关闭并禁用
 watch(
@@ -152,7 +175,16 @@ watch(
   }
 )
 
-const saveOds = () => {
+const saveOds = async () => {
+  // programmatic validation using formRef (Vuetify's v-form exposes `validate()`)
+  if (formRef.value && typeof formRef.value.validate === 'function') {
+    const valid = await formRef.value.validate()
+    if (!valid) {
+      notify('请修正表单错误', 'error')
+      return
+    }
+  }
+
   // 从VEtlWithSource中提取EtlTable相关的属性
   const etlTableData: Partial<EtlTable> = {
     id: table.value.id,

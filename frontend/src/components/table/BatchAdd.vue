@@ -50,7 +50,7 @@
           </v-text-field>
         </v-col>
         <v-col cols="2">
-          <v-select v-model="partFormat" :items="partitionFormats" label="分区日期格式" density="compact"
+          <v-select v-model="partFormat" :items="PARTITION_FORMATS" label="分区日期格式" density="compact"
             persistent-hint>
             <template #append>
               <span class="text-caption">{{ partitionFormatExample }}</span>
@@ -197,9 +197,11 @@ import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import sourceService from "@/service/source-service";
 import dictService from "@/service/dict-service";
-import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from "@/utils/constants";
+import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS, PARTITION_FORMATS, formatByPattern } from "@/utils";
 import { EtlSource, EtlTable, TableMeta } from "@/types/database";
 import { DataTableHeader } from "vuetify";
+import dayjs from 'dayjs'
+
 const props = defineProps({
   tid: {
     type: String,
@@ -237,22 +239,14 @@ const partName = ref('logdate'); // 新增：分区字段名
 const partFormat = ref('yyyyMMdd'); // 新增：分区格式
 const storageFormat = ref(''); // 新增：存储格式
 const compressFormat = ref(''); // 新增：压缩格式
-const partitionFormats = ref(['yyyyMMdd', 'yyyy-MM-dd', 'yyyy/MM/dd']);
 const storageFormats = ref(HDFS_STORAGE_FORMATS);
 const compressFormats = ref(HDFS_COMPRESS_FORMATS);
 
+
 const partitionFormatExample = computed(() => {
   if (!partFormat.value) return '';
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
-
-  return partFormat.value
-    .replace('yyyy', year.toString())
-    .replace('MM', month)
-    .replace('dd', day);
-});
+  return dayjs('2025-03-12').format(partFormat.value.replace(/y/g, 'Y').replace(/d/g, 'D'));
+})
 
 // 表单验证规则
 const rules = {

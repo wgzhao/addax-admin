@@ -1,3 +1,26 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Chinese-friendly font stack:
+     - prefer modern UI/system fonts where available
+     - include common Chinese fonts for macOS, Windows and common CJK stacks
+     - fall back to latin-friendly fonts
+  */
+  font-family: Inter, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei", "Segoe UI", "Helvetica Neue", Arial, "Roboto", sans-serif;
+}
+
+/* Improve Chinese rendering clarity across platforms */
+html, body, #app, .v-application {
+  -webkit-font-smoothing: antialiased; /* macOS, iOS */
+  -moz-osx-font-smoothing: grayscale; /* Firefox on macOS */
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Ensure form controls and Vuetify components inherit the same stack */
+input, button, textarea, select, .v-btn, .v-label, .v-input {
+  font-family: inherit;
+}
+
+/* Optional: reduce heavy font-weight rendering for better clarity */
+body {
+  font-weight: 400;
 }

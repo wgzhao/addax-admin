@@ -31,3 +31,4 @@ export const COLLECTION_MODE_OPTIONS = [
 // HDFS 存储与压缩格式选项（供多个视图复用）
 export const HDFS_STORAGE_FORMATS = ['orc', 'parquet', 'avro', 'textfile']
 export const HDFS_COMPRESS_FORMATS = ['lz4', 'snappy', 'gzip', 'zstd', 'zlib']
+export const PARTITION_FORMATS = ['yyyyMMdd', 'yyyy-MM-dd', 'yyyy/MM/dd', 'yyyy/M/d']
