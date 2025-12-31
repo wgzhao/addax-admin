@@ -1,120 +1,92 @@
 <template>
-  <v-card prepend-icon="mdi-table" title="采集表详情">
+  <v-card prepend-icon="mdi-table" title="采集表详情" dense>
     <v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form">
       <v-card-text>
         <v-row>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.name" label="源系统"></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="d-flex align-center">
-              <v-text-field variant="underlined" v-model="table.filter" label="过滤规则" class="flex-grow-1"></v-text-field>
-              <v-tooltip location="top">
-                <template #activator="{ props }">
-                  <v-icon v-bind="props" size="18" class="ms-2" color="info">mdi-information-outline</v-icon>
-                </template>
-                <div style="max-width:320px; white-space:normal; font-size:13px;">
-                  增强过滤说明：以 __max__&lt;列名&gt; 开头表示使用目标表该列的最大值作为过滤条件。示例：__max__id 会被替换为 id &gt; &lt;最大值&gt;；当目标表无数据或出错时，使用
-                  1=1。
-                </div>
-              </v-tooltip>
-            </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"
-              label="状态"></v-select>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数" :rules="[rules.nonNegative]"></v-text-field>
+          <!-- Full width form -->
+          <v-col cols="12" md="12">
+            <v-card density="compact" class="pa-3">
+              <v-row>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.name" label="源系统"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.sourceDb" label="源库"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.sourceTable" label="源表"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.filter" label="过滤规则"></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.targetDb" label="目标库"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.targetTable" label="目标表"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.splitPk" label="切分字段"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3" class="d-flex align-center">
+                  <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined" density="compact" />
+                </v-col>
+
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-select variant="underlined" v-model="table.partFormat" :items="PARTITION_FORMATS" label="分区格式"></v-select>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-select variant="underlined" v-model="table.storageFormat" :items="storageOptions" label="存储格式"></v-select>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-select variant="underlined" v-model="table.compressFormat" :items="compressFormats" label="压缩格式"></v-select>
+                </v-col>
+
+
+
+                <v-col cols="12" md="3">
+                  <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value" label="采集状态"></v-select>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数" :rules="[rules.nonNegative]"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-text-field variant="underlined" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-text-field variant="underlined" v-model="table.startTime" label="最近采集开始时间" readonly></v-text-field>
+                </v-col>
+                <v-col cols="12" md="2">
+                  <v-text-field variant="underlined" v-model="table.endTime" label="最近采集结束时间" readonly></v-text-field>
+                </v-col>
+
+                <v-col cols="12">
+                  <v-textarea variant="underlined" v-model="table.remark" label="备注" rows="2"></v-textarea>
+                </v-col>
+
+
+              </v-row>
+            </v-card>
           </v-col>
         </v-row>
 
-        <v-row>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.sourceDb" label="源库"></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.sourceTable" label="源表"></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.targetDb" label="目标库"></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.targetTable" label="目标表"></v-text-field>
-          </v-col>
-        </v-row>
-
-        <v-row>
-          <!-- <v-col cols="12" md="3">
-          <v-text-field variant="underlined" v-model="table.partKind" label="分区类型"></v-text-field>
-        </v-col> -->
-          <v-col cols="12" md="2">
-            <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-select
-              variant="underlined"
-              v-model="table.partFormat"
-              :items="PARTITION_FORMATS"
-              label="分区格式"
-              :rules="[rules.dateFormat]"
-            ></v-select>
-          </v-col>
-          <!-- <v-col cols="12" md="3">
-          <v-select v-model="table.kind" :items="collectionModeOptions" item-title="label" item-value="value"
-            label="采集模式"></v-select>
-        </v-col> -->
-          <v-col cols="12" md="2">
-            <v-select
-              variant="underlined"
-              v-model="table.storageFormat"
-              :items="storageOptions"
-              label="存储格式"
-              :rules="[rules.required]"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-select
-              variant="underlined"
-              v-model="table.compressFormat"
-              :items="compressFormats"
-              label="压缩格式"
-            ></v-select>
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-text-field variant="underlined" v-model="table.splitPk" label="切分字段"></v-text-field>
-          </v-col>
-          <v-col cols="12" md="2" class="d-flex align-center">
-            <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined"
-              :base-color="table.autoPk ? undefined : 'secondary'" :disabled="!!table.splitPk" density="compact" />
-          </v-col>
-        </v-row>
-
-        <v-row>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.startTime" label="开始时间" readonly></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.endTime" label="结束时间" readonly></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.duration" label="运行耗时" readonly></v-text-field>
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field variant="underlined" v-model="table.remark" label="备注"></v-text-field>
-          </v-col>
-        </v-row>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn type="submit" class="btn btn-primary bg-primary">保存</v-btn>
-          <v-btn type="button" variant="plain" @click="emit('closeDialog')">关闭</v-btn>
-        </v-card-actions>
       </v-card-text>
+
+      <v-card-actions class="action-bar">
+        <v-spacer />
+        <v-btn color="primary" @click="saveOds">保存</v-btn>
+        <v-btn variant="plain" @click="emit('closeDialog')">关闭</v-btn>
+      </v-card-actions>
     </v-form>
   </v-card>
 </template>
+
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import { VEtlWithSource, EtlTable } from "@/types/database";
@@ -156,7 +128,7 @@ watch(() => props.table, (newTable) => {
 }, { deep: true });
 
 // define emit
-const emit = defineEmits(["closeDialog", "update:record"]);
+const emit = defineEmits(["closeDialog", "update:record", "openSchema"]);
 
 // form ref for programmatic validation
 const formRef = ref(null)
@@ -165,8 +137,6 @@ const formRef = ref(null)
 watch(
   () => table.value.splitPk,
   (val) => {
-    // 如果用户填写了切分字段，则关闭并禁用自动获取；
-    // 如果用户清空切分字段，则恢复自动获取（打开）。
     if (val) {
       table.value.autoPk = false
     } else {
@@ -175,8 +145,12 @@ watch(
   }
 )
 
+const statusLabel = computed(() => {
+  const item = statusOptions.find(s => s.value === table.value.status)
+  return item ? item.label : table.value.status || '未知'
+})
+
 const saveOds = async () => {
-  // programmatic validation using formRef (Vuetify's v-form exposes `validate()`)
   if (formRef.value && typeof formRef.value.validate === 'function') {
     const valid = await formRef.value.validate()
     if (!valid) {
@@ -185,7 +159,6 @@ const saveOds = async () => {
     }
   }
 
-  // 从VEtlWithSource中提取EtlTable相关的属性
   const etlTableData: Partial<EtlTable> = {
     id: table.value.id,
     sourceDb: table.value.sourceDb,
@@ -207,7 +180,8 @@ const saveOds = async () => {
     endTime: table.value.endTime,
     maxRuntime: table.value.maxRuntime,
     sid: table.value.sid,
-    duration: table.value.duration
+    duration: table.value.duration,
+    remark: table.value.remark
   };
 
   tableService.save(etlTableData as EtlTable)
@@ -221,8 +195,18 @@ const saveOds = async () => {
     });
 };
 </script>
-<style>
-.v-input .v-field {
+
+<style scoped>
+.table-title {
+  margin: 0;
+  font-weight: 600;
+}
+.meta {
+  color: var(--v-theme-on-surface-variant, #9aa0a6);
   font-size: 0.9rem;
+}
+.action-bar {
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding-top: 12px;
 }
 </style>
