@@ -1,611 +1,546 @@
-create sequence tb_addax_statistic_id_seq;
-
-alter sequence tb_addax_statistic_id_seq owner to addax;
-
-create sequence tb_imp_etl_tid_seq;
-
-alter sequence tb_imp_etl_tid_seq owner to addax;
-
--- leader_election sequence removed as leader election via DB was removed in favor of Redis locks
--- create sequence leader_election_id_seq
---     as integer;
-
--- alter sequence leader_election_id_seq owner to addax;
-
-create table addax_log
+create table public.addax_log
 (
-    id       bigserial
-        primary key,
-    tid      bigint not null,
-    run_at   timestamp,
-    run_date date,
-    log      text
+  id       bigserial
+    primary key,
+  tid      bigint not null,
+  run_at   timestamp,
+  run_date date,
+  log      text
 );
+
+alter table public.addax_log
+  owner to addax;
 
 create index idx_tid_run_date
-    on addax_log (tid, run_at);
+  on public.addax_log (tid, run_at);
 
-create table etl_job_queue
+create table public.etl_job_queue
 (
-    id           bigserial
-        primary key,
-    tid          bigint                                                        not null,
-    biz_date     date                                                          not null,
-    part_name    varchar(64),
-    payload      jsonb,
-    priority     integer                  default 100                          not null,
-    status       varchar(16)              default 'pending'::character varying not null
-        constraint etl_job_queue_status_chk
-            check ((status)::text = ANY
-                   (ARRAY [('pending'::character varying)::text, ('running'::character varying)::text, ('completed'::character varying)::text, ('failed'::character varying)::text, ('cancelled'::character varying)::text])),
-    available_at timestamp with time zone default now()                        not null,
-    attempts     integer                  default 0                            not null,
-    max_attempts integer                  default 3                            not null,
-    claimed_by   varchar(128),
-    claimed_at   timestamp with time zone,
-    lease_until  timestamp with time zone,
-    last_error   text,
-    created_at   timestamp with time zone default now()                        not null,
-    updated_at   timestamp with time zone default now()                        not null
+  id           bigserial
+    primary key,
+  tid          bigint                                                        not null,
+  biz_date     date                                                          not null,
+  part_name    varchar(64),
+  payload      jsonb,
+  priority     integer                  default 100                          not null,
+  status       varchar(16)              default 'pending'::character varying not null
+    constraint etl_job_queue_status_chk
+      check ((status)::text = ANY
+             (ARRAY [('pending'::character varying)::text, ('running'::character varying)::text, ('completed'::character varying)::text, ('failed'::character varying)::text, ('cancelled'::character varying)::text])),
+  available_at timestamp with time zone default now()                        not null,
+  attempts     integer                  default 0                            not null,
+  max_attempts integer                  default 3                            not null,
+  claimed_by   varchar(128),
+  claimed_at   timestamp with time zone,
+  lease_until  timestamp with time zone,
+  last_error   text,
+  created_at   timestamp with time zone default now()                        not null,
+  updated_at   timestamp with time zone default now()                        not null
 );
+
+alter table public.etl_job_queue
+  owner to addax;
 
 create index idx_etl_job_queue_lease
-    on etl_job_queue (status, lease_until);
+  on public.etl_job_queue (status, lease_until);
 
 create index idx_etl_job_queue_status_available
-    on etl_job_queue (status, available_at, priority);
+  on public.etl_job_queue (status, available_at, priority);
 
 create unique index uniq_active_etl_job
-    on etl_job_queue (tid, biz_date)
-    where ((status)::text = ANY (ARRAY [('pending'::character varying)::text, ('running'::character varying)::text]));
+  on public.etl_job_queue (tid, biz_date)
+  where ((status)::text = ANY (ARRAY [('pending'::character varying)::text, ('running'::character varying)::text]));
 
 create index idx_etl_job_queue_pending_priority_available
-    on etl_job_queue (priority, available_at, id)
-    where ((status)::text = 'pending'::text);
+  on public.etl_job_queue (priority, available_at, id)
+  where ((status)::text = 'pending'::text);
 
 create index idx_etl_job_queue_running_lease_until
-    on etl_job_queue (lease_until)
-    where ((status)::text = 'running'::text);
+  on public.etl_job_queue (lease_until)
+  where ((status)::text = 'running'::text);
 
-create table etl_source
+create table public.etl_source
 (
-    id              serial
-        primary key,
-    code            varchar(10)       not null,
-    name            varchar(200)      not null,
-    url             varchar(500)      not null,
-    username        varchar(64),
-    pass            varchar(64),
-    start_at        time,
-    prerequisite    varchar(4000),
-    pre_script      varchar(4000),
-    remark          varchar(2000),
-    enabled         boolean default true,
-    max_concurrency integer default 5 not null
+  id              serial
+    primary key,
+  code            varchar(10)       not null,
+  name            varchar(200)      not null,
+  url             varchar(500)      not null,
+  username        varchar(64),
+  pass            varchar(64),
+  start_at        time,
+  prerequisite    varchar(4000),
+  pre_script      varchar(4000),
+  remark          varchar(2000),
+  enabled         boolean default true,
+  max_concurrency integer default 5 not null,
+  db_type         varchar(20)
 );
 
-comment on table etl_source is '采集源表';
+comment on table public.etl_source is '采集源表';
 
-comment on column etl_source.id is '采集源 ID';
+comment on column public.etl_source.id is '采集源 ID';
 
-comment on column etl_source.code is '采集编号,一般以两个大写字母作为标志';
+comment on column public.etl_source.code is '采集编号,一般以两个大写字母作为标志';
 
-comment on column etl_source.name is '采集源名称';
+comment on column public.etl_source.name is '采集源名称';
 
-comment on column etl_source.url is '采集源 JDBC 连接串';
+comment on column public.etl_source.url is '采集源 JDBC 连接串';
 
-comment on column etl_source.username is '采集源连接的账号';
+comment on column public.etl_source.username is '采集源连接的账号';
 
-comment on column etl_source.pass is '采集源连接的密码';
+comment on column public.etl_source.pass is '采集源连接的密码';
 
-comment on column etl_source.start_at is '采集的定时启动时间点，一般只考虑到小时和分钟，秒钟默认为 0';
+comment on column public.etl_source.start_at is '采集的定时启动时间点，一般只考虑到小时和分钟，秒钟默认为 0';
 
-comment on column etl_source.prerequisite is '能否开始采集的先决条件，比如获取采集标志位，或者等待数据不再更新，一般是一段 SQL，然后通过返回值真假进行判断';
+comment on column public.etl_source.prerequisite is '能否开始采集的先决条件，比如获取采集标志位，或者等待数据不再更新，一般是一段 SQL，然后通过返回值真假进行判断';
 
-comment on column etl_source.pre_script is '标志符合条件后的前置脚本';
+comment on column public.etl_source.pre_script is '标志符合条件后的前置脚本';
 
-comment on column etl_source.remark is '系统备注信息';
+comment on column public.etl_source.remark is '系统备注信息';
 
-comment on column etl_source.enabled is '是否有效';
+comment on column public.etl_source.enabled is '是否有效';
 
-comment on column etl_source.max_concurrency is '采集源允许的最大并发数';
+comment on column public.etl_source.max_concurrency is '采集源允许的最大并发数';
 
-create table etl_soutab
+comment on column public.etl_source.db_type is '数据库类型';
+
+alter table public.etl_source
+  owner to addax;
+
+create table public.etl_statistic
 (
-    sou_db_conn    varchar(64) not null,
-    owner          varchar(64) not null,
-    table_name     varchar(64) not null,
-    column_name    varchar(64) not null,
-    data_type      varchar(64),
-    data_length    bigint,
-    data_precision integer,
-    data_scale     integer,
-    column_id      integer,
-    table_type     varchar(32),
-    tab_comment    varchar(2000),
-    col_comment    varchar(2000),
-    dw_clt_date    timestamp default CURRENT_TIMESTAMP,
-    tid            varchar(32) not null,
-    constraint pk_tid_colname_idx
-        primary key (tid, column_name)
+  id           bigint generated by default as identity
+    constraint tb_addax_statistic_pkey
+      primary key,
+  tid          bigint,
+  start_at     timestamp,
+  end_at       timestamp,
+  take_secs    integer,
+  total_bytes  bigint,
+  byte_speed   integer,
+  rec_speed    integer,
+  total_recs   bigint,
+  total_errors integer,
+  biz_date     date,
+  constraint etl_statistic_tid_biz_date
+    unique (tid, biz_date)
 );
 
-create table etl_statistic
+comment on table public.etl_statistic is '采集统计表';
+
+comment on column public.etl_statistic.id is '逻辑主键';
+
+comment on column public.etl_statistic.tid is '采集表主键';
+
+comment on column public.etl_statistic.start_at is '采集开始时间';
+
+comment on column public.etl_statistic.end_at is '采集结束时间';
+
+comment on column public.etl_statistic.take_secs is '采集耗时';
+
+comment on column public.etl_statistic.total_bytes is '采集的总字节数';
+
+comment on column public.etl_statistic.byte_speed is '采集速度  字节/秒';
+
+comment on column public.etl_statistic.rec_speed is '采集速度 行/秒';
+
+comment on column public.etl_statistic.total_recs is '采集的总行数';
+
+comment on column public.etl_statistic.total_errors is '采集时发生错误的行数';
+
+comment on column public.etl_statistic.biz_date is '采集业务日期';
+
+alter table public.etl_statistic
+  owner to addax;
+
+create table public.etl_table
 (
-    id           bigint generated by default as identity
-        constraint tb_addax_statistic_pkey
-            primary key,
-    tid          bigint,
-    start_at     timestamp,
-    end_at       timestamp,
-    take_secs    integer,
-    total_bytes  bigint,
-    byte_speed   integer,
-    rec_speed    integer,
-    total_recs   bigint,
-    total_errors integer,
-    biz_date     date,
-    constraint etl_statistic_tid_biz_date
-        unique (tid, biz_date)
+  id              bigint        default nextval('tb_imp_etl_tid_seq'::regclass) not null
+    constraint tb_imp_etl_pkey1
+      primary key,
+  source_db       varchar(32)                                                   not null,
+  source_table    varchar(64)                                                   not null,
+  target_db       varchar(50)                                                   not null,
+  target_table    varchar(200)                                                  not null,
+  part_kind       char          default 'D'::bpchar,
+  part_name       varchar(20)   default 'logdate'::character varying,
+  filter          varchar(2000) default '1=1'::character varying                not null,
+  kind            char          default 'A'::bpchar,
+  retry_cnt       integer       default 3,
+  start_time      timestamp     default CURRENT_TIMESTAMP,
+  end_time        timestamp     default CURRENT_TIMESTAMP,
+  max_runtime     integer       default 2000,
+  sid             integer                                                       not null
+    constraint etl_table_sid_fk
+      references public.etl_source,
+  duration        integer       default 0                                       not null,
+  part_format     varchar(10)   default 'yyyyMMdd'::character varying,
+  storage_format  varchar(10)   default 'orc'::character varying                not null,
+  compress_format varchar(10)   default 'snappy'::character varying             not null,
+  tbl_comment     varchar(500),
+  status          char          default 'U'::bpchar                             not null,
+  split_pk        varchar(50)   default NULL::character varying,
+  auto_pk         boolean       default true                                    not null
 );
 
-comment on table etl_statistic is '采集统计表';
+comment on table public.etl_table is '采集表信息';
 
-comment on column etl_statistic.id is '逻辑主键';
+comment on column public.etl_table.id is '表 ID';
 
-comment on column etl_statistic.tid is '采集表主键';
+comment on column public.etl_table.source_db is '采集源库名或 schema名称或 owner 名称';
 
-comment on column etl_statistic.start_at is '采集开始时间';
+comment on column public.etl_table.source_table is '采集源表名';
 
-comment on column etl_statistic.end_at is '采集结束时间';
+comment on column public.etl_table.target_db is '目标库名，即提供给 hive 的库名';
 
-comment on column etl_statistic.take_secs is '采集耗时';
+comment on column public.etl_table.target_table is '目标表名，即 Hive 的表名';
 
-comment on column etl_statistic.total_bytes is '采集的总字节数';
+comment on column public.etl_table.part_kind is '分区类型，D - 按每日分区，如果为空，则表示不分区';
 
-comment on column etl_statistic.byte_speed is '采集速度  字节/秒';
+comment on column public.etl_table.part_name is '目标表分区字段名称，如果 dest_part_kind 不为空，则该字段也不能为空';
 
-comment on column etl_statistic.rec_speed is '采集速度 行/秒';
+comment on column public.etl_table.filter is '采集过滤条件，即 where 条件';
 
-comment on column etl_statistic.total_recs is '采集的总行数';
+comment on column public.etl_table.kind is '采集类型: A - 自动采集(默认值); M - 手工采集; R - 实时采集';
 
-comment on column etl_statistic.total_errors is '采集时发生错误的行数';
+comment on column public.etl_table.retry_cnt is '采集的重试次数，用于采集失败时，可以多次尝试';
 
-comment on column etl_statistic.biz_date is '采集业务日期';
+comment on column public.etl_table.start_time is '本次采集的开始时间';
 
-create table etl_table
+comment on column public.etl_table.end_time is '本次采集的结束时间';
+
+comment on column public.etl_table.max_runtime is '采集可只持续的最大时间，避免某些采集因为网络或数据源原因一直无法结束';
+
+comment on column public.etl_table.sid is '采集源 ID，对应 etl_source 表 id';
+
+comment on column public.etl_table.duration is '采集耗时，单位为秒';
+
+comment on column public.etl_table.part_format is '分区字段日期格式';
+
+comment on column public.etl_table.storage_format is '压缩格式，可以是snappy,zlib,lz4,gz,bz2,zstd 等';
+
+comment on column public.etl_table.tbl_comment is '表注释';
+
+comment on column public.etl_table.split_pk is '切分主键';
+
+comment on column public.etl_table.auto_pk is '自动获取切分字段';
+
+alter table public.etl_table
+  owner to addax;
+
+create table public.etl_column
 (
-    id              bigint        default nextval('tb_imp_etl_tid_seq'::regclass) not null
-        constraint tb_imp_etl_pkey1
-            primary key,
-    source_db       varchar(32)                                                   not null,
-    source_table    varchar(64)                                                   not null,
-    target_db       varchar(50)                                                   not null,
-    target_table    varchar(200)                                                  not null,
-    part_kind       char          default 'D'::bpchar,
-    part_name       varchar(20)   default 'logdate'::character varying,
-    filter          varchar(2000) default '1=1'::character varying                not null,
-    kind            char          default 'A'::bpchar,
-    retry_cnt       integer       default 3,
-    start_time      timestamp     default CURRENT_TIMESTAMP,
-    end_time        timestamp     default CURRENT_TIMESTAMP,
-    max_runtime     integer       default 2000,
-    sid             integer                                                       not null
-        constraint etl_table_sid_fk
-            references etl_source,
-    duration        integer       default 0                                       not null,
-    part_format     varchar(10)   default 'yyyyMMdd'::character varying,
-    storage_format  varchar(10)   default 'orc'::character varying                not null,
-    compress_format varchar(10)   default 'snappy'::character varying             not null,
-    tbl_comment     varchar(500),
-    status          char          default 'U'::bpchar                             not null,
-    split_pk        varchar(50)   default ''::character varying,
-    auto_pk         boolean       default true                                    not null
+  tid              bigint      not null
+    constraint etl_column_tid_fk
+      references public.etl_table,
+  column_name      varchar(255),
+  column_id        integer,
+  source_type      varchar(64),
+  data_length      integer,
+  data_precision   integer,
+  data_scale       integer,
+  col_comment      varchar(4000),
+  target_type      varchar(50) not null,
+  target_type_full varchar(100),
+  update_at        timestamp default CURRENT_TIMESTAMP
 );
 
-comment on table etl_table is '采集表信息';
+comment on table public.etl_column is '采集的表字段信息，包括源表和目标表';
 
-comment on column etl_table.id is '表 ID';
+comment on column public.etl_column.tid is '采集表主键 ID，对应 tb_etl_table 中的 tid';
 
-comment on column etl_table.source_db is '采集源库名或 schema名称或 owner 名称';
+comment on column public.etl_column.column_name is '原表字段名称';
 
-comment on column etl_table.source_table is '采集源表名';
+comment on column public.etl_column.column_id is '列 ID，用于排序字段';
 
-comment on column etl_table.target_db is '目标库名，即提供给 hive 的库名';
+comment on column public.etl_column.source_type is '源表的数据类型';
 
-comment on column etl_table.target_table is '目标表名，即 Hive 的表名';
+comment on column public.etl_column.data_length is '数据长度';
 
-comment on column etl_table.part_kind is '分区类型，D - 按每日分区，如果为空，则表示不分区';
+comment on column public.etl_column.data_precision is '精度';
 
-comment on column etl_table.part_name is '目标表分区字段名称，如果 dest_part_kind 不为空，则该字段也不能为空';
+comment on column public.etl_column.data_scale is '小数位';
 
-comment on column etl_table.filter is '采集过滤条件，即 where 条件';
+comment on column public.etl_column.col_comment is '字段注释';
 
-comment on column etl_table.kind is '采集类型: A - 自动采集(默认值); M - 手工采集; R - 实时采集';
+comment on column public.etl_column.target_type is '目标表对应的类型';
 
-comment on column etl_table.retry_cnt is '采集的重试次数，用于采集失败时，可以多次尝试';
+comment on column public.etl_column.target_type_full is '目标表字段的完整类型，比如 decimal(10,3)';
 
-comment on column etl_table.start_time is '本次采集的开始时间';
+comment on column public.etl_column.update_at is '更新时间';
 
-comment on column etl_table.end_time is '本次采集的结束时间';
-
-comment on column etl_table.max_runtime is '采集可只持续的最大时间，避免某些采集因为网络或数据源原因一直无法结束';
-
-comment on column etl_table.sid is '采集源 ID，对应 etl_source 表 id';
-
-comment on column etl_table.duration is '采集耗时，单位为秒';
-
-comment on column etl_table.part_format is '分区字段日期格式';
-
-comment on column etl_table.storage_format is '压缩格式，可以是snappy,zlib,lz4,gz,bz2,zstd 等';
-
-comment on column etl_table.tbl_comment is '表注释';
-
-comment on column etl_table.split_pk is '切分主键';
-
-comment on column etl_table.auto_pk is '自动获取切分字段';
-
-alter sequence tb_imp_etl_tid_seq owned by etl_table.id;
-
-create table etl_column
-(
-    tid              bigint      not null
-        constraint etl_column_tid_fk
-            references etl_table,
-    column_name      varchar(255),
-    column_id        integer,
-    source_type      varchar(64),
-    data_length      integer,
-    data_precision   integer,
-    data_scale       integer,
-    col_comment      varchar(4000),
-    target_type      varchar(50) not null,
-    target_type_full varchar(100),
-    update_at        timestamp default CURRENT_TIMESTAMP
-);
-
-comment on table etl_column is '采集的表字段信息，包括源表和目标表';
-
-comment on column etl_column.tid is '采集表主键 ID，对应 tb_etl_table 中的 tid';
-
-comment on column etl_column.column_name is '原表字段名称';
-
-comment on column etl_column.column_id is '列 ID，用于排序字段';
-
-comment on column etl_column.source_type is '源表的数据类型';
-
-comment on column etl_column.data_length is '数据长度';
-
-comment on column etl_column.data_precision is '精度';
-
-comment on column etl_column.data_scale is '小数位';
-
-comment on column etl_column.col_comment is '字段注释';
-
-comment on column etl_column.target_type is '目标表对应的类型';
-
-comment on column etl_column.target_type_full is '目标表字段的完整类型，比如 decimal(10,3)';
-
-comment on column etl_column.update_at is '更新时间';
+alter table public.etl_column
+  owner to addax;
 
 create unique index uk_tid_column_name
-    on etl_column (tid, column_name);
+  on public.etl_column (tid, column_name);
 
-create table etl_job
+create table public.etl_job
 (
-    tid bigint not null
-        constraint pk_tb_job
-            primary key
-        constraint etl_job_tid_fk
-            references etl_table,
-    job text   not null
+  tid bigint not null
+    constraint pk_tb_job
+      primary key
+    constraint etl_job_tid_fk
+      references public.etl_table,
+  job text   not null
 );
 
-comment on table etl_job is '采集表的 addax 任务模板';
+comment on table public.etl_job is '采集表的 addax 任务模板';
 
-comment on column etl_job.tid is '采集表主键';
+comment on column public.etl_job.tid is '采集表主键';
 
-comment on column etl_job.job is 'addax 任务模板';
+comment on column public.etl_job.job is 'addax 任务模板';
 
-create table etl_jour
+alter table public.etl_job
+  owner to addax;
+
+create table public.etl_jour
 (
-    id        bigserial
-        primary key,
-    tid       bigint
-        constraint etl_jour_tid_fk
-            references etl_table,
-    kind      varchar(32),
-    start_at  timestamp default CURRENT_TIMESTAMP not null,
-    duration  integer   default 0                 not null,
-    status    boolean   default true,
-    cmd       text,
-    error_msg text
+  id        bigserial
+    primary key,
+  tid       bigint
+    constraint etl_jour_tid_fk
+      references public.etl_table,
+  kind      varchar(32),
+  start_at  timestamp default CURRENT_TIMESTAMP not null,
+  duration  integer   default 0                 not null,
+  status    boolean   default true,
+  cmd       text,
+  error_msg text
 );
+
+alter table public.etl_jour
+  owner to addax;
 
 create index idx_etl_jour_tid
-    on etl_jour (tid);
+  on public.etl_jour (tid);
 
 create index idx_etl_table_status_id_sid
-    on etl_table (status, id, sid);
+  on public.etl_table (status, id, sid);
 
-create table groups
+create table public.groups
 (
-    id         bigint generated by default as identity
-        primary key,
-    group_name varchar(50) not null
+  id         bigint generated by default as identity
+    primary key,
+  group_name varchar(50) not null
 );
 
-create table group_authorities
+alter table public.groups
+  owner to addax;
+
+create table public.group_authorities
 (
-    group_id  bigint      not null
-        constraint fk_group_authorities_group
-            references groups,
-    authority varchar(50) not null
+  group_id  bigint      not null
+    constraint fk_group_authorities_group
+      references public.groups,
+  authority varchar(50) not null
 );
 
-create table group_members
+alter table public.group_authorities
+  owner to addax;
+
+create table public.group_members
 (
-    id       bigint generated by default as identity
-        primary key,
-    username varchar(50) not null,
-    group_id bigint      not null
-        constraint fk_group_members_group
-            references groups
+  id       bigint generated by default as identity
+    primary key,
+  username varchar(50) not null,
+  group_id bigint      not null
+    constraint fk_group_members_group
+      references public.groups
 );
 
-create table notification
+alter table public.group_members
+  owner to addax;
+
+create table public.notification
 (
-    id        bigserial
-        primary key,
-    phone     varchar(255)                        not null,
-    msg       varchar(500)                        not null,
-    sms       char      default 'Y'::bpchar       not null,
-    im        char      default 'Y'::bpchar       not null,
-    call      char      default 'N'::bpchar       not null,
-    create_at timestamp default CURRENT_TIMESTAMP not null
+  id        bigserial
+    primary key,
+  phone     varchar(255)                        not null,
+  msg       varchar(500)                        not null,
+  sms       char      default 'Y'::bpchar       not null,
+  im        char      default 'Y'::bpchar       not null,
+  call      char      default 'N'::bpchar       not null,
+  create_at timestamp default CURRENT_TIMESTAMP not null
 );
 
-comment on table notification is '数据中心消息提醒总表';
+comment on table public.notification is '数据中心消息提醒总表';
 
-comment on column notification.id is '自动生成，无需理会';
+comment on column public.notification.id is '自动生成，无需理会';
 
-comment on column notification.phone is '接收人号码或者其他唯一标识，用逗号分隔';
+comment on column public.notification.phone is '接收人号码或者其他唯一标识，用逗号分隔';
 
-comment on column notification.msg is '消息内容';
+comment on column public.notification.msg is '消息内容';
 
-comment on column notification.sms is '是否发送短信，发送成功后置为y';
+comment on column public.notification.sms is '是否发送短信，发送成功后置为y';
 
-comment on column notification.im is '是否发送企微，发送成功后置为y';
+comment on column public.notification.im is '是否发送企微，发送成功后置为y';
 
-comment on column notification.call is '是否拨打语音，拨打成功后置为y';
+comment on column public.notification.call is '是否拨打语音，拨打成功后置为y';
 
-comment on column notification.create_at is '消息生成的时间，自动生成';
+comment on column public.notification.create_at is '消息生成的时间，自动生成';
 
-create table schema_change_log
+alter table public.notification
+  owner to addax;
+
+create table public.schema_change_log
 (
-    id                 bigserial
-        primary key,
-    tid                bigint not null,
-    source_db          varchar(64),
-    source_table       varchar(128),
-    column_name        varchar(255),
-    change_type        varchar(32),
-    old_source_type    varchar(128),
-    new_source_type    varchar(128),
-    old_data_length    integer,
-    new_data_length    integer,
-    old_data_precision integer,
-    new_data_precision integer,
-    old_data_scale     integer,
-    new_data_scale     integer,
-    old_col_comment    varchar(2000),
-    new_col_comment    varchar(2000),
-    change_at          timestamp default CURRENT_TIMESTAMP
+  id                 bigserial
+    primary key,
+  tid                bigint not null,
+  source_db          varchar(64),
+  source_table       varchar(128),
+  column_name        varchar(255),
+  change_type        varchar(32),
+  old_source_type    varchar(128),
+  new_source_type    varchar(128),
+  old_data_length    integer,
+  new_data_length    integer,
+  old_data_precision integer,
+  new_data_precision integer,
+  old_data_scale     integer,
+  new_data_scale     integer,
+  old_col_comment    varchar(2000),
+  new_col_comment    varchar(2000),
+  change_at          timestamp default CURRENT_TIMESTAMP
 );
 
-create table sys_dict
+alter table public.schema_change_log
+  owner to addax;
+
+create table public.sys_dict
 (
-    code           integer not null
-        constraint pk_tb_dict
-            primary key,
-    name           varchar(255),
-    classification varchar(2000),
-    remark         varchar(500)
+  code           integer not null
+    constraint pk_tb_dict
+      primary key,
+  name           varchar(255),
+  classification varchar(2000),
+  remark         varchar(500)
 );
 
-comment on table sys_dict is '字典条目表';
+comment on table public.sys_dict is '字典条目表';
 
-comment on column sys_dict.code is '条目编号';
+comment on column public.sys_dict.code is '条目编号';
 
-comment on column sys_dict.name is '条目名称';
+comment on column public.sys_dict.name is '条目名称';
 
-comment on column sys_dict.classification is '分类';
+comment on column public.sys_dict.classification is '分类';
 
-comment on column sys_dict.remark is '说明';
+comment on column public.sys_dict.remark is '说明';
 
-create table sys_item
+alter table public.sys_dict
+  owner to addax;
+
+create table public.sys_item
 (
-    dict_code  integer      not null
-        constraint tb_item_dict_fk
-            references sys_dict
-            on update cascade on delete cascade,
-    item_key   varchar(255) not null,
-    item_value varchar(2000),
-    remark     varchar(4000),
-    constraint pk_tb_dictionary
-        primary key (dict_code, item_key)
+  dict_code  integer      not null
+    constraint tb_item_dict_fk
+      references public.sys_dict
+      on update cascade on delete cascade,
+  item_key   varchar(255) not null,
+  item_value varchar(2000),
+  remark     varchar(4000),
+  constraint pk_tb_dictionary
+    primary key (dict_code, item_key)
 );
 
-comment on table sys_item is '字典明细表';
+comment on table public.sys_item is '字典明细表';
 
-comment on column sys_item.dict_code is '字典条目编号';
+comment on column public.sys_item.dict_code is '字典条目编号';
 
-comment on column sys_item.item_key is '明细名称';
+comment on column public.sys_item.item_key is '明细名称';
 
-comment on column sys_item.item_value is '明细内容';
+comment on column public.sys_item.item_value is '明细内容';
 
-comment on column sys_item.remark is '备注';
+comment on column public.sys_item.remark is '备注';
 
-create table system_flag
+alter table public.sys_item
+  owner to addax;
+
+create table public.system_flag
 (
-    flag_key         varchar(128) not null
-        primary key,
-    flag_value       varchar(128) default '0'::character varying,
-    last_started_at  timestamp,
-    last_finished_at timestamp,
-    updated_at       timestamp,
-    updated_by       varchar(255)
+  flag_key         varchar(128) not null
+    primary key,
+  flag_value       varchar(128) default '0'::character varying,
+  last_started_at  timestamp,
+  last_finished_at timestamp,
+  updated_at       timestamp,
+  updated_by       varchar(255)
 );
 
-create table users
+alter table public.system_flag
+  owner to addax;
+
+create table public.users
 (
-    username varchar(50)  not null
-        primary key,
-    password varchar(500) not null,
-    enabled  boolean      not null
+  username varchar(50)  not null
+    primary key,
+  password varchar(500) not null,
+  enabled  boolean      not null
 );
 
-create table authorities
+alter table public.users
+  owner to addax;
+
+create table public.authorities
 (
-    username  varchar(50) not null
-        constraint fk_authorities_users
-            references users,
-    authority varchar(50) not null
+  username  varchar(50) not null
+    constraint fk_authorities_users
+      references public.users,
+  authority varchar(50) not null
 );
+
+alter table public.authorities
+  owner to addax;
 
 create unique index ix_auth_username
-    on authorities (username, authority);
+  on public.authorities (username, authority);
 
--- (The previous version contained a leader_election table and related sequence which have been removed.)
-
-create view vw_etl_table_with_source
-            (id, source_db, source_table, target_db, target_table, part_kind, part_name, filter, kind, retry_cnt,
-             start_time, end_time, max_runtime, sid, duration, part_format, storage_format, compress_format,
-             tbl_comment, status, code, name, url, username, pass, start_at, enabled, max_concurrency, split_pk,
-             auto_pk)
-as
-SELECT t.id,
-       t.source_db,
-       t.source_table,
-       t.target_db,
-       t.target_table,
-       t.part_kind,
-       t.part_name,
-       t.filter,
-       t.kind,
-       t.retry_cnt,
-       t.start_time,
-       t.end_time,
-       t.max_runtime,
-       t.sid,
-       t.duration,
-       t.part_format,
-       t.storage_format,
-       t.compress_format,
-       t.tbl_comment,
-       t.status,
-       s.code,
-       s.name,
-       s.url,
-       s.username,
-       s.pass,
-       s.start_at,
-       s.enabled,
-       s.max_concurrency,
-       t.split_pk,
-       t.auto_pk
-FROM etl_table t
-         LEFT JOIN etl_source s ON t.sid = s.id;
-
-create function etl_job_queue_notify() returns trigger
-    language plpgsql
-as
-$$
-BEGIN
-  IF (NEW.status = 'pending' AND NEW.available_at <= now()) THEN
-    PERFORM pg_notify('etl_jobs', NEW.id::text);
-  END IF;
-  RETURN NEW;
-END; $$;
-
-alter function etl_job_queue_notify() owner to postgres;
-
-create function etl_job_queue_set_updated_at() returns trigger
-    language plpgsql
-as
-$$
-BEGIN
-  NEW.updated_at := now();
-  RETURN NEW;
-END; $$;
-
-alter function etl_job_queue_set_updated_at() owner to postgres;
-
-create function insert_dates_for_year(p_year integer, p_dict_code integer DEFAULT 1021) returns void
-    language plpgsql
-as
-$$
-DECLARE
-    v_date DATE;
-BEGIN
-    FOR v_date IN
-        SELECT DISTINCT to_char(generate_series(make_date(p_year,1,1), make_date(p_year,12,31), '1 day'::interval), 'YYYYmmdd')
-    LOOP
-        INSERT INTO public.sys_item (dict_code, item_key, item_value, remark)
-        VALUES (p_dict_code, v_date, v_date, NOW());
-    END LOOP;
-END;
-$$;
-
-alter function insert_dates_for_year(integer, integer) owner to postgres;
-
--- log cleanup audit table
-create table log_cleanup_audit
+create table public.leader_election
 (
-    id          bigserial primary key,
-    task_id     varchar(64),
-    operator    varchar(128),
-    table_name  varchar(64),
-    criteria_json text,
-    requested_rows bigint,
-    deleted_rows  bigint,
-    status         varchar(32),
-    started_at     timestamp,
-    finished_at    timestamp,
-    message        text,
-    created_at     timestamp default CURRENT_TIMESTAMP
+  id         integer,
+  node_id    varchar(100),
+  expires_at timestamp with time zone,
+  updated_at timestamp with time zone
 );
 
-create index idx_log_cleanup_task_id on log_cleanup_audit(task_id);
+comment on table public.leader_election is 'leader 选举表';
 
-create table risk_log
+comment on column public.leader_election.node_id is '节点ID';
+
+comment on column public.leader_election.expires_at is '过期时间';
+
+comment on column public.leader_election.updated_at is '更新时间';
+
+alter table public.leader_election
+  owner to addax;
+
+create table public.risk_log
 (
   id         bigserial,
   risk_level varchar(30) not null,
   source     varchar(30),
   message    varchar(1000),
-  details    text,
   tid        integer,
   created_at timestamp default CURRENT_TIMESTAMP
 );
 
-comment on table risk_log is '风险记录表';
+comment on table public.risk_log is '风险记录表';
 
-comment on column risk_log.risk_level is '风险级别';
+comment on column public.risk_log.risk_level is '风险级别';
 
-comment on column risk_log.source is '风险来源';
+comment on column public.risk_log.source is '风险来源';
 
-comment on column risk_log.message is '风险摘要';
+comment on column public.risk_log.message is '风险摘要';
 
-comment on column risk_log.details is '风险详情';
+comment on column public.risk_log.tid is '关联表 ID';
 
-comment on column risk_log.tid is '关联表 ID';
+comment on column public.risk_log.created_at is '创建时间';
 
-comment on column risk_log.created_at is '创建时间';
-
-alter table risk_log
+alter table public.risk_log
   owner to addax;
 
 create index risk_log__index_createat
-  on risk_log (created_at);
+  on public.risk_log (created_at);
 
