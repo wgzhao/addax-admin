@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.git
+.gitignore
+*.md
+.DS_Store
+.idea
+*.iml
+*.log
+package-lock.json
+.vscode/

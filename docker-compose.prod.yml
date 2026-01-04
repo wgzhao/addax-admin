@@ -1,0 +1,127 @@
+version: '3.9'
+
+# 生产环境配置 - 仅使用预构建镜像
+# 使用方法: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: addax-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-addax_admin}
+      POSTGRES_USER: ${POSTGRES_USER:-addax_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-addax_admin@123}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./scripts/data.sql:/docker-entrypoint-initdb.d/02-data.sql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - addax-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-addax_admin} -d ${POSTGRES_DB:-addax_admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: addax-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - addax-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 后端服务
+  backend:
+    image: ${DOCKER_REGISTRY:-wgzhao}/addax-admin-backend:${VERSION:-latest}
+    container_name: addax-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 数据库配置（支持环境变量覆盖）
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-addax_admin}
+      DB_USERNAME: ${DB_USERNAME:-addax_admin}
+      DB_PASSWORD: ${DB_PASSWORD:-addax_admin@123}
+      # Redis 配置
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+      # 应用配置
+      LOG_DIR: /app/logs
+      WEIGHT: ${WEIGHT:-1.0}
+      WECOM_ROBOT_KEY: ${WECOM_ROBOT_KEY:-}
+      SERVER_PORT: ${SERVER_PORT:-50601}
+    volumes:
+      # 日志目录
+      - backend_logs:/app/logs
+      # JDBC 驱动目录（用户可以添加自定义驱动）
+      - ./drivers:/app/drivers
+      # 任务目录
+      - ./job:/app/job
+      # 可选：挂载自定义配置文件
+      # - ./config/application.properties:/app/config/application.properties:ro
+    ports:
+      - "${BACKEND_PORT:-50601}:50601"
+    networks:
+      - addax-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 50601 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 前端服务
+  frontend:
+    image: ${DOCKER_REGISTRY:-wgzhao}/addax-admin-frontend:${VERSION:-latest}
+    container_name: addax-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    networks:
+      - addax-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  addax-network:
+    driver: bridge
+    name: addax-network
+
+volumes:
+  postgres_data:
+    driver: local
+    name: addax-postgres-data
+  redis_data:
+    driver: local
+    name: addax-redis-data
+  backend_logs:
+    driver: local
+    name: addax-backend-logs

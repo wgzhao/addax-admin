@@ -1,0 +1,10 @@
+target/
+*.log
+.git
+.gitignore
+*.md
+.DS_Store
+.idea
+*.iml
+auth.json
+config/
