@@ -11,12 +11,12 @@ services:
       POSTGRES_USER: addax_admin
       POSTGRES_PASSWORD: addax_admin@123
       PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Asia/Shanghai
+    command: ["postgres", "-c", "timezone=Asia/Shanghai"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./scripts/data.sql:/docker-entrypoint-initdb.d/02-data.sql
-    ports:
-      - "5432:5432"
     networks:
       - addax-network
     healthcheck:
@@ -33,8 +33,6 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
     networks:
       - addax-network
     healthcheck:
@@ -45,7 +43,7 @@ services:
 
   # 后端服务
   backend:
-    image: ${DOCKER_REGISTRY:-wgzhao}/addax-admin-backend:${VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-quay.io/wgzhao}/addax-admin-backend:${VERSION:-latest}
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -96,7 +94,7 @@ services:
 
   # 前端服务
   frontend:
-    image: ${DOCKER_REGISTRY:-wgzhao}/addax-admin-frontend:${VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-quay.io/wgzhao}/addax-admin-frontend:${VERSION:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -105,7 +103,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-50080}:80"
     networks:
       - addax-network
     healthcheck:

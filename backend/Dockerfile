@@ -4,11 +4,11 @@ FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /build
 
 # 复制父 pom.xml
-COPY ../pom.xml /build/parent-pom.xml
+COPY pom.xml /build/parent-pom.xml
 
 # 复制后端源代码和 pom.xml
-COPY pom.xml .
-COPY src ./src
+COPY backend/pom.xml ./pom.xml
+COPY backend/src ./src
 
 # 修改 pom.xml 的 relativePath
 RUN sed -i 's|<relativePath>../pom.xml</relativePath>|<relativePath>parent-pom.xml</relativePath>|' pom.xml

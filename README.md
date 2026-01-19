@@ -11,7 +11,7 @@ Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管�
 
 ---
 
-目录结构（简要）
+## 目录结构（简要）
 
 ```
 addax-admin/
@@ -23,15 +23,15 @@ addax-admin/
 └── README.md                # 本文档
 ```
 
-主要组成
+## 主要组成
 
 - Addax Admin Backend：Spring Boot 实现，负责任务持久化（Postgres）、分发逻辑、Redis 锁与仲裁、权限与 JWT、调度（cron/周期）等。
 - Addax Admin Frontend：基于 Vue 3 + Vuetify 的单页应用，提供任务配置、ODS 表管理、日志查看、实时监控与告警配置。
-- 数据库初始化：backend/src/main/resources/schema.sql 和 data.sql 提供数据库 schema 与默认数据。
+- 数据库初始化：scripts/schema.sql 和 scripts/data.sql 提供数据库 schema 与默认数据。
 
 ---
 
-亮点与特色
+## 亮点与特色
 
 - 混合并发控制架构：DB 持久化队列 + Redis 仲裁（per-job 锁、全局/源级 permit），兼顾可靠性与性能。
 - 快速批量创建采集表：在 UI 中只需点击几下即可批量新增数百到上千张采集表；并支持一键在目标存储（例如 Hive）中同步创建表与分区，显著提升大规模数据接入效率。
@@ -44,7 +44,51 @@ addax-admin/
 
 ---
 
-快速开始（本地开发）
+## 🚀 快速开始（5 分钟部署）
+
+### 容器模式
+
+#### 1. 准备部署目录
+
+```bash
+# 创建项目目录
+mkdir addax-admin && cd addax-admin
+
+# 创建必要的子目录
+mkdir -p scripts drivers job
+```
+
+#### 2. 下载必要文件
+
+```bash
+# 下载 docker-compose 配置文件
+wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/docker-compose.yml
+
+# 下载数据库初始化脚本
+wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/schema.sql
+wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/data.sql
+```
+
+#### 3. 启动服务
+
+```bash
+# 启动所有服务
+docker-compose -f docker-compose.yml up -d
+
+# 查看服务状态
+docker-compose -f docker-compose.yml ps
+
+# 查看日志
+docker-compose -f docker-compose.yml logs -f
+```
+
+#### 4. 访问应用
+
+运行成功后，访问 <http://localhost:50080>，默认账号为 admin, 密码为 `admin123`
+
+更多详细配置请参考 [DOCKER-USER-GUIDE.md](DOCKER-USER-GUIDE.md)
+
+### 本地开发模式
 
 先决条件
 
@@ -140,8 +184,8 @@ yarn build
 
 项目自带初始化脚本：
 
-- backend/src/main/resources/schema.sql（表结构与索引）
-- backend/src/main/resources/data.sql（初始数据）
+- scripts/schema.sql（表结构与索引）
+- scripts/data.sql（初始数据）
 
 如果你在生产环境部署，建议：
 
