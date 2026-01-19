@@ -286,7 +286,7 @@
               </template>
               <span>注意：下面为会产生行为的操作</span>
             </v-tooltip>
-            
+
             <v-tooltip location="top">
               <template #activator="{ props }">
                 <v-btn
@@ -770,35 +770,35 @@ retryCnt: retryCnt.value
 </script>
 
 <style scoped>
-/* Compact icon button to reduce circular ring and padding */
-.icon-btn--compact {
-  min-width: 28px !important;
-  width: 28px !important;
-  height: 28px !important;
-  padding: 0 6px !important;
-  border-radius: 6px !important;
-}
-.icon-btn--compact .v-icon {
-  font-size: 16px !important;
-}
-/* Reduce default icon list-item gap */
-.v-list-item__icon {
-  min-width: 20px !important;
-  margin-right: 8px !important;
-}
+  /* Compact icon button to reduce circular ring and padding */
+  .icon-btn--compact {
+    min-width: 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 6px !important;
+    border-radius: 6px !important;
+  }
+  .icon-btn--compact .v-icon {
+    font-size: 16px !important;
+  }
+  /* Reduce default icon list-item gap */
+  .v-list-item__icon {
+    min-width: 20px !important;
+    margin-right: 8px !important;
+  }
 
-/* Separator between display-only and action buttons */
-.action-separator-wrapper {
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-}
-.action-separator {
-  height: 18px;
-  width: 1px;
-  background-color: rgba(0,0,0,0.12);
-  margin: 0 6px;
-}
+  /* Separator between display-only and action buttons */
+  .action-separator-wrapper {
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .action-separator {
+    height: 18px;
+    width: 1px;
+    background-color: rgba(0, 0, 0, 0.12);
+    margin: 0 6px;
+  }
 </style>
 
 <route lang="json">
