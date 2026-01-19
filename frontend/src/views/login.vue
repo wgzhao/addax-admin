@@ -82,8 +82,8 @@
 
   const form = ref(false)
   const auth = ref({
-    username: 'admin',
-    password: '389f89beb8d7'
+    username: '',
+    password: ''
   })
 
   const loading = ref<boolean>(false)
