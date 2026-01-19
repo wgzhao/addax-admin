@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import { VEtlWithSource, EtlTable } from "@/types/database";
@@ -145,11 +145,6 @@ watch(
   }
 )
 
-const statusLabel = computed(() => {
-  const item = statusOptions.find(s => s.value === table.value.status)
-  return item ? item.label : table.value.status || '未知'
-})
-
 const saveOds = async () => {
   if (formRef.value && typeof formRef.value.validate === 'function') {
     const valid = await formRef.value.validate()
@@ -180,8 +175,7 @@ const saveOds = async () => {
     endTime: table.value.endTime,
     maxRuntime: table.value.maxRuntime,
     sid: table.value.sid,
-    duration: table.value.duration,
-    remark: table.value.remark
+    duration: table.value.duration
   };
 
   tableService.save(etlTableData as EtlTable)

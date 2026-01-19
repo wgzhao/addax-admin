@@ -202,7 +202,7 @@
     /* 白色标题 */
     font-weight: 700;
     font-size: 28px;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
@@ -231,18 +231,9 @@
     box-shadow: 0 8px 20px rgba(0, 188, 212, 0.4);
   }
 
-  .additional-links {
-    text-align: center;
-  }
-
-  .additional-links .v-btn {
-    color: #b0bec5;
-    /* 浅灰色链接 */
-  }
-
   @keyframes gradientFlow {
     0% {
-      background-position: 0% 0%;
+      background-position: 0 0;
     }
 
     50% {
@@ -250,7 +241,7 @@
     }
 
     100% {
-      background-position: 0% 0%;
+      background-position: 0 0;
     }
   }
 

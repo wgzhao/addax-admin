@@ -197,7 +197,7 @@ import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import sourceService from "@/service/source-service";
 import dictService from "@/service/dict-service";
-import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS, PARTITION_FORMATS, formatByPattern } from "@/utils";
+import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS, PARTITION_FORMATS } from "@/utils";
 import { EtlSource, EtlTable, TableMeta } from "@/types/database";
 import { DataTableHeader } from "vuetify";
 import dayjs from 'dayjs'
