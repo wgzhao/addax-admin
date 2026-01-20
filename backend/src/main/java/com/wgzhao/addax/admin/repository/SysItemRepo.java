@@ -36,8 +36,11 @@ public interface SysItemRepo
 
     @Query(value = """
         select item_key from sys_item
-        where dict_code = 1021 and cast(item_key as timestamp) >= cast(?1 as timestamp) - interval '?2' day
-        order by item_key asc limit 1
+        where dict_code = 1021 and item_key  >= to_char(
+            (to_timestamp(?1, 'YYYYMMDD') + (?2 || ' day')::interval),
+            'YYYYMMDD'
+          )
+        order by item_key limit 1
         """, nativeQuery = true)
     String getBizDateOffset(String bizDate, int days);
 }

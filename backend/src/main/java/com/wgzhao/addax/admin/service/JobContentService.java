@@ -241,6 +241,12 @@ public class JobContentService
         // 提取字段
         String columnName = filterCondition.substring(SPECIAL_FILTER_PLACEHOLDER.length());
         String partValue = configService.getL2TD();
+        // 需要把 partValue 转换为 指定分区时间格式
+        String partFormat = table.getPartFormat();
+        if (!Objects.equals(partFormat, DEFAULT_PART_FORMAT)) {
+            LocalDate partDate = LocalDate.parse(partValue, DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT));
+            partValue = partDate.format(DateTimeFormatter.ofPattern(partFormat));
+        }
         Long maxValue = targetService.getMaxValue(table, columnName, partValue);
         if (maxValue == null) {
             // 说明目标表还没有数据或者异常了，那么直接返回 1=1
