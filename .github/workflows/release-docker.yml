@@ -66,9 +66,13 @@ jobs:
       - name: Build and push Docker image to Docker Hub and Quay.io
         uses: docker/build-push-action@v6
         with:
+          context: .
+          file: ./Dockerfile
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/addax-admin:${{ steps.version.outputs.version }}
-            ${{ secrets.DOCKER_USERNAME }}/addax-admin:latest
-            quay.io/${{ secrets.QUAY_USERNAME }}/addax-admin:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/addax-admin:${{ steps.version.outputs.VERSION }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/addax-admin:latest
+            quay.io/${{ secrets.QUAY_USERNAME }}/addax-admin:${{ steps.version.outputs.VERSION }}
             quay.io/${{ secrets.QUAY_USERNAME }}/addax-admin:latest

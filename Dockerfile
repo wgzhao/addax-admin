@@ -1,8 +1,11 @@
 # Multi-stage build for combined backend (Spring Boot) and frontend (Vue/Vite)
 
+ARG VERSION=dev
+
 ##### Backend build stage #####
 FROM maven:3.9-eclipse-temurin-21 AS backend-builder
 
+ARG VERSION
 WORKDIR /build
 
 # Copy parent pom
@@ -22,6 +25,9 @@ RUN mvn clean package -DskipTests
 ##### Frontend build stage #####
 FROM node:22-alpine AS frontend-builder
 
+ARG VERSION
+ENV VITE_APP_VERSION=${VERSION}
+
 WORKDIR /build
 
 # Copy root-level package.json / lockfile for frontend (the Docker build context is repo root)
@@ -40,6 +46,7 @@ RUN yarn build-only
 ##### Final runtime image (backend + nginx) #####
 FROM eclipse-temurin:21-jre-alpine
 
+ARG VERSION
 WORKDIR /app
 
 # Install nginx and busybox-extras (for nc in healthcheck)
