@@ -41,13 +41,13 @@ services:
       timeout: 3s
       retries: 5
 
-  # 后端服务
-  backend:
-    image: ${DOCKER_REGISTRY:-quay.io/wgzhao}/addax-admin-backend:${VERSION:-latest}
+  # 应用服务（前后端合一）
+  app:
+    image: ${DOCKER_REGISTRY:-addax-admin}:${VERSION:-latest}
     build:
       context: .
-      dockerfile: backend/Dockerfile
-    container_name: addax-backend
+      dockerfile: Dockerfile
+    container_name: addax-admin
     restart: unless-stopped
     depends_on:
       postgres:
@@ -79,38 +79,22 @@ services:
       - ./backend/drivers:/app/drivers
       # 任务目录
       - ./backend/job:/app/job
-      # 配置文件目录（可选，用于覆盖默认配置）
+      # 可选：外部配置
       # - ./backend/config/application.properties:/app/config/application.properties:ro
     ports:
-      - "${BACKEND_PORT:-50601}:50601"
+      # 暴露 Nginx（前端）端口到宿主机，后端端口仅在容器网络内使用，避免端口冲突
+      - "${FRONTEND_PORT:-50080}:80"
+      # 如需调试后端，可临时打开下面这一行
+      # - "${BACKEND_PORT:-50601}:50601"
     networks:
       - addax-network
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 50601 || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost 50601 && wget --quiet --tries=1 --spider http://localhost/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
-  # 前端服务
-  frontend:
-    image: ${DOCKER_REGISTRY:-quay.io/wgzhao}/addax-admin-frontend:${VERSION:-latest}
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: addax-frontend
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "${FRONTEND_PORT:-50080}:80"
-    networks:
-      - addax-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
 
 networks:
   addax-network:

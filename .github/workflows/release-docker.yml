@@ -1,0 +1,74 @@
+name: Release Docker Images
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_BUILDKIT: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Determine version from tag or release
+        id: version
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
+            TAG_NAME="${GITHUB_REF##*/}"
+            # Prefer explicit release tag_name if present
+            if [[ -n "${{ github.event.release.tag_name }}" ]]; then
+              TAG_NAME="${{ github.event.release.tag_name }}"
+            fi
+          else
+            # refs/tags/v1.2.3 -> v1.2.3
+            TAG_NAME="${GITHUB_REF##*/}"
+          fi
+
+          VERSION="${TAG_NAME#v}"
+          echo "Resolved version: ${VERSION} (from tag ${TAG_NAME})"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Build and push Docker image to Docker Hub and Quay.io
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/addax-admin:${{ steps.version.outputs.version }}
+            ${{ secrets.DOCKER_USERNAME }}/addax-admin:latest
+            quay.io/${{ secrets.QUAY_USERNAME }}/addax-admin:${{ steps.version.outputs.version }}
+            quay.io/${{ secrets.QUAY_USERNAME }}/addax-admin:latest
