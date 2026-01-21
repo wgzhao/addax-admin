@@ -7,9 +7,17 @@
     <artifactId>addax-admin-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    
+
     <name>Addax Admin Monorepo</name>
     <description>Addax Admin Management System - Monorepo</description>
+
+    <!-- SCM configuration required by maven-release-plugin -->
+    <scm>
+        <connection>scm:git:git://github.com/wgzhao/addax-admin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/wgzhao/addax-admin.git</developerConnection>
+        <url>https://github.com/wgzhao/addax-admin</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <java.version>21</java.version>
@@ -33,6 +41,19 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${file.encoding}</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Release Plugin: use vX.Y.Z tag format and root SCM settings -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <!-- 默认 push 标签和分支到 origin -->
+                    <pushChanges>true</pushChanges>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
                 </configuration>
             </plugin>
         </plugins>
