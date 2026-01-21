@@ -17,6 +17,7 @@ declare module 'vue' {
     AddSource: typeof import('./../components/source/AddSource.vue')['default']
     AppBreadcrumb: typeof import('./../components/AppBreadcrumb.vue')['default']
     AppRegister: typeof import('./../components/AppRegister.vue')['default']
+    AppVersion: typeof import('./../components/AppVersion.vue')['default']
     BatchAdd: typeof import('./../components/table/BatchAdd.vue')['default']
     BatchUpdate: typeof import('./../components/table/BatchUpdate.vue')['default']
     CleanupDialog: typeof import('./../components/logs/CleanupDialog.vue')['default']
