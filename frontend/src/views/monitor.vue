@@ -239,6 +239,7 @@
     title: '采集源库的字段变更提醒(T-1日结构与T日结构对比)',
     sortBy: <SortItem[]>[{ key: 'changeAt', order: 'desc' }],
     headers: <DataTableHeader[]>[
+      { title: '表 ID', key: 'tid'},
       { title: '库名', key: 'sourceDb' },
       { title: '表名', key: 'sourceTable' },
       { title: '字段名', key: 'columnName' },
