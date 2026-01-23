@@ -9,12 +9,10 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -72,26 +70,9 @@ public class SecurityConfiguration
     }
 
     @Bean
-    UserDetailsManager users(DataSource dataSource, PasswordEncoder passwordEncoder)
-    {
-        UserDetails user = User.builder()
-            .username("user")
-            .password(passwordEncoder.encode("user123"))
-            .roles("USER")
-            .build();
-        UserDetails admin = User.builder()
-            .username("admin")
-            .password(passwordEncoder.encode("389f89beb8d7"))
-            .roles("USER", "ADMIN")
-            .build();
-        JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
-        if (!users.userExists("user")) {
-            users.createUser(user);
-        }
-        if (!users.userExists("admin")) {
-            users.createUser(admin);
-        }
-        return users;
+    public UserDetailsService userDetailsService(DataSource dataSource) {
+        // 只返回JdbcUserDetailsManager，不创建用户
+        return new JdbcUserDetailsManager(dataSource);
     }
 
     @Bean

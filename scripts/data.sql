@@ -1,4 +1,5 @@
 -- admin:admin123
+-- user:user123
 insert into PUBLIC.users (USERNAME, PASSWORD, ENABLED)
 values  ('user', '$2a$10$7pdkeQNqyfj/H.xSqniqDeVNCq8CnXTVNcoP0fgbzFkR53cDgF0z.', true),
         ('admin', '$2a$10$g9Zr25jZp/GcGhkxICRlMO0uHRkNc8FoZQ.r04PJS74yDCOSTDg/K', true);
