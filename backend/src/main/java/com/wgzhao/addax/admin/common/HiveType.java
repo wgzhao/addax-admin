@@ -118,6 +118,15 @@ public class HiveType
             return true;
         }
 
+        // If desired is BOOLEAN but current is an integer type, treat as compatible (skip alter).
+        // This prevents attempting to ALTER an integer column to boolean, which Hive rejects with
+        // "types incompatible with the existing columns in their respective positions" for such changes.
+        if (desired.base == HiveType.Base.BOOLEAN &&
+            (current.base == HiveType.Base.TINYINT || current.base == HiveType.Base.SMALLINT ||
+             current.base == HiveType.Base.INT || current.base == HiveType.Base.BIGINT)) {
+            return true;
+        }
+
         // Numeric hierarchy: DOUBLE > FLOAT > DECIMAL(p,s) > BIGINT > INT > SMALLINT > TINYINT
         if (current.base.isNumeric() && desired.base.isNumeric()) {
             return isNumericWiderOrEqual(current, desired);
