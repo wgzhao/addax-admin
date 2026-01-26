@@ -301,4 +301,10 @@ public class StatService
             """;
         return jdbcTemplate.queryForList(sql, days + 3, days);
     }
+
+    // 获取指定表 ID 的最后一次采集时间
+    public LocalDate getLastEtlDateByTid(long tid)
+    {
+        return etlStatisticRepo.findTop1ByTidOrderByBizDateDesc(tid).map(EtlStatistic::getBizDate).orElse(null);
+    }
 }

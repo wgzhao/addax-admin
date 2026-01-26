@@ -23,8 +23,6 @@ import org.springframework.stereotype.Service;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,6 +52,7 @@ public class JobContentService
     private final SystemConfigService configService;
     private final TargetService targetService;
     private final RiskLogService riskLogService;
+    private final StatService statService;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -109,8 +108,13 @@ public class JobContentService
         values.put("jdbcUrl", vTable.getUrl());
         if (vTable.getFilter().startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
             // 需要解析过滤条件
-            String parsedFilter = parseFilterCondition(vTable, vTable.getFilter());
-            values.put("where", parsedFilter);
+            LocalDate lastEtlDate = statService.getLastEtlDateByTid(vTable.getId());
+            if (lastEtlDate != null) {
+                String parsedFilter = parseFilterCondition(vTable, vTable.getFilter(), lastEtlDate);
+                values.put("where", parsedFilter);
+            } else {
+                values.put("where", "1=1");
+            }
         }
         else {
             values.put("where", vTable.getFilter());
@@ -232,21 +236,23 @@ public class JobContentService
      * 他的格式为 __max__&lt;column_name&gt;
      * 代表需要取目标表中该列的最大值作为过滤条件
      * 这里的 &lt;column_name&gt; 我们要求比如整形数值类型，一般都是指向自增主键这样的字段
+     * @param table         采集表视图对象
+     * @param filterCondition 过滤条件字符串
+     * @param lastEtlDate  上次采集的业务日期(yyyy-MM-dd)
+     *
+     * @return 解析后的过滤条件字符串, 如果无法解析则返回 "1=1"
      */
-    public String parseFilterCondition(VwEtlTableWithSource table, String filterCondition)
+    public String parseFilterCondition(VwEtlTableWithSource table, String filterCondition, LocalDate lastEtlDate)
     {
         if (filterCondition.length() < 8 || !filterCondition.startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
             return "1=1";
         }
         // 提取字段
         String columnName = filterCondition.substring(SPECIAL_FILTER_PLACEHOLDER.length());
-        String partValue = configService.getL2TD();
-        // 需要把 partValue 转换为 指定分区时间格式
+        // 分区的日期格式
         String partFormat = table.getPartFormat();
-        if (!Objects.equals(partFormat, DEFAULT_PART_FORMAT)) {
-            LocalDate partDate = LocalDate.parse(partValue, DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT));
-            partValue = partDate.format(DateTimeFormatter.ofPattern(partFormat));
-        }
+        // 转为指定格式
+        String partValue = lastEtlDate.format(DateTimeFormatter.ofPattern(partFormat));
         Long maxValue = targetService.getMaxValue(table, columnName, partValue);
         if (maxValue == null) {
             // 说明目标表还没有数据或者异常了，那么直接返回 1=1

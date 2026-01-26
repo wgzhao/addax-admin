@@ -81,4 +81,6 @@ public interface EtlStatisticRepo
     List<Map<String, Object>> findLast5DaysDataMB();
 
     List<EtlStatistic> findTop15ByTidOrderByBizDateDesc(long tid);
+
+    Optional<EtlStatistic> findTop1ByTidOrderByBizDateDesc(long tid);
 }
