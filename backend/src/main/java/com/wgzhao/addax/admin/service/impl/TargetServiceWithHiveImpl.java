@@ -15,8 +15,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.sql.DataSource;
 
@@ -54,6 +54,7 @@ public class TargetServiceWithHiveImpl
     private final EtlJourService jourService;
     private final SystemConfigService configService;
     private final RiskLogService riskLogService;
+    private final StringRedisTemplate redisTemplate;
 
     private volatile DataSource hiveDataSource;
     // keep a reference to the registered driver shim so we can deregister it if we ever reinit
@@ -422,22 +423,65 @@ public class TargetServiceWithHiveImpl
         String tableName = String.format("`%s`.`%s`", table.getTargetDb(), table.getTargetTable());
         String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'", columnName, tableName, table.getPartName(), partValue);
         log.info("getMaxValue sql: {}", sql);
+
+        String redisKey = "target:max:" + table.getId() + ":" + columnName + ":" + partValue;
         try (Connection conn = getHiveConnect();
             Statement stmt = conn.createStatement();
             var rs = stmt.executeQuery(sql)) {
+            Long sqlMax = null;
             if (rs.next()) {
                 Object maxVal = rs.getObject("max_val");
-                if (maxVal == null) {
-                    return null;
+                if (maxVal != null) {
+                    try {
+                        sqlMax = Long.parseLong(maxVal.toString());
+                    }
+                    catch (NumberFormatException nfe) {
+                        log.warn("Non-numeric max_val for {}: {}, falling back to redis if available", tableName, maxVal);
+                    }
                 }
-                return Long.parseLong(maxVal.toString());
             }
-            else {
-                return null;
+
+            // If sqlMax is null or zero, try to read from redis cache
+            if (sqlMax == null || sqlMax == 0L) {
+                try {
+                    String cached = redisTemplate.opsForValue().get(redisKey);
+                    if (cached != null) {
+                        try {
+                            return Long.parseLong(cached);
+                        }
+                        catch (NumberFormatException nfe) {
+                            log.warn("Cached max value for key {} is not a number: {}", redisKey, cached);
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    log.warn("Failed to read max value from redis for key {}: {}", redisKey, e.getMessage());
+                }
+                // return sqlMax (which may be null or 0)
+                return sqlMax;
             }
+
+            // sqlMax is a valid (>0) value: update redis and return
+            try {
+                redisTemplate.opsForValue().set(redisKey, sqlMax.toString());
+            }
+            catch (Exception e) {
+                log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
+            }
+            return sqlMax;
         }
         catch (SQLException e) {
             log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
+            // on SQL failure, try to read redis as a fallback
+            try {
+                String cached = redisTemplate.opsForValue().get(redisKey);
+                if (cached != null) {
+                    return Long.parseLong(cached);
+                }
+            }
+            catch (Exception ex) {
+                log.warn("Failed to read max value from redis for key {} after sql failure: {}", redisKey, ex.getMessage());
+            }
             return null;
         }
     }
