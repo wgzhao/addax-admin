@@ -9,9 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -75,18 +73,6 @@ public class SchemaChangeLogService
         r.setNewColComment(newComment);
         r.setChangeAt(LocalDateTime.now());
         repo.save(r);
-    }
-
-    public List<SchemaChangeLog> findByTidBetweenDates(long tid, LocalDate start, LocalDate end)
-    {
-        LocalDateTime startDt = start.atStartOfDay();
-        LocalDateTime endDt = end.plusDays(1).atStartOfDay();
-        return repo.findByTidAndChangeAtBetweenOrderByChangeAtDesc(tid, startDt, endDt);
-    }
-
-    public List<SchemaChangeLog> getAllFieldChanges()
-    {
-        return repo.findAll();
     }
 
     public Page<SchemaChangeLog> getFieldChanges(int page, int size)

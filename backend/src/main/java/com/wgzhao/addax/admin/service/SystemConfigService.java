@@ -122,18 +122,6 @@ public class SystemConfigService
         }
     }
 
-    public String getL2TD()
-    {
-        try {
-            return redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "L2TD");
-        }
-        catch (Exception e) {
-            log.warn("Failed to read L2TD from redis: {}", e.getMessage());
-            String bizDateStr = dictService.getBizDate();
-            return dictService.bizDateAdd(bizDateStr, -1);
-        }
-    }
-
     public LocalDate getBizDateAsDate()
     {
         try {

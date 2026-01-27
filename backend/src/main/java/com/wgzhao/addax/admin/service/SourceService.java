@@ -172,16 +172,6 @@ public class SourceService
     }
 
     /**
-     * 批量保存数据源对象
-     *
-     * @param sources 数据源列表
-     */
-    public void saveAll(List<EtlSource> sources)
-    {
-        etlSourceRepo.saveAll(sources);
-    }
-
-    /**
      * 新建数据源对象，并自动创建调度任务
      *
      * @param etlSource 数据源对象

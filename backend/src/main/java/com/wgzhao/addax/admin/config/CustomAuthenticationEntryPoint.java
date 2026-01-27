@@ -20,7 +20,7 @@ public class CustomAuthenticationEntryPoint
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
-        throws IOException, ServletException
+        throws IOException
     {
         // 设置响应状态码和内容类型
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

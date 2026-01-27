@@ -13,8 +13,6 @@ public interface EtlSourceRepo
 
     Integer countByEnabled(boolean b);
 
-    List<EtlSource> findAllByEnabled(boolean b);
-
     boolean existsByCode(String code);
 
     List<EtlSource> findByEnabled(boolean b);

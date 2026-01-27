@@ -305,7 +305,7 @@ public class TaskQueueManagerV2Impl
                 jobGlobalPermitToken.put(jobId, globalToken);
 
                 // Try to acquire source-level permit if needed
-                String sourcePermitToken = null;
+                String sourcePermitToken;
                 if (maxConcurrency != null && maxConcurrency > 0) {
                     // apply node-level weight to per-source concurrency
                     int effectiveSourceLimit = Math.max(1, (int) Math.floor(maxConcurrency * this.concurrencyWeight));

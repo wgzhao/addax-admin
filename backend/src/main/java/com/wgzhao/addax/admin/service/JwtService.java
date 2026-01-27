@@ -10,7 +10,6 @@ import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -110,32 +109,6 @@ public class JwtService
             return bearerToken.substring(7);
         }
         return null;
-    }
-
-    /**
-     * 校验令牌是否有效（用户名匹配且未过期）
-     *
-     * @param token JWT令牌
-     * @param username 用户名
-     * @return 是否有效
-     */
-    public boolean validateToken(String token, String username)
-    {
-        final String tokenUsername = extractUsername(token);
-        return (tokenUsername != null && tokenUsername.equals(username) && !isTokenExpired(token));
-    }
-
-    /**
-     * 校验令牌是否有效（用户名匹配且未过期）
-     *
-     * @param token JWT令牌
-     * @param userDetails 用户信息
-     * @return 是否有效
-     */
-    public boolean validateToken(String token, UserDetails userDetails)
-    {
-        final String username = extractUsername(token);
-        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
     /**

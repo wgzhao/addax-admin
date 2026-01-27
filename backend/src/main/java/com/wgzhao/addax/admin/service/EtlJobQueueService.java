@@ -50,29 +50,9 @@ public class EtlJobQueueService
         return j;
     }
 
-    public long countActive()
-    {
-        return jobRepo.countActive();
-    }
-
     public long countPending()
     {
-        return jobRepo.countPending();
-    }
-
-    public long countRunning()
-    {
-        return jobRepo.countRunning();
-    }
-
-    public long countFailed()
-    {
-        return jobRepo.countFailed();
-    }
-
-    public long countCompleted()
-    {
-        return jobRepo.countCompleted();
+        return jobRepo.countByStatus("pending");
     }
 
     @Transactional
@@ -100,7 +80,7 @@ public class EtlJobQueueService
                 SELECT id
                 FROM public.etl_job_queue
                 WHERE status='pending' AND available_at <= now()
-                ORDER BY priority ASC, available_at ASC
+                ORDER BY priority, available_at
                 FOR UPDATE SKIP LOCKED
                 LIMIT 1
             )
@@ -120,13 +100,6 @@ public class EtlJobQueueService
     {
         String sql = "UPDATE public.etl_job_queue SET status='completed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=NULL WHERE id=?";
         jdbcTemplate.update(sql, jobId);
-    }
-
-    @Transactional
-    public void releaseClaim(long jobId)
-    {
-        // 兼容老的调用，使用默认 5s 的不可见期
-        releaseClaim(jobId, 5);
     }
 
     @Transactional

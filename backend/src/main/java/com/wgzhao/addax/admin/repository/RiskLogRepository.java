@@ -8,9 +8,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface RiskLogRepository extends JpaRepository<RiskLog, Long> {
-
+public interface RiskLogRepository
+    extends JpaRepository<RiskLog, Long>
+{
     List<RiskLog> findAllByOrderByCreatedAtDesc(Pageable pageable);
-
-    List<RiskLog> findBySourceOrderByCreatedAtDesc(String source, Pageable pageable);
 }

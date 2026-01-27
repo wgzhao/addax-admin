@@ -32,10 +32,4 @@ public class RiskLogService {
         Pageable p = PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.DESC, "createdAt"));
         return repository.findAllByOrderByCreatedAtDesc(p);
     }
-
-    @Transactional(readOnly = true)
-    public List<RiskLog> getRecentRisksBySource(String source, int limit) {
-        Pageable p = PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.DESC, "createdAt"));
-        return repository.findBySourceOrderByCreatedAtDesc(source, p);
-    }
 }

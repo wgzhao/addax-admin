@@ -63,7 +63,7 @@ public class RedisLockService
     {
         try {
             Long res = redisTemplate.execute(RELEASE_SCRIPT, Collections.singletonList(key), token);
-            return res != null && res > 0L;
+            return res > 0L;
         }
         catch (Exception e) {
             // best-effort; log at caller
@@ -79,7 +79,7 @@ public class RedisLockService
         try {
             long millis = ttl.toMillis();
             Long res = redisTemplate.execute(EXTEND_SCRIPT, Collections.singletonList(key), token, String.valueOf(millis));
-            return res != null && res > 0L;
+            return res > 0L;
         }
         catch (Exception e) {
             return false;
@@ -92,8 +92,7 @@ public class RedisLockService
     public boolean isLocked(String key)
     {
         try {
-            Boolean exists = redisTemplate.hasKey(key);
-            return exists;
+            return redisTemplate.hasKey(key);
         }
         catch (Exception e) {
             return false;
@@ -110,7 +109,7 @@ public class RedisLockService
         try {
             long millis = ttl.toMillis();
             Long res = redisTemplate.execute(TRY_ACQUIRE_PERMIT_SCRIPT, Collections.singletonList(key), String.valueOf(limit), token, String.valueOf(millis));
-            if (res != null && res > 0L) {
+            if (res > 0L) {
                 return token;
             }
             return null;
@@ -127,7 +126,7 @@ public class RedisLockService
     {
         try {
             Long res = redisTemplate.execute(RELEASE_PERMIT_SCRIPT, Collections.singletonList(key), token);
-            return res != null && res > 0L;
+            return res > 0L;
         }
         catch (Exception e) {
             return false;
@@ -142,7 +141,7 @@ public class RedisLockService
         try {
             long millis = ttl.toMillis();
             Long res = redisTemplate.execute(EXTEND_PERMIT_SCRIPT, Collections.singletonList(key), token, String.valueOf(millis));
-            return res != null && res > 0L;
+            return res > 0L;
         }
         catch (Exception e) {
             return false;

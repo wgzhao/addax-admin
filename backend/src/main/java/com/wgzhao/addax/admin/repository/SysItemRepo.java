@@ -16,9 +16,6 @@ public interface SysItemRepo
 
     List<SysItem> findByDictCodeOrderByDictCodeAsc(int dictCode);
 
-    @Query("SELECT s.itemValue FROM SysItem s WHERE s.dictCode = 1021 AND s.itemValue < :curDate ORDER BY s.itemValue DESC")
-    List<String> getLastBizDateList(String curDate);
-
     @Query("SELECT s FROM SysItem s WHERE s.dictCode = 2011")
     List<SysItem> getHiveTypeItems();
 

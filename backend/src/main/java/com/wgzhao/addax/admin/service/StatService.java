@@ -19,30 +19,6 @@ public class StatService
     private final EtlStatisticRepo etlStatisticRepo;
     private final SystemConfigService configService;
 
-    // 按采集源统计最近一次采集的数据量
-    public List<Map<String, Object>> statDataBySource()
-    {
-        String sql = """
-            select
-            b.code ,
-            max(b.name) as sourceName,
-            sum(t.total_bytes) as total_bytes
-            from
-            (SELECT tid, total_bytes FROM (
-              SELECT
-                tid, total_bytes,
-                row_number() OVER (PARTITION BY tid ORDER BY biz_date DESC) AS rn
-              FROM etl_statistic
-            ) t WHERE rn = 1)
-            t
-            left join
-            vw_etl_table_with_source b
-            on b.id = t.tid
-            group by b.code
-            """;
-        return jdbcTemplate.queryForList(sql);
-    }
-
     // 最近一次采集的总数据量，单位 GB
     public Double statTotalData()
     {
@@ -71,52 +47,10 @@ public class StatService
         return jdbcTemplate.queryForList(sql);
     }
 
-    // 按采集源统计最近一次采集的耗时
-    public List<Map<String, Object>> statTimeBySource()
-    {
-        String sql = """
-            select
-            code ,
-            max(name) as sourceName,
-            sum(duration) as take_secs
-            from
-            vw_etl_table_with_source
-            group by code
-            """;
-        return jdbcTemplate.queryForList(sql);
-    }
-
     // 按照采集来源统计最近 5 天的耗时，用来形成柱状图表
     public List<Map<String, Object>> statLast5DaysTimeBySource()
     {
         return etlStatisticRepo.findLast5DaysTakeTimes();
-    }
-
-    //按采集源统计目前的采集状态统计
-    public List<Map<String, Object>> statStatusBySource()
-    {
-        String sql = """
-             SELECT
-                code,
-                jsonb_build_object(
-                    'Y', num1,
-                    'E', num2,
-                    'W', num3,
-                    'R', num4
-                ) AS status_stats,
-                num1 + num2 + num3 + num4 AS total
-            FROM (
-                SELECT
-                    code,
-                    SUM(CASE WHEN status = 'Y' THEN 1 ELSE 0 END) AS num1,
-                    SUM(CASE WHEN status = 'E' THEN 1 ELSE 0 END) AS num2,
-                    SUM(CASE WHEN status = 'W' THEN 1 ELSE 0 END) AS num3,
-                    SUM(case when status = 'R' then 1 else 0 END) as num4
-                vw_etl_table_with_source
-                GROUP BY code
-            ) AS final;
-            """;
-        return jdbcTemplate.queryForList(sql);
     }
 
     // 最近采集的完成率
@@ -132,19 +66,6 @@ public class StatService
             having count(*) > 0
             """;
         return jdbcTemplate.queryForList(sql);
-    }
-
-    // 目前有效的采集表数量
-    public Integer statValidEtlTables()
-    {
-        String sql = """
-            select
-            count(*)
-            from
-            vw_etl_table_with_source
-            where status <> 'X' and enabled  =  true
-            """;
-        return jdbcTemplate.queryForObject(sql, Integer.class);
     }
 
     public boolean saveOrUpdate(EtlStatistic statistic)

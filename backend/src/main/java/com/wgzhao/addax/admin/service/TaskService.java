@@ -299,9 +299,4 @@ public class TaskService
             """;
         return jdbcTemplate.queryForList(sql, defaultTakeSecs);
     }
-
-    public String getLastErrorByTableId(long tableId)
-    {
-        return jourService.findLastErrorByTableId(tableId);
-    }
 }

@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
-import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.repository.AddaxLogRepo;
 import jakarta.transaction.Transactional;
@@ -30,24 +29,6 @@ public class AddaxLogService
         addaxLog.setRunDate(LocalDate.now());
         addaxLog.setRunAt(LocalDateTime.now());
         addaxLogRepo.save(addaxLog);
-    }
-
-    public List<LocalDate> getLast5RunDatesByTid(long tid)
-    {
-        return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid).stream()
-            .map(AddaxLog::getRunDate)
-            .distinct()
-            .toList();
-    }
-
-    public AddaxLog getLastLogByTid(long tid)
-    {
-        return addaxLogRepo.findFirstByTidOrderByRunDateDesc(tid);
-    }
-
-    public List<AddaxLog> getLast5LogsById(long tid)
-    {
-        return addaxLogRepo.findTop5ByTidOrderByRunDateDesc(tid);
     }
 
     public String getLogContent(long id)

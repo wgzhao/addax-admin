@@ -57,9 +57,6 @@ public interface EtlTableRepo
         @Param("currentTime") LocalTime currentTime,
         @Param("checkTime") boolean checkTime);
 
-    @Query("SELECT t FROM EtlTable t JOIN EtlSource s WHERE t.status <> 'X' AND s.enabled = true")
-    List<EtlTable> findValidTables();
-
     int countBySid(int sid);
 
     List<EtlTable> findByStatus(String status);

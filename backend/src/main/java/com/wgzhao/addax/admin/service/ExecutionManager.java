@@ -12,7 +12,6 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -55,11 +54,6 @@ public class ExecutionManager
         if (removed != null) {
             log.info("Unregistered collecting table {} pid={} instance={}", tid, removed.pid(), removed.instanceId());
         }
-    }
-
-    public Optional<ProcessHolder> getLocal(long tid)
-    {
-        return Optional.ofNullable(running.get(tid));
     }
 
     /**
