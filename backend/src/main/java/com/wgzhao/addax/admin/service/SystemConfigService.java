@@ -321,12 +321,15 @@ public class SystemConfigService
         Map<String, String> values = new HashMap<>();
         LocalDate bizDate = getBizDateAsDate();
         values.put("biz_date_short", getBizDate());
-
         values.put("biz_date_dash", bizDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+
         values.put("biz_year", String.valueOf(bizDate.getYear()));
         values.put("biz_month", String.format("%02d", bizDate.getMonthValue()));
+        values.put("biz_short_month", String.format("%d", bizDate.getMonthValue()));
         values.put("biz_day", String.format("%02d", bizDate.getDayOfMonth()));
+        values.put("biz_short_day", String.format("%d", bizDate.getDayOfMonth()));
         values.put("biz_ym", bizDate.format(DateTimeFormatter.ofPattern("yyyyMM")));
+        values.put("biz_short_ym", bizDate.format(DateTimeFormatter.ofPattern("yyyyM")));
 
         LocalDateTime dt = bizDate.atTime(LocalTime.now());
         values.put("biz_datetime_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
