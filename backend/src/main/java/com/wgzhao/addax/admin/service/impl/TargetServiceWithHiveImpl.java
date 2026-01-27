@@ -424,7 +424,7 @@ public class TargetServiceWithHiveImpl
         String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'", columnName, tableName, table.getPartName(), partValue);
         log.info("getMaxValue sql: {}", sql);
 
-        String redisKey = "target:max:" + table.getId() + ":" + columnName + ":" + partValue;
+        String redisKey = "target:max:" + table.getId() + ":" + columnName;
         try (Connection conn = getHiveConnect();
             Statement stmt = conn.createStatement();
             var rs = stmt.executeQuery(sql)) {
