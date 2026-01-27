@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { APP_VERSION } from '../config/version';
+  import { APP_VERSION } from '../config/version'
 </script>
 
 <template>
@@ -9,7 +9,7 @@ import { APP_VERSION } from '../config/version';
 </template>
 
 <style scoped>
-.app-version {
-  font-size: 0.75rem;
-}
+  .app-version {
+    font-size: 0.75rem;
+  }
 </style>
