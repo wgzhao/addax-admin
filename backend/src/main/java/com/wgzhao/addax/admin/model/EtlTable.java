@@ -14,11 +14,6 @@ import org.hibernate.annotations.Formula;
 
 import java.util.Date;
 
-/**
- * TB_IMP_ETL 实体类
- *
- * @author wgzhao
- */
 @Entity
 @Table(name = "etl_table")
 @Setter

@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
@@ -19,21 +18,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class CommandExecutor
 {
-    // 轻量级输出吞噬线程，避免子进程因缓冲区满而阻塞
-    private static Thread startDiscarder(InputStream in)
-    {
-        Thread t = new Thread(() -> {
-            try (in; OutputStream nullOut = OutputStream.nullOutputStream()) {
-                in.transferTo(nullOut);
-            }
-            catch (IOException ignored) {
-            }
-        }, "cmd-out-discarder");
-        t.setDaemon(true);
-        t.start();
-        return t;
-    }
-
     /**
      * Start a process for the given shell command and return the Process object.
      */
@@ -133,11 +117,5 @@ public class CommandExecutor
             log.error("execute command failed: {}", command, e);
             return TaskResultDto.failure(e.getMessage(), 0);
         }
-    }
-
-    // 便捷重载：不设置超时
-    public static TaskResultDto executeWithResult(String command)
-    {
-        return executeWithResult(command, 0);
     }
 }

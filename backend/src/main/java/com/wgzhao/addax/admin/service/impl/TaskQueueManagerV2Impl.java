@@ -23,8 +23,8 @@ import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -68,6 +68,7 @@ import static java.lang.Math.max;
 @Component
 @Primary
 @Slf4j
+@RequiredArgsConstructor
 public class TaskQueueManagerV2Impl
     implements TaskQueueManager
 {
@@ -78,6 +79,20 @@ public class TaskQueueManagerV2Impl
     // 轮询间隔 & 租约
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
     private static final int DEFAULT_LEASE_SECONDS = 7300; // 2小时 + 5分钟 buffer
+
+    private final DictService dictService;
+    private final AddaxLogService addaxLogService;
+    private final AlertService alertService;
+    private final TableService tableService;
+    private final EtlJourService jourService;
+    private final SystemConfigService configService;
+    private final JobContentService jobContentService;
+    private final TargetService targetService;
+    private final EtlJobQueueService jobQueueService;
+    private final JdbcTemplate jdbcTemplate;
+    private final RedisLockService redisLockService;
+    private final ExecutionManager executionManager;
+
     // 本地并发统计（仅用于快速短期判断/指标）
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
     private final ConcurrentHashMap<Integer, AtomicInteger> sourceRunningTaskCount = new ConcurrentHashMap<>();
@@ -97,30 +112,7 @@ public class TaskQueueManagerV2Impl
     });
     // 在本地任务完成后触发调度的合并标记，避免并发任务完成时重复提交大量 dispatch 任务
     private final AtomicBoolean dispatchScheduled = new AtomicBoolean(false);
-    @Autowired
-    private DictService dictService;
-    @Autowired
-    private AddaxLogService addaxLogService;
-    @Autowired
-    private AlertService alertService;
-    @Autowired
-    private TableService tableService;
-    @Autowired
-    private EtlJourService jourService;
-    @Autowired
-    private SystemConfigService configService;
-    @Autowired
-    private JobContentService jobContentService;
-    @Autowired
-    private TargetService targetService;
-    @Autowired
-    private EtlJobQueueService jobQueueService;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private RedisLockService redisLockService;
-    @Autowired
-    private ExecutionManager executionManager;
+
     // 并发限制 & 入队容量
     private int concurrentLimit;
     private int enqueueCapacity;
@@ -353,12 +345,11 @@ public class TaskQueueManagerV2Impl
                     redisLockService.release(jobLockKey, jtoken);
                     jobLockToken.remove(jobId);
                 }
-                if (jobQueueService != null) {
-                    try {
-                        jobQueueService.releaseClaim(job.getId(), 5);
-                    }
-                    catch (Exception ignored) {
-                    }
+
+                try {
+                    jobQueueService.releaseClaim(job.getId(), 5);
+                }
+                catch (Exception ignored) {
                 }
             }
         }
@@ -506,35 +497,35 @@ public class TaskQueueManagerV2Impl
                 job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
 
             // Release Redis tokens/permits and cleanup
-             try {
-                 String sk = jobSourcePermitToken.remove(jobId);
-                 if (sk != null) {
+            try {
+                String sk = jobSourcePermitToken.remove(jobId);
+                if (sk != null) {
                     String sourcePermitKey = "source:holders:" + this.instanceId + ":" + (table != null ? table.getSid() : "unknown");
                     redisLockService.releasePermit(sourcePermitKey, sk);
-                 }
-             }
-             catch (Exception e) {
-                 log.warn("Failed to release source permit for jobId={}", jobId, e);
-             }
-             try {
-                 String gk = jobGlobalPermitToken.remove(jobId);
-                 if (gk != null) {
+                }
+            }
+            catch (Exception e) {
+                log.warn("Failed to release source permit for jobId={}", jobId, e);
+            }
+            try {
+                String gk = jobGlobalPermitToken.remove(jobId);
+                if (gk != null) {
                     String globalPermitKey = "concurrent:holders:" + this.instanceId;
                     redisLockService.releasePermit(globalPermitKey, gk);
-                 }
-             }
-             catch (Exception e) {
-                 log.warn("Failed to release global permit for jobId={}", jobId, e);
-             }
-             try {
-                 String jt = jobLockToken.remove(jobId);
-                 if (jt != null) {
+                }
+            }
+            catch (Exception e) {
+                log.warn("Failed to release global permit for jobId={}", jobId, e);
+            }
+            try {
+                String jt = jobLockToken.remove(jobId);
+                if (jt != null) {
                     redisLockService.release(jobLockKey, jt);
-                 }
-             }
-             catch (Exception e) {
-                 log.warn("Failed to release job lock for jobId={}", jobId, e);
-             }
+                }
+            }
+            catch (Exception e) {
+                log.warn("Failed to release job lock for jobId={}", jobId, e);
+            }
 
             // 完成 DB 层任务后触发调度
             triggerDispatchAsync();
@@ -647,7 +638,7 @@ public class TaskQueueManagerV2Impl
     private boolean executeAddax(String command, long tid, String logName)
     {
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
-        Process process = null;
+        Process process;
         TaskResultDto taskResult;
         long pid = -1;
         try {

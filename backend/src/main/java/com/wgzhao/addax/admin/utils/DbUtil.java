@@ -69,6 +69,7 @@ public class DbUtil
         return DbType.RDBMS;
     }
 
+    @Deprecated
     public static String getColumnComment(Connection conn, String dbName, String tableName, String columnName)
     {
         try {
@@ -175,6 +176,7 @@ public class DbUtil
     }
 
     // 获取表注释的另外一种实现
+    @Deprecated
     public static String getTableCommentAlt(Connection connection, String url, String dbName, String tableName)
     {
         String result = null;

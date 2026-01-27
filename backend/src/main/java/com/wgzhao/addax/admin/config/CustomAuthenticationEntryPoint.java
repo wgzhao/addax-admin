@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.AuthenticationException;

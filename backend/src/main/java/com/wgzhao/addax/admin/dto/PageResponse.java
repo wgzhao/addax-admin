@@ -22,8 +22,6 @@ public class PageResponse<T>
     private int totalPages;
     private boolean empty;
 
-    public PageResponse() {}
-
     public PageResponse(List<T> content, int page, int pageSize, long totalElements, int totalPages, boolean empty)
     {
         this.content = content;

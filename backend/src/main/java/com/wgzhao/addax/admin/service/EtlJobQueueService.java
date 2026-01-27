@@ -3,8 +3,8 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.repository.EtlJobQueueRepo;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -19,14 +19,12 @@ import java.util.Optional;
 
 @Service
 @Slf4j
+@AllArgsConstructor
 public class EtlJobQueueService
 {
-
     private static final RowMapper<EtlJobQueue> JOB_ROW_MAPPER = (rs, rowNum) -> mapRow(rs);
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private EtlJobQueueRepo jobRepo;
+    private final JdbcTemplate jdbcTemplate;
+    private final EtlJobQueueRepo jobRepo;
 
     private static EtlJobQueue mapRow(ResultSet rs)
         throws SQLException

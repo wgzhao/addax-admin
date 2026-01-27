@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.service;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -26,7 +27,7 @@ public class RedisConfigSubscriber
     }
 
     @Override
-    public void onMessage(Message message, byte[] pattern)
+    public void onMessage(@NonNull Message message, byte[] pattern)
     {
         try {
             String body = new String(message.getBody());

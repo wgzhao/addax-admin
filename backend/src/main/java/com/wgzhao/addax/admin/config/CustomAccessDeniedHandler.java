@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.dto.ApiResponse;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,7 +18,7 @@ public class CustomAccessDeniedHandler
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
-        throws IOException, ServletException
+        throws IOException
     {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(APPLICATION_JSON_VALUE);
