@@ -14,7 +14,17 @@
                   <v-text-field variant="underlined" v-model="table.sourceDb" label="源库"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.sourceTable" label="源表"></v-text-field>
+                  <v-text-field variant="underlined" v-model="table.sourceTable" label="源表">
+                    <template #append>
+                      <v-tooltip bottom>
+                        <template #activator="{ props }">
+                          <v-icon v-bind="props" color="info" size="small" @click="showPlaceholderInfoDialog">
+                            mdi-information-outline
+                          </v-icon>
+                        </template>
+                      </v-tooltip>
+                    </template>
+                  </v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
                   <v-text-field variant="underlined" v-model="table.filter" label="过滤规则"></v-text-field>
@@ -30,29 +40,35 @@
                   <v-text-field variant="underlined" v-model="table.splitPk" label="切分字段"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3" class="d-flex align-center">
-                  <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined" density="compact" />
+                  <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined"
+                    density="compact" />
                 </v-col>
 
                 <v-col cols="12" md="3">
                   <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-select variant="underlined" v-model="table.partFormat" :items="PARTITION_FORMATS" label="分区格式"></v-select>
+                  <v-select variant="underlined" v-model="table.partFormat" :items="PARTITION_FORMATS"
+                    label="分区格式"></v-select>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-select variant="underlined" v-model="table.storageFormat" :items="storageOptions" label="存储格式"></v-select>
+                  <v-select variant="underlined" v-model="table.storageFormat" :items="storageOptions"
+                    label="存储格式"></v-select>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-select variant="underlined" v-model="table.compressFormat" :items="compressFormats" label="压缩格式"></v-select>
+                  <v-select variant="underlined" v-model="table.compressFormat" :items="compressFormats"
+                    label="压缩格式"></v-select>
                 </v-col>
 
 
 
                 <v-col cols="12" md="3">
-                  <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value" label="采集状态"></v-select>
+                  <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"
+                    label="采集状态"></v-select>
                 </v-col>
                 <v-col cols="12" md="2">
-                  <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数" :rules="[rules.nonNegative]"></v-text-field>
+                  <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数"
+                    :rules="[rules.nonNegative]"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
                   <v-text-field variant="underlined" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
@@ -81,6 +97,29 @@
         <v-btn color="primary" @click="saveOds">保存</v-btn>
         <v-btn variant="plain" @click="emit('closeDialog')">关闭</v-btn>
       </v-card-actions>
+      <v-dialog v-model="showPlaceholderInfo" max-width="800">
+        <v-card>
+          <v-card-title>源表动态命名说明</v-card-title>
+          <v-card-text>
+            <p>系统支持在源表名中使用占位符以动态解析变量(例如日期)。示例：<strong>t_${biz_date_dash}</strong>，实际采集时会解析为
+              <strong>t_2026-01-27</strong>。
+            </p>
+            <p>当前支持的变量如下：</p>
+            <v-list dense>
+              <v-list-item v-for="v in placeholderVars" :key="v.name">
+                <v-list-item-title class="d-flex" style="gap:12px; align-items:center; justify-content:flex-start;">
+                  <strong style="width:150px; flex:0 0 200px; display:inline-block; text-align:right;">{{ v.name }}</strong>
+                  <span class="text--secondary" style="text-align:left">{{ v.desc }}</span>
+                </v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="showPlaceholderInfo = false">关闭</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-form>
   </v-card>
 </template>
@@ -132,6 +171,32 @@ const emit = defineEmits(["closeDialog", "update:record", "openSchema"]);
 
 // form ref for programmatic validation
 const formRef = ref(null)
+
+// dialog visibility for placeholder information
+const showPlaceholderInfo = ref(false)
+
+// variables supported by backend SystemConfigService#getBizDateValues
+const placeholderVars = [
+  { name: 'biz_date_short', desc: '业务日期(yyyyMMdd)' },
+  { name: 'biz_date_dash', desc: '业务日期(yyyy-MM-dd)' },
+  { name: 'biz_year', desc: '业务年份(yyyy)' },
+  { name: 'biz_month', desc: '业务月份(MM)' },
+  { name: 'biz_short_month', desc: '业务月份(M)' },
+  { name: 'biz_day', desc: '业务日(dd)' },
+  { name: 'biz_short_day', desc: '业务日(d)' },
+  { name: 'biz_ym', desc: '业务年月(yyyyMM)' },
+  { name: 'biz_short_ym', desc: '业务年月(yyyyM)' },
+  { name: 'biz_datetime_short', desc: '业务日期时间(yyyyMMddHHmmss)' },
+  { name: 'biz_datetime_dash', desc: '业务日期时间(yyyy-MM-dd HH:mm:ss)' },
+  { name: 'biz_datetime_0_dash', desc: '时间为 0 的业务日期时间(yyyy-MM-dd 00:00:00)' },
+  { name: 'biz_datetime_0_short', desc: '时间为 0 的业务日期时间(yyyyMMdd000000)' },
+  { name: 'curr_date_short', desc: '当前日期(yyyyMMdd)' },
+  { name: 'curr_date_dash', desc: '当前日期(yyyy-MM-dd)' },
+  { name: 'curr_datetime_short', desc: '当前日期时间(yyyyMMddHHmmss)' },
+  { name: 'curr_datetime_dash', desc: '当前日期时间(yyyy-MM-dd HH:mm:ss)' },
+  { name: 'curr_datetime_0_dash', desc: '时间为 0 当前日期时间(yyyy-MM-dd 00:00:00)' },
+  { name: 'curr_datetime_0_short', desc: '时间为 0 的当前日期时间(yyyyMMdd000000)' }
+]
 
 // 如果用户手动填写了切分字段(splitPk)，自动获取切分字段应被关闭并禁用
 watch(
@@ -188,6 +253,10 @@ const saveOds = async () => {
       notify('保存失败: ' + err, 'error');
     });
 };
+
+const showPlaceholderInfoDialog = () => {
+  showPlaceholderInfo.value = true;
+};
 </script>
 
 <style scoped>
@@ -195,12 +264,14 @@ const saveOds = async () => {
   margin: 0;
   font-weight: 600;
 }
+
 .meta {
   color: var(--v-theme-on-surface-variant, #9aa0a6);
   font-size: 0.9rem;
 }
+
 .action-bar {
-  border-top: 1px solid rgba(0,0,0,0.06);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding-top: 12px;
 }
 </style>
