@@ -14,9 +14,9 @@ routes.forEach((route) => {
 })
 
 routes.push({
-  path: '/personal-settings',
-  name: 'PersonalSettings',
-  component: () => import('@/views/personal-settings.vue')
+  path: '/change-password',
+  name: 'ChangePassword',
+  component: () => import('@/views/change-password.vue')
 })
 
 routes.push({

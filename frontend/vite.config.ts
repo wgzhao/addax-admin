@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
           {
             src: "src/views",
             path: "",
-            exclude: (exclude) => exclude.concat(['**/components/**', '**/login.vue','**/personal-settings.vue'])
+            exclude: (exclude) => exclude.concat(['**/components/**', '**/login.vue','**/change-password.vue'])
           }
         ],
         dts: "src/types/vue-router.d.ts",

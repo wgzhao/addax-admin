@@ -19,6 +19,7 @@ declare module 'vue-router/auto-routes' {
    */
   export interface RouteNamedMap {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
+    '/change-password': RouteRecordInfo<'/change-password', '/change-password', Record<never, never>, Record<never, never>>,
     '/check': RouteRecordInfo<'/check', '/check', Record<never, never>, Record<never, never>>,
     '/dicts': RouteRecordInfo<'/dicts', '/dicts', Record<never, never>, Record<never, never>>,
     '/logs': RouteRecordInfo<'/logs', '/logs', Record<never, never>, Record<never, never>>,
@@ -44,6 +45,10 @@ declare module 'vue-router/auto-routes' {
   export interface _RouteFileInfoMap {
     'src/views/index.vue': {
       routes: '/'
+      views: never
+    }
+    'src/views/change-password.vue': {
+      routes: '/change-password'
       views: never
     }
     'src/views/check.vue': {

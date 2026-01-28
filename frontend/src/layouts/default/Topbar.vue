@@ -24,14 +24,11 @@
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
         <v-list>
+          <v-list-item @click="$router.push('/personal-settings')">
+            <v-list-item-title>修改密码</v-list-item-title>
+          </v-list-item>
           <v-list-item @click="logout">
             <v-list-item-title>注销</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="$router.push('/personal-settings')">
-            <v-list-item-title>个人设置</v-list-item-title>
-          </v-list-item>
-          <v-list-item v-if="username === 'admin'">
-            <v-list-item-title>系统设置</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -141,10 +138,10 @@ if (savedTheme) {
 // Logout function
 const logout = () => {
   authStore.logout() // Assuming authStore has a logout method
-  console.log('用户已注销')
+  router.replace('/login')
 }
 
 const goLogin = () => {
-  router.push('/login')
+  router.replace('/login')
 }
 </script>
