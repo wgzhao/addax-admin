@@ -19,6 +19,15 @@ class AuthService {
       password: user.password
     })
   }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return Requests.post('/auth/change-password', {
+      currentPassword,
+      newPassword
+    })
+  }
 }
 
 export const authService = new AuthService()
+
+export default new AuthService()

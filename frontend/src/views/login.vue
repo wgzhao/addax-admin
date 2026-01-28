@@ -93,34 +93,26 @@
     return !!v || 'Field is required'
   }
 
-  function login() {
-    // reset the error message
-    // clearMessages();
-    authService.login(auth.value).then((res) => {
-      if (res.data == null) {
-        notify('登录失败', 'error')
-      } else {
-        // let data = {
-        //   token: res.data.accessToken,
-        //   username: auth.value.username,
-        //   role: ""
-        // };
+  async function login() {
+    loading.value = true
+    try {
+      const res: any = await authService.login(auth.value)
+      // 后端返回 ApiResponse<T>，约定 code==0 为成功
+      if (res && res.code === 0 && res.data) {
         authStore.setToken(res.data)
         authStore.setUserName(auth.value.username)
-        // localStorage.setItem("userinfo", JSON.stringify(data));
-        router.push({ path: '/' })
+        await router.push({path: '/'})
+      } else {
+        const msg = res && res.message ? res.message : '登录失败'
+        notify(msg, 'error')
       }
-      router.push({ path: '/' })
-    })
-
-    // extract the user role from the token
-    // const userRole = extractUserRoleFromToken(accessToken);
-
-    // call the stores login method this will update the stores state
-    // authStore.login(userRole);
-
-    // redirect to the home page
-    // await router.push("/");
+    }
+    catch (err: any) {
+      notify('登录失败: ' + (err.message || err), 'error')
+    }
+    finally {
+      loading.value = false
+    }
   }
 </script>
 
