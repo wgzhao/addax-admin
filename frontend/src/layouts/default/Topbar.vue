@@ -24,7 +24,7 @@
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
         <v-list>
-          <v-list-item @click="$router.push('/personal-settings')">
+          <v-list-item @click="$router.push('/change-password')">
             <v-list-item-title>修改密码</v-list-item-title>
           </v-list-item>
           <v-list-item @click="logout">
@@ -52,8 +52,6 @@ const router = useRouter()
 // const {global} = useTheme();
 
 const authStore = useAuthStore()
-// 计算属性绑定用户名
-const username = computed(() => authStore.username)
 
 // 定义菜单项类型
 interface MenuItem {

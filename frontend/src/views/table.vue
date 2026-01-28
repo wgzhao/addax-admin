@@ -446,7 +446,8 @@
       title: '#',
       key: 'id',
       align: 'center' as const,
-      width: '3%'
+      width: '3%',
+      maxWidth: '80px'
     },
     {
       title: '系统名称及代码',
@@ -462,6 +463,7 @@
       align: 'start' as const,
       sortable: true,
       width: '12%',
+      maxWidth: '500px',
       value: (item) => `${item.sourceDb || ''}.${item.sourceTable || ''}`
     },
     {

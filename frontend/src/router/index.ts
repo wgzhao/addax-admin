@@ -28,9 +28,9 @@ routes.push({
 
 // 字典维护页面
 routes.push({
-  path: '/dicts',
+  path: '/dict',
   name: 'DictMaintenance',
-  component: () => import('@/views/dicts.vue'),
+  component: () => import('@/views/dict.vue'),
   meta: { title: '字典维护', icon: 'mdi-book-open-page-variant' }
 })
 
