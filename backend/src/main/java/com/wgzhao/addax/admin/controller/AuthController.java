@@ -77,7 +77,7 @@ public class AuthController
      * 请求体: { "currentPassword": "old", "newPassword": "new" }
      */
     @PostMapping("/change-password")
-    public ApiResponse<String> changePassword(@RequestBody ChangePasswordDTO dto, HttpServletRequest request)
+    public ApiResponse<String> changePassword(@RequestBody ChangePasswordDTO dto)
     {
         String username = SecurityContextHolder.getContext().getAuthentication() == null
             ? null
