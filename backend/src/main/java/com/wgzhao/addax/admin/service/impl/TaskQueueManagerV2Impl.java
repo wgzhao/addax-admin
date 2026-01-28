@@ -630,12 +630,12 @@ public class TaskQueueManagerV2Impl
         }
         String logName = String.format("%s.%s_%d.log", task.getTargetDb(), task.getTargetTable(), taskId);
         String cmd = String.format("%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s", dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
-        boolean retCode = executeAddax(cmd, taskId, logName);
+        boolean retCode = executeAddax(cmd, taskId, logName, task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime());
         log.debug("采集任务 {} 的日志已写入文件: {}", taskId, logName);
         return retCode;
     }
 
-    private boolean executeAddax(String command, long tid, String logName)
+    private boolean executeAddax(String command, long tid, String logName, long maxRuntimeSeconds)
     {
         EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
         Process process;
@@ -658,7 +658,7 @@ public class TaskQueueManagerV2Impl
                 log.warn("Failed to register process in ExecutionManager for tid={} pid={}", tid, pid, e);
             }
 
-            taskResult = CommandExecutor.waitForProcessWithResult(process, ADDAX_EXECUTE_TIME_OUT_SECONDS, command);
+            taskResult = CommandExecutor.waitForProcessWithResult(process, maxRuntimeSeconds, command);
         }
         catch (IOException ioe) {
             log.error("Failed to start process for command: {}", command, ioe);
