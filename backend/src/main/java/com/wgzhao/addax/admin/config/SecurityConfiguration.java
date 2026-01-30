@@ -71,11 +71,6 @@ public class SecurityConfiguration
     }
 
     @Bean
-    public JdbcUserDetailsManager jdbcUserDetailsManager(DataSource dataSource) {
-        return new JdbcUserDetailsManager(dataSource);
-    }
-
-    @Bean
     public UserDetailsService userDetailsService(DataSource dataSource) {
         // 只返回JdbcUserDetailsManager，不创建用户
         return new JdbcUserDetailsManager(dataSource);

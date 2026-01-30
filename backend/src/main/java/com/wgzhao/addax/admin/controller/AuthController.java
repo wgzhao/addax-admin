@@ -4,13 +4,13 @@ import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.AuthRequestDTO;
 import com.wgzhao.addax.admin.dto.ChangePasswordDTO;
 import com.wgzhao.addax.admin.service.JwtService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -40,7 +40,7 @@ public class AuthController
     private final AuthenticationManager authenticationManager;
 
     // 注入用于更新密码的 manager 与编码器
-    private final JdbcUserDetailsManager jdbcUserDetailsManager;
+    private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -108,13 +108,13 @@ public class AuthController
 
         // 更新密码（使用编码后的密码）
         try {
-            var userDetails = jdbcUserDetailsManager.loadUserByUsername(username);
+            var userDetails = userDetailsService.loadUserByUsername(username);
             String encoded = passwordEncoder.encode(dto.newPassword());
             // construct a new UserDetails preserving authorities and flags but with new password
             var updated = org.springframework.security.core.userdetails.User.withUserDetails(userDetails)
                 .password(encoded)
                 .build();
-            jdbcUserDetailsManager.updateUser(updated);
+            ((JdbcUserDetailsManager) userDetailsService).updateUser(updated);
             // 在更新后，重新刷新 SecurityContext 中的认证信息为最新（可选）
             SecurityContextHolder.clearContext();
             return ApiResponse.success("password changed");
