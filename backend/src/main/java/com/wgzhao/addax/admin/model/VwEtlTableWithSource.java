@@ -52,4 +52,5 @@ public class VwEtlTableWithSource
     private Integer maxConcurrency;
     private String splitPk;
     private Boolean autoPk;
+    private String writeMode;
 }

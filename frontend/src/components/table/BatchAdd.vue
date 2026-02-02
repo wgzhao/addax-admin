@@ -74,11 +74,11 @@
           </v-text-field>
         </v-col>
         <v-col cols="3">
-          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact" 
+          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact"
             hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
             placeholder="${table}">
             <template #append>
-              <v-btn size="small" color="primary" @click="applyTargetTableTemplate" 
+              <v-btn size="small" color="primary" @click="applyTargetTableTemplate"
                 :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
             </template>
           </v-text-field>
@@ -150,7 +150,7 @@
         <div class="mb-3">
           <h4 class="text-h6 mb-2">分区表 vs 非分区表</h4>
         </div>
-        
+
         <v-row>
           <v-col cols="6">
             <v-card variant="outlined" class="pa-3">
@@ -164,7 +164,7 @@
               <p class="text-body-2"><strong>适用场景:</strong> 时间序列数据、大数据量表</p>
             </v-card>
           </v-col>
-          
+
           <v-col cols="6">
             <v-card variant="outlined" class="pa-3">
               <h5 class="text-subtitle-1 text-primary mb-2">
@@ -279,6 +279,7 @@ const defaultItem = ref<EtlTable>({
   sid: null,
   duration: 0,
   tblComment: "",
+  writeMode: "overwrite"
 });
 
 const tableRows = ref<number[]>([])
@@ -402,7 +403,7 @@ const applyTargetTableTemplate = () => {
   selectedTables.value.forEach(item => {
     // Apply target database name
     item.targetDb = targetDb.value;
-    
+
     // Apply target table name template
     const targetName = targetTableTemplate.value
       .replace(/\$\{table\}/g, item.sourceTable)

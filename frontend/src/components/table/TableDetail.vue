@@ -44,10 +44,10 @@
                     density="compact" />
                 </v-col>
 
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
                   <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
                   <v-select variant="underlined" v-model="table.partFormat" :items="PARTITION_FORMATS"
                     label="分区格式"></v-select>
                 </v-col>
@@ -55,12 +55,21 @@
                   <v-select variant="underlined" v-model="table.storageFormat" :items="storageOptions"
                     label="存储格式"></v-select>
                 </v-col>
-                <v-col cols="12" md="3">
+                <v-col cols="12" md="2">
                   <v-select variant="underlined" v-model="table.compressFormat" :items="compressFormats"
                     label="压缩格式"></v-select>
                 </v-col>
-
-
+                                <!-- 写入模式 -->
+                <v-col cols="12" md="3">
+                  <v-select
+                    variant="underlined"
+                    v-model="table.writeMode"
+                    :items="writeModeOptions"
+                    label="写入模式"
+                    item-title="label"
+                    item-value="value"
+                  ></v-select>
+                </v-col>
 
                 <v-col cols="12" md="3">
                   <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"
@@ -79,7 +88,6 @@
                 <v-col cols="12" md="2">
                   <v-text-field variant="underlined" v-model="table.endTime" label="最近采集结束时间" readonly></v-text-field>
                 </v-col>
-
                 <v-col cols="12">
                   <v-textarea variant="underlined" v-model="table.remark" label="备注" rows="2"></v-textarea>
                 </v-col>
@@ -146,6 +154,13 @@ const storageOptions = ['orc', 'parquet', 'text']
 
 // reuse compress formats from constants
 const compressFormats = HDFS_COMPRESS_FORMATS || []
+
+// 写入模式选项
+const writeModeOptions = [
+  { label: '覆盖 (overwrite)', value: 'overwrite' },
+  { label: '追加 (append)', value: 'append' },
+  { label: '无冲突追加 (nonConflict)', value: 'nonConflict' }
+]
 
 // validation rules
 const rules = {
@@ -240,7 +255,8 @@ const saveOds = async () => {
     endTime: table.value.endTime,
     maxRuntime: table.value.maxRuntime,
     sid: table.value.sid,
-    duration: table.value.duration
+    duration: table.value.duration,
+    writeMode: table.value.writeMode || 'overwrite'
   };
 
   tableService.save(etlTableData as EtlTable)

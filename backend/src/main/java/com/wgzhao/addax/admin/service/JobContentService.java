@@ -165,6 +165,7 @@ public class JobContentService
         Map<String, String> values = new HashMap<>();
         values.put("compress", vTable.getCompressFormat());
         values.put("fileType", vTable.getStorageFormat());
+        values.put("writeMode", vTable.getWriteMode());
 
         // 处理列信息
         String columnJson = getHdfsWriteColumns(vTable);

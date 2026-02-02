@@ -196,7 +196,8 @@ create table public.etl_table
   tbl_comment     varchar(500),
   status          char          default 'U'::bpchar                             not null,
   split_pk        varchar(50)   default NULL::character varying,
-  auto_pk         boolean       default true                                    not null
+  auto_pk         boolean       default true                                    not null,
+  write_mode varchar(20) default 'overwrite' not null
 );
 
 comment on table public.etl_table is '采集表信息';
@@ -240,6 +241,8 @@ comment on column public.etl_table.tbl_comment is '表注释';
 comment on column public.etl_table.split_pk is '切分主键';
 
 comment on column public.etl_table.auto_pk is '自动获取切分字段';
+
+comment on column etl_table.write_mode is '覆盖默认，默认为 overwrite，可选为 append,nonConflict';
 
 create table public.etl_column
 (

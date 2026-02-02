@@ -91,6 +91,9 @@ public class EtlTable
     @Column(name = "auto_pk", nullable = false)
     private Boolean autoPk = true;
 
+    @Column(name="write_mode", length = 20)
+    private  String writeMode = "overwrite";
+
     @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , filter))")
     private String filterColumn;
 }

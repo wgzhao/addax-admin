@@ -215,6 +215,7 @@ export interface EtlTable {
   sid: number // 采集源ID，对应etl_source表id
   duration?: number // 采集耗时，单位为秒
   tblComment?: string // 目标表的注释
+  writeMode: string // 写入模式: overwrite|append|nonConflict
 }
 
 export interface TableMeta {
