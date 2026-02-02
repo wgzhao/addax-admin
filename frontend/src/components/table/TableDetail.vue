@@ -5,16 +5,15 @@
         <v-row>
           <!-- Full width form -->
           <v-col cols="12" md="12">
-            <v-card density="compact" class="pa-3">
               <v-row>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.name" label="源系统"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.name" label="源系统"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.sourceDb" label="源库"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.sourceDb" label="源库"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.sourceTable" label="源表">
+                  <v-text-field variant="outlined" v-model="table.sourceTable" label="源表">
                     <template #append>
                       <v-tooltip bottom>
                         <template #activator="{ props }">
@@ -27,17 +26,17 @@
                   </v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.filter" label="过滤规则"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.filter" label="过滤规则"></v-text-field>
                 </v-col>
 
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.targetDb" label="目标库"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.targetDb" label="目标库"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.targetTable" label="目标表"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.targetTable" label="目标表"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.splitPk" label="切分字段"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.splitPk" label="切分字段"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3" class="d-flex align-center">
                   <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined"
@@ -45,24 +44,24 @@
                 </v-col>
 
                 <v-col cols="12" md="2">
-                  <v-text-field variant="underlined" v-model="table.partName" label="分区字段"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.partName" label="分区字段"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="2">
-                  <v-select variant="underlined" v-model="table.partFormat" :items="PARTITION_FORMATS"
+                  <v-select variant="outlined" v-model="table.partFormat" :items="PARTITION_FORMATS"
                     label="分区格式"></v-select>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-select variant="underlined" v-model="table.storageFormat" :items="storageOptions"
+                  <v-select variant="outlined" v-model="table.storageFormat" :items="storageOptions"
                     label="存储格式"></v-select>
                 </v-col>
                 <v-col cols="12" md="2">
-                  <v-select variant="underlined" v-model="table.compressFormat" :items="compressFormats"
+                  <v-select variant="outlined" v-model="table.compressFormat" :items="compressFormats"
                     label="压缩格式"></v-select>
                 </v-col>
                                 <!-- 写入模式 -->
                 <v-col cols="12" md="3">
                   <v-select
-                    variant="underlined"
+                    variant="outlined"
                     v-model="table.writeMode"
                     :items="writeModeOptions"
                     label="写入模式"
@@ -76,25 +75,22 @@
                     label="采集状态"></v-select>
                 </v-col>
                 <v-col cols="12" md="2">
-                  <v-text-field variant="underlined" v-model="table.retryCnt" label="剩余次数"
+                  <v-text-field variant="outlined" v-model="table.retryCnt" label="剩余次数"
                     :rules="[rules.nonNegative]"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="3">
-                  <v-text-field variant="underlined" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="2">
-                  <v-text-field variant="underlined" v-model="table.startTime" label="最近采集开始时间" readonly></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.startTime" label="最近采集开始时间" readonly></v-text-field>
                 </v-col>
                 <v-col cols="12" md="2">
-                  <v-text-field variant="underlined" v-model="table.endTime" label="最近采集结束时间" readonly></v-text-field>
+                  <v-text-field variant="outlined" v-model="table.endTime" label="最近采集结束时间" readonly></v-text-field>
                 </v-col>
                 <v-col cols="12">
-                  <v-textarea variant="underlined" v-model="table.remark" label="备注" rows="2"></v-textarea>
+                  <v-textarea variant="outlined" v-model="table.remark" label="备注" rows="2"></v-textarea>
                 </v-col>
-
-
               </v-row>
-            </v-card>
           </v-col>
         </v-row>
 
