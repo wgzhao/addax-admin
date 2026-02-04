@@ -1,5 +1,5 @@
 <template>
-  <v-card class="pa-4">
+  <v-card class="pa-4 sys-settings-card">
     <v-row>
       <v-col cols="12">
         <h2 class="text-h4 mb-4">系统配置</h2>
@@ -10,17 +10,18 @@
     </v-row>
 
     <v-form ref="form" v-model="valid" @submit.prevent="saveSettings">
-      <v-row>
+      <v-row class="section-grid stretch-row">
         <!-- 左列：基础配置 (4/12 = 33%) -->
-        <v-col cols="12" md="4">
+        <v-col cols="12" md="4" class="col-stack">
           <!-- 基础系统配置 -->
-          <v-card class="mb-4" elevation="2">
-            <v-card-title class="bg-primary text-white">
-              <v-icon class="mr-2">mdi-cog</v-icon>
+          <v-card class="mb-4 section-card" elevation="0">
+            <v-card-title class="section-title">
+              <v-icon class="mr-2" color="primary">mdi-cog</v-icon>
               基础系统配置
             </v-card-title>
-            <v-card-text class="pa-4">
-              <v-row>
+            <v-divider />
+            <v-card-text class="pa-4 section-body">
+              <v-row dense>
                 <v-col cols="12">
                   <div class="field-label">Addax程序目录</div>
                   <v-text-field
@@ -76,13 +77,14 @@
           </v-card>
 
           <!-- HiveServer2 配置 -->
-          <v-card class="mb-4" elevation="2">
-            <v-card-title class="bg-secondary text-white">
-              <v-icon class="mr-2">mdi-server</v-icon>
+          <v-card class="mb-4 section-card" elevation="0">
+            <v-card-title class="section-title">
+              <v-icon class="mr-2" color="primary">mdi-server</v-icon>
               HiveServer2 配置
             </v-card-title>
-            <v-card-text class="pa-4">
-              <v-row>
+            <v-divider />
+            <v-card-text class="pa-4 section-body">
+              <v-row dense>
                 <v-col cols="12">
                   <div class="field-label">JDBC连接地址</div>
                   <v-text-field
@@ -93,7 +95,7 @@
                     :rules="[rules.required, rules.jdbcUrl]"
                   />
                 </v-col>
-                <v-col cols="5">
+                <v-col cols="12">
                   <div class="field-label">用户名</div>
                   <v-text-field
                     v-model="hiveServer2Config.username"
@@ -103,7 +105,7 @@
                     :rules="[rules.required]"
                   />
                 </v-col>
-                <v-col cols="7">
+                <v-col cols="12">
                   <div class="field-label">密码</div>
                   <v-text-field
                     v-model="hiveServer2Config.password"
@@ -152,14 +154,15 @@
           </v-card>
 
           <!-- 性能配置 -->
-          <v-card class="mb-4" elevation="2">
-            <v-card-title class="bg-warning text-white">
-              <v-icon class="mr-2">mdi-speedometer</v-icon>
+          <v-card class="mb-4 section-card" elevation="0">
+            <v-card-title class="section-title">
+              <v-icon class="mr-2" color="primary">mdi-speedometer</v-icon>
               性能配置
             </v-card-title>
-            <v-card-text class="pa-4">
-              <v-row>
-                <v-col cols="6">
+            <v-divider />
+            <v-card-text class="pa-4 section-body">
+              <v-row dense>
+                <v-col cols="12">
                   <div class="field-label">最大采集并发数量</div>
                   <v-text-field
                     v-model.number="settings['CONCURRENT_LIMIT']"
@@ -170,7 +173,7 @@
                     :rules="[rules.required, rules.positiveNumber]"
                   />
                 </v-col>
-                <v-col cols="6">
+                <v-col cols="12">
                   <div class="field-label">采集队列长度</div>
                   <v-text-field
                     v-model.number="settings['QUEUE_SIZE']"
@@ -187,14 +190,15 @@
         </v-col>
 
         <!-- 右列：作业模板配置 (8/12 = 67%, 使用6来达到4:6比例) -->
-        <v-col cols="12" md="8">
+        <v-col cols="12" md="8" class="col-stack">
           <!-- 作业模板配置 -->
-          <v-card class="mb-4" elevation="2">
-            <v-card-title class="bg-info text-white" rounded>
-              <v-icon class="mr-2">mdi-file-code</v-icon>
+          <v-card class="mb-2 section-card stretch-card" elevation="0">
+            <v-card-title class="section-title">
+              <v-icon class="mr-2" color="primary">mdi-file-code</v-icon>
               作业模板配置
             </v-card-title>
-            <v-card-text class="pa-4">
+            <v-divider />
+            <v-card-text class="pa-4 section-body">
               <!-- 采集主模板 -->
               <v-row class="mb-4">
                 <v-col cols="12">
@@ -210,7 +214,7 @@
               </v-row>
 
               <!-- RDBMS 读取子模板 -->
-              <v-row class="mb-4">
+              <v-row class="mb-2">
                 <v-col cols="12">
                   <div class="field-label">
                     RDBMS 读取子模板(参考
@@ -234,7 +238,7 @@
               </v-row>
 
               <!-- HDFS 写入子模板 -->
-              <v-row class="mb-4">
+              <v-row class="mb-2">
                 <v-col cols="12">
                   <div class="field-label">
                     HDFS 写入子模板(参考
@@ -264,11 +268,12 @@
       <!-- 操作按钮 -->
       <v-row>
         <v-col cols="12">
-          <v-card elevation="2">
-            <v-card-actions class="pa-6">
+          <v-card class="section-card" elevation="0">
+            <v-card-actions class="pa-4 action-bar">
+              <v-spacer />
               <v-btn
                 color="primary"
-                size="large"
+                variant="tonal"
                 type="submit"
                 :disabled="!valid"
                 :loading="saving"
@@ -491,68 +496,46 @@
     font-weight: 600;
   }
 
-  /* 使用主题适配的表面颜色 */
-  .v-card-text {
-    background-color: rgb(var(--v-theme-surface));
+  .sys-settings-card {
+    background: rgb(var(--v-theme-surface));
   }
 
-  /* 深色模式下的优化 */
-  .v-theme--dark .v-card-text {
-    background-color: #2b2c40;
-    /* 使用主题中定义的深色表面颜色 */
+  .section-grid {
+    row-gap: 12px;
   }
 
-  /* 深色模式下输入框的背景色优化 */
-  .v-theme--dark .v-text-field .v-field__field {
-    background-color: #444463 !important;
-    /* 使用主题中的 grey-100 */
+  .stretch-row {
+    align-items: stretch;
   }
 
-  .v-theme--dark .v-select .v-field__field {
-    background-color: #444463 !important;
-    /* 使用主题中的 grey-100 */
+  .col-stack {
+    display: flex;
+    flex-direction: column;
   }
 
-  .v-theme--dark .v-textarea .v-field__field {
-    background-color: #444463 !important;
-    /* 使用主题中的 grey-100 */
+  .stretch-card {
+    flex: 1 1 auto;
   }
 
-  /* 深色模式下输入框边框颜色 */
-  .v-theme--dark .v-text-field .v-field__outline {
-    color: #5e6692 !important;
-    /* 使用主题中的 grey-300 */
+  .section-card {
+    background: rgb(var(--v-theme-surface-variant));
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   }
 
-  .v-theme--dark .v-select .v-field__outline {
-    color: #5e6692 !important;
-    /* 使用主题中的 grey-300 */
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgb(var(--v-theme-on-surface));
+    font-weight: 600;
   }
 
-  /* 深色模式下文本颜色 */
-  .v-theme--dark .v-text-field input,
-  .v-theme--dark .v-select .v-field__input,
-  .v-theme--dark .v-textarea textarea {
-    color: #dbdbeb !important;
-    /* 使用主题中的 on-surface 颜色 */
+  .section-body {
+    background: transparent;
   }
 
-  /* 浅色模式下保持合适的背景色 */
-  .v-theme--light .v-card-text {
-    background-color: #fafafa;
-    /* 使用主题中的 grey-50 */
-  }
-
-  /* 提示文字颜色优化 */
-  .v-theme--dark .v-messages__message {
-    color: #8692d0 !important;
-    /* 使用主题中的 grey-500 */
-  }
-
-  /* 标签颜色优化 */
-  .v-theme--dark .v-label {
-    color: #aab3de !important;
-    /* 使用主题中的 grey-600 */
+  .action-bar {
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
   }
 
   .json-preview textarea {

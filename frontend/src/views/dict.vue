@@ -1,9 +1,12 @@
 <template>
-  <v-container fluid class="pa-6">
-    <v-row>
-      <v-col cols="12" md="5">
-        <v-card flat title="字典列表">
-          <v-card-text>
+  <v-container fluid class="pa-6 dict-page">
+    <v-row class="section-grid stretch-row">
+      <v-col cols="12" md="5" class="col-stack">
+        <v-card flat title="字典列表" class="section-card stretch-card">
+          <template #append>
+            <v-btn color="primary" size="small" @click="openDictDialog()">新增字典</v-btn>
+          </template>
+          <v-card-text class="section-body">
             <v-data-table
               :items="dicts"
               :headers="dictHeaders"
@@ -13,49 +16,47 @@
               class="elevation-1"
               @click:row="(e, row) => onSelectDict(row?.item ?? row)"
             >
-              <template #top>
-                <v-row>
-                  <v-col>
-                    <v-btn color="primary" @click="openDictDialog()">新增字典</v-btn>
-                  </v-col>
-                </v-row>
-              </template>
               <template #item.actions="{ item }">
-                <v-btn icon small @click.stop="openDictDialog(item)">
-                  <v-icon>mdi-pencil</v-icon>
-                </v-btn>
-                <v-btn icon small @click.stop="deleteDict(item.code)">
-                  <v-icon color="red">mdi-delete</v-icon>
-                </v-btn>
+                <div class="action-inline">
+                  <v-btn icon size="small" @click.stop="openDictDialog(item)">
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn>
+                  <v-btn icon size="small" @click.stop="deleteDict(item.code)">
+                    <v-icon color="red">mdi-delete</v-icon>
+                  </v-btn>
+                </div>
               </template>
             </v-data-table>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <v-col cols="12" md="7">
+      <v-col cols="12" md="7" class="col-stack">
         <v-card
           flat
           :title="
             selectedDict ? `字典明细 - ${selectedDict.name || selectedDict.code}` : '请选择字典'
           "
+          class="section-card stretch-card"
         >
-          <v-card-text>
+          <template #append>
+            <div class="header-actions">
+              <v-btn color="primary" size="small" @click="openItemDialog()" :disabled="!selectedDict">
+                新增明细
+              </v-btn>
+              <v-btn
+                v-if="selectedDict && selectedDict.code === 1021"
+                color="secondary"
+                size="small"
+                @click="openBatchDialog()"
+              >
+                批量新增交易日
+              </v-btn>
+            </div>
+          </template>
+          <v-card-text class="section-body">
             <div v-if="!selectedDict">请选择左侧字典查看明细</div>
             <div v-else>
-              <v-row>
-                <v-col>
-                  <v-btn color="primary" @click="openItemDialog()">新增明细</v-btn>
-                  <v-btn
-                    v-if="selectedDict && selectedDict.code === 1021"
-                    color="secondary"
-                    class="ml-2"
-                    @click="openBatchDialog()"
-                  >
-                    批量新增交易日
-                  </v-btn>
-                </v-col>
-              </v-row>
               <v-data-table
                 :items="items"
                 :headers="itemHeaders"
@@ -64,13 +65,15 @@
                 density="compact"
                 class="elevation-1"
               >
-                <template #item.actions="{ item }">
-                  <v-btn icon small @click.stop="openItemDialog(item)">
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
-                  <v-btn icon small @click.stop="deleteItem(item.itemKey)">
-                    <v-icon color="red">mdi-delete</v-icon>
-                  </v-btn>
+              <template #item.actions="{ item }">
+                  <div class="action-inline">
+                    <v-btn icon size="small" @click.stop="openItemDialog(item)">
+                      <v-icon>mdi-pencil</v-icon>
+                    </v-btn>
+                    <v-btn icon size="small" @click.stop="deleteItem(item.itemKey)">
+                      <v-icon color="red">mdi-delete</v-icon>
+                    </v-btn>
+                  </div>
                 </template>
               </v-data-table>
             </div>
@@ -321,6 +324,69 @@
     loadDicts()
   })
 </script>
+
+<style scoped>
+.dict-page {
+  background: rgb(var(--v-theme-surface));
+}
+
+.section-grid {
+  row-gap: 12px;
+}
+
+.stretch-row {
+  align-items: stretch;
+}
+
+.col-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.section-card {
+  background: rgb(var(--v-theme-surface-variant));
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.stretch-card {
+  flex: 1 1 auto;
+}
+
+.section-body {
+  background: transparent;
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.action-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dict-page :deep(.v-data-table thead th) {
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgb(var(--v-theme-on-surface));
+  font-weight: 600;
+}
+
+.dict-page :deep(.v-data-table thead tr) {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+</style>
 
 <route lang="json">
 {

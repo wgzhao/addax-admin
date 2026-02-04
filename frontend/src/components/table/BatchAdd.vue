@@ -1,126 +1,155 @@
 <template>
   <!-- ODS 采集 - 批量新增表 -->
-  <v-card flat title="批量新增表">
-    <v-card-text>
-      <v-row>
-        <v-col cols="3">
-          <v-select :items="sourceSystemList"             item-title="name"
-            :item-props="item => ({
-              title: `${item.code}_${item.name}`,
-            })" v-model="selectedSourceId" item-value="id"
-            density="compact" return-object single-line>
-            <template #prepend>
-              <span class="me-2">选择采集源</span>
-            </template>
-          </v-select>
+  <v-card flat title="批量新增表" class="batch-add-card">
+    <v-card-text class="batch-add-body">
+      <v-row dense class="section-grid">
+        <v-col cols="12">
+          <v-sheet class="form-section" rounded="lg" border>
+            <div class="section-header">
+              <v-icon size="18" color="primary">mdi-database-arrow-right</v-icon>
+              <span>采集源与加载</span>
+              <v-spacer />
+              <div class="header-actions">
+                <v-btn color="primary" size="small" @click="saveItems" :loading="loadingSave"
+                  :disabled="selectedCnt === 0 || !targetDb">保存</v-btn>
+                <v-btn color="secondary" size="small" variant="tonal" @click="closeDialog">关闭</v-btn>
+              </div>
+            </div>
+            <v-divider />
+            <v-row dense class="section-body">
+              <v-col cols="12" md="4">
+                <v-select :items="sourceSystemList" item-title="name"
+                  :item-props="item => ({
+                    title: `${item.code}_${item.name}`,
+                  })" v-model="selectedSourceId" item-value="id"
+                  density="compact" return-object single-line>
+                  <template #prepend>
+                    <span class="me-2">选择采集源</span>
+                  </template>
+                </v-select>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-select :items="sourceDbs" :disabled="!selectedSourceId?.url" v-model="selectedDb" density="compact"
+                  single-line>
+                  <template #prepend>
+                    <span class="me-2">选择源库</span>
+                  </template>
+                  <template #append>
+                    <v-btn color="primary" @click="getTables" :loading="loadingTables" :disabled="!selectedDb">获取表</v-btn>
+                  </template>
+                </v-select>
+              </v-col>
+              <v-col cols="12" md="4" class="d-flex align-center justify-end">
+                <v-chip variant="tonal" color="primary" class="text-body-2">
+                  已选择 {{ selectedCnt }} 个表
+                </v-chip>
+              </v-col>
+            </v-row>
+          </v-sheet>
         </v-col>
-        <v-col cols="3">
-          <v-select :items="sourceDbs" :disabled="!selectedSourceId?.url" v-model="selectedDb" density="compact"
-            single-line>
-            <template #prepend>
-              <span class="me-2">选择源库</span>
-            </template>
-            <template #append>
-              <v-btn color="primary" @click="getTables" :loading="loadingTables" :disabled="!selectedDb">获取表</v-btn>
-            </template>
-          </v-select>
-        </v-col>
-        <v-spacer />
-        <v-col cols="4" >
-          <v-btn color="primary" @click="saveItems" :loading="loadingSave"
-            :disabled="selectedCnt === 0 || !targetDb">保存</v-btn>
-          <v-btn color="secondary" class="ms-3" @click="closeDialog">关闭</v-btn>
-        </v-col>
-      </v-row>
-      <v-row>
 
+        <v-col cols="12">
+          <v-sheet class="form-section" rounded="lg" border>
+            <div class="section-header">
+              <v-icon size="18" color="primary">mdi-cog-outline</v-icon>
+              <span>目标设置</span>
+            </div>
+            <v-divider />
+            <v-row dense class="section-body tight-row">
+              <v-col cols="12" md="2">
+                <v-text-field v-model="partName" label="分区字段名" density="compact" hint="目标表的分区字段" persistent-hint class="tight-field">
+                  <template #append>
+                    <v-tooltip bottom>
+                      <template #activator="{ props }">
+                        <v-icon v-bind="props" color="info" size="small" @click="showPartitionInfo">
+                          mdi-information-outline
+                        </v-icon>
+                      </template>
+                      <span>如果为空，则表示选中的表将创建为非分区表</span>
+                    </v-tooltip>
+                  </template>
+                </v-text-field>
+              </v-col>
+              <v-col cols="12" md="2">
+                <v-select v-model="partFormat" :items="PARTITION_FORMATS" label="分区日期格式" density="compact"
+                  persistent-hint>
+                </v-select>
+                <div class="format-example" v-if="partitionFormatExample">
+                  示例：{{ partitionFormatExample }}
+                </div>
+              </v-col>
+              <v-col cols="12" md="1">
+                <v-combobox v-model="storageFormat" :items="storageFormats" label="存储格式" density="compact"
+                  persistent-hint>
+                </v-combobox>
+              </v-col>
+              <v-col cols="12" md="1">
+                <v-combobox v-model="compressFormat" :items="compressFormats" label="压缩格式" density="compact"
+                  persistent-hint>
+                </v-combobox>
+              </v-col>
+              <v-col cols="12" md="2">
+                <v-text-field v-model="targetDb" label="目标库名" density="compact" placeholder="ods + 源系统编号" persistent-hint
+                  :rules="[rules.required]" class="tight-field">
+                </v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact"
+                  hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
+                  placeholder="${table}" class="tight-field">
+                  <template #append>
+                    <v-btn size="small" color="primary" @click="applyTargetTableTemplate"
+                      :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
+                  </template>
+                </v-text-field>
+              </v-col>
+            </v-row>
+          </v-sheet>
+        </v-col>
 
-        <v-col cols="2">
-          <v-text-field v-model="partName" label="分区字段名" density="compact" hint="目标表的分区字段" persistent-hint>
-            <template #append>
-              <v-tooltip bottom>
-                <template #activator="{ props }">
-                  <v-icon v-bind="props" color="info" size="small" @click="showPartitionInfo">
-                    mdi-information-outline
-                  </v-icon>
+        <v-col cols="12">
+          <v-sheet class="form-section" rounded="lg" border>
+            <div class="section-header">
+              <v-icon size="18" color="primary">mdi-table</v-icon>
+              <span>表清单</span>
+            </div>
+            <v-divider />
+            <v-row dense class="section-body" v-if="tables.length > 0">
+              <v-col cols="12" md="4">
+                <v-text-field v-model="search" label="搜索表" append-icon="mdi-magnify" single-line hide-details
+                  density="compact" clearable />
+              </v-col>
+            </v-row>
+
+            <div class="table-container">
+              <v-data-table :items="tables" :headers="headers" :items-per-page="15" density="compact" show-select
+                v-model="selectedTables" :search="search" item-value="name" v-if="tables.length > 0" return-object>
+                <template #item.tblComment="{ item }">
+                  <div class="comment-cell">{{ item.tblComment }}</div>
                 </template>
-                <span>如果为空，则表示选中的表将创建为非分区表</span>
-              </v-tooltip>
-            </template>
-          </v-text-field>
-        </v-col>
-        <v-col cols="2">
-          <v-select v-model="partFormat" :items="PARTITION_FORMATS" label="分区日期格式" density="compact"
-            persistent-hint>
-            <template #append>
-              <span class="text-caption">{{ partitionFormatExample }}</span>
-            </template>
-          </v-select>
-        </v-col>
-        <v-col cols="1">
-          <v-combobox v-model="storageFormat" :items="storageFormats" label="存储格式" density="compact"
-            persistent-hint>
-          </v-combobox>
-        </v-col>
-        <v-col cols="1">
-          <v-combobox v-model="compressFormat" :items="compressFormats" label="压缩格式" density="compact"
-            persistent-hint>
-          </v-combobox>
-        </v-col>
-        <!-- 目标库名设置行 -->
-        <v-col cols="1">
-          <v-text-field v-model="targetDb" label="目标库名" density="compact" placeholder="ods + 源系统编号" persistent-hint
-            :rules="[rules.required]">
-          </v-text-field>
-        </v-col>
-        <v-col cols="3">
-          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact"
-            hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
-            placeholder="${table}">
-            <template #append>
-              <v-btn size="small" color="primary" @click="applyTargetTableTemplate"
-                :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
-            </template>
-          </v-text-field>
+              </v-data-table>
+
+              <v-alert v-else-if="loadingTables" type="info" variant="tonal" class="mt-4">
+                正在加载表列表，请稍候...
+              </v-alert>
+
+              <v-alert v-else-if="tableLoadError" type="error" variant="tonal" class="mt-4">
+                {{ tableLoadError }}
+              </v-alert>
+
+              <v-alert v-else type="info" variant="tonal" class="mt-4">
+                请选择源系统和数据库，然后点击"获取表"按钮加载表列表
+              </v-alert>
+            </div>
+          </v-sheet>
         </v-col>
       </v-row>
-
-      <!-- Search field for tables - fixed width to prevent icon overlap -->
-      <v-row v-if="tables.length > 0" class="mb-2">
-        <v-col cols="4">
-          <v-text-field v-model="search" label="搜索表" append-icon="mdi-magnify" single-line hide-details
-            density="compact" clearable />
-        </v-col>
-        <v-col cols="4" class="d-flex align-center">
-          <v-chip variant="text" color="primary" class="text-body-1">
-            已选择 {{ selectedCnt }} 个表
-          </v-chip>
-        </v-col>
-      </v-row>
-
-      <!-- Tables container with fixed height to prevent layout jumps -->
-      <div class="table-container">
-        <!-- tables -->
-        <v-data-table :items="tables" :headers="headers" :items-per-page="15" density="compact" show-select
-          v-model="selectedTables" :search="search" item-value="name" v-if="tables.length > 0" return-object>
-          <template #item.tblComment="{ item }">
-            <div class="comment-cell">{{ item.tblComment }}</div>
-          </template>
-        </v-data-table>
-
-        <v-alert v-else-if="loadingTables" type="info" variant="tonal" class="mt-4">
-          正在加载表列表，请稍候...
-        </v-alert>
-
-        <v-alert v-else-if="tableLoadError" type="error" variant="tonal" class="mt-4">
-          {{ tableLoadError }}
-        </v-alert>
-
-        <v-alert v-else type="info" variant="tonal" class="mt-4">
-          请选择源系统和数据库，然后点击"获取表"按钮加载表列表
-        </v-alert>
-      </div>
     </v-card-text>
+
+    <v-card-actions class="pa-3 action-bar">
+      <v-spacer />
+      <v-btn color="secondary" @click="closeDialog" variant="tonal">关闭</v-btn>
+    </v-card-actions>
   </v-card>
 
   <!-- Success Message Dialog -->
@@ -472,6 +501,74 @@ onMounted(() => {
 });
 </script>
 <style scoped>
+.batch-add-card {
+  background: rgb(var(--v-theme-surface));
+}
+
+.batch-add-body {
+  padding-top: 8px;
+}
+
+.section-grid {
+  row-gap: 12px;
+}
+
+.form-section {
+  background: rgb(var(--v-theme-surface-variant));
+  border-color: rgba(var(--v-theme-on-surface), 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-section:hover {
+  border-color: rgba(var(--v-theme-primary), 0.2);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-body {
+  padding: 12px 14px 6px;
+}
+
+.tight-row :deep(.v-col) {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.tight-field :deep(.v-field) {
+  min-height: 40px;
+}
+
+.tight-field :deep(.v-field__input) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.2;
+}
+
+.format-example {
+  margin-top: -6px;
+  padding-left: 4px;
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+.action-bar {
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+}
+
 .v-data-table {
   margin-top: 16px;
 }

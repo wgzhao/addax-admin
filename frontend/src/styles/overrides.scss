@@ -9,12 +9,12 @@ html {
 // 表格选中行样式
 /* 取消 :has 以减少复杂选择器带来的回流成本，改为在行上添加 selected-row 类 */
 .selected-row {
-  background-color: rgba(105, 108, 255, 0.08) !important;
-  border-left: 3px solid #696CFF !important;
+  background-color: rgba(var(--v-theme-primary), 0.08) !important;
+  border-left: 3px solid rgb(var(--v-theme-primary)) !important;
 }
 
 .v-theme--dark .selected-row {
-  background-color: rgba(105, 108, 255, 0.15) !important;
+  background-color: rgba(var(--v-theme-primary), 0.18) !important;
 }
 
 
@@ -25,10 +25,33 @@ html {
   font-size: 13px;
 }
 
+/* Data table header separation */
+.v-data-table thead th,
+.v-data-table-server thead th {
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgb(var(--v-theme-on-surface));
+  font-weight: 600;
+}
+
+.v-data-table thead tr,
+.v-data-table-server thead tr {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+}
+
 /* Tighter form fields */
 .v-text-field .v-field {
   padding-top: 6px !important;
   padding-bottom: 6px !important;
+}
+
+/* Form section containers for a calmer, less "shouty" layout */
+.form-section {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-section:hover {
+  border-color: rgba(var(--v-theme-primary), 0.2);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
 /* Slightly reduce row gaps in toolbar rows */

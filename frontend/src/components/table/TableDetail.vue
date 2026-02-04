@@ -1,19 +1,24 @@
 <template>
-  <v-card prepend-icon="mdi-table" title="采集表详情" dense>
-    <v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form">
-      <v-card-text>
-        <v-row>
-          <!-- Full width form -->
-          <v-col cols="12" md="12">
-              <v-row>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.name" label="源系统"></v-text-field>
+  <v-card prepend-icon="mdi-table" title="采集表详情" class="table-detail-card" density="comfortable">
+    <v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form" class="table-detail-form">
+      <v-card-text class="pb-2">
+        <v-row dense class="section-grid">
+          <v-col cols="12" md="6">
+            <v-sheet class="form-section" rounded="lg" border>
+              <div class="section-header">
+                <v-icon size="18" color="primary">mdi-database</v-icon>
+                <span>源端信息</span>
+              </div>
+              <v-divider />
+              <v-row dense class="section-body">
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.name" label="源系统"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.sourceDb" label="源库"></v-text-field>
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.sourceDb" label="源库"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.sourceTable" label="源表">
+                <v-col cols="12">
+                  <v-text-field variant="outlined" density="compact" v-model="table.sourceTable" label="源表">
                     <template #append>
                       <v-tooltip bottom>
                         <template #activator="{ props }">
@@ -25,43 +30,70 @@
                     </template>
                   </v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.filter" label="过滤规则"></v-text-field>
+                <v-col cols="12">
+                  <v-text-field variant="outlined" density="compact" v-model="table.filter" label="过滤规则"></v-text-field>
                 </v-col>
+              </v-row>
+            </v-sheet>
+          </v-col>
 
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.targetDb" label="目标库"></v-text-field>
+          <v-col cols="12" md="6">
+            <v-sheet class="form-section" rounded="lg" border>
+              <div class="section-header">
+                <v-icon size="18" color="primary">mdi-database-arrow-right</v-icon>
+                <span>目标与存储</span>
+              </div>
+              <v-divider />
+              <v-row dense class="section-body">
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.targetDb" label="目标库"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.targetTable" label="目标表"></v-text-field>
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.targetTable" label="目标表"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.splitPk" label="切分字段"></v-text-field>
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.partName" label="分区字段"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3" class="d-flex align-center">
-                  <v-switch v-model="table.autoPk" inset label="自动获取切分字段" :color="table.autoPk ? 'primary' : undefined"
-                    density="compact" />
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <v-text-field variant="outlined" v-model="table.partName" label="分区字段"></v-text-field>
-                </v-col>
-                <v-col cols="12" md="2">
-                  <v-select variant="outlined" v-model="table.partFormat" :items="PARTITION_FORMATS"
+                <v-col cols="12" md="6">
+                  <v-select variant="outlined" density="compact" v-model="table.partFormat" :items="PARTITION_FORMATS"
                     label="分区格式"></v-select>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-select variant="outlined" v-model="table.storageFormat" :items="storageOptions"
+                <v-col cols="12" md="6">
+                  <v-select variant="outlined" density="compact" v-model="table.storageFormat" :items="storageOptions"
                     label="存储格式"></v-select>
                 </v-col>
-                <v-col cols="12" md="2">
-                  <v-select variant="outlined" v-model="table.compressFormat" :items="compressFormats"
+                <v-col cols="12" md="6">
+                  <v-select variant="outlined" density="compact" v-model="table.compressFormat" :items="compressFormats"
                     label="压缩格式"></v-select>
                 </v-col>
-                                <!-- 写入模式 -->
-                <v-col cols="12" md="3">
+              </v-row>
+            </v-sheet>
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-sheet class="form-section" rounded="lg" border>
+              <div class="section-header">
+                <v-icon size="18" color="primary">mdi-tune-vertical</v-icon>
+                <span>写入与调度</span>
+              </div>
+              <v-divider />
+              <v-row dense class="section-body">
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.splitPk" label="切分字段"></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6" class="d-flex align-center">
+                  <v-switch
+                    v-model="table.autoPk"
+                    inset
+                    label="自动获取切分字段"
+                    :color="table.autoPk ? 'primary' : undefined"
+                    density="compact"
+                  />
+                </v-col>
+                <v-col cols="12" md="6">
                   <v-select
                     variant="outlined"
+                    density="compact"
                     v-model="table.writeMode"
                     :items="writeModeOptions"
                     label="写入模式"
@@ -69,31 +101,66 @@
                     item-value="value"
                   ></v-select>
                 </v-col>
-
-                <v-col cols="12" md="3">
-                  <v-select v-model="table.status" :items="statusOptions" item-title="label" item-value="value"
-                    label="采集状态"></v-select>
+                <v-col cols="12" md="6">
+                  <v-select
+                    variant="outlined"
+                    density="compact"
+                    v-model="table.status"
+                    :items="statusOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="采集状态"
+                  ></v-select>
                 </v-col>
-                <v-col cols="12" md="2">
-                  <v-text-field variant="outlined" v-model="table.retryCnt" label="剩余次数"
-                    :rules="[rules.nonNegative]"></v-text-field>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    variant="outlined"
+                    density="compact"
+                    v-model="table.retryCnt"
+                    label="剩余次数"
+                    :rules="[rules.nonNegative]"
+                  ></v-text-field>
                 </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field variant="outlined" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
-                </v-col>
-                <v-col cols="12" md="2">
-                  <v-text-field variant="outlined" v-model="table.startTime" label="最近采集开始时间" readonly></v-text-field>
-                </v-col>
-                <v-col cols="12" md="2">
-                  <v-text-field variant="outlined" v-model="table.endTime" label="最近采集结束时间" readonly></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-textarea variant="outlined" v-model="table.remark" label="备注" rows="2"></v-textarea>
+                <v-col cols="12" md="6">
+                  <v-text-field variant="outlined" density="compact" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
                 </v-col>
               </v-row>
+            </v-sheet>
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-sheet class="form-section" rounded="lg" border>
+              <div class="section-header">
+                <v-icon size="18" color="primary">mdi-clock-outline</v-icon>
+                <span>运行信息</span>
+              </div>
+              <v-divider />
+              <v-row dense class="section-body">
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    variant="outlined"
+                    density="compact"
+                    v-model="table.startTime"
+                    label="最近采集开始时间"
+                    readonly
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    variant="outlined"
+                    density="compact"
+                    v-model="table.endTime"
+                    label="最近采集结束时间"
+                    readonly
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12">
+                  <v-textarea variant="outlined" density="compact" v-model="table.remark" label="备注" rows="2"></v-textarea>
+                </v-col>
+              </v-row>
+            </v-sheet>
           </v-col>
         </v-row>
-
       </v-card-text>
 
       <v-card-actions class="action-bar">
@@ -278,8 +345,38 @@ const showPlaceholderInfoDialog = () => {
 }
 
 .meta {
-  color: var(--v-theme-on-surface-variant, #9aa0a6);
+  color: rgb(var(--v-theme-on-surface-variant));
   font-size: 0.9rem;
+}
+
+.table-detail-card {
+  background: rgb(var(--v-theme-surface, 255, 255, 255));
+}
+
+.table-detail-form {
+  background: rgb(var(--v-theme-surface, 255, 255, 255));
+}
+
+.section-grid {
+  row-gap: 12px;
+}
+
+.form-section {
+  background: rgb(var(--v-theme-surface-variant));
+  border-color: rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.section-body {
+  padding: 12px 14px 6px;
 }
 
 .action-bar {
