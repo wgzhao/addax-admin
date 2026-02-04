@@ -23,7 +23,7 @@
     "dayjs": "^1.11.19",
     "highlight.js": "^11.9.0",
     "highlightjs-vue-plugin": "^2.1.4",
-    "lodash": "^4.17.21",
+    "lodash": "4.17.23",
     "moment": "^2.30.1",
     "monaco-editor": "^0.54.0",
     "pinia": "^3.0.3",
@@ -56,7 +56,7 @@
   },
   "description": "Addax management frontend",
   "main": "main.ts",
-  "repository": "git@github.com:wgzhao/addax-ui.git",
+  "repository": "git@github.com:wgzhao/addax-admin.git",
   "author": "wgzhao <wgzhao@gmail.com>",
   "license": "Apache-2.0",
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"

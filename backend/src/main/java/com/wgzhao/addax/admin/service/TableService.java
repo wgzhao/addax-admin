@@ -44,6 +44,7 @@ public class TableService
     private final TargetService targetService;
     private final RedisLockService redisLockService;
     private final SystemConfigService configService;
+    private final UserNotificationService userNotificationService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -168,8 +169,7 @@ public class TableService
      * 刷新标记为 U 的表资源
      * /
      */
-    @Async
-    public void refreshUpdatedTableResources()
+    private void refreshUpdatedTableResourcesInternal()
     {
         List<EtlTable> tables = etlTableRepo.findByStatus("U");
         for (EtlTable table : tables) {
@@ -185,6 +185,19 @@ public class TableService
                 log.error("Failed to refresh resources for table {}", table.getId(), e);
             }
         }
+    }
+
+    @Async
+    public void refreshUpdatedTableResources()
+    {
+        refreshUpdatedTableResourcesInternal();
+    }
+
+    @Async
+    public void refreshUpdatedTableResourcesAsyncWithNotify(String username)
+    {
+        refreshUpdatedTableResourcesInternal();
+        notifyUser(username, "表信息更新完成", "已完成标记为 U 的表资源刷新。", "TABLE_REFRESH");
     }
 
     /**
@@ -211,6 +224,39 @@ public class TableService
                 break;
             }
         }
+    }
+
+    @Async
+    public void refreshAllTableResourcesAsyncWithNotify(String username)
+    {
+        refreshAllTableResources();
+        notifyUser(username, "表信息更新完成", "已完成全部采集表资源刷新。", "TABLE_REFRESH");
+    }
+
+    @Async
+    public void refreshTablesResourcesAsync(List<EtlTable> tables, String username)
+    {
+        int success = 0;
+        int failed = 0;
+        for (EtlTable table : tables) {
+            TaskResultDto result = refreshTableResources(table);
+            if (result.success()) {
+                success++;
+            }
+            else {
+                failed++;
+            }
+        }
+        String content = String.format("批量刷新完成：成功 %d 个，失败 %d 个。", success, failed);
+        notifyUser(username, "批量表资源刷新完成", content, "TABLE_REFRESH");
+    }
+
+    private void notifyUser(String username, String title, String content, String type)
+    {
+        if (username == null || username.isBlank()) {
+            return;
+        }
+        userNotificationService.create(username, title, content, type, null, null);
     }
 
     /**

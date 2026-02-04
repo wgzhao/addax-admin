@@ -19,7 +19,7 @@ import type { App } from 'vue'
 // import 'highlight.js/lib/common'
 
 export function registerPlugins(app: App) {
-  app.use(vuetify).use(router).use(p)
+  app.use(p).use(vuetify).use(router)
   // 如果后续需要代码高亮，可在对应组件里：
   // const { default: HljsVuePlugin } = await import('@highlightjs/vue-plugin')
   // import('highlight.js/styles/github-dark.css')

@@ -17,6 +17,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -183,10 +185,8 @@ public class TableController
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
         List<EtlTable> saveTables = tableService.batchCreateTable(etls);
-        // 异步刷新资源
-        for (EtlTable table : saveTables) {
-            tableService.refreshTableResourcesAsync(table);
-        }
+        // 异步刷新资源并通知
+        tableService.refreshTablesResourcesAsync(saveTables, getCurrentUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(etls.size());
     }
 
@@ -217,10 +217,10 @@ public class TableController
             throw new ApiException(400, "Invalid mode parameter");
         }
         if (mode.equals("all")) {
-            tableService.refreshAllTableResources();
+            tableService.refreshAllTableResourcesAsyncWithNotify(getCurrentUsername());
         }
         else {
-            tableService.refreshUpdatedTableResources();
+            tableService.refreshUpdatedTableResourcesAsyncWithNotify(getCurrentUsername());
         }
         return ResponseEntity.accepted().build();
     }
@@ -304,5 +304,14 @@ public class TableController
         // 具体实现略
         jobContentService.updateJobContent(tableId, jobContent);
         return ResponseEntity.ok("Job content updated successfully");
+    }
+
+    private String getCurrentUsername()
+    {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return null;
+        }
+        return auth.getName();
     }
 }

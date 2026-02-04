@@ -19,6 +19,7 @@ import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TargetService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
+import com.wgzhao.addax.admin.service.UserNotificationService;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -92,6 +93,8 @@ public class TaskQueueManagerV2Impl
     private final JdbcTemplate jdbcTemplate;
     private final RedisLockService redisLockService;
     private final ExecutionManager executionManager;
+    private final UserNotificationService userNotificationService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     // 本地并发统计（仅用于快速短期判断/指标）
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
@@ -391,6 +394,7 @@ public class TaskQueueManagerV2Impl
     private void executeClaimedJob(EtlJobQueue job)
     {
         long start = System.currentTimeMillis();
+        TaskResultDto taskResultDto = null;
         // Schedule periodic redis-based lease/permit renewal while this job runs
         ScheduledFuture<?> renewer = null;
         final long jobId = job.getId();
@@ -447,7 +451,7 @@ public class TaskQueueManagerV2Impl
             if (task == null) {
                 throw new IllegalStateException("任务不存在 tid=" + job.getTid());
             }
-            TaskResultDto taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
+            taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
             if (taskResultDto.success()) {
                 jobQueueService.completeSuccess(job.getId());
             }
@@ -525,6 +529,14 @@ public class TaskQueueManagerV2Impl
             }
             catch (Exception e) {
                 log.warn("Failed to release job lock for jobId={}", jobId, e);
+            }
+
+            // notify submitter if present
+            try {
+                notifyJobCompletion(job, taskResultDto);
+            }
+            catch (Exception e) {
+                log.debug("Failed to notify job completion for jobId={}", jobId, e);
             }
 
             // 完成 DB 层任务后触发调度
@@ -759,10 +771,33 @@ public class TaskQueueManagerV2Impl
         return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;
     }
 
+    @Override
+    public boolean addTaskToQueue(@NonNull EtlTable etlTable, String payload)
+    {
+        try {
+            if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
+                log.info("当前正在更新参数/刷新表结构，拒绝将任务 {} 加入队列", etlTable.getId());
+                return false;
+            }
+        }
+        catch (Exception e) {
+            log.warn("检查 schema 刷新锁失败，继续按默认逻辑处理入队", e);
+        }
+        LocalDate bizDate = LocalDate.parse(configService.getBizDate(), java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        return jobQueueService.enqueue(etlTable, bizDate, 100, payload) > 0;
+    }
+
     public boolean addTaskToQueue(long tableId)
     {
         EtlTable table = tableService.getTable(tableId);
         return table != null && addTaskToQueue(table);
+    }
+
+    @Override
+    public boolean addTaskToQueue(long tableId, String payload)
+    {
+        EtlTable table = tableService.getTable(tableId);
+        return table != null && addTaskToQueue(table, payload);
     }
 
     public int clearQueue()
@@ -784,5 +819,46 @@ public class TaskQueueManagerV2Impl
         scheduler.execute(this::listenLoop);
         scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
         scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void notifyJobCompletion(EtlJobQueue job, TaskResultDto result)
+    {
+        if (result == null) {
+            return;
+        }
+        String payload = job.getPayload();
+        if (payload == null || payload.isBlank()) {
+            return;
+        }
+        String username = null;
+        String action = null;
+        try {
+            Map<String, Object> map = objectMapper.readValue(payload, Map.class);
+            Object submitter = map.get("submitter");
+            Object act = map.get("action");
+            if (submitter != null) {
+                username = submitter.toString();
+            }
+            if (act != null) {
+                action = act.toString();
+            }
+        }
+        catch (Exception e) {
+            log.debug("Failed to parse job payload for jobId={}", job.getId());
+        }
+        if (username == null || username.isBlank()) {
+            return;
+        }
+
+        EtlTable table = tableService.getTable(job.getTid());
+        String target = table == null ? String.valueOf(job.getTid()) : table.getTargetDb() + "." + table.getTargetTable();
+        String title = "采集任务完成";
+        if (action != null && !action.isBlank()) {
+            title = "采集任务完成";
+        }
+        String status = result.success() ? "成功" : "失败";
+        String content = String.format("表 %s 采集%s，耗时 %ss。", target, status, result.durationSeconds());
+        userNotificationService.create(username, title, content, "COLLECT", "tid", String.valueOf(job.getTid()));
     }
 }

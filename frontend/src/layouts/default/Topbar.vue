@@ -19,6 +19,53 @@
           </v-btn>
         </div>
       </template>
+      <v-menu v-if="authStore.isLoggedIn" v-model="notifyMenu" offset-y>
+        <template v-slot:activator="{ props }">
+          <v-badge
+            :content="unreadCountValue"
+            :model-value="unreadCountValue > 0"
+            color="error"
+            overlap
+          >
+            <v-btn v-bind="props" icon :title="'未读消息: ' + unreadCountValue">
+              <v-icon>mdi-bell-outline</v-icon>
+            </v-btn>
+          </v-badge>
+        </template>
+        <v-card width="380" class="pa-2">
+          <v-row align="center" class="px-2">
+            <div class="text-subtitle-1 font-weight-medium">消息中心</div>
+            <v-spacer />
+            <v-btn
+              size="small"
+              variant="text"
+              :disabled="unreadCountValue === 0"
+              @click="markAllRead"
+            >
+              全部已读
+            </v-btn>
+          </v-row>
+          <v-divider class="my-2" />
+          <div v-if="visibleNotifications.length === 0" class="px-2 py-3 text-caption">
+            暂无消息
+          </div>
+          <div v-else class="notification-list">
+            <div
+              v-for="item in visibleNotifications"
+              :key="item.id"
+              class="notification-bubble"
+              :class="{ unread: item.status === 'UNREAD' }"
+              @click="markRead(item)"
+            >
+              <div class="bubble-title">
+                <span>{{ item.title }}</span>
+                <span class="bubble-time">{{ formatTime(item.createdAt) }}</span>
+              </div>
+              <div class="bubble-content">{{ item.content || item.title }}</div>
+            </div>
+          </div>
+        </v-card>
+      </v-menu>
       <v-menu v-if="authStore.currentUserName" offset-y>
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
@@ -42,16 +89,19 @@
   <!-- End of Topbar -->
 </template>
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from 'vuetify'
 import { useRouter } from 'vue-router'
+import notificationCenter from '@/stores/notification-center'
 
 const router = useRouter()
 
 // const {global} = useTheme();
 
 const authStore = useAuthStore()
+const notifyMenu = ref(false)
+let notifyTimer: number | null = null
 
 // 定义菜单项类型
 interface MenuItem {
@@ -100,7 +150,7 @@ const urls = ref<MenuItem[]>([
     title: '日志管理'
   },
   {
-    path: '/dicts',
+    path: '/dict',
     title: '字典维护'
   }
   // {
@@ -142,4 +192,130 @@ const logout = () => {
 const goLogin = () => {
   router.replace('/login')
 }
+
+const refreshNotifications = async () => {
+  if (!authStore.isLoggedIn) return
+  await notificationCenter.refreshUnreadCount()
+}
+
+const loadNotificationList = async () => {
+  if (!authStore.isLoggedIn) return
+  await notificationCenter.refreshList('ALL', 20)
+}
+
+const markRead = async (item: any) => {
+  if (item?.status === 'READ') return
+  await notificationCenter.markRead(item.id)
+}
+
+const markAllRead = async () => {
+  await notificationCenter.markAllRead()
+}
+
+const formatTime = (value?: string) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
+}
+
+const unreadCountValue = computed(() => notificationCenter.unreadCount.value ?? 0)
+
+const visibleNotifications = computed(() => {
+  return notificationCenter.notifications.value.filter((item: any) => {
+    const title = typeof item.title === 'string' ? item.title.trim() : ''
+    const content = typeof item.content === 'string' ? item.content.trim() : ''
+    return title.length > 0 || content.length > 0
+  })
+})
+
+watch(
+  () => notifyMenu.value,
+  (open) => {
+    if (open) {
+      loadNotificationList()
+    }
+  }
+)
+
+watch(
+  () => authStore.isLoggedIn,
+  (loggedIn) => {
+    if (loggedIn) {
+      refreshNotifications()
+      if (!notifyTimer) {
+        notifyTimer = window.setInterval(() => {
+          refreshNotifications()
+        }, 10000)
+      }
+    } else if (notifyTimer) {
+      window.clearInterval(notifyTimer)
+      notifyTimer = null
+    }
+  }
+)
+
+onMounted(() => {
+  if (authStore.isLoggedIn) {
+    refreshNotifications()
+    notifyTimer = window.setInterval(() => {
+      refreshNotifications()
+    }, 10000)
+  }
+})
+
+onUnmounted(() => {
+  if (notifyTimer) {
+    window.clearInterval(notifyTimer)
+    notifyTimer = null
+  }
+})
 </script>
+
+<style scoped>
+.notification-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px 8px 8px;
+}
+
+.notification-bubble {
+  background: #f5f7ff;
+  border: 1px solid #d9e1ff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.notification-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.notification-bubble.unread {
+  background: #fff7e6;
+  border-color: #ffd591;
+}
+
+.bubble-title {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.bubble-time {
+  font-size: 11px;
+  color: #6b7280;
+  margin-left: 8px;
+}
+
+.bubble-content {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #374151;
+}
+</style>

@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.redis.RedisLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,7 @@ public class TaskService
     private final RedisLockService redisLockService;
     private final ExecutionManager executionManager;
     private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -215,6 +217,38 @@ public class TaskService
             log.warn("检查 schema 刷新锁失败，继续按 DB flag 逻辑处理", e);
         }
         if (queueManager.addTaskToQueue(tableId)) {
+            return TaskResultDto.success("任务已提交到队列", 0);
+        }
+        else {
+            return TaskResultDto.failure("任务提交失败，可能是队列已满或任务已存在", 0);
+        }
+    }
+
+    public TaskResultDto submitTask(long tableId, String username)
+    {
+        // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
+        try {
+            if (redisLockService != null && redisLockService.isRefreshInProgress()) {
+                log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
+                return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
+            }
+        }
+        catch (Exception e) {
+            log.warn("检查 schema 刷新锁失败，继续按 DB flag 逻辑处理", e);
+        }
+
+        String payload = null;
+        try {
+            Map<String, Object> map = new HashMap<>();
+            map.put("submitter", username);
+            map.put("action", "collect");
+            payload = objectMapper.writeValueAsString(map);
+        }
+        catch (Exception e) {
+            log.debug("Failed to serialize task payload for tid={}", tableId);
+        }
+
+        if (queueManager.addTaskToQueue(tableId, payload)) {
             return TaskResultDto.success("任务已提交到队列", 0);
         }
         else {

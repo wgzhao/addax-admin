@@ -34,6 +34,7 @@ public class EtlJobQueueService
         j.setTid(rs.getLong("tid"));
         j.setBizDate(rs.getObject("biz_date", LocalDate.class));
         j.setPartName(rs.getString("part_name"));
+        j.setPayload(rs.getString("payload"));
         j.setPriority(rs.getInt("priority"));
         j.setStatus(rs.getString("status"));
         j.setAvailableAt(rs.getTimestamp("available_at").toInstant());
@@ -56,17 +57,23 @@ public class EtlJobQueueService
     @Transactional
     public int enqueue(EtlTable table, LocalDate bizDate, int priority)
     {
+        return enqueue(table, bizDate, priority, null);
+    }
+
+    @Transactional
+    public int enqueue(EtlTable table, LocalDate bizDate, int priority, String payload)
+    {
         int maxAttempts = table.getRetryCnt() == null ? 3 : table.getRetryCnt();
         String sql = """
-                INSERT INTO public.etl_job_queue (tid, biz_date, part_name, priority, status, available_at, attempts, max_attempts)
-                SELECT ?, ?, ?, ?, 'pending', now(), 0, ?
+                INSERT INTO public.etl_job_queue (tid, biz_date, part_name, priority, status, available_at, attempts, max_attempts, payload)
+                SELECT ?, ?, ?, ?, 'pending', now(), 0, ?, ?::jsonb
                 WHERE NOT EXISTS (
                     SELECT 1 FROM public.etl_job_queue
                     WHERE tid = ? AND biz_date = ? AND status IN ('pending','running')
                 )
             """;
         return jdbcTemplate.update(sql,
-            table.getId(), bizDate, table.getPartName(), priority, maxAttempts,
+            table.getId(), bizDate, table.getPartName(), priority, maxAttempts, payload,
             table.getId(), bizDate);
     }
 

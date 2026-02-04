@@ -12,6 +12,8 @@ import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -151,7 +153,7 @@ public class TaskController
             result = queueManager.executeEtlTaskWithConcurrencyControl(etlTable);
         }
         else {
-            result = taskService.submitTask(taskId);
+            result = taskService.submitTask(taskId, getCurrentUsername());
         }
         return ResponseEntity.ok(result);
     }
@@ -170,8 +172,9 @@ public class TaskController
         int successCount = 0;
         int failCount = 0;
         TaskResultDto result;
+        String username = getCurrentUsername();
         for (Long tid : tids) {
-            result = taskService.submitTask(tid);
+            result = taskService.submitTask(tid, username);
             if (result.success()) {
                 successCount++;
             }
@@ -226,5 +229,14 @@ public class TaskController
     {
         TaskResultDto result = taskService.killTask(tid);
         return ResponseEntity.ok(result);
+    }
+
+    private String getCurrentUsername()
+    {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return null;
+        }
+        return auth.getName();
     }
 }

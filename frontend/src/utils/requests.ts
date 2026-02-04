@@ -8,6 +8,8 @@ import axios, {
 } from 'axios'
 import { notify } from '@/stores/notifier'
 import { useAuthStore } from '@/stores/auth'
+import pinia from '@/plugins/pinia'
+import { getActivePinia, setActivePinia } from 'pinia'
 
 // axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 // axios.defaults.timeout = 5000;
@@ -19,9 +21,13 @@ class Requests {
   private instance: AxiosInstance
   private authStore: ReturnType<typeof useAuthStore>
 
-  constructor(baseURL: string, timeout = 60000, authStore: ReturnType<typeof useAuthStore>) {
+  constructor(baseURL: string, timeout = 60000) {
     // 创建 Axios 实例
-    this.authStore = authStore
+    // Ensure an active pinia for usage outside components
+    if (!getActivePinia()) {
+      setActivePinia(pinia)
+    }
+    this.authStore = useAuthStore(pinia)
     this.instance = axios.create({
       baseURL,
       timeout
@@ -113,6 +119,4 @@ class Requests {
   }
 }
 
-const authStore = useAuthStore()
-
-export default new Requests(import.meta.env.VITE_API_BASE_URL, 5000, authStore)
+export default new Requests(import.meta.env.VITE_API_BASE_URL, 5000)

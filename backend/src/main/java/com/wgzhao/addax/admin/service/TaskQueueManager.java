@@ -19,6 +19,16 @@ public interface TaskQueueManager
 
     boolean addTaskToQueue(long tableId);
 
+    default boolean addTaskToQueue(EtlTable etlTable, String payload)
+    {
+        return addTaskToQueue(etlTable);
+    }
+
+    default boolean addTaskToQueue(long tableId, String payload)
+    {
+        return addTaskToQueue(tableId);
+    }
+
     int clearQueue();
 
     Map<String, Object> getQueueStatus();
@@ -27,4 +37,3 @@ public interface TaskQueueManager
 
     void truncateQueueExceptRunningTasks();
 }
-

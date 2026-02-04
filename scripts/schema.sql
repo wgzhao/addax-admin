@@ -380,6 +380,24 @@ comment on column public.notification.call is '是否拨打语音，拨打成功
 
 comment on column public.notification.create_at is '消息生成的时间，自动生成';
 
+create table public.user_notification
+(
+  id         bigserial
+    primary key,
+  username   varchar(64)                         not null,
+  title      varchar(200)                        not null,
+  content    text,
+  type       varchar(50),
+  status     varchar(16) default 'UNREAD'::character varying not null,
+  ref_type   varchar(50),
+  ref_id     varchar(64),
+  created_at timestamp default CURRENT_TIMESTAMP not null,
+  read_at    timestamp
+);
+
+create index idx_user_notification_user_status
+  on public.user_notification (username, status, created_at);
+
 create table public.schema_change_log
 (
   id                 bigserial
