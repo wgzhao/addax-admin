@@ -6,6 +6,7 @@ import Fonts from 'unplugin-fonts/vite'
 import VueRouter from 'unplugin-vue-router/vite'
 import Layouts from "vite-plugin-vue-layouts-next";
 import { loadEnv } from "vite";
+import { readFileSync } from "node:fs";
 
 // Utilities
 import { defineConfig } from "vite";
@@ -14,6 +15,9 @@ import { fileURLToPath, URL } from "node:url";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
+  const pkg = JSON.parse(
+    readFileSync(new URL("./package.json", import.meta.url), "utf-8")
+  );
   return {
     plugins: [
       VueRouter({
@@ -65,7 +69,10 @@ export default defineConfig(({ mode }) => {
         'unplugin-vue-router/data-loaders/basic',
       ],
     },
-    define: { "process.env": {} },
+    define: {
+      "process.env": {},
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version || "dev"),
+    },
     resolve: {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url))

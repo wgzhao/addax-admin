@@ -43,6 +43,8 @@
           ? 'rgba(66, 165, 245, 0.1)' // 暗模式浅蓝填充
           : 'rgba(25, 118, 210, 0.1)', // 亮模式深蓝填充
         borderColor: isDark.value ? '#42a5f5' : '#1976d2', // 动态线条颜色
+        tension: 0.35,
+        cubicInterpolationMode: 'monotone' as const,
         pointRadius: 3,
         pointBackgroundColor: isDark.value ? '#42a5f5' : '#1976d2',
         pointBorderColor: isDark.value ? '#42a5f5' : '#1976d2',

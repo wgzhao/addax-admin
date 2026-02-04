@@ -45,14 +45,14 @@
     // 收集所有唯一的采集源并按时间排序（最新的在前）
 
     const colors = [
-      '#42a5f5', // 蓝色
-      '#66bb6a', // 绿色
-      '#ffa726', // 橙色
-      '#ef5350', // 红色
-      '#ab47bc', // 紫色
-      '#26a69a', // 青色
-      '#ff7043', // 深橙色
-      '#8e24aa' // 深紫色
+      '#2563EB', // 蓝
+      '#22C55E', // 绿
+      '#F59E0B', // 橙
+      '#EF4444', // 红
+      '#A855F7', // 紫
+      '#14B8A6', // 青
+      '#F97316', // 深橙
+      '#0EA5E9' // 天蓝
     ]
 
     // 为每个 biz_date 创建一个数据集
@@ -60,9 +60,12 @@
       return {
         label: item.biz_date,
         data: item.total_secs,
-        backgroundColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length] + '55',
         borderColor: colors[index % colors.length],
-        borderWidth: 1
+        borderWidth: 1,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 26
       }
     })
 
@@ -82,21 +85,24 @@
           display: false
         },
         ticks: {
-          color: isDark.value ? '#ffffff' : '#333333' // 暗模式白色，亮模式深灰
+          color: isDark.value ? '#E2E8F0' : '#334155',
+          font: { size: 11 }
         }
       },
       y: {
         grid: {
-          color: isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' // 暗模式浅白，亮模式浅黑
+          color: isDark.value ? 'rgba(226, 232, 240, 0.12)' : 'rgba(15, 23, 42, 0.08)'
         },
         ticks: {
-          color: isDark.value ? '#ffffff' : '#333333',
-          beginAtZero: true
+          color: isDark.value ? '#E2E8F0' : '#334155',
+          beginAtZero: true,
+          font: { size: 11 }
         },
         title: {
           display: true,
           text: '耗时 (秒)',
-          color: isDark.value ? '#ffffff' : '#333333'
+          color: isDark.value ? '#E2E8F0' : '#334155',
+          font: { size: 12, weight: 600 }
         }
       }
     },
@@ -105,13 +111,20 @@
         display: true,
         position: 'bottom' as const,
         labels: {
-          color: isDark.value ? '#ffffff' : '#333333'
+          color: isDark.value ? '#E2E8F0' : '#334155',
+          usePointStyle: true,
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 16,
+          font: { size: 11 }
         }
       },
       tooltip: {
-        backgroundColor: isDark.value ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
-        titleColor: isDark.value ? '#ffffff' : '#333333',
-        bodyColor: isDark.value ? '#ffffff' : '#333333'
+        backgroundColor: isDark.value ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
+        titleColor: isDark.value ? '#F8FAFC' : '#0F172A',
+        bodyColor: isDark.value ? '#E2E8F0' : '#334155',
+        borderColor: isDark.value ? 'rgba(148,163,184,0.2)' : 'rgba(15,23,42,0.1)',
+        borderWidth: 1
       },
       title: {
         display: false,
@@ -148,12 +161,10 @@
   }
 
   .dark-mode {
-    background-color: #1e293b;
-    /* 暗模式背景 */
+    background-color: transparent;
   }
 
   .chart-wrapper:not(.dark-mode) {
-    background-color: #ffffff;
-    /* 亮模式背景 */
+    background-color: transparent;
   }
 </style>

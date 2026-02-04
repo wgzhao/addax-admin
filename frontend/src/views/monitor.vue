@@ -1,10 +1,10 @@
 <template>
-  <v-container fluid class="pa-6">
-    <v-row dense>
+  <v-container fluid class="pa-6 monitor-page">
+    <v-row dense class="section-grid">
       <!-- 数据源完成情况 -->
       <v-col cols="12" md="12">
-        <v-card flat :title="accomplishListTable.title" class="mb-4">
-          <v-card-text>
+        <v-card flat :title="accomplishListTable.title" class="mb-4 section-card">
+          <v-card-text class="section-body">
             <v-data-table
               :items="data.accomplishList"
               :headers="accomplishListTable.headers"
@@ -17,11 +17,11 @@
       </v-col>
     </v-row>
 
-    <v-row dense>
+    <v-row dense class="section-grid">
       <!-- 特殊任务提醒 -->
       <v-col cols="12" md="7">
-        <v-card flat :title="specialTaskTable.title" class="mb-4">
-          <v-card-text>
+        <v-card flat :title="specialTaskTable.title" class="mb-4 section-card">
+          <v-card-text class="section-body">
             <v-data-table
               :items="data.specialTask"
               :headers="specialTaskTable.headers"
@@ -35,10 +35,10 @@
 
       <!-- 采集拒绝行信息 -->
       <v-col cols="12" md="5">
-        <v-row>
+        <v-row class="section-grid">
           <v-col cols="12" md="12">
-            <v-card flat :title="rejectTaskTable.title" class="mb-4">
-              <v-card-text>
+            <v-card flat :title="rejectTaskTable.title" class="mb-4 section-card">
+              <v-card-text class="section-body">
                 <v-data-table
                   :items="data.rejectTask"
                   :headers="rejectTaskTable.headers"
@@ -53,8 +53,8 @@
           </v-col>
           <!-- 短信发送情况 -->
           <v-col cols="12" md="12">
-            <v-card flat :title="smsDetailTable.title" class="mb-4">
-              <v-card-text>
+            <v-card flat :title="smsDetailTable.title" class="mb-4 section-card">
+              <v-card-text class="section-body">
                 <v-data-table
                   :items="data.smsDetail"
                   :headers="smsDetailTable.headers"
@@ -72,8 +72,8 @@
 
       <!-- 字段变更提醒（后端分页） -->
       <v-col cols="12" md="12">
-        <v-card flat :title="fieldChangeTable.title" class="mb-4">
-          <v-card-text>
+        <v-card flat :title="fieldChangeTable.title" class="mb-4 section-card">
+          <v-card-text class="section-body">
             <v-data-table-server
               :items="fieldChangeItems"
               :headers="fieldChangeTable.headers"
@@ -91,8 +91,8 @@
 
     <!-- 系统风险检测结果 -->
     <v-col cols="12" md="12">
-      <v-card flat :title="sysRiskTable.title" class="mb-4">
-        <v-card-text>
+      <v-card flat :title="sysRiskTable.title" class="mb-4 section-card">
+        <v-card-text class="section-body">
           <v-data-table
             :items="data.sysRisk"
             :headers="sysRiskTable.headers"
@@ -357,6 +357,24 @@
     })
   })
 </script>
+<style scoped>
+.monitor-page {
+  background: rgb(var(--v-theme-surface));
+}
+
+.section-grid {
+  row-gap: 12px;
+}
+
+.section-card {
+  background: rgb(var(--v-theme-surface-variant));
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.section-body {
+  background: transparent;
+}
+</style>
 <route lang="json">
 {
   "meta": {
