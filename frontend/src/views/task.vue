@@ -208,12 +208,9 @@
   }
   function parseProgress(progress: any) {
     if (progress == null) return 0
-    if (typeof progress === 'string') {
-      const num = parseInt(progress, 10)
-      if (Number.isNaN(num)) return 0
-      return Math.max(0, Math.min(100, num))
-    }
-    if (typeof progress === 'number') return Math.max(0, Math.min(100, Math.floor(progress)))
+    const num = Number(progress)
+    if (Number.isNaN(num)) return 0
+    return Math.max(0, Math.min(100, Math.floor(num)))
     return 0
   }
 </script>

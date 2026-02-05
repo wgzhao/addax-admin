@@ -1,11 +1,12 @@
 <template>
-  <v-card class="mx-auto" max-width="1200" min-width="800">
-    <v-card-title class="d-flex align-center">
+  <v-card class="mx-auto addax-card" max-width="1200" min-width="800" density="comfortable">
+    <v-card-title class="d-flex align-center addax-title">
       <v-icon left class="mr-2">mdi-code-json</v-icon>
       Addax 采集任务配置
     </v-card-title>
 
-    <v-card-text>
+    <v-divider />
+    <v-card-text class="addax-body">
       <div v-if="loading" class="d-flex justify-center">
         <v-progress-circular indeterminate color="primary"></v-progress-circular>
       </div>
@@ -17,42 +18,43 @@
       </div>
 
       <div v-else-if="jobContent" class="json-container">
-        <div class="d-flex justify-space-between align-center mb-3">
-          <v-chip color="primary" size="small">
-            <v-icon left size="small">mdi-file-code</v-icon>
-            JSON 配置
-          </v-chip>
-          <div>
-            <template v-if="!editing">
-              <v-btn size="small" variant="outlined" class="mr-2" @click="copyToClipboard" prepend-icon="mdi-content-copy">
-                复制
-              </v-btn>
-              <v-btn size="small" variant="tonal" class="mr-2" @click="startEdit" prepend-icon="mdi-pencil">
-                编辑
-              </v-btn>
-            </template>
-            <template v-else>
-              <v-btn size="small" variant="text" class="mr-2" @click="cancelEdit">取消</v-btn>
-              <v-btn size="small" color="primary" :disabled="!dirty" @click="saveEdit">保存</v-btn>
-            </template>
+        <v-sheet class="form-section" rounded="lg" border>
+          <div class="section-header">
+            <v-icon size="18" color="primary">mdi-file-code</v-icon>
+            <span>JSON 配置</span>
+            <v-spacer />
+            <div class="header-actions">
+              <template v-if="!editing">
+                <v-btn size="small" variant="tonal" @click="copyToClipboard" prepend-icon="mdi-content-copy">
+                  复制
+                </v-btn>
+                <v-btn size="small" variant="tonal" color="primary" @click="startEdit" prepend-icon="mdi-pencil">
+                  编辑
+                </v-btn>
+              </template>
+              <template v-else>
+                <v-btn size="small" variant="text" @click="cancelEdit">取消</v-btn>
+                <v-btn size="small" color="primary" :disabled="!dirty" @click="saveEdit">保存</v-btn>
+              </template>
+            </div>
           </div>
-        </div>
-
-        <v-card variant="outlined" class="code-card">
-          <div v-if="!editing">
-            <pre><code class="language-json hljs" v-html="highlightedCode"></code></pre>
+          <v-divider />
+          <div class="code-wrap">
+            <div v-if="!editing">
+              <pre><code class="language-json hljs" v-html="highlightedCode"></code></pre>
+            </div>
+            <div v-else>
+              <v-textarea
+                v-model="editContent"
+                auto-grow
+                rows="10"
+                class="mono-text"
+                style="width:100%"
+                @input="onEditInput"
+              />
+            </div>
           </div>
-          <div v-else>
-            <v-textarea
-              v-model="editContent"
-              auto-grow
-              rows="10"
-              class="mono-text"
-              style="width:100%"
-              @input="onEditInput"
-            />
-          </div>
-        </v-card>
+        </v-sheet>
       </div>
 
       <div v-else class="text-center text-medium-emphasis">
@@ -196,20 +198,56 @@ async function saveEdit() {
 }
 </script>
 <style scoped>
+.addax-card {
+  background: rgb(var(--v-theme-surface));
+}
+
+.addax-title {
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.addax-body {
+  background: transparent;
+}
+
+.form-section {
+  background: rgb(var(--v-theme-surface-variant));
+  border-color: rgba(var(--v-theme-on-surface), 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-section:hover {
+  border-color: rgba(var(--v-theme-primary), 0.2);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-wrap {
+  padding: 12px 14px 14px;
+}
+
 .json-container {
   width: 100%;
 }
 
-.code-card {
-  background-color: #ffffff;
-  border: 1px solid #d1d9e0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.code-card pre {
+.code-wrap pre {
   margin: 0;
-  padding: 16px;
+  padding: 12px 12px;
   background-color: transparent;
   overflow-x: auto;
   font-family:
@@ -227,7 +265,7 @@ async function saveEdit() {
   font-size: 13px;
 }
 
-.code-card code {
+.code-wrap code {
   background-color: transparent;
   padding: 0;
   border-radius: 0;
@@ -235,40 +273,34 @@ async function saveEdit() {
   font-size: inherit;
 }
 
-/* 深色主题适配 */
-.v-theme--dark .code-card {
-  background-color: #1e1e1e;
-  border: 1px solid #3e3e3e;
-}
-
 /* 滚动条样式 */
-.code-card pre::-webkit-scrollbar {
+.code-wrap pre::-webkit-scrollbar {
   height: 8px;
 }
 
-.code-card pre::-webkit-scrollbar-track {
+.code-wrap pre::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
 }
 
-.code-card pre::-webkit-scrollbar-thumb {
+.code-wrap pre::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
 
-.code-card pre::-webkit-scrollbar-thumb:hover {
+.code-wrap pre::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.v-theme--dark .code-card pre::-webkit-scrollbar-track {
+.v-theme--dark .code-wrap pre::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.v-theme--dark .code-card pre::-webkit-scrollbar-thumb {
+.v-theme--dark .code-wrap pre::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.v-theme--dark .code-card pre::-webkit-scrollbar-thumb:hover {
+.v-theme--dark .code-wrap pre::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
 }
 </style>

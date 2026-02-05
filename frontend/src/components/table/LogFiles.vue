@@ -1,35 +1,64 @@
 <template>
   <!-- 调度和命令日志 -->
   <!-- <dialog-comp v-mode="dialog" title="调度/命令日志"> -->
-  <v-card prepend-icon="mdi-file-document-outline" title="调度/命令日志">
-    <v-card-text>
-      <v-row>
-        <v-col cols="12" sm="auto">
-          <div class="d-flex flex-wrap ga-2">
-            <v-chip v-for="item in logList" :key="item.id" :color="selectedLogId === item.id ? 'primary' : 'default'"
-              :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
-              @click="getContent(item.id)">
-              <v-icon start size="small">mdi-file-document-outline</v-icon>
-              {{ item.runAt }}
-            </v-chip>
-          </div>
+  <v-card prepend-icon="mdi-file-document-outline" title="调度/命令日志" class="log-card" density="comfortable">
+    <v-card-text class="log-body">
+      <v-row dense>
+        <v-col cols="12">
+          <v-sheet class="form-section" rounded="lg" border>
+            <div class="section-header">
+              <v-icon size="18" color="primary">mdi-format-list-bulleted</v-icon>
+              <span>日志列表</span>
+              <v-spacer />
+              <span class="chip-hint">共 {{ logList.length }} 条</span>
+            </div>
+            <v-divider />
+            <div class="chips-wrap">
+              <v-chip v-for="item in logList" :key="item.id" :color="selectedLogId === item.id ? 'primary' : 'default'"
+                :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
+                @click="getContent(item.id)">
+                <v-icon start size="small">mdi-file-document-outline</v-icon>
+                {{ item.runAt }}
+              </v-chip>
+            </div>
+          </v-sheet>
         </v-col>
       </v-row>
-      <v-row>
+      <v-row dense>
         <!-- 展示日志内容-->
-        <v-col cols="12" class="pa-0">
-          <v-card variant="outlined" class="ma-2">
-            <v-card-title class="d-flex flex-column flex-sm-row align-start align-sm-center ga-2">
-              <div class="d-flex align-center">
-                <v-icon class="me-2">mdi-file-document-outline</v-icon>
-                日志内容
+        <v-col cols="12">
+          <v-sheet class="form-section" rounded="lg" border>
+            <div class="section-header">
+              <v-icon size="18" color="primary">mdi-text-box-outline</v-icon>
+              <span>日志内容</span>
+              <v-spacer />
+              <div class="header-actions">
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  :disabled="!fContent"
+                  @click="copyLog"
+                  prepend-icon="mdi-content-copy"
+                >
+                  复制
+                </v-btn>
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  color="secondary"
+                  :disabled="!fContent"
+                  @click="downloadLog"
+                  prepend-icon="mdi-download"
+                >
+                  下载
+                </v-btn>
               </div>
-
-            </v-card-title>
+            </div>
             <v-divider></v-divider>
-            <v-card-text class="pa-0">
+            <div class="log-content-wrap">
               <!-- 空状态 (没有选择任何日志) -->
-              <div v-if="!selectedLogId" class="text-center pa-8">
+              <div v-if="!selectedLogId" class="empty-state">
                 <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-file-document-outline</v-icon>
                 <div class="text-h6 text-grey-darken-1 mb-2">No log selected</div>
                 <div class="text-body-2 text-grey">Please select a log file from above to view its content.</div>
@@ -44,16 +73,16 @@
                   </div>
                 </v-overlay>
                 <!-- 日志内容 -->
-                <div v-if="fContent" class="text-body-2 pa-4 log-content" v-html="fContent"></div>
+                <div v-if="fContent" class="text-body-2 log-content" v-html="fContent"></div>
                 <!-- 加载失败状态 -->
-                <div v-else-if="!loading" class="text-center pa-8">
+                <div v-else-if="!loading" class="empty-state">
                   <v-icon size="48" color="error" class="mb-4">mdi-alert-circle</v-icon>
                   <div class="text-h6 text-error mb-2">Failed to load log</div>
                   <div class="text-body-2 text-grey">Please try selecting the log file again.</div>
                 </div>
               </div>
-            </v-card-text>
-          </v-card>
+            </div>
+          </v-sheet>
         </v-col>
       </v-row>
     </v-card-text>
@@ -61,6 +90,7 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { notify } from "@/stores/notifier";
 import logService from "@/service/log-service";
 
 // const dialog = defineModel({ required: true, default: true });
@@ -111,14 +141,88 @@ onMounted(() => {
     }
   });
 });
+
+const copyLog = async () => {
+  if (!fContent.value) return;
+  try {
+    await navigator.clipboard.writeText(String(fContent.value));
+    notify('日志已复制到剪贴板', 'success');
+  } catch (err) {
+    notify('复制失败，请手动复制', 'error');
+  }
+};
+
+const downloadLog = () => {
+  if (!fContent.value) return;
+  const fileName = selectedLogId.value ? `log-${selectedLogId.value}.txt` : 'log.txt';
+  const blob = new Blob([String(fContent.value)], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  notify('日志已开始下载', 'success');
+};
 </script>
 <style scoped>
+.log-card {
+  background: rgb(var(--v-theme-surface));
+}
+
+.log-body {
+  background: transparent;
+}
+
+.form-section {
+  background: rgb(var(--v-theme-surface-variant));
+  border-color: rgba(var(--v-theme-on-surface), 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-section:hover {
+  border-color: rgba(var(--v-theme-primary), 0.2);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+
+.chip-hint {
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+.log-content-wrap {
+  padding: 12px 14px 14px;
+}
+
 .log-content {
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.5;
-  /* background-color: rgb(var(--v-theme-surface-variant)); */
-  border-radius: 4px;
+  border-radius: 10px;
   max-height: 60vh;
   overflow-y: auto;
   font-size: 0.875rem;
@@ -148,6 +252,11 @@ onMounted(() => {
 /* 确保相对定位的容器有最小高度 */
 .position-relative {
   min-height: 200px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 8px;
 }
 
 /* 改进空状态的图标动画 */

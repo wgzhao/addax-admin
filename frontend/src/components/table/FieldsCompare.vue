@@ -1,8 +1,8 @@
 <template>
   <!-- 字段对比 -->
   <!-- <dialog-comp title="字段对比" v-model="dialog"> -->
-    <v-card prepend-icon="mdi-table-column" title="字段对比">
-      <v-card-text>
+  <v-card prepend-icon="mdi-table-column" title="字段对比" class="fields-compare-card" density="comfortable">
+    <v-card-text class="fields-compare-body">
   <v-data-table :headers="headers" :items="fields" hide-default-footer density="compact" no-data-text="无数据"
     :items-per-page="-1">
     <template v-slot:item="{ item }">
@@ -72,6 +72,34 @@ onMounted(() => {
 });
 </script>
 <style scoped>
+.fields-compare-card {
+  background: rgb(var(--v-theme-surface));
+}
+
+.fields-compare-body {
+  background: transparent;
+}
+
+/* Better row grouping visual */
+.fields-compare-body :deep(table) {
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.fields-compare-body :deep(tbody tr) {
+  box-shadow: 0 1px 0 rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.fields-compare-body :deep(tbody tr td:first-child) {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.fields-compare-body :deep(tbody tr td:last-child) {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
 /* 使用主题色的轻微底色区分源/目标行，保持对比度温和 */
 .source-row {
   background-color: rgba(var(--v-theme-primary), 0.06);

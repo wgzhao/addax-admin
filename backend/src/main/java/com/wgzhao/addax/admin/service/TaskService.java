@@ -314,10 +314,14 @@ public class TaskService
             target_db || '.' ||  target_table as tbl,
             status,
             to_char(start_time, 'yyyy-MM-dd HH24:MM:SS') as start_time,
+            least(
+            100,
             round(
             case when status in ('E','W') then 0
-                else  extract(epoch from now() - t.start_time) * 1.0 / COALESCE(b.take_secs, ?)
-            end ,2)
+                else  extract(epoch from now() - t.start_time) * 100.0 / COALESCE(b.take_secs, ?)
+            end ,0
+            )
+            )::int
             as progress
             from etl_table t
             left join
