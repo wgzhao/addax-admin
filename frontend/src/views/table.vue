@@ -97,6 +97,7 @@
         :items="table"
         :headers="headers"
         :items-per-page="currPageSize"
+        :items-per-page-options="[15, 30, 50, 100]"
         :items-length="totalItems"
         item-value="id"
         :loading="loading"
@@ -189,57 +190,197 @@
           Keep icons and tooltip text in sync when changing.
         -->
         <template v-slot:item.action="{ item }">
-          <v-menu location="bottom end" open-on-click>
-            <template #activator="{ props }">
-              <v-btn v-bind="props" size="small" icon class="icon-btn--compact" aria-label="操作">
-                <v-icon size="18">mdi-dots-vertical</v-icon>
-              </v-btn>
-            </template>
-            <v-list density="compact" class="action-menu">
-              <v-list-subheader>查看</v-list-subheader>
-              <v-list-item
-                title="详情"
-                prepend-icon="mdi-information-outline"
-                @click="openDialog('TableDetail', item)"
-              />
-              <v-list-item
-                title="模板"
-                prepend-icon="mdi-file-code"
-                @click="openDialog('AddaxJob', item)"
-              />
-              <v-list-item
-                title="日志"
-                prepend-icon="mdi-text-box"
-                @click="openDialog('LogFiles', item)"
-              />
-              <v-list-item
-                title="字段"
-                prepend-icon="mdi-table-column"
-                @click="openDialog('FieldsCompare', item)"
-              />
-              <v-list-item
-                title="结果"
-                prepend-icon="mdi-table"
-                @click="openDialog('AddaxResult', item)"
-              />
-              <v-divider class="my-1" />
-              <v-list-subheader>操作</v-list-subheader>
-              <v-list-item
-                title="表更新"
-                prepend-icon="mdi-database-refresh"
-                @click="updateSchema(item)"
-              />
-              <v-list-item title="采集" prepend-icon="mdi-play-circle" @click="doEtl(item)" />
-              <v-divider class="my-1" />
-              <v-list-subheader>危险</v-list-subheader>
-              <v-list-item
-                title="删除"
-                prepend-icon="mdi-delete"
-                class="danger-item"
-                @click="confirmDelete(item)"
-              />
-            </v-list>
-          </v-menu>
+          <div class="action-inline">
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="primary"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="详情"
+                  @click="openDialog('TableDetail', item)"
+                >
+                  <v-icon size="18">mdi-information-outline</v-icon>
+                </v-btn>
+              </template>
+              <span>详情</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="indigo"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="模板"
+                  @click="openDialog('AddaxJob', item)"
+                >
+                  <v-icon size="18">mdi-file-code</v-icon>
+                </v-btn>
+              </template>
+              <span>模板</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="green"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="日志"
+                  @click="openDialog('LogFiles', item)"
+                >
+                  <v-icon size="18" color="white">mdi-text-box</v-icon>
+                </v-btn>
+              </template>
+              <span>日志</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="cyan-darken-1"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="字段"
+                  @click="openDialog('FieldsCompare', item)"
+                >
+                  <v-icon size="18">mdi-table-column</v-icon>
+                </v-btn>
+              </template>
+              <span>字段</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="indigo-accent-4"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="结果"
+                  @click="openDialog('AddaxResult', item)"
+                >
+                  <v-icon size="18">mdi-table</v-icon>
+                </v-btn>
+              </template>
+              <span>结果</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="warning"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="表更新"
+                  @click="updateSchema(item)"
+                >
+                  <v-icon size="18">mdi-database-refresh</v-icon>
+                </v-btn>
+              </template>
+              <span>表更新</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="info"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="采集"
+                  @click="doEtl(item)"
+                >
+                  <v-icon size="18">mdi-play-circle</v-icon>
+                </v-btn>
+              </template>
+              <span>采集</span>
+            </v-tooltip>
+
+            <v-tooltip location="top">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  color="error"
+                  icon
+                  class="mr-1 icon-btn--compact"
+                  aria-label="删除"
+                  @click="confirmDelete(item)"
+                >
+                  <v-icon size="18">mdi-delete</v-icon>
+                </v-btn>
+              </template>
+              <span>删除</span>
+            </v-tooltip>
+          </div>
+
+          <div class="action-menu">
+            <v-menu location="bottom end" open-on-click>
+              <template #activator="{ props }">
+                <v-btn v-bind="props" size="small" icon class="icon-btn--compact" aria-label="操作">
+                  <v-icon size="18">mdi-dots-vertical</v-icon>
+                </v-btn>
+              </template>
+              <v-list density="compact" class="action-menu-list">
+                <v-list-subheader>查看</v-list-subheader>
+                <v-list-item
+                  title="详情"
+                  prepend-icon="mdi-information-outline"
+                  @click="openDialog('TableDetail', item)"
+                />
+                <v-list-item
+                  title="模板"
+                  prepend-icon="mdi-file-code"
+                  @click="openDialog('AddaxJob', item)"
+                />
+                <v-list-item
+                  title="日志"
+                  prepend-icon="mdi-text-box"
+                  @click="openDialog('LogFiles', item)"
+                />
+                <v-list-item
+                  title="字段"
+                  prepend-icon="mdi-table-column"
+                  @click="openDialog('FieldsCompare', item)"
+                />
+                <v-list-item
+                  title="结果"
+                  prepend-icon="mdi-table"
+                  @click="openDialog('AddaxResult', item)"
+                />
+                <v-divider class="my-1" />
+                <v-list-subheader>操作</v-list-subheader>
+                <v-list-item
+                  title="表更新"
+                  prepend-icon="mdi-database-refresh"
+                  @click="updateSchema(item)"
+                />
+                <v-list-item title="采集" prepend-icon="mdi-play-circle" @click="doEtl(item)" />
+                <v-divider class="my-1" />
+                <v-list-subheader>危险</v-list-subheader>
+                <v-list-item
+                  title="删除"
+                  prepend-icon="mdi-delete"
+                  class="danger-item"
+                  @click="confirmDelete(item)"
+                />
+              </v-list>
+            </v-menu>
+          </div>
         </template>
       </v-data-table-server>
     </v-card-text>
@@ -295,7 +436,7 @@
   const table = ref([])
   const search = ref('')
   const selected = ref([])
-  const currPageSize = ref(10)
+  const currPageSize = ref(15)
   const totalItems = ref(0)
   const loading = ref(true)
   const dialogVisible = ref(false)
@@ -348,9 +489,8 @@
       title: '#',
       key: 'id',
       align: 'center' as const,
-      width: '64px',
       minWidth: '64px',
-      maxWidth: '64px'
+      maxWidth: '80px'
     },
     {
       title: '系统名称及代码',
@@ -382,10 +522,10 @@
       key: 'filter',
       align: 'start' as const,
       sortable: true,
-      width: '10%'
+      width: '8%',
+      maxWidth: '200px'
     },
     { title: '状态', key: 'status', align: 'center' as const, sortable: true, width: '5%' },
-    { title: '剩余', key: 'retryCnt', align: 'center' as const, sortable: true, width: '5%' },
     { title: '耗时', key: 'duration', align: 'center' as const, sortable: true, width: '5%' },
     { title: '完成时间', key: 'endTime', align: 'center' as const, sortable: true, width: '12%' },
     { title: '操作', key: 'action', align: 'center' as const, sortable: false, width: '8%' }
@@ -699,8 +839,31 @@ retryCnt: retryCnt.value
     margin-right: 8px !important;
   }
 
-  .action-menu :deep(.danger-item) {
+  .action-menu-list :deep(.danger-item) {
     color: rgb(var(--v-theme-error));
+  }
+
+  .action-inline {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+
+
+  .action-menu {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (min-width: 1366px) {
+    .action-inline {
+      display: inline-flex;
+    }
+    .action-menu {
+      display: none;
+    }
   }
 </style>
 
