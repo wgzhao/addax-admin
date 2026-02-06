@@ -1,7 +1,7 @@
 <template>
   <v-card flat title="采集表配置">
     <template v-slot:text>
-      <v-row justify="center" align-content="center">
+      <v-row justify="center" align-content="center" >
         <v-col cols="3">
           <v-text-field
             v-model="search"
@@ -15,7 +15,7 @@
             @click:append-inner="searchTable"
           >
             <template #prepend>
-              <span class="me-2">关键字查询</span>
+              <span class="me-2">关键字</span>
             </template>
           </v-text-field>
         </v-col>
@@ -27,8 +27,9 @@
             item-title="label"
             item-value="value"
             density="compact"
+            variant="outlined"
             single-line
-            style="min-width: 150px"
+            hide-details
           >
             <template #prepend>
               <span class="me-2">状态</span>
@@ -37,7 +38,7 @@
         </v-col>
         <!-- add search button -->
         <v-col cols="1">
-          <v-btn variant="tonal" @click="searchTable">查询</v-btn>
+          <v-btn  variant="tonal" @click="searchTable">查询</v-btn>
         </v-col>
         <v-spacer></v-spacer>
         <v-col cols="auto">
@@ -49,11 +50,11 @@
           >
             新增表
           </v-btn>
-          <v-btn class="mr-2" variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
+          <v-btn class="mr-2"  variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
             更新表信息
           </v-btn>
           <v-btn
-            class="mr-2"
+            class="mr-2"          
             variant="tonal"
             color="warning"
             prepend-icon="mdi-update"
@@ -63,7 +64,7 @@
           </v-btn>
           <v-btn
             variant="tonal"
-            class="mr-2"
+            class="mr-2"            
             prepend-icon="mdi-delete"
             :disabled="selected.length === 0"
             @click="confirmBatchDelete"
@@ -72,7 +73,7 @@
           </v-btn>
           <v-btn
             variant="tonal"
-            class="mr-2"
+            class="mr-2"          
             prepend-icon="mdi-pencil"
             :disabled="selected.length === 0"
             @click="openDialog('BatchUpdate', 'BatchUpdate')"
@@ -81,7 +82,7 @@
           </v-btn>
           <v-btn
             variant="tonal"
-            class="mr-2"
+            class="mr-2"            
             prepend-icon="mdi-database"
             :disabled="selected.length === 0"
             @click="doEtl(null)"
@@ -109,7 +110,7 @@
         <!-- 顶部插槽：显示当前选中数量 -->
         <template #top>
           <v-row class="mb-2 px-3 py-2" align="center">
-            <v-chip v-if="selected.length > 0" color="secondary" variant="tonal" size="small">
+            <v-chip v-if="selected.length > 0" color="secondary" variant="tonal" >
               已选择 {{ selected.length }} 行
             </v-chip>
           </v-row>
@@ -117,7 +118,7 @@
         <template v-slot:item.status="{ item }">
           <v-chip
             :color="getStatusColor(item.status)"
-            size="small"
+            
             variant="flat"
             class="font-weight-bold"
           >
@@ -195,7 +196,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="primary"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -212,7 +213,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="indigo"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -229,7 +230,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="green"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -246,7 +247,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="cyan-darken-1"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -263,7 +264,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="indigo-accent-4"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -280,7 +281,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="warning"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -297,7 +298,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="info"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -314,7 +315,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  size="small"
+                  
                   color="error"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -331,7 +332,7 @@
           <div class="action-menu">
             <v-menu location="bottom end" open-on-click>
               <template #activator="{ props }">
-                <v-btn v-bind="props" size="small" icon class="icon-btn--compact" aria-label="操作">
+                <v-btn v-bind="props"  icon class="icon-btn--compact" aria-label="操作">
                   <v-icon size="18">mdi-dots-vertical</v-icon>
                 </v-btn>
               </template>
