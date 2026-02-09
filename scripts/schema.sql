@@ -83,7 +83,7 @@ create table public.etl_source
 (
   id              serial
     primary key,
-  code            varchar(10)       not null,
+  code            varchar(50)       not null,
   name            varchar(200)      not null,
   url             varchar(500)      not null,
   username        varchar(64),
