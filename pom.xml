@@ -4,7 +4,7 @@
 
     <groupId>com.wgzhao</groupId>
     <artifactId>addax-admin-parent</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.0.1</version>
     <packaging>pom</packaging>
 
     <name>Addax Admin Monorepo</name>
@@ -15,7 +15,7 @@
         <connection>scm:git:git://github.com/wgzhao/addax-admin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/wgzhao/addax-admin.git</developerConnection>
         <url>https://github.com/wgzhao/addax-admin</url>
-        <tag>HEAD</tag>
+        <tag>v3.0.1</tag>
     </scm>
 
     <properties>
