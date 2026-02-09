@@ -227,7 +227,7 @@
     headers: <DataTableHeader[]>[
       { title: '风险来源', key: 'source' },
       { title: '类别', key: 'riskLevel' },
-      { title: '风险摘要', key: 'message' },
+      { title: '风险摘要', key: 'message', maxWidth: '1200px' },
       { title: '关联表 ID', key: 'tid' },
       { title: '创建时间', key: 'createdAt' }
     ]
