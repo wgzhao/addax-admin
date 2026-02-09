@@ -38,6 +38,12 @@ html {
   border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
 }
 
+/* Zebra striping for data tables (light/dark theme aware) */
+.v-data-table tbody tr:nth-child(even),
+.v-data-table-server tbody tr:nth-child(even) {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+}
+
 /* Tighter form fields */
 .v-text-field .v-field {
   padding-top: 6px !important;

@@ -109,21 +109,22 @@
   </v-form>
 </template>
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import sourceService from "@/service/source-service";
 import { EtlSource } from "@/types/database";
 
 const props = defineProps({
   sid: Number,
-  mode: String
+  mode: String,
+  cloneData: Object
 });
 
 const form = ref<any>(null);
 
 const showPassword = ref(false);
 
-const sourceItem = ref<EtlSource>({
+const defaultSourceItem: EtlSource = {
   id: 0,
   code: "",
   name: "",
@@ -136,7 +137,9 @@ const sourceItem = ref<EtlSource>({
   remark: "",
   enabled: true,
   maxConcurrency: 10
-})
+};
+
+const sourceItem = ref<EtlSource>({ ...defaultSourceItem });
 
 const emit = defineEmits(["closeDialog", "save"]);
 
@@ -247,8 +250,24 @@ const testConnect = () => {
       notify('连接失败: ' + error, 'error');
     });
 }
-onMounted(() => {
-  console.log("mode = ", props.mode);
+const applyCloneData = () => {
+  const cloneData = props.cloneData as Partial<EtlSource> | undefined;
+  if (!cloneData) return;
+  sourceItem.value = {
+    ...defaultSourceItem,
+    ...cloneData,
+    id: 0,
+    code: ''
+  };
+};
+
+const initializeForm = () => {
+  if (props.mode === 'add') {
+    sourceItem.value = { ...defaultSourceItem };
+    applyCloneData();
+    return;
+  }
+
   if (props.sid != -1) {
     sourceService.get(Number(props.sid))
       .then(resp => {
@@ -259,7 +278,11 @@ onMounted(() => {
         notify(`加载数据源失败: ${error}`, 'error');
       });
   }
-})
+};
+
+watch(() => [props.sid, props.mode, props.cloneData], () => {
+  initializeForm();
+}, { immediate: true });
 </script>
 <style scoped>
 .add-source-card {

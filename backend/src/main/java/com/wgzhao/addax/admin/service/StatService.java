@@ -2,13 +2,13 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 
 @Service
 @AllArgsConstructor
@@ -221,6 +221,197 @@ public class StatService
                AND COUNT(DISTINCT total_recs) = 1
             """;
         return jdbcTemplate.queryForList(sql, days + 3, days);
+    }
+
+    // 近 N 天内，数据量无变化的表（基于每日最新记录）
+    public List<Map<String, Object>> getNoTableRowsChangeListInDays(int days)
+    {
+        int offset = Math.max(days - 1, 0);
+        String sql = """
+            WITH daily AS (
+              SELECT DISTINCT ON (tid, biz_date)
+                tid,
+                biz_date,
+                total_recs,
+                take_secs
+              FROM etl_statistic
+              WHERE biz_date >= current_date - ?
+              ORDER BY tid, biz_date DESC, start_at DESC, id DESC
+            ),
+            agg AS (
+              SELECT
+                tid,
+                min(biz_date) as start_date,
+                max(biz_date) as end_date,
+                count(*) as day_count,
+                min(total_recs) as min_recs,
+                max(total_recs) as max_recs
+              FROM daily
+              GROUP BY tid
+            )
+            SELECT a.tid,
+                   t.source_db,
+                   t.source_table,
+                   t.target_db,
+                   t.target_table,
+                   a.start_date,
+                   a.end_date,
+                   a.day_count,
+                   a.min_recs as total_recs
+            FROM agg a
+            JOIN etl_table t
+              ON a.tid = t.id
+            WHERE t.status <> 'X'
+              AND a.day_count >= 2
+              AND a.max_recs = a.min_recs
+            ORDER BY a.max_recs DESC
+            """;
+        return jdbcTemplate.queryForList(sql, offset);
+    }
+
+    // 近 N 天内，数据变化率小于指定阈值的表（基于每日最新记录）
+    public List<Map<String, Object>> getLowTableRowsChangeRateList(int days, double thresholdPct)
+    {
+        int offset = Math.max(days - 1, 0);
+        String sql = """
+            WITH daily AS (
+              SELECT DISTINCT ON (tid, biz_date)
+                tid,
+                biz_date,
+                total_recs
+              FROM etl_statistic
+              WHERE biz_date >= current_date - ?
+              ORDER BY tid, biz_date DESC, start_at DESC, id DESC
+            ),
+            agg AS (
+              SELECT
+                tid,
+                min(biz_date) as start_date,
+                max(biz_date) as end_date,
+                count(*) as day_count,
+                min(total_recs) as min_recs,
+                max(total_recs) as max_recs
+              FROM daily
+              GROUP BY tid
+            )
+            SELECT a.tid,
+                   t.source_db,
+                   t.source_table,
+                   t.target_db,
+                   t.target_table,
+                   a.start_date,
+                   a.end_date,
+                   a.day_count,
+                   a.min_recs,
+                   a.max_recs,
+                   round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) as change_rate_pct
+            FROM agg a
+            JOIN etl_table t
+              ON a.tid = t.id
+            WHERE t.status <> 'X'
+              AND a.day_count >= 2
+              AND a.min_recs > 0
+              AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) > 0
+              AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) < ?
+            ORDER BY change_rate_pct ASC, a.max_recs DESC
+            """;
+        return jdbcTemplate.queryForList(sql, offset, thresholdPct);
+    }
+
+    // 近 N 天内，数据变化率超过指定阈值的表（基于每日最新记录）
+    public List<Map<String, Object>> getHighTableRowsChangeRateList(int days, double thresholdPct)
+    {
+        int offset = Math.max(days - 1, 0);
+        String sql = """
+            WITH daily AS (
+              SELECT DISTINCT ON (tid, biz_date)
+                tid,
+                biz_date,
+                total_recs
+              FROM etl_statistic
+              WHERE biz_date >= current_date - ?
+              ORDER BY tid, biz_date DESC, start_at DESC, id DESC
+            ),
+            agg AS (
+              SELECT
+                tid,
+                min(biz_date) as start_date,
+                max(biz_date) as end_date,
+                count(*) as day_count,
+                min(total_recs) as min_recs,
+                max(total_recs) as max_recs
+              FROM daily
+              GROUP BY tid
+            )
+            SELECT a.tid,
+                   t.source_db,
+                   t.source_table,
+                   t.target_db,
+                   t.target_table,
+                   a.start_date,
+                   a.end_date,
+                   a.day_count,
+                   a.min_recs,
+                   a.max_recs,
+                   round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) as change_rate_pct
+            FROM agg a
+            JOIN etl_table t
+              ON a.tid = t.id
+            WHERE t.status <> 'X'
+              AND a.day_count >= 2
+              AND a.min_recs > 0
+              AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) > ?
+            ORDER BY change_rate_pct DESC, a.max_recs DESC
+            """;
+        return jdbcTemplate.queryForList(sql, offset, thresholdPct);
+    }
+
+    // 近 N 天内，采集耗时变动率超过指定阈值的表（基于每日最新记录）
+    public List<Map<String, Object>> getHighTableTimeChangeRateList(int days, double thresholdPct)
+    {
+        int offset = Math.max(days - 1, 0);
+        String sql = """
+            WITH daily AS (
+              SELECT DISTINCT ON (tid, biz_date)
+                tid,
+                biz_date,
+                take_secs
+              FROM etl_statistic
+              WHERE biz_date >= current_date - ?
+              ORDER BY tid, biz_date DESC, start_at DESC, id DESC
+            ),
+            agg AS (
+              SELECT
+                tid,
+                min(biz_date) as start_date,
+                max(biz_date) as end_date,
+                count(*) as day_count,
+                min(take_secs) as min_secs,
+                max(take_secs) as max_secs
+              FROM daily
+              GROUP BY tid
+            )
+            SELECT a.tid,
+                   t.source_db,
+                   t.source_table,
+                   t.target_db,
+                   t.target_table,
+                   a.start_date,
+                   a.end_date,
+                   a.day_count,
+                   a.min_secs,
+                   a.max_secs,
+                   round(abs(a.max_secs - a.min_secs) * 100.0 / nullif(a.min_secs, 0), 2) as change_rate_pct
+            FROM agg a
+            JOIN etl_table t
+              ON a.tid = t.id
+            WHERE t.status <> 'X'
+              AND a.day_count >= 2
+              AND a.min_secs > 0
+              AND round(abs(a.max_secs - a.min_secs) * 100.0 / nullif(a.min_secs, 0), 2) > ?
+            ORDER BY change_rate_pct DESC, a.max_secs DESC
+            """;
+        return jdbcTemplate.queryForList(sql, offset, thresholdPct);
     }
 
     // 获取指定表 ID 的最后一次采集时间

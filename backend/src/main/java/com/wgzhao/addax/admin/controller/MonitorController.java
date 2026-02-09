@@ -119,4 +119,39 @@ public class MonitorController
     {
         return ResponseEntity.ok(statService.getNoTableRowsChangeList(15));
     }
+
+    // 近 15 天内，数据量无变化的表
+    @RequestMapping("/insight/no-change")
+    public ResponseEntity<List<Map<String, Object>>> insightNoChange(
+        @RequestParam(value = "days", defaultValue = "15") int days)
+    {
+        return ResponseEntity.ok(statService.getNoTableRowsChangeListInDays(days));
+    }
+
+    // 近 15 天内，数据变化率小于 2% 的表
+    @RequestMapping("/insight/low-change")
+    public ResponseEntity<List<Map<String, Object>>> insightLowChange(
+        @RequestParam(value = "days", defaultValue = "15") int days,
+        @RequestParam(value = "threshold", defaultValue = "2") double threshold)
+    {
+        return ResponseEntity.ok(statService.getLowTableRowsChangeRateList(days, threshold));
+    }
+
+    // 近 15 天内，数据变化率超过 40% 的表
+    @RequestMapping("/insight/high-change")
+    public ResponseEntity<List<Map<String, Object>>> insightHighChange(
+        @RequestParam(value = "days", defaultValue = "15") int days,
+        @RequestParam(value = "threshold", defaultValue = "40") double threshold)
+    {
+        return ResponseEntity.ok(statService.getHighTableRowsChangeRateList(days, threshold));
+    }
+
+    // 近 15 天内，采集耗时变动率超过 40% 的表
+    @RequestMapping("/insight/time-change")
+    public ResponseEntity<List<Map<String, Object>>> insightTimeChange(
+        @RequestParam(value = "days", defaultValue = "15") int days,
+        @RequestParam(value = "threshold", defaultValue = "40") double threshold)
+    {
+        return ResponseEntity.ok(statService.getHighTableTimeChangeRateList(days, threshold));
+    }
 }

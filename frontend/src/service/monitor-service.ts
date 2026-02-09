@@ -54,5 +54,33 @@ class MonitorService {
   smsDetail(): Promise<Array<Map<string, any>>> {
     return Requests.get(this.prefix + '/sms-detail') as unknown as Promise<Array<Map<string, any>>>
   }
+
+  // 数据洞察：近 15 天数据量无变化
+  insightNoChange(params?: { days?: number }): Promise<Array<Map<string, any>>> {
+    return Requests.get(this.prefix + '/insight/no-change', params) as unknown as Promise<
+      Array<Map<string, any>>
+    >
+  }
+
+  // 数据洞察：近 15 天数据变化率 < 2%
+  insightLowChange(params?: { days?: number; threshold?: number }): Promise<Array<Map<string, any>>> {
+    return Requests.get(this.prefix + '/insight/low-change', params) as unknown as Promise<
+      Array<Map<string, any>>
+    >
+  }
+
+  // 数据洞察：近 15 天数据变化率 > 40%
+  insightHighChange(params?: { days?: number; threshold?: number }): Promise<Array<Map<string, any>>> {
+    return Requests.get(this.prefix + '/insight/high-change', params) as unknown as Promise<
+      Array<Map<string, any>>
+    >
+  }
+
+  // 数据洞察：近 15 天采集耗时变动率 > 40%
+  insightTimeChange(params?: { days?: number; threshold?: number }): Promise<Array<Map<string, any>>> {
+    return Requests.get(this.prefix + '/insight/time-change', params) as unknown as Promise<
+      Array<Map<string, any>>
+    >
+  }
 }
 export const monitorService = new MonitorService()

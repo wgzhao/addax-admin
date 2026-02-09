@@ -55,6 +55,14 @@
             ></v-btn>
             <v-btn
               variant="text"
+              color="info"
+              class="me-2"
+              @click="cloneSource(item)"
+              :title="'克隆'"
+              icon="mdi-content-copy"
+            ></v-btn>
+            <v-btn
+              variant="text"
               color="error"
               class="me-2"
               @click="openDeleteDialog(item.id, item.name)"
@@ -136,6 +144,20 @@
     }
     isShow.value = true
     mode.value = ctype
+  }
+
+  const cloneSource = (item) => {
+    params.value = {
+      mode: 'add',
+      sid: -1,
+      cloneData: {
+        ...item,
+        id: 0,
+        code: ''
+      }
+    }
+    isShow.value = true
+    mode.value = 'add'
   }
 
   const closeDialog = () => {

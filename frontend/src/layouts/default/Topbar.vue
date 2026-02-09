@@ -19,6 +19,7 @@
           </v-btn>
         </div>
       </template>
+      <!--
       <v-menu v-if="authStore.isLoggedIn" v-model="notifyMenu" offset-y>
         <template v-slot:activator="{ props }">
           <v-badge
@@ -66,6 +67,7 @@
           </div>
         </v-card>
       </v-menu>
+    -->
       <v-menu v-if="authStore.currentUserName" offset-y>
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
@@ -100,7 +102,7 @@ const router = useRouter()
 // const {global} = useTheme();
 
 const authStore = useAuthStore()
-const notifyMenu = ref(false)
+// const notifyMenu = ref(false)
 let notifyTimer: number | null = null
 
 // 定义菜单项类型
@@ -150,6 +152,10 @@ const urls = ref<MenuItem[]>([
     title: '日志管理'
   },
   {
+    path: '/data-insight',
+    title: '数据洞察'
+  },
+  {
     path: '/dict',
     title: '字典维护'
   }
@@ -197,7 +203,7 @@ const refreshNotifications = async () => {
   if (!authStore.isLoggedIn) return
   await notificationCenter.refreshUnreadCount()
 }
-
+/*
 const loadNotificationList = async () => {
   if (!authStore.isLoggedIn) return
   await notificationCenter.refreshList('ALL', 20)
@@ -237,7 +243,7 @@ watch(
     }
   }
 )
-
+*/
 watch(
   () => authStore.isLoggedIn,
   (loggedIn) => {
