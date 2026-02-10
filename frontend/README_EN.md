@@ -39,7 +39,6 @@ This project is part of a complete ETL management solution consisting of three c
 - **Build Tool**: Vite
 - **Chart Library**: Chart.js + Vue Chart.js
 - **HTTP Client**: Axios
-- **Code Standards**: ESLint + Prettier
 
 ## 📦 Quick Start
 
@@ -162,18 +161,6 @@ We welcome all forms of contributions! Please follow these steps:
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Create a Pull Request
-
-### Code Standards
-
-The project uses ESLint and Prettier to ensure code quality:
-
-```bash
-# Code linting
-npm run lint
-
-# Code formatting
-npm run format
-```
 
 ## 📄 License
 

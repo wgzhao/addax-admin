@@ -15,7 +15,6 @@
 - **构建工具**: Vite
 - **图表库**: Chart.js + Vue Chart.js
 - **HTTP 客户端**: Axios
-- **代码规范**: ESLint + Prettier
 
 ## 📦 快速开始
 
@@ -108,18 +107,6 @@ VITE_API_HOST=http://localhost:8080
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 创建 Pull Request
-
-### 代码规范
-
-项目使用 ESLint 和 Prettier 确保代码质量：
-
-```bash
-# 代码检查
-npm run lint
-
-# 代码格式化
-npm run format
-```
 
 ## 📄 许可证
 
