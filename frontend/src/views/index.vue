@@ -146,14 +146,13 @@
   const allDbSourceCount = ref(0)
   const totalEtlData = ref(0.0)
 
-  // 根据完成率返回不同颜色：100% 使用 success，其余使用 indigo-darken-1~4
+  // 使用主题色阶，保证明暗主题下都有清晰区分度
   function getProgressColor(prec: number) {
-    if (prec >= 100) return 'primary'
-    // 其余分层到 indigo-darken-1 ~ indigo-darken-4
-    if (prec >= 90) return 'indigo-darken-4'
-    if (prec >= 70) return 'indigo-darken-3'
-    if (prec >= 40) return 'indigo-darken-2'
-    return 'indigo-darken-1'
+    if (prec >= 100) return 'rgb(var(--v-theme-success))'
+    if (prec >= 85) return 'rgb(var(--v-theme-primary))'
+    if (prec >= 65) return 'rgb(var(--v-theme-info))'
+    if (prec >= 40) return 'rgb(var(--v-theme-warning))'
+    return 'rgb(var(--v-theme-error))'
   }
 
   function fetchRatio() {

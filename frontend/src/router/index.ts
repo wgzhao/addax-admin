@@ -20,6 +20,13 @@ routes.push({
 })
 
 routes.push({
+  path: '/help',
+  name: 'Help',
+  component: () => import('@/views/help.vue'),
+  meta: { title: '帮助文档', icon: 'mdi-book-open-variant' }
+})
+
+routes.push({
   path: '/login',
   name: 'Login',
   component: () => import('@/views/login.vue'),
