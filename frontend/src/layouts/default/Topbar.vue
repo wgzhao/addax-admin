@@ -73,6 +73,9 @@
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
         <v-list>
+          <v-list-item v-if="themeStore.hasUserPreference" @click="resetThemeToSystem">
+            <v-list-item-title>跟随系统主题</v-list-item-title>
+          </v-list-item>
           <v-list-item @click="$router.push('/change-password')">
             <v-list-item-title>修改密码</v-list-item-title>
           </v-list-item>
@@ -83,7 +86,11 @@
       </v-menu>
       <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">Login</v-btn>
       <!-- 深色/浅色模式切换按钮 -->
-      <v-btn icon @click="toggleTheme" :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'">
+      <v-btn
+        icon
+        @click="toggleThemeWithLog"
+        :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'"
+      >
         <v-icon>mdi-theme-light-dark</v-icon>
       </v-btn>
     </template>
@@ -91,9 +98,9 @@
   <!-- End of Topbar -->
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useTheme } from 'vuetify'
+import { useAppTheme } from '@/composables/useAppTheme'
 import { useRouter } from 'vue-router'
 import notificationCenter from '@/stores/notification-center'
 
@@ -102,6 +109,7 @@ const router = useRouter()
 // const {global} = useTheme();
 
 const authStore = useAuthStore()
+const { isDarkTheme, toggleTheme, themeStore, resetToSystemTheme } = useAppTheme()
 // const notifyMenu = ref(false)
 let notifyTimer: number | null = null
 
@@ -169,24 +177,15 @@ const urls = ref<MenuItem[]>([
   // },
 ])
 
-const theme = useTheme()
-const isDarkTheme = computed(() => theme.global.name.value === 'dark')
-
 // 切换主题函数
-const toggleTheme = () => {
-  theme.change(isDarkTheme.value ? 'light' : 'dark')
-  console.log('当前主题切换为：', theme.global.name.value)
+const toggleThemeWithLog = () => {
+  toggleTheme()
+  console.log('当前主题切换为：', themeStore.theme)
 }
 
-// 如果需要记住用户选择（localStorage，可选）
-watch(isDarkTheme, (newValue) => {
-  localStorage.setItem('theme', newValue ? 'dark' : 'light')
-})
-
-// 在页面加载时初始化主题（从 localStorage 获取用户的选择）
-const savedTheme = localStorage.getItem('theme')
-if (savedTheme) {
-  theme.change(savedTheme)
+const resetThemeToSystem = () => {
+  resetToSystemTheme()
+  console.log('当前主题切换为：', themeStore.theme)
 }
 
 // Logout function
