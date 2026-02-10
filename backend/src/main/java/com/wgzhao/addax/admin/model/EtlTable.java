@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
 
+import java.time.LocalTime;
 import java.util.Date;
 
 @Entity
@@ -93,6 +94,12 @@ public class EtlTable
 
     @Column(name="write_mode", length = 20)
     private  String writeMode = "overwrite";
+
+    /**
+     * 表级调度时间点（每天的 HH:mm），为空表示继承 etl_source.start_at
+     */
+    @Column(name = "start_at")
+    private LocalTime startAt;
 
     @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , filter))")
     private String filterColumn;

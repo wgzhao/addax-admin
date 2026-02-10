@@ -35,3 +35,4 @@ backend/drivers/*
 /frontend/.env.local
 /frontend/tsconfig.tsbuildinfo
 /frontend/tsconfig.node.tsbuildinfo
+.alma-snapshots

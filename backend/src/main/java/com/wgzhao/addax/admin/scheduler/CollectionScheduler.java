@@ -1,98 +1,154 @@
 package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.model.EtlSource;
+import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
-import com.wgzhao.addax.admin.service.TaskSchedulerService;
-import com.wgzhao.addax.admin.service.TaskService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.TableService;
+import com.wgzhao.addax.admin.service.TaskQueueManager;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @Slf4j
 @AllArgsConstructor
 public class CollectionScheduler
 {
-    private final TaskSchedulerService taskSchedulerService;
     private final EtlSourceRepo etlSourceRepo;
-    private final TaskService taskService;
+    private final TableService tableService;
+    private final TaskQueueManager queueManager;
     private final RedisLockService redisLockService;
+    private final SystemConfigService configService;
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady()
-    {
-        // schedule tasks once when the application context is fully ready
-        rescheduleAllTasks();
-    }
-
-    public void rescheduleAllTasks()
-    {
-        try {
-            // Schedule collection tasks for each source
-            List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
-            for (EtlSource source : sources) {
-                scheduleOrUpdateTask(source);
-            }
-        }
-        catch (Exception e) {
-            log.error("Error in rescheduleAllTasks: ", e);
-        }
-    }
+    // ---- legacy APIs kept for compatibility with source-level scheduler logic ----
+    // In tick-based mode we don't register per-source timers anymore, but other services
+    // still call these methods (create/update/delete source). Keep them as no-op/log.
 
     public void scheduleOrUpdateTask(EtlSource source)
     {
-        String taskId = "source-" + source.getCode();
-        if (source.isEnabled() && source.getStartAt() != null) {
-            log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
-            String cronExpression = convertLocalTimeToCron(source.getStartAt());
-            // cancel existing task if any
-            taskSchedulerService.cancelTask(taskId);
-            Runnable task = () -> {
-                final String lockKey = "collection:source:" + source.getCode() + ":lock";
-                final Duration ttl = Duration.ofSeconds(300); // should cover expected execution time
-                String token = null;
-                try {
-                    token = redisLockService.tryLock(lockKey, ttl);
-                    if (token == null) {
-                        log.info("Could not acquire lock for source {}, skipping this run", source.getCode());
-                        return;
-                    }
-                    taskService.executeTasksForSource(source.getId());
-                }
-                catch (Exception e) {
-                    log.error("Error executing scheduled collection for source {}", source.getCode(), e);
-                }
-                finally {
-                    if (token != null) {
-                        boolean released = redisLockService.release(lockKey, token);
-                        if (!released) {
-                            log.warn("Failed to release lock {} for source {}", lockKey, source.getCode());
-                        }
-                    }
-                }
-            };
-            taskSchedulerService.scheduleTask(taskId, task, cronExpression);
-        }
-        else {
-            taskSchedulerService.cancelTask(taskId);
+        // no-op in tick mode: per-source timers removed
+        if (source != null) {
+            log.info("Tick scheduler enabled, ignore scheduleOrUpdateTask for source {}", source.getCode());
         }
     }
 
     public void cancelTask(String code)
     {
-        String taskId = "source-" + code;
-        taskSchedulerService.cancelTask(taskId);
+        // no-op in tick mode
+        if (code != null) {
+            log.info("Tick scheduler enabled, ignore cancelTask for source {}", code);
+        }
     }
 
-    private String convertLocalTimeToCron(LocalTime time)
+    /**
+     * 分钟级 tick 调度器：将命中调度点的表入队。
+     *
+     * 说明：
+     * 1) 表级 start_at 优先生效；为空则继承 etl_source.start_at
+     * 2) 只负责入队，执行端并发仍由 TaskQueueManagerV2Impl 的 permit 控制
+     * 3) 通过每源限额 + pending 上限保护做削峰
+     */
+    @Scheduled(cron = "0 * * * * ?")
+    public void tick()
     {
-        return String.format("0 %d %d * * ?", time.getMinute(), time.getHour());
+        // truncate to minute to have stable matching
+        LocalTime nowMinute = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+
+        // use a short lock to avoid multiple nodes doing the same enqueue scan
+        final String lockKey = "collection:tick:lock";
+        final Duration ttl = Duration.ofSeconds(50);
+        String token = null;
+        try {
+            token = redisLockService.tryLock(lockKey, ttl);
+            if (token == null) {
+                return;
+            }
+
+            int pendingLimit = configService.getQueueSize();
+            MapStatusGuard guard = new MapStatusGuard(queueManager.getQueueStatus());
+            if (guard.queueSize() >= pendingLimit) {
+                log.info("Queue already full-ish (size={}), skip enqueue this tick", guard.queueSize());
+                return;
+            }
+
+            List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
+            for (EtlSource source : sources) {
+                if (!source.isEnabled() || source.getStartAt() == null) {
+                    continue;
+                }
+                // pull runnable tables for this source
+                List<EtlTable> tables = tableService.getRunnableTasks(source.getId());
+                if (tables == null || tables.isEmpty()) {
+                    continue;
+                }
+
+                int maxConcurrency = source.getMaxConcurrency() == null ? 5 : source.getMaxConcurrency();
+                int perSourceEnqueueCap = Math.max(10, maxConcurrency * 3);
+                int enqueued = 0;
+
+                for (EtlTable t : tables) {
+                    LocalTime effective = t.getStartAt() != null ? t.getStartAt() : source.getStartAt();
+                    if (effective == null) {
+                        continue;
+                    }
+                    if (!effective.truncatedTo(ChronoUnit.MINUTES).equals(nowMinute)) {
+                        continue;
+                    }
+                    if (enqueued >= perSourceEnqueueCap) {
+                        break;
+                    }
+                    boolean added = queueManager.addTaskToQueue(t);
+                    if (added) {
+                        enqueued++;
+                    }
+                }
+
+                if (enqueued > 0) {
+                    log.info("Tick {}: enqueued {} tables for source {}", nowMinute, enqueued, source.getCode());
+                }
+            }
+        }
+        catch (Exception e) {
+            log.error("Error in tick scheduler", e);
+        }
+        finally {
+            if (token != null) {
+                redisLockService.release(lockKey, token);
+            }
+        }
+    }
+
+    /**
+     * tiny helper to parse queue status without depending on internal keys
+     */
+    private record MapStatusGuard(Map<String, Object> status)
+    {
+        int queueSize()
+        {
+            if (status == null) {
+                return 0;
+            }
+            Object v = status.get("queueSize");
+            if (v instanceof Number n) {
+                return n.intValue();
+            }
+            if (v instanceof String s) {
+                try {
+                    return Integer.parseInt(s);
+                }
+                catch (Exception ignored) {
+                }
+            }
+            return 0;
+        }
     }
 }

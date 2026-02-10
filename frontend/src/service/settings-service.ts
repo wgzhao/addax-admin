@@ -160,7 +160,7 @@ class SettingsService {
    */
   async rescheduleSwitchTimeTask(): Promise<any> {
     try {
-      const response = await Requests.post('/reschedule-switch-time-task')
+      const response = await Requests.post(`${this.baseUrl}/reschedule-switch-time-task`)
       return response
     } catch (error) {
       console.error('触发切日调度任务失败:', error)

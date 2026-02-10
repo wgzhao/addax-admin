@@ -62,6 +62,17 @@ public class SchemaRefreshScheduler
         scheduledFuture = taskScheduler.schedule(this::runRefresh, new CronTrigger(cron));
     }
 
+    /**
+     * Public API for controllers/services: reschedule the local timer after SWITCH_TIME is changed.
+     *
+     * This method is safe to call multiple times.
+     */
+    public synchronized void reschedule()
+    {
+        log.info("Rescheduling schema refresh trigger due to switch time update");
+        scheduleInternal();
+    }
+
     private void cancelInternal()
     {
         ScheduledFuture<?> future = this.scheduledFuture;
