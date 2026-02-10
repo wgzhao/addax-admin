@@ -52,7 +52,7 @@
             <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
             <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">{{ totalEtlData }}</span>
+              <span class="stat-value">{{ totalEtlData || 0}}</span>
             </v-card-text>
           </v-card>
         </v-col>

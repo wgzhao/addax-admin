@@ -222,7 +222,7 @@
   const sysRiskTable = {
     name: 'sysRisk',
     api: 'sysRisk',
-    title: '系统风险检测结果',
+    title: '近一周系统风险检测结果',
     sortBy: <SortItem[]>[],
     headers: <DataTableHeader[]>[
       { title: '风险来源', key: 'source' },
@@ -236,7 +236,7 @@
   const fieldChangeTable = {
     name: 'fieldChange',
     api: 'fieldChange',
-    title: '采集源库的字段变更提醒(T-1日结构与T日结构对比)',
+    title: '采集表字段变更提醒',
     sortBy: <SortItem[]>[{ key: 'changeAt', order: 'desc' }],
     headers: <DataTableHeader[]>[
       { title: '表 ID', key: 'tid' },
