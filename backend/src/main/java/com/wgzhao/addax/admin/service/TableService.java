@@ -449,6 +449,28 @@ public class TableService
     }
 
     /**
+     * 查询某个 source 下“继承调度”的可运行任务（表 startAt 为空）。
+     */
+    public List<EtlTable> getRunnableInheritedTasksBySource(int sourceId)
+    {
+        if (redisLockService.isRefreshInProgress()) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableInheritedTasksBySource(sourceId);
+    }
+
+    /**
+     * 查询“表级覆盖调度”的可运行任务（表 startAt 等于指定时间点）。
+     */
+    public List<EtlTable> getRunnableOverrideTasksByStartAt(LocalTime startAt)
+    {
+        if (redisLockService.isRefreshInProgress()) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableOverrideTasksByStartAt(startAt);
+    }
+
+    /**
      * 获取有效表的数量
      *
      * @return 有效表的数量

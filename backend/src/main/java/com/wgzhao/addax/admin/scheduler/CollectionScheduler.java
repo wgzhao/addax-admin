@@ -80,41 +80,46 @@ public class CollectionScheduler
                 return;
             }
 
+            // 1) enqueue override tables whose table.startAt hits nowMinute
+            int overrideEnqueued = 0;
+            List<EtlTable> overrideTables = tableService.getRunnableOverrideTasksByStartAt(nowMinute);
+            if (overrideTables != null && !overrideTables.isEmpty()) {
+                for (EtlTable t : overrideTables) {
+                    if (queueManager.addTaskToQueue(t)) {
+                        overrideEnqueued++;
+                    }
+                }
+                log.info("Tick {}: enqueued {} override tables", nowMinute, overrideEnqueued);
+            }
+
+            // 2) enqueue inherited tables for sources whose source.startAt hits nowMinute
             List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
             for (EtlSource source : sources) {
                 if (!source.isEnabled() || source.getStartAt() == null) {
                     continue;
                 }
-                // pull runnable tables for this source
-                List<EtlTable> tables = tableService.getRunnableTasks(source.getId());
-                if (tables == null || tables.isEmpty()) {
+                if (!source.getStartAt().truncatedTo(ChronoUnit.MINUTES).equals(nowMinute)) {
                     continue;
                 }
 
                 int maxConcurrency = source.getMaxConcurrency() == null ? 5 : source.getMaxConcurrency();
                 int perSourceEnqueueCap = Math.max(10, maxConcurrency * 3);
-                int enqueued = 0;
 
-                for (EtlTable t : tables) {
-                    LocalTime effective = t.getStartAt() != null ? t.getStartAt() : source.getStartAt();
-                    if (effective == null) {
-                        continue;
-                    }
-                    if (!effective.truncatedTo(ChronoUnit.MINUTES).equals(nowMinute)) {
-                        continue;
-                    }
+                int enqueued = 0;
+                List<EtlTable> inherited = tableService.getRunnableInheritedTasksBySource(source.getId());
+                if (inherited == null || inherited.isEmpty()) {
+                    continue;
+                }
+                for (EtlTable t : inherited) {
                     if (enqueued >= perSourceEnqueueCap) {
                         break;
                     }
-                    boolean added = queueManager.addTaskToQueue(t);
-                    if (added) {
+                    if (queueManager.addTaskToQueue(t)) {
                         enqueued++;
                     }
                 }
 
-                if (enqueued > 0) {
-                    log.info("Tick {}: enqueued {} tables for source {}", nowMinute, enqueued, source.getCode());
-                }
+                log.info("Tick {}: enqueued {} inherited tables for source {}", nowMinute, enqueued, source.getCode());
             }
         }
         catch (Exception e) {
