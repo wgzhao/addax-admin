@@ -11,14 +11,16 @@ class TableService {
     pageSize: number,
     q: string,
     runStatus?: string,
+    sourceId?: number | null,
     sortBy?: any
   ): Promise<Page<VEtlWithSource>> {
     // `sortBy` 应该是一个包含 sortField 和 sortOrder 的对象
-    const params = {
+    const params: any = {
       page: page,
       pageSize: pageSize,
       q: q,
       status: runStatus,
+      sourceId: sourceId,
       sortField: sortBy?.sortField,
       sortOrder: sortBy?.sortOrder
     }

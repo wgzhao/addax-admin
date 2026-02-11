@@ -79,6 +79,7 @@ public class TableController
         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
         @RequestParam(value = "q", required = false) String q,
         @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "sourceId", required = false) Integer sourceId,
         @RequestParam(value = "sortField", required = false) String sortField,
         @RequestParam(value = "sortOrder", required = false) String sortOrder)
     {
@@ -90,10 +91,10 @@ public class TableController
         }
         Page<VwEtlTableWithSource> result;
         if (status != null && !status.isEmpty()) {
-            result = tableService.getVwTablesByStatus(page, pageSize, q, status, sortField, sortOrder);
+            result = tableService.getVwTablesByStatus(page, pageSize, q, status, sourceId, sortField, sortOrder);
         }
         else {
-            result = tableService.getVwTablesInfo(page, pageSize, q, sortField, sortOrder);
+            result = tableService.getVwTablesInfo(page, pageSize, q, sourceId, sortField, sortOrder);
         }
         return ResponseEntity.ok(PageResponse.from(result));
     }

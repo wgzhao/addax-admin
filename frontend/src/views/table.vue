@@ -1,8 +1,8 @@
 <template>
   <v-card flat title="采集表配置">
     <template v-slot:text>
-      <v-row justify="center" align-content="center" >
-        <v-col cols="3">
+      <v-row justify="start" align-content="center" >
+        <v-col cols="2">
           <v-text-field
             v-model="search"
             density="compact"
@@ -19,7 +19,7 @@
             </template>
           </v-text-field>
         </v-col>
-        <v-col cols="col-1">
+        <v-col cols="1">
           <!-- 状态下拉框选择 statusOptions -->
           <v-select
             v-model="runStatus"
@@ -36,11 +36,32 @@
             </template>
           </v-select>
         </v-col>
+
+        <v-col cols="2">
+          <!-- 数据源下拉框 -->
+          <v-select
+            v-model="sourceId"
+            :items="sourceOptions"
+            item-title="label"
+            item-value="value"
+            :item-props="item => ({ title: item.label })"
+            density="compact"
+            variant="outlined"
+            single-line
+            hide-details
+            clearable
+          >
+            <template #prepend>
+              <span class="me-2">数据源</span>
+            </template>
+          </v-select>
+        </v-col>
+
         <!-- add search button -->
         <v-col cols="1">
           <v-btn  variant="tonal" @click="searchTable">查询</v-btn>
         </v-col>
-        <v-spacer></v-spacer>
+        <v-spacer />
         <v-col cols="auto">
           <v-btn
             class="mr-2"
@@ -417,12 +438,13 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, shallowRef, defineAsyncComponent } from 'vue'
+  import { ref, shallowRef, defineAsyncComponent, onMounted } from 'vue'
   import { debounce } from '@/utils/debounce'
   import { createSort } from '@/utils/'
   import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils'
   import tableService from '@/service/table-service'
   import taskService from '@/service/task-service'
+  import sourceService from '@/service/source-service'
   import { notify } from '@/stores/notifier'
   import type { DataTableHeader } from 'vuetify'
   // 异步按需加载组件，减轻首屏体积
@@ -484,6 +506,9 @@
   const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
 
   const runStatus = ref<string>()
+  // 新增：数据源下拉选择
+  const sourceId = ref<number | null>(null)
+  const sourceOptions = ref<any[]>([])
 
   const headers: DataTableHeader[] = [
     {
@@ -689,7 +714,7 @@ retryCnt: retryCnt.value
     }
     // v-data-table-server page is 1-based, while backend API is 0-based.
     tableService
-      .fetchTableList(page - 1, itemsPerPage, search.value, runStatus.value, sortParam)
+      .fetchTableList(page - 1, itemsPerPage, search.value, runStatus.value, sourceId.value, sortParam)
       .then((res) => {
         table.value = res.content
         totalItems.value = res.totalElements
@@ -712,6 +737,22 @@ retryCnt: retryCnt.value
   }
 
   const searchTable = debounce(_searchCore, 400)
+
+  // 加载可用数据源
+  async function loadSources() {
+    try {
+      const res = await sourceService.listActiveSources()
+      // 参考 BatchAdd.vue 中 sourceSystemList 的组织形式，显示 code + name
+      sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      notify('加载数据源失败: ' + msg, 'error')
+    }
+  }
+
+  onMounted(() => {
+    loadSources()
+  })
 
   function updateSchema(item: any | null) {
     let params: { mode?: string; tid?: number } = {}

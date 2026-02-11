@@ -263,10 +263,20 @@ public class TableService
      * ODS 采集信息
      *
      */
-    public Page<VwEtlTableWithSource> getVwTablesInfo(int page, int pageSize, String q, String sortField, String sortOrder)
+    public Page<VwEtlTableWithSource> getVwTablesInfo(int page, int pageSize, String q, Integer sourceId, String sortField, String sortOrder)
     {
 
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
+        if (sourceId != null) {
+            // 按数据源过滤
+            if (q != null && !q.isEmpty()) {
+                return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndFilterColumnContaining(sourceId, q.toUpperCase(), pageable);
+            }
+            else {
+                return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrue(sourceId, pageable);
+            }
+        }
+
         if (q != null && !q.isEmpty()) {
             return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndFilterColumnContaining(q.toUpperCase(), pageable);
         }
@@ -286,9 +296,12 @@ public class TableService
      * @param sortOrder 排序方式
      * @return 视图表信息分页结果
      */
-    public Page<VwEtlTableWithSource> getVwTablesByStatus(int page, int pageSize, String q, String status, String sortField, String sortOrder)
+    public Page<VwEtlTableWithSource> getVwTablesByStatus(int page, int pageSize, String q, String status, Integer sourceId, String sortField, String sortOrder)
     {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
+        if (sourceId != null) {
+            return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndStatusAndFilterColumnContaining(sourceId, status, q.toUpperCase(), pageable);
+        }
         return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusAndFilterColumnContaining(status, q.toUpperCase(), pageable);
     }
 
