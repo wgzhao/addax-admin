@@ -77,10 +77,25 @@ public interface EtlTableRepo
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
               AND t.startAt = :startAt
-              AND t.status NOT IN ('Y','X','U')
+              AND t.status = 'N'
               AND t.retryCnt > 0
         """)
     List<EtlTable> findRunnableOverrideTasksByStartAt(@Param("startAt") LocalTime startAt);
+
+    /**
+     * 查询“表级覆盖调度”的可运行任务（表 startAt 落在指定时间窗口内，闭区间）。
+     */
+    @Query("""
+            SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
+            WHERE s.enabled = true
+              AND t.startAt is not null
+              AND t.startAt >= :from
+              AND t.startAt <= :to
+              AND t.status = 'N'
+              AND t.retryCnt > 0
+        """)
+    List<EtlTable> findRunnableOverrideTasksBetween(@Param("from") LocalTime from,
+        @Param("to") LocalTime to);
 
     int countBySid(int sid);
 

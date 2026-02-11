@@ -249,6 +249,10 @@ alter table public.etl_table
 
 comment on column public.etl_table.start_at is '表级采集定时启动时间点；为空表示继承 etl_source.start_at';
 
+create index if not exists idx_etl_table_start_at_not_null
+  on public.etl_table (start_at)
+  where start_at is not null;
+
 create table public.etl_column
 (
   tid              bigint      not null

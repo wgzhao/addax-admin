@@ -470,6 +470,14 @@ public class TableService
         return etlTableRepo.findRunnableOverrideTasksByStartAt(startAt);
     }
 
+    public List<EtlTable> getRunnableOverrideTasksBetween(LocalTime from, LocalTime to)
+    {
+        if (redisLockService.isRefreshInProgress()) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableOverrideTasksBetween(from, to);
+    }
+
     /**
      * 获取有效表的数量
      *

@@ -100,6 +100,34 @@ public class RedisLockService
     }
 
     /**
+     * Best-effort set a key with TTL (no locking semantics). Returns true if set.
+     */
+    public boolean touch(String key, Duration ttl)
+    {
+        try {
+            redisTemplate.opsForValue().set(key, "1", ttl);
+            return true;
+        }
+        catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Best-effort delete a key.
+     */
+    public boolean deleteKey(String key)
+    {
+        try {
+            Boolean res = redisTemplate.delete(key);
+            return Boolean.TRUE.equals(res);
+        }
+        catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
      * Try to acquire a permit from a key-backed set acting as a semaphore.
      * Returns a token when acquired, null otherwise.
      */
