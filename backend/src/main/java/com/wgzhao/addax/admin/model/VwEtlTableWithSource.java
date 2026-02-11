@@ -44,6 +44,14 @@ public class VwEtlTableWithSource
     private String username;
     private String pass;
     private String dbType;
+    /**
+     * 采集源的调度时间点（HH:mm:ss / HH:mm）
+     */
+    private String sourceStartAt;
+
+    /**
+     * 表级调度时间点（HH:mm:ss / HH:mm），可为空，表示继承 sourceStartAt
+     */
     private String startAt;
     private Boolean enabled;
     private String tblComment;

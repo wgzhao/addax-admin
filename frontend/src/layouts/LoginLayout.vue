@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app :theme="themeName">
     <v-main>
       <v-container fluid>
         <router-view />
@@ -9,6 +9,8 @@
   </v-app>
 </template>
 
-<script setup>
-  // 登录布局通常较简单，无需导航栏或底部
+<script setup lang="ts">
+  import { useAppTheme } from '@/composables/useAppTheme'
+
+  const { themeName } = useAppTheme()
 </script>

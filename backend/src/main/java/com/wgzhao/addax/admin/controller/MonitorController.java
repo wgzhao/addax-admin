@@ -72,7 +72,7 @@ public class MonitorController
     }
 
     /**
-     * 获取系统风险检测结果
+     * 获取最近一周内系统风险检测结果
      *
      * @return 风险检测结果
      */

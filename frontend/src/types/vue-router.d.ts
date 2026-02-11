@@ -22,6 +22,7 @@ declare module 'vue-router/auto-routes' {
     '/check': RouteRecordInfo<'/check', '/check', Record<never, never>, Record<never, never>>,
     '/data-insight': RouteRecordInfo<'/data-insight', '/data-insight', Record<never, never>, Record<never, never>>,
     '/dict': RouteRecordInfo<'/dict', '/dict', Record<never, never>, Record<never, never>>,
+    '/help': RouteRecordInfo<'/help', '/help', Record<never, never>, Record<never, never>>,
     '/logs': RouteRecordInfo<'/logs', '/logs', Record<never, never>, Record<never, never>>,
     '/monitor': RouteRecordInfo<'/monitor', '/monitor', Record<never, never>, Record<never, never>>,
     '/param': RouteRecordInfo<'/param', '/param', Record<never, never>, Record<never, never>>,
@@ -57,6 +58,10 @@ declare module 'vue-router/auto-routes' {
     }
     'src/views/dict.vue': {
       routes: '/dict'
+      views: never
+    }
+    'src/views/help.vue': {
+      routes: '/help'
       views: never
     }
     'src/views/logs.vue': {

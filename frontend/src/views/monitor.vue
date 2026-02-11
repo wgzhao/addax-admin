@@ -222,12 +222,12 @@
   const sysRiskTable = {
     name: 'sysRisk',
     api: 'sysRisk',
-    title: '系统风险检测结果',
+    title: '近一周系统风险检测结果',
     sortBy: <SortItem[]>[],
     headers: <DataTableHeader[]>[
       { title: '风险来源', key: 'source' },
       { title: '类别', key: 'riskLevel' },
-      { title: '风险摘要', key: 'message' },
+      { title: '风险摘要', key: 'message', maxWidth: '1200px' },
       { title: '关联表 ID', key: 'tid' },
       { title: '创建时间', key: 'createdAt' }
     ]
@@ -236,7 +236,7 @@
   const fieldChangeTable = {
     name: 'fieldChange',
     api: 'fieldChange',
-    title: '采集源库的字段变更提醒(T-1日结构与T日结构对比)',
+    title: '采集表字段变更提醒',
     sortBy: <SortItem[]>[{ key: 'changeAt', order: 'desc' }],
     headers: <DataTableHeader[]>[
       { title: '表 ID', key: 'tid' },

@@ -244,6 +244,15 @@ comment on column public.etl_table.auto_pk is '自动获取切分字段';
 
 comment on column etl_table.write_mode is '覆盖默认，默认为 overwrite，可选为 append,nonConflict';
 
+alter table public.etl_table
+  add column if not exists start_at time;
+
+comment on column public.etl_table.start_at is '表级采集定时启动时间点；为空表示继承 etl_source.start_at';
+
+create index if not exists idx_etl_table_start_at_not_null
+  on public.etl_table (start_at)
+  where start_at is not null;
+
 create table public.etl_column
 (
   tid              bigint      not null
@@ -539,7 +548,7 @@ SELECT t.*,
        s.url,
        s.username,
        s.pass,
-       s.start_at,
+       s.start_at as source_start_at,
        s.enabled,
        s.max_concurrency,
        s.db_type

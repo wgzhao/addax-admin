@@ -194,6 +194,7 @@ export interface EtlSource {
 // 采集表信息 etl_table
 export interface EtlTable {
   id: number // 表ID，主键
+  startAt?: string | null // 表级调度时间点(HH:mm[:ss])，为空表示继承 etl_source.start_at
   sourceDb: string // 采集源库名或schema名称或owner名称
   sourceTable: string // 采集源表名
   targetDb: string // 目标库名，即提供给hive的库名
@@ -230,7 +231,7 @@ export interface VEtlWithSource extends EtlTable {
   url: string // 采集源JDBC连接串
   username?: string // 采集源连接的账号
   pass?: string // 采集源连接的密码
-  startAt?: string // 采集的定时启动时间点
+  sourceStartAt?: string // 采集源的定时启动时间点(HH:mm[:ss])
   prerequisite?: string // 能否开始采集的先决条件
   preScript?: string // 标志符合条件后的前置脚本
   remark?: string // 系统备注信息

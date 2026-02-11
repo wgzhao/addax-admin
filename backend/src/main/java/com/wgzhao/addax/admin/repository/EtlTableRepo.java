@@ -57,6 +57,46 @@ public interface EtlTableRepo
         @Param("currentTime") LocalTime currentTime,
         @Param("checkTime") boolean checkTime);
 
+    /**
+     * 查询某个 source 下“继承调度”的可运行任务（表 startAt 为空，实际调度由 source.startAt 决定）
+     */
+    @Query("""
+            SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
+            WHERE s.enabled = true
+              AND t.sid = :sid
+              AND t.startAt is null
+              AND t.status NOT IN ('Y','X','U')
+              AND t.retryCnt > 0
+        """)
+    List<EtlTable> findRunnableInheritedTasksBySource(@Param("sid") int sid);
+
+    /**
+     * 查询“表级覆盖调度”的可运行任务（表 startAt 等于指定时间点）
+     */
+    @Query("""
+            SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
+            WHERE s.enabled = true
+              AND t.startAt = :startAt
+              AND t.status = 'N'
+              AND t.retryCnt > 0
+        """)
+    List<EtlTable> findRunnableOverrideTasksByStartAt(@Param("startAt") LocalTime startAt);
+
+    /**
+     * 查询“表级覆盖调度”的可运行任务（表 startAt 落在指定时间窗口内，闭区间）。
+     */
+    @Query("""
+            SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
+            WHERE s.enabled = true
+              AND t.startAt is not null
+              AND t.startAt >= :from
+              AND t.startAt <= :to
+              AND t.status = 'N'
+              AND t.retryCnt > 0
+        """)
+    List<EtlTable> findRunnableOverrideTasksBetween(@Param("from") LocalTime from,
+        @Param("to") LocalTime to);
+
     int countBySid(int sid);
 
     List<EtlTable> findByStatus(String status);

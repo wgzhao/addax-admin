@@ -104,7 +104,7 @@ public class StatService
             with total_info as (
                 select
                 s.code,
-                max(start_at) as start_at,
+                max(source_start_at) as start_at,
                 count(*) as total_cnt,
                 sum(case when status = 'Y' then 1 else 0 end) as succ_cnt,
                 sum(case when status = 'R' then 1 else 0 end) as run_cnt,

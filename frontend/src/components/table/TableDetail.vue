@@ -121,6 +121,28 @@
                     :rules="[rules.nonNegative]"
                   ></v-text-field>
                 </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    variant="outlined"
+                    density="compact"
+                    v-model="table.startAt"
+                    label="调度时间(HH:mm)"
+                    placeholder="为空则继承数据源"
+                    hint="为空=继承数据源；例如 02:30"
+                    persistent-hint
+                    clearable
+                  >
+                    <template #append-inner>
+                      <v-tooltip location="bottom">
+                        <template #activator="{ props }">
+                          <v-icon v-bind="props" size="small" color="info">mdi-information-outline</v-icon>
+                        </template>
+                        <span>继承值：{{ inheritedStartAt || '-' }}</span>
+                      </v-tooltip>
+                    </template>
+                  </v-text-field>
+                </v-col>
                 <v-col cols="12" md="6">
                   <v-text-field variant="outlined" density="compact" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
                 </v-col>
@@ -196,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import { VEtlWithSource, EtlTable } from "@/types/database";
@@ -238,6 +260,15 @@ const rules = {
 
 // 创建本地的响应式副本用于编辑
 const table = ref<VEtlWithSource>({ ...props.table });
+
+// 表级调度为空时，继承自采集源的调度时间
+const inheritedStartAt = computed(() => {
+  // 后端 view 字段：sourceStartAt
+  const v = (table.value as any)?.sourceStartAt
+  if (!v) return ''
+  // normalize: HH:mm:ss -> HH:mm
+  return typeof v === 'string' && v.length >= 5 ? v.slice(0, 5) : String(v)
+})
 
 // 监听props变化，同步更新本地副本
 watch(() => props.table, (newTable) => {
@@ -319,7 +350,8 @@ const saveOds = async () => {
     maxRuntime: table.value.maxRuntime,
     sid: table.value.sid,
     duration: table.value.duration,
-    writeMode: table.value.writeMode || 'overwrite'
+    writeMode: table.value.writeMode || 'overwrite',
+    startAt: table.value.startAt || null
   };
 
   tableService.save(etlTableData as EtlTable)

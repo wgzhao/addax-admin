@@ -4,6 +4,7 @@ import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.scheduler.SchemaRefreshScheduler;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TargetService;
 import lombok.AllArgsConstructor;
@@ -38,6 +39,7 @@ public class SettingController
     private final DictService dictService;
     private final TargetService targetService;
     private final SystemConfigService systemConfigService;
+    private final SchemaRefreshScheduler schemaRefreshScheduler;
 
     // 获取 dictCode 为 1000 的系统配置项
     @GetMapping("/sys-config")
@@ -103,5 +105,17 @@ public class SettingController
     {
         dictService.updateJobTemplates(templates);
         return ResponseEntity.ok().body("Job templates updated successfully");
+    }
+
+    /**
+     * 触发切日(SWITCH_TIME)相关定时任务重新注册。
+     *
+     * 前端在修改 SWITCH_TIME 后调用此接口，使 SchemaRefreshScheduler 立刻按新时间重建 cron trigger。
+     */
+    @PostMapping("/reschedule-switch-time-task")
+    public ResponseEntity<String> rescheduleSwitchTimeTask()
+    {
+        schemaRefreshScheduler.reschedule();
+        return ResponseEntity.ok("Schema refresh task rescheduled");
     }
 }

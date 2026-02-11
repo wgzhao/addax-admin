@@ -56,7 +56,7 @@ const headers: DataTableHeader[] = [
   { title: "字段长度", key: "dataLength" },
   { title: "数值长度", key: "dataPrecision" },
   { title: "数值精度", key: "dataScale" },
-  { title: "字段备注", key: "columnComment" }
+  { title: "字段备注", key: "columnComment", maxWidth:"400px" }
 ];
 
 

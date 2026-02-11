@@ -73,6 +73,22 @@
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
         <v-list>
+          <v-list-item @click="profileDialog = true">
+            <v-list-item-title>账号信息</v-list-item-title>
+          </v-list-item>
+          <v-list-item v-if="themeStore.hasUserPreference" @click="resetThemeToSystem">
+            <v-list-item-title>跟随系统主题</v-list-item-title>
+          </v-list-item>
+          <v-divider class="my-1" />
+          <v-list-item @click="versionDialog = true">
+            <v-list-item-title>系统版本</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="goHelp">
+            <v-list-item-title>帮助文档</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="openFeedback">
+            <v-list-item-title>我要反馈</v-list-item-title>
+          </v-list-item>
           <v-list-item @click="$router.push('/change-password')">
             <v-list-item-title>修改密码</v-list-item-title>
           </v-list-item>
@@ -83,25 +99,79 @@
       </v-menu>
       <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">Login</v-btn>
       <!-- 深色/浅色模式切换按钮 -->
-      <v-btn icon @click="toggleTheme" :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'">
+      <v-btn
+        icon
+        @click="toggleThemeWithLog"
+        :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'"
+      >
         <v-icon>mdi-theme-light-dark</v-icon>
       </v-btn>
     </template>
   </v-app-bar>
   <!-- End of Topbar -->
+  <v-dialog v-model="profileDialog" max-width="520">
+    <v-card>
+      <v-card-title class="text-h6">账号信息</v-card-title>
+      <v-card-text>
+        <v-list density="compact">
+          <v-list-item>
+            <v-list-item-title>用户名</v-list-item-title>
+            <v-list-item-subtitle>{{ authStore.currentUserName || '-' }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title>角色</v-list-item-title>
+            <v-list-item-subtitle>未配置</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title>邮箱</v-list-item-title>
+            <v-list-item-subtitle>未配置</v-list-item-subtitle>
+          </v-list-item>
+        </v-list>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="profileDialog = false">关闭</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="versionDialog" max-width="520">
+    <v-card class="version-dialog-card">
+      <v-card-text>
+        <div class="version-dialog-body">
+          <div class="version-logo-wrap">
+            <img class="version-logo" src="/logo.svg" alt="Addax Admin Logo" />
+          </div>
+          <div class="version-app-name">Addax Admin</div>
+          <div class="version-app-meta">Version {{ APP_VERSION }}</div>
+          <div class="version-app-copyright">
+            &copy; 2023-{{ new Date().getFullYear() }} wgzhao
+          </div>
+        </div>
+      </v-card-text>
+      <v-card-actions class="pb-4">
+        <v-spacer />
+        <v-btn variant="text" @click="versionDialog = false">关闭</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useTheme } from 'vuetify'
+import { useAppTheme } from '@/composables/useAppTheme'
 import { useRouter } from 'vue-router'
 import notificationCenter from '@/stores/notification-center'
+import { APP_VERSION } from '@/config/version'
 
 const router = useRouter()
 
 // const {global} = useTheme();
 
 const authStore = useAuthStore()
+const { isDarkTheme, toggleTheme, themeStore, resetToSystemTheme } = useAppTheme()
+const profileDialog = ref(false)
+const versionDialog = ref(false)
+const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new'
 // const notifyMenu = ref(false)
 let notifyTimer: number | null = null
 
@@ -169,24 +239,23 @@ const urls = ref<MenuItem[]>([
   // },
 ])
 
-const theme = useTheme()
-const isDarkTheme = computed(() => theme.global.name.value === 'dark')
-
 // 切换主题函数
-const toggleTheme = () => {
-  theme.change(isDarkTheme.value ? 'light' : 'dark')
-  console.log('当前主题切换为：', theme.global.name.value)
+const toggleThemeWithLog = () => {
+  toggleTheme()
+  console.log('当前主题切换为：', themeStore.theme)
 }
 
-// 如果需要记住用户选择（localStorage，可选）
-watch(isDarkTheme, (newValue) => {
-  localStorage.setItem('theme', newValue ? 'dark' : 'light')
-})
+const resetThemeToSystem = () => {
+  resetToSystemTheme()
+  console.log('当前主题切换为：', themeStore.theme)
+}
 
-// 在页面加载时初始化主题（从 localStorage 获取用户的选择）
-const savedTheme = localStorage.getItem('theme')
-if (savedTheme) {
-  theme.change(savedTheme)
+const goHelp = () => {
+  router.push('/help')
+}
+
+const openFeedback = () => {
+  window.open(feedbackUrl, '_blank', 'noopener')
 }
 
 // Logout function
@@ -323,5 +392,52 @@ onUnmounted(() => {
   font-size: 12px;
   line-height: 1.5;
   color: #374151;
+}
+
+.version-dialog-card {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.version-dialog-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px 6px;
+}
+
+.version-logo-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+}
+
+.version-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.version-app-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.version-app-meta {
+  font-size: 14px;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+.version-app-copyright {
+  margin-top: 12px;
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), 0.55);
 }
 </style>

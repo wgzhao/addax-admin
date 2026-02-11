@@ -28,21 +28,19 @@ public class CollectionScheduler
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady()
     {
-        // schedule tasks once when the application context is fully ready
         rescheduleAllTasks();
     }
 
     public void rescheduleAllTasks()
     {
         try {
-            // Schedule collection tasks for each source
             List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
             for (EtlSource source : sources) {
                 scheduleOrUpdateTask(source);
             }
         }
         catch (Exception e) {
-            log.error("Error in rescheduleAllTasks: ", e);
+            log.error("Error in rescheduleAllTasks", e);
         }
     }
 
@@ -52,11 +50,10 @@ public class CollectionScheduler
         if (source.isEnabled() && source.getStartAt() != null) {
             log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
-            // cancel existing task if any
             taskSchedulerService.cancelTask(taskId);
             Runnable task = () -> {
                 final String lockKey = "collection:source:" + source.getCode() + ":lock";
-                final Duration ttl = Duration.ofSeconds(300); // should cover expected execution time
+                final Duration ttl = Duration.ofSeconds(300);
                 String token = null;
                 try {
                     token = redisLockService.tryLock(lockKey, ttl);
@@ -64,6 +61,7 @@ public class CollectionScheduler
                         log.info("Could not acquire lock for source {}, skipping this run", source.getCode());
                         return;
                     }
+                    // keep existing behavior: enqueue runnable tables for this source
                     taskService.executeTasksForSource(source.getId());
                 }
                 catch (Exception e) {
@@ -71,10 +69,7 @@ public class CollectionScheduler
                 }
                 finally {
                     if (token != null) {
-                        boolean released = redisLockService.release(lockKey, token);
-                        if (!released) {
-                            log.warn("Failed to release lock {} for source {}", lockKey, source.getCode());
-                        }
+                        redisLockService.release(lockKey, token);
                     }
                 }
             };

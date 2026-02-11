@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -27,9 +28,10 @@ public class RiskLogService {
         repository.save(r);
     }
 
-    @Transactional(readOnly = true)
     public List<RiskLog> getRecentRisks(int limit) {
         Pageable p = PageRequest.of(0, Math.max(1, limit), Sort.by(Sort.Direction.DESC, "createdAt"));
-        return repository.findAllByOrderByCreatedAtDesc(p);
+        // 一周前的日期
+        LocalDateTime beforeDays = LocalDateTime.now().plusDays(-7);
+        return repository.findAllByCreatedAtAfterOrderByCreatedAtDesc(beforeDays, p);
     }
 }
