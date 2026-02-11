@@ -61,4 +61,12 @@ public class EtlSource
 
     @Column(name = "db_type", length = 50)
     private String dbType = DbType.RDBMS.getValue();
+
+    // ===== computed fields for UI =====
+    @org.hibernate.annotations.Formula("(select count(1) from etl_table t where t.sid = id)")
+    private Long tableCount;
+
+    @org.hibernate.annotations.Formula("(select count(1) from etl_table t where t.sid = id and t.status <> 'X')")
+    private Long validTableCount;
 }
+

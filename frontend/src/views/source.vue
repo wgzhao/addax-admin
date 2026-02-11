@@ -117,6 +117,8 @@
     { title: '采集代码', key: 'code' },
     { title: '连接串', key: 'url' },
     { title: '是否启用', key: 'enabled' },
+    { title: '表数量', key: 'tableCount' },
+    { title: '有效表数量', key: 'validTableCount' },
     {
       title: '采集时间',
       key: 'startAt'
