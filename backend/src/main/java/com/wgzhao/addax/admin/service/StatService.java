@@ -36,14 +36,34 @@ public class StatService
     public List<Map<String, Object>> statLast12MonthsData()
     {
         String sql = """
+        with months as (
+            select date_trunc('month', current_date) - interval '11 months'
+                   + (interval '1 month' * gs) as month_start
+            from generate_series(0, 11) as gs
+        ),
+        monthly as (
             select
-            to_char(date_trunc('month', biz_date), 'YYYY-MM') as month,
-            sum(total_bytes)/1024/1024/1024 as total_gb
+            date_trunc('month', biz_date) as month_start,
+            sum(total_bytes) / 1024 / 1024 / 1024 as month_gb
             from etl_statistic
             where biz_date >= date_trunc('month', current_date) - interval '11 months'
-            group by month
-            order by month
-            """;
+            group by month_start
+        ),
+        joined as (
+            select m.month_start,
+                   coalesce(n.month_gb, 0) as month_gb
+            from months m
+            left join monthly n on n.month_start = m.month_start
+        )
+        select
+        to_char(month_start, 'YYYY-MM') as month,
+        round(sum(month_gb) over (
+            order by month_start
+            rows between unbounded preceding and current row
+        ), 2) as total_gb
+        from joined
+        order by month_start
+        """;
         return jdbcTemplate.queryForList(sql);
     }
 

@@ -58,20 +58,6 @@
         </v-col>
       </v-row>
 
-      <!-- Chart Row -->
-      <v-row>
-        <v-col cols="12">
-          <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
-            <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
-            <v-card-text>
-              <div class="chart-container">
-                <LineChart />
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
-
       <!-- Details Row -->
       <v-row class="mt-6">
         <v-col cols="6">
@@ -98,6 +84,18 @@
         </v-col>
 
         <v-col cols="6">
+                <v-row>
+        <v-col cols="12">
+          <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
+            <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
+            <v-card-text>
+              <div class="chart-container">
+                <LineChart />
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
           <v-row>
             <v-col cols="12">
               <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
