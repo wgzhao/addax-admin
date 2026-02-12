@@ -18,4 +18,14 @@ public interface TargetAdapter
     boolean createOrUpdateTable(VwEtlTableWithSource etlTable);
 
     Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
+
+    /**
+     * 执行任务前的目标端准备动作（如分区创建）。
+     */
+    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue);
+
+    /**
+     * 生成目标端 writer 模板片段。
+     */
+    String buildWriterJob(VwEtlTableWithSource table);
 }

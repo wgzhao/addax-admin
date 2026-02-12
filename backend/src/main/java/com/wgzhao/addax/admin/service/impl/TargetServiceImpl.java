@@ -39,6 +39,12 @@ public class TargetServiceImpl
     }
 
     @Override
+    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue)
+    {
+        return targetAdapterRegistry.resolve(table).prepareBeforeRun(taskId, table, bizDateValue);
+    }
+
+    @Override
     public Connection getHiveConnect()
     {
         return hiveTargetAdapter.getHiveConnect();
@@ -55,5 +61,11 @@ public class TargetServiceImpl
     public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
         return targetAdapterRegistry.resolve(table).getMaxValue(table, columnName, partValue);
+    }
+
+    @Override
+    public String buildWriterJob(VwEtlTableWithSource table)
+    {
+        return targetAdapterRegistry.resolve(table).buildWriterJob(table);
     }
 }

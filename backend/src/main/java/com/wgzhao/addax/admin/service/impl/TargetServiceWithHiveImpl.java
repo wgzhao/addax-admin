@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.EtlColumn;
@@ -24,6 +26,8 @@ import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -33,12 +37,16 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.time.format.DateTimeFormatter;
 import java.util.logging.Logger;
 
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.HiveType.isHiveTypeCompatible;
 
@@ -229,6 +237,40 @@ public class TargetServiceWithHiveImpl
             jourService.failJour(etlJour, e.getMessage());
             return false;
         }
+    }
+
+    @Override
+    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue)
+    {
+        if (table == null) {
+            return false;
+        }
+        return addPartition(taskId, table.getTargetDb(), table.getTargetTable(), table.getPartName(), bizDateValue);
+    }
+
+    @Override
+    public String buildWriterJob(VwEtlTableWithSource table)
+    {
+        Map<String, String> values = new HashMap<>();
+        values.put("compress", table.getCompressFormat());
+        values.put("fileType", table.getStorageFormat());
+        values.put("writeMode", table.getWriteMode());
+        values.put("column", getHdfsWriteColumns(table));
+        values.putAll(configService.getBizDateValues());
+
+        Path hdfsPath = Paths.get(configService.getHdfsPrefix(), table.getTargetDb(), table.getTargetTable());
+        String partName = table.getPartName();
+        if (partName != null && !partName.isBlank()) {
+            String bizDate = configService.getBizDate();
+            if (!Objects.equals(table.getPartFormat(), DEFAULT_PART_FORMAT)) {
+                bizDate = configService.getBizDateAsDate().format(DateTimeFormatter.ofPattern(table.getPartFormat()));
+            }
+            hdfsPath = hdfsPath.resolve(partName + "=" + bizDate);
+        }
+        values.put("path", hdfsPath.toString());
+
+        String template = configService.getHdfsWriterTemplate();
+        return new org.apache.commons.text.StringSubstitutor(values).replace(template);
     }
 
     /**
@@ -487,6 +529,30 @@ public class TargetServiceWithHiveImpl
                 log.warn("Failed to read max value from redis for key {} after sql failure: {}", redisKey, ex.getMessage());
             }
             return null;
+        }
+    }
+
+    private String getHdfsWriteColumns(VwEtlTableWithSource table)
+    {
+        List<EtlColumn> columnList = columnService.getColumns(table.getId());
+        List<Map<String, String>> columns = new ArrayList<>();
+        for (EtlColumn etlColumn : columnList) {
+            String columnName = etlColumn.getColumnName();
+            Map<String, String> targetColumn = new HashMap<>();
+            targetColumn.put("type", etlColumn.getTargetTypeFull());
+            if (columnName != null && columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
+                targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
+            }
+            else {
+                targetColumn.put("name", columnName);
+            }
+            columns.add(targetColumn);
+        }
+        try {
+            return new ObjectMapper().writeValueAsString(columns);
+        }
+        catch (JsonProcessingException e) {
+            throw new RuntimeException("column 转换为 JSON 失败", e);
         }
     }
 
