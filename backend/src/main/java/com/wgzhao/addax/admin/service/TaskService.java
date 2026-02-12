@@ -41,12 +41,13 @@ public class TaskService
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
+     * 注意：近将那些表字段 start_at 为 null 的表加入队列，避免重复采集。
      *
      * @param sourceId 采集源 ID
      */
     public void executeTasksForSource(int sourceId)
     {
-        List<EtlTable> tables = tableService.getRunnableTasks(sourceId);
+        List<EtlTable> tables = tableService.getRunnableInheritedTasksBySource(sourceId);
         for (EtlTable table : tables) {
             // 将采集表加入队列
             queueManager.addTaskToQueue(table);
