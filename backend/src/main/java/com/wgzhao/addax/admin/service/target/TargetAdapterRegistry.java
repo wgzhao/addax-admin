@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.wgzhao.addax.admin.common.Constants.DEFAULT_TARGET_TYPE;
+
 /**
  * 目标端适配器注册中心。
  * 当前默认返回 HIVE 适配器，后续可根据表的目标端配置做动态路由。
@@ -18,12 +20,12 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TargetAdapterRegistry
 {
-    public static final String DEFAULT_TARGET_TYPE = "HIVE";
-
     private final Map<String, TargetAdapter> adaptersByType;
+    private final TargetTypeResolver targetTypeResolver;
 
-    public TargetAdapterRegistry(List<TargetAdapter> adapters)
+    public TargetAdapterRegistry(List<TargetAdapter> adapters, TargetTypeResolver targetTypeResolver)
     {
+        this.targetTypeResolver = targetTypeResolver;
         this.adaptersByType = adapters.stream()
             .collect(Collectors.toMap(
                 a -> normalize(a.getType()),
@@ -34,8 +36,8 @@ public class TargetAdapterRegistry
 
     public TargetAdapter resolve(VwEtlTableWithSource table)
     {
-        // 第一阶段兼容实现：统一走默认 HIVE 适配器
-        return getByType(DEFAULT_TARGET_TYPE);
+        String targetType = targetTypeResolver.resolveTargetType(table == null ? null : table.getId());
+        return getByTypeOrDefault(targetType);
     }
 
     public TargetAdapter resolveDefault()
@@ -58,5 +60,15 @@ public class TargetAdapterRegistry
             return "";
         }
         return type.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private TargetAdapter getByTypeOrDefault(String type)
+    {
+        TargetAdapter adapter = adaptersByType.get(normalize(type));
+        if (adapter != null) {
+            return adapter;
+        }
+        log.warn("No target adapter found for type {}, fallback to {}", type, DEFAULT_TARGET_TYPE);
+        return getByType(DEFAULT_TARGET_TYPE);
     }
 }
