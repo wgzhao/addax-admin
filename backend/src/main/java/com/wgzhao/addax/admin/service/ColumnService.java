@@ -288,6 +288,12 @@ public class ColumnService
     {
         List<EtlColumn> sourceCols = new ArrayList<>();
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
+        // 当前策略：
+        // - 目标端为 HDFS（或未指定）时，沿用 Hive 类型映射
+        // - 目标端为 RDBMS 时，不做类型转换，目标类型直接使用源类型
+        boolean useHiveTypeMapping = etlTable.getTargetType() == null
+            || etlTable.getTargetType().isBlank()
+            || "HDFS".equalsIgnoreCase(etlTable.getTargetType());
         try {
             String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
             String schema = connection.getSchema();
@@ -309,12 +315,19 @@ public class ColumnService
                 etlColumn.setDataPrecision(rs.getInt("COLUMN_SIZE"));
                 etlColumn.setDataScale(rs.getInt("DECIMAL_DIGITS"));
                 etlColumn.setColComment(rs.getString("REMARKS"));
-                String hiveType = hiveTypeMapping.getOrDefault(sourceType, "string");
-                etlColumn.setTargetType(hiveType);
-                if (Objects.equals(hiveType, "decimal")) {
-                    hiveType = String.format("decimal(%d,%d)", rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"));
+                if (useHiveTypeMapping) {
+                    String hiveType = hiveTypeMapping.getOrDefault(sourceType, "string");
+                    etlColumn.setTargetType(hiveType);
+                    if (Objects.equals(hiveType, "decimal")) {
+                        hiveType = String.format("decimal(%d,%d)", rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"));
+                    }
+                    etlColumn.setTargetTypeFull(hiveType);
                 }
-                etlColumn.setTargetTypeFull(hiveType);
+                else {
+                    // RDBMS 目标端暂不做类型映射转换
+                    etlColumn.setTargetType(sourceType);
+                    etlColumn.setTargetTypeFull(sourceType);
+                }
                 sourceCols.add(etlColumn);
                 idx++;
             }

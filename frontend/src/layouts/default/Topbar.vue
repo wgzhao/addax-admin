@@ -210,6 +210,10 @@ const urls = ref<MenuItem[]>([
     title: '采集表管理'
   },
   {
+    path: '/target',
+    title: '目标端管理'
+  },
+  {
     path: '/task',
     title: '采集任务管理'
   },

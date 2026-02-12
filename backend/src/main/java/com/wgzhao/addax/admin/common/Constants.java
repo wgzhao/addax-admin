@@ -51,8 +51,8 @@ public final class Constants
      */
     public static volatile Set<String> SQL_RESERVED_KEYWORDS = Collections.unmodifiableSet(new LinkedHashSet<>(DEFAULT_SQL_RESERVED_KEYWORDS));
 
-    // 默认的目标端类型（如 HIVE），用于没有明确指定目标端的表
-    public static final String DEFAULT_TARGET_TYPE = "HIVE";
+    // 默认的目标端类型（HDFS），用于没有明确指定目标端的表
+    public static final String DEFAULT_TARGET_TYPE = "HDFS";
 
     private Constants()
     {

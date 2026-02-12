@@ -281,7 +281,7 @@ comment on table public.etl_target is '目标端配置表';
 comment on column public.etl_target.id is '目标端主键ID';
 comment on column public.etl_target.code is '目标端编码';
 comment on column public.etl_target.name is '目标端名称';
-comment on column public.etl_target.target_type is '目标端类型（HIVE/MYSQL/POSTGRESQL等）';
+comment on column public.etl_target.target_type is '目标端类型（HDFS/MYSQL/POSTGRESQL等）';
 comment on column public.etl_target.connect_config is '连接配置JSON';
 comment on column public.etl_target.writer_template_key is 'writer模板键';
 comment on column public.etl_target.enabled is '是否启用';

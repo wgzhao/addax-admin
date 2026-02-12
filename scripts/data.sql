@@ -148,11 +148,11 @@ values  (5001, 'rR', '{
 select insert_dates_for_year(extract('year' from now())::integer, 1021);
 
 insert into public.etl_target (code, name, target_type, enabled, is_default, remark)
-values ('DEFAULT_HIVE', '默认Hive目标端', 'HIVE', true, true, '系统初始化默认目标端')
+values ('DEFAULT_HDFS', '默认HDFS目标端', 'HDFS', true, true, '系统初始化默认目标端')
 on conflict (code) do nothing;
 
 update public.etl_table t
 set target_id = tt.id
 from public.etl_target tt
-where tt.code = 'DEFAULT_HIVE'
+where tt.code = 'DEFAULT_HDFS'
   and t.target_id is null;

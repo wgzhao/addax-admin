@@ -1,12 +1,14 @@
 package com.wgzhao.addax.admin.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.repository.EtlTargetRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
@@ -63,6 +65,7 @@ public class TargetServiceWithHiveImpl
     private final SystemConfigService configService;
     private final RiskLogService riskLogService;
     private final StringRedisTemplate redisTemplate;
+    private final EtlTargetRepo etlTargetRepo;
 
     private volatile DataSource hiveDataSource;
     // keep a reference to the registered driver shim so we can deregister it if we ever reinit
@@ -71,7 +74,7 @@ public class TargetServiceWithHiveImpl
     @Override
     public String getType()
     {
-        return "HIVE";
+        return "HDFS";
     }
 
     private static String normalizeComment(String v)
@@ -251,11 +254,15 @@ public class TargetServiceWithHiveImpl
     @Override
     public String buildWriterJob(VwEtlTableWithSource table)
     {
+        String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
         values.put("compress", table.getCompressFormat());
         values.put("fileType", table.getStorageFormat());
         values.put("writeMode", table.getWriteMode());
-        values.put("column", getHdfsWriteColumns(table));
+        values.put("targetDb", table.getTargetDb());
+        values.put("targetTable", table.getTargetTable());
+        fillConnectionPlaceholders(values, table);
+        values.put("column", resolveColumnPlaceholder(template, table));
         values.putAll(configService.getBizDateValues());
 
         Path hdfsPath = Paths.get(configService.getHdfsPrefix(), table.getTargetDb(), table.getTargetTable());
@@ -269,8 +276,56 @@ public class TargetServiceWithHiveImpl
         }
         values.put("path", hdfsPath.toString());
 
-        String template = configService.getHdfsWriterTemplate();
         return new org.apache.commons.text.StringSubstitutor(values).replace(template);
+    }
+
+    private String resolveWriterTemplate(VwEtlTableWithSource table)
+    {
+        if (table != null && table.getTargetId() != null) {
+            String key = etlTargetRepo.findById(table.getTargetId())
+                .map(t -> t.getWriterTemplateKey())
+                .orElse(null);
+            if (key != null && !key.isBlank()) {
+                String tpl = dictService.getItemValue(5001, key, String.class);
+                if (tpl != null && !tpl.isBlank()) {
+                    return tpl;
+                }
+            }
+        }
+        return configService.getHdfsWriterTemplate();
+    }
+
+    private void fillConnectionPlaceholders(Map<String, String> values, VwEtlTableWithSource table)
+    {
+        if (table == null || table.getTargetId() == null) {
+            return;
+        }
+        etlTargetRepo.findById(table.getTargetId()).ifPresent(target -> {
+            String config = target.getConnectConfig();
+            if (config == null || config.isBlank()) {
+                return;
+            }
+            try {
+                JsonNode node = new ObjectMapper().readTree(config);
+                putIfPresent(values, "jdbcUrl", node, "url");
+                putIfPresent(values, "username", node, "username");
+                putIfPresent(values, "password", node, "password");
+            }
+            catch (Exception e) {
+                log.warn("Invalid connect_config for target {}, ignore placeholders: {}", table.getTargetId(), e.getMessage());
+            }
+        });
+    }
+
+    private void putIfPresent(Map<String, String> values, String key, JsonNode node, String nodeKey)
+    {
+        JsonNode n = node.get(nodeKey);
+        if (n != null && !n.isNull()) {
+            String v = n.asText();
+            if (v != null && !v.isBlank()) {
+                values.put(key, v);
+            }
+        }
     }
 
     /**
@@ -554,6 +609,36 @@ public class TargetServiceWithHiveImpl
         catch (JsonProcessingException e) {
             throw new RuntimeException("column 转换为 JSON 失败", e);
         }
+    }
+
+    private String getRdbmsWriteColumns(VwEtlTableWithSource table)
+    {
+        List<EtlColumn> columnList = columnService.getColumns(table.getId());
+        List<String> columns = new ArrayList<>();
+        for (EtlColumn etlColumn : columnList) {
+            String columnName = etlColumn.getColumnName();
+            if (columnName == null || columnName.isBlank()) {
+                continue;
+            }
+            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
+                columnName = columnName.substring(DELETED_PLACEHOLDER_PREFIX.length());
+            }
+            columns.add("\"" + columnName + "\"");
+        }
+        return String.join(", ", columns);
+    }
+
+    /**
+     * 根据模板中 column 占位符的使用方式自动选择列格式：
+     * - 若模板使用 [ ${column} ]，返回 "col1","col2" 这样的列名列表（RDBMS writer 常用）
+     * - 否则返回 HDFS writer 所需的对象数组 JSON
+     */
+    private String resolveColumnPlaceholder(String template, VwEtlTableWithSource table)
+    {
+        if (template != null && template.matches("(?s).*\\[\\s*\\$\\{column}\\s*].*")) {
+            return getRdbmsWriteColumns(table);
+        }
+        return getHdfsWriteColumns(table);
     }
 
     // minimal column struct from DESCRIBE output

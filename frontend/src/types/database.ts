@@ -217,6 +217,7 @@ export interface EtlTable {
   duration?: number // 采集耗时，单位为秒
   tblComment?: string // 目标表的注释
   writeMode: string // 写入模式: overwrite|append|nonConflict
+  targetId?: number | null // 目标端ID，关联 etl_target
 }
 
 export interface TableMeta {
@@ -236,6 +237,22 @@ export interface VEtlWithSource extends EtlTable {
   preScript?: string // 标志符合条件后的前置脚本
   remark?: string // 系统备注信息
   enabled?: boolean // 是否有效
+  targetType?: string
+  targetCode?: string
+  targetName?: string
+  targetEnabled?: boolean
+}
+
+export interface EtlTarget {
+  id?: number
+  code: string
+  name: string
+  targetType: string
+  connectConfig?: string
+  writerTemplateKey?: string
+  enabled?: boolean
+  isDefault?: boolean
+  remark?: string
 }
 // 采集表字段信息 etl_column
 export interface EtlColumn {

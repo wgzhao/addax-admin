@@ -9,7 +9,7 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 public interface TargetAdapter
 {
     /**
-     * 目标端类型标识（如 HIVE）。
+     * 目标端类型标识（如 HDFS）。
      */
     String getType();
 

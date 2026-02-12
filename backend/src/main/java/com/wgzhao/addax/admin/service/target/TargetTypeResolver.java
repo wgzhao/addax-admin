@@ -10,9 +10,8 @@ import java.util.Locale;
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_TARGET_TYPE;
 
 /**
- * 目标端类型解析器。
- * 通过 etl_table.target_id -> etl_target.target_type 解析目标端类型。
- * 若数据库尚未完成迁移，则回退默认 HIVE。
+ * 目标端路由解析器。
+ * 优先基于 etl_target.writer_template_key 决定适配器类型，target_type 仅作为展示信息与兜底参考。
  */
 @Component
 @RequiredArgsConstructor
@@ -24,6 +23,19 @@ public class TargetTypeResolver
 
     public String resolveTargetType(Long tableId)
     {
+        return resolveAdapterType(tableId);
+    }
+
+    /**
+     * 解析目标端适配器类型。
+     * 路由优先级：
+     * 1) writer_template_key = wH -> HDFS
+     * 2) writer_template_key 其他非空值 -> RDBMS
+     * 3) target_type（兜底）
+     * 4) DEFAULT_TARGET_TYPE
+     */
+    public String resolveAdapterType(Long tableId)
+    {
         if (tableId == null) {
             return DEFAULT_TARGET_TYPE;
         }
@@ -32,24 +44,34 @@ public class TargetTypeResolver
         }
         try {
             String sql = """
-                select coalesce(tt.target_type, ?) as target_type
+                select tt.target_type, tt.writer_template_key
                 from etl_table t
                 left join etl_target tt on t.target_id = tt.id
                 where t.id = ?
                 """;
-            String targetType = jdbcTemplate.query(sql, rs -> {
+            RouteInfo route = jdbcTemplate.query(sql, rs -> {
                 if (rs.next()) {
-                    return rs.getString("target_type");
+                    return new RouteInfo(rs.getString("target_type"), rs.getString("writer_template_key"));
                 }
                 return null;
-            }, DEFAULT_TARGET_TYPE, tableId);
-            if (targetType == null || targetType.isBlank()) {
+            }, tableId);
+            if (route == null) {
                 return DEFAULT_TARGET_TYPE;
             }
-            return targetType.trim().toUpperCase(Locale.ROOT);
+            String writerKey = normalize(route.writerTemplateKey);
+            if ("WH".equals(writerKey)) {
+                return "HDFS";
+            }
+            if (!writerKey.isBlank()) {
+                return "RDBMS";
+            }
+            if (!normalize(route.targetType).isBlank()) {
+                return normalize(route.targetType);
+            }
+            return DEFAULT_TARGET_TYPE;
         }
         catch (Exception e) {
-            log.warn("Failed to resolve target type for table {}, fallback to HIVE: {}", tableId, e.getMessage());
+            log.warn("Failed to resolve target type for table {}, fallback to {}: {}", tableId, DEFAULT_TARGET_TYPE, e.getMessage());
             return DEFAULT_TARGET_TYPE;
         }
     }
@@ -65,7 +87,7 @@ public class TargetTypeResolver
             }
             routingSchemaReady = checkRoutingSchema();
             if (!routingSchemaReady) {
-                log.info("Target routing schema not ready, fallback to default HIVE routing");
+                log.info("Target routing schema not ready, fallback to default {} routing", DEFAULT_TARGET_TYPE);
             }
             return routingSchemaReady;
         }
@@ -91,5 +113,17 @@ public class TargetTypeResolver
             log.warn("Failed to check target routing schema: {}", e.getMessage());
             return false;
         }
+    }
+
+    private String normalize(String s)
+    {
+        if (s == null) {
+            return "";
+        }
+        return s.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private record RouteInfo(String targetType, String writerTemplateKey)
+    {
     }
 }

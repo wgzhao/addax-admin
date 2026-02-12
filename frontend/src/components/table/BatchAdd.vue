@@ -11,7 +11,7 @@
               <v-spacer />
               <div class="header-actions">
                 <v-btn color="primary" size="small" @click="saveItems" :loading="loadingSave"
-                  :disabled="selectedCnt === 0 || !targetDb">保存</v-btn>
+                  :disabled="selectedCnt === 0 || !targetDb || !targetId">保存</v-btn>
                 <v-btn color="secondary" size="small" variant="tonal" @click="closeDialog">关闭</v-btn>
               </div>
             </div>
@@ -89,11 +89,23 @@
                 </v-combobox>
               </v-col>
               <v-col cols="12" md="2">
+                <v-select
+                  v-model="targetId"
+                  :items="targetOptions"
+                  item-title="label"
+                  item-value="value"
+                  label="目标端"
+                  density="compact"
+                  persistent-hint
+                  :rules="[rules.required]"
+                />
+              </v-col>
+              <v-col cols="12" md="1">
                 <v-text-field v-model="targetDb" label="目标库名" density="compact" placeholder="ods + 源系统编号" persistent-hint
                   :rules="[rules.required]" class="tight-field">
                 </v-text-field>
               </v-col>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="3">
                 <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact"
                   hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
                   placeholder="${table}" class="tight-field">
@@ -225,9 +237,10 @@ import { ref, onMounted, computed, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import sourceService from "@/service/source-service";
+import targetService from "@/service/target-service";
 import dictService from "@/service/dict-service";
 import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS, PARTITION_FORMATS } from "@/utils";
-import { EtlSource, EtlTable, TableMeta } from "@/types/database";
+import { EtlSource, EtlTable, TableMeta, EtlTarget } from "@/types/database";
 import { DataTableHeader } from "vuetify";
 import dayjs from 'dayjs'
 
@@ -270,6 +283,8 @@ const storageFormat = ref(''); // 新增：存储格式
 const compressFormat = ref(''); // 新增：压缩格式
 const storageFormats = ref(HDFS_STORAGE_FORMATS);
 const compressFormats = ref(HDFS_COMPRESS_FORMATS);
+const targetOptions = ref<{ label: string; value: number }[]>([]);
+const targetId = ref<number | null>(null);
 
 
 const partitionFormatExample = computed(() => {
@@ -279,7 +294,7 @@ const partitionFormatExample = computed(() => {
 
 // 表单验证规则
 const rules = {
-  required: (value: string) => !!value || '此字段为必填项'
+  required: (value: any) => !!value || '此字段为必填项'
 };
 
 
@@ -331,6 +346,15 @@ watch(selectedSourceId, (val) => {
   }
 });
 
+watch(targetId, (val) => {
+  tables.value.forEach((item) => {
+    item.targetId = val;
+  });
+  selectedTables.value.forEach((item) => {
+    item.targetId = val;
+  });
+});
+
 const getDbsBySourceId = async () => {
   if (!selectedSourceId.value) return;
 
@@ -362,10 +386,14 @@ const saveItems = async () => {
     notify('请设置目标库名', 'warning');
     return;
   }
+  if (!targetId.value) {
+    notify('请选择目标端', 'warning');
+    return;
+  }
 
   loadingSave.value = true;
 
-  // set destPardKind for each item and fix destTablename
+  // set destPartKind for each item and fix destTableName
   const itemsToSave = selectedTables.value.map(item => {
     const saveItem = { ...item };
     // set targetDb for all items
@@ -374,7 +402,8 @@ const saveItems = async () => {
     saveItem.partFormat = partFormat.value;
     saveItem.storageFormat = storageFormat.value;
     saveItem.compressFormat = compressFormat.value;
-    // set destTablename
+    saveItem.targetId = targetId.value;
+    // set destTableName
     if (saveItem.targetTable == "") {
       saveItem.targetTable = saveItem.sourceTable;
     }
@@ -471,6 +500,7 @@ const getTables = async () => {
         newItem.partFormat = partFormat.value;
         newItem.storageFormat = storageFormat.value;
         newItem.compressFormat = compressFormat.value;
+        newItem.targetId = targetId.value;
         newItem.targetTable = element.name;
         newItem.tblComment = element.comment;
         const viewItem: EtlTableView = { ...newItem, approxRowCount: element.approxRowCount };
@@ -494,6 +524,19 @@ const getTables = async () => {
 
 onMounted(() => {
   fetchSourceData();
+  targetService.list(true).then((res) => {
+    targetOptions.value = res
+      .filter((t: EtlTarget) => t.id !== undefined)
+      .map((t: EtlTarget) => ({
+        label: `${t.name} (${t.targetType})`,
+        value: t.id as number
+      }));
+    if (targetOptions.value.length > 0) {
+      targetId.value = targetOptions.value[0].value;
+    }
+  }).catch(error => {
+    notify(`获取目标端列表失败: ${error}`, 'error');
+  });
   dictService.getHdfsStorageDefaults().then(res => {
     storageFormat.value = res.storageFormat;
     compressFormat.value = res.compressFormat;
