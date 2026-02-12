@@ -9,8 +9,8 @@ import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
-import com.wgzhao.addax.admin.service.TargetService;
 import com.wgzhao.addax.admin.service.RiskLogService;
+import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -46,7 +46,7 @@ import static com.wgzhao.addax.admin.common.HiveType.isHiveTypeCompatible;
 @Slf4j
 @RequiredArgsConstructor
 public class TargetServiceWithHiveImpl
-    implements TargetService
+    implements TargetAdapter
 {
 
     private final DictService dictService;
@@ -60,6 +60,12 @@ public class TargetServiceWithHiveImpl
     // keep a reference to the registered driver shim so we can deregister it if we ever reinit
     private volatile Driver registeredHiveDriver;
 
+    @Override
+    public String getType()
+    {
+        return "HIVE";
+    }
+
     private static String normalizeComment(String v)
     {
         if (v == null) {
@@ -69,7 +75,6 @@ public class TargetServiceWithHiveImpl
         return c.replace("'", "''");
     }
 
-    @Override
     public Connection getHiveConnect()
     {
         if (hiveDataSource == null) {
@@ -105,7 +110,6 @@ public class TargetServiceWithHiveImpl
         }
     }
 
-    @Override
     public DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
         throws MalformedURLException
     {
@@ -236,7 +240,7 @@ public class TargetServiceWithHiveImpl
      * @return 是否创建/更新成功
      */
     @Override
-    public boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable)
+    public boolean createOrUpdateTable(VwEtlTableWithSource etlTable)
     {
         List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());
 
