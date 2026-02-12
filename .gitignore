@@ -1,5 +1,4 @@
 HELP.md
-backend/target/
 ### STS ###
 .apt_generated
 .classpath
@@ -15,11 +14,8 @@ backend/target/
 *.iml
 *.ipr
 
-frontend/dist/
-frontend/node_modules
 /nbdist/
 /.nb-gradle/
-frontend/build/
 node_modules
 
 ### VS Code ###
@@ -31,10 +27,13 @@ backend/jdbc-drivers/
 backend/target
 backend/drivers/*
 .env
-/frontend/.local
-/frontend/.env.local
-/frontend/tsconfig.tsbuildinfo
-/frontend/tsconfig.node.tsbuildinfo
-/frontend/src/types/components.d.ts
-/frontend/src/types/vue-router.d.ts
+frontend/build/
+frontend/dist/
+frontend/node_modules
+frontend/.local
+frontend/.env.local
+frontend/tsconfig.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
+frontend/src/types/components.d.ts
+frontend/src/types/vue-router.d.ts
 .alma-snapshots

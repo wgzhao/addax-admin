@@ -113,7 +113,14 @@
         <v-card-text>
           <v-form ref="itemForm">
             <v-text-field v-model="itemFormModel.itemKey" label="键" />
-            <v-text-field v-model="itemFormModel.itemValue" label="值" />
+            <v-textarea
+              v-if="isJsonValueDictCode(itemFormModel.dictCode)"
+              v-model="itemFormModel.itemValue"
+              label="值"
+              rows="8"
+              auto-grow
+            />
+            <v-text-field v-else v-model="itemFormModel.itemValue" label="值" />
             <v-textarea v-model="itemFormModel.remark" label="说明" />
           </v-form>
         </v-card-text>
@@ -292,6 +299,10 @@
       }
     }
     itemDialog.value = true
+  }
+
+  const isJsonValueDictCode = (dictCode?: number | null) => {
+    return [5000, 5001].includes(Number(dictCode))
   }
 
   const saveItem = () => {
