@@ -35,4 +35,6 @@ backend/drivers/*
 /frontend/.env.local
 /frontend/tsconfig.tsbuildinfo
 /frontend/tsconfig.node.tsbuildinfo
+/frontend/src/types/components.d.ts
+/frontend/src/types/vue-router.d.ts
 .alma-snapshots
