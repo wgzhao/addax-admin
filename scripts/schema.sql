@@ -212,6 +212,17 @@ create table if not exists public.etl_target
   is_default       boolean default false not null,
   remark           varchar(500)
 );
+comment on table public.etl_target is '目标端配置表';
+comment on column public.etl_target.id is '目标端主键ID';
+comment on column public.etl_target.code is '目标端编码';
+comment on column public.etl_target.name is '目标端名称';
+comment on column public.etl_target.target_type is '目标端类型（HDFS/MYSQL/POSTGRESQL等）';
+comment on column public.etl_target.connect_config is '连接配置JSON';
+comment on column public.etl_target.writer_template_key is 'writer模板键';
+comment on column public.etl_target.enabled is '是否启用';
+comment on column public.etl_target.is_default is '是否默认目标端';
+comment on column public.etl_target.remark is '备注';
+comment on column public.etl_table.target_id is '目标端ID，引用etl_target.id';
 
 create unique index if not exists uk_etl_target_code
   on public.etl_target (code);
@@ -261,7 +272,7 @@ comment on column public.etl_table.auto_pk is '自动获取切分字段';
 comment on column etl_table.write_mode is '覆盖默认，默认为 overwrite，可选为 append,nonConflict';
 
 alter table public.etl_table
-  add column if not exists target_id bigint;
+  add column if not exists target_id int;
 
 do
 $$
@@ -277,17 +288,6 @@ $$;
 create index if not exists idx_etl_table_target_id
   on public.etl_table (target_id);
 
-comment on table public.etl_target is '目标端配置表';
-comment on column public.etl_target.id is '目标端主键ID';
-comment on column public.etl_target.code is '目标端编码';
-comment on column public.etl_target.name is '目标端名称';
-comment on column public.etl_target.target_type is '目标端类型（HDFS/MYSQL/POSTGRESQL等）';
-comment on column public.etl_target.connect_config is '连接配置JSON';
-comment on column public.etl_target.writer_template_key is 'writer模板键';
-comment on column public.etl_target.enabled is '是否启用';
-comment on column public.etl_target.is_default is '是否默认目标端';
-comment on column public.etl_target.remark is '备注';
-comment on column public.etl_table.target_id is '目标端ID，引用etl_target.id';
 
 alter table public.etl_table
   add column if not exists start_at time;

@@ -37,3 +37,4 @@ frontend/tsconfig.node.tsbuildinfo
 frontend/src/types/components.d.ts
 frontend/src/types/vue-router.d.ts
 .alma-snapshots
+deploy.sh

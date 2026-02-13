@@ -20,6 +20,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 采集任务管理服务类，负责采集任务队列管理及相关业务操作
@@ -29,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 @RequiredArgsConstructor
 public class TaskService
 {
+    private static final Pattern INSTANCE_WITH_PID_PATTERN = Pattern.compile("^(.*)-\\d+@.*$");
+
     private final TaskQueueManager queueManager;
     private final TableService tableService;
     private final JdbcTemplate jdbcTemplate;
@@ -315,6 +319,7 @@ public class TaskService
             target_db || '.' ||  target_table as tbl,
             status,
             to_char(start_time, 'yyyy-MM-dd HH24:MM:SS') as start_time,
+            q.claimed_by,
             least(
             100,
             round(
@@ -333,9 +338,46 @@ public class TaskService
             from etl_statistic
             ) b
             on t.id = b.tid and t.status in ( 'R', 'W')
+            left join
+            (
+            select tid,
+            claimed_by,
+            row_number() over (partition by tid order by claimed_at desc, id desc) as qrn
+            from etl_job_queue
+            where status = 'running'
+            ) q
+            on t.id = q.tid and q.qrn = 1
             where rn = 1
             order by id
             """;
-        return jdbcTemplate.queryForList(sql, defaultTakeSecs);
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, defaultTakeSecs);
+        for (Map<String, Object> row : rows) {
+            Object idObj = row.get("id");
+            if (!(idObj instanceof Number num)) {
+                row.put("node_name", "");
+                continue;
+            }
+            long tid = num.longValue();
+            String instanceId = row.get("claimed_by") == null ? "" : String.valueOf(row.get("claimed_by"));
+            if (instanceId.isBlank()) {
+                instanceId = executionManager.findInstanceId(tid).orElse("");
+            }
+            row.put("node_name", extractNodeName(instanceId));
+            row.remove("claimed_by");
+        }
+        return rows;
+    }
+
+    private String extractNodeName(String instanceId)
+    {
+        if (instanceId == null || instanceId.isBlank()) {
+            return "";
+        }
+        Matcher matcher = INSTANCE_WITH_PID_PATTERN.matcher(instanceId);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        int idx = instanceId.lastIndexOf('-');
+        return idx > 0 ? instanceId.substring(0, idx) : instanceId;
     }
 }

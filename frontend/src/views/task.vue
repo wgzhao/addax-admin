@@ -1,40 +1,11 @@
 <template>
   <v-card flat title="采集任务管理">
     <v-card-text>
-      <v-row align="center" class="mb-2" style="gap: 12px">
-        <v-col cols="auto" md="2">
-          <v-btn icon @click="refreshTaskStatus" :loading="loading" class="ml-2" title="手动刷新">
-            <v-icon>mdi-refresh</v-icon>
-          </v-btn>
-        </v-col>
-        <v-col cols="12" md="6">
-          <v-select
-            v-model="selectedInterval"
-            :items="intervalOptions"
-            item-title="label"
-            item-value="value"
-            dense
-            hide-details
-            label="自动刷新间隔"
-          ></v-select>
-        </v-col>
-        <v-col>
-          <v-chip
-            small
-            class="ml-2"
-            :color="autoRefreshActive ? 'green' : 'grey'"
-            text-color="white"
-          >
-            {{ autoRefreshActive ? '自动刷新已开启' : '自动刷新已停止' }}
-          </v-chip>
-        </v-col>
-      </v-row>
       <v-data-table
         :items="taskStatus"
         :headers="headers"
         item-value="id"
         density="compact"
-        :loading="loading"
       >
         <template v-slot:item.status="{ item }">
           <v-chip
@@ -48,13 +19,17 @@
         </template>
         <template v-slot:item.progress="{ item }">
           <v-progress-linear
-            :model-value="item.progress"
+            :model-value="item.displayProgress ?? item.progress"
+            :buffer-value="item.progress"
             height="16"
             color="primary"
             striped
             rounded
             style="min-width: 80px"
           ></v-progress-linear>
+        </template>
+        <template v-slot:item.node_name="{ item }">
+          <span>{{ item.node_name || '-' }}</span>
         </template>
         <template v-slot:item.action="{ item }">
           <v-btn small color="primary" @click="$emit('executeTask', item.id)">采集</v-btn>
@@ -73,65 +48,92 @@
   // 如果需要外部控制间隔，可以使用 prop；页面通常不传，默认 3 秒
   const props = defineProps<{ refreshInterval?: number }>()
 
-  const loading = ref(false)
   const headers: DataTableHeader[] = [
     { title: '任务ID', key: 'id', align: 'center', width: '10%' },
-    { title: '表名', key: 'tbl', align: 'center', width: '20%' },
+    { title: '表名', key: 'tbl', align: 'center', width: '18%' },
     { title: '状态', key: 'status', align: 'center', width: '10%' },
+    { title: '执行节点', key: 'node_name', align: 'center', width: '20%' },
     { title: '采集时间', key: 'start_time', align: 'center', width: '20%' },
-    { title: ' 进展', key: 'progress', align: 'center', width: '20%' }
+    { title: '进展', key: 'progress', align: 'center', width: '18%' }
   ]
 
   type TaskItem = {
     id?: string | number
     tbl?: string
     status?: string
+    node_name?: string
     start_time?: string
     progress?: number
+    displayProgress?: number
     [key: string]: any
   }
 
   const taskStatus = ref<TaskItem[]>([])
 
   let refreshTimer: any = null
-  const autoRefreshActive = ref(false)
-
-  // 支持页面内选择刷新间隔；0 表示不自动刷新
-  const intervalOptions = [
-    { label: '不刷新', value: 0 },
-    { label: '3 秒 (默认)', value: 3 },
-    { label: '5 秒', value: 5 },
-    { label: '10 秒', value: 10 },
-    { label: '15 秒', value: 15 },
-    { label: '30 秒', value: 30 },
-    { label: '60 秒', value: 60 }
-  ]
-
-  const selectedInterval = ref<number>(props.refreshInterval ?? 3)
+  let progressAnimator: any = null
 
   const intervalMs = computed(() => {
-    const v = selectedInterval.value
+    const v = props.refreshInterval ?? 3
     const n = Number(v)
     return Number.isFinite(n) && n > 0 ? Math.floor(n * 1000) : 0
   })
 
+  function mergeTaskStatus(newList: TaskItem[]) {
+    const existingById = new Map<string, TaskItem>()
+    const seenIds = new Set<string>()
+
+    taskStatus.value.forEach((item) => {
+      if (item.id == null) return
+      existingById.set(String(item.id), item)
+    })
+
+    for (const incoming of newList) {
+      if (incoming.id == null) continue
+      const key = String(incoming.id)
+      seenIds.add(key)
+      const existing = existingById.get(key)
+
+      if (existing) {
+        // 原地更新，避免整表替换导致闪烁
+        Object.assign(existing, incoming)
+        if (existing.displayProgress == null) {
+          existing.displayProgress = incoming.progress ?? 0
+        }
+      } else {
+        taskStatus.value.push({
+          ...incoming,
+          displayProgress: incoming.progress ?? 0
+        })
+      }
+    }
+
+    // 后端未返回的任务从列表中移除
+    for (let i = taskStatus.value.length - 1; i >= 0; i -= 1) {
+      const id = taskStatus.value[i]?.id
+      if (id == null) {
+        taskStatus.value.splice(i, 1)
+        continue
+      }
+      if (!seenIds.has(String(id))) {
+        taskStatus.value.splice(i, 1)
+      }
+    }
+  }
+
   function refreshTaskStatus() {
-    loading.value = true
     taskService
       .getAllTaskStatus()
       .then((res) => {
-        // 后端返回的是当前要展示的任务列表（完成的任务可能不再返回），
-        // 因此直接用后端数据替换本地列表，剔除不再返回的任务。
         const newList = Array.isArray(res) ? (res as TaskItem[]) : []
         const normalized: TaskItem[] = newList.map((it) => ({
           ...it,
           progress: parseProgress((it as any).progress)
         }))
-        taskStatus.value = normalized
-        loading.value = false
+        mergeTaskStatus(normalized)
       })
       .catch(() => {
-        loading.value = false
+        // 静默轮询失败时不打断页面交互
       })
   }
 
@@ -142,57 +144,50 @@
     }
     // 如果用户选择不刷新（0），则停止任何自动刷新
     if (!intervalMs.value) {
-      autoRefreshActive.value = false
       return
     }
     // 标记为活动并立即刷新一次
-    autoRefreshActive.value = true
     refreshTaskStatus()
     refreshTimer = setInterval(() => {
       refreshTaskStatus()
     }, intervalMs.value)
   }
 
+  function startProgressAnimator() {
+    if (progressAnimator) {
+      clearInterval(progressAnimator)
+      progressAnimator = null
+    }
+    // 低频平滑追赶，减少进度条跳变感
+    progressAnimator = setInterval(() => {
+      taskStatus.value.forEach((item) => {
+        const target = parseProgress(item.progress)
+        const current = parseProgress(item.displayProgress)
+        if (current === target) return
+        if (current > target) {
+          item.displayProgress = target
+          return
+        }
+        const diff = target - current
+        const step = Math.max(1, Math.ceil(diff * 0.25))
+        item.displayProgress = Math.min(target, current + step)
+      })
+    }, 120)
+  }
+
   onMounted(() => {
     startAutoRefresh()
+    startProgressAnimator()
   })
 
   watch(intervalMs, () => {
     startAutoRefresh()
   })
 
-  // 观察用户选择的间隔，0 表示停止自动刷新
-  watch(selectedInterval, (v) => {
-    if (!v) {
-      if (refreshTimer) {
-        clearInterval(refreshTimer)
-        refreshTimer = null
-      }
-    } else {
-      startAutoRefresh()
-    }
-  })
-
   onUnmounted(() => {
     if (refreshTimer) clearInterval(refreshTimer)
+    if (progressAnimator) clearInterval(progressAnimator)
   })
-
-  // Debug: 记录 progress 变化，帮助定位何时被修改
-  watch(
-    () => taskStatus.value.map((t) => ({ id: t.id, progress: t.progress })),
-    (cur, prev) => {
-      cur.forEach((c, idx) => {
-        const p = prev[idx]
-        if (!p) return
-        if (c.progress !== p.progress) {
-          console.debug(
-            `[task.vue] progress changed for ${c.id}: ${p.progress} -> ${c.progress} @ ${new Date().toISOString()}`
-          )
-        }
-      })
-    },
-    { deep: true }
-  )
 
   function getStatusColor(status: string) {
     if (status === 'E') return 'red'
@@ -211,7 +206,6 @@
     const num = Number(progress)
     if (Number.isNaN(num)) return 0
     return Math.max(0, Math.min(100, Math.floor(num)))
-    return 0
   }
 </script>
 
