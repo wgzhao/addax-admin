@@ -46,6 +46,18 @@
               <v-divider />
               <v-row dense class="section-body">
                 <v-col cols="12" md="6">
+                  <v-select
+                    variant="outlined"
+                    density="compact"
+                    v-model="table.targetId"
+                    :items="targetOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="目标端"
+                    clearable
+                  ></v-select>
+                </v-col>
+                <v-col cols="12" md="6">
                   <v-text-field variant="outlined" density="compact" v-model="table.targetDb" label="目标库"></v-text-field>
                 </v-col>
                 <v-col cols="12" md="6">
@@ -54,15 +66,15 @@
                 <v-col cols="12" md="6">
                   <v-text-field variant="outlined" density="compact" v-model="table.partName" label="分区字段"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-select variant="outlined" density="compact" v-model="table.partFormat" :items="PARTITION_FORMATS"
                     label="分区格式"></v-select>
                 </v-col>
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-select variant="outlined" density="compact" v-model="table.storageFormat" :items="storageOptions"
                     label="存储格式"></v-select>
                 </v-col>
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-select variant="outlined" density="compact" v-model="table.compressFormat" :items="compressFormats"
                     label="压缩格式"></v-select>
                 </v-col>
@@ -78,10 +90,10 @@
               </div>
               <v-divider />
               <v-row dense class="section-body">
-                <v-col cols="12" md="6">
+                <v-col cols="12" md="4">
                   <v-text-field variant="outlined" density="compact" v-model="table.splitPk" label="切分字段"></v-text-field>
                 </v-col>
-                <v-col cols="12" md="6" class="d-flex align-center">
+                <v-col cols="12" md="4" class="d-flex align-center">
                   <v-switch
                     v-model="table.autoPk"
                     inset
@@ -90,6 +102,11 @@
                     density="compact"
                   />
                 </v-col>
+
+                <v-col cols="12" md="4">
+                  <v-text-field variant="outlined" density="compact" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
+                </v-col>
+
                 <v-col cols="12" md="6">
                   <v-select
                     variant="outlined"
@@ -142,9 +159,6 @@
                       </v-tooltip>
                     </template>
                   </v-text-field>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field variant="outlined" density="compact" v-model="table.maxRuntime" label="最大运行时(s)"></v-text-field>
                 </v-col>
               </v-row>
             </v-sheet>
@@ -218,10 +232,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
-import { VEtlWithSource, EtlTable } from "@/types/database";
+import targetService from "@/service/target-service";
+import { VEtlWithSource, EtlTable, EtlTarget } from "@/types/database";
 import { TABLE_STATUS_OPTIONS, PARTITION_FORMATS, HDFS_COMPRESS_FORMATS } from "@/utils";
 
 const props = defineProps({
@@ -239,6 +254,7 @@ const storageOptions = ['orc', 'parquet', 'text']
 
 // reuse compress formats from constants
 const compressFormats = HDFS_COMPRESS_FORMATS || []
+const targetOptions = ref<{ label: string; value: number }[]>([])
 
 // 写入模式选项
 const writeModeOptions = [
@@ -319,6 +335,20 @@ watch(
   }
 )
 
+onMounted(async () => {
+  try {
+    const targets = await targetService.list(true)
+    targetOptions.value = targets
+      .filter((t) => t.id !== undefined)
+      .map((t: EtlTarget) => ({
+        label: `${t.name} (${t.targetType})`,
+        value: t.id as number
+      }))
+  } catch (e) {
+    notify('加载目标端列表失败', 'warning')
+  }
+})
+
 const saveOds = async () => {
   if (formRef.value && typeof formRef.value.validate === 'function') {
     const valid = await formRef.value.validate()
@@ -351,7 +381,8 @@ const saveOds = async () => {
     sid: table.value.sid,
     duration: table.value.duration,
     writeMode: table.value.writeMode || 'overwrite',
-    startAt: table.value.startAt || null
+    startAt: table.value.startAt || null,
+    targetId: table.value.targetId ?? null
   };
 
   tableService.save(etlTableData as EtlTable)

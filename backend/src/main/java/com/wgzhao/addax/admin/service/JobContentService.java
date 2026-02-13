@@ -1,7 +1,5 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
@@ -20,17 +18,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
@@ -83,7 +77,7 @@ public class JobContentService
 
         Map<String, String> values = new HashMap<>();
         values.put("reader", fillRdbmsReaderJob(etlTable));
-        values.put("writer", fillHdfsWriterJob(etlTable));
+        values.put("writer", targetService.buildWriterJob(etlTable));
 
         String jobTemplate = configService.getRdbms2HdfsJobTemplate();
         StringSubstitutor substitutor = new StringSubstitutor(values);
@@ -157,68 +151,6 @@ public class JobContentService
         values.put("column", String.join(", ", srcColumns));
         StringSubstitutor substitutor = new StringSubstitutor(values);
         return substitutor.replace(template);
-    }
-
-    private String fillHdfsWriterJob(VwEtlTableWithSource vTable)
-    {
-
-        Map<String, String> values = new HashMap<>();
-        values.put("compress", vTable.getCompressFormat());
-        values.put("fileType", vTable.getStorageFormat());
-        values.put("writeMode", vTable.getWriteMode());
-
-        // 处理列信息
-        String columnJson = getHdfsWriteColumns(vTable);
-        values.put("column", columnJson);
-
-        values.putAll(configService.getBizDateValues());
-
-        // hdfs path 的前缀路径不应该在模板中填写，而应该从配置中获取
-        Path hdfsPath = Paths.get(configService.getHdfsPrefix(), vTable.getTargetDb(), vTable.getTargetTable());
-
-        if (!vTable.getPartName().isEmpty()) {
-            String bizDate = configService.getBizDate();
-            if (!Objects.equals(vTable.getPartFormat(), DEFAULT_PART_FORMAT)) {
-                // 不是默认则 bizDate 日期格式，则需要进行转换
-                bizDate = configService.getBizDateAsDate().format(DateTimeFormatter.ofPattern(vTable.getPartFormat()));
-            }
-            hdfsPath = hdfsPath.resolve(vTable.getPartName() + "=" + bizDate);
-        }
-
-        values.put("path", hdfsPath.toString());
-        // 所有变量都需要处理，以防止模板替换错误
-
-        String template = configService.getHdfsWriterTemplate();
-        StringSubstitutor substitutor = new StringSubstitutor(values);
-
-        return substitutor.replace(template);
-    }
-
-    private String getHdfsWriteColumns(VwEtlTableWithSource vTable)
-    {
-        List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
-        List<Map<String, String>> columns = new ArrayList<>();
-        for (EtlColumn etlColumn : columnList) {
-            String columnName = etlColumn.getColumnName();
-            Map<String, String> targetColumn = new HashMap<>();
-            targetColumn.put("type", etlColumn.getTargetTypeFull());
-            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                // 目标表字段名还是正常的字段名
-                targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
-            }
-            else {
-                targetColumn.put("name", columnName);
-            }
-            columns.add(targetColumn);
-        }
-
-        try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.writeValueAsString(columns);
-        }
-        catch (JsonProcessingException e) {
-            throw new RuntimeException("column 转换为 JSON 失败", e);
-        }
     }
 
     /**

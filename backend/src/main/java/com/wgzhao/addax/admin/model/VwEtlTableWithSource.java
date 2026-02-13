@@ -61,4 +61,9 @@ public class VwEtlTableWithSource
     private String splitPk;
     private Boolean autoPk;
     private String writeMode;
+    private Long targetId;
+    private String targetType;
+    private String targetCode;
+    private String targetName;
+    private Boolean targetEnabled;
 }

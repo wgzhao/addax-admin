@@ -200,6 +200,22 @@ create table public.etl_table
   write_mode varchar(20) default 'overwrite' not null
 );
 
+create table if not exists public.etl_target
+(
+  id               bigserial primary key,
+  code             varchar(50)  not null,
+  name             varchar(100) not null,
+  target_type      varchar(30)  not null,
+  connect_config   text,
+  writer_template_key varchar(32),
+  enabled          boolean default true not null,
+  is_default       boolean default false not null,
+  remark           varchar(500)
+);
+
+create unique index if not exists uk_etl_target_code
+  on public.etl_target (code);
+
 comment on table public.etl_table is '采集表信息';
 
 comment on column public.etl_table.id is '表 ID';
@@ -243,6 +259,35 @@ comment on column public.etl_table.split_pk is '切分主键';
 comment on column public.etl_table.auto_pk is '自动获取切分字段';
 
 comment on column etl_table.write_mode is '覆盖默认，默认为 overwrite，可选为 append,nonConflict';
+
+alter table public.etl_table
+  add column if not exists target_id bigint;
+
+do
+$$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'etl_table_target_id_fk') then
+    alter table public.etl_table
+      add constraint etl_table_target_id_fk
+      foreign key (target_id) references public.etl_target (id);
+  end if;
+end
+$$;
+
+create index if not exists idx_etl_table_target_id
+  on public.etl_table (target_id);
+
+comment on table public.etl_target is '目标端配置表';
+comment on column public.etl_target.id is '目标端主键ID';
+comment on column public.etl_target.code is '目标端编码';
+comment on column public.etl_target.name is '目标端名称';
+comment on column public.etl_target.target_type is '目标端类型（HDFS/MYSQL/POSTGRESQL等）';
+comment on column public.etl_target.connect_config is '连接配置JSON';
+comment on column public.etl_target.writer_template_key is 'writer模板键';
+comment on column public.etl_target.enabled is '是否启用';
+comment on column public.etl_target.is_default is '是否默认目标端';
+comment on column public.etl_target.remark is '备注';
+comment on column public.etl_table.target_id is '目标端ID，引用etl_target.id';
 
 alter table public.etl_table
   add column if not exists start_at time;
@@ -551,9 +596,14 @@ SELECT t.*,
        s.start_at as source_start_at,
        s.enabled,
        s.max_concurrency,
-       s.db_type
+       s.db_type,
+       tt.target_type,
+       tt.code as target_code,
+       tt.name as target_name,
+       tt.enabled as target_enabled
 FROM etl_table t
-       LEFT JOIN etl_source s ON t.sid = s.id;
+       LEFT JOIN etl_source s ON t.sid = s.id
+       LEFT JOIN etl_target tt ON t.target_id = tt.id;
 
 
 create function insert_dates_for_year(p_year integer, p_dict_code integer DEFAULT 1021) returns void

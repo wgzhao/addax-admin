@@ -39,10 +39,20 @@ public interface TargetService
      */
     boolean createOrUpdateHiveTable(VwEtlTableWithSource etlTable);
 
+    /**
+     * 执行任务前的目标端准备动作（如分区创建）。
+     */
+    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue);
+
     Connection getHiveConnect();
 
     DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
         throws MalformedURLException;
 
     Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
+
+    /**
+     * 生成 writer 模板片段。
+     */
+    String buildWriterJob(VwEtlTableWithSource table);
 }

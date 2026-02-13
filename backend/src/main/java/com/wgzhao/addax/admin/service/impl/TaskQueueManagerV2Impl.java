@@ -618,11 +618,14 @@ public class TaskQueueManagerV2Impl
         if (overrideBizDate != null) {
             bizDateStr = overrideBizDate.format(dtf);
         }
-        if (task.getPartName() != null && !Objects.equals(task.getPartName(), "")) {
-            boolean result = targetService.addPartition(taskId, task.getTargetDb(), task.getTargetTable(), task.getPartName(), bizDateStr);
-            if (!result) {
-                return false;
-            }
+        VwEtlTableWithSource tableView = tableService.getTableView(taskId);
+        if (tableView == null) {
+            log.warn("Table view not found, taskId = {}", taskId);
+            return false;
+        }
+        boolean prepareResult = targetService.prepareBeforeRun(taskId, tableView, bizDateStr);
+        if (!prepareResult) {
+            return false;
         }
         File tempFile;
         try {

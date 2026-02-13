@@ -95,6 +95,9 @@ public class EtlTable
     @Column(name="write_mode", length = 20)
     private  String writeMode = "overwrite";
 
+    @Column(name = "target_id")
+    private Long targetId;
+
     /**
      * 表级调度时间点（每天的 HH:mm），为空表示继承 etl_source.start_at
      */
