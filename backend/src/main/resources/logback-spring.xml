@@ -22,7 +22,8 @@
 
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- rollover daily and when the file reaches 1000 MegaBytes -->
-            <fileNamePattern>${LOG_PATH}/addax-admin-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- 归档日志自动压缩：将归档文件名后缀改为 .gz -->
+            <fileNamePattern>${LOG_PATH}/addax-admin-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
             <maxFileSize>1000MB</maxFileSize>
         </rollingPolicy>
     </appender>
