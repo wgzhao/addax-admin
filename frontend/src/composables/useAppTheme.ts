@@ -20,7 +20,7 @@ export const useAppTheme = () => {
   watch(
     () => themeStore.theme,
     (value) => {
-      theme.global.name.value = value
+      theme.change(value)
     },
     { immediate: true }
   )

@@ -32,6 +32,7 @@ public class GlobalExceptionHandler
     {
         HttpStatus status = switch (ex.getCode()) {
             case 400 -> HttpStatus.BAD_REQUEST;
+            case 403 -> HttpStatus.FORBIDDEN;
             case 404 -> HttpStatus.NOT_FOUND;
             case 409 -> HttpStatus.CONFLICT;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;

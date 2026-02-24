@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 用户认证接口，提供登录认证功能
  */
@@ -55,7 +57,12 @@ public class AuthController
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password()));
             if (authentication.isAuthenticated()) {
-                return ApiResponse.success(jwtService.generateToken(authRequestDTO.username()));
+                List<String> authorities = authentication.getAuthorities() == null
+                    ? List.of()
+                    : authentication.getAuthorities().stream()
+                    .map((item) -> normalizeAuthority(item.getAuthority()))
+                    .toList();
+                return ApiResponse.success(jwtService.generateToken(authRequestDTO.username(), authorities));
             }
             else {
                 return ApiResponse.error(401, "账号或密码不正确");
@@ -123,5 +130,18 @@ public class AuthController
             log.error("Failed to update password for user {}", username, ex);
             return ApiResponse.error(500, "failed to update password");
         }
+    }
+
+    private String normalizeAuthority(String authority)
+    {
+        if (authority == null || authority.isBlank()) {
+            return "user";
+        }
+
+        String normalized = authority.trim().toLowerCase();
+        if (normalized.startsWith("role_")) {
+            normalized = normalized.substring(5);
+        }
+        return "admin".equals(normalized) ? "admin" : "user";
     }
 }

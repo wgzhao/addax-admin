@@ -15,8 +15,10 @@ import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -72,6 +74,20 @@ public class JwtService
     }
 
     /**
+     * 生成JWT令牌（包含角色信息）
+     *
+     * @param username 用户名
+     * @param authorities 角色列表
+     * @return JWT令牌字符串
+     */
+    public String generateToken(String username, List<String> authorities)
+    {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("authorities", authorities == null ? List.of() : authorities);
+        return createToken(claims, username);
+    }
+
+    /**
      * 生成JWT令牌（可包含自定义声明）
      *
      * @param claims 自定义声明
@@ -120,6 +136,33 @@ public class JwtService
     public String extractUsername(String token)
     {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    /**
+     * 提取JWT中的角色列表。兼容旧 token（没有该 claim 时返回空列表）。
+     *
+     * @param token JWT令牌
+     * @return 角色列表
+     */
+    public List<String> extractAuthorities(String token)
+    {
+        Claims claims = extractClaim(token, Function.identity());
+        if (claims == null) {
+            return List.of();
+        }
+
+        Object raw = claims.get("authorities");
+        if (!(raw instanceof List<?> list)) {
+            return List.of();
+        }
+
+        List<String> result = new ArrayList<>();
+        for (Object item : list) {
+            if (item != null) {
+                result.add(String.valueOf(item));
+            }
+        }
+        return result;
     }
 
     /**

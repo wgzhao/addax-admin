@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -57,8 +58,14 @@ public class JwtFilter
         }
 
         log.debug("valid token, username: {}", username);
+        List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(token).stream()
+            .map((item) -> item == null ? "" : item.trim().toLowerCase())
+            .filter((item) -> !item.isBlank())
+            .map(SimpleGrantedAuthority::new)
+            .toList();
+
         UsernamePasswordAuthenticationToken authenticationToken =
-            new UsernamePasswordAuthenticationToken(username, null, List.of());
+            new UsernamePasswordAuthenticationToken(username, null, authorities);
 
         authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);

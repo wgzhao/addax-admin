@@ -83,6 +83,9 @@
           <v-list-item @click="versionDialog = true">
             <v-list-item-title>系统版本</v-list-item-title>
           </v-list-item>
+          <v-list-item v-if="isAdmin" @click="goAccounts">
+            <v-list-item-title>账号管理</v-list-item-title>
+          </v-list-item>
           <v-list-item @click="goHelp">
             <v-list-item-title>帮助文档</v-list-item-title>
           </v-list-item>
@@ -120,7 +123,7 @@
           </v-list-item>
           <v-list-item>
             <v-list-item-title>角色</v-list-item-title>
-            <v-list-item-subtitle>未配置</v-list-item-subtitle>
+            <v-list-item-subtitle>{{ profileRole || '-' }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item>
             <v-list-item-title>邮箱</v-list-item-title>
@@ -162,6 +165,7 @@ import { useAppTheme } from '@/composables/useAppTheme'
 import { useRouter } from 'vue-router'
 import notificationCenter from '@/stores/notification-center'
 import { APP_VERSION } from '@/config/version'
+import userService from '@/service/user-service'
 
 const router = useRouter()
 
@@ -171,6 +175,8 @@ const authStore = useAuthStore()
 const { isDarkTheme, toggleTheme, themeStore, resetToSystemTheme } = useAppTheme()
 const profileDialog = ref(false)
 const versionDialog = ref(false)
+const profileRole = ref('')
+const isAdmin = ref(false)
 const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new'
 // const notifyMenu = ref(false)
 let notifyTimer: number | null = null
@@ -258,6 +264,10 @@ const goHelp = () => {
   router.push('/help')
 }
 
+const goAccounts = () => {
+  router.push('/accounts')
+}
+
 const openFeedback = () => {
   window.open(feedbackUrl, '_blank', 'noopener')
 }
@@ -275,6 +285,32 @@ const goLogin = () => {
 const refreshNotifications = async () => {
   if (!authStore.isLoggedIn) return
   await notificationCenter.refreshUnreadCount()
+}
+
+const normalizeAuthority = (authority?: string) => {
+  const value = (authority || '').trim().toLowerCase()
+  if (value.startsWith('role_')) {
+    return value.slice(5)
+  }
+  return value
+}
+
+const refreshCurrentUserRole = async () => {
+  if (!authStore.isLoggedIn) {
+    profileRole.value = ''
+    isAdmin.value = false
+    return
+  }
+
+  try {
+    const me = await userService.me()
+    const roles = (me?.authorities || []).map((item) => normalizeAuthority(item))
+    profileRole.value = roles[0] || ''
+    isAdmin.value = roles.includes('admin')
+  } catch {
+    profileRole.value = ''
+    isAdmin.value = false
+  }
 }
 /*
 const loadNotificationList = async () => {
@@ -321,25 +357,30 @@ watch(
   () => authStore.isLoggedIn,
   (loggedIn) => {
     if (loggedIn) {
-      refreshNotifications()
-      if (!notifyTimer) {
-        notifyTimer = window.setInterval(() => {
-          refreshNotifications()
-        }, 10000)
-      }
-    } else if (notifyTimer) {
-      window.clearInterval(notifyTimer)
-      notifyTimer = null
-    }
+      // refreshNotifications()
+      refreshCurrentUserRole()
+      // if (!notifyTimer) {
+      //   notifyTimer = window.setInterval(() => {
+      //     refreshNotifications()
+      //   }, 10000)
+      // }
+    } 
+    // else if (notifyTimer) {
+    //   window.clearInterval(notifyTimer)
+    //   notifyTimer = null
+    //   profileRole.value = ''
+    //   isAdmin.value = false
+    // }
   }
 )
 
 onMounted(() => {
   if (authStore.isLoggedIn) {
-    refreshNotifications()
-    notifyTimer = window.setInterval(() => {
-      refreshNotifications()
-    }, 10000)
+    // refreshNotifications()
+    refreshCurrentUserRole()
+    // notifyTimer = window.setInterval(() => {
+    //   refreshNotifications()
+    // }, 10000)
   }
 })
 
