@@ -163,7 +163,6 @@ import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppTheme } from '@/composables/useAppTheme'
 import { useRouter } from 'vue-router'
-import notificationCenter from '@/stores/notification-center'
 import { APP_VERSION } from '@/config/version'
 import userService from '@/service/user-service'
 
@@ -282,10 +281,10 @@ const goLogin = () => {
   router.replace('/login')
 }
 
-const refreshNotifications = async () => {
-  if (!authStore.isLoggedIn) return
-  await notificationCenter.refreshUnreadCount()
-}
+// const refreshNotifications = async () => {
+//   if (!authStore.isLoggedIn) return
+//   await notificationCenter.refreshUnreadCount()
+// }
 
 const normalizeAuthority = (authority?: string) => {
   const value = (authority || '').trim().toLowerCase()
