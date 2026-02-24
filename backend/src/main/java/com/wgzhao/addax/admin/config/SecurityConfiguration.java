@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -34,15 +35,22 @@ public class SecurityConfiguration
         http.csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests((authorize) -> authorize
-                // 放行公开接口
-                .requestMatchers("/auth/**").permitAll()
+                // 公开接口
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/change-password").authenticated()
                 .requestMatchers("/addax/**").permitAll()
                 .requestMatchers("/log/job-report")
                 .permitAll()
-                .requestMatchers("/**")
-                .authenticated()
-                // 其他未匹配路径放行，让 MVC 返回正确的 404/405/500 等
-                .anyRequest().permitAll()
+                // 只读接口：登录即可
+                .requestMatchers(HttpMethod.GET, "/**").authenticated()
+                // 写操作接口：仅 admin
+                .requestMatchers(HttpMethod.POST, "/**").hasAuthority("admin")
+                .requestMatchers(HttpMethod.PUT, "/**").hasAuthority("admin")
+                .requestMatchers(HttpMethod.PATCH, "/**").hasAuthority("admin")
+                .requestMatchers(HttpMethod.DELETE, "/**").hasAuthority("admin")
+                // 其他情况默认需要登录
+                .anyRequest().authenticated()
             )
             .httpBasic(Customizer.withDefaults())
             .formLogin(Customizer.withDefaults())
