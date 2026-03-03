@@ -6,8 +6,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import lombok.Data;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 /**
  * 采集表字段信息实体类。
@@ -52,6 +53,7 @@ public class EtlColumn
     @Column(name = "target_type_full", length = 100)
     private String targetTypeFull;
 
+    @UpdateTimestamp
     @Column(name = "update_at")
-    private Timestamp updateAt;
+    private LocalDateTime updateAt;
 }

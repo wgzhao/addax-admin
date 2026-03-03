@@ -26,6 +26,7 @@ archive/
 backend/jdbc-drivers/
 backend/target
 backend/drivers/*
+backend/.agents/
 .env
 frontend/build/
 frontend/dist/
