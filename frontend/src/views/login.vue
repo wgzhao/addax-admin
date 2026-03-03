@@ -20,6 +20,10 @@
             :rules="[required]"
             class="modern-input mb-8"
             clearable
+            autocomplete="username"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
             label="Username/Email"
             prepend-inner-icon="mdi-account-circle"
             variant="outlined"
@@ -37,6 +41,10 @@
             :rules="[required]"
             class="modern-input mb-10"
             clearable
+            autocomplete="current-password"
+            autocorrect="off"
+            autocapitalize="none"
+            spellcheck="false"
             label="Password"
             prepend-inner-icon="mdi-lock"
             variant="outlined"
@@ -199,7 +207,8 @@
   }
 
   .modern-input {
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
+    will-change: transform;
   }
 
   .modern-input:hover {
