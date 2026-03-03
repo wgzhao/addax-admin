@@ -1,81 +1,79 @@
 <template>
-  <v-card flat title="采集表配置">
-    <template v-slot:text>
-      <v-row justify="start" align-content="center" >
-        <v-col cols="2">
-          <v-text-field
-            v-model="search"
-            density="compact"
-            label="Search"
-            prepend-inner-icon="mdi-magnify"
-            single-line
-            variant="outlined"
-            hide-details
-            @keyup.enter="searchTable"
-            @click:append-inner="searchTable"
-          >
-            <template #prepend>
-              <span class="me-2">关键字</span>
-            </template>
-          </v-text-field>
-        </v-col>
-        <v-col cols="1">
-          <!-- 状态下拉框选择 statusOptions -->
-          <v-select
-            v-model="runStatus"
-            :items="statusOptions"
-            item-title="label"
-            item-value="value"
-            density="compact"
-            variant="outlined"
-            single-line
-            hide-details
-          >
-            <template #prepend>
-              <span class="me-2">状态</span>
-            </template>
-          </v-select>
-        </v-col>
-
-        <v-col cols="2">
-          <!-- 数据源下拉框 -->
-          <v-select
-            v-model="sourceId"
-            :items="sourceOptions"
-            item-title="label"
-            item-value="value"
-            :item-props="item => ({ title: item.label })"
-            density="compact"
-            variant="outlined"
-            single-line
-            hide-details
-            clearable
-          >
-            <template #prepend>
-              <span class="me-2">数据源</span>
-            </template>
-          </v-select>
-        </v-col>
-
-        <!-- add search button -->
-        <v-col cols="1">
-          <v-btn  variant="tonal" @click="searchTable">查询</v-btn>
-        </v-col>
-        <v-spacer />
-        <v-col cols="auto">
+  <div class="table-page">
+    <v-card flat class="mb-3 section-card">
+      <v-card-text class="py-3">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <div class="text-subtitle-1 font-weight-bold">采集表配置</div>
           <v-btn
-            class="mr-2"
             variant="tonal"
             prepend-icon="mdi-plus"
             @click="openDialog('BatchAdd', 'BatchAdd')"
           >
             新增表
           </v-btn>
-          <v-btn class="mr-2"  variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <v-card flat class="mb-3 section-card">
+      <v-card-text>
+        <v-row dense>
+          <v-col cols="12" md="4" lg="3">
+            <v-text-field
+              v-model="search"
+              density="compact"
+              label="关键字"
+              prepend-inner-icon="mdi-magnify"
+              single-line
+              variant="outlined"
+              hide-details
+              @keyup.enter="searchTable"
+              @click:append-inner="searchTable"
+            />
+          </v-col>
+          <v-col cols="12" md="3" lg="2">
+            <v-select
+              v-model="runStatus"
+              :items="statusOptions"
+              item-title="label"
+              item-value="value"
+              density="compact"
+              variant="outlined"
+              single-line
+              hide-details
+              label="状态"
+            />
+          </v-col>
+          <v-col cols="12" md="3" lg="3">
+            <v-select
+              v-model="sourceId"
+              :items="sourceOptions"
+              item-title="label"
+              item-value="value"
+              :item-props="item => ({ title: item.label })"
+              density="compact"
+              variant="outlined"
+              single-line
+              hide-details
+              clearable
+              label="数据源"
+            />
+          </v-col>
+          <v-col cols="12" md="2" lg="4" class="d-flex justify-end ga-2 align-center">
+            <v-btn variant="tonal" @click="searchTable">查询</v-btn>
+            <v-btn variant="text" @click="resetFilters">重置</v-btn>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <v-card flat class="mb-3 section-card">
+      <v-card-text class="py-3 d-flex align-center justify-space-between flex-wrap ga-2">
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-btn variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
             更新表信息
           </v-btn>
           <v-btn
-            class="mr-2"          
             variant="tonal"
             color="warning"
             prepend-icon="mdi-update"
@@ -83,9 +81,11 @@
           >
             强制更新全部表信息
           </v-btn>
+        </div>
+
+        <div class="d-flex align-center ga-2 flex-wrap">
           <v-btn
             variant="tonal"
-            class="mr-2"            
             prepend-icon="mdi-delete"
             :disabled="selected.length === 0"
             @click="confirmBatchDelete"
@@ -94,7 +94,6 @@
           </v-btn>
           <v-btn
             variant="tonal"
-            class="mr-2"          
             prepend-icon="mdi-pencil"
             :disabled="selected.length === 0"
             @click="openDialog('BatchUpdate', 'BatchUpdate')"
@@ -103,19 +102,20 @@
           </v-btn>
           <v-btn
             variant="tonal"
-            class="mr-2"            
             prepend-icon="mdi-database"
             :disabled="selected.length === 0"
             @click="doEtl(null)"
           >
             批量采集
           </v-btn>
-        </v-col>
-      </v-row>
-    </template>
-    <v-card-text>
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <v-card flat class="section-card">
+      <v-card-text>
       <v-data-table-server
-        density="compact"
+        density="default"
         :items="table"
         :headers="headers"
         :items-per-page="currPageSize"
@@ -217,7 +217,6 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
                   color="primary"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -234,8 +233,7 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
-                  color="indigo"
+                  color="secondary"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="模板"
@@ -319,7 +317,6 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
                   color="info"
                   icon
                   class="mr-1 icon-btn--compact"
@@ -405,8 +402,9 @@
           </div>
         </template>
       </v-data-table-server>
-    </v-card-text>
-  </v-card>
+      </v-card-text>
+    </v-card>
+  </div>
 
   <!-- 对话框 -->
   <v-dialog v-model="dialogVisible" :retain-focus="false" scrollable>
@@ -738,6 +736,13 @@ retryCnt: retryCnt.value
 
   const searchTable = debounce(_searchCore, 400)
 
+  function resetFilters() {
+    search.value = ''
+    runStatus.value = undefined
+    sourceId.value = null
+    searchTable()
+  }
+
   // 加载可用数据源
   async function loadSources() {
     try {
@@ -864,6 +869,16 @@ retryCnt: retryCnt.value
 </script>
 
 <style scoped>
+  .table-page {
+    padding: 8px 10px;
+  }
+
+  .section-card {
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    border-radius: 12px;
+    background: rgb(var(--v-theme-surface));
+  }
+
   /* Compact icon button to reduce circular ring and padding */
   .icon-btn--compact {
     min-width: 28px !important;
@@ -890,6 +905,7 @@ retryCnt: retryCnt.value
     align-items: center;
     justify-content: center;
     flex-wrap: nowrap;
+    white-space: nowrap;
   }
 
 

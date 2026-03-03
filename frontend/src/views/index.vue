@@ -218,7 +218,7 @@
   }
 
   .dark-mode .background-overlay {
-    background: radial-gradient(circle, rgba(148, 163, 184, 0.1) 0%, rgba(2, 6, 23, 0.5) 80%);
+    background: radial-gradient(circle, rgba(148, 163, 184, 0.08) 0%, rgba(15, 23, 42, 0.28) 80%);
   }
 
   .dashboard-container:not(.dark-mode) .background-overlay {

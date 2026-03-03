@@ -1,24 +1,26 @@
 <template>
-  <div class="row">
-    <v-card title="数据源管理">
-      <template v-slot:text>
-        <v-row justify="center" align-center="center">
-          <v-col cols="col-4">
+  <div class="source-page">
+    <v-card flat class="mb-3 section-card">
+      <v-card-text class="py-3 d-flex align-center justify-space-between flex-wrap ga-2">
+        <div class="text-subtitle-1 font-weight-bold">数据源管理</div>
+        <v-btn variant="tonal" prepend-icon="mdi-plus" @click="doAction('-1', 'add')">新增</v-btn>
+      </v-card-text>
+    </v-card>
+
+    <v-card flat class="mb-3 section-card">
+      <v-card-text>
+        <v-row dense align="center">
+          <v-col cols="12" md="5" lg="4">
             <v-text-field
               v-model="searchValue"
               density="compact"
-              label="Search"
+              label="搜索名称/采集代码/连接串"
               prepend-inner-icon="mdi-magnify"
               single-line
               hide-details
-            ></v-text-field>
+            />
           </v-col>
-          <v-spacer />
-          <v-col cols="auto">
-            <v-btn variant="tonal" @click="doAction('-1', 'add')">新增</v-btn>
-          </v-col>
-          <v-spacer />
-          <v-col cols="auto" class="d-flex align-center">
+          <v-col cols="12" md="7" lg="8" class="d-flex justify-end">
             <v-switch
               v-model="showDisabled"
               density="compact"
@@ -27,7 +29,10 @@
             />
           </v-col>
         </v-row>
-      </template>
+      </v-card-text>
+    </v-card>
+
+    <v-card flat class="section-card">
       <v-card-text>
         <v-data-table
           :items="sources"
@@ -69,8 +74,6 @@
               :title="'删除'"
               icon="mdi-delete"
             ></v-btn>
-            <!-- <a href="#" class="btn btn-xs btn-info">使用场景</a>
-                        <a href="#" class="btn btn-xs btn-info">探索源库</a> -->
           </template>
         </v-data-table>
       </v-card-text>
@@ -228,4 +231,14 @@
   }
 }
 </route>
-<style></style>
+<style scoped>
+  .source-page {
+    padding: 8px 10px;
+  }
+
+  .section-card {
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    border-radius: 12px;
+    background: rgb(var(--v-theme-surface));
+  }
+</style>

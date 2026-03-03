@@ -1,20 +1,37 @@
 <template>
-  <v-app-bar app color="primary" dark>
+  <v-app-bar app color="surface" class="topbar-bar" elevation="0">
     <template v-slot:default>
       <v-app-bar-title>统一采集管理系统</v-app-bar-title>
       <template v-for="item in urls">
         <v-menu v-if="item.children">
           <template v-slot:activator="{ props }">
-            <v-btn v-bind="props" flat>{{ item.title }}</v-btn>
+            <v-btn
+              v-bind="props"
+              :variant="isMenuActive(item) ? 'tonal' : 'text'"
+              :color="isMenuActive(item) ? 'primary' : undefined"
+            >
+              {{ item.title }}
+            </v-btn>
           </template>
           <v-list density="compact" nav v-for="(child, index) in item.children">
-            <v-list-item :key="index" :to="{ path: child.path }" class="py-1" style="min-height: 20px">
+            <v-list-item
+              :key="index"
+              :to="{ path: child.path }"
+              :active="isPathActive(child.path)"
+              :color="isPathActive(child.path) ? 'primary' : undefined"
+              class="py-1"
+              style="min-height: 20px"
+            >
               <v-list-item-title>{{ child.title }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>
         <div v-else>
-          <v-btn flat :to="{ path: item.path }">
+          <v-btn
+            :variant="isPathActive(item.path) ? 'tonal' : 'text'"
+            :color="isPathActive(item.path) ? 'primary' : undefined"
+            :to="{ path: item.path }"
+          >
             {{ item.title }}
           </v-btn>
         </div>
@@ -162,11 +179,12 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppTheme } from '@/composables/useAppTheme'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { APP_VERSION } from '@/config/version'
 import userService from '@/service/user-service'
 
 const router = useRouter()
+const route = useRoute()
 
 // const {global} = useTheme();
 
@@ -247,6 +265,18 @@ const urls = ref<MenuItem[]>([
   //   title: "盘后检查"
   // },
 ])
+
+const isPathActive = (path?: string) => {
+  if (!path) return false
+  if (path === '/') return route.path === '/'
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
+
+const isMenuActive = (item: MenuItem) => {
+  if (item.path && isPathActive(item.path)) return true
+  if (!item.children?.length) return false
+  return item.children.some((child) => isPathActive(child.path))
+}
 
 // 切换主题函数
 const toggleThemeWithLog = () => {
@@ -392,6 +422,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.topbar-bar {
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
 .notification-list {
   max-height: 360px;
   overflow-y: auto;

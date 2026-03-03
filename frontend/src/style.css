@@ -7,11 +7,10 @@
   font-family: Inter, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei", "Segoe UI", "Helvetica Neue", Arial, "Roboto", sans-serif;
 }
 
-/* Improve Chinese rendering clarity across platforms */
+/* Improve Chinese readability across platforms (favor sharp small-size text) */
 html, body, #app, .v-application {
-  -webkit-font-smoothing: antialiased; /* macOS, iOS */
   -moz-osx-font-smoothing: grayscale; /* Firefox on macOS */
-  text-rendering: optimizeLegibility;
+  text-rendering: auto;
   -webkit-text-size-adjust: 100%;
 }
 
