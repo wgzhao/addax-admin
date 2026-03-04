@@ -143,7 +143,6 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(135deg, #1e1e5f 0%, #2a4066 50%, #0a0a23 100%);
-    animation: gradientFlow 20s ease infinite;
   }
 
   .gradient-overlay {
@@ -161,9 +160,6 @@
     position: absolute;
     width: 100%;
     height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><circle cx="100" cy="100" r="2" fill="rgba(255,255,255,0.2)"/><circle cx="700" cy="500" r="3" fill="rgba(255,255,255,0.15)"/><circle cx="400" cy="300" r="2" fill="rgba(255,255,255,0.25)"/></svg>')
-      repeat;
-    animation: particleFloat 30s linear infinite;
   }
 
   .login-sheet {
@@ -202,7 +198,6 @@
     /* 白色标题 */
     font-weight: 700;
     font-size: 28px;
-    letter-spacing: 2px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
@@ -216,7 +211,7 @@
   }
 
   .login-btn {
-    border-radius: 30px;
+    border-radius: 10px;
     height: 50px;
     text-transform: none;
     font-weight: 600;
@@ -230,29 +225,5 @@
   .login-btn:hover {
     transform: scale(1.02);
     box-shadow: 0 8px 20px rgba(0, 188, 212, 0.4);
-  }
-
-  @keyframes gradientFlow {
-    0% {
-      background-position: 0 0;
-    }
-
-    50% {
-      background-position: 100% 100%;
-    }
-
-    100% {
-      background-position: 0 0;
-    }
-  }
-
-  @keyframes particleFloat {
-    0% {
-      transform: translateY(0);
-    }
-
-    100% {
-      transform: translateY(-1000px);
-    }
   }
 </style>
