@@ -56,7 +56,7 @@
             </div>
             <v-divider />
             <v-row dense class="section-body tight-row">
-              <v-col cols="12" md="2">
+              <v-col cols="12" md="6">
                 <v-text-field v-model="partName" label="分区字段名" density="compact" hint="目标表的分区字段" persistent-hint class="tight-field">
                   <template #append>
                     <v-tooltip bottom>
@@ -70,7 +70,7 @@
                   </template>
                 </v-text-field>
               </v-col>
-              <v-col cols="12" md="2">
+              <v-col cols="12" md="6">
                 <v-select v-model="partFormat" :items="PARTITION_FORMATS" label="分区日期格式" density="compact"
                   persistent-hint>
                 </v-select>
@@ -78,42 +78,53 @@
                   示例：{{ partitionFormatExample }}
                 </div>
               </v-col>
-              <v-col cols="12" md="1">
-                <v-combobox v-model="storageFormat" :items="storageFormats" label="存储格式" density="compact"
-                  persistent-hint>
-                </v-combobox>
-              </v-col>
-              <v-col cols="12" md="1">
-                <v-combobox v-model="compressFormat" :items="compressFormats" label="压缩格式" density="compact"
-                  persistent-hint>
-                </v-combobox>
-              </v-col>
-              <v-col cols="12" md="2">
-                <v-select
-                  v-model="targetId"
-                  :items="targetOptions"
-                  item-title="label"
-                  item-value="value"
-                  label="目标端"
-                  density="compact"
-                  persistent-hint
-                  :rules="[rules.required]"
-                />
-              </v-col>
-              <v-col cols="12" md="1">
-                <v-text-field v-model="targetDb" label="目标库名" density="compact" placeholder="ods + 源系统编号" persistent-hint
-                  :rules="[rules.required]" class="tight-field">
-                </v-text-field>
-              </v-col>
-              <v-col cols="12" md="3">
-                <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact"
-                  hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
-                  placeholder="${table}" class="tight-field">
-                  <template #append>
-                    <v-btn size="small" color="primary" @click="applyTargetTableTemplate"
-                      :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
-                  </template>
-                </v-text-field>
+              <v-col cols="12">
+                <v-expansion-panels variant="accordion" class="target-advanced-panel">
+                  <v-expansion-panel>
+                    <v-expansion-panel-title class="text-body-2 font-weight-medium">高级参数（默认收起）</v-expansion-panel-title>
+                    <v-expansion-panel-text>
+                      <v-row dense class="tight-row">
+                        <v-col cols="12" md="4">
+                          <v-select
+                            v-model="targetId"
+                            :items="targetOptions"
+                            item-title="label"
+                            item-value="value"
+                            label="目标端"
+                            density="compact"
+                            persistent-hint
+                            :rules="[rules.required]"
+                          />
+                        </v-col>
+                        <v-col cols="12" md="4">
+                          <v-combobox v-model="storageFormat" :items="storageFormats" label="存储格式" density="compact"
+                            persistent-hint>
+                          </v-combobox>
+                        </v-col>
+                        <v-col cols="12" md="4">
+                          <v-combobox v-model="compressFormat" :items="compressFormats" label="压缩格式" density="compact"
+                            persistent-hint>
+                          </v-combobox>
+                        </v-col>
+                        <v-col cols="12" md="6">
+                          <v-text-field v-model="targetDb" label="目标库名" density="compact" placeholder="ods + 源系统编号"
+                            persistent-hint :rules="[rules.required]" class="tight-field">
+                          </v-text-field>
+                        </v-col>
+                        <v-col cols="6" md="6">
+                          <v-text-field v-model="targetTableTemplate" label="目标表名模板" density="compact"
+                            hint="如: ods_${table}_di 或 ${db}_${table}" persistent-hint
+                            placeholder="${table}" class="tight-field">
+                            <template #append>
+                              <v-btn size="small" color="primary" @click="applyTargetTableTemplate"
+                                :disabled="!targetTableTemplate || selectedCnt === 0">应用</v-btn>
+                            </template>
+                          </v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
               </v-col>
             </v-row>
           </v-sheet>
@@ -557,7 +568,7 @@ onMounted(() => {
 }
 
 .form-section {
-  background: rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface));
   border-color: rgba(var(--v-theme-on-surface), 0.08);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -606,6 +617,15 @@ onMounted(() => {
   padding-left: 4px;
   font-size: 12px;
   color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+.target-advanced-panel :deep(.v-expansion-panel) {
+  background: rgb(var(--v-theme-surface));
+  border: 1px dashed rgba(var(--v-theme-on-surface), 0.18);
+}
+
+.target-advanced-panel :deep(.v-expansion-panel-title) {
+  min-height: 42px;
 }
 
 .action-bar {

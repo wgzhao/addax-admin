@@ -17,32 +17,44 @@
               </div>
               <v-divider />
               <v-row dense class="section-body">
-                <v-col cols="12" md="6">
-                  <v-text-field v-model="sourceItem.code" label="采集编号" placeholder="两位大写字母"
-                    autocomplete="off" :rules="[rules.required, rules.codeExistsRule]" :disabled="mode === 'edit'"
-                    variant="outlined" density="compact" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field v-model="sourceItem.name" label="采集名称" :rules="[rules.required]"
-                    variant="outlined" density="compact" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field v-model="sourceItem.startAt" placeholder="HH:mm 或 HH:mm:ss" label="采集时间"
-                    :rules="[timeFormatRule]" :error-messages="timeError"
-                    variant="outlined" density="compact" />
-                </v-col>
-                <v-col cols="12" md="6">
-                  <v-text-field v-model.number="sourceItem.maxConcurrency" type="number" label="最大并发数"
-                    variant="outlined" density="compact"
-                    placeholder="默认10" hint="留空则使用系统默认值" />
+                <v-col cols="12">
+                  <div class="field-stack">
+                    <div class="field-label">采集编号</div>
+                    <v-text-field v-model="sourceItem.code" placeholder="两位大写字母" autocomplete="off"
+                      :rules="[rules.required, rules.codeExistsRule]" :disabled="mode === 'edit'" variant="outlined"
+                      density="compact" hide-details="auto" />
+                  </div>
                 </v-col>
                 <v-col cols="12">
-                  <v-switch v-model="sourceItem.enabled" color="primary" hide-details density="compact" class="status-switch">
-                    <template #append>
+                  <div class="field-stack">
+                    <div class="field-label">采集名称</div>
+                    <v-text-field v-model="sourceItem.name" :rules="[rules.required]" variant="outlined"
+                      density="compact" hide-details="auto" />
+                  </div>
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-stack">
+                    <div class="field-label">采集时间</div>
+                    <v-text-field v-model="sourceItem.startAt" placeholder="HH:mm 或 HH:mm:ss" :rules="[timeFormatRule]"
+                      :error-messages="timeError" variant="outlined" density="compact" />
+                  </div>
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-stack">
+                    <div class="field-label">最大并发数</div>
+                    <v-text-field v-model.number="sourceItem.maxConcurrency" type="number" variant="outlined"
+                      density="compact" placeholder="默认10" hint="留空则使用系统默认值" />
+                  </div>
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-stack">
+                    <div class="field-label">启用状态</div>
+                    <div class="field-control status-switch-wrap">
+                      <v-switch v-model="sourceItem.enabled" color="primary" hide-details density="compact" class="status-switch" />
                       <v-chip size="x-small" :color="sourceItem.enabled ? 'success' : 'error'"
                         :text="sourceItem.enabled ? '已启用' : '已禁用'" class="ml-1"></v-chip>
-                    </template>
-                  </v-switch>
+                    </div>
+                  </div>
                 </v-col>
               </v-row>
             </v-sheet>
@@ -57,22 +69,35 @@
               <v-divider />
               <v-row dense class="section-body">
                 <v-col cols="12">
-                  <v-text-field v-model="sourceItem.url" placeholder="jdbc:hive2://host:port" label="JDBC 连接地址"
-                    :rules="[rules.required]" variant="outlined" density="compact" />
+                  <div class="field-stack">
+                    <div class="field-label">JDBC 连接地址</div>
+                    <v-text-field v-model="sourceItem.url" placeholder="jdbc:hive2://host:port" :rules="[rules.required]"
+                      variant="outlined" density="compact" hide-details="auto" />
+                  </div>
                 </v-col>
-                <v-col cols="12" md="5">
-                  <v-text-field v-model="sourceItem.username" label="用户名" variant="outlined"
-                    density="compact" autocomplete="off" />
+                <v-col cols="12">
+                  <div class="field-stack">
+                    <div class="field-label">用户名</div>
+                    <v-text-field v-model="sourceItem.username" variant="outlined" density="compact" autocomplete="off"
+                      hide-details="auto" />
+                  </div>
                 </v-col>
-                <v-col cols="12" md="7">
-                  <v-text-field v-model="sourceItem.pass" :type="showPassword ? 'text' : 'password'" label="密码"
-                    variant="outlined" density="compact" autocomplete="new-password"
-                    :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showPassword = !showPassword" />
+                <v-col cols="12">
+                  <div class="field-stack">
+                    <div class="field-label">密码</div>
+                    <v-text-field v-model="sourceItem.pass" :type="showPassword ? 'text' : 'password'" variant="outlined"
+                      density="compact" autocomplete="new-password" :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                      @click:append-inner="showPassword = !showPassword" hide-details="auto" />
+                  </div>
                 </v-col>
-                <v-col cols="12" class="d-flex justify-end">
-                  <v-btn color="info" text="测试连接" v-if="mode === 'add' || mode === 'edit'" @click="testConnect"
-                    prepend-icon="mdi-connection"></v-btn>
+                <v-col cols="12">
+                  <div class="field-stack field-stack-action">
+                    <div class="field-label field-label-placeholder">操作</div>
+                    <div class="field-control">
+                      <v-btn color="info" text="测试连接" v-if="mode === 'add' || mode === 'edit'" @click="testConnect"
+                        prepend-icon="mdi-connection"></v-btn>
+                    </div>
+                  </div>
                 </v-col>
               </v-row>
             </v-sheet>
@@ -87,8 +112,10 @@
               <v-divider />
               <v-row dense class="section-body">
                 <v-col cols="12">
-                  <v-textarea v-model="sourceItem.remark" label="备注信息" auto-grow rows="4" variant="outlined"
-                    density="compact" />
+                  <div class="field-stack field-stack-top">
+                    <div class="field-label">备注信息</div>
+                    <v-textarea v-model="sourceItem.remark" auto-grow rows="4" variant="outlined" density="compact" />
+                  </div>
                 </v-col>
               </v-row>
             </v-sheet>
@@ -298,7 +325,7 @@ watch(() => [props.sid, props.mode, props.cloneData], () => {
 }
 
 .form-section {
-  background: rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface));
   border-color: rgba(var(--v-theme-on-surface), 0.08);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -319,10 +346,61 @@ watch(() => [props.sid, props.mode, props.cloneData], () => {
 
 .section-body {
   padding: 12px 14px 6px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.field-stack {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  column-gap: 16px;
+  align-items: center;
+}
+
+.field-stack-top {
+  align-items: flex-start;
+}
+
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: right;
+  white-space: nowrap;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+
+.field-label-placeholder {
+  visibility: hidden;
+}
+
+.field-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field-stack :deep(.v-input) {
+  width: 100%;
 }
 
 .status-switch {
-  margin-top: 2px;
+  margin-top: 0;
+}
+
+.status-switch-wrap {
+  gap: 8px;
+}
+
+@media (max-width: 960px) {
+  .section-body {
+    max-width: 100%;
+  }
+
+  .field-stack {
+    grid-template-columns: 90px minmax(0, 1fr);
+    column-gap: 12px;
+  }
 }
 
 .action-bar {
