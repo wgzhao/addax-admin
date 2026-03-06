@@ -10,8 +10,8 @@ test('should login with default account', async ({ page }) => {
 
 test('should reject invalid credentials', async ({ page }) => {
   await page.goto('/login')
-  await page.getByLabel('Username/Email').fill('admin')
-  await page.getByLabel('Password').fill('invalid-password')
+  await page.locator('input[autocomplete="username"]').fill('admin')
+  await page.locator('input[autocomplete="current-password"]').fill('invalid-password')
   await page.getByRole('button', { name: 'Login' }).click()
   await expect(page).toHaveURL(/\/login$/)
 })

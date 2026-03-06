@@ -16,7 +16,12 @@ const menus = [
 for (const menu of menus) {
   test(`menu routing: ${menu.title}`, async ({ page }) => {
     await page.goto('/')
-    await page.getByRole('button', { name: menu.title }).click()
+    const menuLink = page.getByRole('link', { name: menu.title })
+    if (await menuLink.count()) {
+      await menuLink.first().click()
+    } else {
+      await page.getByRole('button', { name: menu.title }).click()
+    }
     await expect(page).toHaveURL(new RegExp(`${menu.path === '/' ? '\\/$' : `${menu.path}$`}`))
   })
 }

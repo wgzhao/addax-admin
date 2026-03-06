@@ -17,7 +17,10 @@
     "preview": "yarn workspace addax-ui preview",
     "type-check": "yarn workspace addax-ui type-check",
     "lint": "yarn workspace addax-ui lint",
-    "format": "yarn workspace addax-ui format"
+    "format": "yarn workspace addax-ui format",
+    "e2e": "yarn workspace addax-ui playwright test",
+    "e2e:headed": "yarn workspace addax-ui playwright test --headed",
+    "e2e:ui": "yarn workspace addax-ui playwright test --ui"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"
