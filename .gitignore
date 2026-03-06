@@ -37,5 +37,9 @@ frontend/tsconfig.tsbuildinfo
 frontend/tsconfig.node.tsbuildinfo
 frontend/src/types/components.d.ts
 frontend/src/types/vue-router.d.ts
+frontend/playwright-report/
+frontend/test-results/
+frontend/tests/e2e/.auth/
+.playwright/
 .alma-snapshots
 deploy.sh
