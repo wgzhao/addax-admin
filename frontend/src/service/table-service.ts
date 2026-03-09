@@ -106,7 +106,10 @@ class TableService {
   }
 
   updateAddaxJob(tableId: number, data: string | object) {
-    return Requests.put(`${this.prefix}/${tableId}/addax-job`, data) as unknown as Promise<string>
+    const payload = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+    return Requests.put(`${this.prefix}/${tableId}/addax-job`, payload, {
+      headers: { 'Content-Type': 'text/plain' }
+    }) as unknown as Promise<string>
   }
 
   // --- 以下接口在变更表中未定义，暂时保留旧逻辑或标记为待处理 ---
