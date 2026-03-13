@@ -6,35 +6,35 @@
           <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreate">新增目标端</v-btn>
         </v-col>
         <v-col cols="auto">
-          <v-switch
-            v-model="enabledOnly"
-            inset
-            density="compact"
-            color="primary"
-            label="仅显示启用"
-            @update:model-value="loadTargets"
-          />
+          <v-switch v-model="enabledOnly" inset density="compact" color="primary" label="仅显示启用"
+            @update:model-value="loadTargets" />
         </v-col>
       </v-row>
     </template>
 
-    <v-data-table :headers="headers" :items="targets" item-value="id" density="compact">
-      <template #item.enabled="{ item }">
-        <v-chip size="small" :color="item.enabled ? 'success' : 'default'">
-          {{ item.enabled ? '启用' : '停用' }}
-        </v-chip>
-      </template>
-      <template #item.isDefault="{ item }">
-        <v-chip size="small" :color="item.isDefault ? 'primary' : 'default'">
-          {{ item.isDefault ? '是' : '否' }}
-        </v-chip>
-      </template>
-      <template #item.action="{ item }">
-        <v-btn size="small" variant="text" color="primary" @click="openEdit(item)">编辑</v-btn>
-        <v-btn size="small" variant="text" color="info" @click="testConnect(item)">测试连接</v-btn>
-        <v-btn size="small" variant="text" color="error" @click="remove(item)">删除</v-btn>
-      </template>
-    </v-data-table>
+    <template v-if="targets.length === 0">
+      <EmptyState title="暂无目标端" description="当前还没有配置任何目标端。点击下方按钮添加新的目标端开始配置。"
+        :primary="{ label: '新增目标端', icon: 'mdi-plus' }" @primary="openCreate" />
+    </template>
+    <template v-else>
+      <v-data-table :headers="headers" :items="targets" item-value="id" density="compact">
+        <template #item.enabled="{ item }">
+          <v-chip size="small" :color="item.enabled ? 'success' : 'default'">
+            {{ item.enabled ? '启用' : '停用' }}
+          </v-chip>
+        </template>
+        <template #item.isDefault="{ item }">
+          <v-chip size="small" :color="item.isDefault ? 'primary' : 'default'">
+            {{ item.isDefault ? '是' : '否' }}
+          </v-chip>
+        </template>
+        <template #item.action="{ item }">
+          <v-btn size="small" variant="text" color="primary" @click="openEdit(item)">编辑</v-btn>
+          <v-btn size="small" variant="text" color="info" @click="testConnect(item)">测试连接</v-btn>
+          <v-btn size="small" variant="text" color="error" @click="remove(item)">删除</v-btn>
+        </template>
+      </v-data-table>
+    </template>
   </v-card>
 
   <v-dialog v-model="dialogVisible" max-width="760" persistent>
@@ -49,75 +49,32 @@
             <v-text-field v-model="form.name" label="名称" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="6">
-            <v-select
-              v-model="form.targetType"
-              :items="targetTypes"
-              label="目标端类型"
-              variant="outlined"
-              density="compact"
-            />
+            <v-select v-model="form.targetType" :items="targetTypes" label="目标端类型" variant="outlined"
+              density="compact" />
           </v-col>
           <v-col cols="12" md="6">
-            <v-select
-              v-model="form.writerTemplateKey"
-              label="Writer模板键"
-              :items="writerTemplateOptions"
-              item-title="label"
-              item-value="value"
-              variant="outlined"
-              density="compact"
-            />
+            <v-select v-model="form.writerTemplateKey" label="Writer模板键" :items="writerTemplateOptions"
+              item-title="label" item-value="value" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="6">
-            <v-text-field
-              v-model="connectForm.url"
-              label="JDBC URL"
-              variant="outlined"
-              density="compact"
-            />
+            <v-text-field v-model="connectForm.url" label="JDBC URL" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="3">
-            <v-text-field
-              v-model="connectForm.username"
-              label="连接用户名"
-              variant="outlined"
-              density="compact"
-            />
+            <v-text-field v-model="connectForm.username" label="连接用户名" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="3">
-            <v-text-field
-              v-model="connectForm.password"
-              label="连接密码"
-              type="password"
-              variant="outlined"
-              density="compact"
-            />
+            <v-text-field v-model="connectForm.password" label="连接密码" type="password" variant="outlined"
+              density="compact" />
           </v-col>
           <v-col cols="12" md="6" v-if="form.targetType === 'HDFS'">
-            <v-text-field
-              v-model="connectForm.driverClassName"
-              label="驱动类名"
-              variant="outlined"
-              density="compact"
-            />
+            <v-text-field v-model="connectForm.driverClassName" label="驱动类名" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12" md="6" v-if="form.targetType === 'HDFS'">
-            <v-text-field
-              v-model="connectForm.driverPath"
-              label="驱动路径"
-              variant="outlined"
-              density="compact"
-            />
+            <v-text-field v-model="connectForm.driverPath" label="驱动路径" variant="outlined" density="compact" />
           </v-col>
           <v-col cols="12">
-            <v-textarea
-              :model-value="form.connectConfig"
-              label="连接配置(JSON预览)"
-              variant="outlined"
-              density="compact"
-              rows="4"
-              readonly
-            />
+            <v-textarea :model-value="form.connectConfig" label="连接配置(JSON预览)" variant="outlined" density="compact"
+              rows="4" readonly />
           </v-col>
           <v-col cols="12">
             <v-text-field v-model="form.remark" label="备注" variant="outlined" density="compact" />
@@ -142,6 +99,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import EmptyState from '@/components/EmptyState.vue'
 import { notify } from '@/stores/notifier'
 import targetService from '@/service/target-service'
 import dictService from '@/service/dict-service'
@@ -312,12 +270,10 @@ onMounted(async () => {
 })
 </script>
 
-<route lang="json">
-{
+<route lang="json">{
   "meta": {
     "title": "目标端管理",
     "icon": "mdi-database-cog",
     "requiresAuth": true
   }
-}
-</route>
+}</route>

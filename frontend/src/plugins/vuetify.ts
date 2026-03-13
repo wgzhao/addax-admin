@@ -5,7 +5,7 @@ import 'vuetify/styles'
 // Composable
 import { createVuetify } from 'vuetify'
 import '@/styles/overrides.scss'
-import customTheme from './theme'
+import customTheme from './custom-theme'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides

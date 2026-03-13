@@ -34,6 +34,17 @@
 
     <v-card flat class="section-card">
       <v-card-text>
+      <template v-if="sources.length === 0">
+        <EmptyState
+          title="暂无数据源"
+          description="当前没有可用的数据源。点击下方按钮添加新的数据源或导入已有配置。"
+          :primary="{ label: '新增数据源', icon: 'mdi-plus' }"
+          :secondary="{ label: '导入配置', icon: 'mdi-file-import' }"
+          @primary="() => doAction(-1, 'add')"
+          @secondary="() => doAction(-1, 'add')"
+        />
+      </template>
+      <template v-else>
         <v-data-table
           :items="sources"
           :headers="headers"
@@ -76,6 +87,7 @@
             ></v-btn>
           </template>
         </v-data-table>
+      </template>
       </v-card-text>
     </v-card>
   </div>
@@ -103,6 +115,7 @@
   import type { DataTableHeader } from 'vuetify'
   import sourceService from '@/service/source-service'
   import AddDataSource from '@/components/source/AddSource.vue'
+  import EmptyState from '@/components/EmptyState.vue'
   import { notify } from '@/stores/notifier'
 
   const sources = ref([])

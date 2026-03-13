@@ -114,6 +114,17 @@
 
     <v-card flat class="section-card">
       <v-card-text>
+      <template v-if="!loading && totalItems === 0">
+        <EmptyState
+          title="暂无采集表"
+          description="当前没有采集表。点击下方按钮立即新增采集表或从模板导入开始。"
+          :primary="{ label: '新增采集表', icon: 'mdi-plus' }"
+          :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
+          @primary="() => openDialog('BatchAdd', 'BatchAdd')"
+          @secondary="() => openDialog('BatchAdd', 'BatchAdd')"
+        />
+      </template>
+      <template v-else>
       <v-data-table-server
         density="default"
         :items="table"
@@ -402,6 +413,7 @@
           </div>
         </template>
       </v-data-table-server>
+      </template>
       </v-card-text>
     </v-card>
   </div>
@@ -437,6 +449,7 @@
 
 <script setup lang="ts">
   import { ref, shallowRef, defineAsyncComponent, onMounted } from 'vue'
+  import EmptyState from '@/components/EmptyState.vue'
   import { debounce } from '@/utils/debounce'
   import { createSort } from '@/utils/'
   import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils'
