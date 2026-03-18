@@ -13,7 +13,8 @@ import { fileURLToPath, URL } from "node:url";
 // https://vitejs.dev/config/
 export default defineConfig(function (_a) {
     var _b;
-    var mode = _a.mode;
+    var command = _a.command, mode = _a.mode;
+    var isBuild = command === "build";
     var env = loadEnv(mode, process.cwd());
     var pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
     return {
@@ -27,6 +28,9 @@ export default defineConfig(function (_a) {
                     }
                 ],
                 dts: "src/types/vue-router.d.ts",
+                // Disable chokidar watchers during production builds to avoid hitting
+                // OS file watch limits after upgrading the routing/layout plugins.
+                watch: !isBuild,
             }),
             Layouts({
                 layoutsDirs: "src/layouts",

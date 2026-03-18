@@ -2,7 +2,10 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { routes as autoRoutes } from 'vue-router/auto-routes'
 import { useAuthStore } from '@/stores/auth'
 
-const routes: RouteRecordRaw[] = [...autoRoutes];
+// The generated routes from unplugin-vue-router carry their own vue-router type
+// instances. Cast to the workspace's RouteRecordRaw to avoid cross-package
+// type mismatch after the dependency upgrade.
+const routes = autoRoutes as unknown as RouteRecordRaw[];
 
 // 为特定路由添加 meta 信息
 routes.forEach((route) => {

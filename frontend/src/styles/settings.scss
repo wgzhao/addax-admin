@@ -16,8 +16,6 @@
   // 全局圆角
   $border-radius-root: 4px,
 
-  // 阴影透明度
-  $shadow-key-umbra-opacity: 0.1,
-  $shadow-key-penumbra-opacity: 0.06,
-  $shadow-key-ambient-opacity: 0.03,
+  // Vuetify 4 shadows are now computed; overriding opacity variables is no longer supported
+  // (they are not exposed with !default). Remove custom shadow opacities to keep build compatible.
 );
