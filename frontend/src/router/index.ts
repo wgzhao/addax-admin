@@ -1,6 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { routes } from 'vue-router/auto-routes'
+import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { routes as autoRoutes } from 'vue-router/auto-routes'
 import { useAuthStore } from '@/stores/auth'
+
+const routes: RouteRecordRaw[] = [...autoRoutes];
 
 // 为特定路由添加 meta 信息
 routes.forEach((route) => {
