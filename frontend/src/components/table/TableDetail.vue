@@ -305,6 +305,32 @@
                           ></v-textarea>
                         </div>
                       </v-col>
+                      <v-col cols="12">
+                        <div class="field-stack">
+                          <div class="field-label">采集前置 SQL（以分号 ; 结尾）</div>
+                          <v-textarea
+                            variant="outlined"
+                            density="compact"
+                            v-model="table.preSql"
+                            placeholder='请输入以分号分隔的 SQL，例如: select 1; select 2;'
+                            rows="3"
+                            hide-details="auto"
+                          />
+                        </div>
+                      </v-col>
+                      <v-col cols="12">
+                        <div class="field-stack">
+                          <div class="field-label">采集后置 SQL（以分号 ; 结尾）</div>
+                          <v-textarea
+                            variant="outlined"
+                            density="compact"
+                            v-model="table.postSql"
+                            placeholder='请输入以分号分隔的 SQL，例如: delete from tmp;'
+                            rows="3"
+                            hide-details="auto"
+                          />
+                        </div>
+                      </v-col>
                     </v-row>
                   </v-sheet>
                 </v-expansion-panel-text>
@@ -401,10 +427,26 @@ const inheritedStartAt = computed(() => {
   return typeof v === 'string' && v.length >= 5 ? v.slice(0, 5) : String(v)
 })
 
-// 监听props变化，同步更新本地副本
+// 监听props变化，同步更新本地副本并把 preSql/postSql 转为用户友好格式
+const convertSqlForUI = (val?: string) => {
+  if (!val) return ''
+  const s = String(val).trim()
+  if (s.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(s)
+      if (Array.isArray(parsed)) {
+        return parsed.filter((p: any) => p && String(p).trim().length > 0).join('; ') + (parsed.length ? ';' : '')
+      }
+    } catch (e) {}
+  }
+  return s
+}
+
 watch(() => props.table, (newTable) => {
   table.value = { ...newTable };
-}, { deep: true });
+  ;(table.value as any).preSql = convertSqlForUI((newTable as any).preSql)
+  ;(table.value as any).postSql = convertSqlForUI((newTable as any).postSql)
+}, { deep: true, immediate: true });
 
 // define emit
 const emit = defineEmits(["closeDialog", "update:record", "openSchema"]);
@@ -414,6 +456,27 @@ const formRef = ref(null)
 
 // dialog visibility for placeholder information
 const showPlaceholderInfo = ref(false)
+
+// 将用户输入的以分号结尾的多条 SQL 或 JSON 数组文本，规范化为 JSON 数组字符串
+const sqlTextToJsonArray = (text?: string) => {
+  if (!text) return '[]'
+  const s = String(text).trim()
+  // 如果看起来像 JSON 数组，尝试解析并规范化
+  if (s.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(s)
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.map((p: any) => (p == null ? '' : String(p).trim())).filter((p: any) => p.length > 0)
+        return JSON.stringify(cleaned)
+      }
+    } catch (e) {
+      // fallthrough to semicolon split
+    }
+  }
+  // 否则按分号拆分
+  const parts = s.split(';').map((p: any) => p.trim()).filter((p: any) => p.length > 0)
+  return JSON.stringify(parts)
+}
 
 // variables supported by backend SystemConfigService#getBizDateValues
 const placeholderVars = [
@@ -499,6 +562,10 @@ const saveOds = async () => {
     startAt: table.value.startAt || null,
     targetId: table.value.targetId ?? null
   };
+
+  // include table-level pre/post SQL as JSON array string (split by ';')
+  ;(etlTableData as any).preSql = sqlTextToJsonArray((table.value as any).preSql)
+  ;(etlTableData as any).postSql = sqlTextToJsonArray((table.value as any).postSql)
 
   tableService.save(etlTableData as EtlTable)
     .then((updatedRecord) => {

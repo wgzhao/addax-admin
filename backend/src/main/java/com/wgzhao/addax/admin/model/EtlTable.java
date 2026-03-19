@@ -7,13 +7,13 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalTime;
+import java.util.Date;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
 
-import java.time.LocalTime;
-import java.util.Date;
 
 @Entity
 @Table(name = "etl_table")
@@ -97,6 +97,12 @@ public class EtlTable
 
     @Column(name = "target_id")
     private Long targetId;
+
+    @Column(name = "pre_sql", columnDefinition = "text")
+    private String preSql;
+
+    @Column(name = "post_sql", columnDefinition = "text")
+    private String postSql;
 
     /**
      * 表级调度时间点（每天的 HH:mm），为空表示继承 etl_source.start_at

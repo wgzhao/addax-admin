@@ -218,6 +218,8 @@ export interface EtlTable {
   tblComment?: string // 目标表的注释
   writeMode: string // 写入模式: overwrite|append|nonConflict
   targetId?: number | null // 目标端ID，关联 etl_target
+  preSql?: string // 表级前置 SQL，JSON 数组字符串
+  postSql?: string // 表级后置 SQL，JSON 数组字符串
 }
 
 export interface TableMeta {
@@ -235,6 +237,8 @@ export interface VEtlWithSource extends EtlTable {
   sourceStartAt?: string // 采集源的定时启动时间点(HH:mm[:ss])
   prerequisite?: string // 能否开始采集的先决条件
   preScript?: string // 标志符合条件后的前置脚本
+  preSql?: string // 表级前置 SQL，JSON 数组字符串
+  postSql?: string // 表级后置 SQL，JSON 数组字符串
   remark?: string // 系统备注信息
   enabled?: boolean // 是否有效
   targetType?: string

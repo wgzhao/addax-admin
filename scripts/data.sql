@@ -133,6 +133,8 @@ values  (5001, 'rR', '{
     "content": {
         "reader": ${reader},
          "writer": ${writer},
+         "preSql": ${preSql},
+         "postSql": ${postSql},
       "setting": {
         "speed": {
           "batchSize": 20480,

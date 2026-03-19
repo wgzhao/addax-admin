@@ -298,6 +298,36 @@ create index if not exists idx_etl_table_start_at_not_null
   on public.etl_table (start_at)
   where start_at is not null;
 
+alter table public.etl_table
+  add column if not exists pre_sql text;
+
+alter table public.etl_table
+  add column if not exists post_sql text;
+
+comment on column public.etl_table.pre_sql is '表级前置SQL（JSON数组字符串）';
+comment on column public.etl_table.post_sql is '表级后置SQL（JSON数组字符串）';
+
+-- Recreate view to include newly added pre_sql/post_sql columns
+create or replace view vw_etl_table_with_source
+  as
+SELECT t.*,
+     s.code,
+     s.name,
+     s.url,
+     s.username,
+     s.pass,
+     s.start_at as source_start_at,
+     s.enabled,
+     s.max_concurrency,
+     s.db_type,
+     tt.target_type,
+     tt.code as target_code,
+     tt.name as target_name,
+     tt.enabled as target_enabled
+FROM etl_table t
+     LEFT JOIN etl_source s ON t.sid = s.id
+     LEFT JOIN etl_target tt ON t.target_id = tt.id;
+
 create table public.etl_column
 (
   tid              bigint      not null

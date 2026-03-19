@@ -1,13 +1,14 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.Data;
 import org.hibernate.annotations.Formula;
 
-import java.time.LocalDateTime;
 
 /**
  * 映射 vw_etl_table_with_source 视图
@@ -53,6 +54,10 @@ public class VwEtlTableWithSource
      * 表级调度时间点（HH:mm:ss / HH:mm），可为空，表示继承 sourceStartAt
      */
     private String startAt;
+    @Column(name = "pre_sql")
+    private String preSql;
+    @Column(name = "post_sql")
+    private String postSql;
     private Boolean enabled;
     private String tblComment;
     @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , code, name))")

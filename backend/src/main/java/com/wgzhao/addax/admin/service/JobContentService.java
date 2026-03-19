@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
@@ -11,6 +12,12 @@ import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -18,12 +25,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
@@ -47,6 +48,8 @@ public class JobContentService
     private final TargetService targetService;
     private final RiskLogService riskLogService;
     private final StatService statService;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -90,6 +93,92 @@ public class JobContentService
         return TaskResultDto.success("更新采集任务模板成功", 0);
     }
 
+    /**
+     * 将用户提供的 preSql/postSql 文本规范化为 JSON 数组字符串。
+     * 支持两种输入：JSON 数组字符串或以分号分隔的 SQL 文本。
+     */
+    private String normalizeSqlArrayString(String raw) {
+        if (raw == null) return "[]";
+        String s = raw.trim();
+        List<String> cleaned = new ArrayList<>();
+        // 若以 [ 开头，尝试解析为 JSON 数组
+        if (s.startsWith("[")) {
+            try {
+                String[] arr = OBJECT_MAPPER.readValue(s, String[].class);
+                for (String e : arr) {
+                    if (e != null) {
+                        String t = e.trim();
+                        if (!t.isEmpty()) cleaned.add(t);
+                    }
+                }
+            } catch (Exception ignored) {
+                // 解析失败，回退到分号拆分
+            }
+        }
+        // 如果尚未解析出内容，则按分号拆分
+        if (cleaned.isEmpty()) {
+            String[] parts = s.split(";");
+            for (String p : parts) {
+                String t = p.trim();
+                if (!t.isEmpty()) cleaned.add(t);
+            }
+        }
+        // 限制语句数量，避免异常大输入
+        final int LIMIT = 50;
+        if (cleaned.size() > LIMIT) {
+            log.warn("pre/postSql contains {} statements, trimming to {}", cleaned.size(), LIMIT);
+            cleaned = new ArrayList<>(cleaned.subList(0, LIMIT));
+        }
+        try {
+            return OBJECT_MAPPER.writeValueAsString(cleaned);
+        } catch (Exception ex) {
+            log.warn("Failed to stringify pre/postSql array: {}", ex.getMessage());
+            return "[]";
+        }
+    }
+
+    /**
+     * Prepare comma-separated JSON string literals for injection into a reader template
+     * that already contains surrounding square brackets, e.g. "preSql": [${preSql}].
+     * Returns an empty string when no elements exist so the final substitution becomes an empty array.
+     */
+    private String prepareSqlElementsForTemplate(String raw) {
+        if (raw == null || raw.equals("[]")) return "";
+        String s = raw.trim();
+        List<String> cleaned = new ArrayList<>();
+        if (s.isEmpty()) return "";
+        if (s.startsWith("[")) {
+            try {
+                String[] arr = OBJECT_MAPPER.readValue(s, String[].class);
+                for (String e : arr) {
+                    if (e != null) {
+                        String t = e.trim();
+                        if (!t.isEmpty()) cleaned.add(t);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        if (cleaned.isEmpty()) {
+            String[] parts = s.split(";");
+            for (String p : parts) {
+                String t = p.trim();
+                if (!t.isEmpty()) cleaned.add(t);
+            }
+        }
+        if (cleaned.isEmpty()) return "";
+        List<String> quoted = new ArrayList<>();
+        for (String e : cleaned) {
+            try {
+                quoted.add(OBJECT_MAPPER.writeValueAsString(e));
+            } catch (Exception ex) {
+                String esc = e.replace("\\", "\\\\").replace("\"", "\\\"");
+                quoted.add('"' + esc + '"');
+            }
+        }
+        return String.join(", ", quoted);
+    }
+
     private String fillRdbmsReaderJob(VwEtlTableWithSource vTable)
     {
         String template = configService.getRdbmsReaderTemplate();
@@ -119,6 +208,10 @@ public class JobContentService
 
         // date time special values
         values.putAll(configService.getBizDateValues());
+
+        // table-level pre/post SQL - prepare inner JSON string elements for reader template
+        values.put("preSql", prepareSqlElementsForTemplate(vTable.getPreSql()));
+        values.put("postSql", prepareSqlElementsForTemplate(vTable.getPostSql()));
 
         DbType dbType = getDbType(vTable.getUrl());
         String sourceTable = vTable.getSourceTable();
@@ -223,6 +316,18 @@ public class JobContentService
     }
 
     public void updateJobContent(long tableId, String jobContent) {
+        // 验证传入的 jobContent 是否为合法 JSON
+        try {
+            OBJECT_MAPPER.readTree(jobContent);
+        } catch (Exception ex) {
+            String msg = "Provided job content is not valid JSON: " + ex.getMessage();
+            try {
+                riskLogService.recordRisk("JobContentService", "WARN", msg, tableId);
+            } catch (Exception ignore) {
+            }
+            throw new com.wgzhao.addax.admin.exception.ApiException(400, msg);
+        }
+
         EtlJob etlJob = jobRepo.findById(tableId).orElse(new EtlJob());
         etlJob.setJob(jobContent);
         jobRepo.save(etlJob);
