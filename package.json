@@ -2,28 +2,31 @@
   "name": "addax-admin-monorepo",
   "private": true,
   "version": "3.2.0",
+  "type": "module",
   "description": "Addax Admin Management System - Monorepo workspace configuration",
   "workspaces": [
-    "frontend"
+    "frontend/*"
   ],
   "scripts": {
-    "dev": "yarn dev:frontend",
-    "dev:frontend": "yarn workspace addax-ui dev",
-    "dev:backend": "cd backend && mvn spring-boot:run",
+    "dev": "vp dev frontend",
     "build": "yarn run build:all",
-    "build:frontend": "yarn workspace addax-ui build",
+    "build:frontend": "vp build frontend",
     "build:backend": "cd backend && mvn clean package",
     "build:all": "yarn run build:frontend && yarn run build:backend",
-    "preview": "yarn workspace addax-ui preview",
     "type-check": "yarn workspace addax-ui type-check",
-    "lint": "yarn workspace addax-ui lint",
-    "format": "yarn workspace addax-ui format",
+    "lint": "vp lint frontend",
+    "format": "vp fmt . --write frontend",
     "e2e": "yarn workspace addax-ui playwright test",
     "e2e:headed": "yarn workspace addax-ui playwright test --headed",
     "e2e:ui": "yarn workspace addax-ui playwright test --ui"
   },
   "devDependencies": {
-    "npm-run-all": "^4.1.5"
+    "npm-run-all": "^4.1.5",
+    "vite-plus": "catalog:"
   },
-  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
+  "resolutions": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+  }
 }

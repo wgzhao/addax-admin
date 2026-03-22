@@ -19,7 +19,6 @@ HELP.md
 node_modules
 
 ### VS Code ###
-.vscode/
 *.log
 archive/
 **/.DS_Store
