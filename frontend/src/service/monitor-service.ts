@@ -82,5 +82,12 @@ class MonitorService {
       Array<Map<string, any>>
     >
   }
+
+  // 数据洞察：近 N 天内缺失采集的有效表
+  insightMissingCollect(params?: { days?: number }): Promise<Array<Map<string, any>>> {
+    return Requests.get(this.prefix + '/insight/missing-collect', params) as unknown as Promise<
+      Array<Map<string, any>>
+    >
+  }
 }
 export const monitorService = new MonitorService()
