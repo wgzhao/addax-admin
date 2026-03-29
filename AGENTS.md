@@ -54,3 +54,24 @@ addax-admin/
 2. 修改的文件和关键更改
 3. 当前验证状态（通过/失败命令）
 4. 未解决的风险、待办事项、回滚备注
+
+## Git / PR 标准流程
+
+当用户明确提出“提交并创建 PR”时，默认按以下流程执行（除非用户另有说明）：
+
+1. 创建新分支后再提交，分支名建议使用 `codex/<topic>`。
+2. 使用英文编写 commit message：
+   - `title` 简洁明确（建议 Conventional Commits 风格）。
+   - `description/body` 说明动机、核心改动、验证情况。
+3. 提交前至少完成相关构建/测试（遵循本文件“编译”与“本地测试流程”）。
+4. 使用 `gh` 命令创建 PR，不只推送分支：
+   - 示例：`gh pr create --base master --head <branch> --title "<english title>" --body-file <file>`
+5. PR 内容必须使用英文，并尽量完整包含：
+   - Motivation / Background（为什么做）
+   - What Changed（改了什么）
+   - Design / Implementation Notes（实现与口径）
+   - Validation（构建/测试结果）
+   - Risks / Caveats / Follow-ups（注意事项、风险、后续）
+6. 若无特别要求，PR 设为 Ready for review（非 Draft）。
+
+以上流程可由一句 "提交并创建 PR" 触发，不需要用户重复描述细节格式要求。
