@@ -434,6 +434,91 @@ public class StatService
         return jdbcTemplate.queryForList(sql, offset, thresholdPct);
     }
 
+    // 近 N 天内缺失采集记录的有效表（默认每天应采集一次）
+    public List<Map<String, Object>> getMissingCollectTablesInDays(int days)
+    {
+        int safeDays = Math.max(days, 1);
+        int offset = safeDays - 1;
+        LocalDate bizDate = configService.getBizDateAsDate();
+        String sql = """
+            WITH date_span AS (
+              SELECT generate_series(?::date - ?, ?::date, interval '1 day')::date AS biz_date
+            ),
+            valid_tables AS (
+              SELECT
+                id AS tid,
+                source_db,
+                source_table,
+                target_db,
+                target_table
+              FROM vw_etl_table_with_source
+              WHERE status <> 'X'
+                AND COALESCE(enabled, false) = true
+            ),
+            daily AS (
+              SELECT tid, biz_date
+              FROM etl_statistic
+              WHERE biz_date >= (?::date - ?)
+                AND biz_date <= ?::date
+            ),
+            missing AS (
+              SELECT
+                t.tid,
+                t.source_db,
+                t.source_table,
+                t.target_db,
+                t.target_table,
+                d.biz_date
+              FROM valid_tables t
+              CROSS JOIN date_span d
+              LEFT JOIN daily s
+                ON s.tid = t.tid
+               AND s.biz_date = d.biz_date
+              WHERE s.tid IS NULL
+            ),
+            missing_agg AS (
+              SELECT
+                m.tid,
+                m.source_db,
+                m.source_table,
+                m.target_db,
+                m.target_table,
+                COUNT(*) AS missing_days,
+                MIN(m.biz_date) AS first_missing_date,
+                MAX(m.biz_date) AS last_missing_date,
+                string_agg(to_char(m.biz_date, 'YYYY-MM-DD'), ' | ' ORDER BY m.biz_date) AS missing_dates
+              FROM missing m
+              GROUP BY m.tid, m.source_db, m.source_table, m.target_db, m.target_table
+            ),
+            actual AS (
+              SELECT
+                tid,
+                COUNT(*) AS actual_days,
+                MAX(biz_date) AS last_collect_date
+              FROM daily
+              GROUP BY tid
+            )
+            SELECT
+              m.tid,
+              m.source_db,
+              m.source_table,
+              m.target_db,
+              m.target_table,
+              ? AS expected_days,
+              COALESCE(a.actual_days, 0) AS actual_days,
+              m.missing_days,
+              m.first_missing_date,
+              m.last_missing_date,
+              m.missing_dates,
+              a.last_collect_date
+            FROM missing_agg m
+            LEFT JOIN actual a
+              ON m.tid = a.tid
+            ORDER BY m.missing_days DESC, m.last_missing_date DESC, m.source_db, m.source_table
+            """;
+        return jdbcTemplate.queryForList(sql, bizDate, offset, bizDate, bizDate, offset, bizDate, safeDays);
+    }
+
     // 获取指定表 ID 的最后一次采集时间
     public LocalDate getLastEtlDateByTid(long tid)
     {

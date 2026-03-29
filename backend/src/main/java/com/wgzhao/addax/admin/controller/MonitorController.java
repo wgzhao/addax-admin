@@ -154,4 +154,12 @@ public class MonitorController
     {
         return ResponseEntity.ok(statService.getHighTableTimeChangeRateList(days, threshold));
     }
+
+    // 近 N 天内，缺失采集记录的有效表
+    @RequestMapping("/insight/missing-collect")
+    public ResponseEntity<List<Map<String, Object>>> insightMissingCollect(
+        @RequestParam(value = "days", defaultValue = "15") int days)
+    {
+        return ResponseEntity.ok(statService.getMissingCollectTablesInDays(days));
+    }
 }

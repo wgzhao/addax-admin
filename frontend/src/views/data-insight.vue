@@ -203,6 +203,61 @@
       </v-col>
     </v-row>
 
+    <v-row dense class="section-grid">
+      <v-col cols="12" md="12">
+        <v-card flat class="mb-4 section-card">
+          <v-card-text class="section-body">
+            <div class="section-header">
+              <div class="section-title">{{ missingCollectTable.title }}</div>
+              <div class="header-actions">
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  color="primary"
+                  prepend-icon="mdi-download"
+                  :disabled="!filteredMissingCollect.length"
+                  @click="
+                    exportCsv(
+                      missingCollectTable.headers,
+                      filteredMissingCollect,
+                      'insight-missing-collect'
+                    )
+                  "
+                >
+                  导出
+                </v-btn>
+              </div>
+            </div>
+            <v-data-table
+              :items="filteredMissingCollect"
+              :headers="missingCollectTable.headers"
+              density="compact"
+              :sort-by="missingCollectTable.sortBy"
+              class="elevation-1"
+              hide-no-data
+            >
+              <template #item.missing_dates="{ item }">
+                <div class="missing-dates-compact">
+                  <span class="text-caption text-medium-emphasis">
+                    {{ compactMissingDates(item) }}
+                  </span>
+                  <v-btn
+                    size="x-small"
+                    variant="text"
+                    color="primary"
+                    :disabled="!hasMissingDates(item)"
+                    @click="openMissingDatesDialog(item)"
+                  >
+                    查看明细
+                  </v-btn>
+                </div>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
     <v-dialog v-model="confirmDialog.open" max-width="520">
       <v-card>
         <v-card-title class="text-subtitle-1 font-weight-medium">确认禁用采集</v-card-title>
@@ -231,6 +286,33 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="missingDatesDialog.open" max-width="760">
+      <v-card>
+        <v-card-title class="text-subtitle-1 font-weight-medium">缺失日期明细</v-card-title>
+        <v-card-text>
+          <div class="mb-3">
+            目标表：{{ missingDatesDialog.item?.source_db }}.{{ missingDatesDialog.item?.source_table }}
+          </div>
+          <div class="mb-3">缺失天数：{{ missingDatesDialog.dates.length }}</div>
+          <div class="missing-date-chips">
+            <v-chip
+              v-for="date in missingDatesDialog.dates"
+              :key="date"
+              size="small"
+              color="warning"
+              variant="tonal"
+            >
+              {{ date }}
+            </v-chip>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="closeMissingDatesDialog">关闭</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -256,7 +338,8 @@
     noChange: [] as Array<Map<string, any>>,
     lowChange: [] as Array<Map<string, any>>,
     highChange: [] as Array<Map<string, any>>,
-    timeChange: [] as Array<Map<string, any>>
+    timeChange: [] as Array<Map<string, any>>,
+    missingCollect: [] as Array<Map<string, any>>
   })
 
   const noChangeTable = computed(() => ({
@@ -341,6 +424,24 @@
     ]
   }))
 
+  const missingCollectTable = computed(() => ({
+    title: `近 ${filters.value.days} 天内，缺失采集记录的有效表`,
+    sortBy: <SortItem[]>[{ key: 'missing_days', order: 'desc' }],
+    headers: <DataTableHeader[]>[
+      { title: '表 ID', key: 'tid', align: 'end', width: '64px' },
+      { title: '源库', key: 'source_db' },
+      { title: '表名', key: 'source_table' },
+      { title: '目标库表', key: 'target_table_full', value: (item) => formatTargetTable(item) },
+      { title: '应采集天数', key: 'expected_days', align: 'end' },
+      { title: '实际采集天数', key: 'actual_days', align: 'end' },
+      { title: '缺失天数', key: 'missing_days', align: 'end' },
+      { title: '首次缺失日期', key: 'first_missing_date' },
+      { title: '最近缺失日期', key: 'last_missing_date' },
+      { title: '最近采集日期', key: 'last_collect_date' },
+      { title: '缺失日期', key: 'missing_dates', sortable: false, width: '280px' }
+    ]
+  }))
+
   const normalizeKeyword = (value: string) => value.trim().toLowerCase()
 
   const formatTargetTable = (item: any) => {
@@ -366,6 +467,7 @@
   const filteredLowChange = computed(() => filterByKeyword(data.value.lowChange))
   const filteredHighChange = computed(() => filterByKeyword(data.value.highChange))
   const filteredTimeChange = computed(() => filterByKeyword(data.value.timeChange))
+  const filteredMissingCollect = computed(() => filterByKeyword(data.value.missingCollect))
 
   const loadInsights = async () => {
     loading.value = true
@@ -373,16 +475,18 @@
       const params = {
         days: filters.value.days
       }
-      const [noChange, lowChange, highChange, timeChange] = await Promise.all([
+      const [noChange, lowChange, highChange, timeChange, missingCollect] = await Promise.all([
         monitorService.insightNoChange(params),
         monitorService.insightLowChange({ ...params, threshold: filters.value.lowRate }),
         monitorService.insightHighChange({ ...params, threshold: filters.value.highRate }),
-        monitorService.insightTimeChange({ ...params, threshold: filters.value.timeRate })
+        monitorService.insightTimeChange({ ...params, threshold: filters.value.timeRate }),
+        monitorService.insightMissingCollect(params)
       ])
       data.value.noChange = noChange ?? []
       data.value.lowChange = lowChange ?? []
       data.value.highChange = highChange ?? []
       data.value.timeChange = timeChange ?? []
+      data.value.missingCollect = missingCollect ?? []
     } catch (error) {
       console.error('Failed to load insight data:', error)
     } finally {
@@ -455,6 +559,39 @@
       confirmDialog.value.loading = false
     }
   }
+
+  const parseMissingDates = (value: string) =>
+    String(value ?? '')
+      .split('|')
+      .map((d) => d.trim())
+      .filter(Boolean)
+
+  const compactMissingDates = (item: any) => {
+    const dates = parseMissingDates(item?.missing_dates)
+    if (!dates.length) return '-'
+    if (dates.length <= 2) return dates.join('、')
+    return `${dates[0]} ~ ${dates[dates.length - 1]}（共 ${dates.length} 天）`
+  }
+
+  const hasMissingDates = (item: any) => parseMissingDates(item?.missing_dates).length > 0
+
+  const missingDatesDialog = ref({
+    open: false,
+    item: null as any,
+    dates: [] as string[]
+  })
+
+  const openMissingDatesDialog = (item: any) => {
+    missingDatesDialog.value.item = item
+    missingDatesDialog.value.dates = parseMissingDates(item?.missing_dates)
+    missingDatesDialog.value.open = true
+  }
+
+  const closeMissingDatesDialog = () => {
+    missingDatesDialog.value.open = false
+    missingDatesDialog.value.item = null
+    missingDatesDialog.value.dates = []
+  }
 </script>
 
 <route lang="json">
@@ -525,5 +662,21 @@
 
   .filter-keyword {
     min-width: 220px;
+  }
+
+  .missing-dates-compact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .missing-date-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 320px;
+    overflow: auto;
   }
 </style>
