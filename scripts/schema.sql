@@ -197,7 +197,9 @@ create table public.etl_table
   status          char          default 'U'::bpchar                             not null,
   split_pk        varchar(50)   default NULL::character varying,
   auto_pk         boolean       default true                                    not null,
-  write_mode varchar(20) default 'overwrite' not null
+  write_mode varchar(20) default 'overwrite' not null,
+  created_at     timestamp     default CURRENT_TIMESTAMP not null,
+  updated_at     timestamp     default CURRENT_TIMESTAMP not null
 );
 
 create table if not exists public.etl_target
@@ -270,6 +272,26 @@ comment on column public.etl_table.split_pk is '切分主键';
 comment on column public.etl_table.auto_pk is '自动获取切分字段';
 
 comment on column etl_table.write_mode is '覆盖默认，默认为 overwrite，可选为 append,nonConflict';
+comment on column public.etl_table.created_at is '记录创建时间';
+comment on column public.etl_table.updated_at is '记录最近更新时间';
+
+-- keep updated_at in sync on updates
+create or replace function public.fn_etl_table_set_updated_at()
+returns trigger
+language plpgsql
+as
+$$
+begin
+  new.updated_at := CURRENT_TIMESTAMP;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_etl_table_set_updated_at on public.etl_table;
+create trigger trg_etl_table_set_updated_at
+  before update on public.etl_table
+  for each row
+  execute function public.fn_etl_table_set_updated_at();
 
 alter table public.etl_table
   add column if not exists target_id int;
