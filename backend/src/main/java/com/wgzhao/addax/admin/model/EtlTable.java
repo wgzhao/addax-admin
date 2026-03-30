@@ -12,8 +12,11 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Date;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 
 @Entity
 @Table(name = "etl_table")
@@ -106,4 +109,28 @@ public class EtlTable
 
     @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , filter))")
     private String filterColumn;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist()
+    {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate()
+    {
+        updatedAt = LocalDateTime.now();
+    }
 }

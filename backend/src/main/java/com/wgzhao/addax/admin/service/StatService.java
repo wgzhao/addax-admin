@@ -437,8 +437,7 @@ public class StatService
     // 近 N 天内缺失采集记录的有效表（默认每天应采集一次）
     public List<Map<String, Object>> getMissingCollectTablesInDays(int days)
     {
-        int safeDays = Math.max(days, 1);
-        int offset = safeDays - 1;
+        int offset = Math.max(days - 1, 0);
         LocalDate bizDate = configService.getBizDateAsDate();
         String sql = """
             WITH date_span AS (
@@ -450,7 +449,8 @@ public class StatService
                 source_db,
                 source_table,
                 target_db,
-                target_table
+                target_table,
+                COALESCE(created_at::date, ?::date) AS created_date
               FROM vw_etl_table_with_source
               WHERE status <> 'X'
                 AND COALESCE(enabled, false) = true
@@ -468,6 +468,7 @@ public class StatService
                 t.source_table,
                 t.target_db,
                 t.target_table,
+                t.created_date,
                 d.biz_date
               FROM valid_tables t
               CROSS JOIN date_span d
@@ -475,6 +476,7 @@ public class StatService
                 ON s.tid = t.tid
                AND s.biz_date = d.biz_date
               WHERE s.tid IS NULL
+                AND d.biz_date >= t.created_date
             ),
             missing_agg AS (
               SELECT
@@ -483,12 +485,13 @@ public class StatService
                 m.source_table,
                 m.target_db,
                 m.target_table,
+                m.created_date,
                 COUNT(*) AS missing_days,
                 MIN(m.biz_date) AS first_missing_date,
                 MAX(m.biz_date) AS last_missing_date,
                 string_agg(to_char(m.biz_date, 'YYYY-MM-DD'), ' | ' ORDER BY m.biz_date) AS missing_dates
               FROM missing m
-              GROUP BY m.tid, m.source_db, m.source_table, m.target_db, m.target_table
+              GROUP BY m.tid, m.source_db, m.source_table, m.target_db, m.target_table, m.created_date
             ),
             actual AS (
               SELECT
@@ -504,7 +507,7 @@ public class StatService
               m.source_table,
               m.target_db,
               m.target_table,
-              ? AS expected_days,
+              GREATEST(0, (?::date - GREATEST(m.created_date, ?::date - ?)) + 1) AS expected_days,
               COALESCE(a.actual_days, 0) AS actual_days,
               m.missing_days,
               m.first_missing_date,
@@ -516,7 +519,12 @@ public class StatService
               ON m.tid = a.tid
             ORDER BY m.missing_days DESC, m.last_missing_date DESC, m.source_db, m.source_table
             """;
-        return jdbcTemplate.queryForList(sql, bizDate, offset, bizDate, bizDate, offset, bizDate, safeDays);
+        return jdbcTemplate.queryForList(sql,
+            bizDate, offset, bizDate,      // date_span
+            bizDate,                       // coalesce created_at fallback
+            bizDate, offset, bizDate,      // daily
+            bizDate, bizDate, offset       // expected_days params
+        );
     }
 
     // 获取指定表 ID 的最后一次采集时间
