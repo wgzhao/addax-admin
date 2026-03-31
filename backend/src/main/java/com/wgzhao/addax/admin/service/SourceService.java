@@ -7,12 +7,6 @@ import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.scheduler.CollectionScheduler;
 import com.wgzhao.addax.admin.utils.DbUtil;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Service;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -22,6 +16,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
+
 
 /**
  * 数据源服务类，负责数据源的增删改查及相关元数据操作。
@@ -204,7 +204,7 @@ public class SourceService
         List<TableMetaDto> result = new ArrayList<>();
         try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
             // 按元数据读取所有表
-            ResultSet tables = connection.getMetaData().getTables(dbName, null, "%", new String[] {"TABLE"});
+            ResultSet tables = connection.getMetaData().getTables(dbName, null, "%", new String[] {"TABLE", "SYSTEM VIEW"});
             while (tables.next()) {
                 String tblName = tables.getString("TABLE_NAME");
                 // 已采集表跳过
