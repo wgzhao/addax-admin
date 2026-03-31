@@ -497,7 +497,9 @@ const saveOds = async () => {
     duration: table.value.duration,
     writeMode: table.value.writeMode || 'overwrite',
     startAt: table.value.startAt || null,
-    targetId: table.value.targetId ?? null
+    targetId: table.value.targetId ?? null,
+    createdAt: table.value.createdAt,
+    updatedAt: table.value.updatedAt,
   };
 
   tableService.save(etlTableData as EtlTable)

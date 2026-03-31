@@ -4,10 +4,9 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.Data;
 import org.hibernate.annotations.Formula;
-
-import java.time.LocalDateTime;
 
 /**
  * 映射 vw_etl_table_with_source 视图
@@ -66,4 +65,8 @@ public class VwEtlTableWithSource
     private String targetCode;
     private String targetName;
     private Boolean targetEnabled;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updatedAt;
 }

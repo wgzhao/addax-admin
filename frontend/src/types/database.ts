@@ -218,6 +218,8 @@ export interface EtlTable {
   tblComment?: string // 目标表的注释
   writeMode: string // 写入模式: overwrite|append|nonConflict
   targetId?: number | null // 目标端ID，关联 etl_target
+  createdAt?: Date // 创建时间
+  updatedAt?: Date // 更新时间
 }
 
 export interface TableMeta {
