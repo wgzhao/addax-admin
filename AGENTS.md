@@ -18,12 +18,12 @@
   
 ## 编译
 
-- 前端: `yarn build:frontend`
-- 后端: `yarn build:backend`
+- 前端: `bun build:frontend`
+- 后端: `bun build:backend`
 
 ## 本地测试流程
 
-1. `yarn build:backend` 编译后端服务
+1. `bun build:backend` 编译后端服务
 2. 执行 `/opt/app/addax-admin/service.sh restart` 重启本地的后端服务
 3. 执行 `VITE_API_HOST=http://localhost:50601 bun run dev` 启动前端开发服务器
 4. 访问 `http://localhost:3030` 进行功能测试
@@ -59,7 +59,7 @@ addax-admin/
 
 当用户明确提出“提交并创建 PR”时，默认按以下流程执行（除非用户另有说明）：
 
-1. 创建新分支后再提交，分支名建议使用 `codex/<topic>`。
+1. 创建新分支后再提交，分支名建议使用 `feat/<topic>` 或 `fix/<topic>` 格式，根据本次修改的性质选择 `feat`（新功能）或 `fix`（修复）。例如：`feat/add-protobuf-dependency`。
 2. 使用英文编写 commit message：
    - `title` 简洁明确（建议 Conventional Commits 风格）。
    - `description/body` 说明动机、核心改动、验证情况。
