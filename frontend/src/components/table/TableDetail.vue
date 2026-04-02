@@ -207,6 +207,36 @@
                         </div>
                       </v-col>
                       <v-col cols="12">
+                        <div class="field-stack field-stack--textarea">
+                          <div class="field-label">读取插件配置(JSON)</div>
+                          <v-textarea
+                            variant="outlined"
+                            density="compact"
+                            v-model="readerPluginConfigText"
+                            placeholder='例如: {"fetchSize": 50000}'
+                            :rules="[rules.jsonObjectOrEmpty]"
+                            rows="4"
+                            auto-grow
+                            hide-details="auto"
+                          ></v-textarea>
+                        </div>
+                      </v-col>
+                      <v-col cols="12">
+                        <div class="field-stack field-stack--textarea">
+                          <div class="field-label">写入插件配置(JSON)</div>
+                          <v-textarea
+                            variant="outlined"
+                            density="compact"
+                            v-model="writerPluginConfigText"
+                            placeholder='例如: {"writeMode": "append"}'
+                            :rules="[rules.jsonObjectOrEmpty]"
+                            rows="4"
+                            auto-grow
+                            hide-details="auto"
+                          ></v-textarea>
+                        </div>
+                      </v-col>
+                      <v-col cols="12">
                         <div class="field-stack">
                           <div class="field-label">切分字段</div>
                           <v-text-field
@@ -386,11 +416,61 @@ const rules = {
     const n = Number(v)
     return (!Number.isNaN(n) && n >= 0) || '必须为非负数'
   },
-  dateFormat: (v) => PARTITION_FORMATS.includes(v) || '请选择有效的日期格式'
+  dateFormat: (v) => PARTITION_FORMATS.includes(v) || '请选择有效的日期格式',
+  jsonObjectOrEmpty: (v) => {
+    if (v === null || v === undefined || v === '') return true
+    try {
+      const parsed = JSON.parse(v)
+      return (!!parsed && typeof parsed === 'object' && !Array.isArray(parsed)) || '必须为 JSON 对象'
+    } catch {
+      return '请输入合法 JSON'
+    }
+  }
 }
 
 // 创建本地的响应式副本用于编辑
 const table = ref<VEtlWithSource>({ ...props.table });
+const readerPluginConfigText = ref('')
+const writerPluginConfigText = ref('')
+
+const toJsonText = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') return ''
+  if (typeof value === 'string') {
+    try {
+      return JSON.stringify(JSON.parse(value), null, 2)
+    } catch {
+      return value
+    }
+  }
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return ''
+  }
+}
+
+const parseJsonObjectOrNull = (value: string, fieldName: string) => {
+  const raw = value.trim()
+  if (!raw) return null
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error(`${fieldName} 不是合法 JSON`)
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${fieldName} 必须为 JSON 对象`)
+  }
+  return parsed as Record<string, unknown>
+}
+
+const syncTableData = (newTable: VEtlWithSource) => {
+  table.value = { ...newTable }
+  readerPluginConfigText.value = toJsonText(newTable.readerPluginConfig)
+  writerPluginConfigText.value = toJsonText(newTable.writerPluginConfig)
+}
+
+syncTableData(props.table)
 
 // 表级调度为空时，继承自采集源的调度时间
 const inheritedStartAt = computed(() => {
@@ -403,7 +483,7 @@ const inheritedStartAt = computed(() => {
 
 // 监听props变化，同步更新本地副本
 watch(() => props.table, (newTable) => {
-  table.value = { ...newTable };
+  syncTableData(newTable)
 }, { deep: true });
 
 // define emit
@@ -467,11 +547,24 @@ onMounted(async () => {
 const saveOds = async () => {
   if (formRef.value && typeof formRef.value.validate === 'function') {
     const valid = await formRef.value.validate()
-    if (!valid) {
+    if (!valid.valid) {
       notify('请修正表单错误', 'error')
       return
     }
   }
+
+  let readerPluginConfig: Record<string, unknown> | null
+  let writerPluginConfig: Record<string, unknown> | null
+  try {
+    readerPluginConfig = parseJsonObjectOrNull(readerPluginConfigText.value, '读取插件配置')
+    writerPluginConfig = parseJsonObjectOrNull(writerPluginConfigText.value, '写入插件配置')
+  } catch (e) {
+    notify((e as Error).message, 'error')
+    return
+  }
+
+  table.value.readerPluginConfig = readerPluginConfig
+  table.value.writerPluginConfig = writerPluginConfig
 
   const etlTableData: Partial<EtlTable> = {
     id: table.value.id,
@@ -498,6 +591,8 @@ const saveOds = async () => {
     writeMode: table.value.writeMode || 'overwrite',
     startAt: table.value.startAt || null,
     targetId: table.value.targetId ?? null,
+    readerPluginConfig,
+    writerPluginConfig,
     createdAt: table.value.createdAt,
     updatedAt: table.value.updatedAt,
   };
@@ -568,6 +663,10 @@ const showPlaceholderInfoDialog = () => {
   grid-template-columns: 110px minmax(0, 1fr);
   column-gap: 16px;
   align-items: center;
+}
+
+.field-stack--textarea {
+  align-items: start;
 }
 
 .field-label {

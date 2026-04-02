@@ -218,6 +218,8 @@ export interface EtlTable {
   tblComment?: string // 目标表的注释
   writeMode: string // 写入模式: overwrite|append|nonConflict
   targetId?: number | null // 目标端ID，关联 etl_target
+  readerPluginConfig?: Record<string, unknown> | string | null // reader.parameter 的自定义配置(JSON对象)
+  writerPluginConfig?: Record<string, unknown> | string | null // writer.parameter 的自定义配置(JSON对象)
   createdAt?: Date // 创建时间
   updatedAt?: Date // 更新时间
 }
