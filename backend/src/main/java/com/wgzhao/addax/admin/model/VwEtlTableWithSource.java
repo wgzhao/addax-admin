@@ -1,12 +1,16 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import lombok.Data;
 import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 映射 vw_etl_table_with_source 视图
@@ -61,6 +65,12 @@ public class VwEtlTableWithSource
     private Boolean autoPk;
     private String writeMode;
     private Long targetId;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "reader_plugin_config")
+    private JsonNode readerPluginConfig;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "writer_plugin_config")
+    private JsonNode writerPluginConfig;
     private String targetType;
     private String targetCode;
     private String targetName;

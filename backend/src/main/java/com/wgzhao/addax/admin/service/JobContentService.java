@@ -1,5 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
@@ -11,6 +14,12 @@ import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -18,12 +27,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
@@ -47,6 +50,7 @@ public class JobContentService
     private final TargetService targetService;
     private final RiskLogService riskLogService;
     private final StatService statService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -81,13 +85,69 @@ public class JobContentService
 
         String jobTemplate = configService.getRdbms2HdfsJobTemplate();
         StringSubstitutor substitutor = new StringSubstitutor(values);
-        String job = substitutor.replace(jobTemplate);
+        String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
 
         EtlJob etlJob = new EtlJob(etlTable.getId(), job);
         jobRepo.save(etlJob);
         jourService.successJour(etlJour);
         log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
         return TaskResultDto.success("更新采集任务模板成功", 0);
+    }
+
+    private String mergePluginConfigIntoJob(String job, VwEtlTableWithSource etlTable)
+    {
+        JsonNode readerConfig = etlTable.getReaderPluginConfig();
+        JsonNode writerConfig = etlTable.getWriterPluginConfig();
+        if ((readerConfig == null || readerConfig.isNull()) && (writerConfig == null || writerConfig.isNull())) {
+            return job;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(job);
+            JsonNode contentNode = root.path("job").path("content");
+            if (!(contentNode instanceof ObjectNode contentObject)) {
+                log.warn("任务模板结构不符合预期，缺少 job.content 对象，tid={}", etlTable.getId());
+                return job;
+            }
+            mergeConfigToParameter(contentObject, "reader", readerConfig, etlTable.getId());
+            mergeConfigToParameter(contentObject, "writer", writerConfig, etlTable.getId());
+            return objectMapper.writeValueAsString(root);
+        }
+        catch (Exception ex) {
+            log.warn("合并插件配置失败，tid={}, err={}", etlTable.getId(), ex.getMessage());
+            return job;
+        }
+    }
+
+    private void mergeConfigToParameter(ObjectNode contentObject, String pluginName, JsonNode customConfig, Long tableId)
+    {
+        if (customConfig == null || customConfig.isNull()) {
+            return;
+        }
+        if (!customConfig.isObject()) {
+            log.warn("{} 插件配置必须是 JSON 对象，tid={}", pluginName, tableId);
+            return;
+        }
+
+        JsonNode pluginNode = contentObject.get(pluginName);
+        if (!(pluginNode instanceof ObjectNode pluginObject)) {
+            log.warn("任务模板结构不符合预期，缺少 {} 对象，tid={}", pluginName, tableId);
+            return;
+        }
+
+        JsonNode parameterNode = pluginObject.get("parameter");
+        ObjectNode parameterObject;
+        if (parameterNode == null || parameterNode.isNull()) {
+            parameterObject = pluginObject.putObject("parameter");
+        }
+        else if (parameterNode instanceof ObjectNode objectNode) {
+            parameterObject = objectNode;
+        }
+        else {
+            log.warn("任务模板结构不符合预期，{}.parameter 不是对象，tid={}", pluginName, tableId);
+            return;
+        }
+
+        customConfig.fields().forEachRemaining(entry -> parameterObject.set(entry.getKey(), entry.getValue()));
     }
 
     private String fillRdbmsReaderJob(VwEtlTableWithSource vTable)

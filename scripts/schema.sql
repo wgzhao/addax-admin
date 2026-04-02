@@ -198,6 +198,8 @@ create table public.etl_table
   split_pk        varchar(50)   default NULL::character varying,
   auto_pk         boolean       default true                                    not null,
   write_mode varchar(20) default 'overwrite' not null,
+  reader_plugin_config jsonb,
+  writer_plugin_config jsonb,
   created_at     timestamp     default CURRENT_TIMESTAMP not null,
   updated_at     timestamp     default CURRENT_TIMESTAMP not null
 );
@@ -272,6 +274,8 @@ comment on column public.etl_table.split_pk is '切分主键';
 comment on column public.etl_table.auto_pk is '自动获取切分字段';
 
 comment on column etl_table.write_mode is '覆盖默认，默认为 overwrite，可选为 append,nonConflict';
+comment on column public.etl_table.reader_plugin_config is '读取插件自定义配置(JSON)，将合并到 reader.parameter';
+comment on column public.etl_table.writer_plugin_config is '写入插件自定义配置(JSON)，将合并到 writer.parameter';
 comment on column public.etl_table.created_at is '记录创建时间';
 comment on column public.etl_table.updated_at is '记录最近更新时间';
 
@@ -314,7 +318,15 @@ create index if not exists idx_etl_table_target_id
 alter table public.etl_table
   add column if not exists start_at time;
 
+alter table public.etl_table
+  add column if not exists reader_plugin_config jsonb;
+
+alter table public.etl_table
+  add column if not exists writer_plugin_config jsonb;
+
 comment on column public.etl_table.start_at is '表级采集定时启动时间点；为空表示继承 etl_source.start_at';
+comment on column public.etl_table.reader_plugin_config is '读取插件自定义配置(JSON)，将合并到 reader.parameter';
+comment on column public.etl_table.writer_plugin_config is '写入插件自定义配置(JSON)，将合并到 writer.parameter';
 
 create index if not exists idx_etl_table_start_at_not_null
   on public.etl_table (start_at)
@@ -607,7 +619,7 @@ comment on column public.risk_log.tid is '关联表 ID';
 
 comment on column public.risk_log.created_at is '创建时间';
 
-create view vw_etl_table_with_source
+create or replace view vw_etl_table_with_source
    as
 SELECT t.*,
        s.code,

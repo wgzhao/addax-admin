@@ -1,22 +1,25 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Date;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.Date;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 
 @Entity
 @Table(name = "etl_table")
@@ -100,6 +103,14 @@ public class EtlTable
 
     @Column(name = "target_id")
     private Long targetId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "reader_plugin_config", columnDefinition = "jsonb")
+    private JsonNode readerPluginConfig;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "writer_plugin_config", columnDefinition = "jsonb")
+    private JsonNode writerPluginConfig;
 
     /**
      * 表级调度时间点（每天的 HH:mm），为空表示继承 etl_source.start_at
