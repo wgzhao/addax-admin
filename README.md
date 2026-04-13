@@ -309,6 +309,8 @@ stop
 @enduml
 ```
 
+如果上图没有渲染，可以参考 ![table-collect-flowchart](screenshots/table_collect.svg) 查看高清版本。
+
 ---
 
 日志与监控
