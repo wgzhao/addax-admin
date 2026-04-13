@@ -218,6 +218,97 @@ yarn build
 
 充分利用此机制可以在多实例部署下保证高可用与并发可控。
 
+### 数据表采集流程图
+
+```plantuml
+@startuml
+title 数据表采集流程（创建→刷新→调度→执行）
+skinparam backgroundColor transparent
+skinparam activity {
+  BackgroundColor #F7F9FC
+  BorderColor #5B6B88
+  ArrowColor #4C5A74
+  DiamondBackgroundColor #FFF3CD
+  DiamondBorderColor #D39E00
+  StartColor #2E7D32
+  EndColor #C62828
+}
+
+|#E3F2FD|前端/UI|
+start
+:提交采集表配置;
+
+|#FFF3E0|TableController|
+if (批量创建?) then (是)
+:POST /tables/batch;
+|#E8F5E9|TableService|
+:batchCreateTable()\n写入 etl_table;
+:refreshTablesResourcesAsync();
+else (否)
+|#FFF3E0|TableController|
+:POST /tables;
+|#E8F5E9|TableService|
+:createTable()\n写入 etl_table;
+endif
+
+|#E8F5E9|TableService|
+:refreshTableResources(tid);
+:columnService.updateTableColumnsV2();
+if (检测到字段变更?) then (是)
+:targetService.createOrUpdateHiveTable();
+if (Hive 处理成功?) then (是)
+:jobContentService.updateJob();
+if (任务文件更新成功?) then (是)
+:etl_table.status = N;
+else (否)
+:etl_table.status = E;
+stop
+endif
+else (否)
+:etl_table.status = U;
+stop
+endif
+else (否)
+:jobContentService.updateJob();
+if (任务文件更新成功?) then (是)
+:etl_table.status = N;
+else (否)
+:etl_table.status = E;
+stop
+endif
+endif
+
+|#F3E5F5|调度器|
+fork
+:CollectionScheduler\n按 etl_source.start_at 触发;
+:TaskService.executeTasksForSource()\n仅处理 etl_table.start_at is null;
+:queueManager.addTaskToQueue();
+fork again
+:TableOverrideScheduler 每分钟触发;
+:扫描 etl_table.start_at 命中窗口;
+:queueManager.addTaskToQueue();
+end fork
+
+|#E8EAF6|TaskQueueManagerV2|
+:claim etl_job_queue pending;
+:Redis job lock + global/source permit;
+:tableService.setRunning()\nstatus=R,start_time;
+
+|#FCE4EC|Addax 执行|
+:targetService.prepareBeforeRun();
+:执行 addax.sh + 写入日志;
+
+|#E8EAF6|TaskQueueManagerV2|
+if (执行成功?) then (是)
+:tableService.setFinished()\nstatus=Y,retry_cnt=3,end_time;
+else (否)
+:tableService.setFailed()\nstatus=E,retry_cnt-1,end_time;
+:etl_job_queue backoff 重试/失败;
+endif
+stop
+@enduml
+```
+
 ---
 
 日志与监控
