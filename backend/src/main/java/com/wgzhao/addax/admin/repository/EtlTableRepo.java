@@ -23,6 +23,10 @@ public interface EtlTableRepo
     @Query("UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3 where t.status not in ( 'X', 'U')")
     void resetAllEtlFlags();
 
+    @Modifying
+    @Query("UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3 where t.status not in ( 'X', 'U') and t.sid in :sourceIds")
+    void resetEtlFlagsBySourceIds(@Param("sourceIds") List<Integer> sourceIds);
+
     @Query(value = """
         select t
         from EtlTable t
@@ -48,6 +52,7 @@ public interface EtlTableRepo
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE t.status NOT IN ('Y','X','U') AND t.retryCnt > 0
+            AND t.sid in :sourceIds
             AND (
                 :checkTime = false OR
                 (s.startAt > :switchTime AND s.startAt < :currentTime)
@@ -55,7 +60,8 @@ public interface EtlTableRepo
         """)
     List<EtlTable> findRunnableTasks(@Param("switchTime") LocalTime switchTime,
         @Param("currentTime") LocalTime currentTime,
-        @Param("checkTime") boolean checkTime);
+        @Param("checkTime") boolean checkTime,
+        @Param("sourceIds") List<Integer> sourceIds);
 
     /**
      * 查询某个 source 下“继承调度”的可运行任务（表 startAt 为空，实际调度由 source.startAt 决定）
@@ -64,11 +70,13 @@ public interface EtlTableRepo
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
               AND t.sid = :sid
+              AND t.sid in :sourceIds
               AND t.startAt is null
               AND t.status NOT IN ('Y','X','U')
               AND t.retryCnt > 0
         """)
-    List<EtlTable> findRunnableInheritedTasksBySource(@Param("sid") int sid);
+    List<EtlTable> findRunnableInheritedTasksBySource(@Param("sid") int sid,
+        @Param("sourceIds") List<Integer> sourceIds);
 
     /**
      * 查询“表级覆盖调度”的可运行任务（表 startAt 等于指定时间点）
@@ -76,11 +84,13 @@ public interface EtlTableRepo
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
+              AND t.sid in :sourceIds
               AND t.startAt = :startAt
               AND t.status = 'N'
               AND t.retryCnt > 0
         """)
-    List<EtlTable> findRunnableOverrideTasksByStartAt(@Param("startAt") LocalTime startAt);
+    List<EtlTable> findRunnableOverrideTasksByStartAt(@Param("startAt") LocalTime startAt,
+        @Param("sourceIds") List<Integer> sourceIds);
 
     /**
      * 查询“表级覆盖调度”的可运行任务（表 startAt 落在指定时间窗口内，闭区间）。
@@ -88,6 +98,7 @@ public interface EtlTableRepo
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
+              AND t.sid in :sourceIds
               AND t.startAt is not null
               AND t.startAt >= :from
               AND t.startAt <= :to
@@ -95,7 +106,8 @@ public interface EtlTableRepo
               AND t.retryCnt > 0
         """)
     List<EtlTable> findRunnableOverrideTasksBetween(@Param("from") LocalTime from,
-        @Param("to") LocalTime to);
+        @Param("to") LocalTime to,
+        @Param("sourceIds") List<Integer> sourceIds);
 
     int countBySid(int sid);
 
@@ -106,4 +118,10 @@ public interface EtlTableRepo
                 WHERE t.status <> 'X' AND s.enabled = true
         """)
     List<EtlTable> findCanRefreshTables();
+
+    @Query("""
+            SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
+                WHERE t.status <> 'X' AND s.enabled = true AND t.sid in :sourceIds
+        """)
+    List<EtlTable> findCanRefreshTablesBySourceIds(@Param("sourceIds") List<Integer> sourceIds);
 }

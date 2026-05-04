@@ -11,6 +11,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,8 @@ public class TaskService
     private final ExecutionManager executionManager;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final SourceService sourceService;
+    private final SourceScheduleMatcher sourceScheduleMatcher;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -84,13 +87,19 @@ public class TaskService
             // Submit refresh job and wait with timeout
             future = executor.submit(() -> {
                 try {
-                    // Reset flags so tasks become eligible after refresh
-                    tableService.resetAllFlags();
                     // Reload system configuration
                     configService.loadConfig();
 
-                    // Refresh schema / resources for all tables. This checks source schema and updates target metadata when changed.
-                    tableService.refreshAllTableResources();
+                    LocalDate bizDate = configService.getBizDateAsDate();
+                    List<Integer> sourceIds = sourceScheduleMatcher.resolveMatchedEnabledSourceIds(sourceService.findEnabledSources(), bizDate);
+                    if (sourceIds.isEmpty()) {
+                        log.info("No source matches collect date policy on bizDate={}, skip flag reset and table refresh", bizDate);
+                    }
+                    else {
+                        // Why: daily initialization should only affect sources collectable on current bizDate.
+                        tableService.resetFlagsBySourceIds(sourceIds);
+                        tableService.refreshTableResourcesBySourceIds(sourceIds);
+                    }
 
                     // truncate the job queue table except for running tasks
                     // 106 行注释：在完成必要参数配置及初始化后，需要清理 etl_job_queue 中的历史记录
@@ -211,6 +220,7 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId)
     {
+        // Why: manual single-task run is mainly used for backfill, so it bypasses collect-date policy checks.
         // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
         try {
             if (redisLockService != null && redisLockService.isRefreshInProgress()) {
@@ -231,6 +241,7 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId, String username)
     {
+        // Why: manual single-task run is mainly used for backfill, so it bypasses collect-date policy checks.
         // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
         try {
             if (redisLockService != null && redisLockService.isRefreshInProgress()) {

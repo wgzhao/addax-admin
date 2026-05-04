@@ -41,6 +41,20 @@
                 </v-col>
                 <v-col cols="12">
                   <div class="field-stack">
+                    <div class="field-label">采集日期</div>
+                    <v-select
+                      v-model="sourceItem.collectDateMode"
+                      :items="collectDateModeItems"
+                      item-title="title"
+                      item-value="value"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                    />
+                  </div>
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-stack">
                     <div class="field-label">最大并发数</div>
                     <v-text-field v-model.number="sourceItem.maxConcurrency" type="number" variant="outlined"
                       density="compact" placeholder="默认10" hint="留空则使用系统默认值" />
@@ -159,6 +173,7 @@ const defaultSourceItem: EtlSource = {
   username: "",
   pass: "",
   startAt: "",
+  collectDateMode: "DAILY",
   prerequisite: "",
   preScript: "",
   remark: "",
@@ -167,6 +182,12 @@ const defaultSourceItem: EtlSource = {
 };
 
 const sourceItem = ref<EtlSource>({ ...defaultSourceItem });
+
+const collectDateModeItems = [
+  { title: '每天', value: 'DAILY' },
+  { title: '每个工作日', value: 'WEEKDAY' },
+  { title: '仅周末', value: 'WEEKEND' }
+];
 
 const emit = defineEmits(["closeDialog", "save"]);
 
@@ -243,6 +264,10 @@ const save = async () => {
       sourceItem.value.startAt = formatTimeInput(sourceItem.value.startAt);
     }
 
+    if (!sourceItem.value.collectDateMode) {
+      sourceItem.value.collectDateMode = 'DAILY';
+    }
+
     sourceService.save(sourceItem.value)
       .then(() => {
         notify('保存成功', 'success');
@@ -298,7 +323,10 @@ const initializeForm = () => {
   if (props.sid != -1) {
     sourceService.get(Number(props.sid))
       .then(resp => {
-        sourceItem.value = resp;
+        sourceItem.value = {
+          ...resp,
+          collectDateMode: resp.collectDateMode || 'DAILY'
+        };
       })
       .catch(error => {
         console.log(error);

@@ -1,8 +1,11 @@
 package com.wgzhao.addax.admin.model;
 
 import com.wgzhao.addax.admin.common.DbType;
+import com.wgzhao.addax.admin.common.CollectDateMode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -43,6 +46,10 @@ public class EtlSource
 
     @Column(name = "start_at")
     private LocalTime startAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "collect_date_mode", length = 16, nullable = false)
+    private CollectDateMode collectDateMode = CollectDateMode.DAILY;
 
     @Column(name = "prerequisite", length = 4000)
     private String prerequisite;

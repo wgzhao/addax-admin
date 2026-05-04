@@ -60,6 +60,9 @@
               class="ml-2"
             ></v-chip>
           </template>
+          <template v-slot:item.collectDateMode="{ item }">
+            {{ formatCollectDateMode(item.collectDateMode) }}
+          </template>
           <template v-slot:item.actions="{ item }">
             <v-btn
               variant="text"
@@ -139,8 +142,18 @@
       title: '采集时间',
       key: 'startAt'
     },
+    {
+      title: '采集日期',
+      key: 'collectDateMode'
+    },
     { title: '操作', value: 'actions', align: 'center' }
   ]
+
+  const formatCollectDateMode = (mode: string) => {
+    if (mode === 'WEEKDAY') return '每个工作日'
+    if (mode === 'WEEKEND') return '仅周末'
+    return '每天'
+  }
 
   const params = ref({})
   const getSources = () => {

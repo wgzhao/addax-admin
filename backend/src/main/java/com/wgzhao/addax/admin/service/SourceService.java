@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.DbType;
+import com.wgzhao.addax.admin.common.CollectDateMode;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
@@ -117,11 +118,19 @@ public class SourceService
             etlSource.setDbType(parsed.getValue());
         }
 
+        if (etlSource.getCollectDateMode() == null) {
+            etlSource.setCollectDateMode(CollectDateMode.DAILY);
+        }
+
         etlSourceRepo.save(etlSource);
         if (existing == null) {
             return etlSource;
         }
-        boolean scheduleChanged = existing.getStartAt() != etlSource.getStartAt();
+        CollectDateMode existingCollectDateMode = existing.getCollectDateMode() == null ? CollectDateMode.DAILY : existing.getCollectDateMode();
+        CollectDateMode newCollectDateMode = etlSource.getCollectDateMode() == null ? CollectDateMode.DAILY : etlSource.getCollectDateMode();
+        boolean scheduleChanged = !Objects.equals(existing.getStartAt(), etlSource.getStartAt())
+            || existing.isEnabled() != etlSource.isEnabled()
+            || existingCollectDateMode != newCollectDateMode;
 
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
@@ -185,9 +194,13 @@ public class SourceService
             etlSource.setDbType(parsed.getValue());
         }
 
+        if (etlSource.getCollectDateMode() == null) {
+            etlSource.setCollectDateMode(CollectDateMode.DAILY);
+        }
+
         EtlSource save = etlSourceRepo.save(etlSource);
         // 新采集源创建时，默认创建一个同步任务
-        collectionScheduler.scheduleOrUpdateTask(etlSource);
+        collectionScheduler.scheduleOrUpdateTask(save);
         return save;
     }
 
