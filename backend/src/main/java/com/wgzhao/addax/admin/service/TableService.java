@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.redis.RedisLockService;
+import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
@@ -20,8 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,6 +48,8 @@ public class TableService
     private final RedisLockService redisLockService;
     private final SystemConfigService configService;
     private final UserNotificationService userNotificationService;
+    private final EtlSourceRepo etlSourceRepo;
+    private final SourceScheduleMatcher sourceScheduleMatcher;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -221,6 +226,30 @@ public class TableService
             // also check system flag to decide whether to continue (if flag cleared externally)
             if (!redisLockService.isRefreshInProgress()) {
                 log.info("Global schema refresh flag cleared, aborting refreshAllTableResources at table {}", table.getId());
+                break;
+            }
+        }
+    }
+
+    public void refreshTableResourcesBySourceIds(List<Integer> sourceIds)
+    {
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            return;
+        }
+        List<EtlTable> tables = etlTableRepo.findCanRefreshTablesBySourceIds(sourceIds);
+        for (EtlTable table : tables) {
+            if (Thread.currentThread().isInterrupted()) {
+                log.info("refreshTableResourcesBySourceIds interrupted, stopping at table {}", table.getId());
+                break;
+            }
+            try {
+                refreshTableResources(table);
+            }
+            catch (Exception e) {
+                log.error("Failed to refresh resources for table {}", table.getId(), e);
+            }
+            if (!redisLockService.isRefreshInProgress()) {
+                log.info("Global schema refresh flag cleared, aborting refreshTableResourcesBySourceIds at table {}", table.getId());
                 break;
             }
         }
@@ -436,7 +465,11 @@ public class TableService
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);
-        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime);
+        List<Integer> sourceIds = resolveMatchedEnabledSourceIds();
+        if (sourceIds.isEmpty()) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime, sourceIds);
     }
 
     /**
@@ -455,7 +488,11 @@ public class TableService
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
         boolean checkTime = currentTime.isAfter(switchTime);
-        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime)
+        List<Integer> sourceIds = resolveMatchedEnabledSourceIds();
+        if (sourceIds.isEmpty() || !sourceIds.contains(sourceId)) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableTasks(switchTime, currentTime, checkTime, sourceIds)
             .stream()
             .filter(t -> t.getSid() == sourceId)
             .toList();
@@ -469,7 +506,11 @@ public class TableService
         if (redisLockService.isRefreshInProgress()) {
             return List.of();
         }
-        return etlTableRepo.findRunnableInheritedTasksBySource(sourceId);
+        List<Integer> sourceIds = resolveMatchedEnabledSourceIds();
+        if (sourceIds.isEmpty() || !sourceIds.contains(sourceId)) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableInheritedTasksBySource(sourceId, sourceIds);
     }
 
     /**
@@ -480,7 +521,11 @@ public class TableService
         if (redisLockService.isRefreshInProgress()) {
             return List.of();
         }
-        return etlTableRepo.findRunnableOverrideTasksByStartAt(startAt);
+        List<Integer> sourceIds = resolveMatchedEnabledSourceIds();
+        if (sourceIds.isEmpty()) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableOverrideTasksByStartAt(startAt, sourceIds);
     }
 
     public List<EtlTable> getRunnableOverrideTasksBetween(LocalTime from, LocalTime to)
@@ -488,7 +533,11 @@ public class TableService
         if (redisLockService.isRefreshInProgress()) {
             return List.of();
         }
-        return etlTableRepo.findRunnableOverrideTasksBetween(from, to);
+        List<Integer> sourceIds = resolveMatchedEnabledSourceIds();
+        if (sourceIds.isEmpty()) {
+            return List.of();
+        }
+        return etlTableRepo.findRunnableOverrideTasksBetween(from, to, sourceIds);
     }
 
     /**
@@ -523,6 +572,25 @@ public class TableService
     public void resetAllFlags()
     {
         etlTableRepo.resetAllEtlFlags();
+    }
+
+    @Transactional
+    public void resetFlagsBySourceIds(List<Integer> sourceIds)
+    {
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            return;
+        }
+        etlTableRepo.resetEtlFlagsBySourceIds(sourceIds);
+    }
+
+    public List<Integer> resolveMatchedEnabledSourceIds()
+    {
+        LocalDate bizDate = configService.getBizDateAsDate();
+        List<Integer> sourceIds = sourceScheduleMatcher.resolveMatchedEnabledSourceIds(etlSourceRepo.findByEnabled(true), bizDate);
+        if (sourceIds.isEmpty()) {
+            return List.of();
+        }
+        return new ArrayList<>(sourceIds);
     }
 
     /**

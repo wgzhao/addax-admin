@@ -184,6 +184,7 @@ export interface EtlSource {
   username?: string // 采集源连接的账号
   pass?: string // 采集源连接的密码
   startAt?: string // 采集的定时启动时间点
+  collectDateMode?: 'DAILY' | 'WEEKDAY' | 'WEEKEND' // 采集日期模式
   prerequisite?: string // 能否开始采集的先决条件
   preScript?: string // 标志符合条件后的前置脚本
   remark?: string // 系统备注信息

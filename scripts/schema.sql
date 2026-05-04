@@ -89,6 +89,7 @@ create table public.etl_source
   username        varchar(64),
   pass            varchar(64),
   start_at        time,
+  collect_date_mode varchar(16) default 'DAILY' not null,
   prerequisite    varchar(4000),
   pre_script      varchar(4000),
   remark          varchar(2000),
@@ -112,6 +113,8 @@ comment on column public.etl_source.username is '采集源连接的账号';
 comment on column public.etl_source.pass is '采集源连接的密码';
 
 comment on column public.etl_source.start_at is '采集的定时启动时间点，一般只考虑到小时和分钟，秒钟默认为 0';
+
+comment on column public.etl_source.collect_date_mode is '采集日期模式：DAILY-每天；WEEKDAY-工作日；WEEKEND-周末';
 
 comment on column public.etl_source.prerequisite is '能否开始采集的先决条件，比如获取采集标志位，或者等待数据不再更新，一般是一段 SQL，然后通过返回值真假进行判断';
 
@@ -628,6 +631,7 @@ SELECT t.*,
        s.username,
        s.pass,
        s.start_at as source_start_at,
+       s.collect_date_mode,
        s.enabled,
        s.max_concurrency,
        s.db_type,

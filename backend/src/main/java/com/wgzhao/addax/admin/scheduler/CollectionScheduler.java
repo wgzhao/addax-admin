@@ -3,6 +3,8 @@ package com.wgzhao.addax.admin.scheduler;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.service.SourceScheduleMatcher;
+import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TaskSchedulerService;
 import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
@@ -12,6 +14,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -24,6 +27,8 @@ public class CollectionScheduler
     private final EtlSourceRepo etlSourceRepo;
     private final TaskService taskService;
     private final RedisLockService redisLockService;
+    private final SourceScheduleMatcher sourceScheduleMatcher;
+    private final SystemConfigService configService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady()
@@ -59,6 +64,12 @@ public class CollectionScheduler
                     token = redisLockService.tryLock(lockKey, ttl);
                     if (token == null) {
                         log.info("Could not acquire lock for source {}, skipping this run", source.getCode());
+                        return;
+                    }
+                    LocalDate bizDate = configService.getBizDateAsDate();
+                    if (!sourceScheduleMatcher.matches(source, bizDate)) {
+                        log.info("Skip scheduled collection for source {} because collectDateMode={} does not match bizDate={}",
+                            source.getCode(), source.getCollectDateMode(), bizDate);
                         return;
                     }
                     // keep existing behavior: enqueue runnable tables for this source

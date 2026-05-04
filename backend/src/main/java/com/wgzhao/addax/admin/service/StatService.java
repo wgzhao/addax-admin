@@ -434,7 +434,7 @@ public class StatService
         return jdbcTemplate.queryForList(sql, offset, thresholdPct);
     }
 
-    // 近 N 天内缺失采集记录的有效表（默认每天应采集一次）
+    // 近 N 天内缺失采集记录的有效表（按 source.collect_date_mode 计算应采集日）
     public List<Map<String, Object>> getMissingCollectTablesInDays(int days)
     {
         int offset = Math.max(days - 1, 0);
@@ -450,33 +450,52 @@ public class StatService
                 source_table,
                 target_db,
                 target_table,
+                COALESCE(collect_date_mode, 'DAILY') AS collect_date_mode,
                 COALESCE(created_at::date, ?::date) AS created_date
               FROM vw_etl_table_with_source
               WHERE status <> 'X'
                 AND COALESCE(enabled, false) = true
             ),
-            daily AS (
-              SELECT tid, biz_date
-              FROM etl_statistic
-              WHERE biz_date >= (?::date - ?)
-                AND biz_date <= ?::date
-            ),
-            missing AS (
+            scheduled AS (
               SELECT
                 t.tid,
                 t.source_db,
                 t.source_table,
                 t.target_db,
                 t.target_table,
+                t.collect_date_mode,
                 t.created_date,
                 d.biz_date
               FROM valid_tables t
-              CROSS JOIN date_span d
-              LEFT JOIN daily s
-                ON s.tid = t.tid
-               AND s.biz_date = d.biz_date
-              WHERE s.tid IS NULL
-                AND d.biz_date >= t.created_date
+              JOIN date_span d
+                ON d.biz_date >= t.created_date
+              WHERE (
+                  t.collect_date_mode = 'DAILY'
+               OR (t.collect_date_mode = 'WEEKDAY' AND extract(isodow from d.biz_date) BETWEEN 1 AND 5)
+               OR (t.collect_date_mode = 'WEEKEND' AND extract(isodow from d.biz_date) IN (6, 7))
+              )
+            ),
+            daily AS (
+              SELECT DISTINCT tid, biz_date
+              FROM etl_statistic
+              WHERE biz_date >= (?::date - ?)
+                AND biz_date <= ?::date
+            ),
+            missing AS (
+              SELECT
+                sch.tid,
+                sch.source_db,
+                sch.source_table,
+                sch.target_db,
+                sch.target_table,
+                sch.collect_date_mode,
+                sch.created_date,
+                sch.biz_date
+              FROM scheduled sch
+              LEFT JOIN daily dly
+                ON dly.tid = sch.tid
+               AND dly.biz_date = sch.biz_date
+              WHERE dly.tid IS NULL
             ),
             missing_agg AS (
               SELECT
@@ -485,21 +504,30 @@ public class StatService
                 m.source_table,
                 m.target_db,
                 m.target_table,
+                m.collect_date_mode,
                 m.created_date,
                 COUNT(*) AS missing_days,
                 MIN(m.biz_date) AS first_missing_date,
                 MAX(m.biz_date) AS last_missing_date,
                 string_agg(to_char(m.biz_date, 'YYYY-MM-DD'), ' | ' ORDER BY m.biz_date) AS missing_dates
               FROM missing m
-              GROUP BY m.tid, m.source_db, m.source_table, m.target_db, m.target_table, m.created_date
+              GROUP BY m.tid, m.source_db, m.source_table, m.target_db, m.target_table, m.collect_date_mode, m.created_date
+            ),
+            expected AS (
+              SELECT tid, COUNT(*) AS expected_days
+              FROM scheduled
+              GROUP BY tid
             ),
             actual AS (
               SELECT
-                tid,
-                COUNT(*) AS actual_days,
-                MAX(biz_date) AS last_collect_date
-              FROM daily
-              GROUP BY tid
+                s.tid,
+                COUNT(d.biz_date) AS actual_days,
+                MAX(d.biz_date) AS last_collect_date
+              FROM scheduled s
+              LEFT JOIN daily d
+                ON d.tid = s.tid
+               AND d.biz_date = s.biz_date
+              GROUP BY s.tid
             )
             SELECT
               m.tid,
@@ -507,7 +535,7 @@ public class StatService
               m.source_table,
               m.target_db,
               m.target_table,
-              GREATEST(0, (?::date - GREATEST(m.created_date, ?::date - ?)) + 1) AS expected_days,
+              e.expected_days,
               COALESCE(a.actual_days, 0) AS actual_days,
               m.missing_days,
               m.first_missing_date,
@@ -515,6 +543,8 @@ public class StatService
               m.missing_dates,
               a.last_collect_date
             FROM missing_agg m
+            JOIN expected e
+              ON m.tid = e.tid
             LEFT JOIN actual a
               ON m.tid = a.tid
             ORDER BY m.missing_days DESC, m.last_missing_date DESC, m.source_db, m.source_table
@@ -522,8 +552,7 @@ public class StatService
         return jdbcTemplate.queryForList(sql,
             bizDate, offset, bizDate,      // date_span
             bizDate,                       // coalesce created_at fallback
-            bizDate, offset, bizDate,      // daily
-            bizDate, bizDate, offset       // expected_days params
+            bizDate, offset, bizDate       // daily
         );
     }
 
