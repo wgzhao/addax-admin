@@ -39,3 +39,17 @@
 - 已在手工提交任务入口补充英文注释，说明绕过日期约束的原因（补数场景）。
 - 后续每次代码修改按同样格式追加新条目（不要覆盖历史）。
 
+## 2026-05-04 - 提交与 PR 创建
+
+### 操作
+- 创建分支：`feat/source-collect-date-mode`
+- 提交：`c300646` (`feat(scheduler): add biz-date collect date mode for sources`)
+- 创建 PR：`https://github.com/wgzhao/addax-admin/pull/19`
+
+### 提交前验证
+- 后端编译：`mvn -pl backend -DskipTests compile` 通过
+- 前端类型检查：`npm run type-check` 通过
+
+### 风险与备注
+- 前端完整打包在当前环境不可用（`vite` 命令缺失），需在具备前端构建依赖的环境补充验证。
+
