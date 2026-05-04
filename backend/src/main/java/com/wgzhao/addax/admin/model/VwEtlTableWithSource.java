@@ -51,6 +51,7 @@ public class VwEtlTableWithSource
      * 采集源的调度时间点（HH:mm:ss / HH:mm）
      */
     private String sourceStartAt;
+    private String collectDateMode;
 
     /**
      * 表级调度时间点（HH:mm:ss / HH:mm），可为空，表示继承 sourceStartAt

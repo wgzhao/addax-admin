@@ -53,3 +53,22 @@
 ### 风险与备注
 - 前端完整打包在当前环境不可用（`vite` 命令缺失），需在具备前端构建依赖的环境补充验证。
 
+## 2026-05-04 - missing collect 统计口径修正（日期调度）
+
+### 目标
+- `vw_etl_table_with_source` 视图增加 `collect_date_mode` 字段。
+- 缺失采集统计按采集源日期模式（`DAILY/WEEKDAY/WEEKEND`）计算应采集日。
+
+### 关键改动
+- 更新视图定义：`scripts/schema.sql`
+  - `vw_etl_table_with_source` 增加 `s.collect_date_mode`。
+- 更新视图实体映射：`backend/src/main/java/com/wgzhao/addax/admin/model/VwEtlTableWithSource.java`
+  - 新增 `collectDateMode` 字段。
+- 更新缺失采集统计 SQL：`backend/src/main/java/com/wgzhao/addax/admin/service/StatService.java`
+  - 基于 `collect_date_mode` 过滤“应采集日期”。
+  - `daily` 改为 `DISTINCT tid,biz_date`，避免同日多次采集重复计数。
+  - `expected_days` / `actual_days` / `missing_days` 全部按“应采集日集合”计算。
+
+### 验证结果
+- 后端编译：`mvn -pl backend -DskipTests compile` 通过。
+
