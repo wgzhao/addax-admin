@@ -11,28 +11,19 @@
     >
       <v-icon :icon="item.icon" />
     </a>
-    <div
-      class="text-caption text-disabled d-flex align-center"
-      style="position: absolute; right: 16px"
-    >
-      &copy; 2023-{{ new Date().getFullYear() }}
-      <span class="d-none d-sm-inline-block">&nbsp;wgzhao</span>
-      -
-      <a
-        class="text-decoration-none on-surface"
-        href="https://github.com/wgzhao/addax-admin"
-        rel="noopener noreferrer"
-        target="_blank"
-      >
-        MIT License
-      </a>
-      <span class="mx-2">|</span>
-      <AppVersion />
-    </div>
+    <v-spacer></v-spacer>
+
+    <v-btn variant="plain" small class="mr-2">
+      &copy; 2023-{{ new Date().getFullYear() }} &nbsp;wgzhao
+    </v-btn>
+     <v-btn variant="plain" small class="mr-2">
+    Version: {{ APP_VERSION }}
+    </v-btn>
   </v-footer>
 </template>
 <script setup lang="ts">
-import AppVersion from "@/components/AppVersion.vue";
+
+import { APP_VERSION } from '@/config/version'
 
 const items = [
   {
