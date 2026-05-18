@@ -54,6 +54,15 @@ public class EtlJobQueueService
         return jobRepo.countByStatus("pending");
     }
 
+    /**
+     * Find all job queue records for a specific table with given status
+     */
+    public List<EtlJobQueue> findByTidAndStatus(long tid, String status)
+    {
+        String sql = "SELECT * FROM public.etl_job_queue WHERE tid = ? AND status = ?";
+        return jdbcTemplate.query(sql, JOB_ROW_MAPPER, tid, status);
+    }
+
     @Transactional
     public int enqueue(EtlTable table, LocalDate bizDate, int priority)
     {

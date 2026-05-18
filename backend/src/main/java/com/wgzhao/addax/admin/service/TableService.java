@@ -421,6 +421,14 @@ public class TableService
     }
 
     /**
+     * Save a table to repository
+     */
+    public EtlTable save(EtlTable table)
+    {
+        return etlTableRepo.save(table);
+    }
+
+    /**
      * 获取所有可运行的任务
      *
      * @return 可运行的任务列表

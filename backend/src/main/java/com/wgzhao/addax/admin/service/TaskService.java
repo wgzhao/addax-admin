@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.redis.RedisLockService;
@@ -11,6 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,7 @@ public class TaskService
     private final TableService tableService;
     private final JdbcTemplate jdbcTemplate;
     private final EtlJourService jourService;
+    private final EtlJobQueueService jobQueueService;
     private final SystemConfigService configService;
     private final RedisLockService redisLockService;
     private final ExecutionManager executionManager;
@@ -263,21 +267,32 @@ public class TaskService
 
     /**
      * Kill a running task by table id. If running on this instance, kill locally; otherwise publish a Redis kill message.
+     * 
+     * @param tid table id
+     * @param manualKill true if kill is triggered by user (front-end), false if by system (e.g., timeout)
+     *                    when true, will cleanup job queue and reset retry_cnt to prevent re-triggering
      */
-    public TaskResultDto killTask(long tid)
+    public TaskResultDto killTask(long tid, boolean manualKill)
     {
         try {
             // try local kill first
             boolean killedLocal = executionManager.killLocal(tid);
             EtlJour etlJour = jourService.getLastByTidWithKind(tid, null);
             if (killedLocal) {
-                log.warn("Killed local collecting table {} by request", tid);
+                log.warn("Killed local collecting table {} by request (manualKill={})", tid, manualKill);
                 try {
-                    jourService.failJour(etlJour, "Killed by user request");
+                    String reason = manualKill ? "Killed by user request" : "Killed by system (timeout/other)";
+                    jourService.failJour(etlJour, reason);
                 }
                 catch (Exception e) {
                     log.warn("Failed to record kill reason to etl_jour for table {}", tid, e);
                 }
+                
+                // If manual kill, clean up job queue and reset retry count to prevent re-triggering
+                if (manualKill) {
+                    cleanupJobQueueForManualKill(tid);
+                }
+                
                 return TaskResultDto.success("Killed local collecting job", 0);
             }
 
@@ -291,11 +306,18 @@ public class TaskService
                 stringRedisTemplate.opsForValue().set(signalKey, "1", java.time.Duration.ofSeconds(30));
                 log.info("Published kill request for job {} to channel {}", tid, channel);
                 try {
-                    jourService.failJour(etlJour, "Kill requested by user (remote)");
+                    String reason = manualKill ? "Kill requested by user (remote)" : "Kill requested by system (remote)";
+                    jourService.failJour(etlJour, reason);
                 }
                 catch (Exception e) {
                     log.warn("Failed to record kill request to etl_jour for job {}", tid, e);
                 }
+                
+                // If manual kill, clean up job queue and reset retry count
+                if (manualKill) {
+                    cleanupJobQueueForManualKill(tid);
+                }
+                
                 return TaskResultDto.success("Kill request published", 0);
             }
             catch (Exception e) {
@@ -306,6 +328,57 @@ public class TaskService
         catch (Exception e) {
             log.error("killTask failed for job {}", tid, e);
             return TaskResultDto.failure(e.getMessage() == null ? "internal error" : e.getMessage(), 0);
+        }
+    }
+
+    /**
+     * Overloaded method for backward compatibility.
+     * Defaults to manual kill (user-triggered) when called without manualKill parameter.
+     */
+    public TaskResultDto killTask(long tid)
+    {
+        return killTask(tid, true);
+    }
+
+    /**
+     * Clean up job queue for manual kill: cancel all pending/running jobs and reset retry count.
+     * 
+     * why: User manual kill means problem discovered, retry won't help.
+     * So we should prevent scheduler from re-queueing and queue from retrying.
+     */
+    private void cleanupJobQueueForManualKill(long tid)
+    {
+        try {
+            // Find all pending and running jobs for this table
+            List<EtlJobQueue> jobs = new ArrayList<>();
+            jobs.addAll(jobQueueService.findByTidAndStatus(tid, "pending"));
+            jobs.addAll(jobQueueService.findByTidAndStatus(tid, "running"));
+            
+            // Cancel all of them
+            for (EtlJobQueue job : jobs) {
+                try {
+                    jobQueueService.completeFailure(job.getId(), "Cancelled by manual kill request");
+                    log.info("Cancelled job {} (tid={}) due to manual kill", job.getId(), tid);
+                }
+                catch (Exception e) {
+                    log.warn("Failed to cancel job {} for tid={}", job.getId(), tid, e);
+                }
+            }
+            
+            // Update etl_table: set status to COLLECT_FAIL and retry_cnt to 0
+            // why: prevent scheduler from re-queueing this table and queue from retrying
+            EtlTable table = tableService.getTable(tid);
+            if (table != null) {
+                table.setStatus(TableStatus.COLLECT_FAIL);  // E
+                table.setRetryCnt(0);  // forbid any retry
+                table.setEndTime(new java.sql.Timestamp(System.currentTimeMillis()));
+                tableService.save(table);
+                log.info("Set table {} status to FAIL with retry_cnt=0 due to manual kill", tid);
+            }
+        }
+        catch (Exception e) {
+            log.error("Failed to cleanup job queue for manual kill (tid={})", tid, e);
+            // don't throw exception: process already killed, queue cleanup failure should not affect main flow
         }
     }
 
