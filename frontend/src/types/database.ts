@@ -224,6 +224,20 @@ export interface EtlTable {
   updatedAt?: Date // 更新时间
 }
 
+export interface EtlTableChangeLog {
+  id: number
+  tid: number
+  sourceDb?: string
+  sourceTable?: string
+  targetDb?: string
+  targetTable?: string
+  changedFields: string[] | string
+  oldValues: Record<string, unknown>
+  newValues: Record<string, unknown>
+  changedAt?: string
+  changedBy?: string | null
+}
+
 export interface TableMeta {
   name: string // 表名
   comment?: string // 表注释

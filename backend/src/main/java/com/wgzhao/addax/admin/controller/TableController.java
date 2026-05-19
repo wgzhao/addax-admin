@@ -7,9 +7,11 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.EtlTableChangeLog;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.EtlTableChangeLogService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -61,6 +63,7 @@ public class TableController
      * 作业内容服务
      */
     private final JobContentService jobContentService;
+    private final EtlTableChangeLogService changeLogService;
 
     /**
      * 分页查询采集表
@@ -148,8 +151,28 @@ public class TableController
         if (!etlTableRepo.existsById(tableId)) {
             throw new ApiException(404, "Table not found");
         }
-        EtlTable updated = etlTableRepo.save(etl);
+        EtlTable updated = tableService.updateTable(etl, getCurrentUsername());
         return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/{tableId}/changes")
+    public ResponseEntity<PageResponse<EtlTableChangeLog>> getTableChanges(
+        @PathVariable("tableId") long tableId,
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
+        @RequestParam(value = "field", required = false) String field)
+    {
+        if (!etlTableRepo.existsById(tableId)) {
+            throw new ApiException(404, "Table not found");
+        }
+        if (page < 0) {
+            page = 0;
+        }
+        if (pageSize == -1) {
+            pageSize = Integer.MAX_VALUE;
+        }
+        Page<EtlTableChangeLog> result = changeLogService.getTableChanges(tableId, page, pageSize, field);
+        return ResponseEntity.ok(PageResponse.from(result));
     }
 
     /**

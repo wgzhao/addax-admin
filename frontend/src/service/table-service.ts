@@ -1,5 +1,5 @@
 import Requests from '@/utils/requests'
-import type { EtlTable, VEtlWithSource, EtlColumn, EtlStatistic } from '@/types/database'
+import type { EtlTable, VEtlWithSource, EtlColumn, EtlStatistic, EtlTableChangeLog } from '@/types/database'
 import type { Page } from '@/types'
 
 class TableService {
@@ -47,6 +47,19 @@ class TableService {
     return Requests.get(`${this.prefix}/${tableId}/statistics`) as unknown as Promise<
       EtlStatistic[]
     >
+  }
+
+  fetchChangeLogs(
+    tableId: number,
+    page = 0,
+    pageSize = 10,
+    field?: string
+  ): Promise<Page<EtlTableChangeLog>> {
+    return Requests.get(`${this.prefix}/${tableId}/changes`, {
+      page,
+      pageSize,
+      field
+    }) as unknown as Promise<Page<EtlTableChangeLog>>
   }
 
   // 批量保存采集表

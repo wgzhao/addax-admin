@@ -204,6 +204,31 @@ create table public.etl_table
   updated_at     timestamp     default CURRENT_TIMESTAMP not null
 );
 
+create table if not exists public.etl_table_change_log
+(
+  id             bigserial primary key,
+  tid            bigint not null,
+  source_db      varchar(32),
+  source_table   varchar(64),
+  target_db      varchar(50),
+  target_table   varchar(200),
+  changed_fields jsonb not null,
+  old_values     jsonb not null,
+  new_values     jsonb not null,
+  changed_at     timestamp default CURRENT_TIMESTAMP not null,
+  changed_by     varchar(100)
+);
+
+comment on table public.etl_table_change_log is '采集表配置变更历史';
+comment on column public.etl_table_change_log.tid is '采集表ID，对应 etl_table.id';
+comment on column public.etl_table_change_log.changed_fields is '本次变更的字段名列表';
+comment on column public.etl_table_change_log.old_values is '本次变更前的字段值';
+comment on column public.etl_table_change_log.new_values is '本次变更后的字段值';
+comment on column public.etl_table_change_log.changed_by is '触发本次变更的用户';
+
+create index if not exists idx_etl_table_change_log_tid_changed_at
+  on public.etl_table_change_log (tid, changed_at desc, id desc);
+
 create table if not exists public.etl_target
 (
   id               bigserial primary key,
@@ -296,6 +321,87 @@ create trigger trg_etl_table_set_updated_at
   before update on public.etl_table
   for each row
   execute function public.fn_etl_table_set_updated_at();
+
+create or replace function public.fn_etl_table_record_change()
+returns trigger
+language plpgsql
+as
+$$
+declare
+  old_row jsonb;
+  new_row jsonb;
+  changed_fields jsonb;
+  old_values jsonb;
+  new_values jsonb;
+begin
+  old_row := to_jsonb(old)
+    - 'status'
+    - 'duration'
+    - 'retry_cnt'
+    - 'start_time'
+    - 'end_time'
+    - 'created_at'
+    - 'updated_at'
+    - 'max_runtime'
+    - 'kind';
+  new_row := to_jsonb(new)
+    - 'status'
+    - 'duration'
+    - 'retry_cnt'
+    - 'start_time'
+    - 'end_time'
+    - 'created_at'
+    - 'updated_at'
+    - 'max_runtime'
+    - 'kind';
+
+  select coalesce(jsonb_agg(n.key order by n.key), '[]'::jsonb)
+  into changed_fields
+  from jsonb_each(new_row) n
+  join jsonb_each(old_row) o on o.key = n.key
+  where o.value is distinct from n.value;
+
+  if changed_fields = '[]'::jsonb then
+    return new;
+  end if;
+
+  select coalesce(jsonb_object_agg(field_name, old_row -> field_name), '{}'::jsonb),
+         coalesce(jsonb_object_agg(field_name, new_row -> field_name), '{}'::jsonb)
+  into old_values, new_values
+  from jsonb_array_elements_text(changed_fields) as fields(field_name);
+
+  insert into public.etl_table_change_log (
+    tid,
+    source_db,
+    source_table,
+    target_db,
+    target_table,
+    changed_fields,
+    old_values,
+    new_values,
+    changed_by
+  )
+  values (
+    new.id,
+    new.source_db,
+    new.source_table,
+    new.target_db,
+    new.target_table,
+    changed_fields,
+    old_values,
+    new_values,
+    nullif(current_setting('addax.changed_by', true), '')
+  );
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_etl_table_record_change on public.etl_table;
+create trigger trg_etl_table_record_change
+  after update on public.etl_table
+  for each row
+  execute function public.fn_etl_table_record_change();
 
 alter table public.etl_table
   add column if not exists target_id int;
