@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.utils.QueryUtil;
+import jakarta.persistence.EntityManager;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -45,6 +46,7 @@ public class TableService
     private final RedisLockService redisLockService;
     private final SystemConfigService configService;
     private final UserNotificationService userNotificationService;
+    private final EntityManager entityManager;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -573,6 +575,22 @@ public class TableService
     public EtlTable createTable(EtlTable etl)
     {
         return etlTableRepo.save(etl);
+    }
+
+    @Transactional
+    public EtlTable updateTable(EtlTable etl, String username)
+    {
+        setChangedBy(username);
+        return etlTableRepo.save(etl);
+    }
+
+    private void setChangedBy(String username)
+    {
+        String safeUsername = username == null ? "" : username;
+        entityManager
+            .createNativeQuery("select set_config('addax.changed_by', :username, true)")
+            .setParameter("username", safeUsername)
+            .getSingleResult();
     }
 
     /**

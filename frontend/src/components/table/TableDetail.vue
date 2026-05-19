@@ -345,6 +345,14 @@
       </v-card-text>
 
       <v-card-actions class="action-bar">
+        <v-btn
+          variant="text"
+          color="primary"
+          prepend-icon="mdi-history"
+          @click="openChangeHistory"
+        >
+          变更历史
+        </v-btn>
         <v-spacer />
         <v-btn color="primary" @click="saveOds">保存</v-btn>
         <v-btn variant="plain" @click="emit('closeDialog')">关闭</v-btn>
@@ -372,6 +380,81 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+      <v-dialog v-model="showChangeHistory" max-width="980" scrollable>
+        <v-card>
+          <v-card-title class="history-title">
+            <v-icon size="20" color="primary">mdi-history</v-icon>
+            <span>变更历史</span>
+          </v-card-title>
+          <v-card-text>
+            <v-text-field
+              v-model="changeFieldFilter"
+              variant="outlined"
+              density="compact"
+              clearable
+              prepend-inner-icon="mdi-filter-outline"
+              placeholder="按字段筛选，例如 filter"
+              hide-details
+              class="mb-3"
+              @keyup.enter="reloadChangeHistory"
+              @click:clear="clearChangeFieldFilter"
+            />
+            <v-table density="compact" class="history-table">
+              <thead>
+                <tr>
+                  <th>变更时间</th>
+                  <th>操作者</th>
+                  <th>字段</th>
+                  <th>旧值</th>
+                  <th>新值</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="changeLogLoading">
+                  <td colspan="5" class="history-empty">加载中...</td>
+                </tr>
+                <tr v-else-if="changeLogs.length === 0">
+                  <td colspan="5" class="history-empty">暂无记录</td>
+                </tr>
+                <template v-else>
+                  <tr v-for="log in changeLogs" :key="log.id">
+                    <td class="history-time">{{ log.changedAt || '-' }}</td>
+                    <td>{{ log.changedBy || '-' }}</td>
+                    <td>
+                      <div class="history-fields">
+                        <v-chip
+                          v-for="field in normalizeChangedFields(log.changedFields)"
+                          :key="`${log.id}-${field}`"
+                          size="small"
+                          variant="tonal"
+                          color="primary"
+                        >
+                          {{ field }}
+                        </v-chip>
+                      </div>
+                    </td>
+                    <td><pre class="history-value">{{ formatChangeValues(log.oldValues) }}</pre></td>
+                    <td><pre class="history-value">{{ formatChangeValues(log.newValues) }}</pre></td>
+                  </tr>
+                </template>
+              </tbody>
+            </v-table>
+            <div class="history-pagination">
+              <v-pagination
+                v-model="changeLogPage"
+                :length="changeLogPageCount"
+                density="comfortable"
+                size="small"
+                @update:model-value="loadChangeHistory"
+              />
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="showChangeHistory = false">关闭</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-form>
   </v-card>
 </template>
@@ -381,7 +464,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { notify } from '@/stores/notifier';
 import tableService from "@/service/table-service";
 import targetService from "@/service/target-service";
-import { VEtlWithSource, EtlTable, EtlTarget } from "@/types/database";
+import { VEtlWithSource, EtlTable, EtlTarget, EtlTableChangeLog } from "@/types/database";
 import { TABLE_STATUS_OPTIONS, PARTITION_FORMATS, HDFS_COMPRESS_FORMATS } from "@/utils";
 
 const props = defineProps({
@@ -432,6 +515,15 @@ const rules = {
 const table = ref<VEtlWithSource>({ ...props.table });
 const readerPluginConfigText = ref('')
 const writerPluginConfigText = ref('')
+const showChangeHistory = ref(false)
+const changeLogs = ref<EtlTableChangeLog[]>([])
+const changeLogLoading = ref(false)
+const changeLogPage = ref(1)
+const changeLogPageSize = 10
+const changeLogTotal = ref(0)
+const changeFieldFilter = ref('')
+
+const changeLogPageCount = computed(() => Math.max(1, Math.ceil(changeLogTotal.value / changeLogPageSize)))
 
 const toJsonText = (value: unknown): string => {
   if (value === null || value === undefined || value === '') return ''
@@ -468,6 +560,57 @@ const syncTableData = (newTable: VEtlWithSource) => {
   table.value = { ...newTable }
   readerPluginConfigText.value = toJsonText(newTable.readerPluginConfig)
   writerPluginConfigText.value = toJsonText(newTable.writerPluginConfig)
+}
+
+const normalizeChangedFields = (value: string[] | string) => {
+  if (Array.isArray(value)) return value
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed.map(String) : [String(value)]
+  } catch {
+    return [String(value)]
+  }
+}
+
+const formatChangeValues = (value: Record<string, unknown> | null | undefined) => {
+  if (!value) return '-'
+  return JSON.stringify(value, null, 2)
+}
+
+const loadChangeHistory = async () => {
+  if (!table.value.id) return
+  changeLogLoading.value = true
+  try {
+    const result = await tableService.fetchChangeLogs(
+      table.value.id,
+      changeLogPage.value - 1,
+      changeLogPageSize,
+      changeFieldFilter.value || undefined
+    )
+    changeLogs.value = result.content
+    changeLogTotal.value = result.totalElements
+  } catch (e) {
+    notify(`加载变更历史失败: ${(e as Error).message}`, 'error')
+  } finally {
+    changeLogLoading.value = false
+  }
+}
+
+const openChangeHistory = async () => {
+  showChangeHistory.value = true
+  changeLogPage.value = 1
+  await loadChangeHistory()
+}
+
+const reloadChangeHistory = async () => {
+  changeLogPage.value = 1
+  await loadChangeHistory()
+}
+
+const clearChangeFieldFilter = async () => {
+  changeFieldFilter.value = ''
+  await reloadChangeHistory()
 }
 
 syncTableData(props.table)
@@ -731,5 +874,57 @@ const showPlaceholderInfoDialog = () => {
 .action-bar {
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding-top: 12px;
+}
+
+.history-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-table {
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
+  border-radius: 8px;
+}
+
+.history-table th {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.history-time {
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+.history-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.history-value {
+  max-width: 280px;
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.history-empty {
+  height: 72px;
+  text-align: center;
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+
+.history-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 </style>
