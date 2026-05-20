@@ -4,8 +4,11 @@ import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.AuthRequestDTO;
 import com.wgzhao.addax.admin.dto.ChangePasswordDTO;
 import com.wgzhao.addax.admin.service.JwtService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -52,7 +55,7 @@ public class AuthController
      * @return JWT 令牌或认证失败信息
      */
     @PostMapping("/login")
-    public ApiResponse<String> AuthenticateAndGetToken(@RequestBody AuthRequestDTO authRequestDTO)
+    public ResponseEntity<ApiResponse<String>> AuthenticateAndGetToken(@Valid @RequestBody AuthRequestDTO authRequestDTO)
     {
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password()));
@@ -62,20 +65,20 @@ public class AuthController
                     : authentication.getAuthorities().stream()
                     .map((item) -> normalizeAuthority(item.getAuthority()))
                     .toList();
-                return ApiResponse.success(jwtService.generateToken(authRequestDTO.username(), authorities));
+                return ResponseEntity.ok(ApiResponse.success(jwtService.generateToken(authRequestDTO.username(), authorities)));
             }
             else {
-                return ApiResponse.error(401, "账号或密码不正确");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, "账号或密码不正确"));
             }
         }
         catch (org.springframework.security.core.AuthenticationException ex) {
             // 认证失败（如密码错误或用户不存在）——返回友好消息，而不是让异常传播导致 500
             log.debug("authentication failed for user {}: {}", authRequestDTO.username(), ex.getMessage());
-            return ApiResponse.error(401, "账号或密码不正确");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, "账号或密码不正确"));
         }
         catch (Exception ex) {
             log.error("unexpected error during authentication", ex);
-            return ApiResponse.error(500, "internal error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(500, "internal error"));
         }
     }
 

@@ -50,6 +50,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -124,6 +125,11 @@ public class TaskQueueManagerV2Impl
     // node-level concurrency weight in (0.0,1.0]
     private double concurrencyWeight = 1.0;
 
+    // holds futures for cancellation on restart/stop to prevent task accumulation
+    private volatile Future<?> listenFuture;
+    private volatile ScheduledFuture<?> pollFuture;
+    private volatile ScheduledFuture<?> recoverFuture;
+
     @PostConstruct
     public void init()
     {
@@ -138,14 +144,31 @@ public class TaskQueueManagerV2Impl
         this.instanceId = resolveInstanceId();
 
         running = true;
-
-        // 启动 LISTEN 监听器
-        scheduler.execute(this::listenLoop);
-        // 启动定时轮询兜底
-        scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        // 启动租约回收（仍保留 DB 层回收以保证兼容）
-        scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
+        submitScheduledTasks();
         log.info("Redis-backed arbitration queue started. originalConcurrentLimit={} weight={} effectiveConcurrentLimit={} enqueueCapacity={} instanceId={} ", originalConcurrentLimit, concurrencyWeight, concurrentLimit, enqueueCapacity, instanceId);
+    }
+
+    private void submitScheduledTasks()
+    {
+        // 启动 LISTEN 监听器
+        listenFuture = scheduler.submit(this::listenLoop);
+        // 启动定时轮询兜底
+        pollFuture = scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        // 启动租约回收（仍保留 DB 层回收以保证兼容）
+        recoverFuture = scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
+    }
+
+    private void cancelScheduledTasks()
+    {
+        if (listenFuture != null) {
+            listenFuture.cancel(true);
+        }
+        if (pollFuture != null) {
+            pollFuture.cancel(false);
+        }
+        if (recoverFuture != null) {
+            recoverFuture.cancel(false);
+        }
     }
 
     private String resolveInstanceId()
@@ -742,6 +765,7 @@ public class TaskQueueManagerV2Impl
     public void stopQueueMonitor()
     {
         running = false;
+        cancelScheduledTasks();
     }
 
     public void restartQueueMonitor()
@@ -754,9 +778,7 @@ public class TaskQueueManagerV2Impl
             Thread.currentThread().interrupt();
         }
         running = true;
-        scheduler.execute(this::listenLoop);
-        scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
+        submitScheduledTasks();
     }
 
     public boolean addTaskToQueue(@NonNull EtlTable etlTable)
@@ -818,10 +840,11 @@ public class TaskQueueManagerV2Impl
 
     public void startQueueMonitor()
     {
+        if (running) {
+            return;
+        }
         running = true;
-        scheduler.execute(this::listenLoop);
-        scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
+        submitScheduledTasks();
     }
 
     @SuppressWarnings("unchecked")

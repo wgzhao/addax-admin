@@ -25,6 +25,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import javax.sql.DataSource;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -48,6 +49,8 @@ import java.util.Properties;
 import java.time.format.DateTimeFormatter;
 import java.util.logging.Logger;
 
+import jakarta.annotation.PreDestroy;
+
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.HiveType.isHiveTypeCompatible;
@@ -70,6 +73,8 @@ public class TargetServiceWithHiveImpl
     private volatile DataSource hiveDataSource;
     // keep a reference to the registered driver shim so we can deregister it if we ever reinit
     private volatile Driver registeredHiveDriver;
+    // classloader holding the hive driver jar; must be closed when driver is re-initialized or on destroy
+    private volatile URLClassLoader hiveClassLoader;
 
     @Override
     public String getType()
@@ -133,8 +138,18 @@ public class TargetServiceWithHiveImpl
         }
 
         URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
+        // close previous classloader to release JAR file handles and allow GC of old driver classes
+        if (hiveClassLoader != null) {
+            try {
+                hiveClassLoader.close();
+            }
+            catch (IOException ex) {
+                log.warn("Failed to close previous Hive URLClassLoader", ex);
+            }
+        }
         // 创建独立的类加载器
         URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
+        this.hiveClassLoader = classLoader;
 
         // We'll set the context class loader only for the period of loading/registering the driver
         ClassLoader previousCl = Thread.currentThread().getContextClassLoader();
@@ -713,4 +728,25 @@ public class TargetServiceWithHiveImpl
                 }
             }
         }
+
+    @PreDestroy
+    public void destroy()
+    {
+        if (registeredHiveDriver != null) {
+            try {
+                DriverManager.deregisterDriver(registeredHiveDriver);
+            }
+            catch (SQLException ex) {
+                log.warn("Failed to deregister Hive driver on shutdown", ex);
+            }
+        }
+        if (hiveClassLoader != null) {
+            try {
+                hiveClassLoader.close();
+            }
+            catch (IOException ex) {
+                log.warn("Failed to close Hive URLClassLoader on shutdown", ex);
+            }
+        }
+    }
 }
