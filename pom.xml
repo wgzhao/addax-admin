@@ -4,7 +4,7 @@
 
     <groupId>com.wgzhao</groupId>
     <artifactId>addax-admin-parent</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Addax Admin Monorepo</name>
