@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -27,14 +28,26 @@ public class UserAdminService
     public List<UserAdminDto> listUsers()
     {
         requireAdmin();
-        List<String> usernames = jdbcTemplate.query(
-            "select username from users order by username",
-            (rs, rowNum) -> rs.getString("username")
-        );
+        // Single JOIN query replacing the previous N+1 pattern (1 query for usernames + N×2 per-user queries)
+        Map<String, UserAdminDto> result = new java.util.LinkedHashMap<>();
+        jdbcTemplate.query(
+            "SELECT u.username, u.enabled, a.authority " +
+            "FROM users u LEFT JOIN authorities a ON u.username = a.username " +
+            "ORDER BY u.username, a.authority",
+            rs -> {
+                String username = rs.getString("username");
+                boolean enabled = rs.getBoolean("enabled");
+                String rawAuthority = rs.getString("authority");
+                String authority = rawAuthority != null ? normalizeAuthority(rawAuthority) : null;
 
-        return usernames.stream()
-            .map(this::toUserAdminDto)
-            .toList();
+                UserAdminDto dto = result.computeIfAbsent(username,
+                    k -> new UserAdminDto(k, enabled, new java.util.ArrayList<>()));
+                if (authority != null && !authority.isBlank()) {
+                    dto.authorities().add(authority);
+                }
+            }
+        );
+        return new java.util.ArrayList<>(result.values());
     }
 
     public UserAdminDto currentUser()

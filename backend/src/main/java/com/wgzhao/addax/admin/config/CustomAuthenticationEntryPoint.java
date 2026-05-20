@@ -4,18 +4,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
+@Component
+@RequiredArgsConstructor
 public class CustomAuthenticationEntryPoint
     implements AuthenticationEntryPoint
 {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
@@ -26,7 +30,7 @@ public class CustomAuthenticationEntryPoint
         response.setContentType(APPLICATION_JSON_VALUE);
 
         // 构建统一的错误响应
-        ApiResponse<Object> apiResponse = ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized: " + authException.getMessage());
+        ApiResponse<Object> apiResponse = ApiResponse.error(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
 
         // 写出 JSON 响应
         response.getWriter().write(objectMapper.writeValueAsString(apiResponse));

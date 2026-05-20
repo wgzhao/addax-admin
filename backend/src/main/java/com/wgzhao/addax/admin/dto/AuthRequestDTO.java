@@ -1,3 +1,8 @@
 package com.wgzhao.addax.admin.dto;
 
-public record AuthRequestDTO(String username, String password) {}
+import jakarta.validation.constraints.NotBlank;
+
+public record AuthRequestDTO(
+    @NotBlank(message = "用户名不能为空") String username,
+    @NotBlank(message = "密码不能为空") String password
+) {}
