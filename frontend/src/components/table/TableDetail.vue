@@ -137,7 +137,18 @@
                             v-model="table.filter"
                             placeholder="可选，例如 dt='${biz_date_dash}'"
                             hide-details="auto"
-                          ></v-text-field>
+                          >
+                            <template #append>
+                              <v-tooltip location="bottom">
+                                <template #activator="{ props }">
+                                  <v-icon v-bind="props" size="small" color="info" @click="showFilterRuleInfoDialog">
+                                    mdi-information-outline
+                                  </v-icon>
+                                </template>
+                                <span>查看过滤规则说明</span>
+                              </v-tooltip>
+                            </template>
+                          </v-text-field>
                         </div>
                       </v-col>
                       <v-col cols="12">
@@ -361,9 +372,7 @@
         <v-card>
           <v-card-title>源表动态命名说明</v-card-title>
           <v-card-text>
-            <p>系统支持在源表名中使用占位符以动态解析变量(例如日期)。示例：<strong>t_${biz_date_dash}</strong>，实际采集时会解析为
-              <strong>t_2026-01-27</strong>。
-            </p>
+            <p>系统支持在源表名中使用占位符来拼接运行时变量，例如日期。示例：<strong>t_${biz_date_dash}</strong>，实际采集时会解析为 <strong>t_2026-01-27</strong>。</p>
             <p>当前支持的变量如下：</p>
             <v-list dense>
               <v-list-item v-for="v in placeholderVars" :key="v.name">
@@ -377,6 +386,37 @@
           <v-card-actions>
             <v-spacer />
             <v-btn variant="text" @click="showPlaceholderInfo = false">关闭</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="showFilterRuleInfo" max-width="860">
+        <v-card>
+          <v-card-title>过滤规则说明</v-card-title>
+          <v-card-text>
+            <p>过滤规则用于控制每次采集读取哪些数据。未填写时，系统按 <strong>1=1</strong> 处理，也就是不过滤。</p>
+            <div class="filter-rule-list">
+              <div class="filter-rule-item">
+                <div class="filter-rule-item__title"><strong>1=1</strong></div>
+                <div class="filter-rule-item__desc">不添加任何过滤条件，适合作为默认值。</div>
+              </div>
+              <div class="filter-rule-item">
+                <div class="filter-rule-item__title"><strong>字段条件</strong></div>
+                <div class="filter-rule-item__desc">
+                  按源表字段编写筛选条件，例如 <code>update_time &gt; '${biz_datetime_dash}'</code>。条件中可以直接复用“源表”右侧说明里的内置变量。
+                </div>
+              </div>
+              <div class="filter-rule-item">
+                <div class="filter-rule-item__title"><strong>特殊规则 <code>__max__&lt;field&gt;</code></strong></div>
+                <div class="filter-rule-item__desc">
+                  用于增量采集。系统会读取上一次采集时 <code>&lt;field&gt;</code> 的最大值 <code>m</code>，并自动转换为 <code>&lt;field&gt; &gt; m</code>。建议 <code>&lt;field&gt;</code> 选择数值型、单调递增的字段，通常优先使用主键。
+                </div>
+              </div>
+            </div>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="showFilterRuleInfo = false">关闭</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -638,6 +678,9 @@ const formRef = ref(null)
 // dialog visibility for placeholder information
 const showPlaceholderInfo = ref(false)
 
+// dialog visibility for filter rule information
+const showFilterRuleInfo = ref(false)
+
 // variables supported by backend SystemConfigService#getBizDateValues
 const placeholderVars = [
   { name: 'biz_date_short', desc: '业务日期(yyyyMMdd)' },
@@ -752,7 +795,11 @@ const saveOds = async () => {
 };
 
 const showPlaceholderInfoDialog = () => {
-  showPlaceholderInfo.value = true;
+  showPlaceholderInfo.value = true
+}
+
+const showFilterRuleInfoDialog = () => {
+  showFilterRuleInfo.value = true
 };
 </script>
 
@@ -857,6 +904,39 @@ const showPlaceholderInfoDialog = () => {
 .read-value {
   margin-top: 0;
   color: rgb(var(--v-theme-on-surface));
+  word-break: break-word;
+}
+
+.filter-rule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.filter-rule-item {
+  border-radius: 10px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  background: rgb(var(--v-theme-surface));
+  padding: 12px 14px;
+}
+
+.filter-rule-item__title {
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.filter-rule-item__desc {
+  color: rgb(var(--v-theme-on-surface-variant));
+  line-height: 1.7;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.filter-rule-item__desc code,
+.filter-rule-item__title code {
+  white-space: normal;
   word-break: break-word;
 }
 
