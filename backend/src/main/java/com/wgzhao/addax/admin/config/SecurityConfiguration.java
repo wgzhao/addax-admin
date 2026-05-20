@@ -18,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.http.HttpMethod;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.sql.DataSource;
 
@@ -27,13 +28,15 @@ import javax.sql.DataSource;
 public class SecurityConfiguration
 {
     private final JwtFilter jwtFilter;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http)
         throws Exception
     {
         http.csrf(AbstractHttpConfigurer::disable)
-            .cors(AbstractHttpConfigurer::disable)
+            .cors(Customizer.withDefaults())
             .authorizeHttpRequests((authorize) -> authorize
                 // 公开接口
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
@@ -52,14 +55,14 @@ public class SecurityConfiguration
                 // 其他情况默认需要登录
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults())
-            .formLogin(Customizer.withDefaults())
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
             .exceptionHandling((exceptionHandling) -> exceptionHandling
                 // 无 token/无效 token -> 401
-                .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+                .authenticationEntryPoint(authenticationEntryPoint)
                 // 已认证但权限不足 -> 403
-                .accessDeniedHandler(new CustomAccessDeniedHandler())
+                .accessDeniedHandler(accessDeniedHandler)
             );
 
         return http.build();
@@ -85,7 +88,7 @@ public class SecurityConfiguration
     }
 
     @Bean
-    public WebMvcConfigurer corsConfigurer()
+    public WebMvcConfigurer corsConfigurer(@Value("${cors.allowed-origins:*}") String allowedOrigins)
     {
         return new WebMvcConfigurer()
         {
@@ -93,7 +96,7 @@ public class SecurityConfiguration
             public void addCorsMappings(CorsRegistry registry)
             {
                 registry.addMapping("/**")
-                    .allowedOrigins("*")
+                    .allowedOrigins(allowedOrigins.split(","))
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
             }
         };

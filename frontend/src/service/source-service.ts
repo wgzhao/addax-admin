@@ -35,7 +35,7 @@ class SourceService {
   }
 
   // 测试数据源连接
-  testConnection(params: { url: string; username: string; password?: string }): Promise<boolean> {
+  testConnection(params: { url: string; username: string; password?: string; sourceId?: number }): Promise<boolean> {
     return Requests.post(`${this.prefix}/test-connect`, params) as unknown as Promise<boolean>
   }
 

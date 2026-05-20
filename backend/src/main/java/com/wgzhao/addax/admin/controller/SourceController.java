@@ -102,6 +102,10 @@ public class SourceController
         if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
             throw new ApiException(400, "Source code cannot be modified");
         }
+        // Sentinel means the client didn't change the password — keep the stored one.
+        if (EtlSource.PASS_SENTINEL.equals(etlSource.getPass())) {
+            etlSource.setPass(existing.getPass());
+        }
         // 校验采集时间与切日时间的距离，更新时如果不满足规则则直接失败并返回提示
         validateStartAt(etlSource.getStartAt());
         sourceService.save(etlSource);
@@ -156,7 +160,16 @@ public class SourceController
     @PostMapping("/test-connect")
     public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload)
     {
-        boolean isConnected = DbUtil.testConnection(payload.url(), payload.username(), payload.password());
+        String password = payload.password();
+        // Sentinel means the client didn't supply a new password — resolve from DB.
+        if (EtlSource.PASS_SENTINEL.equals(password) && payload.sourceId() != null) {
+            EtlSource source = sourceService.getSource(payload.sourceId());
+            if (source == null) {
+                throw new ApiException(404, "Source not found");
+            }
+            password = source.getPass();
+        }
+        boolean isConnected = DbUtil.testConnection(payload.url(), payload.username(), password);
         return ResponseEntity.ok(isConnected);
     }
 

@@ -2,9 +2,11 @@ package com.wgzhao.addax.admin.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,25 +26,24 @@ import java.util.function.Function;
 
 /**
  * JWT服务类，负责生成、解析和校验JWT令牌。
- * 提供令牌生成、提取声明、校验有效性等功能。
+ * 密钥通过 jwt.secret 配置项注入，生产环境应通过 JWT_SECRET 环境变量覆盖。
  */
 @Slf4j
 @Component
 public class JwtService
 {
-    /**
-     * JWT密钥（建议生产环境使用更安全的方式管理）
-     */
-    public final static String SECRET = "4017CCCC60E17DE5C84CF03C6CBE559413EA1606";
-    /**
-     * JWT签名密钥对象
-     */
-    private final static SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes());
+    private final SecretKey key;
+
     /**
      * 令牌过期时间（毫秒）
      */
     @Value("${jwt.expiration}")
     private int accessTokenExpiration;
+
+    public JwtService(@Value("${jwt.secret}") String secret) {
+        // secret is a raw ASCII string; derive key bytes via UTF-8 encoding
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
 
     /**
      * 提取JWT中的指定声明（如用户名、过期时间等）
@@ -104,7 +105,7 @@ public class JwtService
             .subject(username)
             .issuedAt(new Date())
             .expiration(expiryDate)
-            .signWith(KEY)
+            .signWith(key)
             .compact();
     }
 
@@ -188,7 +189,25 @@ public class JwtService
     }
 
     /**
-     * 解析JWT令牌，获取所有声明
+     * 解析JWT令牌，获取所有声明。调用方须自行处理 JwtException。
+     * 令牌过期时抛出 {@link ExpiredJwtException}，格式/签名错误时抛出 {@link JwtException}。
+     *
+     * @param jwtToken JWT令牌
+     * @return Claims对象（不会返回 null）
+     * @throws ExpiredJwtException 令牌已过期
+     * @throws JwtException 令牌无效
+     */
+    public Claims parseTokenClaims(String jwtToken)
+    {
+        return Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(jwtToken)
+            .getPayload();
+    }
+
+    /**
+     * 解析JWT令牌，获取所有声明（兼容旧调用，异常时返回 null）
      *
      * @param jwtToken JWT令牌
      * @return Claims对象或null
@@ -196,12 +215,7 @@ public class JwtService
     private Claims extractAllClaims(String jwtToken)
     {
         try {
-            // 解析并校验JWT令牌
-            return Jwts.parser()
-                .verifyWith(KEY)
-                .build()
-                .parseSignedClaims(jwtToken)
-                .getPayload();
+            return parseTokenClaims(jwtToken);
         }
         catch (ExpiredJwtException ex) {
             log.error("Expired JWT token");

@@ -1,6 +1,9 @@
 package com.wgzhao.addax.admin.config;
 
 import com.wgzhao.addax.admin.service.JwtService;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,24 +39,33 @@ public class JwtFilter
         throws ServletException, IOException
     {
         log.debug("doFilterInternal with jwtFilter");
-        String username = null;
         String token = jwtService.resolveToken(request);
-        if (token != null) {
-            username = jwtService.extractUsername(token);
-        }
 
-        if (username == null) {
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
-        // validate token is expired or not
-        if (jwtService.isTokenExpired(token)) {
-            log.debug("token expired, username: {}", username);
-            // return 401 with a JSON message indicating the token is expired
+
+        Claims claims;
+        try {
+            claims = jwtService.parseTokenClaims(token);
+        }
+        catch (ExpiredJwtException ex) {
+            log.debug("JWT token expired for request {}", request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            // simple JSON body; keep it small to avoid dependencies
             response.getWriter().write("{\"message\":\"token 已过期\"}");
+            return;
+        }
+        catch (JwtException | IllegalArgumentException ex) {
+            log.debug("Invalid JWT token: {}", ex.getMessage());
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String username = claims.getSubject();
+        if (username == null || username.isBlank()) {
+            filterChain.doFilter(request, response);
             return;
         }
 

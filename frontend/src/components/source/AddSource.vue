@@ -264,7 +264,8 @@ const testConnect = () => {
   sourceService.testConnection({
     url: sourceItem.value.url,
     username: sourceItem.value.username,
-    password: sourceItem.value.pass
+    password: sourceItem.value.pass,
+    sourceId: sourceItem.value.id > 0 ? sourceItem.value.id : undefined
   })
     .then(resp => {
       if (resp) {

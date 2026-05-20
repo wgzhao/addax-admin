@@ -177,7 +177,8 @@ public class EtlTargetService
         DbConnectDto dto = new DbConnectDto(
             getText(node, "url"),
             getText(node, "username"),
-            getText(node, "password")
+            getText(node, "password"),
+            null
         );
         if (dto.url() == null || dto.url().isBlank()) {
             throw new ApiException(400, "connectConfig.url is required");
