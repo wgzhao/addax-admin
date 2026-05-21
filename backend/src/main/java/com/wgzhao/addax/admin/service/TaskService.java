@@ -333,7 +333,8 @@ public class TaskService
             where status = 'running'
             ) q
             on t.id = q.tid and q.qrn = 1
-            where rn = 1 or rn is null
+            where t.status in ('R', 'W')
+              and (rn = 1 or rn is null)
             order by id
             """;
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, defaultTakeSecs);
