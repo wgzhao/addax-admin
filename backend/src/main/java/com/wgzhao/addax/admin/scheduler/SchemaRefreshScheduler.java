@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.scheduler;
 
-import com.wgzhao.addax.admin.common.Constants;
-import com.wgzhao.addax.admin.redis.RedisLockService;
+import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.TaskService;
 import jakarta.annotation.PostConstruct;
@@ -12,16 +11,11 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.time.LocalTime;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 /**
- * 每天在切日时间触发一次，进行表结构刷新。
+ * 每天在切日时间触发一次，进行表结构刷新。仅 master 节点注册定时任务；failover 后新 master 重新注册。
  */
 @Component
 @Slf4j
@@ -29,46 +23,49 @@ import java.util.concurrent.TimeUnit;
 public class SchemaRefreshScheduler
     implements DisposableBean
 {
-    // Lock TTL and renewal interval
-    private static final Duration LOCK_TTL = Duration.ofSeconds(600);
-    private static final Duration LOCK_RENEW_INTERVAL = Duration.ofSeconds(60);
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
     private final TaskService taskService;
-    private final RedisLockService redisLockService;
-    // Shared renewer thread to avoid creating one per run
-    private final ScheduledExecutorService renewer = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "schema-refresh-lock-renewer");
-        t.setDaemon(true);
-        return t;
-    });
+    private final MasterElectionService electionService;
+
     private volatile ScheduledFuture<?> scheduledFuture;
 
     @PostConstruct
     public void init()
     {
-        // Always schedule locally; actual execution is guarded by Redis lock so only one node will run.
-        log.info("Initializing SchemaRefreshScheduler and scheduling local trigger");
-        scheduleInternal();
+        electionService.onBecameMaster(() -> {
+            log.info("Became master — registering schema refresh cron");
+            scheduleInternal();
+        });
+        electionService.onLostMaster(() -> {
+            log.info("Lost master — cancelling schema refresh cron");
+            cancelInternal();
+        });
+        // Guard against election tick firing before this @PostConstruct runs
+        if (electionService.isMaster()) {
+            scheduleInternal();
+        }
     }
 
-    private void scheduleInternal()
+    private synchronized void scheduleInternal()
     {
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         String cron = toCron(switchTime);
         log.info("Scheduling schema refresh at {} (cron: {})", switchTime, cron);
-        // 先取消已有任务，避免重复
         cancelInternal();
         scheduledFuture = taskScheduler.schedule(this::runRefresh, new CronTrigger(cron));
     }
 
     /**
-     * Public API for controllers/services: reschedule the local timer after SWITCH_TIME is changed.
-     *
-     * This method is safe to call multiple times.
+     * Public API for controllers/services: reschedule after SWITCH_TIME is changed.
+     * No-op on worker nodes.
      */
     public synchronized void reschedule()
     {
+        if (!electionService.isMaster()) {
+            log.debug("reschedule() ignored on non-master node");
+            return;
+        }
         log.info("Rescheduling schema refresh trigger due to switch time update");
         scheduleInternal();
     }
@@ -84,66 +81,18 @@ public class SchemaRefreshScheduler
 
     private String toCron(LocalTime time)
     {
-        // cron format: second minute hour day-of-month month day-of-week
         return String.format("0 %d %d * * *", time.getMinute(), time.getHour());
     }
 
     public void runRefresh()
     {
         log.info("Schema refresh triggered");
-
-        final String lockKey = Constants.SCHEMA_REFRESH_LOCK_KEY;
-        String token = null;
-
-        Future<?> renewTaskFuture = null;
-
         try {
-            token = redisLockService.tryLock(lockKey, LOCK_TTL);
-            if (token == null) {
-                log.info("Could not acquire redis lock {}, another node is running refresh, skip", lockKey);
-                return;
-            }
-
-            final String localToken = token;
-            renewTaskFuture = renewer.scheduleAtFixedRate(() -> {
-                try {
-                    boolean ok = redisLockService.extend(lockKey, localToken, LOCK_TTL);
-                    if (!ok) {
-                        log.warn("Failed to renew redis lock {} with token {}", lockKey, localToken);
-                    }
-                }
-                catch (Exception e) {
-                    log.warn("Exception while renewing redis lock {}: {}", lockKey, e.getMessage());
-                }
-            }, LOCK_RENEW_INTERVAL.toMillis(), LOCK_RENEW_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
-
-            try {
-                taskService.updateParams();
-                log.info("Schema refresh finished successfully");
-            }
-            catch (Exception e) {
-                log.error("Schema refresh failed", e);
-            }
+            taskService.updateParams();
+            log.info("Schema refresh finished successfully");
         }
-        catch (Exception ex) {
-            log.error("Error while attempting schema refresh or acquiring lock", ex);
-        }
-        finally {
-            // stop renew task
-            if (renewTaskFuture != null) {
-                try {
-                    renewTaskFuture.cancel(true);
-                }
-                catch (Exception ignored) {
-                }
-            }
-
-            if (token != null) {
-                boolean released = redisLockService.release(lockKey, token);
-                if (!released) {
-                    log.warn("Failed to release redis lock {} with token {} - will expire by TTL", lockKey, token);
-                }
-            }
+        catch (Exception e) {
+            log.error("Schema refresh failed", e);
         }
     }
 
@@ -151,10 +100,5 @@ public class SchemaRefreshScheduler
     public void destroy()
     {
         cancelInternal();
-        try {
-            renewer.shutdownNow();
-        }
-        catch (Exception ignored) {
-        }
     }
 }

@@ -1,17 +1,15 @@
 package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.model.EtlSource;
-import com.wgzhao.addax.admin.redis.RedisLockService;
+import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.service.TaskSchedulerService;
 import com.wgzhao.addax.admin.service.TaskService;
+import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -23,12 +21,23 @@ public class CollectionScheduler
     private final TaskSchedulerService taskSchedulerService;
     private final EtlSourceRepo etlSourceRepo;
     private final TaskService taskService;
-    private final RedisLockService redisLockService;
+    private final MasterElectionService electionService;
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady()
+    @PostConstruct
+    public void init()
     {
-        rescheduleAllTasks();
+        electionService.onBecameMaster(() -> {
+            log.info("Became master — registering all source cron tasks");
+            rescheduleAllTasks();
+        });
+        electionService.onLostMaster(() -> {
+            log.info("Lost master — cancelling all source cron tasks");
+            cancelAllScheduledTasks();
+        });
+        // Guard against the election tick firing before this callback was registered
+        if (electionService.isMaster()) {
+            rescheduleAllTasks();
+        }
     }
 
     public void rescheduleAllTasks()
@@ -51,32 +60,32 @@ public class CollectionScheduler
             log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
             taskSchedulerService.cancelTask(taskId);
+            // Enqueue is idempotent: DB unique constraint prevents duplicate pending/running entries
             Runnable task = () -> {
-                final String lockKey = "collection:source:" + source.getCode() + ":lock";
-                final Duration ttl = Duration.ofSeconds(300);
-                String token = null;
                 try {
-                    token = redisLockService.tryLock(lockKey, ttl);
-                    if (token == null) {
-                        log.info("Could not acquire lock for source {}, skipping this run", source.getCode());
-                        return;
-                    }
-                    // keep existing behavior: enqueue runnable tables for this source
                     taskService.executeTasksForSource(source.getId());
                 }
                 catch (Exception e) {
                     log.error("Error executing scheduled collection for source {}", source.getCode(), e);
-                }
-                finally {
-                    if (token != null) {
-                        redisLockService.release(lockKey, token);
-                    }
                 }
             };
             taskSchedulerService.scheduleTask(taskId, task, cronExpression);
         }
         else {
             taskSchedulerService.cancelTask(taskId);
+        }
+    }
+
+    public void cancelAllScheduledTasks()
+    {
+        try {
+            List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
+            for (EtlSource source : sources) {
+                taskSchedulerService.cancelTask("source-" + source.getCode());
+            }
+        }
+        catch (Exception e) {
+            log.error("Error cancelling all scheduled tasks", e);
         }
     }
 
