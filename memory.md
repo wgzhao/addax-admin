@@ -108,3 +108,36 @@
 | 22 | `listenLoop` 异常后无自动重启机制 | 添加异常捕获 + 延迟重启逻辑 |
 | 24 | `Constants.SQL_RESERVED_KEYWORDS` 为 `volatile Set`，写操作非原子 | 改为 `CopyOnWriteArraySet` 或加锁 |
 | 25 | `CollectionScheduler` lambda 捕获 `EtlSource` 快照，数据可能过时 | 改为每次执行时重新查询 |
+
+---
+
+# 调度审计 Bug 修复
+
+> Date: 2026-05-21
+> Branch: `feat/master-worker-task-dispatch`
+> Commits: `577eb32`, `a1b9d63`, `012ae1d`
+> Build: ✅ BUILD SUCCESS
+
+## 背景
+
+master-worker 架构迁移完成后，对全部调度相关代码进行综合 review，发现并修复以下 bug。
+
+## Bug 修复清单
+
+| # | 严重等级 | 问题描述 | 涉及文件 | 修复方式 |
+|---|---------|---------|---------|---------|
+| 1 | 🔴 高 | `getAllTaskStatus()` SQL 返回全部表（包含 Y/X 状态），无任务运行时前端显示 1260 条运行中 | `TaskService.java` | `WHERE rn=1 OR rn IS NULL` 改为 `WHERE t.status IN ('R','W') AND (rn=1 OR rn IS NULL)`；LEFT JOIN 使非 R/W 表 rn=NULL，外层缺少状态过滤导致全表被选出 |
+| 2 | 🔴 高 | `CollectionScheduler.cancelAllScheduledTasks()` 定时任务泄漏 | `CollectionScheduler.java` | 替换为 `taskSchedulerService.cancelAll()`；原实现只取 `findByEnabled(true)` 遍历，master 持有期间被禁用的 source 其定时任务不会被取消 |
+| 3 | 🟡 中 | `TableOverrideScheduler` 仍用 `@Scheduled` 全节点跑 + Redis 锁去重，与 master-only 架构不一致 | `TableOverrideScheduler.java` | 移除 `@Scheduled` 和 `RedisLockService`；改为通过 `MasterElectionService` 回调注册/注销，与 `CollectionScheduler` 和 `SchemaRefreshScheduler` 保持一致 |
+| 4 | 🟡 中 | `TableOverrideScheduler` 使用 `@AllArgsConstructor` 导致 `volatile ScheduledFuture<?>` 字段被纳入构造器，Spring 找不到 Bean 启动失败 | `TableOverrideScheduler.java` | 改为 `@RequiredArgsConstructor`，仅注入 `final` 字段 |
+| 5 | 🟡 中 | `WorkerHeartbeatService.getAliveWorkers()` 使用 `redisTemplate.keys()` O(N) 阻塞 | `WorkerHeartbeatService.java` | 改为 SCAN cursor（`ScanOptions.scanOptions().match(...).count(100)`），避免生产环境 Redis 阻塞 |
+| 6 | 🟡 中 | `TaskQueueManagerV2Impl` 遗留死字段 `redisLockService` + 死 import `SCHEMA_REFRESH_LOCK_KEY` | `TaskQueueManagerV2Impl.java` | 删除字段和 import |
+
+## 根本原因说明（Bug #1）
+
+`getAllTaskStatus()` SQL 问题是两次修改叠加导致的：
+
+1. 原始 `WHERE rn = 1`：正确排除无统计记录的表，但也漏掉了首次运行的 R/W 表（因 LEFT JOIN 得 rn=NULL）
+2. 上一轮修复改为 `WHERE rn = 1 OR rn IS NULL`：修复了首次运行场景，但忽略了 LEFT JOIN 条件 `and t.status in ('R','W')` 会让非 R/W 表 rn=NULL，导致全表都被返回
+
+正确做法：外层加 `t.status IN ('R','W')` 过滤，内层保留 `OR rn IS NULL` 覆盖首次运行场景。
