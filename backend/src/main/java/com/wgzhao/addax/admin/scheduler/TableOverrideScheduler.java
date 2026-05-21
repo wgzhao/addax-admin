@@ -5,7 +5,7 @@ import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import jakarta.annotation.PostConstruct;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
@@ -26,7 +26,7 @@ import java.util.concurrent.ScheduledFuture;
  */
 @Component
 @Slf4j
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class TableOverrideScheduler
 {
     private final TableService tableService;
