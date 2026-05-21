@@ -79,10 +79,7 @@ public class CollectionScheduler
     public void cancelAllScheduledTasks()
     {
         try {
-            List<EtlSource> sources = etlSourceRepo.findByEnabled(true);
-            for (EtlSource source : sources) {
-                taskSchedulerService.cancelTask("source-" + source.getCode());
-            }
+            taskSchedulerService.cancelAll();
         }
         catch (Exception e) {
             log.error("Error cancelling all scheduled tasks", e);

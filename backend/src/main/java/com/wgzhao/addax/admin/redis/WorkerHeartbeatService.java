@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +14,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -102,18 +103,17 @@ public class WorkerHeartbeatService
 
     /**
      * Scan all alive worker heartbeats. Called by master during dispatch.
+     * Uses SCAN instead of KEYS to avoid blocking Redis on large keyspaces.
      * Workers whose heartbeat is older than STALE_THRESHOLD_SECONDS are excluded.
      */
     public List<WorkerInfo> getAliveWorkers()
     {
         List<WorkerInfo> result = new ArrayList<>();
-        try {
-            Set<String> keys = redisTemplate.keys(WORKER_KEY_PREFIX + "*");
-            if (keys == null || keys.isEmpty()) {
-                return result;
-            }
-            Instant cutoff = Instant.now().minusSeconds(STALE_THRESHOLD_SECONDS);
-            for (String key : keys) {
+        Instant cutoff = Instant.now().minusSeconds(STALE_THRESHOLD_SECONDS);
+        ScanOptions options = ScanOptions.scanOptions().match(WORKER_KEY_PREFIX + "*").count(100).build();
+        try (Cursor<String> cursor = redisTemplate.scan(options)) {
+            while (cursor.hasNext()) {
+                String key = cursor.next();
                 try {
                     String json = redisTemplate.opsForValue().get(key);
                     if (json == null) continue;

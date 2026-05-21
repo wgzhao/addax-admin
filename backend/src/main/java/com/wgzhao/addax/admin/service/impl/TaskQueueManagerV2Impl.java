@@ -9,7 +9,6 @@ import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
-import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.redis.WorkerHeartbeatService;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.AlertService;
@@ -64,7 +63,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
-import static com.wgzhao.addax.admin.common.Constants.SCHEMA_REFRESH_LOCK_KEY;
 import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 import static java.lang.Math.max;
 
@@ -103,7 +101,6 @@ public class TaskQueueManagerV2Impl
     private final TargetService targetService;
     private final EtlJobQueueService jobQueueService;
     private final JdbcTemplate jdbcTemplate;
-    private final RedisLockService redisLockService;
     private final ExecutionManager executionManager;
     private final UserNotificationService userNotificationService;
     private final ObjectMapper objectMapper;
