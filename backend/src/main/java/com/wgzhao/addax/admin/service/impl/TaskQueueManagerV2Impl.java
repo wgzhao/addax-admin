@@ -641,14 +641,9 @@ public class TaskQueueManagerV2Impl
 
     public boolean addTaskToQueue(@NonNull EtlTable etlTable)
     {
-        try {
-            if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
-                log.info("Schema refresh in progress, rejecting task {} into queue", etlTable.getId());
-                return false;
-            }
-        }
-        catch (Exception e) {
-            log.warn("Failed to check schema refresh lock, proceeding with enqueue", e);
+        if (!running) {
+            log.info("Schema refresh in progress, rejecting task {} into queue", etlTable.getId());
+            return false;
         }
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;
@@ -657,14 +652,9 @@ public class TaskQueueManagerV2Impl
     @Override
     public boolean addTaskToQueue(@NonNull EtlTable etlTable, String payload)
     {
-        try {
-            if (redisLockService != null && redisLockService.isLocked(SCHEMA_REFRESH_LOCK_KEY)) {
-                log.info("Schema refresh in progress, rejecting task {} into queue", etlTable.getId());
-                return false;
-            }
-        }
-        catch (Exception e) {
-            log.warn("Failed to check schema refresh lock, proceeding with enqueue", e);
+        if (!running) {
+            log.info("Schema refresh in progress, rejecting task {} into queue", etlTable.getId());
+            return false;
         }
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100, payload) > 0;
@@ -686,6 +676,12 @@ public class TaskQueueManagerV2Impl
     public int clearQueue()
     {
         return jobQueueService.clearPending();
+    }
+
+    @Override
+    public boolean isRefreshing()
+    {
+        return !running;
     }
 
     public Map<String, Object> getQueueStatus()

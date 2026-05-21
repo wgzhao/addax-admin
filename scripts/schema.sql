@@ -20,8 +20,6 @@ create sequence tb_addax_statistic_id_seq;
 
 create sequence tb_imp_etl_tid_seq;
 
-create sequence leader_election_id_seq as integer;
-
 create sequence risk_log_id_seq;
 
 create table public.addax_log
@@ -686,22 +684,6 @@ create table public.authorities
 
 create unique index ix_auth_username
   on public.authorities (username, authority);
-
-create table public.leader_election
-(
-  id         integer,
-  node_id    varchar(100),
-  expires_at timestamp with time zone,
-  updated_at timestamp with time zone
-);
-
-comment on table public.leader_election is 'leader 选举表';
-
-comment on column public.leader_election.node_id is '节点ID';
-
-comment on column public.leader_election.expires_at is '过期时间';
-
-comment on column public.leader_election.updated_at is '更新时间';
 
 create table public.risk_log
 (
