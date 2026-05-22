@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -60,6 +62,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
@@ -133,10 +136,16 @@ public class TaskQueueManagerV2Impl
     private String instanceId;
     private double concurrencyWeight = 1.0;
 
+    // SWRR state: master-only, tracks accumulated weight per worker between dispatch cycles
+    private final ConcurrentHashMap<String, Double> swrrCurrentWeight = new ConcurrentHashMap<>();
+    // Tracks alive workers seen in the previous dispatch cycle for dead-worker detection
+    private final Set<String> knownWorkerIds = new HashSet<>();
+
     private volatile Future<?> listenFuture;
     private volatile ScheduledFuture<?> pollFuture;
     private volatile ScheduledFuture<?> recoverFuture;
     private volatile ScheduledFuture<?> heartbeatFuture;
+    private volatile ScheduledFuture<?> orphanRecoverFuture;
 
     @PostConstruct
     public void init()
@@ -192,13 +201,47 @@ public class TaskQueueManagerV2Impl
     private void onBecameMaster()
     {
         log.info("Became master — starting dispatch loop");
-        // pollAndDispatch will now call masterDispatch() because isMaster() is true
+        knownWorkerIds.clear();
+        // Wait 2× heartbeat interval for workers to re-register, then release orphaned tasks
+        if (orphanRecoverFuture != null) orphanRecoverFuture.cancel(false);
+        orphanRecoverFuture = scheduler.schedule(this::recoverOrphanedJobs,
+            2L * HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     private void onLostMaster()
     {
         log.info("Lost master role — pausing dispatch (workers continue executing current tasks)");
-        // pollAndDispatch will skip masterDispatch() because isMaster() is false
+        swrrCurrentWeight.clear();
+        knownWorkerIds.clear();
+        if (orphanRecoverFuture != null) {
+            orphanRecoverFuture.cancel(false);
+            orphanRecoverFuture = null;
+        }
+    }
+
+    /**
+     * One-shot task scheduled 2× HEARTBEAT_INTERVAL_SECONDS after becoming master.
+     * Releases tasks claimed by instances that did not re-register as alive workers.
+     */
+    private void recoverOrphanedJobs()
+    {
+        if (!electionService.isMaster()) return;
+        try {
+            Set<String> aliveIds = heartbeatService.getAliveWorkers().stream()
+                .map(WorkerHeartbeatService.WorkerInfo::instanceId)
+                .collect(Collectors.toSet());
+            int recovered = jobQueueService.releaseOrphanedJobs(aliveIds);
+            if (recovered > 0) {
+                log.info("Orphan recovery: released {} tasks claimed by disappeared workers (alive={})", recovered, aliveIds);
+                triggerDispatchAsync();
+            }
+            else {
+                log.debug("Orphan recovery: no orphaned tasks found (alive={})", aliveIds);
+            }
+        }
+        catch (Exception e) {
+            log.error("Orphan recovery failed", e);
+        }
     }
 
     // ---- Worker: receive task assignment via Redis pub/sub ----
@@ -313,11 +356,9 @@ public class TaskQueueManagerV2Impl
     /**
      * Master-only: read alive workers, assign pending jobs from DB queue via Redis pub/sub.
      *
-     * For each worker with available slots, we atomically claim a job (assigned to that worker)
-     * and publish the job JSON to the worker's personal channel. The worker picks it up and executes.
-     *
-     * Source-level concurrency: checked against worker.sourceRunning from the heartbeat.
-     * There is up to HEARTBEAT_INTERVAL_SECONDS staleness — acceptable for this use case.
+     * Uses Smooth Weighted Round Robin (SWRR) to distribute tasks proportionally to worker weights.
+     * Source-level concurrency is checked against worker.sourceRunning from the heartbeat
+     * (up to HEARTBEAT_INTERVAL_SECONDS staleness — acceptable for this use case).
      */
     private void masterDispatch()
     {
@@ -327,50 +368,131 @@ public class TaskQueueManagerV2Impl
             return;
         }
 
-        for (WorkerHeartbeatService.WorkerInfo worker : workers) {
-            int slots = worker.availableSlots();
-            if (slots <= 0) continue;
-
-            for (int i = 0; i < slots; i++) {
-                // Assign next pending job to this worker
-                Optional<EtlJobQueue> maybe = jobQueueService.assignToWorker(worker.instanceId(), DEFAULT_LEASE_SECONDS);
-                if (maybe.isEmpty()) {
-                    // No more pending jobs
-                    return;
-                }
-                EtlJobQueue job = maybe.get();
-
-                // Check source-level concurrency via worker's heartbeat data
-                EtlTable table = tableService.getTable(job.getTid());
-                if (table != null) {
-                    VwEtlTableWithSource source = tableService.getTableView(table.getId());
-                    if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
-                        int effectiveLimit = Math.max(1, (int) Math.floor(source.getMaxConcurrency() * worker.weight()));
-                        int workerSrcRunning = worker.sourceRunning().getOrDefault(table.getSid(), 0);
-                        if (workerSrcRunning >= effectiveLimit) {
-                            // Source concurrency exceeded for this worker — release and try another worker
-                            log.debug("Source {} concurrency limit reached for worker {}, releasing job {}",
-                                source.getCode(), worker.instanceId(), job.getId());
-                            jobQueueService.releaseClaim(job.getId(), 5);
-                            try { tableService.setWaiting(table); } catch (Exception ignored) {}
-                            break; // move to next worker
+        // Detect workers that disappeared since last dispatch cycle and proactively recover their tasks,
+        // avoiding waiting for DEFAULT_LEASE_SECONDS (7300s) expiry.
+        Set<String> currentWorkerIds = workers.stream()
+            .map(WorkerHeartbeatService.WorkerInfo::instanceId)
+            .collect(Collectors.toSet());
+        if (!knownWorkerIds.isEmpty()) {
+            for (String deadId : new HashSet<>(knownWorkerIds)) {
+                if (!currentWorkerIds.contains(deadId)) {
+                    log.warn("Worker {} disappeared — recovering its claimed tasks immediately", deadId);
+                    try {
+                        int recovered = jobQueueService.releaseClaimedByInstance(deadId);
+                        if (recovered > 0) {
+                            log.info("Released {} tasks from dead worker {}", recovered, deadId);
                         }
                     }
-                }
-
-                // Publish job to worker's channel
-                try {
-                    String assignPayload = objectMapper.writeValueAsString(job);
-                    String channel = TASK_ASSIGN_CHANNEL_PREFIX + worker.instanceId();
-                    stringRedisTemplate.convertAndSend(channel, assignPayload);
-                    log.info("Assigned job {} (tid={}) to worker {}", job.getId(), job.getTid(), worker.instanceId());
-                }
-                catch (Exception e) {
-                    log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), worker.instanceId(), e);
-                    // Release the claim so another dispatch cycle can retry
-                    try { jobQueueService.releaseClaim(job.getId(), 5); } catch (Exception ignored) {}
+                    catch (Exception e) {
+                        log.error("Failed to release tasks from dead worker {}", deadId, e);
+                    }
                 }
             }
+        }
+        knownWorkerIds.clear();
+        knownWorkerIds.addAll(currentWorkerIds);
+
+        // Clean up SWRR state for workers that are no longer alive
+        swrrCurrentWeight.keySet().retainAll(currentWorkerIds);
+
+        // Mutable per-cycle slot snapshot to prevent over-dispatching within one cycle
+        // (heartbeat data is stale by up to HEARTBEAT_INTERVAL_SECONDS)
+        List<WorkerSlot> slots = workers.stream()
+            .map(w -> new WorkerSlot(w, w.availableSlots()))
+            .collect(Collectors.toCollection(java.util.ArrayList::new));
+
+        while (true) {
+            WorkerSlot selected = selectWorkerSwrr(slots);
+            if (selected == null) return; // all workers have no available slots
+
+            Optional<EtlJobQueue> maybe = jobQueueService.assignToWorker(selected.worker.instanceId(), DEFAULT_LEASE_SECONDS);
+            if (maybe.isEmpty()) return; // no more pending jobs
+
+            EtlJobQueue job = maybe.get();
+
+            // Check source-level concurrency via worker's heartbeat data
+            EtlTable table = tableService.getTable(job.getTid());
+            if (table != null) {
+                VwEtlTableWithSource source = tableService.getTableView(table.getId());
+                if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
+                    int effectiveLimit = Math.max(1, (int) Math.floor(source.getMaxConcurrency() * selected.worker.weight()));
+                    int workerSrcRunning = selected.worker.sourceRunning().getOrDefault(table.getSid(), 0);
+                    if (workerSrcRunning >= effectiveLimit) {
+                        log.debug("Source {} concurrency limit reached for worker {}, releasing job {}",
+                            source.getCode(), selected.worker.instanceId(), job.getId());
+                        jobQueueService.releaseClaim(job.getId(), 5);
+                        try { tableService.setWaiting(table); } catch (Exception ignored) {}
+                        // Zero out this worker's slot so SWRR won't select it again this cycle;
+                        // a fresh dispatch cycle will re-evaluate once heartbeat is updated
+                        selected.slots = 0;
+                        continue;
+                    }
+                }
+            }
+
+            // Publish job to worker's channel
+            try {
+                String assignPayload = objectMapper.writeValueAsString(job);
+                String channel = TASK_ASSIGN_CHANNEL_PREFIX + selected.worker.instanceId();
+                stringRedisTemplate.convertAndSend(channel, assignPayload);
+                log.info("Assigned job {} (tid={}) to worker {}", job.getId(), job.getTid(), selected.worker.instanceId());
+                selected.slots--; // deduct in-cycle to avoid over-dispatching to same worker
+            }
+            catch (Exception e) {
+                log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.worker.instanceId(), e);
+                try { jobQueueService.releaseClaim(job.getId(), 5); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    /**
+     * Smooth Weighted Round Robin selection.
+     * Each call: all workers gain configuredWeight, then the one with highest currentWeight
+     * and available slots is chosen and loses totalWeight.
+     *
+     * @return selected WorkerSlot, or null if no worker has slots
+     */
+    private WorkerSlot selectWorkerSwrr(List<WorkerSlot> slots)
+    {
+        if (slots.isEmpty()) return null;
+
+        double totalWeight = slots.stream().mapToDouble(s -> s.worker.weight()).sum();
+
+        // Step 1: every worker accumulates its configured weight
+        for (WorkerSlot s : slots) {
+            swrrCurrentWeight.merge(s.worker.instanceId(), s.worker.weight(), Double::sum);
+        }
+
+        // Step 2: select the worker with the highest accumulated weight that has a free slot
+        WorkerSlot selected = null;
+        double maxCw = Double.NEGATIVE_INFINITY;
+        for (WorkerSlot s : slots) {
+            if (s.slots <= 0) continue;
+            double cw = swrrCurrentWeight.getOrDefault(s.worker.instanceId(), 0.0);
+            if (cw > maxCw) {
+                maxCw = cw;
+                selected = s;
+            }
+        }
+
+        if (selected == null) return null;
+
+        // Step 3: deduct total weight from the selected worker
+        swrrCurrentWeight.merge(selected.worker.instanceId(), -totalWeight, Double::sum);
+
+        return selected;
+    }
+
+    /** Per-cycle mutable slot tracker to prevent over-dispatching within a single masterDispatch() call. */
+    private static final class WorkerSlot
+    {
+        final WorkerHeartbeatService.WorkerInfo worker;
+        int slots;
+
+        WorkerSlot(WorkerHeartbeatService.WorkerInfo worker, int slots)
+        {
+            this.worker = worker;
+            this.slots = slots;
         }
     }
 
