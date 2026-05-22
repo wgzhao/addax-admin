@@ -29,6 +29,15 @@ public interface TaskQueueManager
         return addTaskToQueue(tableId);
     }
 
+    /**
+     * Returns true while schema refresh is in progress (queue monitor stopped).
+     * Use this instead of checking the Redis schema refresh lock key, which is no longer written.
+     */
+    default boolean isRefreshing()
+    {
+        return false;
+    }
+
     int clearQueue();
 
     Map<String, Object> getQueueStatus();

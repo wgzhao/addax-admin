@@ -172,6 +172,33 @@ public class EtlJobQueueService
         return jdbcTemplate.update(sql);
     }
 
+    /**
+     * Master-mode: atomically claim the next pending job and assign it to a specific worker instance.
+     * Semantically identical to claimNext() but claimed_by is the target worker, not the local node.
+     */
+    @Transactional
+    public Optional<EtlJobQueue> assignToWorker(String targetInstanceId, int leaseSeconds)
+    {
+        String sql = """
+            WITH cte AS (
+                SELECT id
+                FROM public.etl_job_queue
+                WHERE status='pending' AND available_at <= now()
+                ORDER BY priority, available_at
+                FOR UPDATE SKIP LOCKED
+                LIMIT 1
+            )
+            UPDATE public.etl_job_queue q
+            SET status='running', claimed_by=?, claimed_at=now(), lease_until=now() + ?::interval, attempts=attempts+1
+            FROM cte
+            WHERE q.id = cte.id
+            RETURNING q.*
+            """;
+        String leaseInterval = leaseSeconds + " seconds";
+        List<EtlJobQueue> list = jdbcTemplate.query(sql, JOB_ROW_MAPPER, targetInstanceId, leaseInterval);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+    }
+
     // Renew lease for a running, claimed job. Returns true if the lease was renewed.
     @Transactional
     public boolean renewLease(long jobId, String instanceId, int leaseSeconds)

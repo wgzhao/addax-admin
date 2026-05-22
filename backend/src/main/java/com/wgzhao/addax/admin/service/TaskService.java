@@ -3,7 +3,6 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
-import com.wgzhao.addax.admin.redis.RedisLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,7 +37,6 @@ public class TaskService
     private final JdbcTemplate jdbcTemplate;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
-    private final RedisLockService redisLockService;
     private final ExecutionManager executionManager;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
@@ -211,15 +209,9 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId)
     {
-        // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
-        try {
-            if (redisLockService != null && redisLockService.isRefreshInProgress()) {
-                log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
-                return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
-            }
-        }
-        catch (Exception e) {
-            log.warn("检查 schema 刷新锁失败，继续按 DB flag 逻辑处理", e);
+        if (queueManager.isRefreshing()) {
+            log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
+            return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
         }
         if (queueManager.addTaskToQueue(tableId)) {
             return TaskResultDto.success("任务已提交到队列", 0);
@@ -231,15 +223,9 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId, String username)
     {
-        // 如果 schema 刷新中（由 redis 锁控制），拒绝提交
-        try {
-            if (redisLockService != null && redisLockService.isRefreshInProgress()) {
-                log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
-                return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
-            }
-        }
-        catch (Exception e) {
-            log.warn("检查 schema 刷新锁失败，继续按 DB flag 逻辑处理", e);
+        if (queueManager.isRefreshing()) {
+            log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
+            return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
         }
 
         String payload = null;
@@ -347,7 +333,8 @@ public class TaskService
             where status = 'running'
             ) q
             on t.id = q.tid and q.qrn = 1
-            where rn = 1
+            where t.status in ('R', 'W')
+              and (rn = 1 or rn is null)
             order by id
             """;
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, defaultTakeSecs);
