@@ -255,6 +255,10 @@ const urls = ref<MenuItem[]>([
   {
     path: '/dict',
     title: '字典维护'
+  },
+  {
+    path: '/cluster',
+    title: '集群状态'
   }
   // {
   //   path: '/param',
