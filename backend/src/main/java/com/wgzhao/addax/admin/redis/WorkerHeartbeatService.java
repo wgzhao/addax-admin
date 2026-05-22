@@ -96,6 +96,11 @@ public class WorkerHeartbeatService
         try {
             redisTemplate.delete(WORKER_KEY_PREFIX + electionService.getInstanceId());
         }
+        catch (IllegalStateException e) {
+            // During Spring shutdown, Redis connection factory may be stopped before this bean's
+            // @PreDestroy is called. Redis keys with TTL will auto-expire, so it's safe to skip.
+            log.debug("Redis connection factory stopped during shutdown, skipping heartbeat removal", e);
+        }
         catch (Exception e) {
             log.warn("Failed to remove own heartbeat key", e);
         }
