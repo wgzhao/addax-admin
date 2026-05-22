@@ -25,18 +25,6 @@ import com.wgzhao.addax.admin.service.UserNotificationService;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Primary;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.listener.ChannelTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -47,11 +35,11 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -63,6 +51,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.connection.Message;
+import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+
 
 import static com.wgzhao.addax.admin.common.Constants.ADDAX_EXECUTE_TIME_OUT_SECONDS;
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
@@ -277,6 +277,7 @@ public class TaskQueueManagerV2Impl
      * scanAndEnqueueEtlTasks: persists runnable tables into DB queue (DB-side, idempotent).
      * Only one node needs to do this, but it's safe if all do (unique constraint prevents duplicates).
      */
+    @Override
     public void scanAndEnqueueEtlTasks()
     {
         try {
@@ -545,7 +546,12 @@ public class TaskQueueManagerV2Impl
                 throw new IllegalStateException("Task not found tid=" + job.getTid());
             }
             taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
-            if (taskResultDto.success()) {
+            boolean killedByUser = executionManager.consumeKillRequested(job.getTid());
+            if (killedByUser) {
+                jobQueueService.completeCancelled(job.getId(), "Killed by user request");
+                log.info("Task killed by user, marked queue job {} as cancelled", job.getId());
+            }
+            else if (taskResultDto.success()) {
                 jobQueueService.completeSuccess(job.getId());
             }
             else {
@@ -555,8 +561,19 @@ public class TaskQueueManagerV2Impl
         }
         catch (Exception e) {
             log.error("Task execution failed jobId={} tid={}", job.getId(), job.getTid(), e);
-            Duration backoff = computeBackoff(job.getAttempts());
-            try { jobQueueService.failOrReschedule(job, e.getMessage(), backoff); } catch (Exception ignored) {}
+            boolean killedByUser = executionManager.consumeKillRequested(job.getTid());
+            if (killedByUser) {
+                try {
+                    jobQueueService.completeCancelled(job.getId(), "Killed by user request");
+                    log.info("Task killed by user during exception path, marked queue job {} as cancelled", job.getId());
+                }
+                catch (Exception ignored) {
+                }
+            }
+            else {
+                Duration backoff = computeBackoff(job.getAttempts());
+                try { jobQueueService.failOrReschedule(job, e.getMessage(), backoff); } catch (Exception ignored) {}
+            }
         }
         finally {
             if (renewer != null) {
@@ -627,6 +644,7 @@ public class TaskQueueManagerV2Impl
         }
     }
 
+    @Override
     public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task)
     {
         return executeEtlTaskWithConcurrencyControl(task, null);
@@ -671,21 +689,23 @@ public class TaskQueueManagerV2Impl
             return false;
         }
         String logName = String.format("%s.%s_%d.log", task.getTargetDb(), task.getTargetTable(), taskId);
-        String cmd = String.format("%s/bin/addax.sh  -p'-DjobName=%d -Dlog.file.name=%s' %s",
-            dictService.getAddaxHome(), taskId, logName, tempFile.getAbsolutePath());
-        boolean retCode = executeAddax(cmd, taskId, logName, task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime());
+        String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
+        String jvmProps = String.format("-DjobName=%d -Dlog.file.name=%s", taskId, logName);
+        List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
+        String cmd = toCommandString(cmdArgs);
+        boolean retCode = executeAddax(cmdArgs, cmd, taskId, logName, task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime());
         log.debug("Task {} log written to: {}", taskId, logName);
         return retCode;
     }
 
-    private boolean executeAddax(String command, long tid, String logName, long maxRuntimeSeconds)
+    private boolean executeAddax(List<String> commandArgs, String commandForLog, long tid, String logName, long maxRuntimeSeconds)
     {
-        EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, command);
+        EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, commandForLog);
         Process process;
         TaskResultDto taskResult;
         long pid = -1;
         try {
-            process = CommandExecutor.startProcess(command);
+            process = CommandExecutor.startProcess(commandArgs);
             try { pid = process.pid(); } catch (UnsupportedOperationException ignored) {}
             try {
                 executionManager.register(tid, process, pid, instanceId);
@@ -693,10 +713,10 @@ public class TaskQueueManagerV2Impl
             catch (Exception e) {
                 log.warn("Failed to register process in ExecutionManager tid={} pid={}", tid, pid, e);
             }
-            taskResult = CommandExecutor.waitForProcessWithResult(process, maxRuntimeSeconds, command);
+            taskResult = CommandExecutor.waitForProcessWithResult(process, maxRuntimeSeconds, commandForLog);
         }
         catch (IOException ioe) {
-            log.error("Failed to start process for command: {}", command, ioe);
+            log.error("Failed to start process for command: {}", commandForLog, ioe);
             taskResult = TaskResultDto.failure(ioe.getMessage(), 0);
         }
         finally {
@@ -715,6 +735,22 @@ public class TaskQueueManagerV2Impl
         }
         jourService.saveJour(etlJour);
         return taskResult.success();
+    }
+
+    private String toCommandString(List<String> args)
+    {
+        return args.stream().map(this::quoteForLog).collect(Collectors.joining(" "));
+    }
+
+    private String quoteForLog(String arg)
+    {
+        if (arg == null || arg.isBlank()) {
+            return "''";
+        }
+        if (arg.matches("[A-Za-z0-9_./:=@+-]+")) {
+            return arg;
+        }
+        return "'" + arg.replace("'", "'\"'\"'") + "'";
     }
 
     private void recoverLeases()
@@ -744,12 +780,14 @@ public class TaskQueueManagerV2Impl
 
     // ---- TaskQueueManager interface ----
 
+    @Override
     public void stopQueueMonitor()
     {
         running = false;
         cancelScheduledTasks();
     }
 
+    @Override
     public void restartQueueMonitor()
     {
         stopQueueMonitor();
@@ -758,6 +796,7 @@ public class TaskQueueManagerV2Impl
         submitScheduledTasks();
     }
 
+    @Override
     public boolean addTaskToQueue(@NonNull EtlTable etlTable)
     {
         if (!running) {
@@ -779,6 +818,7 @@ public class TaskQueueManagerV2Impl
         return jobQueueService.enqueue(etlTable, bizDate, 100, payload) > 0;
     }
 
+    @Override
     public boolean addTaskToQueue(long tableId)
     {
         EtlTable table = tableService.getTable(tableId);
@@ -792,6 +832,7 @@ public class TaskQueueManagerV2Impl
         return table != null && addTaskToQueue(table, payload);
     }
 
+    @Override
     public int clearQueue()
     {
         return jobQueueService.clearPending();
@@ -803,6 +844,7 @@ public class TaskQueueManagerV2Impl
         return !running;
     }
 
+    @Override
     public Map<String, Object> getQueueStatus()
     {
         Map<String, Object> status = new HashMap<>();
@@ -813,6 +855,7 @@ public class TaskQueueManagerV2Impl
         return status;
     }
 
+    @Override
     public void startQueueMonitor()
     {
         if (running) return;

@@ -1,8 +1,6 @@
 package com.wgzhao.addax.admin.utils;
 
 import com.wgzhao.addax.admin.dto.TaskResultDto;
-import lombok.extern.slf4j.Slf4j;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
+
 
 /**
  * 命令执行工具类。
@@ -18,6 +18,17 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class CommandExecutor
 {
+    /**
+     * Start a process with explicit command args and return the Process object.
+     */
+    public static Process startProcess(List<String> commandArgs)
+        throws IOException
+    {
+        ProcessBuilder pb = new ProcessBuilder(commandArgs);
+        pb.redirectErrorStream(true);
+        return pb.start();
+    }
+
     /**
      * Start a process for the given shell command and return the Process object.
      */

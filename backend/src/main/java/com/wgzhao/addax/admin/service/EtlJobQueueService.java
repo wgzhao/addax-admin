@@ -3,13 +3,6 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.repository.EtlJobQueueRepo;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -18,6 +11,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 @Slf4j
@@ -105,7 +105,7 @@ public class EtlJobQueueService
     @Transactional
     public void completeSuccess(long jobId)
     {
-        String sql = "UPDATE public.etl_job_queue SET status='completed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=NULL WHERE id=?";
+        String sql = "UPDATE public.etl_job_queue SET status='completed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=NULL WHERE id=? AND status='running'";
         jdbcTemplate.update(sql, jobId);
     }
 
@@ -133,7 +133,7 @@ public class EtlJobQueueService
                     UPDATE public.etl_job_queue
                     SET status='pending', available_at = now() + ?::interval,
                         lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                    WHERE id=?
+                    WHERE id=? AND status='running'
                 """;
             String interval = backoff.getSeconds() + " seconds";
             jdbcTemplate.update(sql, interval, truncateError(error), job.getId());
@@ -142,10 +142,21 @@ public class EtlJobQueueService
             String sql = """
                     UPDATE public.etl_job_queue
                     SET status='failed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                    WHERE id=?
+                    WHERE id=? AND status='running'
                 """;
             jdbcTemplate.update(sql, truncateError(error), job.getId());
         }
+    }
+
+    @Transactional
+    public void completeCancelled(long jobId, String reason)
+    {
+        String sql = """
+                UPDATE public.etl_job_queue
+                SET status='cancelled', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
+                WHERE id=? AND status='running'
+            """;
+        jdbcTemplate.update(sql, truncateError(reason), jobId);
     }
 
     private String truncateError(String error)

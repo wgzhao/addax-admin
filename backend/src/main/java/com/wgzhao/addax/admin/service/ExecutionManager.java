@@ -2,6 +2,13 @@ package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -11,9 +18,6 @@ import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ExecutionManager: manage running processes on this node and coordinate cross-node kill via Redis pub/sub.
@@ -27,6 +31,8 @@ public class ExecutionManager
     private static final String KILL_CHANNEL = "etl:kill";
     // in-memory registry of collecting table(s) on this instance
     private final ConcurrentHashMap<Long, ProcessHolder> running = new ConcurrentHashMap<>();
+    // Tracks tasks explicitly killed by user so worker can avoid rescheduling them as normal failures.
+    private final ConcurrentHashMap<Long, Instant> killRequested = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RedisMessageListenerContainer listenerContainer;
 
@@ -79,14 +85,106 @@ public class ExecutionManager
             return false;
         }
         try {
+            killRequested.put(tid, Instant.now());
             Process p = holder.process();
             log.warn("Killing local collecting table {} , pid={} requested", tid, holder.pid());
-            p.destroyForcibly();
+
+            ProcessHandle root = p.toHandle();
+            List<ProcessHandle> descendants = new ArrayList<>(root.descendants().toList());
+            descendants.sort(Comparator.comparingLong(this::depth).reversed());
+
+            int gracefulStopped = 0;
+            for (ProcessHandle handle : descendants) {
+                if (tryStopHandle(handle, false)) {
+                    gracefulStopped++;
+                }
+            }
+            if (tryStopHandle(root, false)) {
+                gracefulStopped++;
+            }
+
+            int forcedStopped = 0;
+            for (ProcessHandle handle : descendants) {
+                if (tryStopHandle(handle, true)) {
+                    forcedStopped++;
+                }
+            }
+            if (tryStopHandle(root, true)) {
+                forcedStopped++;
+            }
+
+            String marker = "-DjobName=" + tid;
+            int markerStopped = 0;
+            List<ProcessHandle> all = ProcessHandle.allProcesses().toList();
+            for (ProcessHandle handle : all) {
+                if (!handle.isAlive()) {
+                    continue;
+                }
+                if (handle.pid() == root.pid()) {
+                    continue;
+                }
+                String cmdLine = handle.info().commandLine().orElse("");
+                if (cmdLine.contains(marker) && tryStopHandle(handle, true)) {
+                    markerStopped++;
+                }
+            }
+
+            log.warn("Kill requested tid={} rootPid={} descendants={} gracefulStopped={} forcedStopped={} markerStopped={}",
+                tid, root.pid(), descendants.size(), gracefulStopped, forcedStopped, markerStopped);
             return true;
         }
         catch (Exception e) {
             log.error("Failed to kill local collecting table {} ", tid, e);
             return false;
+        }
+    }
+
+    /**
+     * Returns true once when a kill request has been recorded for this tid.
+     */
+    public boolean consumeKillRequested(long tid)
+    {
+        return killRequested.remove(tid) != null;
+    }
+
+    private long depth(ProcessHandle handle)
+    {
+        long d = 0;
+        Optional<ProcessHandle> p = handle.parent();
+        while (p.isPresent()) {
+            d++;
+            p = p.get().parent();
+        }
+        return d;
+    }
+
+    private boolean tryStopHandle(ProcessHandle handle, boolean force)
+    {
+        if (handle == null || !handle.isAlive()) {
+            return false;
+        }
+        try {
+            if (force) {
+                handle.destroyForcibly();
+            }
+            else {
+                handle.destroy();
+            }
+            waitExit(handle, 1200);
+            return true;
+        }
+        catch (Exception e) {
+            log.debug("Failed to stop pid={} force={}", handle.pid(), force, e);
+            return false;
+        }
+    }
+
+    private void waitExit(ProcessHandle handle, long millis)
+    {
+        try {
+            handle.onExit().get(millis, TimeUnit.MILLISECONDS);
+        }
+        catch (Exception ignored) {
         }
     }
 
