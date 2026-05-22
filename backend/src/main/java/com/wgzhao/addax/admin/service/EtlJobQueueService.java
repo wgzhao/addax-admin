@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -213,5 +215,42 @@ public class EtlJobQueueService
     public void truncateQueueExceptRunningTasks()
     {
         jobRepo.deleteByStatusNot("running");
+    }
+
+    /**
+     * Release all running tasks claimed by a specific worker instance.
+     * Called when master detects a worker has disappeared between dispatch cycles.
+     */
+    @Transactional
+    public int releaseClaimedByInstance(String instanceId)
+    {
+        String sql = """
+                UPDATE public.etl_job_queue
+                SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL
+                WHERE status='running' AND claimed_by=?
+            """;
+        return jdbcTemplate.update(sql, instanceId);
+    }
+
+    /**
+     * Release running tasks whose claimed_by is not in the provided alive worker set.
+     * Called once on master startup (after waiting for workers to re-register) to recover
+     * tasks that were claimed by nodes that never came back.
+     * If aliveInstanceIds is empty, ALL running tasks are released (entire cluster was restarted).
+     */
+    @Transactional
+    public int releaseOrphanedJobs(Set<String> aliveInstanceIds)
+    {
+        if (aliveInstanceIds.isEmpty()) {
+            String sql = """
+                    UPDATE public.etl_job_queue
+                    SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL
+                    WHERE status='running'
+                """;
+            return jdbcTemplate.update(sql);
+        }
+        String placeholders = aliveInstanceIds.stream().map(id -> "?").collect(Collectors.joining(", "));
+        String sql = "UPDATE public.etl_job_queue SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL WHERE status='running' AND claimed_by NOT IN (" + placeholders + ")";
+        return jdbcTemplate.update(sql, aliveInstanceIds.toArray());
     }
 }
