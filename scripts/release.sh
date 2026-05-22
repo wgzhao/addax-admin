@@ -10,12 +10,13 @@ if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   exit 1
 fi
 
-# 同步更新两个版本文件
+# 同步更新三个版本文件
 mvn -q versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
 npm pkg set version="$VERSION"
+npm pkg set version="$VERSION" --prefix frontend
 
 # 单次提交
-git add pom.xml package.json
+git add pom.xml package.json frontend/package.json
 git commit -m "chore: release v$VERSION"
 git tag "v$VERSION"
 
