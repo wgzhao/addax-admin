@@ -411,20 +411,33 @@ public class TaskQueueManagerV2Impl
 
             EtlJobQueue job = maybe.get();
 
-            // Check source-level concurrency via worker's heartbeat data
+            // Check 1: global node concurrency limit
+            if (selected.worker.running() >= selected.worker.concurrentLimit()) {
+                log.warn("Check1 global limit reached for worker {}: running={} >= limit={}, releasing job {}",
+                    selected.worker.instanceId(), selected.worker.running(), selected.worker.concurrentLimit(), job.getId());
+                jobQueueService.releaseClaim(job.getId(), 5);
+                selected.slots = 0;
+                continue;
+            }
+
+            // Check 2: source-level concurrency limit, with global limit as upper bound
             EtlTable table = tableService.getTable(job.getTid());
             if (table != null) {
                 VwEtlTableWithSource source = tableService.getTableView(table.getId());
                 if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
-                    int effectiveLimit = Math.max(1, (int) Math.floor(source.getMaxConcurrency() * selected.worker.weight()));
-                    int workerSrcRunning = selected.worker.sourceRunning().getOrDefault(table.getSid(), 0);
+                    int effectiveLimit = Math.max(1, Math.min(
+                        (int) Math.floor(source.getMaxConcurrency() * selected.worker.weight()),
+                        selected.worker.concurrentLimit()
+                    ));
+                    int workerSrcRunning = selected.sourceRunning(table.getSid());
                     if (workerSrcRunning >= effectiveLimit) {
-                        log.debug("Source {} concurrency limit reached for worker {}, releasing job {}",
-                            source.getCode(), selected.worker.instanceId(), job.getId());
+                        log.warn("Check2 source limit reached: source={} sid={} worker={}, job={} cycleRunning={} heartbeatRunning={} effectiveLimit={}",
+                            source.getCode(), table.getSid(), selected.worker.instanceId(), job.getId(),
+                            selected.cycleSourceRunning.getOrDefault(table.getSid(), 0),
+                            selected.worker.sourceRunning().getOrDefault(table.getSid(), 0),
+                            effectiveLimit);
                         jobQueueService.releaseClaim(job.getId(), 5);
                         try { tableService.setWaiting(table); } catch (Exception ignored) {}
-                        // Zero out this worker's slot so SWRR won't select it again this cycle;
-                        // a fresh dispatch cycle will re-evaluate once heartbeat is updated
                         selected.slots = 0;
                         continue;
                     }
@@ -436,8 +449,15 @@ public class TaskQueueManagerV2Impl
                 String assignPayload = objectMapper.writeValueAsString(job);
                 String channel = TASK_ASSIGN_CHANNEL_PREFIX + selected.worker.instanceId();
                 stringRedisTemplate.convertAndSend(channel, assignPayload);
-                log.info("Assigned job {} (tid={}) to worker {}", job.getId(), job.getTid(), selected.worker.instanceId());
-                selected.slots--; // deduct in-cycle to avoid over-dispatching to same worker
+                log.info("Assigned job {} (tid={}) to worker {} [source sid={} cycleRunning={}, globalRunning={}/{}]",
+                    job.getId(), job.getTid(), selected.worker.instanceId(),
+                    table != null ? table.getSid() : "-",
+                    table != null ? selected.cycleSourceRunning.getOrDefault(table.getSid(), 0) : "-",
+                    selected.worker.running(), selected.worker.concurrentLimit());
+                selected.slots--;
+                if (table != null) {
+                    selected.incrementSource(table.getSid()); // track in-cycle source assignment
+                }
             }
             catch (Exception e) {
                 log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.worker.instanceId(), e);
@@ -489,11 +509,25 @@ public class TaskQueueManagerV2Impl
     {
         final WorkerHeartbeatService.WorkerInfo worker;
         int slots;
+        // Track per-source assigned count within this dispatch cycle to prevent over-dispatching
+        // before the next heartbeat updates the stale sourceRunning snapshot.
+        final Map<Integer, Integer> cycleSourceRunning = new HashMap<>();
 
         WorkerSlot(WorkerHeartbeatService.WorkerInfo worker, int slots)
         {
             this.worker = worker;
             this.slots = slots;
+        }
+
+        int sourceRunning(int sid)
+        {
+            return worker.sourceRunning().getOrDefault(sid, 0)
+                + cycleSourceRunning.getOrDefault(sid, 0);
+        }
+
+        void incrementSource(int sid)
+        {
+            cycleSourceRunning.merge(sid, 1, Integer::sum);
         }
     }
 

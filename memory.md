@@ -141,3 +141,70 @@ master-worker 架构迁移完成后，对全部调度相关代码进行综合 re
 2. 上一轮修复改为 `WHERE rn = 1 OR rn IS NULL`：修复了首次运行场景，但忽略了 LEFT JOIN 条件 `and t.status in ('R','W')` 会让非 R/W 表 rn=NULL，导致全表都被返回
 
 正确做法：外层加 `t.status IN ('R','W')` 过滤，内层保留 `OR rn IS NULL` 覆盖首次运行场景。
+
+---
+
+# 并发控制 Bug 修复
+
+> Date: 2026-05-23
+> Branch: `fix/concurrency-control-limit`
+> Build: ✅ BUILD SUCCESS（人工验证通过）
+
+## 背景
+
+master-worker 架构迁移后，`masterDispatch()` 中对采集源并发数的控制存在两个 bug，导致实际分配给节点的任务数超过 `etl_source.max_concurrency` 定义的上限。
+
+## Bug 清单
+
+| # | 严重等级 | 问题描述 | 涉及文件 | 修复方式 |
+|---|---------|---------|---------|----------|
+| 1 | 🔴 高 | 缺少全局节点并发检查：`masterDispatch()` 只检查采集源级限制，从未检查节点的 `CONCURRENT_LIMIT * weight` 上限，导致单节点运行任务数可无上限溢出 | `TaskQueueManagerV2Impl.java` | 在 Check 2 之前增加 Check 1：`worker.running >= worker.concurrentLimit` 时释放任务并跳过该 worker |
+| 2 | 🔴 高 | 采集源并发公式忽略全局上界：原公式 `effectiveLimit = source.maxConcurrency * weight`，当 `max_concurrency` 远大于 `CONCURRENT_LIMIT` 时，计算结果严重超限 | `TaskQueueManagerV2Impl.java` | 修正为 `effectiveLimit = min(source.maxConcurrency * weight, concurrentLimit)`，等价于 `min(source.max, CONCURRENT_LIMIT) * weight` |
+| 3 | 🔴 高 | 心跳快照陈旧导致单次 dispatch 周期内采集源并发超发：`masterDispatch()` 的 `while(true)` 内，每轮检查的 `sourceRunning` 均来自同一个心跳快照（最多 15 秒前），本轮已分配的任务数对下一次循环不可见，同一采集源可被无限分配 | `TaskQueueManagerV2Impl.java` | 在 `WorkerSlot` 内新增 `cycleSourceRunning` map 作为本轮增量计数器；`sourceRunning(sid)` 方法返回心跳快照值 + 本轮已分配数；每次分配成功后调用 `incrementSource(sid)` 递增 |
+
+## 关键设计说明
+
+### 两层并发控制
+
+```
+Check 1（节点级）: worker.running >= CONCURRENT_LIMIT * weight
+    → 触发时释放任务，zeroing worker slot，整个 worker 本轮不再接收任务
+
+Check 2（采集源级）: sourceRunning(sid) >= min(source.maxConcurrency, CONCURRENT_LIMIT) * weight
+    sourceRunning(sid) = heartbeat.sourceRunning[sid]   ← 心跳快照（跨 dispatch 周期）
+                       + cycleSourceRunning[sid]        ← 本轮增量（当前 dispatch 周期内）
+    → 触发时释放任务，zeroing worker slot，该 worker 本轮不再接收任务
+```
+
+### 并发公式等价推导
+
+```
+min(source.maxConcurrency, CONCURRENT_LIMIT) * weight
+= min(source.maxConcurrency * weight, CONCURRENT_LIMIT * weight)
+= min(source.maxConcurrency * weight, concurrentLimit)   ← concurrentLimit 已是加权后的值
+```
+
+因此实现中直接使用 `Math.min(floor(source.maxConcurrency * weight), concurrentLimit)`，不需要存储或反推原始 `CONCURRENT_LIMIT`。
+
+## 修改文件
+
+| 文件 | 改动内容 |
+|------|----------|
+| `service/impl/TaskQueueManagerV2Impl.java` | 新增 Check 1 全局限制检查；修正 Check 2 公式；`WorkerSlot` 增加 `cycleSourceRunning` + `sourceRunning()` + `incrementSource()`；限流日志改为 `warn` 级别并携带诊断字段 |
+
+## 验证方式
+
+通过日志过滤验证：
+
+```bash
+# 正常分配（info）：cycleRunning 应逐步递增，不超过 effectiveLimit
+grep "Assigned job" app.log
+
+# 限流触发（warn）：cycleRunning == effectiveLimit 时出现
+grep "Check1\|Check2" app.log
+```
+
+限流日志示例（`warn`）：
+```
+Check2 source limit reached: source=SRC_A sid=7 worker=host-a, job=104 cycleRunning=3 heartbeatRunning=0 effectiveLimit=3
+```
