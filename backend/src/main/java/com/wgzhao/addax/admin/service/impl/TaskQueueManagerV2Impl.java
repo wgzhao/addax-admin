@@ -94,6 +94,7 @@ public class TaskQueueManagerV2Impl
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
     private static final int DEFAULT_LEASE_SECONDS = 7300;
     private static final int HEARTBEAT_INTERVAL_SECONDS = 15;
+    private static final int PENDING_JOB_PEEK_LIMIT = 200;
     // Redis channel for task assignment: master → worker
     private static final String TASK_ASSIGN_CHANNEL_PREFIX = "addax:task:assign:";
 
@@ -418,50 +419,25 @@ public class TaskQueueManagerV2Impl
                 return new WorkerSlot(ledger);
             })
             .collect(Collectors.toCollection(java.util.ArrayList::new));
+        List<EtlJobQueue> pendingJobs = jobQueueService.peekPendingJobs(PENDING_JOB_PEEK_LIMIT);
+        if (pendingJobs.isEmpty()) {
+            return;
+        }
 
+        Set<Long> consumedJobIds = new HashSet<>();
         while (true) {
             WorkerSlot selected = selectWorkerSwrr(slots);
             if (selected == null) return; // all workers have no available slots
 
-            Optional<EtlJobQueue> maybe = jobQueueService.assignToWorker(selected.instanceId(), DEFAULT_LEASE_SECONDS);
-            if (maybe.isEmpty()) return; // no more pending jobs
-
-            EtlJobQueue job = maybe.get();
-
-            // Check 1: global node concurrency limit
-            if (selected.running() >= selected.concurrentLimit()) {
-                log.warn("Check1 global limit reached for worker {}: running={} >= limit={}, releasing job {}",
-                    selected.instanceId(), selected.running(), selected.concurrentLimit(), job.getId());
-                jobQueueService.releaseClaim(job.getId(), 5);
+            Optional<JobClaim> maybe = findClaimableJobForWorker(selected, pendingJobs, consumedJobIds);
+            if (maybe.isEmpty()) {
                 selected.slots = 0;
                 continue;
             }
 
-            // Check 2: source-level concurrency limit, with global limit as upper bound
-            EtlTable table = tableService.getTable(job.getTid());
-            Integer trackedSid = null;
-            if (table != null) {
-                VwEtlTableWithSource source = tableService.getTableView(table.getId());
-                if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
-                    int effectiveLimit = Math.max(1, Math.min(
-                        (int) Math.floor(source.getMaxConcurrency() * selected.weight()),
-                        selected.concurrentLimit()
-                    ));
-                    int workerSrcRunning = selected.sourceRunning(table.getSid());
-                    if (workerSrcRunning >= effectiveLimit) {
-                        log.warn("Check2 source limit reached: source={} sid={} worker={}, job={} effectiveRunning={} heartbeatRunning={} effectiveLimit={}",
-                            source.getCode(), table.getSid(), selected.instanceId(), job.getId(),
-                            workerSrcRunning,
-                            selected.heartbeatRunning(),
-                            effectiveLimit);
-                        jobQueueService.releaseClaim(job.getId(), 5);
-                        try { tableService.setWaiting(table); } catch (Exception ignored) {}
-                        selected.slots = 0;
-                        continue;
-                    }
-                    trackedSid = table.getSid();
-                }
-            }
+            JobClaim claim = maybe.get();
+            EtlJobQueue job = claim.job();
+            Integer trackedSid = claim.trackedSid();
 
             // Publish job to worker's channel
             try {
@@ -473,16 +449,80 @@ public class TaskQueueManagerV2Impl
                 selected.reserve(trackedSid);
                 log.info("Assigned job {} (tid={}) to worker {} [source sid={} sourceRunning={} globalRunning={}/{}]",
                     job.getId(), job.getTid(), selected.instanceId(),
-                    table != null ? table.getSid() : "-",
-                    trackedSid != null ? sourceRunningBefore : "-",
+                    trackedSid != null ? String.valueOf(trackedSid) : "-",
+                    trackedSid != null ? String.valueOf(sourceRunningBefore) : "-",
                     runningBefore, selected.concurrentLimit());
                 selected.slots--;
+                consumedJobIds.add(job.getId());
             }
             catch (Exception e) {
                 log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.instanceId(), e);
+                consumedJobIds.add(job.getId());
                 try { jobQueueService.releaseClaim(job.getId(), 5); } catch (Exception ignored) {}
             }
         }
+    }
+
+    /**
+     * Find the first pending job that is still feasible for the selected worker and claim it atomically.
+     */
+    private Optional<JobClaim> findClaimableJobForWorker(WorkerSlot selected,
+                                                         List<EtlJobQueue> candidates,
+                                                         Set<Long> consumedJobIds)
+    {
+        for (EtlJobQueue candidate : candidates) {
+            long jobId = candidate.getId();
+            if (consumedJobIds.contains(jobId)) {
+                continue;
+            }
+
+            JobCheck check = assessJobForWorker(selected, candidate);
+            if (!check.assignable()) {
+                continue;
+            }
+
+            Optional<EtlJobQueue> claimed = jobQueueService.assignSpecificJobToWorker(
+                jobId, selected.instanceId(), DEFAULT_LEASE_SECONDS);
+            if (claimed.isPresent()) {
+                consumedJobIds.add(jobId);
+                return Optional.of(new JobClaim(claimed.get(), check.trackedSid()));
+            }
+
+            consumedJobIds.add(jobId);
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Check whether the current worker ledger can still accept this job without claiming it first.
+     */
+    private JobCheck assessJobForWorker(WorkerSlot selected, EtlJobQueue job)
+    {
+        if (selected.running() >= selected.concurrentLimit()) {
+            return new JobCheck(false, null);
+        }
+
+        EtlTable table = tableService.getTable(job.getTid());
+        if (table == null) {
+            return new JobCheck(true, null);
+        }
+
+        VwEtlTableWithSource source = tableService.getTableView(table.getId());
+        if (source == null || source.getMaxConcurrency() == null || source.getMaxConcurrency() <= 0) {
+            return new JobCheck(true, null);
+        }
+
+        int effectiveLimit = Math.max(1, Math.min(
+            (int) Math.floor(source.getMaxConcurrency() * selected.weight()),
+            selected.concurrentLimit()
+        ));
+        int workerSrcRunning = selected.sourceRunning(table.getSid());
+        if (workerSrcRunning >= effectiveLimit) {
+            return new JobCheck(false, null);
+        }
+
+        return new JobCheck(true, table.getSid());
     }
 
     /**
@@ -521,6 +561,14 @@ public class TaskQueueManagerV2Impl
         swrrCurrentWeight.merge(selected.instanceId(), -totalWeight, Double::sum);
 
         return selected;
+    }
+
+    private record JobClaim(EtlJobQueue job, Integer trackedSid)
+    {
+    }
+
+    private record JobCheck(boolean assignable, Integer trackedSid)
+    {
     }
 
     /** Worker capacity snapshot backed by the master's authoritative ledger. */
