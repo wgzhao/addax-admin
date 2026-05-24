@@ -208,3 +208,39 @@ grep "Check1\|Check2" app.log
 ```
 Check2 source limit reached: source=SRC_A sid=7 worker=host-a, job=104 cycleRunning=3 heartbeatRunning=0 effectiveLimit=3
 ```
+
+## 未修复项
+
+| # | 问题 | 建议 |
+|---|------|------|
+| 1 | SWRR 在 worker 动态进出时存在轻微 burst/starvation：满载期间 `currentWeight` 无上限累积，恢复后会被连续多选（burst）；若改为只对有 slot 的 worker 累加则反而导致长期不被选中（starvation）。可通过在 Step 1 累加后将 `currentWeight` 钳制在 `totalWeight` 以内修复 | 仅在各节点 `weight` 不同时有影响；默认场景下所有节点 `weight=1.0`，SWRR 退化为 Round-Robin，burst/starvation 不存在，暂不处理 |
+
+---
+
+# 并发控制权威账本修复
+
+> Date: 2026-05-24
+> Branch: `fix/concurrency-control-limit`
+> Build: ✅ `mvn -q -DskipTests -pl backend clean package`
+
+## 背景
+
+master-worker 模式下，`masterDispatch()` 依赖 heartbeat 快照做并发判断，心跳间隔与调度周期不一致，导致跨多个 dispatch 周期累计超发。
+
+## 本次修复
+
+| 文件 | 改动内容 |
+|------|----------|
+| `backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java` | 在 master 侧增加 worker ledger；调度时使用 ledger 作为权威并发账本；分配成功后立即更新本地计数；heartbeat 仅用于对账/纠偏；保留现有 SWRR 选择逻辑 |
+
+## 验证结果
+
+- `effectiveLimit=20` 的 source，`etl01` 触发限流时 `effectiveRunning=20`
+- `effectiveLimit=12` 的 source，`etl02` 触发限流时 `effectiveRunning=12`
+- 未观察到超过源级并发上限的日志
+- `heartbeatRunning` 明显滞后于 `effectiveRunning`，符合“master ledger + heartbeat 对账”的设计
+
+## 当前已知副作用
+
+- 仍存在“先 claim 再 release”的抖动：任务先被 `assignToWorker()` claim，再在 Check1/Check2 里释放回队列
+- 这是下一步要优化的流程问题，不属于本次 bug 修复范围

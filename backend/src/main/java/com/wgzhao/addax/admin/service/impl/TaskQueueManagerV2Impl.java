@@ -32,8 +32,10 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -138,6 +141,8 @@ public class TaskQueueManagerV2Impl
 
     // SWRR state: master-only, tracks accumulated weight per worker between dispatch cycles
     private final ConcurrentHashMap<String, Double> swrrCurrentWeight = new ConcurrentHashMap<>();
+    // Master-side worker capacity ledger between heartbeat snapshots
+    private final ConcurrentHashMap<String, WorkerLedger> workerLedgers = new ConcurrentHashMap<>();
     // Tracks alive workers seen in the previous dispatch cycle for dead-worker detection
     private final Set<String> knownWorkerIds = new HashSet<>();
 
@@ -201,6 +206,7 @@ public class TaskQueueManagerV2Impl
     private void onBecameMaster()
     {
         log.info("Became master — starting dispatch loop");
+        workerLedgers.clear();
         knownWorkerIds.clear();
         // Wait 2× heartbeat interval for workers to re-register, then release orphaned tasks
         if (orphanRecoverFuture != null) orphanRecoverFuture.cancel(false);
@@ -212,6 +218,7 @@ public class TaskQueueManagerV2Impl
     {
         log.info("Lost master role — pausing dispatch (workers continue executing current tasks)");
         swrrCurrentWeight.clear();
+        workerLedgers.clear();
         knownWorkerIds.clear();
         if (orphanRecoverFuture != null) {
             orphanRecoverFuture.cancel(false);
@@ -396,25 +403,35 @@ public class TaskQueueManagerV2Impl
         // Clean up SWRR state for workers that are no longer alive
         swrrCurrentWeight.keySet().retainAll(currentWorkerIds);
 
-        // Mutable per-cycle slot snapshot to prevent over-dispatching within one cycle
-        // (heartbeat data is stale by up to HEARTBEAT_INTERVAL_SECONDS)
+        // Reconcile the master's capacity ledger with the latest heartbeat snapshot.
+        // The ledger is mutated on every successful assignment, so dispatch cycles do not
+        // depend on heartbeat freshness alone.
         List<WorkerSlot> slots = workers.stream()
-            .map(w -> new WorkerSlot(w, w.availableSlots()))
+            .map(w -> {
+                WorkerLedger ledger = workerLedgers.compute(w.instanceId(), (id, existing) -> {
+                    if (existing == null) {
+                        return new WorkerLedger(w);
+                    }
+                    existing.reconcile(w);
+                    return existing;
+                });
+                return new WorkerSlot(ledger);
+            })
             .collect(Collectors.toCollection(java.util.ArrayList::new));
 
         while (true) {
             WorkerSlot selected = selectWorkerSwrr(slots);
             if (selected == null) return; // all workers have no available slots
 
-            Optional<EtlJobQueue> maybe = jobQueueService.assignToWorker(selected.worker.instanceId(), DEFAULT_LEASE_SECONDS);
+            Optional<EtlJobQueue> maybe = jobQueueService.assignToWorker(selected.instanceId(), DEFAULT_LEASE_SECONDS);
             if (maybe.isEmpty()) return; // no more pending jobs
 
             EtlJobQueue job = maybe.get();
 
             // Check 1: global node concurrency limit
-            if (selected.worker.running() >= selected.worker.concurrentLimit()) {
+            if (selected.running() >= selected.concurrentLimit()) {
                 log.warn("Check1 global limit reached for worker {}: running={} >= limit={}, releasing job {}",
-                    selected.worker.instanceId(), selected.worker.running(), selected.worker.concurrentLimit(), job.getId());
+                    selected.instanceId(), selected.running(), selected.concurrentLimit(), job.getId());
                 jobQueueService.releaseClaim(job.getId(), 5);
                 selected.slots = 0;
                 continue;
@@ -422,45 +439,47 @@ public class TaskQueueManagerV2Impl
 
             // Check 2: source-level concurrency limit, with global limit as upper bound
             EtlTable table = tableService.getTable(job.getTid());
+            Integer trackedSid = null;
             if (table != null) {
                 VwEtlTableWithSource source = tableService.getTableView(table.getId());
                 if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
                     int effectiveLimit = Math.max(1, Math.min(
-                        (int) Math.floor(source.getMaxConcurrency() * selected.worker.weight()),
-                        selected.worker.concurrentLimit()
+                        (int) Math.floor(source.getMaxConcurrency() * selected.weight()),
+                        selected.concurrentLimit()
                     ));
                     int workerSrcRunning = selected.sourceRunning(table.getSid());
                     if (workerSrcRunning >= effectiveLimit) {
-                        log.warn("Check2 source limit reached: source={} sid={} worker={}, job={} cycleRunning={} heartbeatRunning={} effectiveLimit={}",
-                            source.getCode(), table.getSid(), selected.worker.instanceId(), job.getId(),
-                            selected.cycleSourceRunning.getOrDefault(table.getSid(), 0),
-                            selected.worker.sourceRunning().getOrDefault(table.getSid(), 0),
+                        log.warn("Check2 source limit reached: source={} sid={} worker={}, job={} effectiveRunning={} heartbeatRunning={} effectiveLimit={}",
+                            source.getCode(), table.getSid(), selected.instanceId(), job.getId(),
+                            workerSrcRunning,
+                            selected.heartbeatRunning(),
                             effectiveLimit);
                         jobQueueService.releaseClaim(job.getId(), 5);
                         try { tableService.setWaiting(table); } catch (Exception ignored) {}
                         selected.slots = 0;
                         continue;
                     }
+                    trackedSid = table.getSid();
                 }
             }
 
             // Publish job to worker's channel
             try {
                 String assignPayload = objectMapper.writeValueAsString(job);
-                String channel = TASK_ASSIGN_CHANNEL_PREFIX + selected.worker.instanceId();
+                String channel = TASK_ASSIGN_CHANNEL_PREFIX + selected.instanceId();
+                int runningBefore = selected.running();
+                int sourceRunningBefore = trackedSid != null ? selected.sourceRunning(trackedSid) : -1;
                 stringRedisTemplate.convertAndSend(channel, assignPayload);
-                log.info("Assigned job {} (tid={}) to worker {} [source sid={} cycleRunning={}, globalRunning={}/{}]",
-                    job.getId(), job.getTid(), selected.worker.instanceId(),
+                selected.reserve(trackedSid);
+                log.info("Assigned job {} (tid={}) to worker {} [source sid={} sourceRunning={} globalRunning={}/{}]",
+                    job.getId(), job.getTid(), selected.instanceId(),
                     table != null ? table.getSid() : "-",
-                    table != null ? selected.cycleSourceRunning.getOrDefault(table.getSid(), 0) : "-",
-                    selected.worker.running(), selected.worker.concurrentLimit());
+                    trackedSid != null ? sourceRunningBefore : "-",
+                    runningBefore, selected.concurrentLimit());
                 selected.slots--;
-                if (table != null) {
-                    selected.incrementSource(table.getSid()); // track in-cycle source assignment
-                }
             }
             catch (Exception e) {
-                log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.worker.instanceId(), e);
+                log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.instanceId(), e);
                 try { jobQueueService.releaseClaim(job.getId(), 5); } catch (Exception ignored) {}
             }
         }
@@ -477,11 +496,11 @@ public class TaskQueueManagerV2Impl
     {
         if (slots.isEmpty()) return null;
 
-        double totalWeight = slots.stream().mapToDouble(s -> s.worker.weight()).sum();
+        double totalWeight = slots.stream().mapToDouble(WorkerSlot::weight).sum();
 
         // Step 1: every worker accumulates its configured weight
         for (WorkerSlot s : slots) {
-            swrrCurrentWeight.merge(s.worker.instanceId(), s.worker.weight(), Double::sum);
+            swrrCurrentWeight.merge(s.instanceId(), s.weight(), Double::sum);
         }
 
         // Step 2: select the worker with the highest accumulated weight that has a free slot
@@ -489,7 +508,7 @@ public class TaskQueueManagerV2Impl
         double maxCw = Double.NEGATIVE_INFINITY;
         for (WorkerSlot s : slots) {
             if (s.slots <= 0) continue;
-            double cw = swrrCurrentWeight.getOrDefault(s.worker.instanceId(), 0.0);
+            double cw = swrrCurrentWeight.getOrDefault(s.instanceId(), 0.0);
             if (cw > maxCw) {
                 maxCw = cw;
                 selected = s;
@@ -499,36 +518,138 @@ public class TaskQueueManagerV2Impl
         if (selected == null) return null;
 
         // Step 3: deduct total weight from the selected worker
-        swrrCurrentWeight.merge(selected.worker.instanceId(), -totalWeight, Double::sum);
+        swrrCurrentWeight.merge(selected.instanceId(), -totalWeight, Double::sum);
 
         return selected;
     }
 
-    /** Per-cycle mutable slot tracker to prevent over-dispatching within a single masterDispatch() call. */
+    /** Worker capacity snapshot backed by the master's authoritative ledger. */
     private static final class WorkerSlot
     {
-        final WorkerHeartbeatService.WorkerInfo worker;
+        final WorkerLedger ledger;
         int slots;
-        // Track per-source assigned count within this dispatch cycle to prevent over-dispatching
-        // before the next heartbeat updates the stale sourceRunning snapshot.
-        final Map<Integer, Integer> cycleSourceRunning = new HashMap<>();
 
-        WorkerSlot(WorkerHeartbeatService.WorkerInfo worker, int slots)
+        WorkerSlot(WorkerLedger ledger)
         {
-            this.worker = worker;
-            this.slots = slots;
+            this.ledger = ledger;
+            this.slots = ledger.availableSlots();
+        }
+
+        String instanceId()
+        {
+            return ledger.instanceId();
+        }
+
+        double weight()
+        {
+            return ledger.weight();
+        }
+
+        int running()
+        {
+            return ledger.running();
+        }
+
+        int heartbeatRunning()
+        {
+            return ledger.heartbeatRunning();
+        }
+
+        int concurrentLimit()
+        {
+            return ledger.concurrentLimit();
         }
 
         int sourceRunning(int sid)
         {
-            return worker.sourceRunning().getOrDefault(sid, 0)
-                + cycleSourceRunning.getOrDefault(sid, 0);
+            return ledger.sourceRunning(sid);
         }
 
-        void incrementSource(int sid)
+        void reserve(Integer sid)
         {
-            cycleSourceRunning.merge(sid, 1, Integer::sum);
+            ledger.reserve(sid);
         }
+    }
+
+    private static final class WorkerLedger
+    {
+        private WorkerHeartbeatService.WorkerInfo heartbeat;
+        private Instant heartbeatSeenAt;
+        private int reservedRunning;
+        private final Map<Integer, Integer> reservedSourceRunning = new HashMap<>();
+        private final Deque<Reservation> reservations = new ArrayDeque<>();
+
+        WorkerLedger(WorkerHeartbeatService.WorkerInfo heartbeat)
+        {
+            this.heartbeat = heartbeat;
+            this.heartbeatSeenAt = heartbeat.lastSeen();
+        }
+
+        synchronized void reconcile(WorkerHeartbeatService.WorkerInfo info)
+        {
+            if (heartbeatSeenAt != null && !info.lastSeen().isAfter(heartbeatSeenAt)) {
+                return;
+            }
+            heartbeat = info;
+            heartbeatSeenAt = info.lastSeen();
+            while (!reservations.isEmpty() && !reservations.peekFirst().reservedAt().isAfter(heartbeatSeenAt)) {
+                Reservation reservation = reservations.removeFirst();
+                reservedRunning = Math.max(0, reservedRunning - 1);
+                if (reservation.sid() != null) {
+                    reservedSourceRunning.computeIfPresent(reservation.sid(), (k, v) -> v <= 1 ? null : v - 1);
+                }
+            }
+        }
+
+        synchronized String instanceId()
+        {
+            return heartbeat.instanceId();
+        }
+
+        synchronized double weight()
+        {
+            return heartbeat.weight();
+        }
+
+        synchronized int concurrentLimit()
+        {
+            return heartbeat.concurrentLimit();
+        }
+
+        synchronized int heartbeatRunning()
+        {
+            return heartbeat.running();
+        }
+
+        synchronized int running()
+        {
+            return heartbeat.running() + reservedRunning;
+        }
+
+        synchronized int availableSlots()
+        {
+            return Math.max(0, concurrentLimit() - running());
+        }
+
+        synchronized int sourceRunning(int sid)
+        {
+            return heartbeat.sourceRunning().getOrDefault(sid, 0)
+                + reservedSourceRunning.getOrDefault(sid, 0);
+        }
+
+        synchronized void reserve(Integer sid)
+        {
+            Reservation reservation = new Reservation(sid, Instant.now());
+            reservations.addLast(reservation);
+            reservedRunning++;
+            if (sid != null) {
+                reservedSourceRunning.merge(sid, 1, Integer::sum);
+            }
+        }
+    }
+
+    private record Reservation(Integer sid, Instant reservedAt)
+    {
     }
 
     private void triggerDispatchAsync()
