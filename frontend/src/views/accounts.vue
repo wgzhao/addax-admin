@@ -23,7 +23,7 @@
           :headers="headers"
           :search="searchValue"
           item-key="username"
-          density="compact"
+          density="default"
           class="elevation-1"
         >
           <template #item.enabled="{ item }">
@@ -54,7 +54,7 @@
                 <v-icon color="success">mdi-play-circle</v-icon>
               </v-btn>
               <v-btn icon size="small" @click="removeUser(item)" title="删除">
-                <v-icon color="red">mdi-delete</v-icon>
+                <v-icon color="error">mdi-delete</v-icon>
               </v-btn>
             </div>
           </template>
@@ -270,3 +270,14 @@
     gap: 4px;
   }
 </style>
+
+<route lang="json">
+{
+  "meta": {
+    "title": "账号管理",
+    "icon": "mdi-account-group-outline",
+    "requiresAuth": true,
+    "navHidden": true
+  }
+}
+</route>

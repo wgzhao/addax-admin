@@ -218,7 +218,9 @@ onUnmounted(() => {
   "meta": {
     "title": "集群状态",
     "icon": "mdi-server-network",
-    "requiresAuth": true
+    "requiresAuth": true,
+    "navGroup": "systemManage",
+    "navOrder": 40
   }
 }
 </route>

@@ -21,7 +21,7 @@
         </div>
         <v-divider />
         <div class="section-body">
-          <v-data-table-virtual v-if="tid" :items="results" :headers="headers" density="compact" class="elevation-1">
+          <v-data-table-virtual v-if="tid" :items="results" :headers="headers" density="default" class="elevation-1">
           </v-data-table-virtual>
         </div>
       </v-sheet>

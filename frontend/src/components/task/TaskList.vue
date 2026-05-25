@@ -4,9 +4,9 @@
       <v-icon>mdi-refresh</v-icon>
     </v-btn>
   </v-row>
-  <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="compact" :loading="loading">
+  <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="default" :loading="loading">
     <template v-slot:item.status="{ item }">
-      <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold" text-color="white">
+      <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
         {{ getStatusText(item.status) }}
       </v-chip>
     </template>
@@ -14,7 +14,7 @@
       <v-progress-linear :model-value="parseProgress(item.progress)" height="16" color="primary" striped rounded
         style="min-width: 80px">
         <template #default>
-          <span style="font-size: 12px; color: #333">{{ parseProgress(item.progress) }}%</span>
+          <span style="font-size: 12px; color: rgba(var(--v-theme-on-surface), 0.88)">{{ parseProgress(item.progress) }}%</span>
         </template>
       </v-progress-linear>
     </template>
@@ -142,10 +142,10 @@ onUnmounted(() => {
 })
 
 function getStatusColor(status: string) {
-  if (status === 'E') return 'red'
-  if (status === 'R') return 'blue'
-  if (status === 'W') return 'orange'
-  return 'grey'
+  if (status === 'E') return 'error'
+  if (status === 'R') return 'info'
+  if (status === 'W') return 'warning'
+  return 'secondary'
 }
 function getStatusText(status: string) {
   if (status === 'E') return '错误'

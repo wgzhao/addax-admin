@@ -1,13 +1,54 @@
-html {
-    line-height: 1.6; /* 默认行高 */
-  }
-  
-  body {
-    font-family: inherit;
-  }
+html,
+body,
+#app,
+.v-application {
+  line-height: 1.6;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
 
-// 表格选中行样式
-/* 取消 :has 以减少复杂选择器带来的回流成本，改为在行上添加 selected-row 类 */
+.v-application {
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.08);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.12);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.2);
+  --ds-surface-raised: rgb(var(--v-theme-surface));
+}
+
+.v-theme--dark {
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.16);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.22);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.32);
+}
+
+input,
+button,
+textarea,
+select,
+.v-btn,
+.v-label,
+.v-input {
+  font-family: inherit;
+}
+
+.v-application,
+.v-application .v-card-text,
+.v-application .text-body-1,
+.v-application .v-list-item-title,
+.v-application .v-list-item-subtitle {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.v-application .text-body-2,
+.v-application .text-caption {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .selected-row {
   background-color: rgba(var(--v-theme-primary), 0.08) !important;
   border-left: 3px solid rgb(var(--v-theme-primary)) !important;
@@ -17,15 +58,13 @@ html {
   background-color: rgba(var(--v-theme-primary), 0.18) !important;
 }
 
-
-/* Reduce table cell padding to make table more compact */
 .v-data-table .v-data-table th,
 .v-data-table .v-data-table td,
 .v-data-table-server .v-data-table th,
 .v-data-table-server .v-data-table td {
-  padding: 6px 8px !important;
-  font-size: 13px;
-  line-height: 1.35;
+  padding: 10px 12px !important;
+  font-size: 15px;
+  line-height: 1.5;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -35,34 +74,37 @@ html {
   font-weight: 400;
 }
 
-/* Data table header separation */
 .v-data-table thead th,
 .v-data-table-server thead th {
   background: rgba(var(--v-theme-on-surface), 0.08);
   color: rgb(var(--v-theme-on-surface));
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.5;
 }
 
 .v-data-table thead tr,
 .v-data-table-server thead tr {
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  border-bottom: 1px solid var(--ds-border-default);
 }
 
-/* Zebra striping for data tables (light/dark theme aware) */
+.v-theme--dark .v-data-table thead tr,
+.v-theme--dark .v-data-table-server thead tr,
+.v-theme--dark .v-data-table-virtual thead tr {
+  border-bottom: 1px solid var(--ds-border-strong);
+}
+
+.v-theme--dark .v-data-table .v-table__wrapper > table > tbody > tr > td,
+.v-theme--dark .v-data-table-server .v-table__wrapper > table > tbody > tr > td,
+.v-theme--dark .v-data-table-virtual .v-table__wrapper > table > tbody > tr > td {
+  border-bottom-color: var(--ds-border-default) !important;
+}
+
 .v-data-table tbody tr:nth-child(even),
 .v-data-table-server tbody tr:nth-child(even) {
-  background: rgba(var(--v-theme-on-surface), 0.05);
+  background: rgba(var(--v-theme-on-surface), 0.04);
 }
 
-/* Tighter form fields */
-.v-text-field .v-field {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-}
-
-/* Form section containers for a calmer, less "shouty" layout */
 .form-section {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -72,7 +114,84 @@ html {
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
-/* Slightly reduce row gaps in toolbar rows */
-.v-row.mb-2.px-3.py-2 {
-  gap: 8px !important;
+.page-shell,
+.ds-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.page-header,
+.ds-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.page-title,
+.ds-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.page-subtitle {
+  margin-top: 2px;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.page-header-card,
+.toolbar-card,
+.table-card,
+.ds-card {
+  background: var(--ds-surface-raised);
+  border: 1px solid var(--ds-border-default);
+  border-radius: 14px;
+}
+
+.ds-card__content {
+  padding: 14px 16px;
+}
+
+.section-actions,
+.ds-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ds-table-wrap .v-data-table,
+.ds-table-wrap .v-data-table-server,
+.ds-table-wrap .v-data-table-virtual {
+  background: transparent;
+}
+
+.ds-dialog-overlay .v-overlay__scrim {
+  background: rgba(2, 6, 23, 0.62) !important;
+  backdrop-filter: blur(4px) saturate(86%);
+  -webkit-backdrop-filter: blur(4px) saturate(86%);
+}
+
+.ds-dialog-overlay .v-overlay__content {
+  box-shadow: 0 18px 56px rgba(0, 0, 0, 0.4);
+}
+
+.ds-dialog-overlay .v-overlay__content > * {
+  border: 1px solid var(--ds-border-strong);
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.ds-dialog-overlay .v-overlay__content .v-card-title {
+  border-bottom: 1px solid var(--ds-border-subtle);
 }

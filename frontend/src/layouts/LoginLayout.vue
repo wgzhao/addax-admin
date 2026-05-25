@@ -1,5 +1,5 @@
 <template>
-  <v-app :theme="themeName">
+  <v-app>
     <v-main>
       <v-container fluid>
         <router-view />
@@ -10,7 +10,4 @@
 </template>
 
 <script setup lang="ts">
-  import { useAppTheme } from '@/composables/useAppTheme'
-
-  const { themeName } = useAppTheme()
 </script>

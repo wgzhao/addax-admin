@@ -5,62 +5,90 @@
 </template>
 
 <script setup lang="ts">
-  import request from '@/utils/requests'
-  import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
-  // 动态组件
-  const Line = defineAsyncComponent(async () => {
-    const [{ Line }, chart] = await Promise.all([import('vue-chartjs'), import('chart.js')])
-    chart.Chart.register(
-      chart.CategoryScale,
-      chart.LinearScale,
-      chart.PointElement,
-      chart.LineElement,
-      chart.Title,
-      chart.Tooltip,
-      chart.Legend,
-      chart.Filler
-    )
-    return Line
-  })
-  import { useTheme } from 'vuetify' // Vuetify 主题钩子
+import request from '@/utils/requests'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { useTheme } from 'vuetify'
 
-  // 注册行为已在异步加载时执行
+const Line = defineAsyncComponent(async () => {
+  const [{ Line }, chart] = await Promise.all([import('vue-chartjs'), import('chart.js')])
+  chart.Chart.register(
+    chart.CategoryScale,
+    chart.LinearScale,
+    chart.PointElement,
+    chart.LineElement,
+    chart.Title,
+    chart.Tooltip,
+    chart.Legend,
+    chart.Filler
+  )
+  return Line
+})
 
-  // Vuetify 主题检测
-  const vuetifyTheme = useTheme()
-  const isDark = computed(() => vuetifyTheme.current.value.dark)
+const vuetifyTheme = useTheme()
+const isDark = computed(() => vuetifyTheme.current.value.dark)
+const themeColors = computed(() => vuetifyTheme.current.value.colors)
 
-  const last12MonthsEtlData = ref([])
-  const chartReady = ref(false)
+const normalizeColor = (value: unknown, fallback: string) => {
+  return typeof value === 'string' ? value : fallback
+}
 
-  // 计算属性：动态生成图表数据
-  const areaData = computed(() => ({
+const getColor = (name: string, fallback: string) => {
+  return normalizeColor(themeColors.value[name], fallback)
+}
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const normalized = hex.replace('#', '').trim()
+  const fullHex = normalized.length === 3
+    ? normalized.split('').map((ch) => ch + ch).join('')
+    : normalized
+
+  if (!/^[0-9a-fA-F]{6}$/.test(fullHex)) {
+    return `rgba(11, 107, 203, ${alpha})`
+  }
+
+  const intValue = Number.parseInt(fullHex, 16)
+  const r = (intValue >> 16) & 255
+  const g = (intValue >> 8) & 255
+  const b = intValue & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+const last12MonthsEtlData = ref([])
+const chartReady = ref(false)
+
+const areaData = computed(() => {
+  const primary = getColor('primary', '#0B6BCB')
+  const areaAlpha = isDark.value ? 0.2 : 0.12
+
+  return {
     labels: last12MonthsEtlData.value.map((item) => item.month),
     datasets: [
       {
         label: 'Data Collection (GiB)',
-        backgroundColor: isDark.value
-          ? 'rgba(66, 165, 245, 0.1)' // 暗模式浅蓝填充
-          : 'rgba(25, 118, 210, 0.1)', // 亮模式深蓝填充
-        borderColor: isDark.value ? '#42a5f5' : '#1976d2', // 动态线条颜色
+        backgroundColor: hexToRgba(primary, areaAlpha),
+        borderColor: primary,
         tension: 0.35,
         cubicInterpolationMode: 'monotone' as const,
         pointRadius: 3,
-        pointBackgroundColor: isDark.value ? '#42a5f5' : '#1976d2',
-        pointBorderColor: isDark.value ? '#42a5f5' : '#1976d2',
+        pointBackgroundColor: primary,
+        pointBorderColor: primary,
         pointHoverRadius: 5,
-        pointHoverBackgroundColor: isDark.value ? '#42a5f5' : '#1976d2',
-        pointHoverBorderColor: isDark.value ? '#42a5f5' : '#1976d2',
+        pointHoverBackgroundColor: primary,
+        pointHoverBorderColor: primary,
         pointHitRadius: 10,
         pointBorderWidth: 2,
         fill: true,
         data: last12MonthsEtlData.value.map((item) => item.total_gb)
       }
     ]
-  }))
+  }
+})
 
-  // 图表配置（动态主题）
-  const areaOptions = computed(() => ({
+const areaOptions = computed(() => {
+  const onSurface = getColor('on-surface', isDark.value ? '#F0F4F8' : '#171A1C')
+  const surface = getColor('surface', isDark.value ? '#010409' : '#EFF2F5')
+
+  return {
     maintainAspectRatio: false,
     layout: {
       padding: {
@@ -76,78 +104,80 @@
           display: false
         },
         ticks: {
-          color: isDark.value ? '#ffffff' : '#333333' // 暗模式白色，亮模式深灰
+          color: onSurface
         }
       },
       y: {
         grid: {
-          color: isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)' // 动态网格线
+          color: hexToRgba(onSurface, isDark.value ? 0.18 : 0.1)
         },
         ticks: {
-          color: isDark.value ? '#ffffff' : '#333333'
+          color: onSurface
         },
         title: {
           display: true,
           text: 'Data (GiB)',
-          color: isDark.value ? '#ffffff' : '#333333'
+          color: onSurface
         }
       }
     },
     plugins: {
       legend: {
-        display: false, // 显示图例
+        display: false,
         labels: {
-          color: isDark.value ? '#ffffff' : '#333333'
+          color: onSurface
         }
       },
       tooltip: {
-        // 使用官方推荐的 intersect:false + interaction 配置，而不是直接设 mode 避免 TS 类型冲突
         intersect: false,
-        backgroundColor: isDark.value ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
-        titleColor: isDark.value ? '#ffffff' : '#333333',
-        bodyColor: isDark.value ? '#ffffff' : '#333333'
+        backgroundColor: hexToRgba(surface, isDark.value ? 0.95 : 0.98),
+        borderColor: hexToRgba(onSurface, 0.2),
+        borderWidth: 1,
+        titleColor: onSurface,
+        bodyColor: onSurface
       },
       title: {
         display: false,
         text: 'Last 12 Months Data Collection',
-        color: isDark.value ? '#ffffff' : '#333333',
+        color: onSurface,
         font: {
           size: 16
         }
       }
     }
-  }))
-
-  const fetchAccumData = async () => {
-    try {
-      const res = await request.get('/dashboard/last-12m-collect-data')
-      last12MonthsEtlData.value = res
-      chartReady.value = true
-    } catch (err) {
-      console.error('Error fetching data:', err)
-    }
   }
+})
 
-  onMounted(() => {
-    fetchAccumData()
-  })
+const fetchAccumData = async () => {
+  try {
+    const res = await request.get('/dashboard/last-12m-collect-data')
+    last12MonthsEtlData.value = res
+    chartReady.value = true
+  } catch (err) {
+    console.error('Error fetching data:', err)
+  }
+}
+
+onMounted(() => {
+  fetchAccumData()
+})
 </script>
 
 <style scoped>
-  .chart-wrapper {
-    position: relative;
-    height: 400px;
-    width: 100%;
-    transition: background-color 0.3s ease;
-  }
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
 
-  .dark-mode {
-    background-color: #1e293b;
-    /* 暗模式背景 */
-  }
+.dark-mode {
+  background-color: rgb(var(--v-theme-surface-variant));
+}
 
-  .chart-wrapper:not(.dark-mode) {
-    background-color: #ffffff;
-    /* 亮模式背景 */
-  }
+.chart-wrapper:not(.dark-mode) {
+  background-color: rgb(var(--v-theme-surface));
+}
 </style>

@@ -1,20 +1,22 @@
 <template>
-  <v-card class="pa-4 sys-settings-card">
-    <v-row>
-      <v-col cols="12">
-        <h2 class="text-h4 mb-4">系统配置</h2>
-        <p class="text-body-1 text-medium-emphasis mb-6">
-          系统首次安装后，请完成以下必要的配置项以确保系统正常运行。
-        </p>
-      </v-col>
-    </v-row>
+  <div class="sys-settings-page page-shell">
+    <v-card flat class="ds-card page-header-card">
+      <v-card-text class="ds-card__content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">系统配置</div>
+            <div class="page-subtitle">系统首次安装后，请完成必要配置项，确保采集与调度正常运行。</div>
+          </div>
+        </div>
+      </v-card-text>
+    </v-card>
 
     <v-form ref="form" v-model="valid" @submit.prevent="saveSettings">
       <v-row class="section-grid stretch-row">
         <!-- 左列：基础配置 (4/12 = 33%) -->
         <v-col cols="12" md="4" class="col-stack">
           <!-- 基础系统配置 -->
-          <v-card class="mb-4 section-card" elevation="0">
+          <v-card flat class="ds-card mb-4 section-card">
             <v-card-title class="section-title">
               <v-icon class="mr-2" color="primary">mdi-cog</v-icon>
               基础系统配置
@@ -28,7 +30,7 @@
                     v-model="settings['ADDAX']"
                     placeholder="/opt/app/addax"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required]"
                   />
                 </v-col>
@@ -38,7 +40,7 @@
                     v-model="settings['HDFS_PREFIX']"
                     placeholder="/ods"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required]"
                   />
                 </v-col>
@@ -48,7 +50,7 @@
                     v-model="settings['SWITCH_TIME']"
                     placeholder="16:30"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required, rules.timeFormat]"
                   />
                 </v-col>
@@ -58,7 +60,7 @@
                     v-model="settings['HDFS_STORAGE_FORMAT']"
                     :items="storageFormats"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required]"
                   />
                 </v-col>
@@ -68,7 +70,7 @@
                     v-model="settings['HDFS_COMPRESS_FORMAT']"
                     :items="compressFormats"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required]"
                   />
                 </v-col>
@@ -77,7 +79,7 @@
           </v-card>
 
           <!-- HiveServer2 配置 -->
-          <v-card class="mb-4 section-card" elevation="0">
+          <v-card flat class="ds-card mb-4 section-card">
             <v-card-title class="section-title">
               <v-icon class="mr-2" color="primary">mdi-server</v-icon>
               HiveServer2 配置
@@ -91,7 +93,7 @@
                     v-model="hiveServer2Config.url"
                     placeholder="jdbc:hive2://<nn01>:10000"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required, rules.jdbcUrl]"
                   />
                 </v-col>
@@ -99,7 +101,7 @@
                   <div class="field-label">用户名</div>
                   <v-text-field
                     v-model="hiveServer2Config.username"
-                    density="compact"
+                    density="comfortable"
                     placeholder="hive"
                     variant="outlined"
                     :rules="[rules.required]"
@@ -109,7 +111,7 @@
                   <div class="field-label">密码</div>
                   <v-text-field
                     v-model="hiveServer2Config.password"
-                    density="compact"
+                    density="comfortable"
                     variant="outlined"
                     :type="showPassword ? 'text' : 'password'"
                     placeholder="请输入密码"
@@ -124,7 +126,7 @@
                     v-model="hiveServer2Config.driverClassName"
                     placeholder="org.apache.hive.jdbc.HiveDriver"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required]"
                   />
                 </v-col>
@@ -134,7 +136,7 @@
                     v-model="hiveServer2Config.driverPath"
                     placeholder="/path/to/hive-jdbc.jar"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required]"
                   />
                 </v-col>
@@ -154,7 +156,7 @@
           </v-card>
 
           <!-- 性能配置 -->
-          <v-card class="mb-4 section-card" elevation="0">
+          <v-card flat class="ds-card mb-4 section-card">
             <v-card-title class="section-title">
               <v-icon class="mr-2" color="primary">mdi-speedometer</v-icon>
               性能配置
@@ -169,10 +171,10 @@
                     type="number"
                     placeholder="30"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required, rules.positiveNumber]"
                   />
-                  <ul class="field-hint caption" style="margin-top:6px;color:rgba(var(--v-theme-on-surface),0.7);padding-left:1.2em;">
+                  <ul class="field-hint field-hint-list caption">
                     <li>修改后需重启所有后端节点才生效</li>
                     <li>该值为每个节点的最大并发值。例如设置为 20 最大并发且有 2 个节点时，则集群最多可同时发起 40 个采集任务(20 x 2)。</li>
                   </ul>
@@ -184,7 +186,7 @@
                     type="number"
                     placeholder="100"
                     variant="outlined"
-                    density="compact"
+                    density="comfortable"
                     :rules="[rules.required, rules.positiveNumber]"
                   />
                 </v-col>
@@ -196,7 +198,7 @@
         <!-- 右列：作业模板配置 (8/12 = 67%, 使用6来达到4:6比例) -->
         <v-col cols="12" md="8" class="col-stack">
           <!-- 作业模板配置 -->
-          <v-card class="mb-2 section-card stretch-card" elevation="0">
+          <v-card flat class="ds-card mb-2 section-card stretch-card">
             <v-card-title class="section-title">
               <v-icon class="mr-2" color="primary">mdi-file-code</v-icon>
               作业模板配置
@@ -272,12 +274,12 @@
       <!-- 操作按钮 -->
       <v-row>
         <v-col cols="12">
-          <v-card class="section-card" elevation="0">
+          <v-card flat class="ds-card section-card toolbar-card">
             <v-card-actions class="pa-4 action-bar">
               <v-spacer />
               <v-btn
                 color="primary"
-                variant="tonal"
+                variant="flat"
                 type="submit"
                 :disabled="!valid"
                 :loading="saving"
@@ -290,7 +292,7 @@
         </v-col>
       </v-row>
     </v-form>
-  </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -361,19 +363,16 @@
   }
 
   // 测试Hive连接
-  const testHiveConnection = () => {
+  const testHiveConnection = async () => {
     testingConnection.value = true
-    settingsService
-      .testHiveConnection(hiveServer2Config.value)
-      .then((res) => {
-        console.log(res)
-        notify(res.data || '连接成功', 'success')
-      })
-      .catch((error) => {
-        console.error(error)
-        notify(error || '连接失败', 'error')
-      })
-    testingConnection.value = false
+    try {
+      const res = await settingsService.testHiveConnection(hiveServer2Config.value)
+      notify(res.data || '连接成功', 'success')
+    } catch (error: any) {
+      notify(error?.message || error || '连接失败', 'error')
+    } finally {
+      testingConnection.value = false
+    }
   }
 
   // 保存配置
@@ -389,24 +388,33 @@
 
     saving.value = true
     try {
+      const rRTemplate = templates.value.get('rR')
+      const wHTemplate = templates.value.get('wH')
+      const r2hTemplate = templates.value.get('R2H')
+
+      if (!rRTemplate || !wHTemplate || !r2hTemplate) {
+        notify('作业模板配置缺失，请刷新后重试', 'error')
+        return
+      }
+
       const payload: SysItem[] = []
       payload.push({
-        dictCode: templates.value['rR'].dictCode,
+        dictCode: rRTemplate.dictCode,
         itemKey: 'rR',
         itemValue: rRJobTemplate.value,
-        remark: templates.value['rR'].remark
+        remark: rRTemplate.remark
       })
       payload.push({
-        dictCode: templates.value['wH'].dictCode,
+        dictCode: wHTemplate.dictCode,
         itemKey: 'wH',
         itemValue: wHJobTemplate.value,
-        remark: templates.value['wH'].remark
+        remark: wHTemplate.remark
       })
       payload.push({
-        dictCode: templates.value['R2H'].dictCode,
+        dictCode: r2hTemplate.dictCode,
         itemKey: 'R2H',
         itemValue: R2HJobTemplate.value,
-        remark: templates.value['R2H'].remark
+        remark: r2hTemplate.remark
       })
 
       await settingsService.saveJobTemplates(payload)
@@ -447,11 +455,14 @@
     const loadedSettings = await settingsService.getSettings()
     const loadTemplates = await settingsService.getJobConfig()
     settings.value = loadedSettings
-    templates.value = loadTemplates
+    templates.value =
+      loadTemplates instanceof Map
+        ? loadTemplates
+        : new Map(Object.entries((loadTemplates as unknown as Record<string, SysItem>) || {}))
 
-    rRJobTemplate.value = loadTemplates['rR']?.itemValue || ''
-    wHJobTemplate.value = loadTemplates['wH']?.itemValue || ''
-    R2HJobTemplate.value = loadTemplates['R2H']?.itemValue || ''
+    rRJobTemplate.value = templates.value.get('rR')?.itemValue || ''
+    wHJobTemplate.value = templates.value.get('wH')?.itemValue || ''
+    R2HJobTemplate.value = templates.value.get('R2H')?.itemValue || ''
 
     // 初始化下拉选项默认值（如果未设置）
     if (!settings.value['HDFS_STORAGE_FORMAT']) {
@@ -496,12 +507,8 @@
   })
 </script>
 <style scoped>
-  .v-card-title {
-    font-weight: 600;
-  }
-
-  .sys-settings-card {
-    background: rgb(var(--v-theme-surface));
+  .sys-settings-page {
+    min-width: 0;
   }
 
   .section-grid {
@@ -521,11 +528,6 @@
     flex: 1 1 auto;
   }
 
-  .section-card {
-    background: rgb(var(--v-theme-surface-variant));
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  }
-
   .section-title {
     display: flex;
     align-items: center;
@@ -539,16 +541,9 @@
   }
 
   .action-bar {
-    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+    border-top: 1px solid var(--ds-border-subtle);
   }
 
-  .json-preview textarea {
-    font-family: 'Courier New', monospace !important;
-    font-size: 12px !important;
-    line-height: 1.4 !important;
-  }
-
-  /* JSON 编辑器样式 */
   .json-editor textarea {
     font-family:
       'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
@@ -557,12 +552,29 @@
     tab-size: 2;
   }
 
-  /* 独立标签样式，使用主题颜色并保持轻权重 */
   .field-label {
     color: rgb(var(--v-theme-on-surface));
     opacity: 0.8;
-    /* 轻度强调 */
     font-size: 0.9rem;
     margin-bottom: 6px;
   }
+
+  .field-hint-list {
+    margin-top: 6px;
+    color: rgba(var(--v-theme-on-surface), 0.72);
+    padding-left: 1.2em;
+    line-height: 1.5;
+  }
 </style>
+
+<route lang="json">
+{
+  "meta": {
+    "title": "系统配置",
+    "icon": "mdi-cog-outline",
+    "requiresAuth": true,
+    "navGroup": "systemManage",
+    "navOrder": 10
+  }
+}
+</route>

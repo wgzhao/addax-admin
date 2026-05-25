@@ -1,11 +1,18 @@
 <template>
-  <div class="table-page">
-    <v-card flat class="mb-3 section-card">
-      <v-card-text class="py-3">
-        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-          <div class="text-subtitle-1 font-weight-bold">采集表配置</div>
+  <div
+    class="table-page page-shell"
+    :class="{ 'table-page--modal-open': dialogVisible || deleteDialogVisible }"
+  >
+    <v-card flat class="ds-card page-header-card">
+      <v-card-text class="ds-card__content">
+        <div class="page-header flex-wrap">
+          <div>
+            <div class="page-title">采集表配置</div>
+            <div class="page-subtitle">统一管理采集表、批量执行采集与结构更新</div>
+          </div>
           <v-btn
-            variant="tonal"
+            color="primary"
+            variant="flat"
             prepend-icon="mdi-plus"
             @click="openDialog('BatchAdd', 'BatchAdd')"
           >
@@ -15,8 +22,8 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="mb-3 section-card">
-      <v-card-text>
+    <v-card flat class="ds-card toolbar-card">
+      <v-card-text class="ds-card__content">
         <v-row dense>
           <v-col cols="12" md="4" lg="3">
             <v-text-field
@@ -59,41 +66,37 @@
               label="数据源"
             />
           </v-col>
-          <v-col cols="12" md="2" lg="4" class="d-flex justify-end ga-2 align-center">
-            <v-btn variant="tonal" @click="searchTable">查询</v-btn>
+          <v-col cols="12" md="2" lg="4" class="d-flex justify-end ga-2 align-center query-actions">
+            <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
             <v-btn variant="text" @click="resetFilters">重置</v-btn>
           </v-col>
         </v-row>
       </v-card-text>
     </v-card>
 
-    <v-card flat class="mb-3 section-card">
-      <v-card-text class="py-3 d-flex align-center justify-space-between flex-wrap ga-2">
-        <div class="d-flex align-center ga-2 flex-wrap">
-          <v-btn variant="tonal" prepend-icon="mdi-update" @click="updateSchema(null)">
+    <v-card flat class="ds-card toolbar-card">
+      <v-card-text class="ds-card__content d-flex align-center justify-space-between flex-wrap ga-2 batch-toolbar">
+        <div class="section-actions">
+          <v-btn variant="outlined" prepend-icon="mdi-update" @click="updateSchema(null)">
             更新表信息
           </v-btn>
-          <v-btn
-            variant="tonal"
-            color="warning"
-            prepend-icon="mdi-update"
-            @click="updateSchema('all')"
-          >
+          <v-btn variant="text" color="warning" prepend-icon="mdi-alert" @click="updateSchema('all')">
             强制更新全部表信息
           </v-btn>
         </div>
 
-        <div class="d-flex align-center ga-2 flex-wrap">
+        <div class="section-actions">
           <v-btn
-            variant="tonal"
-            prepend-icon="mdi-delete"
+            variant="flat"
+            color="primary"
+            prepend-icon="mdi-database"
             :disabled="selected.length === 0"
-            @click="confirmBatchDelete"
+            @click="doEtl(null)"
           >
-            批量删除
+            批量采集
           </v-btn>
           <v-btn
-            variant="tonal"
+            variant="text"
             prepend-icon="mdi-pencil"
             :disabled="selected.length === 0"
             @click="openDialog('BatchUpdate', 'BatchUpdate')"
@@ -101,19 +104,20 @@
             批量修改
           </v-btn>
           <v-btn
-            variant="tonal"
-            prepend-icon="mdi-database"
+            variant="text"
+            color="error"
+            prepend-icon="mdi-delete"
             :disabled="selected.length === 0"
-            @click="doEtl(null)"
+            @click="confirmBatchDelete"
           >
-            批量采集
+            批量删除
           </v-btn>
         </div>
       </v-card-text>
     </v-card>
 
-    <v-card flat class="section-card">
-      <v-card-text>
+    <v-card flat class="ds-card table-card ds-table-wrap">
+      <v-card-text class="ds-card__content">
       <template v-if="!loading && totalItems === 0">
         <EmptyState
           title="暂无采集表"
@@ -141,7 +145,7 @@
       >
         <!-- 顶部插槽：显示当前选中数量 -->
         <template #top>
-          <v-row class="mb-2 px-3 py-2" align="center">
+          <v-row class="selection-bar" align="center">
             <v-chip v-if="selected.length > 0" color="secondary" variant="tonal" >
               已选择 {{ selected.length }} 行
             </v-chip>
@@ -185,22 +189,7 @@
                     mdi-alert-circle-outline
                   </v-icon>
                 </template>
-                <div
-                  style="
-                    padding: 12px 16px;
-                    max-width: 480px;
-                    max-height: 260px;
-                    overflow-y: auto;
-                    background: #fffbe6;
-                    color: #ad6800;
-                    border: 1px solid #ffe58f;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-                    font-size: 14px;
-                    line-height: 1.7;
-                    white-space: pre-line;
-                  "
-                >
+                <div class="error-msg-popover">
                   <span v-if="errorMsgMap[item.id] !== undefined">
                     {{ errorMsgMap[item.id] || '无详细错误信息' }}
                   </span>
@@ -228,7 +217,8 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  color="primary"
+                  color="secondary"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="详情"
@@ -245,6 +235,7 @@
                 <v-btn
                   v-bind="props"
                   color="secondary"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="模板"
@@ -260,14 +251,14 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
-                  color="green"
+                  color="secondary"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="日志"
                   @click="openDialog('LogFiles', item)"
                 >
-                  <v-icon size="18" color="white">mdi-text-box</v-icon>
+                  <v-icon size="18">mdi-text-box</v-icon>
                 </v-btn>
               </template>
               <span>日志</span>
@@ -277,8 +268,8 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
-                  color="cyan-darken-1"
+                  color="secondary"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="字段"
@@ -294,8 +285,8 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
-                  color="indigo-accent-4"
+                  color="secondary"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="结果"
@@ -311,8 +302,8 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
                   color="warning"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="表更新"
@@ -328,7 +319,8 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  color="info"
+                  color="primary"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="采集"
@@ -344,8 +336,8 @@
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  
                   color="error"
+                  variant="text"
                   icon
                   class="mr-1 icon-btn--compact"
                   aria-label="删除"
@@ -361,7 +353,7 @@
           <div class="action-menu">
             <v-menu location="bottom end" open-on-click>
               <template #activator="{ props }">
-                <v-btn v-bind="props"  icon class="icon-btn--compact" aria-label="操作">
+                <v-btn v-bind="props" variant="text" color="secondary" icon class="icon-btn--compact" aria-label="操作">
                   <v-icon size="18">mdi-dots-vertical</v-icon>
                 </v-btn>
               </template>
@@ -419,7 +411,14 @@
   </div>
 
   <!-- 对话框 -->
-  <v-dialog v-model="dialogVisible" :retain-focus="false" scrollable>
+  <v-dialog
+    v-model="dialogVisible"
+    class="ds-dialog-overlay"
+    :max-width="dialogMaxWidth"
+    scrim="rgba(2, 6, 23, 0.62)"
+    :retain-focus="false"
+    scrollable
+  >
     <!-- 动态加载的内容 -->
     <component
       :is="currentComponent"
@@ -432,7 +431,12 @@
   </v-dialog>
 
   <!-- 删除确认对话框 -->
-  <v-dialog v-model="deleteDialogVisible" width="400">
+  <v-dialog
+    v-model="deleteDialogVisible"
+    class="ds-dialog-overlay"
+    scrim="rgba(2, 6, 23, 0.62)"
+    width="400"
+  >
     <v-card>
       <v-card-title class="text-h6">确认删除</v-card-title>
       <v-card-text>{{ deleteConfirmMessage }}</v-card-text>
@@ -448,7 +452,8 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, shallowRef, defineAsyncComponent, onMounted } from 'vue'
+  import { ref, shallowRef, defineAsyncComponent, onMounted, watch, computed } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import EmptyState from '@/components/EmptyState.vue'
   import { debounce } from '@/utils/debounce'
   import { createSort } from '@/utils/'
@@ -467,6 +472,9 @@
   const LogFiles = defineAsyncComponent(() => import('@/components/table/LogFiles.vue'))
   const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'))
 
+  const route = useRoute()
+  const router = useRouter()
+
   const table = ref([])
   const search = ref('')
   const selected = ref([])
@@ -477,6 +485,7 @@
   // 当前要显示的组件（默认值为 null，表示对话框无内容）
   // shallowRef 用于定义浅层响应式的引用，它不会递归地将对象或组件内部的数据设为响应式，因此适用于组件这种复杂对象。
   const currentComponent = shallowRef(null)
+  const currentDialogName = ref<string | null>(null)
   // 传递给子组件的参数
   const currentParams = ref({})
   const currentSortParam = ref([
@@ -502,15 +511,15 @@
   // 根据状态返回对应的颜色
   function getStatusColor(status: string) {
     const statusColorMap = {
-      N: 'grey', // N_未运行 - 灰色
-      R: 'blue', // R_正在运行 - 蓝色
-      Y: 'success', // Y_运行结束 - 绿色
-      E: 'error', // E_运行错误 - 红色
-      X: 'warning', // X_禁用 - 橙色
-      W: 'purple', // W_等待 - 紫色
-      U: 'blue-grey' // U_等待表结构更新 - 蓝灰色
+      N: 'secondary',
+      R: 'info',
+      Y: 'success',
+      E: 'error',
+      X: 'warning',
+      W: 'primary',
+      U: 'secondary'
     }
-    return statusColorMap[status] || 'grey'
+    return statusColorMap[status] || 'secondary'
   }
 
   // 使用公共的批量更新状态选项
@@ -584,8 +593,14 @@
         errorMsgMap.value[tid] = '获取错误信息失败: ' + msg
       })
   }
+  const dialogMaxWidth = computed<number | undefined>(() => {
+    if (currentDialogName.value === 'BatchUpdate') return 720
+    return undefined
+  })
+
   // 打开对话框并加载相应的组件
   function openDialog(componentName: string, com: any) {
+    currentDialogName.value = componentName
     currentComponent.value = componentMap[componentName]
     setParams(componentName, com)
     dialogVisible.value = true // 打开对话框
@@ -595,7 +610,15 @@
   function closeDialog() {
     dialogVisible.value = false
     currentComponent.value = null // 清空内容
+    currentDialogName.value = null
   }
+
+  watch(dialogVisible, (open) => {
+    if (!open) {
+      currentComponent.value = null
+      currentDialogName.value = null
+    }
+  })
 
   function setParams(compName: string, comp: any) {
     if (compName == 'BatchUpdate') {
@@ -768,9 +791,28 @@ retryCnt: retryCnt.value
     }
   }
 
+  const openCreateFromQuery = () => {
+    const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
+    if (action !== 'create') return
+
+    openDialog('BatchAdd', 'BatchAdd')
+
+    const query = { ...route.query }
+    delete query.action
+    router.replace({ path: route.path, query })
+  }
+
   onMounted(() => {
     loadSources()
+    openCreateFromQuery()
   })
+
+  watch(
+    () => route.query.action,
+    () => {
+      openCreateFromQuery()
+    }
+  )
 
   function updateSchema(item: any | null) {
     let params: { mode?: string; tid?: number } = {}
@@ -883,13 +925,33 @@ retryCnt: retryCnt.value
 
 <style scoped>
   .table-page {
-    padding: 8px 10px;
+    min-width: 0;
   }
 
-  .section-card {
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    border-radius: 12px;
-    background: rgb(var(--v-theme-surface));
+  .table-page > .ds-card {
+    transition: filter 0.2s ease, opacity 0.2s ease;
+    transform: translateZ(0);
+  }
+
+  .table-page--modal-open > .ds-card {
+    filter: blur(3px) saturate(0.86);
+    opacity: 0.52;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .query-actions {
+    flex-wrap: wrap;
+  }
+
+  .batch-toolbar {
+    row-gap: 8px;
+  }
+
+  .selection-bar {
+    margin-bottom: 8px;
+    padding: 0 4px;
+    gap: 8px;
   }
 
   /* Compact icon button to reduce circular ring and padding */
@@ -913,6 +975,23 @@ retryCnt: retryCnt.value
     color: rgb(var(--v-theme-error));
   }
 
+  .error-msg-popover {
+    padding: 12px 16px;
+    max-width: 480px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: rgba(var(--v-theme-warning), 0.14);
+    color: rgb(var(--v-theme-on-surface));
+    border: 1px solid rgba(var(--v-theme-warning), 0.42);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-line;
+  }
+
+
+
   .action-inline {
     display: none;
     align-items: center;
@@ -920,7 +999,6 @@ retryCnt: retryCnt.value
     flex-wrap: nowrap;
     white-space: nowrap;
   }
-
 
   .action-menu {
     display: inline-flex;
@@ -943,7 +1021,9 @@ retryCnt: retryCnt.value
   "meta": {
     "title": "采集表管理",
     "icon": "mdi-table",
-    "requiresAuth": false
+    "requiresAuth": false,
+    "navGroup": "collect",
+    "navOrder": 10
   }
 }
 </route>

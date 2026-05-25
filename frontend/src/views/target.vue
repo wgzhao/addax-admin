@@ -1,5 +1,6 @@
 <template>
-  <v-card flat title="目标端管理">
+  <div class="target-page" :class="{ 'target-page--modal-open': dialogVisible }">
+    <v-card flat title="目标端管理" class="target-main-card">
     <template #text>
       <v-row align="center" justify="space-between">
         <v-col cols="auto">
@@ -17,7 +18,7 @@
         :primary="{ label: '新增目标端', icon: 'mdi-plus' }" @primary="openCreate" />
     </template>
     <template v-else>
-      <v-data-table :headers="headers" :items="targets" item-value="id" density="compact">
+      <v-data-table :headers="headers" :items="targets" item-value="id" density="default">
         <template #item.enabled="{ item }">
           <v-chip size="small" :color="item.enabled ? 'success' : 'default'">
             {{ item.enabled ? '启用' : '停用' }}
@@ -35,9 +36,15 @@
         </template>
       </v-data-table>
     </template>
-  </v-card>
+    </v-card>
 
-  <v-dialog v-model="dialogVisible" max-width="760" persistent>
+    <v-dialog
+      v-model="dialogVisible"
+      class="ds-dialog-overlay"
+      scrim="rgba(2, 6, 23, 0.62)"
+      max-width="760"
+      persistent
+    >
     <v-card>
       <v-card-title>{{ form.id ? '编辑目标端' : '新增目标端' }}</v-card-title>
       <v-card-text>
@@ -94,16 +101,21 @@
         <v-btn color="primary" @click="save">保存</v-btn>
       </v-card-actions>
     </v-card>
-  </v-dialog>
+    </v-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import EmptyState from '@/components/EmptyState.vue'
 import { notify } from '@/stores/notifier'
 import targetService from '@/service/target-service'
 import dictService from '@/service/dict-service'
 import type { EtlTarget } from '@/types/database'
+
+const route = useRoute()
+const router = useRouter()
 
 const targets = ref<EtlTarget[]>([])
 const enabledOnly = ref(true)
@@ -265,15 +277,50 @@ const loadWriterTemplateOptions = async () => {
   }
 }
 
+const openCreateFromQuery = () => {
+  const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
+  if (action !== 'create') return
+
+  openCreate()
+
+  const query = { ...route.query }
+  delete query.action
+  router.replace({ path: route.path, query })
+}
+
 onMounted(async () => {
   await Promise.all([loadTargets(), loadWriterTemplateOptions()])
+  openCreateFromQuery()
 })
+
+watch(
+  () => route.query.action,
+  () => {
+    openCreateFromQuery()
+  }
+)
 </script>
+
+<style scoped>
+.target-page > .target-main-card {
+  transition: filter 0.2s ease, opacity 0.2s ease;
+  transform: translateZ(0);
+}
+
+.target-page--modal-open > .target-main-card {
+  filter: blur(3px) saturate(0.86);
+  opacity: 0.52;
+  pointer-events: none;
+  user-select: none;
+}
+</style>
 
 <route lang="json">{
   "meta": {
     "title": "目标端管理",
-    "icon": "mdi-database-cog",
-    "requiresAuth": true
+    "icon": "mdi-database-export",
+    "requiresAuth": true,
+    "navGroup": "target",
+    "navOrder": 10
   }
 }</route>

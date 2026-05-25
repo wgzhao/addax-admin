@@ -59,9 +59,9 @@
             <div class="log-content-wrap">
               <!-- 空状态 (没有选择任何日志) -->
               <div v-if="!selectedLogId" class="empty-state">
-                <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-file-document-outline</v-icon>
-                <div class="text-h6 text-grey-darken-1 mb-2">No log selected</div>
-                <div class="text-body-2 text-grey">Please select a log file from above to view its content.</div>
+                <v-icon size="64" class="mb-4 empty-icon-muted">mdi-file-document-outline</v-icon>
+                <div class="text-h6 mb-2 empty-title-muted">No log selected</div>
+                <div class="text-body-2 empty-desc-muted">Please select a log file from above to view its content.</div>
               </div>
               <!-- 日志内容区域 -->
               <div v-else class="position-relative">
@@ -78,7 +78,7 @@
                 <div v-else-if="!loading" class="empty-state">
                   <v-icon size="48" color="error" class="mb-4">mdi-alert-circle</v-icon>
                   <div class="text-h6 text-error mb-2">Failed to load log</div>
-                  <div class="text-body-2 text-grey">Please try selecting the log file again.</div>
+                  <div class="text-body-2 empty-desc-muted">Please try selecting the log file again.</div>
                 </div>
               </div>
             </div>
@@ -257,6 +257,18 @@ const downloadLog = () => {
 .empty-state {
   text-align: center;
   padding: 32px 8px;
+}
+
+.empty-icon-muted {
+  color: rgba(var(--v-theme-on-surface), 0.32);
+}
+
+.empty-title-muted {
+  color: rgba(var(--v-theme-on-surface), 0.74);
+}
+
+.empty-desc-muted {
+  color: rgba(var(--v-theme-on-surface), 0.58);
 }
 
 /* 改进空状态的图标动画 */

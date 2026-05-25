@@ -43,3 +43,4 @@ frontend/tests/e2e/.auth/
 .playwright/
 .alma-snapshots
 deploy.sh
+.agents/

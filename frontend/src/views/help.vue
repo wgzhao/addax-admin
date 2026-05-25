@@ -21,3 +21,14 @@
     </v-card>
   </v-container>
 </template>
+
+<route lang="json">
+{
+  "meta": {
+    "title": "帮助文档",
+    "icon": "mdi-book-open-variant",
+    "requiresAuth": true,
+    "navHidden": true
+  }
+}
+</route>

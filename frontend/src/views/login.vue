@@ -29,9 +29,9 @@
             variant="outlined"
             density="comfortable"
             flat
-            color="cyan"
-            bg-color="rgba(255, 255, 255, 0.1)"
-            base-color="white"
+            color="primary"
+            bg-color="surface-variant"
+            base-color="on-surface"
           ></v-text-field>
 
           <v-text-field
@@ -50,9 +50,9 @@
             variant="outlined"
             density="comfortable"
             flat
-            color="cyan"
-            bg-color="rgba(255, 255, 255, 0.1)"
-            base-color="white"
+            color="primary"
+            bg-color="surface-variant"
+            base-color="on-surface"
           ></v-text-field>
 
           <v-btn
@@ -71,7 +71,7 @@
         </v-form>
 
         <!-- <div class="additional-links mt-6">
-          <v-btn type="text" color="grey" >
+          <v-btn type="text" color="secondary" >
             Forgot Credentials?
           </v-btn>
         </div> -->
@@ -135,14 +135,19 @@
     top: 0;
     left: 0;
     overflow: hidden;
-    background: #0a0a23;
+    background: rgb(var(--v-theme-background));
   }
 
   .background-layer {
     position: absolute;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #1e1e5f 0%, #2a4066 50%, #0a0a23 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--v-theme-primary), 0.36) 0%,
+      rgba(var(--v-theme-surface-variant), 0.9) 55%,
+      rgba(var(--v-theme-background), 1) 100%
+    );
   }
 
   .gradient-overlay {
@@ -151,8 +156,8 @@
     height: 100%;
     background: radial-gradient(
       circle at center,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(0, 0, 0, 0.9) 70%
+      rgba(var(--v-theme-on-surface), 0.05) 0%,
+      rgba(var(--v-theme-background), 0.9) 70%
     );
   }
 
@@ -163,20 +168,22 @@
   }
 
   .login-sheet {
-    background: rgba(30, 30, 95, 0.2);
-    /* 调整为更深的半透明底色 */
+    background: rgba(var(--v-theme-surface), 0.72);
     backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
     min-width: 600px;
     position: relative;
     z-index: 1;
   }
 
   .login-card {
-    background: linear-gradient(145deg, #2a2a72 0%, #1e1e5f 100%);
-    /* 深色渐变 */
+    background: linear-gradient(
+      145deg,
+      rgba(var(--v-theme-surface-variant), 0.96) 0%,
+      rgba(var(--v-theme-surface), 0.94) 100%
+    );
     border-radius: 20px !important;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.36);
   }
 
   .logo-container {
@@ -194,11 +201,10 @@
 
   .login-title {
     text-align: center;
-    color: #ffffff;
-    /* 白色标题 */
+    color: rgb(var(--v-theme-on-surface));
     font-weight: 700;
     font-size: 28px;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.18);
   }
 
   .modern-input {
@@ -216,14 +222,17 @@
     text-transform: none;
     font-weight: 600;
     letter-spacing: 1.5px;
-    background: linear-gradient(90deg, #00bcd4 0%, #4dd0e1 100%);
-    /* 青色渐变 */
-    color: #ffffff;
+    background: linear-gradient(
+      90deg,
+      rgba(var(--v-theme-primary), 0.92) 0%,
+      rgba(var(--v-theme-info), 0.88) 100%
+    );
+    color: rgb(var(--v-theme-on-primary));
     transition: all 0.4s ease;
   }
 
   .login-btn:hover {
     transform: scale(1.02);
-    box-shadow: 0 8px 20px rgba(0, 188, 212, 0.4);
+    box-shadow: 0 8px 20px rgba(var(--v-theme-primary), 0.4);
   }
 </style>

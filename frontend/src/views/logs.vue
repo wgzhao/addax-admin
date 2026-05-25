@@ -83,3 +83,15 @@
   font-size: 14px;
 }
 </style>
+
+<route lang="json">
+{
+  "meta": {
+    "title": "日志管理",
+    "icon": "mdi-file-document-outline",
+    "requiresAuth": true,
+    "navGroup": "systemManage",
+    "navOrder": 30
+  }
+}
+</route>

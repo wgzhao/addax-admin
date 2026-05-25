@@ -72,7 +72,7 @@
                   </div>
                   <v-progress-linear
                     :model-value="ratio.pct"
-                    bg-color="grey-lighten-1"
+                    bg-color="surface-variant"
                     height="10"
                     rounded
                     :color="getProgressColor(ratio.pct)"
@@ -179,9 +179,10 @@
 <route lang="json">
 {
   "meta": {
-    "title": "Home",
+    "title": "首页",
     "icon": "mdi-home",
-    "requiresAuth": true
+    "requiresAuth": true,
+    "navOrder": 0
   }
 }
 </route>
@@ -234,15 +235,8 @@
   .dashboard-title {
     font-size: 2.5rem;
     font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  .dark-mode .dashboard-title {
-    color: #ffffff;
-  }
-
-  .dashboard-container:not(.dark-mode) .dashboard-title {
-    color: #1a237e;
+    color: rgb(var(--v-theme-on-surface));
+    text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.12);
   }
 
   .stat-card {
@@ -266,14 +260,17 @@
   .stat-title {
     font-size: 0.95rem;
     font-weight: 600;
+    line-height: 1.5;
     text-align: center;
+    margin-bottom: 10px;
     color: rgb(var(--v-theme-on-surface));
   }
 
   .stat-value {
+    display: inline-block;
     font-size: 2.4rem;
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.24;
     color: rgb(var(--v-theme-on-surface));
   }
 

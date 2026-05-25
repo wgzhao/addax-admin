@@ -28,7 +28,7 @@
               :items="etlAndDs"
               :headers="etlAndDsHeaders"
               items-per-page="10"
-              density="compact"
+              density="default"
               class="elevation-1"
             >
               <template v-slot:item.dbConstr="{ item }">
@@ -48,7 +48,7 @@
               :headers="etlInfoHeaders"
               items-per-page="10"
               :items-length="etlTotalItems"
-              density="compact"
+              density="default"
               class="elevation-1"
               @update:options="loadItems"
             />
@@ -127,7 +127,8 @@
   "meta": {
     "title": "系统信息",
     "icon": "mdi-information",
-    "requiresAuth": true
+    "requiresAuth": true,
+    "navHidden": true
   }
 }
 </route>
