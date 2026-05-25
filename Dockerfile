@@ -8,15 +8,13 @@ FROM maven:3.9-eclipse-temurin-21 AS backend-builder
 ARG VERSION
 WORKDIR /build
 
-# Copy parent pom
+# Copy parent pom and install it into local Maven repo
 COPY pom.xml /build/parent-pom.xml
+RUN mvn install -N -f parent-pom.xml
 
 # Copy backend module pom and sources
 COPY backend/pom.xml ./pom.xml
 COPY backend/src ./src
-
-# Fix relativePath in backend pom to point to copied parent pom
-RUN sed -i 's|<relativePath>../pom.xml</relativePath>|<relativePath>parent-pom.xml</relativePath>|' pom.xml
 
 # Build backend jar (skip tests)
 RUN mvn clean package -DskipTests
