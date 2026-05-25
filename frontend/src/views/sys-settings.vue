@@ -172,6 +172,10 @@
                     density="compact"
                     :rules="[rules.required, rules.positiveNumber]"
                   />
+                  <ul class="field-hint caption" style="margin-top:6px;color:rgba(var(--v-theme-on-surface),0.7);padding-left:1.2em;">
+                    <li>修改后需重启所有后端节点才生效</li>
+                    <li>该值为每个节点的最大并发值。例如设置为 20 最大并发且有 2 个节点时，则集群最多可同时发起 40 个采集任务(20 x 2)。</li>
+                  </ul>
                 </v-col>
                 <v-col cols="12">
                   <div class="field-label">采集队列长度</div>
