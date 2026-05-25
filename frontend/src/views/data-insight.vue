@@ -1,7 +1,19 @@
 <template>
-  <v-container fluid class="pa-6 insight-page">
-    <v-card flat class="mb-4 filter-card">
-      <v-card-text>
+  <div class="insight-page page-shell">
+    <v-card flat class="ds-card page-header-card">
+      <v-card-text class="ds-card__content">
+        <div class="page-header">
+          <div>
+            <div class="page-title">数据洞察</div>
+            <div class="page-subtitle">按采集记录变化率识别异常表并快速导出排查</div>
+          </div>
+          <v-chip size="small" variant="outlined" color="secondary">近 {{ filters.days }} 天</v-chip>
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <v-card flat class="ds-card toolbar-card filter-card">
+      <v-card-text class="ds-card__content">
         <v-row dense class="filter-row">
           <v-col cols="auto">
             <v-text-field
@@ -53,7 +65,7 @@
             />
           </v-col>
           <v-col cols="auto" class="filter-actions">
-            <v-btn color="primary" variant="tonal" :loading="loading" @click="loadInsights">
+            <v-btn color="primary" variant="flat" :loading="loading" @click="loadInsights">
               查询
             </v-btn>
             <v-btn variant="text" :disabled="loading" @click="resetFilters">
@@ -64,17 +76,29 @@
       </v-card-text>
     </v-card>
 
-    <v-row dense class="section-grid">
+    <v-card flat class="ds-card toolbar-card segment-card">
+      <v-card-text class="segment-card-body">
+        <v-btn-toggle v-model="activePanel" mandatory divided class="segment-toggle" color="primary">
+          <v-btn value="noChange">无变化 <span class="segment-count">{{ filteredNoChange.length }}</span></v-btn>
+          <v-btn value="lowChange">低变化 <span class="segment-count">{{ filteredLowChange.length }}</span></v-btn>
+          <v-btn value="highChange">高变化 <span class="segment-count">{{ filteredHighChange.length }}</span></v-btn>
+          <v-btn value="timeChange">耗时异常 <span class="segment-count">{{ filteredTimeChange.length }}</span></v-btn>
+          <v-btn value="missingCollect">缺采集 <span class="segment-count">{{ filteredMissingCollect.length }}</span></v-btn>
+        </v-btn-toggle>
+      </v-card-text>
+    </v-card>
+
+    <v-row v-show="activePanel === 'noChange'" dense class="section-grid">
       <v-col cols="12" md="12">
-        <v-card flat class="mb-4 section-card">
+        <v-card flat class="ds-card table-card section-card">
           <v-card-text class="section-body">
             <div class="section-header">
               <div class="section-title">{{ noChangeTable.title }}</div>
               <div class="header-actions">
                 <v-btn
                   size="small"
-                  variant="tonal"
-                  color="primary"
+                  variant="outlined"
+                  color="secondary"
                   prepend-icon="mdi-download"
                   :disabled="!filteredNoChange.length"
                   @click="exportCsv(noChangeTable.headers, filteredNoChange, 'insight-no-change')"
@@ -86,16 +110,16 @@
             <v-data-table
               :items="filteredNoChange"
               :headers="noChangeTable.headers"
-              density="compact"
+              density="default"
               :sort-by="noChangeTable.sortBy"
-              class="elevation-1"
+              class="insight-table"
               hide-no-data
             >
               <template #item.actions="{ item }">
                 <v-btn
                   size="small"
                   color="error"
-                  variant="tonal"
+                  variant="text"
                   @click="disableTable(item)"
                 >
                   禁用采集
@@ -107,17 +131,17 @@
       </v-col>
     </v-row>
 
-    <v-row dense class="section-grid">
+    <v-row v-show="activePanel === 'lowChange'" dense class="section-grid">
       <v-col cols="12" md="12">
-        <v-card flat class="mb-4 section-card">
+        <v-card flat class="ds-card table-card section-card">
           <v-card-text class="section-body">
             <div class="section-header">
               <div class="section-title">{{ lowChangeTable.title }}</div>
               <div class="header-actions">
                 <v-btn
                   size="small"
-                  variant="tonal"
-                  color="primary"
+                  variant="outlined"
+                  color="secondary"
                   prepend-icon="mdi-download"
                   :disabled="!filteredLowChange.length"
                   @click="exportCsv(lowChangeTable.headers, filteredLowChange, 'insight-low-change')"
@@ -129,9 +153,9 @@
             <v-data-table
               :items="filteredLowChange"
               :headers="lowChangeTable.headers"
-              density="compact"
+              density="default"
               :sort-by="lowChangeTable.sortBy"
-              class="elevation-1"
+              class="insight-table"
               hide-no-data
             />
           </v-card-text>
@@ -139,17 +163,17 @@
       </v-col>
     </v-row>
 
-    <v-row dense class="section-grid">
+    <v-row v-show="activePanel === 'highChange'" dense class="section-grid">
       <v-col cols="12" md="12">
-        <v-card flat class="mb-4 section-card">
+        <v-card flat class="ds-card table-card section-card">
           <v-card-text class="section-body">
             <div class="section-header">
               <div class="section-title">{{ highChangeTable.title }}</div>
               <div class="header-actions">
                 <v-btn
                   size="small"
-                  variant="tonal"
-                  color="primary"
+                  variant="outlined"
+                  color="secondary"
                   prepend-icon="mdi-download"
                   :disabled="!filteredHighChange.length"
                   @click="exportCsv(highChangeTable.headers, filteredHighChange, 'insight-high-change')"
@@ -161,9 +185,9 @@
             <v-data-table
               :items="filteredHighChange"
               :headers="highChangeTable.headers"
-              density="compact"
+              density="default"
               :sort-by="highChangeTable.sortBy"
-              class="elevation-1"
+              class="insight-table"
               hide-no-data
             />
           </v-card-text>
@@ -171,17 +195,17 @@
       </v-col>
     </v-row>
 
-    <v-row dense class="section-grid">
+    <v-row v-show="activePanel === 'timeChange'" dense class="section-grid">
       <v-col cols="12" md="12">
-        <v-card flat class="mb-4 section-card">
+        <v-card flat class="ds-card table-card section-card">
           <v-card-text class="section-body">
             <div class="section-header">
               <div class="section-title">{{ timeChangeTable.title }}</div>
               <div class="header-actions">
                 <v-btn
                   size="small"
-                  variant="tonal"
-                  color="primary"
+                  variant="outlined"
+                  color="secondary"
                   prepend-icon="mdi-download"
                   :disabled="!filteredTimeChange.length"
                   @click="exportCsv(timeChangeTable.headers, filteredTimeChange, 'insight-time-change')"
@@ -193,9 +217,9 @@
             <v-data-table
               :items="filteredTimeChange"
               :headers="timeChangeTable.headers"
-              density="compact"
+              density="default"
               :sort-by="timeChangeTable.sortBy"
-              class="elevation-1"
+              class="insight-table"
               hide-no-data
             />
           </v-card-text>
@@ -203,17 +227,17 @@
       </v-col>
     </v-row>
 
-    <v-row dense class="section-grid">
+    <v-row v-show="activePanel === 'missingCollect'" dense class="section-grid">
       <v-col cols="12" md="12">
-        <v-card flat class="mb-4 section-card">
+        <v-card flat class="ds-card table-card section-card">
           <v-card-text class="section-body">
             <div class="section-header">
               <div class="section-title">{{ missingCollectTable.title }}</div>
               <div class="header-actions">
                 <v-btn
                   size="small"
-                  variant="tonal"
-                  color="primary"
+                  variant="outlined"
+                  color="secondary"
                   prepend-icon="mdi-download"
                   :disabled="!filteredMissingCollect.length"
                   @click="
@@ -231,9 +255,9 @@
             <v-data-table
               :items="filteredMissingCollect"
               :headers="missingCollectTable.headers"
-              density="compact"
+              density="default"
               :sort-by="missingCollectTable.sortBy"
-              class="elevation-1"
+              class="insight-table"
               hide-no-data
             >
               <template #item.missing_dates="{ item }">
@@ -277,7 +301,7 @@
           </v-btn>
           <v-btn
             color="error"
-            variant="tonal"
+            variant="flat"
             :loading="confirmDialog.loading"
             @click="confirmDisable"
           >
@@ -313,7 +337,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -333,6 +357,9 @@
 
   const filters = ref({ ...defaultFilters })
   const loading = ref(false)
+  const activePanel = ref<'noChange' | 'lowChange' | 'highChange' | 'timeChange' | 'missingCollect'>(
+    'noChange'
+  )
 
   const data = ref({
     noChange: [] as Array<Map<string, any>>,
@@ -599,31 +626,38 @@
   "meta": {
     "title": "数据洞察",
     "icon": "mdi-chart-box-outline",
-    "requiresAuth": true
+    "requiresAuth": true,
+    "navGroup": "data",
+    "navOrder": 10
   }
 }
 </route>
 
 <style scoped>
   .insight-page {
-    background: rgb(var(--v-theme-surface));
+    min-width: 0;
+  }
+
+  .segment-card-body {
+    padding: 10px 12px;
+  }
+
+  .segment-toggle {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .segment-count {
+    margin-left: 4px;
+    opacity: 0.72;
+    font-variant-numeric: tabular-nums;
   }
 
   .section-grid {
     margin-bottom: 8px;
   }
-
-  .section-card {
-    background: rgb(var(--v-theme-surface-variant));
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    border-radius: 12px;
-  }
-
-  .filter-card {
-    background: rgb(var(--v-theme-surface-variant));
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  }
-
 
   .section-body {
     padding-top: 8px;
@@ -650,18 +684,25 @@
   .filter-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    justify-content: flex-end;
   }
 
   .filter-row {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
-    overflow-x: auto;
-    row-gap: 0;
+    row-gap: 8px;
   }
 
   .filter-keyword {
     min-width: 220px;
+    flex: 1 1 260px;
+  }
+
+  .insight-table {
+    border: 1px solid var(--ds-border-subtle);
+    border-radius: 10px;
+    overflow: hidden;
   }
 
   .missing-dates-compact {
@@ -678,5 +719,21 @@
     gap: 8px;
     max-height: 320px;
     overflow: auto;
+  }
+
+  @media (max-width: 960px) {
+    .header-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .filter-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .filter-keyword {
+      min-width: 100%;
+    }
   }
 </style>

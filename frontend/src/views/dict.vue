@@ -11,8 +11,7 @@
               :items="dicts"
               :headers="dictHeaders"
               item-key="code"
-              dense
-              density="compact"
+              density="default"
               class="elevation-1"
               @click:row="(e, row) => onSelectDict(row?.item ?? row)"
             >
@@ -22,7 +21,7 @@
                     <v-icon>mdi-pencil</v-icon>
                   </v-btn>
                   <v-btn icon size="small" @click.stop="deleteDict(item.code)">
-                    <v-icon color="red">mdi-delete</v-icon>
+                    <v-icon color="error">mdi-delete</v-icon>
                   </v-btn>
                 </div>
               </template>
@@ -61,8 +60,7 @@
                 :items="items"
                 :headers="itemHeaders"
                 item-key="itemKey"
-                dense
-                density="compact"
+                density="default"
                 class="elevation-1"
               >
               <template #item.actions="{ item }">
@@ -71,7 +69,7 @@
                       <v-icon>mdi-pencil</v-icon>
                     </v-btn>
                     <v-btn icon size="small" @click.stop="deleteItem(item.itemKey)">
-                      <v-icon color="red">mdi-delete</v-icon>
+                      <v-icon color="error">mdi-delete</v-icon>
                     </v-btn>
                   </div>
                 </template>
@@ -401,6 +399,11 @@
 
 <route lang="json">
 {
-  "meta": { "title": "字典维护", "icon": "mdi-book-open-page-variant" }
+  "meta": {
+    "title": "字典维护",
+    "icon": "mdi-book-open-page-variant",
+    "navGroup": "systemManage",
+    "navOrder": 20
+  }
 }
 </route>

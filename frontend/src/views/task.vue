@@ -5,14 +5,13 @@
         :items="taskStatus"
         :headers="headers"
         item-value="id"
-        density="compact"
+        density="default"
       >
         <template v-slot:item.status="{ item }">
           <v-chip
             :color="getStatusColor(item.status)"
             size="small"
             class="font-weight-bold"
-            text-color="white"
           >
             {{ getStatusText(item.status) }}
           </v-chip>
@@ -190,10 +189,10 @@
   })
 
   function getStatusColor(status: string) {
-    if (status === 'E') return 'red'
-    if (status === 'R') return 'blue'
-    if (status === 'W') return 'orange'
-    return 'grey'
+    if (status === 'E') return 'error'
+    if (status === 'R') return 'info'
+    if (status === 'W') return 'warning'
+    return 'secondary'
   }
   function getStatusText(status: string) {
     if (status === 'E') return '错误'
@@ -213,8 +212,11 @@
 {
   "meta": {
     "title": "采集任务管理",
-    "icon": "mdi-database-cog",
-    "requiresAuth": true
+    "navTitle": "采集任务查看",
+    "icon": "mdi-calendar-clock",
+    "requiresAuth": true,
+    "navGroup": "collect",
+    "navOrder": 20
   }
 }
 </route>

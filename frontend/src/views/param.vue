@@ -4,7 +4,7 @@
     <v-col cols="col-6" align="left" justify="top">
       <v-card>
         <v-card-text>
-          <v-data-table :headers="dictHeaders" :items="dicts" density="compact">
+          <v-data-table :headers="dictHeaders" :items="dicts" density="default">
             <template v-slot:item.actions="{ item }">
               <v-icon
                 icon="mdi-chevron-right"
@@ -254,7 +254,8 @@
   "meta": {
     "title": "系统配置",
     "icon": "mdi-settings",
-    "requiresAuth": false
+    "requiresAuth": false,
+    "navHidden": true
   }
 }
 </route>
@@ -262,12 +263,10 @@
 <style lang="css" scoped>
   /* 覆盖 .v-data-table 的斑马纹背景 */
   .v-data-table .v-data-table__divider:nth-child(odd) {
-    background-color: #fafafa !important;
-    /* 奇数行的背景颜色 */
+    background-color: rgba(var(--v-theme-on-surface), 0.04) !important;
   }
 
   .v-data-table .v-data-table__divider:nth-child(even) {
-    background-color: #ffffff !important;
-    /* 偶数行的背景颜色 */
+    background-color: rgba(var(--v-theme-on-surface), 0.015) !important;
   }
 </style>

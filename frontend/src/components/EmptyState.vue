@@ -13,7 +13,14 @@
           />
 
           <div v-else class="empty-illustration mx-auto mb-4" role="img" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" class="empty-svg" aria-hidden="true">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 120 120"
+              width="132"
+              height="132"
+              class="empty-svg"
+              aria-hidden="true"
+            >
               <rect x="12" y="20" width="96" height="68" rx="6" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="6 6" opacity="0.28"/>
               <path d="M36 46h48M36 62h48" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
               <circle cx="60" cy="92" r="6" fill="currentColor" opacity="0.06"/>
@@ -92,10 +99,26 @@ defineEmits(['primary', 'secondary', 'action'])
 <style scoped>
 .empty-card {
   border-radius: 12px;
+  max-width: 760px;
+  margin: 0 auto;
 }
+
+.empty-illustration {
+  width: 132px;
+  height: 132px;
+  color: rgba(var(--v-theme-on-surface), 0.56);
+}
+
+.empty-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .actions .v-btn {
   min-width: 160px;
 }
+
 .empty-card .v-img img {
   object-fit: contain;
 }

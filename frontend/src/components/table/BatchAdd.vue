@@ -145,7 +145,7 @@
             </v-row>
 
             <div class="table-container">
-              <v-data-table :items="tables" :headers="headers" :items-per-page="15" density="compact" show-select
+              <v-data-table :items="tables" :headers="headers" :items-per-page="15" density="default" show-select
                 v-model="selectedTables" :search="search" item-value="name" v-if="tables.length > 0" return-object>
                 <template #item.tblComment="{ item }">
                   <div class="comment-cell">{{ item.tblComment }}</div>

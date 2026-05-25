@@ -128,3 +128,14 @@
   margin-top: 6px;
 }
 </style>
+
+<route lang="json">
+{
+  "meta": {
+    "title": "修改密码",
+    "icon": "mdi-lock-reset",
+    "requiresAuth": true,
+    "navHidden": true
+  }
+}
+</route>

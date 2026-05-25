@@ -2,40 +2,66 @@
   <v-app-bar app color="surface" class="topbar-bar" elevation="0">
     <template v-slot:default>
       <v-app-bar-title>统一采集管理系统</v-app-bar-title>
-      <template v-for="item in urls">
-        <v-menu v-if="item.children">
-          <template v-slot:activator="{ props }">
-            <v-btn
-              v-bind="props"
-              :variant="isMenuActive(item) ? 'tonal' : 'text'"
-              :color="isMenuActive(item) ? 'primary' : undefined"
-            >
-              {{ item.title }}
-            </v-btn>
-          </template>
-          <v-list density="compact" nav v-for="(child, index) in item.children">
-            <v-list-item
-              :key="index"
-              :to="{ path: child.path }"
-              :active="isPathActive(child.path)"
-              :color="isPathActive(child.path) ? 'primary' : undefined"
-              class="py-1"
-              style="min-height: 20px"
-            >
-              <v-list-item-title>{{ child.title }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-        <div v-else>
+      <div class="top-nav-cluster">
+        <template v-for="item in urls" :key="item.title">
+          <v-menu v-if="item.children" :min-width="0">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                v-bind="props"
+                class="top-nav-btn"
+                :class="{ 'top-nav-btn--active': isMenuActive(item) }"
+                :variant="isMenuActive(item) ? 'flat' : 'text'"
+                :color="isMenuActive(item) ? 'primary' : undefined"
+              >
+                {{ item.title }}
+              </v-btn>
+            </template>
+            <v-list density="compact" nav class="top-nav-menu-list">
+              <v-list-item
+                v-for="(child, index) in item.children"
+                :key="`${item.title}-${index}`"
+                :to="{ path: child.path }"
+                :active="isPathActive(child.path)"
+                :color="isPathActive(child.path) ? 'primary' : undefined"
+                :prepend-icon="child.icon || 'mdi-chevron-right'"
+                class="top-nav-menu-item"
+                slim
+              >
+                <v-list-item-title>{{ child.title }}</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
           <v-btn
-            :variant="isPathActive(item.path) ? 'tonal' : 'text'"
+            v-else
+            class="top-nav-btn"
+            :class="{ 'top-nav-btn--active': isPathActive(item.path) }"
+            :variant="isPathActive(item.path) ? 'flat' : 'text'"
             :color="isPathActive(item.path) ? 'primary' : undefined"
             :to="{ path: item.path }"
           >
             {{ item.title }}
           </v-btn>
-        </div>
-      </template>
+        </template>
+      </div>
+      <v-menu :min-width="0" offset-y>
+        <template #activator="{ props }">
+          <v-btn v-bind="props" class="top-nav-btn" variant="text" prepend-icon="mdi-plus-circle-outline">
+            新增
+          </v-btn>
+        </template>
+        <v-list density="compact" nav class="top-nav-menu-list user-nav-menu-list">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-database-cog" slim @click="goQuickCreate('/source')">
+            <v-list-item-title>新增采集源</v-list-item-title>
+          </v-list-item>
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-database-export" slim @click="goQuickCreate('/target')">
+            <v-list-item-title>新增目标端</v-list-item-title>
+          </v-list-item>
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-table-plus" slim @click="goQuickCreate('/table')">
+            <v-list-item-title>新增采集表</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
       <!--
       <v-menu v-if="authStore.isLoggedIn" v-model="notifyMenu" offset-y>
         <template v-slot:activator="{ props }">
@@ -85,34 +111,40 @@
         </v-card>
       </v-menu>
     -->
-      <v-menu v-if="authStore.currentUserName" offset-y>
+      <v-menu v-if="authStore.currentUserName" offset-y :min-width="0">
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
-        <v-list>
-          <v-list-item @click="profileDialog = true">
+        <v-list density="compact" nav class="top-nav-menu-list user-nav-menu-list">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-account-circle-outline" slim @click="profileDialog = true">
             <v-list-item-title>账号信息</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="themeStore.hasUserPreference" @click="resetThemeToSystem">
+          <v-list-item
+            v-if="themeStore.hasUserPreference"
+            class="top-nav-menu-item"
+            prepend-icon="mdi-theme-light-dark"
+            slim
+            @click="resetThemeToSystem"
+          >
             <v-list-item-title>跟随系统主题</v-list-item-title>
           </v-list-item>
           <v-divider class="my-1" />
-          <v-list-item @click="versionDialog = true">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-information-outline" slim @click="versionDialog = true">
             <v-list-item-title>系统版本</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="isAdmin" @click="goAccounts">
+          <v-list-item v-if="isAdmin" class="top-nav-menu-item" prepend-icon="mdi-account-group-outline" slim @click="goAccounts">
             <v-list-item-title>账号管理</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goHelp">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-book-open-variant" slim @click="goHelp">
             <v-list-item-title>帮助文档</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="openFeedback">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-message-text-outline" slim @click="openFeedback">
             <v-list-item-title>我要反馈</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="$router.push('/change-password')">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-lock-reset" slim @click="$router.push('/change-password')">
             <v-list-item-title>修改密码</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="logout">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-logout" slim @click="logout">
             <v-list-item-title>注销</v-list-item-title>
           </v-list-item>
         </v-list>
@@ -176,7 +208,7 @@
   </v-dialog>
 </template>
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppTheme } from '@/composables/useAppTheme'
 import { useRoute, useRouter } from 'vue-router'
@@ -199,76 +231,113 @@ const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new'
 let notifyTimer: number | null = null
 
 // 定义菜单项类型
+interface MenuChildItem {
+  path: string
+  title: string
+  icon?: string
+}
+
 interface MenuItem {
   path?: string
   name?: string
   title: string
-  children?: {
-    path: string
-    title: string
-  }[]
+  children?: MenuChildItem[]
 }
 
-const urls = ref<MenuItem[]>([
-  {
-    path: '/',
-    name: 'Home',
-    title: '首页'
-  },
-  {
-    path: '/monitor',
-    name: 'ETL',
-    title: '监控与告警'
-  },
-  // {
-  //   path: "/system-info",
-  //   title: "系统一览"
-  // },
-  {
-    path: '/source',
-    title: '数据源管理'
-  },
-  {
-    path: '/table',
-    title: '采集表管理'
-  },
-  {
-    path: '/target',
-    title: '目标端管理'
-  },
-  {
-    path: '/task',
-    title: '采集任务管理'
-  },
-  {
-    path: '/sys-settings',
-    title: '系统配置'
-  },
-  {
-    path: '/logs',
-    title: '日志管理'
-  },
-  {
-    path: '/data-insight',
-    title: '数据洞察'
-  },
-  {
-    path: '/dict',
-    title: '字典维护'
-  },
-  {
-    path: '/cluster',
-    title: '集群状态'
+type NavGroup = 'source' | 'target' | 'collect' | 'data' | 'systemManage'
+
+const navGroupOrder: NavGroup[] = ['source', 'target', 'collect', 'data', 'systemManage']
+
+const navGroupTitle: Record<NavGroup, string> = {
+  source: '源端管理',
+  target: '目标端管理',
+  collect: '采集管理',
+  data: '数据管理',
+  systemManage: '系统管理'
+}
+
+const urls = computed<MenuItem[]>(() => {
+  const routeMap = new Map<
+    string,
+    {
+      path: string
+      title: string
+      icon?: string
+      navGroup?: NavGroup
+      navOrder: number
+      isHome: boolean
+    }
+  >()
+
+  router.getRoutes().forEach((item) => {
+    const path = item.path
+    const meta = (item.meta || {}) as Record<string, any>
+
+    if (!path || path.includes('/:') || path === '/:pathMatch(.*)*') return
+    if (meta.layout === 'login' || meta.navHidden) return
+
+    const title = typeof meta.title === 'string' ? meta.title.trim() : ''
+    const navTitle = typeof meta.navTitle === 'string' ? meta.navTitle.trim() : ''
+    const displayTitle = navTitle || title
+    if (!displayTitle) return
+
+    const navGroup = navGroupOrder.includes(meta.navGroup as NavGroup)
+      ? (meta.navGroup as NavGroup)
+      : undefined
+
+    if (path !== '/' && !navGroup) return
+
+    const icon = typeof meta.icon === 'string' ? meta.icon : undefined
+    const navOrder = Number.isFinite(Number(meta.navOrder)) ? Number(meta.navOrder) : 999
+
+    const existing = routeMap.get(path)
+    if (!existing) {
+      routeMap.set(path, {
+        path,
+        title: displayTitle,
+        icon,
+        navGroup,
+        navOrder,
+        isHome: path === '/'
+      })
+      return
+    }
+
+    existing.title = existing.title || displayTitle
+    existing.icon = existing.icon || icon
+    existing.navGroup = existing.navGroup || navGroup
+    existing.navOrder = Math.min(existing.navOrder, navOrder)
+    existing.isHome = existing.isHome || path === '/'
+  })
+
+  const flatRoutes = Array.from(routeMap.values())
+  const homeRoute = flatRoutes.find((item) => item.isHome)
+
+  const result: MenuItem[] = []
+  if (homeRoute) {
+    result.push({ path: homeRoute.path, title: homeRoute.title, name: 'Home' })
   }
-  // {
-  //   path: '/param',
-  //   title: '参数管理'
-  // }
-  // {
-  //   path: "/check",
-  //   title: "盘后检查"
-  // },
-])
+
+  navGroupOrder.forEach((groupKey) => {
+    const children = flatRoutes
+      .filter((item) => !item.isHome && item.navGroup === groupKey)
+      .sort((a, b) => a.navOrder - b.navOrder || a.title.localeCompare(b.title, 'zh-CN'))
+      .map((item) => ({
+        path: item.path,
+        title: item.title,
+        icon: item.icon
+      }))
+
+    if (children.length > 0) {
+      result.push({
+        title: navGroupTitle[groupKey],
+        children
+      })
+    }
+  })
+
+  return result
+})
 
 const isPathActive = (path?: string) => {
   if (!path) return false
@@ -303,6 +372,15 @@ const goAccounts = () => {
 
 const openFeedback = () => {
   window.open(feedbackUrl, '_blank', 'noopener')
+}
+
+const goQuickCreate = (path: '/source' | '/target' | '/table') => {
+  router.push({
+    path,
+    query: {
+      action: 'create'
+    }
+  })
 }
 
 // Logout function
@@ -397,7 +475,7 @@ watch(
       //     refreshNotifications()
       //   }, 10000)
       // }
-    } 
+    }
     // else if (notifyTimer) {
     //   window.clearInterval(notifyTimer)
     //   notifyTimer = null
@@ -427,7 +505,79 @@ onUnmounted(() => {
 
 <style scoped>
 .topbar-bar {
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+}
+
+.top-nav-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar-bar :deep(.top-nav-btn) {
+  border-radius: 8px;
+  min-height: 34px;
+  font-weight: 500;
+}
+
+:deep(.top-nav-menu-list) {
+  min-width: 0;
+  width: max-content;
+  max-width: 240px;
+}
+
+:deep(.top-nav-menu-item) {
+  min-height: 34px;
+  --v-list-prepend-gap: 18px;
+}
+
+:deep(.top-nav-menu-item .v-list-item__prepend) {
+  flex: 0 0 18px;
+  width: 18px;
+  min-width: 18px;
+  max-width: 18px;
+  margin-inline-end: 0;
+}
+
+:deep(.top-nav-menu-item .v-list-item__prepend > .v-list-item__spacer) {
+  width: 6px;
+}
+
+:deep(.top-nav-menu-item .v-list-item__prepend > .v-icon) {
+  font-size: 16px;
+  opacity: 0.92;
+}
+
+:deep(.top-nav-menu-item .v-list-item-title) {
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+:deep(.user-nav-menu-list) {
+  min-width: 0;
+  width: max-content;
+  max-width: 260px;
+}
+
+.topbar-bar :deep(.top-nav-btn--active) {
+  background: rgb(var(--v-theme-primary)) !important;
+  color: rgb(var(--v-theme-on-primary)) !important;
+}
+
+.topbar-bar :deep(.top-nav-btn--active .v-btn__overlay) {
+  opacity: 0 !important;
+}
+
+@media (max-width: 1280px) {
+  .top-nav-cluster {
+    gap: 4px;
+  }
+
+  .topbar-bar :deep(.top-nav-btn) {
+    min-width: auto;
+    padding-inline: 10px;
+  }
 }
 
 .notification-list {
@@ -437,8 +587,8 @@ onUnmounted(() => {
 }
 
 .notification-bubble {
-  background: #f5f7ff;
-  border: 1px solid #d9e1ff;
+  background: rgba(var(--v-theme-primary), 0.08);
+  border: 1px solid rgba(var(--v-theme-primary), 0.24);
   border-radius: 12px;
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -452,8 +602,8 @@ onUnmounted(() => {
 }
 
 .notification-bubble.unread {
-  background: #fff7e6;
-  border-color: #ffd591;
+  background: rgba(var(--v-theme-warning), 0.14);
+  border-color: rgba(var(--v-theme-warning), 0.42);
 }
 
 .bubble-title {
@@ -466,19 +616,19 @@ onUnmounted(() => {
 
 .bubble-time {
   font-size: 11px;
-  color: #6b7280;
+  color: rgba(var(--v-theme-on-surface), 0.7);
   margin-left: 8px;
 }
 
 .bubble-content {
   font-size: 12px;
   line-height: 1.5;
-  color: #374151;
+  color: rgba(var(--v-theme-on-surface), 0.9);
 }
 
 .version-dialog-card {
   background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
 }
 
 .version-dialog-body {
@@ -493,11 +643,11 @@ onUnmounted(() => {
   width: 72px;
   height: 72px;
   border-radius: 20px;
-  background: linear-gradient(145deg, rgba(37, 99, 235, 0.18), rgba(15, 23, 42, 0.1));
+  background: linear-gradient(145deg, rgba(var(--v-theme-primary), 0.24), rgba(var(--v-theme-on-surface), 0.08));
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
 }
 
 .version-logo {

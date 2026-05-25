@@ -8,7 +8,7 @@
             <v-data-table
               :items="data.accomplishList"
               :headers="accomplishListTable.headers"
-              density="compact"
+              density="default"
               :sort-by="accomplishListTable.sortBy"
               class="elevation-1"
             />
@@ -25,7 +25,7 @@
             <v-data-table
               :items="data.specialTask"
               :headers="specialTaskTable.headers"
-              density="compact"
+              density="default"
               :sort-by="specialTaskTable.sortBy"
               class="elevation-1"
             />
@@ -42,7 +42,7 @@
                 <v-data-table
                   :items="data.rejectTask"
                   :headers="rejectTaskTable.headers"
-                  density="compact"
+                  density="default"
                   :sort-by="rejectTaskTable.sortBy"
                   class="elevation-1"
                   hide-no-data
@@ -58,7 +58,7 @@
                 <v-data-table
                   :items="data.smsDetail"
                   :headers="smsDetailTable.headers"
-                  density="compact"
+                  density="default"
                   :sort-by="smsDetailTable.sortBy"
                   class="elevation-1"
                   hide-no-data
@@ -77,7 +77,7 @@
             <v-data-table-server
               :items="fieldChangeItems"
               :headers="fieldChangeTable.headers"
-              density="compact"
+              density="default"
               :items-per-page="fieldChangePageSize"
               :items-length="fieldChangeTotal"
               :loading="fieldChangeLoading"
@@ -96,7 +96,7 @@
           <v-data-table
             :items="data.sysRisk"
             :headers="sysRiskTable.headers"
-            density="compact"
+            density="default"
             :sort-by="sysRiskTable.sortBy"
             class="elevation-1"
             hide-no-data
@@ -378,9 +378,11 @@
 <route lang="json">
 {
   "meta": {
-    "title": "采集与监控",
-    "icon": "mdi-monitor",
-    "requiresAuth": false
+    "title": "监控与告警",
+    "icon": "mdi-monitor-dashboard",
+    "requiresAuth": false,
+    "navGroup": "collect",
+    "navOrder": 30
   }
 }
 </route>

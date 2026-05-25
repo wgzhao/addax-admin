@@ -11,7 +11,7 @@
           <v-progress-linear :indeterminate="inProgress" :model-value="inProgress ? undefined : 100" color="primary"
             height="8" rounded></v-progress-linear>
         </div>
-        <div v-if="currentProcessingInfo" class="text-caption text-grey-600">
+        <div v-if="currentProcessingInfo" class="text-caption progress-info-muted">
           {{ currentProcessingInfo }}
         </div>
         <div v-if="results.length > 0" class="mt-3">
@@ -53,4 +53,8 @@ function emitClose(val: boolean) {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.progress-info-muted {
+  color: rgba(var(--v-theme-on-surface), 0.68);
+}
+</style>

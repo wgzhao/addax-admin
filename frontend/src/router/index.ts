@@ -21,21 +21,27 @@ routes.forEach((route) => {
 routes.push({
   path: '/change-password',
   name: 'ChangePassword',
-  component: () => import('@/views/change-password.vue')
+  component: () => import('@/views/change-password.vue'),
+  meta: { layout: 'default', navHidden: true }
 })
 
 routes.push({
   path: '/help',
   name: 'Help',
   component: () => import('@/views/help.vue'),
-  meta: { title: '帮助文档', icon: 'mdi-book-open-variant' }
+  meta: {
+    layout: 'default',
+    title: '帮助文档',
+    icon: 'mdi-book-open-variant',
+    navHidden: true
+  }
 })
 
 routes.push({
   path: '/login',
   name: 'Login',
   component: () => import('@/views/login.vue'),
-  meta: { layout: 'login' }
+  meta: { layout: 'login', navHidden: true }
 })
 
 // 字典维护页面

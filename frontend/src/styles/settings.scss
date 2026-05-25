@@ -6,11 +6,33 @@
 
 // https://vuetifyjs.com/features/sass-variables/
 @use 'vuetify/settings' with (
-  // 自定义全局字体
-  $body-font-family: ('PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif),
-  $heading-font-family: ('PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif),
+  // Global font stack (unified with runtime CSS for predictable rendering)
+  $body-font-family: (
+    'Inter',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    'Noto Sans SC',
+    'Helvetica Neue',
+    'Arial',
+    sans-serif
+  ),
+  $heading-font-family: (
+    'Inter',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    'Noto Sans SC',
+    'Helvetica Neue',
+    'Arial',
+    sans-serif
+  ),
 
-  // 根字体大小
+  // Root size keeps default; body scale is tuned in runtime CSS for finer control
   $font-size-root: 16px,
 
   // 全局圆角

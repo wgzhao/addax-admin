@@ -3,7 +3,7 @@
   <!-- <dialog-comp title="字段对比" v-model="dialog"> -->
   <v-card prepend-icon="mdi-table-column" title="字段对比" class="fields-compare-card" density="comfortable">
     <v-card-text class="fields-compare-body">
-  <v-data-table :headers="headers" :items="fields" hide-default-footer density="compact" no-data-text="无数据"
+  <v-data-table :headers="headers" :items="fields" hide-default-footer density="default" no-data-text="无数据"
     :items-per-page="-1">
     <template v-slot:item="{ item }">
       <tr>

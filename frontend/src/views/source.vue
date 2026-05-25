@@ -1,5 +1,5 @@
 <template>
-  <div class="source-page">
+  <div class="source-page" :class="{ 'source-page--modal-open': isShow || deleteDialog }">
     <v-card flat class="mb-3 section-card">
       <v-card-text class="py-3 d-flex align-center justify-space-between flex-wrap ga-2">
         <div class="text-subtitle-1 font-weight-bold">数据源管理</div>
@@ -49,7 +49,7 @@
           :items="sources"
           :headers="headers"
           :search="searchValue"
-          density="compact"
+          density="default"
           items-per-page="20"
         >
           <template v-slot:item.enabled="{ item }">
@@ -93,12 +93,23 @@
   </div>
   <!-- form -->
 
-  <v-dialog v-model="isShow" max-width="1080" scrollable>
+  <v-dialog
+    v-model="isShow"
+    class="ds-dialog-overlay"
+    scrim="rgba(2, 6, 23, 0.62)"
+    max-width="1080"
+    scrollable
+  >
     <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
   </v-dialog>
 
   <!-- 确认删除对话框 -->
-  <v-dialog v-model="deleteDialog" max-width="600">
+  <v-dialog
+    v-model="deleteDialog"
+    class="ds-dialog-overlay"
+    scrim="rgba(2, 6, 23, 0.62)"
+    max-width="600"
+  >
     <v-card>
       <v-card-title class="headline">确认删除</v-card-title>
       <v-card-text>您确定要删除{{ itemNameToDelete }}这个数据源吗？</v-card-text>
@@ -112,11 +123,15 @@
 
 <script setup lang="ts">
   import { onMounted, ref, watch } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
   import type { DataTableHeader } from 'vuetify'
   import sourceService from '@/service/source-service'
   import AddDataSource from '@/components/source/AddSource.vue'
   import EmptyState from '@/components/EmptyState.vue'
   import { notify } from '@/stores/notifier'
+
+  const route = useRoute()
+  const router = useRouter()
 
   const sources = ref([])
   const isShow = ref(false)
@@ -226,27 +241,60 @@
         notify('删除失败: ' + error.message, 'error')
       })
   }
+  const openCreateFromQuery = () => {
+    const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
+    if (action !== 'create') return
+
+    doAction('-1', 'add')
+
+    const query = { ...route.query }
+    delete query.action
+    router.replace({ path: route.path, query })
+  }
+
   onMounted(() => {
     getSources()
+    openCreateFromQuery()
   })
 
   // 切换显示禁用源时，重新加载列表
   watch(showDisabled, () => {
     getSources()
   })
+
+  watch(
+    () => route.query.action,
+    () => {
+      openCreateFromQuery()
+    }
+  )
 </script>
 <route lang="json">
 {
   "meta": {
-    "title": "采集源管理",
-    "icon": "mdi-database",
-    "requiresAuth": false
+    "title": "数据源管理",
+    "icon": "mdi-database-cog",
+    "requiresAuth": false,
+    "navGroup": "source",
+    "navOrder": 10
   }
 }
 </route>
 <style scoped>
   .source-page {
     padding: 8px 10px;
+  }
+
+  .source-page > .section-card {
+    transition: filter 0.2s ease, opacity 0.2s ease;
+    transform: translateZ(0);
+  }
+
+  .source-page--modal-open > .section-card {
+    filter: blur(3px) saturate(0.86);
+    opacity: 0.52;
+    pointer-events: none;
+    user-select: none;
   }
 
   .section-card {

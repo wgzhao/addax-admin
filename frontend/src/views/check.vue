@@ -2,7 +2,7 @@
   <!-- 盘后检查 -->
   <v-card title="采集表记录数异常">
     <v-card-text>
-      <v-data-table density="compact" :headers="headers" :items="abnormalRecord"></v-data-table>
+      <v-data-table density="default" :headers="headers" :items="abnormalRecord"></v-data-table>
     </v-card-text>
   </v-card>
 </template>
@@ -31,7 +31,8 @@
   "meta": {
     "title": "盘后检查",
     "icon": "mdi-check",
-    "requiresAuth": true
+    "requiresAuth": true,
+    "navHidden": true
   }
 }
 </route>
