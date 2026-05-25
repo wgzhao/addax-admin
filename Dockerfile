@@ -57,7 +57,7 @@ COPY --from=backend-builder /build/target/*.jar /app/app.jar
 COPY --from=frontend-builder /build/dist /usr/share/nginx/html
 
 # Copy nginx configuration from frontend module
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/http.d/default.conf
 
 # Create backend-related directories
 RUN mkdir -p /app/logs /app/drivers /app/config /app/job
