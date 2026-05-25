@@ -102,6 +102,46 @@ public class EtlJobQueueService
         return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
     }
 
+    /**
+     * Read-only peek at pending jobs without changing queue state.
+     */
+    @Transactional(readOnly = true)
+    public List<EtlJobQueue> peekPendingJobs(int limit)
+    {
+        String sql = """
+            SELECT *
+            FROM public.etl_job_queue
+            WHERE status='pending' AND available_at <= now()
+            ORDER BY priority, available_at, id
+            LIMIT ?
+            """;
+        return jdbcTemplate.query(sql, JOB_ROW_MAPPER, Math.max(1, limit));
+    }
+
+    /**
+     * Master-mode: atomically claim a specific pending job and assign it to a worker instance.
+     */
+    @Transactional
+    public Optional<EtlJobQueue> assignSpecificJobToWorker(long jobId, String targetInstanceId, int leaseSeconds)
+    {
+        String sql = """
+            WITH cte AS (
+                SELECT id
+                FROM public.etl_job_queue
+                WHERE id=? AND status='pending' AND available_at <= now()
+                FOR UPDATE SKIP LOCKED
+            )
+            UPDATE public.etl_job_queue q
+            SET status='running', claimed_by=?, claimed_at=now(), lease_until=now() + ?::interval, attempts=attempts+1
+            FROM cte
+            WHERE q.id = cte.id
+            RETURNING q.*
+            """;
+        String leaseInterval = leaseSeconds + " seconds";
+        List<EtlJobQueue> list = jdbcTemplate.query(sql, JOB_ROW_MAPPER, jobId, targetInstanceId, leaseInterval);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+    }
+
     @Transactional
     public void completeSuccess(long jobId)
     {
