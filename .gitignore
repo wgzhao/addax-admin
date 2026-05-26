@@ -44,3 +44,4 @@ frontend/tests/e2e/.auth/
 .alma-snapshots
 deploy.sh
 .agents/
+skills-lock.json
