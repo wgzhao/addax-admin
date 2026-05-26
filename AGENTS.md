@@ -76,6 +76,48 @@ addax-admin/
 
 ## Git / PR 标准流程
 
+### Commit Message 规范（Conventional Commits）
+
+适用于本仓库（frontend + backend mono repo）的默认提交规范：
+
+1. 基础格式：`type(scope): subject`
+2. type 白名单：`feat`、`fix`、`refactor`、`perf`、`docs`、`test`、`chore`、`ci`
+3. scope 白名单：`fe`、`be`、`api`、`db`、`infra`、`repo`、`deps`
+4. subject 规范：英文、祈使句、首字母小写、不加句号，建议 50 字符以内
+
+Body（建议必须写）建议使用以下结构：
+
+1. Why: 变更动机
+2. What: 核心改动（可按 Frontend / Backend 分组）
+3. Impact: 影响范围、兼容性、迁移要求
+4. Test: 构建/测试与关键验证结果
+
+Footer 约定：
+
+1. 关联任务：`Refs #123`
+2. 关闭任务：`Closes #123`
+3. 破坏性变更：`BREAKING CHANGE: <migration notes>`
+
+Mono repo 提交策略：
+
+1. 单个 commit 只做一件逻辑上完整的事情
+2. 前后端改动可拆分时，优先拆成独立 commit（`fe` / `be`）
+3. 必须同提时，使用 `api` 或 `repo` scope，并在 Body 中分段写明 Frontend 与 Backend 改动
+
+示例：
+
+1. `feat(fe): add table batch edit dialog`
+2. `fix(be): prevent scheduler duplicate dispatch on retry`
+3. `refactor(api): unify task dto field naming`
+4. `chore(deps): bump spring boot to 3.5.6`
+5. `feat(repo): support dynamic table versioning end-to-end`
+
+自动校验（本仓库已启用）：
+
+1. 使用 Husky 的 `commit-msg` hook 在本地提交时触发 commitlint
+2. 规则配置文件：`commitlint.config.cjs`
+3. 若本地未安装 hooks，可执行：`yarn prepare`
+
 当用户明确提出“提交并创建 PR”时，默认按以下流程执行（除非用户另有说明）：
 
 1. 创建新分支后再提交，分支名建议使用 `feat/<topic>` 或 `fix/<topic>` 格式，根据本次修改的性质选择 `feat`（新功能）或 `fix`（修复）。例如：`feat/add-protobuf-dependency`。

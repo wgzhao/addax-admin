@@ -19,9 +19,13 @@
     "lint": "yarn workspace addax-ui lint",
     "format": "yarn workspace addax-ui format",
     "release": "bash scripts/release.sh",
-    "changelog": "npx standard-version --dry-run"
+    "changelog": "npx standard-version --dry-run",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
+    "husky": "^9.1.7",
     "npm-run-all": "^4.1.5"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"

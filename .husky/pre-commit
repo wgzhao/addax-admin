@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Keep pre-commit as a no-op for now.
+# Add lint/test checks here when the team is ready.
