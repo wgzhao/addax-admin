@@ -4,7 +4,14 @@
       <v-app-bar-title>统一采集管理系统</v-app-bar-title>
       <div class="top-nav-cluster">
         <template v-for="item in urls" :key="item.title">
-          <v-menu v-if="item.children" :min-width="0">
+          <v-menu
+            v-if="item.children"
+            :min-width="0"
+            open-on-hover
+            :open-on-click="false"
+            :open-delay="80"
+            :close-delay="120"
+          >
             <template v-slot:activator="{ props }">
               <v-btn
                 v-bind="props"
@@ -12,6 +19,7 @@
                 :class="{ 'top-nav-btn--active': isMenuActive(item) }"
                 :variant="isMenuActive(item) ? 'flat' : 'text'"
                 :color="isMenuActive(item) ? 'primary' : undefined"
+                append-icon="mdi-chevron-down"
               >
                 {{ item.title }}
               </v-btn>
@@ -43,7 +51,14 @@
           </v-btn>
         </template>
       </div>
-      <v-menu :min-width="0" offset-y>
+      <v-menu
+        :min-width="0"
+        offset-y
+        open-on-hover
+        :open-on-click="false"
+        :open-delay="80"
+        :close-delay="120"
+      >
         <template #activator="{ props }">
           <v-btn v-bind="props" class="top-nav-btn" variant="text" prepend-icon="mdi-plus-circle-outline">
             新增
