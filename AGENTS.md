@@ -85,12 +85,14 @@ addax-admin/
 3. scope 白名单：`fe`、`be`、`api`、`db`、`infra`、`repo`、`deps`
 4. subject 规范：英文、祈使句、首字母小写、不加句号，建议 50 字符以内
 
-Body（建议必须写）建议使用以下结构：
+Body 部分，如果本轮修改涉及到核心模块，核心 API，或者框架条件，必须使用以下结构：
 
 1. Why: 变更动机
 2. What: 核心改动（可按 Frontend / Backend 分组）
 3. Impact: 影响范围、兼容性、迁移要求
 4. Test: 构建/测试与关键验证结果
+
+简单修改或者例行维护的提交可以省略 Body，直接使用简洁的 title。
 
 Footer 约定：
 
