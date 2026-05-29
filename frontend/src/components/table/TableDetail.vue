@@ -274,14 +274,15 @@
                         </div>
                       </v-col>
                       <v-col cols="12">
-                        <div class="field-stack">
+                        <div class="field-stack field-stack--hinted">
                           <div class="field-label">最大运行时(s)</div>
                           <v-text-field
                             variant="outlined"
                             density="compact"
                             v-model="table.maxRuntime"
-                            placeholder="请输入秒数"
-                            hide-details="auto"
+                            placeholder="不填默认 2000 秒"
+                            hint="不填表示默认 2000 秒"
+                            persistent-hint
                           ></v-text-field>
                         </div>
                       </v-col>
@@ -818,10 +819,27 @@ const showFilterRuleInfoDialog = () => {
   background: rgb(var(--v-theme-surface, 255, 255, 255));
   width: min(100%, 920px);
   margin: 0 auto;
+  /* Allow the card to fill the scrollable dialog and constrain its own height */
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 900px);
 }
 
 .table-detail-form {
   background: rgb(var(--v-theme-surface, 255, 255, 255));
+  /* The <form> tag sits between v-card and v-card-text, breaking Vuetify's
+     scrollable dialog selector; replicate the same flex chain manually */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.table-detail-form :deep(.v-card-text) {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .section-grid {
