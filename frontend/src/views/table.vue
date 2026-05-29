@@ -154,7 +154,7 @@
         <template v-slot:item.status="{ item }">
           <v-chip
             :color="getStatusColor(item.status)"
-            
+
             variant="flat"
             class="font-weight-bold"
           >
@@ -595,6 +595,7 @@
   }
   const dialogMaxWidth = computed<number | undefined>(() => {
     if (currentDialogName.value === 'BatchUpdate') return 720
+    if (currentDialogName.value === 'BatchAdd') return 1100
     return undefined
   })
 
