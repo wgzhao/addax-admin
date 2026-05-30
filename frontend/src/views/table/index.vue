@@ -1,164 +1,97 @@
 <template>
-  <div
-    class="table-page page-shell"
-    :class="{ 'table-page--modal-open': dialogVisible || deleteDialogVisible }"
-  >
-    <v-card flat class="ds-card page-header-card">
+  <div class="table-page page-shell" :class="{ 'table-page--modal-open': dialogVisible || deleteDialogVisible }">
+    <v-card flat >
       <v-card-text class="ds-card__content">
         <div class="page-header flex-wrap">
           <div>
             <div class="page-title">采集表配置</div>
             <div class="page-subtitle">统一管理采集表、批量执行采集与结构更新</div>
           </div>
-          <v-btn
-            color="primary"
-            variant="flat"
-            prepend-icon="mdi-plus"
-            @click="goToBatchAdd"
-          >
-            新增表
-          </v-btn>
+          <div class="d-flex align-center ga-2">
+            <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openDialog('BatchAdd', 'BatchAdd')">
+              新增表
+            </v-btn>
+          </div>
         </div>
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card toolbar-card">
-      <v-card-text class="ds-card__content">
-        <v-row dense>
-          <v-col cols="12" md="4" lg="3">
-            <v-text-field
-              v-model="search"
-              density="compact"
-              label="关键字"
-              prepend-inner-icon="mdi-magnify"
-              single-line
-              variant="outlined"
-              hide-details
-              @keyup.enter="searchTable"
-              @click:append-inner="searchTable"
-            />
+    <v-card flat >
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="2" lg="2">
+            <v-text-field v-model="search" density="compact" label="关键字" prepend-inner-icon="mdi-magnify" single-line
+              variant="outlined" hide-details @keyup.enter="searchTable" @click:append-inner="searchTable" />
           </v-col>
-          <v-col cols="12" md="3" lg="2">
-            <v-select
-              v-model="runStatus"
-              :items="statusOptions"
-              item-title="label"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              single-line
-              hide-details
-              label="状态"
-            />
+          <v-col cols="12" md="1" lg="1">
+            <v-select v-model="runStatus" :items="statusOptions" item-title="label" item-value="value" density="compact"
+              variant="outlined" single-line hide-details label="状态" />
           </v-col>
-          <v-col cols="12" md="3" lg="3">
-            <v-select
-              v-model="sourceId"
-              :items="sourceOptions"
-              item-title="label"
-              item-value="value"
-              :item-props="item => ({ title: item.label })"
-              density="compact"
-              variant="outlined"
-              single-line
-              hide-details
-              clearable
-              label="数据源"
-            />
+          <v-col cols="12" md="2" lg="2">
+            <v-select v-model="sourceId" :items="sourceOptions" item-title="label" item-value="value"
+              :item-props="item => ({ title: item.label })" density="compact" variant="outlined" single-line
+              hide-details clearable label="数据源" />
           </v-col>
-          <v-col cols="12" md="2" lg="4" class="d-flex justify-end ga-2 align-center query-actions">
+          <v-col cols="12" md="1" lg="1">
             <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
-            <v-btn variant="text" @click="resetFilters">重置</v-btn>
           </v-col>
+          <v-spacer />
+          <template v-if="selected.length > 0">
+            <v-col cols="12" md="1">
+              <v-btn variant="flat" color="primary" prepend-icon="mdi-database"
+                @click="doEtl(null)">
+                批量采集
+              </v-btn>
+            </v-col>
+            <v-col cols="12" md="1">
+              <v-btn color="secondary" prepend-icon="mdi-pencil"
+                @click="openDialog('BatchUpdate', 'BatchUpdate')">
+                批量修改
+              </v-btn>
+            </v-col>
+            <v-col cols="12" md="1">
+              <v-btn variant="flat" color="error" prepend-icon="mdi-delete"
+                @click="confirmBatchDelete">
+                批量删除
+              </v-btn>
+            </v-col>
+            <v-col cols="12" md="1">
+                <v-btn color="secondary" variant="tonal">
+                    已选择 {{ selected.length }} 行
+                  </v-btn>
+            </v-col>
+          </template>
         </v-row>
-      </v-card-text>
-    </v-card>
-
-    <v-card flat class="ds-card toolbar-card">
-      <v-card-text class="ds-card__content d-flex align-center justify-space-between flex-wrap ga-2 batch-toolbar">
-        <div class="section-actions">
-          <v-btn variant="outlined" prepend-icon="mdi-update" @click="updateSchema(null)">
-            更新表信息
-          </v-btn>
-          <v-btn variant="text" color="warning" prepend-icon="mdi-alert" @click="updateSchema('all')">
-            强制更新全部表信息
-          </v-btn>
-        </div>
-
-        <div class="section-actions">
-          <v-btn
-            variant="flat"
-            color="primary"
-            prepend-icon="mdi-database"
-            :disabled="selected.length === 0"
-            @click="doEtl(null)"
-          >
-            批量采集
-          </v-btn>
-          <v-btn
-            variant="text"
-            prepend-icon="mdi-pencil"
-            :disabled="selected.length === 0"
-            @click="openDialog('BatchUpdate', 'BatchUpdate')"
-          >
-            批量修改
-          </v-btn>
-          <v-btn
-            variant="text"
-            color="error"
-            prepend-icon="mdi-delete"
-            :disabled="selected.length === 0"
-            @click="confirmBatchDelete"
-          >
-            批量删除
-          </v-btn>
-        </div>
       </v-card-text>
     </v-card>
 
     <v-card flat class="ds-card table-card ds-table-wrap">
       <v-card-text class="ds-card__content">
-      <template v-if="!loading && totalItems === 0">
-        <EmptyState
-          title="暂无采集表"
-          description="当前没有采集表。点击下方按钮立即新增采集表或从模板导入开始。"
-          :primary="{ label: '新增采集表', icon: 'mdi-plus' }"
-          :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
-          @primary="goToBatchAdd"
-          @secondary="goToBatchAdd"
-        />
-      </template>
-      <template v-else>
-      <v-data-table-server
-        density="default"
-        :items="table"
-        :headers="headers"
-        :items-per-page="currPageSize"
-        :items-per-page-options="[15, 30, 50, 100]"
-        :items-length="totalItems"
-        item-value="id"
-        :loading="loading"
-        @update:options="loadItems"
-        show-select
-        v-model="selected"
-        :item-class="getRowClass"
-      >
-        <!-- 顶部插槽：显示当前选中数量 -->
-        <template #top>
-          <v-row class="selection-bar" align="center">
-            <v-chip v-if="selected.length > 0" color="secondary" variant="tonal" >
-              已选择 {{ selected.length }} 行
-            </v-chip>
-          </v-row>
+        <template v-if="!loading && totalItems === 0">
+          <EmptyState title="暂无采集表" description="当前没有采集表。点击下方按钮立即新增采集表或从模板导入开始。"
+            :primary="{ label: '新增采集表', icon: 'mdi-plus' }" :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
+            @primary="() => openDialog('BatchAdd', 'BatchAdd')" @secondary="() => openDialog('BatchAdd', 'BatchAdd')" />
         </template>
+        <template v-else>
+          <v-data-table-server density="comfortable" :items="table" :headers="headers" :items-per-page="currPageSize"
+            :items-per-page-options="[15, 20, 25, 30, 50, 100]" :items-length="totalItems" item-value="id"
+            :loading="loading" @update:options="loadItems" show-select v-model="selected" :item-class="getRowClass">
+            <template v-slot:item.sourceTable="{ item }">
+              <div class="d-flex flex-column py-1">
+                <span class="text-caption text-medium-emphasis">{{ item.name }}({{ item.code }})</span>
+                <span class="font-weight-medium text-body-2 white-space-normal">
+                  <span class="text-disabled">{{ item.sourceDb || '' }}.</span>{{ item.sourceTable || '' }}
+                </span>
+              </div>
+              </template>
         <template v-slot:item.status="{ item }">
-          <v-chip
-            :color="getStatusColor(item.status)"
-
-            variant="flat"
-            class="font-weight-bold"
-          >
-            {{ item.status }}
+          <v-badge
+              dot
+              inline
+              :color="getStatusColor(item.status)"
+              class="mr-2"
+            />
+            <span class="text-body-2 font-weight-medium">{{ item.status }}</span> 
             <!-- Kill icon for running tasks: move to right, match E icon style -->
             <template v-if="item.status === 'R'">
               <v-tooltip location="top">
@@ -197,246 +130,75 @@
                 </div>
               </v-menu>
             </template>
-          </v-chip>
+          </template>
+
+            <template v-slot:item.targetTable="{ item }">
+              <div class="d-flex align-center py-1">
+                <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
+                <span class="font-weight-medium text-body-2 white-space-normal">
+                  <span class="text-disabled">{{ item.targetDb || '' }}.</span>{{ item.targetTable || '' }}
+                </span>
+              </div>
+            </template>
+
+
+            <template v-slot:item.action="{ item }">
+              <div class="action-inline d-flex align-center justify-center ga-1">
+                <v-tooltip location="top">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" color="primary" variant="text" size="small" class="px-2 action-btn-main"
+                      @click="doEtl(item)">
+                      <v-icon size="16" class="mr-1">mdi-play-circle</v-icon>采集
+                    </v-btn>
+                  </template>
+                  <span>触发单表采集</span>
+                </v-tooltip>
+
+                <v-btn v-if="['E', 'X', 'U'].includes(item.status)" color="secondary" variant="text" size="small"
+                  class="px-1" @click="openDialog('LogFiles', item)">
+                  日志
+                </v-btn>
+
+                <v-menu location="bottom end" open-on-click>
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" variant="text" color="secondary" icon size="small" aria-label="更多操作">
+                      <v-icon size="18">mdi-dots-vertical</v-icon>
+                    </v-btn>
+                  </template>
+                  <v-list density="compact" class="action-menu-list">
+                    <v-list-subheader>查看配置</v-list-subheader>
+                    <v-list-item title="基本详情" prepend-icon="mdi-information-outline"
+                      @click="openDialog('TableDetail', item)" />
+                    <v-list-item title="AddaxJob 模板" prepend-icon="mdi-file-code"
+                      @click="openDialog('AddaxJob', item)" />
+                    <v-list-item title="日志文件" v-if="!['E', 'X', 'U'].includes(item.status)" prepend-icon="mdi-text-box"
+                      @click="openDialog('LogFiles', item)" />
+                    <v-list-item title="字段比较" prepend-icon="mdi-table-column"
+                      @click="openDialog('FieldsCompare', item)" />
+                    <v-list-item title="采集结果数据" prepend-icon="mdi-table" @click="openDialog('AddaxResult', item)" />
+                    <v-divider class="my-1" />
+                    <v-list-subheader>元数据运维</v-list-subheader>
+                    <v-list-item title="更新表结构" prepend-icon="mdi-database-refresh" @click="updateSchema(item)" />
+                    <v-divider class="my-1" />
+                    <v-list-item title="删除记录" prepend-icon="mdi-delete" class="danger-item"
+                      @click="confirmDelete(item)" />
+                  </v-list>
+                </v-menu>
+              </div>
+            </template>
+          </v-data-table-server>
         </template>
-        <!--
-          Icon legend (action icons used below):
-            - mdi-information-outline : 详情 — 展示该记录的全部信息（详情页面）
-            - mdi-file-code           : 模板 — 打开模板编辑/查看（AddaxJob）
-            - mdi-console             : 日志 — 查看该记录的采集程序输出日志（LogFiles）
-            - mdi-database-refresh    : 表更新 — 触发表结构/元数据更新
-            - mdi-play-circle         : 采集 — 触发单表采集任务
-            - mdi-table-column        : 字段 — 字段比较（FieldsCompare）
-            - mdi-chart-box           : 结果 — 查看采集结果（AddaxResult）
-            - mdi-delete              : 删除 — 删除该表记录
-          Keep icons and tooltip text in sync when changing.
-        -->
-        <template v-slot:item.action="{ item }">
-          <div class="action-inline">
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="secondary"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="详情"
-                  @click="openDialog('TableDetail', item)"
-                >
-                  <v-icon size="18">mdi-information-outline</v-icon>
-                </v-btn>
-              </template>
-              <span>详情</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="secondary"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="模板"
-                  @click="openDialog('AddaxJob', item)"
-                >
-                  <v-icon size="18">mdi-file-code</v-icon>
-                </v-btn>
-              </template>
-              <span>模板</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="secondary"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="日志"
-                  @click="openDialog('LogFiles', item)"
-                >
-                  <v-icon size="18">mdi-text-box</v-icon>
-                </v-btn>
-              </template>
-              <span>日志</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="secondary"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="字段"
-                  @click="openDialog('FieldsCompare', item)"
-                >
-                  <v-icon size="18">mdi-table-column</v-icon>
-                </v-btn>
-              </template>
-              <span>字段</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="secondary"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="结果"
-                  @click="openDialog('AddaxResult', item)"
-                >
-                  <v-icon size="18">mdi-table</v-icon>
-                </v-btn>
-              </template>
-              <span>结果</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="warning"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="表更新"
-                  @click="updateSchema(item)"
-                >
-                  <v-icon size="18">mdi-database-refresh</v-icon>
-                </v-btn>
-              </template>
-              <span>表更新</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="primary"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="采集"
-                  @click="doEtl(item)"
-                >
-                  <v-icon size="18">mdi-play-circle</v-icon>
-                </v-btn>
-              </template>
-              <span>采集</span>
-            </v-tooltip>
-
-            <v-tooltip location="top">
-              <template #activator="{ props }">
-                <v-btn
-                  v-bind="props"
-                  color="error"
-                  variant="text"
-                  icon
-                  class="mr-1 icon-btn--compact"
-                  aria-label="删除"
-                  @click="confirmDelete(item)"
-                >
-                  <v-icon size="18">mdi-delete</v-icon>
-                </v-btn>
-              </template>
-              <span>删除</span>
-            </v-tooltip>
-          </div>
-
-          <div class="action-menu">
-            <v-menu location="bottom end" open-on-click>
-              <template #activator="{ props }">
-                <v-btn v-bind="props" variant="text" color="secondary" icon class="icon-btn--compact" aria-label="操作">
-                  <v-icon size="18">mdi-dots-vertical</v-icon>
-                </v-btn>
-              </template>
-              <v-list density="compact" class="action-menu-list">
-                <v-list-subheader>查看</v-list-subheader>
-                <v-list-item
-                  title="详情"
-                  prepend-icon="mdi-information-outline"
-                  @click="openDialog('TableDetail', item)"
-                />
-                <v-list-item
-                  title="模板"
-                  prepend-icon="mdi-file-code"
-                  @click="openDialog('AddaxJob', item)"
-                />
-                <v-list-item
-                  title="日志"
-                  prepend-icon="mdi-text-box"
-                  @click="openDialog('LogFiles', item)"
-                />
-                <v-list-item
-                  title="字段"
-                  prepend-icon="mdi-table-column"
-                  @click="openDialog('FieldsCompare', item)"
-                />
-                <v-list-item
-                  title="结果"
-                  prepend-icon="mdi-table"
-                  @click="openDialog('AddaxResult', item)"
-                />
-                <v-divider class="my-1" />
-                <v-list-subheader>操作</v-list-subheader>
-                <v-list-item
-                  title="表更新"
-                  prepend-icon="mdi-database-refresh"
-                  @click="updateSchema(item)"
-                />
-                <v-list-item title="采集" prepend-icon="mdi-play-circle" @click="doEtl(item)" />
-                <v-divider class="my-1" />
-                <v-list-subheader>危险</v-list-subheader>
-                <v-list-item
-                  title="删除"
-                  prepend-icon="mdi-delete"
-                  class="danger-item"
-                  @click="confirmDelete(item)"
-                />
-              </v-list>
-            </v-menu>
-          </div>
-        </template>
-      </v-data-table-server>
-      </template>
       </v-card-text>
     </v-card>
   </div>
 
-  <!-- 对话框 -->
-  <v-dialog
-    v-model="dialogVisible"
-    class="ds-dialog-overlay"
-    :max-width="dialogMaxWidth"
-    scrim="rgba(2, 6, 23, 0.62)"
-    :retain-focus="false"
-    scrollable
-  >
-    <!-- 动态加载的内容 -->
-    <component
-      :is="currentComponent"
-      v-bind="currentParams"
-      @closeDialog="closeDialog"
-      @update:record="handleRecordUpdate"
-      @update:batch="handleBatchUpdate"
-      @refresh-data="searchTable"
-    />
+  <v-dialog v-model="dialogVisible" class="ds-dialog-overlay" :max-width="dialogMaxWidth" scrim="rgba(2, 6, 23, 0.62)"
+    :retain-focus="false" scrollable>
+    <component :is="currentComponent" v-bind="currentParams" @closeDialog="closeDialog"
+      @update:record="handleRecordUpdate" @update:batch="handleBatchUpdate" @refresh-data="searchTable" />
   </v-dialog>
 
-  <!-- 删除确认对话框 -->
-  <v-dialog
-    v-model="deleteDialogVisible"
-    class="ds-dialog-overlay"
-    scrim="rgba(2, 6, 23, 0.62)"
-    width="400"
-  >
+  <v-dialog v-model="deleteDialogVisible" class="ds-dialog-overlay" scrim="rgba(2, 6, 23, 0.62)" width="400">
     <v-card>
       <v-card-title class="text-h6">确认删除</v-card-title>
       <v-card-text>{{ deleteConfirmMessage }}</v-card-text>
@@ -447,8 +209,6 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
-
-  <!-- ETL进度对话框 -->
 </template>
 
 <script setup lang="ts">
@@ -462,6 +222,7 @@
   import taskService from '@/service/task-service'
   import sourceService from '@/service/source-service'
   import { notify } from '@/stores/notifier'
+  import taskCenter from '@/stores/task-center'
   import type { DataTableHeader } from 'vuetify'
   // 异步按需加载组件，减轻首屏体积
   const TableDetail = defineAsyncComponent(() => import('@/components/table/TableDetail.vue'))
@@ -502,116 +263,123 @@
     AddaxResult,
     LogFiles,
     BatchUpdate
+}
+
+function getRowClass(item: any) {
+  return selected.value.includes(item.id) ? 'selected-row' : ''
+}
+
+// 映射 Vuetify 的标准状态色（支持 Badge 点）
+function getStatusColor(status: string) {
+  const statusColorMap = {
+    N: 'grey-lighten-1',
+    R: 'blue',       // 运行中使用干净的蓝色
+    Y: 'success',    // 成功绿色
+    E: 'error',      // 错误红色
+    X: 'warning',    // 警告橙色
+    W: 'amber',
+    U: 'grey-darken-1'
   }
+  return statusColorMap[status] || 'grey'
+}
 
-  function getRowClass(item: any) {
-    return selected.value.includes(item.id) ? 'selected-row' : ''
-  }
+const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
+const runStatus = ref<string>()
+const sourceId = ref<number | null>(null)
+const sourceOptions = ref<any[]>([])
 
-  // 根据状态返回对应的颜色
-  function getStatusColor(status: string) {
-    const statusColorMap = {
-      N: 'secondary',
-      R: 'info',
-      Y: 'success',
-      E: 'error',
-      X: 'warning',
-      W: 'primary',
-      U: 'secondary'
-    }
-    return statusColorMap[status] || 'secondary'
-  }
+// 优化后的 Headers 配置：精简列数，合并表达
+const headers: DataTableHeader[] = [
+  { title: '#', key: 'id', align: 'center', width: '60px' },
+  { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '28%' },
+  { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '28%' },
+  { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '10%' },
+  { title: '状态', key: 'status', align: 'start', sortable: true, width: '10%' },
+  { title: '耗时 (s)', key: 'duration', align: 'center', sortable: true, width: '6%' },
+  { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '12%' },
+  { title: '操作', key: 'action', align: 'center', sortable: false, width: '10%' }
+]
 
-  // 使用公共的批量更新状态选项
-  const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
+const errorMsgMap = ref<Record<number, string>>({})
 
-  const runStatus = ref<string>()
-  // 新增：数据源下拉选择
-  const sourceId = ref<number | null>(null)
-  const sourceOptions = ref<any[]>([])
+function fetchErrorMsg(tid: number) {
+  errorMsgMap.value[tid] = ''
+  taskService
+    .getLastError(tid)
+    .then((res) => { errorMsgMap.value[tid] = res || '无详细错误信息' })
+    .catch((err) => {
+      const msg = err instanceof Error ? err.message : String(err)
+      errorMsgMap.value[tid] = '获取错误信息失败: ' + msg
+    })
+}
 
-  const headers: DataTableHeader[] = [
-    {
-      title: '#',
-      key: 'id',
-      align: 'center' as const,
-      minWidth: '64px',
-      maxWidth: '80px'
-    },
-    {
-      title: '系统名称及代码',
-      key: 'name',
-      align: 'center' as const,
-      sortable: true,
-      width: '10%',
-      value: (item) => `${item.name} (${item.code})`
-    },
-    {
-      title: '源库表',
-      key: 'sourceTable',
-      align: 'start' as const,
-      sortable: true,
-      width: '16%',
-      maxWidth: '600px',
-      value: (item) => `${item.sourceDb || ''}.${item.sourceTable || ''}`
-    },
-    {
-      title: '目标库表',
-      key: 'targetTable',
-      align: 'start' as const,
-      sortable: true,
-      width: '22%',
-      value: (item) => `${item.targetDb || ''}.${item.targetTable || ''}`
-    },
-    {
-      title: '过滤规则',
-      key: 'filter',
-      align: 'start' as const,
-      sortable: true,
-      width: '8%',
-      maxWidth: '200px'
-    },
-    { title: '状态', key: 'status', align: 'center' as const, sortable: true, width: '5%' },
-    { title: '耗时', key: 'duration', align: 'center' as const, sortable: true, width: '5%' },
-    { title: '完成时间', key: 'endTime', align: 'center' as const, sortable: true, width: '12%' },
-    { title: '操作', key: 'action', align: 'center' as const, sortable: false, width: '8%' }
-  ]
-  // 已使用全局 Notifier 替换旧的 alertMsg
+const dialogMaxWidth = computed<number | undefined>(() => {
+  if (currentDialogName.value === 'BatchUpdate') return 720
+  return undefined
+})
 
-  const errorMsgMap = ref<Record<number, string>>({})
+function openDialog(componentName: string, com: any) {
+  currentDialogName.value = componentName
+  currentComponent.value = componentMap[componentName]
+  setParams(componentName, com)
+  dialogVisible.value = true
+}
 
-  function fetchErrorMsg(tid: number) {
-    errorMsgMap.value[tid] = ''
+function closeDialog() {
+  dialogVisible.value = false
+  currentComponent.value = null
+  currentDialogName.value = null
+}
 
-    taskService
-      .getLastError(tid)
-      .then((res) => {
-        errorMsgMap.value[tid] = res || '无详细错误信息'
-      })
-      .catch((err) => {
-        const msg = err instanceof Error ? err.message : String(err)
-        errorMsgMap.value[tid] = '获取错误信息失败: ' + msg
-      })
-  }
-  const dialogMaxWidth = computed<number | undefined>(() => {
-    if (currentDialogName.value === 'BatchUpdate') return 720
-    return undefined
-  })
-
-  // 打开对话框并加载相应的组件
-  function openDialog(componentName: string, com: any) {
-    currentDialogName.value = componentName
-    currentComponent.value = componentMap[componentName]
-    setParams(componentName, com)
-    dialogVisible.value = true // 打开对话框
-  }
-
-  // 关闭对话框
-  function closeDialog() {
-    dialogVisible.value = false
-    currentComponent.value = null // 清空内容
+watch(dialogVisible, (open) => {
+  if (!open) {
+    currentComponent.value = null
     currentDialogName.value = null
   }
+})
+
+
+function setParams(compName: string, comp: any) {
+  if (compName == 'BatchUpdate') {
+    currentParams.value = { tid: selected.value }
+    return
+  }
+  if (compName == 'TableDetail') {
+    currentParams.value = { table: comp }
+    return
+  }
+  if (['FieldsCompare', 'AddaxJob', 'AddaxResult', 'LogFiles'].includes(compName)) {
+    currentParams.value = { tid: comp.id }
+  } else if (compName === 'BatchAdd') {
+    currentParams.value = { tid: '-1' }
+  } else {
+    currentParams.value = { tid: comp.id }
+  }
+}
+
+const doEtl = async (item: any | null) => {
+  if (item != null) {
+    try {
+      await taskService.executeTask(item.id, 300000, 'async')
+      taskCenter.addTask({
+        id: String(item.id),
+        type: '采集',
+        target: item.targetTable,
+        status: '进行中',
+        progress: '已提交，等待后端处理',
+        submitTime: new Date().toISOString(),
+        result: '',
+        extra: { tid: item.id }
+      })
+      notify('采集任务已提交，可在任务中心查看进展', 'primary')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      notify('采集任务提交失败: ' + msg, 'error')
+    }
+    return
+  }
+
+  if (selected.value.length === 0) return
 
   watch(dialogVisible, (open) => {
     if (!open) {
@@ -657,77 +425,46 @@
     }
   }
 
-  import taskCenter from '@/stores/task-center'
 
-  const doEtl = async (item: any | null) => {
-    if (item != null) {
-      // 单个采集，直接异步提交任务中心
-      try {
-        await taskService.executeTask(item.id, 300000, 'async')
-        taskCenter.addTask({
-          id: String(item.id),
-          type: '采集',
-          target: item.targetTable,
-          status: '进行中',
-          progress: '已提交，等待后端处理',
-          submitTime: new Date().toISOString(),
-          result: '',
-          extra: { tid: item.id }
-        })
-        notify('采集任务已提交，可在任务中心查看进展', 'primary')
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err)
-        notify('采集任务提交失败: ' + msg, 'error')
-      }
-      return
-    }
-
-    if (selected.value.length === 0) return
-
-    // 并行批量采集，异步提交
-    const tids = [...selected.value]
+const doEtl = async (item: any | null) => {
+  if (item != null) {
     try {
-      taskService
-        .executeTasksBatch(tids)
-        .then(() => {
-          // 所有任务提交成功
-          notify('采集任务已提交，可在任务中心查看进展', 'primary')
-        })
-        .catch((err) => {
-          const msg = err instanceof Error ? err.message : String(err)
-          notify('批量采集任务提交失败: ' + msg, 'error')
-        })
+      await taskService.executeTask(item.id, 300000, 'async')
+      taskCenter.addTask({
+        id: String(item.id),
+        type: '采集',
+        target: item.targetTable,
+        status: '进行中',
+        progress: '已提交，等待后端处理',
+        submitTime: new Date().toISOString(),
+        result: '',
+        extra: { tid: item.id }
+      })
+      notify('采集任务已提交，可在任务中心查看进展', 'primary')
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      notify('批量采集任务提交失败: ' + msg, 'error')
+      notify('采集任务提交失败: ' + msg, 'error')
     }
+    return
   }
 
-  const handleRecordUpdate = (newRecord) => {
-    const index = table.value.findIndex((item) => item.id === newRecord.id)
-    if (index > -1) {
-      table.value.splice(index, 1, newRecord) // 响应式替换单个记录
-    }
-  }
+  if (selected.value.length === 0) return
 
-  /**
-*
-* @param payload
-* const payload = {
-tids: props.tid,
-status: status.value,
-retryCnt: retryCnt.value
-};
-*/
-  const handleBatchUpdate = (payload) => {
-    payload.tids.forEach((tid) => {
-      const index = table.value.findIndex((item) => item.id === tid)
-      if (index > -1) {
-        table.value[index].status = payload.status
-        table.value[index].retryCnt = payload.retryCnt
-      }
-    })
+  const tids = [...selected.value]
+  try {
+    taskService
+      .executeTasksBatch(tids)
+      .then(() => { notify('批量采集任务已提交，可在任务中心查看进展', 'primary') })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : String(err)
+        notify('批量采集任务提交失败: ' + msg, 'error')
+      })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    notify('批量采集任务提交失败: ' + msg, 'error')
   }
+}
+
 
   interface LoadItemsOptions {
     page: number
@@ -757,24 +494,6 @@ retryCnt: retryCnt.value
       })
   }
 
-  const _searchCore = () => {
-    selected.value = []
-    loadItems({
-      page: 0,
-      itemsPerPage: currPageSize.value,
-      sortBy: currentSortParam.value
-    })
-  }
-
-  const searchTable = debounce(_searchCore, 400)
-
-  function resetFilters() {
-    search.value = ''
-    runStatus.value = undefined
-    sourceId.value = null
-    searchTable()
-  }
-
   // 加载可用数据源
   async function loadSources() {
     try {
@@ -802,218 +521,232 @@ retryCnt: retryCnt.value
     loadSources()
     openCreateFromQuery()
   })
+}
 
-  watch(
-    () => route.query.action,
-    () => {
-      openCreateFromQuery()
-    }
-  )
+interface LoadItemsOptions { page: number; itemsPerPage: number; sortBy: any }
 
-  function updateSchema(item: any | null) {
-    let params: { mode?: string; tid?: number } = {}
-    if (typeof item === 'string' && item === 'all') {
-      params.mode = 'all'
-    } else if (item && typeof item === 'object' && item.id) {
-      params.tid = item.id
-    } else {
-      params.mode = 'need'
-    }
+const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
+  loading.value = true
+  currPageSize.value = itemsPerPage
+  const sortParam = createSort(sortBy)
+  if (sortParam.sortField != null) { currentSortParam.value = sortBy }
 
+  tableService
+    .fetchTableList(page - 1, itemsPerPage, search.value, runStatus.value, sourceId.value, sortParam)
+    .then((res) => {
+      table.value = res.content
+      totalItems.value = res.totalElements
+      loading.value = false
+    })
+    .catch((error) => {
+      const msg = error instanceof Error ? error.message : String(error)
+      notify(`加载失败: ${msg}`, 'error')
+      loading.value = false
+    })
+}
+
+const _searchCore = () => {
+  selected.value = []
+  loadItems({ page: 0, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value })
+}
+const searchTable = debounce(_searchCore, 400)
+
+async function loadSources() {
+  try {
+    const res = await sourceService.listActiveSources()
+    sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }))
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    notify('加载数据源失败: ' + msg, 'error')
+  }
+}
+
+const openCreateFromQuery = () => {
+  const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
+  if (action !== 'create') return
+  openDialog('BatchAdd', 'BatchAdd')
+  const query = { ...route.query }
+  delete query.action
+  router.replace({ path: route.path, query })
+}
+
+onMounted(() => {
+  loadSources()
+  openCreateFromQuery()
+})
+
+watch(() => route.query.action, () => { openCreateFromQuery() })
+
+function updateSchema(item: any | null) {
+  let params: { mode?: string; tid?: number } = {}
+  if (typeof item === 'string' && item === 'all') { params.mode = 'all' }
+  else if (item && typeof item === 'object' && item.id) { params.tid = item.id }
+  else { params.mode = 'need' }
+
+  tableService
+    .updateSchema(params)
+    .then((response) => {
+      const message = response || '表结构更新任务已启动'
+      notify(message, 'success', 3000, 'mdi-check-circle')
+    })
+    .catch((error) => {
+      const errorMsg = error || '更新失败'
+      notify('更新失败: ' + errorMsg, 'error', 4000, 'mdi-alert-circle')
+    })
+}
+
+const deleteDialogVisible = ref(false)
+const itemToDelete = ref(null)
+const isBatchDelete = ref(false)
+const deleteConfirmMessage = ref('')
+
+function confirmDelete(item) {
+  itemToDelete.value = item
+  deleteConfirmMessage.value = '您确定要删除此项吗？'
+  isBatchDelete.value = false
+  deleteDialogVisible.value = true
+}
+
+function confirmBatchDelete() {
+  if (selected.value.length === 0) return
+  deleteConfirmMessage.value = `您确定要删除选中的 ${selected.value.length} 项吗？`
+  isBatchDelete.value = true
+  deleteDialogVisible.value = true
+}
+
+function deleteItem() {
+  if (itemToDelete.value) {
+    const id = itemToDelete.value.id
     tableService
-      .updateSchema(params) // 10分钟超时
-      .then((response) => {
-        const message = response || '表结构更新任务已启动'
-        notify(message, 'success', 3000, 'mdi-check-circle')
-      })
-      .catch((error) => {
-        const errorMsg = error || '更新失败'
-        notify('更新失败: ' + errorMsg, 'error', 4000, 'mdi-alert-circle')
-      })
-  }
-
-  const deleteDialogVisible = ref(false)
-  const itemToDelete = ref(null)
-  const isBatchDelete = ref(false)
-  const deleteConfirmMessage = ref('')
-
-  function confirmDelete(item) {
-    itemToDelete.value = item
-    deleteConfirmMessage.value = '您确定要删除此项吗？'
-    isBatchDelete.value = false
-    deleteDialogVisible.value = true
-  }
-
-  function confirmBatchDelete() {
-    if (selected.value.length === 0) return
-    deleteConfirmMessage.value = `您确定要删除选中的 ${selected.value.length} 项吗？`
-    isBatchDelete.value = true
-    deleteDialogVisible.value = true
-  }
-
-  function deleteItem() {
-    if (itemToDelete.value) {
-      const id = itemToDelete.value.id
-      tableService
-        .delete(id)
-        .then(() => {
-          const index = table.value.findIndex((i) => i.id === id)
-          if (index > -1) {
-            table.value.splice(index, 1) // 删除项
-          }
-          notify('删除成功', 'success')
-          deleteDialogVisible.value = false
-          itemToDelete.value = null
-        })
-        .catch((error) => {
-          notify(`删除失败: ${error}`, 'error')
-          deleteDialogVisible.value = false
-        })
-    }
-  }
-
-  function batchDeleteItems() {
-    if (selected.value.length === 0) return
-    const tids = [...selected.value]
-    // 并发删除所有选中项
-    Promise.all(tids.map((tid) => tableService.delete(tid)))
+      .delete(id)
       .then(() => {
-        notify('批量删除成功', 'success')
-        // 关闭确认框 & 清空选中
+        const index = table.value.findIndex((i) => i.id === id)
+        if (index > -1) { table.value.splice(index, 1) }
+        notify('删除成功', 'success')
         deleteDialogVisible.value = false
-        selected.value = []
-        // 重新加载数据，防止当前页面空白
-        // 直接调用核心加载函数，避免 debounce 延迟
-        _searchCore()
+        itemToDelete.value = null
       })
       .catch((error) => {
-        notify(`批量删除时发生错误: ${error}`, 'error')
+        notify(`删除失败: ${error}`, 'error')
         deleteDialogVisible.value = false
-        _searchCore()
       })
   }
+}
 
-  // Confirm and trigger kill for a running task
-  function confirmKill(item: any) {
-    // simple browser confirm – replace with nicer dialog if desired
-    const ok = window.confirm(`确定要中止任务 ${item.id} 吗？`)
-    if (!ok) return
-    killTask(item)
-  }
+function batchDeleteItems() {
+  if (selected.value.length === 0) return
+  const tids = [...selected.value]
+  Promise.all(tids.map((tid) => tableService.delete(tid)))
+    .then(() => {
+      notify('批量删除成功', 'success')
+      deleteDialogVisible.value = false
+      selected.value = []
+      _searchCore()
+    })
+    .catch((error) => {
+      notify(`批量删除时发生错误: ${error}`, 'error')
+      deleteDialogVisible.value = false
+      _searchCore()
+    })
+}
 
-  async function killTask(item: any) {
-    try {
-      const res = await taskService.killTask(item.id)
-      if (res && (res as any).success) {
-        notify(`已发送中止请求：${item.id}`, 'primary')
-        // optimistically update status to indicate kill requested
-        const idx = table.value.findIndex((t) => t.id === item.id)
-        if (idx > -1) table.value[idx].status = 'W'
-      } else {
-        notify(`中止请求失败：${(res as any)?.message || '未知错误'}`, 'error')
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      notify('中止任务失败: ' + msg, 'error')
+function confirmKill(item: any) {
+  const ok = window.confirm(`确定要中止任务 ${item.id} 吗？`)
+  if (!ok) return
+  killTask(item)
+}
+
+async function killTask(item: any) {
+  try {
+    const res = await taskService.killTask(item.id)
+    if (res && (res as any).success) {
+      notify(`已发送中止请求：${item.id}`, 'primary')
+      const idx = table.value.findIndex((t) => t.id === item.id)
+      if (idx > -1) table.value[idx].status = 'W'
+    } else {
+      notify(`中止请求失败：${(res as any)?.message || '未知错误'}`, 'error')
     }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    notify('中止任务失败: ' + msg, 'error')
   }
+}
 </script>
 
 <style scoped>
-  .table-page {
-    min-width: 0;
-  }
+.table-page {
+  min-width: 0;
+}
 
-  .table-page > .ds-card {
-    transition: filter 0.2s ease, opacity 0.2s ease;
-    transform: translateZ(0);
-  }
+.table-page>.ds-card {
+  transition: filter 0.2s ease, opacity 0.2s ease;
+  transform: translateZ(0);
+}
 
-  .table-page--modal-open > .ds-card {
-    filter: blur(3px) saturate(0.86);
-    opacity: 0.52;
-    pointer-events: none;
-    user-select: none;
-  }
+.table-page--modal-open>.ds-card {
+  filter: blur(3px) saturate(0.86);
+  opacity: 0.52;
+  pointer-events: none;
+  user-select: none;
+}
 
-  .query-actions {
-    flex-wrap: wrap;
-  }
+.query-actions {
+  flex-wrap: wrap;
+}
 
-  .batch-toolbar {
-    row-gap: 8px;
-  }
+.batch-toolbar {
+  row-gap: 8px;
+}
 
-  .selection-bar {
-    margin-bottom: 8px;
-    padding: 0 4px;
-    gap: 8px;
-  }
+.selection-bar {
+  margin-bottom: 8px;
+  padding: 0 4px;
+  gap: 8px;
+}
 
-  /* Compact icon button to reduce circular ring and padding */
-  .icon-btn--compact {
-    min-width: 28px !important;
-    width: 28px !important;
-    height: 28px !important;
-    padding: 0 6px !important;
-    border-radius: 6px !important;
-  }
-  .icon-btn--compact .v-icon {
-    font-size: 16px !important;
-  }
-  /* Reduce default icon list-item gap */
-  .v-list-item__icon {
-    min-width: 20px !important;
-    margin-right: 8px !important;
-  }
+.action-menu-list :deep(.danger-item) {
+  color: rgb(var(--v-theme-error));
+}
 
-  .action-menu-list :deep(.danger-item) {
-    color: rgb(var(--v-theme-error));
-  }
+/* 错误浮层样式优化 */
+.error-msg-popover {
+  padding: 12px 16px;
+  max-width: 480px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #2a1b1b;
+  color: #ffb4ab;
+  border: 1px solid #93000a;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
 
-  .error-msg-popover {
-    padding: 12px 16px;
-    max-width: 480px;
-    max-height: 260px;
-    overflow-y: auto;
-    background: rgba(var(--v-theme-warning), 0.14);
-    color: rgb(var(--v-theme-on-surface));
-    border: 1px solid rgba(var(--v-theme-warning), 0.42);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-    font-size: 14px;
-    line-height: 1.7;
-    white-space: pre-line;
-  }
+/* 强行抹平长文本在表格中的溢出行为 */
+.white-space-normal {
+  white-space: normal !important;
+  word-break: break-all !important;
+}
 
+/* 核心文字按钮的 hover 视觉微调 */
+.action-btn-main {
+  font-weight: 600 !important;
+  letter-spacing: 0.5px;
+}
 
+.status-cell-wrap {
+  height: 32px;
+}
 
-  .action-inline {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: nowrap;
-    white-space: nowrap;
-  }
-
-  .action-menu {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  @media (min-width: 1366px) {
-    .action-inline {
-      display: inline-flex;
-    }
-    .action-menu {
-      display: none;
-    }
-  }
+/* 移除原有的复杂媒体查询，直接保留精简后的通用操作列 */
+.action-inline {
+  display: inline-flex;
+  align-items: center;
+}
 </style>
-
-<route lang="json">
-{
+<route lang="json">{
   "meta": {
     "title": "采集表管理",
     "icon": "mdi-table",
@@ -1021,5 +754,4 @@ retryCnt: retryCnt.value
     "navGroup": "collect",
     "navOrder": 10
   }
-}
-</route>
+}</route>

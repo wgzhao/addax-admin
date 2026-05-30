@@ -28,15 +28,13 @@
               <v-list-item
                 v-for="(child, index) in item.children"
                 :key="`${item.title}-${index}`"
-                :to="{ path: child.path }"
-                :active="isPathActive(child.path)"
-                :color="isPathActive(child.path) ? 'primary' : undefined"
-                :prepend-icon="child.icon || 'mdi-chevron-right'"
-                class="top-nav-menu-item"
-                slim
-              >
-                <v-list-item-title>{{ child.title }}</v-list-item-title>
-              </v-list-item>
+                            @click="(e) => handleNavChildClick(child, e)"
+                            :class="['top-nav-menu-item']"
+                            :prepend-icon="child.icon || 'mdi-chevron-right'"
+                            slim
+                          >
+                            <v-list-item-title>{{ child.title }}</v-list-item-title>
+                          </v-list-item>
             </v-list>
           </v-menu>
           <v-btn
@@ -229,6 +227,8 @@ import { useAppTheme } from '@/composables/useAppTheme'
 import { useRoute, useRouter } from 'vue-router'
 import { APP_VERSION } from '@/config/version'
 import userService from '@/service/user-service'
+import tableService from '@/service/table-service'
+import { notify } from '@/stores/notifier'
 
 const router = useRouter()
 const route = useRoute()
@@ -269,6 +269,55 @@ const navGroupTitle: Record<NavGroup, string> = {
   collect: '采集管理',
   data: '数据管理',
   systemManage: '系统管理'
+}
+
+// 点击菜单项的通用处理器（支持 action 回调或路由 path）
+const handleChildClick = (child: any, ev?: Event) => {
+  if (typeof child.onClick === 'function') {
+    ev?.stopPropagation()
+    try {
+      child.onClick()
+    } catch (e) {
+      // swallow
+    }
+  }
+}
+
+const handleNavChildClick = (child: any, ev?: Event) => {
+  if (child?.onClick) {
+    ev?.stopPropagation()
+    try {
+      child.onClick()
+    } catch (e) {
+      // swallow
+    }
+    return
+  }
+  if (child?.path) {
+    router.push({ path: child.path })
+  }
+}
+
+// 表结构更新操作（按需）
+const updateSchemaNeed = async () => {
+  try {
+    const res = await tableService.updateSchema({ mode: 'need' })
+    notify(res || '表结构更新任务已启动', 'success')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    notify('更新失败: ' + msg, 'error')
+  }
+}
+
+// 表结构更新操作（全部）
+const updateSchemaAll = async () => {
+  try {
+    const res = await tableService.updateSchema({ mode: 'all' })
+    notify(res || '强制更新全部表信息任务已启动', 'success')
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    notify('强制更新失败: ' + msg, 'error')
+  }
 }
 
 const urls = computed<MenuItem[]>(() => {
@@ -342,6 +391,14 @@ const urls = computed<MenuItem[]>(() => {
         title: item.title,
         icon: item.icon
       }))
+
+    // 在采集管理分组中附加独立操作（不是路由）
+    if (groupKey === 'collect') {
+      children.push(
+        { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: updateSchemaNeed },
+        { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: updateSchemaAll }
+      )
+    }
 
     if (children.length > 0) {
       result.push({
