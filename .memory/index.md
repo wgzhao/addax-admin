@@ -1,3 +1,4 @@
+[调整 table 列表页按钮布局，迁移更新操作至顶栏](./2026-05-30.md)
 [Backend Code Review Fix Summary](./2026-05-20.md)
 [Master-Worker 任务分配架构迁移](./2026-05-21.md)
 [并发控制 Bug 修复](./2026-05-23.md)
