@@ -83,6 +83,51 @@
                   <span class="text-disabled">{{ item.sourceDb || '' }}.</span>{{ item.sourceTable || '' }}
                 </span>
               </div>
+        <template v-slot:item.status="{ item }">
+          <v-chip
+            :color="getStatusColor(item.status)"
+
+            variant="flat"
+            class="font-weight-bold"
+          >
+            {{ item.status }}
+            <!-- Kill icon for running tasks: move to right, match E icon style -->
+            <template v-if="item.status === 'R'">
+              <v-tooltip location="top">
+                <template #activator="{ props }">
+                  <v-icon
+                    v-bind="props"
+                    size="16"
+                    color="error"
+                    class="ml-1 align-middle cursor-pointer"
+                    @click.stop="confirmKill(item)"
+                  >
+                    mdi-close
+                  </v-icon>
+                </template>
+                <span>点击中止当前运行任务</span>
+              </v-tooltip>
+            </template>
+            <template v-if="item.status === 'U' || item.status === 'E'">
+              <v-menu open-on-click :close-on-content-click="false" min-width="220" offset-y>
+                <template #activator="{ props }">
+                  <v-icon
+                    size="16"
+                    color="warning"
+                    class="ml-1 align-middle cursor-pointer"
+                    v-bind="props"
+                    @click.stop="fetchErrorMsg(item.id)"
+                  >
+                    mdi-alert-circle-outline
+                  </v-icon>
+                </template>
+                <div class="error-msg-popover">
+                  <span v-if="errorMsgMap[item.id] !== undefined">
+                    {{ errorMsgMap[item.id] || '无详细错误信息' }}
+                  </span>
+                  <span v-else>加载中...</span>
+                </div>
+              </v-menu>
             </template>
 
             <template v-slot:item.targetTable="{ item }">
@@ -317,6 +362,11 @@ watch(dialogVisible, (open) => {
     currentDialogName.value = null
   }
 })
+  const dialogMaxWidth = computed<number | undefined>(() => {
+    if (currentDialogName.value === 'BatchUpdate') return 720
+    if (currentDialogName.value === 'BatchAdd') return 1100
+    return undefined
+  })
 
 function setParams(compName: string, comp: any) {
   if (compName == 'BatchUpdate') {
