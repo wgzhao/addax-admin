@@ -23,7 +23,7 @@
             <v-text-field v-model="search" density="compact" label="关键字" prepend-inner-icon="mdi-magnify" single-line
               variant="outlined" hide-details @keyup.enter="searchTable" @click:append-inner="searchTable" />
           </v-col>
-          <v-col cols="12" md="1" lg="2">
+          <v-col cols="12" md="1" lg="1">
             <v-select v-model="runStatus" :items="statusOptions" item-title="label" item-value="value" density="compact"
               variant="outlined" single-line hide-details label="状态" />
           </v-col>
@@ -32,7 +32,7 @@
               :item-props="item => ({ title: item.label })" density="compact" variant="outlined" single-line
               hide-details clearable label="数据源" />
           </v-col>
-          <v-col cols="12" md="1" lg="2">
+          <v-col cols="12" md="1" lg="1">
             <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
           </v-col>
           <v-spacer />
@@ -83,14 +83,15 @@
                   <span class="text-disabled">{{ item.sourceDb || '' }}.</span>{{ item.sourceTable || '' }}
                 </span>
               </div>
+              </template>
         <template v-slot:item.status="{ item }">
-          <v-chip
-            :color="getStatusColor(item.status)"
-
-            variant="flat"
-            class="font-weight-bold"
-          >
-            {{ item.status }}
+          <v-badge
+              dot
+              inline
+              :color="getStatusColor(item.status)"
+              class="mr-2"
+            />
+            <span class="text-body-2 font-weight-medium">{{ item.status }}</span> 
             <!-- Kill icon for running tasks: move to right, match E icon style -->
             <template v-if="item.status === 'R'">
               <v-tooltip location="top">
@@ -129,6 +130,7 @@
                 </div>
               </v-menu>
             </template>
+          </template>
 
             <template v-slot:item.targetTable="{ item }">
               <div class="d-flex align-center py-1">
@@ -139,41 +141,6 @@
               </div>
             </template>
 
-            <template v-slot:item.status="{ item }">
-              <div class="status-cell-wrap d-inline-flex align-center">
-                <v-badge dot inline :color="getStatusColor(item.status)" class="mr-2" />
-                <span class="text-body-2 font-weight-medium">{{ item.status }}</span>
-
-                <template v-if="item.status === 'R'">
-                  <v-tooltip location="top">
-                    <template #activator="{ props }">
-                      <v-icon v-bind="props" size="14" color="error" class="ml-2 cursor-pointer"
-                        @click.stop="confirmKill(item)">
-                        mdi-close-circle
-                      </v-icon>
-                    </template>
-                    <span>点击中止当前运行任务</span>
-                  </v-tooltip>
-                </template>
-
-                <template v-if="item.status === 'U' || item.status === 'E'">
-                  <v-menu open-on-click :close-on-content-click="false" min-width="260" offset-y>
-                    <template #activator="{ props }">
-                      <v-icon size="14" color="warning" class="ml-1 cursor-pointer" v-bind="props"
-                        @click.stop="fetchErrorMsg(item.id)">
-                        mdi-alert-circle-outline
-                      </v-icon>
-                    </template>
-                    <div class="error-msg-popover">
-                      <span v-if="errorMsgMap[item.id] !== undefined">
-                        {{ errorMsgMap[item.id] || '无详细错误信息' }}
-                      </span>
-                      <span v-else>加载中...</span>
-                    </div>
-                  </v-menu>
-                </template>
-              </div>
-            </template>
 
             <template v-slot:item.action="{ item }">
               <div class="action-inline d-flex align-center justify-center ga-1">
@@ -245,49 +212,57 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, defineAsyncComponent, onMounted, watch, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import EmptyState from '@/components/EmptyState.vue'
-import { debounce } from '@/utils/debounce'
-import { createSort } from '@/utils/'
-import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils'
-import tableService from '@/service/table-service'
-import taskService from '@/service/task-service'
-import sourceService from '@/service/source-service'
-import { notify } from '@/stores/notifier'
-import type { DataTableHeader } from 'vuetify'
+  import { ref, shallowRef, defineAsyncComponent, onMounted, watch, computed } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
+  import EmptyState from '@/components/EmptyState.vue'
+  import { debounce } from '@/utils/debounce'
+  import { createSort } from '@/utils/'
+  import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils'
+  import tableService from '@/service/table-service'
+  import taskService from '@/service/task-service'
+  import sourceService from '@/service/source-service'
+  import { notify } from '@/stores/notifier'
+  import taskCenter from '@/stores/task-center'
+  import type { DataTableHeader } from 'vuetify'
+  // 异步按需加载组件，减轻首屏体积
+  const TableDetail = defineAsyncComponent(() => import('@/components/table/TableDetail.vue'))
+  const FieldsCompare = defineAsyncComponent(() => import('@/components/table/FieldsCompare.vue'))
+  const AddaxJob = defineAsyncComponent(() => import('@/components/table/AddaxJob.vue'))
+  const AddaxResult = defineAsyncComponent(() => import('@/components/table/AddaxResult.vue'))
 
-const TableDetail = defineAsyncComponent(() => import('@/components/table/TableDetail.vue'))
-const FieldsCompare = defineAsyncComponent(() => import('@/components/table/FieldsCompare.vue'))
-const AddaxJob = defineAsyncComponent(() => import('@/components/table/AddaxJob.vue'))
-const AddaxResult = defineAsyncComponent(() => import('@/components/table/AddaxResult.vue'))
-const BatchAdd = defineAsyncComponent(() => import('@/components/table/BatchAdd.vue'))
-const LogFiles = defineAsyncComponent(() => import('@/components/table/LogFiles.vue'))
-const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'))
+  const LogFiles = defineAsyncComponent(() => import('@/components/table/LogFiles.vue'))
+  const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'))
 
-const route = useRoute()
-const router = useRouter()
+  const route = useRoute()
+  const router = useRouter()
+  const goToBatchAdd = () => router.push('/table/batch-add')
 
-const table = ref([])
-const search = ref('')
-const selected = ref([])
-const currPageSize = ref(15)
-const totalItems = ref(0)
-const loading = ref(true)
-const dialogVisible = ref(false)
-const currentComponent = shallowRef(null)
-const currentDialogName = ref<string | null>(null)
-const currentParams = ref({})
-const currentSortParam = ref([{ sortField: null, sortOrder: null }])
-
-const componentMap = {
-  TableDetail,
-  FieldsCompare,
-  AddaxJob,
-  AddaxResult,
-  BatchAdd,
-  LogFiles,
-  BatchUpdate
+  const table = ref([])
+  const search = ref('')
+  const selected = ref([])
+  const currPageSize = ref(15)
+  const totalItems = ref(0)
+  const loading = ref(true)
+  const dialogVisible = ref(false)
+  // 当前要显示的组件（默认值为 null，表示对话框无内容）
+  // shallowRef 用于定义浅层响应式的引用，它不会递归地将对象或组件内部的数据设为响应式，因此适用于组件这种复杂对象。
+  const currentComponent = shallowRef(null)
+  const currentDialogName = ref<string | null>(null)
+  // 传递给子组件的参数
+  const currentParams = ref({})
+  const currentSortParam = ref([
+    {
+      sortField: null,
+      sortOrder: null
+    }
+  ])
+  const componentMap = {
+    TableDetail,
+    FieldsCompare,
+    AddaxJob,
+    AddaxResult,
+    LogFiles,
+    BatchUpdate
 }
 
 function getRowClass(item: any) {
@@ -362,11 +337,7 @@ watch(dialogVisible, (open) => {
     currentDialogName.value = null
   }
 })
-  const dialogMaxWidth = computed<number | undefined>(() => {
-    if (currentDialogName.value === 'BatchUpdate') return 720
-    if (currentDialogName.value === 'BatchAdd') return 1100
-    return undefined
-  })
+
 
 function setParams(compName: string, comp: any) {
   if (compName == 'BatchUpdate') {
@@ -386,8 +357,74 @@ function setParams(compName: string, comp: any) {
   }
 }
 
-import taskCenter from '@/stores/task-center'
-import { v } from 'vue-router/dist/index-D_VEAp3P.js'
+const doEtl = async (item: any | null) => {
+  if (item != null) {
+    try {
+      await taskService.executeTask(item.id, 300000, 'async')
+      taskCenter.addTask({
+        id: String(item.id),
+        type: '采集',
+        target: item.targetTable,
+        status: '进行中',
+        progress: '已提交，等待后端处理',
+        submitTime: new Date().toISOString(),
+        result: '',
+        extra: { tid: item.id }
+      })
+      notify('采集任务已提交，可在任务中心查看进展', 'primary')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      notify('采集任务提交失败: ' + msg, 'error')
+    }
+    return
+  }
+
+  if (selected.value.length === 0) return
+
+  watch(dialogVisible, (open) => {
+    if (!open) {
+      currentComponent.value = null
+      currentDialogName.value = null
+    }
+  })
+
+  function setParams(compName: string, comp: any) {
+    if (compName == 'BatchUpdate') {
+      // 批量修改
+      currentParams.value = {
+        tid: selected.value
+      }
+      return
+    }
+    if (compName == 'TableDetail') {
+      currentParams.value = {
+        table: comp
+      }
+      return
+    }
+    if (compName == 'FieldsCompare' || compName == 'AddaxJob') {
+      currentParams.value = {
+        tid: comp.id
+      }
+    } else if (compName == 'TableUsed') {
+      currentParams.value = {
+        tid: comp.targetDb + '.' + comp.targetTable + '|' + comp.sid
+      }
+    } else if (compName == 'AddaxResult') {
+      currentParams.value = {
+        tid: comp.id
+      }
+    } else if (compName === 'LogFiles') {
+      currentParams.value = {
+        tid: comp.id
+      }
+    } else {
+      currentParams.value = {
+        tid: comp.id
+      }
+    }
+  }
+
 
 const doEtl = async (item: any | null) => {
   if (item != null) {
@@ -428,20 +465,61 @@ const doEtl = async (item: any | null) => {
   }
 }
 
-const handleRecordUpdate = (newRecord) => {
-  const index = table.value.findIndex((item) => item.id === newRecord.id)
-  if (index > -1) {
-    table.value.splice(index, 1, newRecord)
-  }
-}
 
-const handleBatchUpdate = (payload) => {
-  payload.tids.forEach((tid) => {
-    const index = table.value.findIndex((item) => item.id === tid)
-    if (index > -1) {
-      table.value[index].status = payload.status
-      table.value[index].retryCnt = payload.retryCnt
+  interface LoadItemsOptions {
+    page: number
+    itemsPerPage: number
+    sortBy: any
+  }
+
+  const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
+    loading.value = true
+    currPageSize.value = itemsPerPage
+    const sortParam = createSort(sortBy)
+    if (sortParam.sortField != null) {
+      currentSortParam.value = sortBy
     }
+    // v-data-table-server page is 1-based, while backend API is 0-based.
+    tableService
+      .fetchTableList(page - 1, itemsPerPage, search.value, runStatus.value, sourceId.value, sortParam)
+      .then((res) => {
+        table.value = res.content
+        totalItems.value = res.totalElements
+        loading.value = false
+      })
+      .catch((error) => {
+        const msg = error instanceof Error ? error.message : String(error)
+        notify(`加载失败: ${msg}`, 'error')
+        loading.value = false
+      })
+  }
+
+  // 加载可用数据源
+  async function loadSources() {
+    try {
+      const res = await sourceService.listActiveSources()
+      // 参考 BatchAdd.vue 中 sourceSystemList 的组织形式，显示 code + name
+      sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      notify('加载数据源失败: ' + msg, 'error')
+    }
+  }
+
+  const openCreateFromQuery = () => {
+    const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
+    if (action !== 'create') return
+
+    router.push('/table/batch-add')
+
+    const query = { ...route.query }
+    delete query.action
+    router.replace({ path: route.path, query })
+  }
+
+  onMounted(() => {
+    loadSources()
+    openCreateFromQuery()
   })
 }
 
@@ -472,13 +550,6 @@ const _searchCore = () => {
   loadItems({ page: 0, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value })
 }
 const searchTable = debounce(_searchCore, 400)
-
-function resetFilters() {
-  search.value = ''
-  runStatus.value = undefined
-  sourceId.value = null
-  searchTable()
-}
 
 async function loadSources() {
   try {

@@ -69,7 +69,7 @@
           <v-list-item class="top-nav-menu-item" prepend-icon="mdi-database-export" slim @click="goQuickCreate('/target')">
             <v-list-item-title>新增目标端</v-list-item-title>
           </v-list-item>
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-table-plus" slim @click="goQuickCreate('/table')">
+          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-table-plus" slim :to="'/table/batch-add'">
             <v-list-item-title>新增采集表</v-list-item-title>
           </v-list-item>
         </v-list>
