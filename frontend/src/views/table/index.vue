@@ -14,7 +14,7 @@
             color="primary"
             variant="flat"
             prepend-icon="mdi-plus"
-            @click="openDialog('BatchAdd', 'BatchAdd')"
+            @click="goToBatchAdd"
           >
             新增表
           </v-btn>
@@ -124,8 +124,8 @@
           description="当前没有采集表。点击下方按钮立即新增采集表或从模板导入开始。"
           :primary="{ label: '新增采集表', icon: 'mdi-plus' }"
           :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
-          @primary="() => openDialog('BatchAdd', 'BatchAdd')"
-          @secondary="() => openDialog('BatchAdd', 'BatchAdd')"
+          @primary="goToBatchAdd"
+          @secondary="goToBatchAdd"
         />
       </template>
       <template v-else>
@@ -468,12 +468,13 @@
   const FieldsCompare = defineAsyncComponent(() => import('@/components/table/FieldsCompare.vue'))
   const AddaxJob = defineAsyncComponent(() => import('@/components/table/AddaxJob.vue'))
   const AddaxResult = defineAsyncComponent(() => import('@/components/table/AddaxResult.vue'))
-  const BatchAdd = defineAsyncComponent(() => import('@/components/table/BatchAdd.vue'))
+
   const LogFiles = defineAsyncComponent(() => import('@/components/table/LogFiles.vue'))
   const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'))
 
   const route = useRoute()
   const router = useRouter()
+  const goToBatchAdd = () => router.push('/table/batch-add')
 
   const table = ref([])
   const search = ref('')
@@ -499,7 +500,6 @@
     FieldsCompare,
     AddaxJob,
     AddaxResult,
-    BatchAdd,
     LogFiles,
     BatchUpdate
   }
@@ -595,7 +595,6 @@
   }
   const dialogMaxWidth = computed<number | undefined>(() => {
     if (currentDialogName.value === 'BatchUpdate') return 720
-    if (currentDialogName.value === 'BatchAdd') return 1100
     return undefined
   })
 
@@ -646,10 +645,6 @@
     } else if (compName == 'AddaxResult') {
       currentParams.value = {
         tid: comp.id
-      }
-    } else if (compName === 'BatchAdd') {
-      currentParams.value = {
-        tid: '-1'
       }
     } else if (compName === 'LogFiles') {
       currentParams.value = {
@@ -796,7 +791,7 @@ retryCnt: retryCnt.value
     const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
     if (action !== 'create') return
 
-    openDialog('BatchAdd', 'BatchAdd')
+    router.push('/table/batch-add')
 
     const query = { ...route.query }
     delete query.action
