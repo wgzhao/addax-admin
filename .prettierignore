@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+coverage
+.env
+*.log
+frontend/dist
+frontend/node_modules
+frontend/.cache
+**/package-lock.json
+**/pnpm-lock.yaml
+**/.husky

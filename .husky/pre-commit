@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
 
-# Keep pre-commit as a no-op for now.
-# Add lint/test checks here when the team is ready.
+# Run lint-staged to format staged frontend files with Prettier before commit
+cd frontend || exit 0
+npx --no -- lint-staged
