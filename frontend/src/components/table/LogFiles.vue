@@ -1,11 +1,11 @@
 <template>
   <!-- 调度和命令日志 -->
-  <!-- <dialog-comp v-mode="dialog" title="调度/命令日志"> -->
-  <v-card prepend-icon="mdi-file-document-outline" title="调度/命令日志" class="log-card" density="comfortable">
+  <v-card class="log-card" density="comfortable">
     <v-card-text class="log-body">
       <v-row dense>
-        <v-col cols="12">
-          <v-sheet class="form-section" rounded="lg" border>
+        <!-- Left: log list -->
+        <v-col cols="12" md="2">
+          <v-sheet class="form-section log-list" rounded="lg" border>
             <div class="section-header">
               <v-icon size="18" color="primary">mdi-format-list-bulleted</v-icon>
               <span>日志列表</span>
@@ -13,20 +13,26 @@
               <span class="chip-hint">共 {{ logList.length }} 条</span>
             </div>
             <v-divider />
-            <div class="chips-wrap">
-              <v-chip v-for="item in logList" :key="item.id" :color="selectedLogId === item.id ? 'primary' : 'default'"
-                :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
-                @click="getContent(item.id)">
-                <v-icon start size="small">mdi-file-document-outline</v-icon>
-                {{ item.runAt }}
-              </v-chip>
+            <div class="log-list-wrap">
+              <v-list density="compact" nav>
+                <v-list-item
+                  v-for="item in logList"
+                  :key="item.id"
+                  :active="selectedLogId === item.id"
+                  clickable
+                  @click="getContent(item.id)"
+                >
+                  <v-list-item-content>
+                    <v-list-item-title>{{ item.runAt }}</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+              </v-list>
             </div>
           </v-sheet>
         </v-col>
-      </v-row>
-      <v-row dense>
-        <!-- 展示日志内容-->
-        <v-col cols="12">
+
+        <!-- Right: log content -->
+        <v-col cols="12" md="10">
           <v-sheet class="form-section" rounded="lg" border>
             <div class="section-header">
               <v-icon size="18" color="primary">mdi-text-box-outline</v-icon>
@@ -61,7 +67,7 @@
               <div v-if="!selectedLogId" class="empty-state">
                 <v-icon size="64" class="mb-4 empty-icon-muted">mdi-file-document-outline</v-icon>
                 <div class="text-h6 mb-2 empty-title-muted">No log selected</div>
-                <div class="text-body-2 empty-desc-muted">Please select a log file from above to view its content.</div>
+                <div class="text-body-2 empty-desc-muted">Please select a log file from the left to view its content.</div>
               </div>
               <!-- 日志内容区域 -->
               <div v-else class="position-relative">
@@ -90,11 +96,13 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRoute } from 'vue-router'
 import { notify } from "@/stores/notifier";
 import logService from "@/service/log-service";
 
-// const dialog = defineModel({ required: true, default: true });
-const props = defineProps({ tid: String });
+// Why: read tid from route instead of props when used inside detail page
+const route = useRoute()
+const tid = String(route.params.tid)
 
 const fContent = ref();
 
@@ -102,9 +110,6 @@ const selectedLogId = ref<number | null>(null);
 const loading = ref(false);
 
 const logList = ref([]);
-
-const emit = defineEmits(["closeDialog"]);
-
 
 const getContent = (id: number) => {
   // 如果点击的是当前已选中的日志，不需要重新加载
@@ -132,7 +137,7 @@ const getContent = (id: number) => {
 };
 
 onMounted(() => {
-  logService.getLogFiles(props.tid).then(res => {
+  logService.getLogFiles(tid).then(res => {
     logList.value = res.data;
     // 如果有日志文件，自动选择并加载最新的一条（第一条）
     if (res.data && res.data.length > 0) {
@@ -202,16 +207,30 @@ const downloadLog = () => {
   gap: 8px;
 }
 
-.chips-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 14px 14px;
+.log-list-wrap {
+  max-height: calc(60vh - 72px);
+  overflow-y: auto;
+  padding: 8px 12px;
 }
 
 .chip-hint {
   font-size: 12px;
   color: rgba(var(--v-theme-on-surface), 0.6);
+}
+
+/* Ensure list items have clear hover/active styles */
+.log-list :deep(.v-list-item) {
+  border-radius: 6px;
+}
+.log-list :deep(.v-list-item[aria-pressed="true"], .log-list :deep(.v-list-item--active)) {
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+
+/* Make the left list scroll nicely on small screens */
+@media (max-width: 960px) {
+  .log-list-wrap {
+    max-height: 40vh;
+  }
 }
 
 .log-content-wrap {

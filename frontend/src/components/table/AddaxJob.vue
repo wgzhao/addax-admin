@@ -1,9 +1,5 @@
 <template>
-  <v-card class="mx-auto addax-card" max-width="1200" min-width="800" density="comfortable">
-    <v-card-title class="d-flex align-center addax-title">
-      <v-icon left class="mr-2">mdi-code-json</v-icon>
-      Addax 采集任务配置
-    </v-card-title>
+  <v-card density="comfortable">
 
     <v-divider />
     <v-card-text class="addax-body">
@@ -74,6 +70,7 @@ import 'highlight.js/styles/atom-one-dark.css' // 深色主题，适合暗色界
 // import 'highlight.js/styles/vs.css'; // Visual Studio 风格
 // import 'highlight.js/styles/default.css'; // 默认主题
 import tableService from '@/service/table-service'
+import { useRoute } from 'vue-router'
 import { useNotifier } from '@/stores/notifier'
 
 // 注册 JSON 语言支持
@@ -81,9 +78,9 @@ hljs.registerLanguage('json', json)
 
 const { notify } = useNotifier()
 
-const props = defineProps({
-  tid: Number
-})
+// Why: read tid from route instead of props for page usage
+const route = useRoute()
+const tid = Number(route.params.tid)
 
 const jobContent = ref('')
 const loading = ref(false)
@@ -128,11 +125,11 @@ async function copyToClipboard() {
 
 // 单独封装 job 刷新逻辑
 async function reloadJob() {
-  if (!props.tid) return
+  if (!tid) return
   loading.value = true
   error.value = ''
   try {
-    const res = await tableService.fetchAddaxJob(props.tid)
+    const res = await tableService.fetchAddaxJob(tid)
     jobContent.value = res
     if (!jobContent.value) {
       error.value = '获取到的配置内容为空'
@@ -174,7 +171,7 @@ function onEditInput() {
 }
 
 async function saveEdit() {
-  if (!props.tid) return
+  if (!tid) return
   try {
     loading.value = true
     // validate JSON where possible
@@ -184,7 +181,7 @@ async function saveEdit() {
       notify('JSON 格式错误，请修正后保存', 'error')
       return
     }
-    await tableService.updateAddaxJob(props.tid, editContent.value)
+    await tableService.updateAddaxJob(tid, editContent.value)
     jobContent.value = editContent.value
     editing.value = false
     dirty.value = false

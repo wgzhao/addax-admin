@@ -8,9 +8,9 @@
             <div class="page-subtitle">统一管理采集表、批量执行采集与结构更新</div>
           </div>
           <div class="d-flex align-center ga-2">
-            <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openDialog('BatchAdd', 'BatchAdd')">
-              新增表
-            </v-btn>
+            <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="() => router.push('/table/batch-add')">
+                          新增表
+                        </v-btn>
           </div>
         </div>
       </v-card-text>
@@ -45,9 +45,9 @@
             </v-col>
             <v-col cols="12" md="1">
               <v-btn color="secondary" prepend-icon="mdi-pencil"
-                @click="openDialog('BatchUpdate', 'BatchUpdate')">
-                批量修改
-              </v-btn>
+                              @click="openDialog('BatchUpdate', 'BatchUpdate')">
+                              批量修改
+                            </v-btn>
             </v-col>
             <v-col cols="12" md="1">
               <v-btn variant="flat" color="error" prepend-icon="mdi-delete"
@@ -69,8 +69,8 @@
       <v-card-text class="ds-card__content">
         <template v-if="!loading && totalItems === 0">
           <EmptyState title="暂无采集表" description="当前没有采集表。点击下方按钮立即新增采集表或从模板导入开始。"
-            :primary="{ label: '新增采集表', icon: 'mdi-plus' }" :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
-            @primary="() => openDialog('BatchAdd', 'BatchAdd')" @secondary="() => openDialog('BatchAdd', 'BatchAdd')" />
+                      :primary="{ label: '新增采集表', icon: 'mdi-plus' }" :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
+                      @primary="() => router.push('/table/batch-add')" @secondary="() => router.push('/table/batch-add')" />
         </template>
         <template v-else>
           <v-data-table-server density="comfortable" :items="table" :headers="headers" :items-per-page="currPageSize"
@@ -91,7 +91,7 @@
               :color="getStatusColor(item.status)"
               class="mr-2"
             />
-            <span class="text-body-2 font-weight-medium">{{ item.status }}</span> 
+            <span class="text-body-2 font-weight-medium">{{ item.status }}</span>
             <!-- Kill icon for running tasks: move to right, match E icon style -->
             <template v-if="item.status === 'R'">
               <v-tooltip location="top">
@@ -154,36 +154,18 @@
                   <span>触发单表采集</span>
                 </v-tooltip>
 
-                <v-btn v-if="['E', 'X', 'U'].includes(item.status)" color="secondary" variant="text" size="small"
-                  class="px-1" @click="openDialog('LogFiles', item)">
-                  日志
+                <v-btn color="secondary" variant="text" size="small" class="px-2" @click="updateSchema(item)">
+                  <v-icon size="16" class="mr-1">mdi-database-refresh</v-icon>更新
                 </v-btn>
 
-                <v-menu location="bottom end" open-on-click>
-                  <template #activator="{ props }">
-                    <v-btn v-bind="props" variant="text" color="secondary" icon size="small" aria-label="更多操作">
-                      <v-icon size="18">mdi-dots-vertical</v-icon>
-                    </v-btn>
-                  </template>
-                  <v-list density="compact" class="action-menu-list">
-                    <v-list-subheader>查看配置</v-list-subheader>
-                    <v-list-item title="基本详情" prepend-icon="mdi-information-outline"
-                      @click="openDialog('TableDetail', item)" />
-                    <v-list-item title="AddaxJob 模板" prepend-icon="mdi-file-code"
-                      @click="openDialog('AddaxJob', item)" />
-                    <v-list-item title="日志文件" v-if="!['E', 'X', 'U'].includes(item.status)" prepend-icon="mdi-text-box"
-                      @click="openDialog('LogFiles', item)" />
-                    <v-list-item title="字段比较" prepend-icon="mdi-table-column"
-                      @click="openDialog('FieldsCompare', item)" />
-                    <v-list-item title="采集结果数据" prepend-icon="mdi-table" @click="openDialog('AddaxResult', item)" />
-                    <v-divider class="my-1" />
-                    <v-list-subheader>元数据运维</v-list-subheader>
-                    <v-list-item title="更新表结构" prepend-icon="mdi-database-refresh" @click="updateSchema(item)" />
-                    <v-divider class="my-1" />
-                    <v-list-item title="删除记录" prepend-icon="mdi-delete" class="danger-item"
-                      @click="confirmDelete(item)" />
-                  </v-list>
-                </v-menu>
+                <v-btn variant="text" color="error" size="small" class="px-2" @click="confirmDelete(item)">
+                  <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+                </v-btn>
+
+                <v-btn variant="text" color="secondary" icon size="small" aria-label="更多操作"
+                  @click="router.push({ path: `/table/detail/${item.id}`, query: { tab: 'info', 'tblname': `${item.sourceDb}.${item.sourceTable}` } })">
+                  <v-icon size="18">mdi-dots-vertical</v-icon>
+                </v-btn>
               </div>
             </template>
           </v-data-table-server>
@@ -224,18 +206,11 @@
   import { notify } from '@/stores/notifier'
   import taskCenter from '@/stores/task-center'
   import type { DataTableHeader } from 'vuetify'
-  // 异步按需加载组件，减轻首屏体积
-  const TableDetail = defineAsyncComponent(() => import('@/components/table/TableDetail.vue'))
-  const FieldsCompare = defineAsyncComponent(() => import('@/components/table/FieldsCompare.vue'))
-  const AddaxJob = defineAsyncComponent(() => import('@/components/table/AddaxJob.vue'))
-  const AddaxResult = defineAsyncComponent(() => import('@/components/table/AddaxResult.vue'))
-
-  const LogFiles = defineAsyncComponent(() => import('@/components/table/LogFiles.vue'))
+  // 异步按需加载组件，减轻首屏体积（仅保留批量修改对话框）
   const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'))
 
   const route = useRoute()
   const router = useRouter()
-  const goToBatchAdd = () => router.push('/table/batch-add')
 
   const table = ref([])
   const search = ref('')
@@ -257,13 +232,8 @@
     }
   ])
   const componentMap = {
-    TableDetail,
-    FieldsCompare,
-    AddaxJob,
-    AddaxResult,
-    LogFiles,
     BatchUpdate
-}
+  }
 
 function getRowClass(item: any) {
   return selected.value.includes(item.id) ? 'selected-row' : ''
@@ -344,86 +314,22 @@ function setParams(compName: string, comp: any) {
     currentParams.value = { tid: selected.value }
     return
   }
-  if (compName == 'TableDetail') {
-    currentParams.value = { table: comp }
-    return
-  }
-  if (['FieldsCompare', 'AddaxJob', 'AddaxResult', 'LogFiles'].includes(compName)) {
-    currentParams.value = { tid: comp.id }
-  } else if (compName === 'BatchAdd') {
-    currentParams.value = { tid: '-1' }
-  } else {
-    currentParams.value = { tid: comp.id }
-  }
+  // other components are now routed to a detail page; dialog params not required
 }
 
-const doEtl = async (item: any | null) => {
-  if (item != null) {
-    try {
-      await taskService.executeTask(item.id, 300000, 'async')
-      taskCenter.addTask({
-        id: String(item.id),
-        type: '采集',
-        target: item.targetTable,
-        status: '进行中',
-        progress: '已提交，等待后端处理',
-        submitTime: new Date().toISOString(),
-        result: '',
-        extra: { tid: item.id }
-      })
-      notify('采集任务已提交，可在任务中心查看进展', 'primary')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      notify('采集任务提交失败: ' + msg, 'error')
-    }
-    return
-  }
+function handleRecordUpdate(record: any) {
+  if (!record || !record.id) return
+  const idx = table.value.findIndex((r: any) => r.id === record.id)
+  if (idx > -1) table.value[idx] = { ...table.value[idx], ...record }
+  else table.value.unshift(record)
+}
 
-  if (selected.value.length === 0) return
+function handleBatchUpdate(payload: any) {
+  // refresh list after batch update
+  _searchCore()
+}
 
-  watch(dialogVisible, (open) => {
-    if (!open) {
-      currentComponent.value = null
-      currentDialogName.value = null
-    }
-  })
 
-  function setParams(compName: string, comp: any) {
-    if (compName == 'BatchUpdate') {
-      // 批量修改
-      currentParams.value = {
-        tid: selected.value
-      }
-      return
-    }
-    if (compName == 'TableDetail') {
-      currentParams.value = {
-        table: comp
-      }
-      return
-    }
-    if (compName == 'FieldsCompare' || compName == 'AddaxJob') {
-      currentParams.value = {
-        tid: comp.id
-      }
-    } else if (compName == 'TableUsed') {
-      currentParams.value = {
-        tid: comp.targetDb + '.' + comp.targetTable + '|' + comp.sid
-      }
-    } else if (compName == 'AddaxResult') {
-      currentParams.value = {
-        tid: comp.id
-      }
-    } else if (compName === 'LogFiles') {
-      currentParams.value = {
-        tid: comp.id
-      }
-    } else {
-      currentParams.value = {
-        tid: comp.id
-      }
-    }
-  }
 
 
 const doEtl = async (item: any | null) => {
@@ -466,63 +372,6 @@ const doEtl = async (item: any | null) => {
 }
 
 
-  interface LoadItemsOptions {
-    page: number
-    itemsPerPage: number
-    sortBy: any
-  }
-
-  const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
-    loading.value = true
-    currPageSize.value = itemsPerPage
-    const sortParam = createSort(sortBy)
-    if (sortParam.sortField != null) {
-      currentSortParam.value = sortBy
-    }
-    // v-data-table-server page is 1-based, while backend API is 0-based.
-    tableService
-      .fetchTableList(page - 1, itemsPerPage, search.value, runStatus.value, sourceId.value, sortParam)
-      .then((res) => {
-        table.value = res.content
-        totalItems.value = res.totalElements
-        loading.value = false
-      })
-      .catch((error) => {
-        const msg = error instanceof Error ? error.message : String(error)
-        notify(`加载失败: ${msg}`, 'error')
-        loading.value = false
-      })
-  }
-
-  // 加载可用数据源
-  async function loadSources() {
-    try {
-      const res = await sourceService.listActiveSources()
-      // 参考 BatchAdd.vue 中 sourceSystemList 的组织形式，显示 code + name
-      sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }))
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      notify('加载数据源失败: ' + msg, 'error')
-    }
-  }
-
-  const openCreateFromQuery = () => {
-    const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
-    if (action !== 'create') return
-
-    router.push('/table/batch-add')
-
-    const query = { ...route.query }
-    delete query.action
-    router.replace({ path: route.path, query })
-  }
-
-  onMounted(() => {
-    loadSources()
-    openCreateFromQuery()
-  })
-}
-
 interface LoadItemsOptions { page: number; itemsPerPage: number; sortBy: any }
 
 const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
@@ -564,7 +413,7 @@ async function loadSources() {
 const openCreateFromQuery = () => {
   const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
   if (action !== 'create') return
-  openDialog('BatchAdd', 'BatchAdd')
+  router.push('/table/batch-add')
   const query = { ...route.query }
   delete query.action
   router.replace({ path: route.path, query })

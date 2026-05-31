@@ -247,9 +247,10 @@ let notifyTimer: number | null = null
 
 // 定义菜单项类型
 interface MenuChildItem {
-  path: string
+  path?: string
   title: string
   icon?: string
+  onClick?: () => void
 }
 
 interface MenuItem {
@@ -272,16 +273,7 @@ const navGroupTitle: Record<NavGroup, string> = {
 }
 
 // 点击菜单项的通用处理器（支持 action 回调或路由 path）
-const handleChildClick = (child: any, ev?: Event) => {
-  if (typeof child.onClick === 'function') {
-    ev?.stopPropagation()
-    try {
-      child.onClick()
-    } catch (e) {
-      // swallow
-    }
-  }
-}
+
 
 const handleNavChildClick = (child: any, ev?: Event) => {
   if (child?.onClick) {
@@ -383,7 +375,7 @@ const urls = computed<MenuItem[]>(() => {
   }
 
   navGroupOrder.forEach((groupKey) => {
-    const children = flatRoutes
+    const children: MenuChildItem[] = flatRoutes
       .filter((item) => !item.isHome && item.navGroup === groupKey)
       .sort((a, b) => a.navOrder - b.navOrder || a.title.localeCompare(b.title, 'zh-CN'))
       .map((item) => ({
