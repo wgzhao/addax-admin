@@ -1,203 +1,327 @@
 <template>
-<v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form" >
-  <v-card density="comfortable" title="基础信息">
-      <v-card-text class="pb-2">
-        <v-row>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">源系统</div>
-              <v-text-field
-                variant="outlined"
-                v-model="table.name"
-                placeholder="请输入源系统"
-                hide-details="auto"
-              ></v-text-field>
+  <v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form" class="table-detail-shell">
+    <v-card flat class="ds-card hero-card">
+      <v-card-text class="hero-card__content">
+        <div class="hero-main">
+          <div class="hero-kicker">源表</div>
+          <div class="hero-title-row">
+            <div class="hero-title">{{ sourceIdentity }}</div>
+            <v-chip size="small" :color="statusColor" variant="tonal">{{ statusLabel }}</v-chip>
+          </div>
+        </div>
+        <div class="hero-route">
+          <div class="hero-route__label">目标映射</div>
+          <div class="hero-route__value">{{ targetIdentity }}</div>
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <span class="summary-label">源系统</span>
+        <strong>{{ sourceSystemLabel }}</strong>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">目标端</span>
+        <strong>{{ targetLabel }}</strong>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">调度时间</span>
+        <strong>{{ scheduleLabel }}</strong>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">最近运行</span>
+        <strong>{{ latestRunLabel }}</strong>
+      </div>
+    </div>
+
+    <v-row dense class="detail-grid">
+      <v-col cols="12" lg="7" class="panel-stack">
+        <v-card flat class="ds-card section-card">
+          <v-card-text class="section-body">
+            <div class="section-head">
+              <div>
+                <div class="section-title">基础信息</div>
+              </div>
             </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">源库</div>
-              <v-text-field
-                variant="outlined"
-                v-model="table.sourceDb"
-                placeholder="请输入源库"
-                hide-details="auto"
-              ></v-text-field>
-            </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">源表</div>
-              <v-text-field
-                variant="outlined"
-                v-model="table.sourceTable"
-                placeholder="请输入源表"
-                hide-details="auto"
-              >
-                <template #append>
-                  <v-tooltip bottom>
-                    <template #activator="{ props }">
-                      <v-icon v-bind="props" color="info" size="small" @click="showPlaceholderInfoDialog">
-                        mdi-information-outline
-                      </v-icon>
-                    </template>
-                  </v-tooltip>
-                </template>
-              </v-text-field>
-            </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">采集状态</div>
-              <v-select
-                variant="outlined"
-                v-model="table.status"
-                :items="statusOptions"
-                item-title="label"
-                item-value="value"
-                placeholder="请选择采集状态"
-                hide-details="auto"
-              ></v-select>
-            </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">目标端</div>
-              <v-select
-                variant="outlined"
-                v-model="table.targetId"
-                :items="targetOptions"
-                item-title="label"
-                item-value="value"
-                placeholder="请选择目标端"
-                clearable
-                hide-details="auto"
-              ></v-select>
-            </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">目标库</div>
-              <v-text-field
-                variant="outlined"
-                v-model="table.targetDb"
-                placeholder="请输入目标库"
-                hide-details="auto"
-              ></v-text-field>
-            </div>
-          </v-col>
-          <v-col cols="12" md="3">
-            <div class="field-stack">
-              <div class="field-label">目标表</div>
-              <v-text-field
-                variant="outlined"
-                v-model="table.targetTable"
-                placeholder="请输入目标表"
-                hide-details="auto"
-              ></v-text-field>
-            </div>
-          </v-col>
-          <v-col cols="12" md="2">
-            <div class="field-stack">
-              <div class="field-label">剩余次数</div>
-              <v-text-field
-                v-model="table.retryCnt"
-                placeholder="请输入剩余次数"
-                :rules="[rules.nonNegative]"
-                hide-details="auto"
-              ></v-text-field>
-            </div>
-          </v-col>
-        </v-row>
-        </v-card-text>
+
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">源系统</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.name"
+                    placeholder="请输入源系统"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">采集状态</div>
+                  <v-select
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.status"
+                    :items="statusOptions"
+                    item-title="label"
+                    item-value="value"
+                    placeholder="请选择采集状态"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">源库</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.sourceDb"
+                    placeholder="请输入源库"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">剩余次数</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    type="number"
+                    v-model="table.retryCnt"
+                    placeholder="请输入剩余次数"
+                    :rules="[rules.nonNegative]"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12">
+                <div class="field-block">
+                  <div class="field-label field-label-row">
+                    <span>源表</span>
+                    <v-btn size="x-small" variant="text" color="info" prepend-icon="mdi-information-outline" @click="showPlaceholderInfoDialog">
+                      动态命名说明
+                    </v-btn>
+                  </div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.sourceTable"
+                    placeholder="请输入源表"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+            </v-row>
+          </v-card-text>
         </v-card>
 
-        <v-card title="高级配置" icon="mdi-tune-vertical">
-        <v-card-text>
-              <v-row dense class="section-body">
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">过滤规则</div>
-                    <v-text-field
-                      v-model="table.filter"
-                      placeholder="可选，例如 dt='${biz_date_dash}'"
-                      hide-details="auto"
-                    >
-                      <template #append>
-                        <v-tooltip location="bottom">
-                          <template #activator="{ props }">
-                            <v-icon v-bind="props" size="small" color="info" @click="showFilterRuleInfoDialog">
-                              mdi-information-outline
-                            </v-icon>
-                          </template>
-                          <span>查看过滤规则说明</span>
-                        </v-tooltip>
-                      </template>
-                    </v-text-field>
-                  </div>
-                </v-col>
+        <v-card flat class="ds-card section-card">
+          <v-card-text class="section-body">
+            <div class="section-head">
+              <div>
+                <div class="section-title">目标与调度</div>
+              </div>
+            </div>
 
-                <v-col cols="12" md="3">
-                  <div class="field-stack">
-                    <div class="field-label">分区字段</div>
-                    <v-text-field
-                      v-model="table.partName"
-                      placeholder="例如 dt"
-                      hide-details="auto"
-                    ></v-text-field>
-                  </div>
-                </v-col>
+            <v-row dense>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">目标端</div>
+                  <v-select
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.targetId"
+                    :items="targetOptions"
+                    item-title="label"
+                    item-value="value"
+                    placeholder="请选择目标端"
+                    clearable
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
 
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">分区格式</div>
-                    <v-select
-                      v-model="table.partFormat"
-                      :items="PARTITION_FORMATS"
-                      placeholder="请选择分区格式"
-                      hide-details="auto"
-                    ></v-select>
-                  </div>
-                </v-col>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">写入模式</div>
+                  <v-select
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.writeMode"
+                    :items="writeModeOptions"
+                    item-title="label"
+                    item-value="value"
+                    placeholder="请选择写入模式"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
 
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">存储格式</div>
-                    <v-select
-                      v-model="table.storageFormat"
-                      :items="storageOptions"
-                      placeholder="请选择存储格式"
-                      hide-details="auto"
-                    ></v-select>
-                  </div>
-                </v-col>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">目标库</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.targetDb"
+                    placeholder="请输入目标库"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
 
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">压缩格式</div>
-                    <v-select
-                      v-model="table.compressFormat"
-                      :items="compressFormats"
-                      placeholder="请选择压缩格式"
-                      hide-details="auto"
-                    ></v-select>
-                  </div>
-                </v-col>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">目标表</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.targetTable"
+                    placeholder="请输入目标表"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
 
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">切分字段</div>
-                    <v-text-field
-                      v-model="table.splitPk"
-                      placeholder="为空则自动获取"
-                      hide-details="auto"
-                    ></v-text-field>
-                  </div>
-                </v-col>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">调度时间 (HH:mm)</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.startAt"
+                    placeholder="为空则继承数据源"
+                    clearable
+                    persistent-hint
+                    :hint="`继承值：${inheritedStartAt || '-'}`"
+                  />
+                </div>
+              </v-col>
 
-                <v-col cols="12" md="3">
-                  <div class="field-stack">
-                    <div class="field-label">切分策略</div>
+              <v-col cols="12" md="6">
+                <div class="field-block">
+                  <div class="field-label">最大运行时 (s)</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.maxRuntime"
+                    placeholder="不填默认 2000 秒"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="ds-card section-card">
+          <v-card-text class="section-body">
+            <div class="section-head">
+              <div>
+                <div class="section-title">抽取与存储配置</div>
+              </div>
+            </div>
+
+            <v-row dense>
+              <v-col cols="12" md="12">
+                <div class="field-block">
+                  <div class="field-label field-label-row">
+                    <span>过滤规则</span>
+                    <v-btn size="x-small" variant="text" color="info" prepend-icon="mdi-information-outline" @click="showFilterRuleInfoDialog">
+                      规则说明
+                    </v-btn>
+                  </div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.filter"
+                    placeholder="可选，例如 dt='${biz_date_dash}'"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <div class="field-block">
+                  <div class="field-label">分区字段</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.partName"
+                    placeholder="例如 dt"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <div class="field-block">
+                  <div class="field-label">分区格式</div>
+                  <v-select
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.partFormat"
+                    :items="PARTITION_FORMATS"
+                    placeholder="请选择分区格式"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <div class="field-block">
+                  <div class="field-label">切分字段</div>
+                  <v-text-field
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.splitPk"
+                    placeholder="为空则自动获取"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <div class="field-block">
+                  <div class="field-label">存储格式</div>
+                  <v-select
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.storageFormat"
+                    :items="storageOptions"
+                    placeholder="请选择存储格式"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <div class="field-block">
+                  <div class="field-label">压缩格式</div>
+                  <v-select
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="table.compressFormat"
+                    :items="compressFormats"
+                    placeholder="请选择压缩格式"
+                    hide-details="auto"
+                  />
+                </div>
+              </v-col>
+
+              <v-col cols="12" md="4">
+                <div class="field-block field-block--switch">
+                  <div class="field-label">切分策略</div>
+                  <div class="switch-shell">
                     <v-switch
                       v-model="table.autoPk"
                       inset
@@ -207,205 +331,211 @@
                       class="mt-0"
                     />
                   </div>
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">写入模式</div>
-                    <v-select
-                      v-model="table.writeMode"
-                      :items="writeModeOptions"
-                      item-title="label"
-                      item-value="value"
-                      placeholder="请选择写入模式"
-                      hide-details="auto"
-                    ></v-select>
-                  </div>
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">最大运行时(s)</div>
-                    <v-text-field
-                      v-model="table.maxRuntime"
-                      placeholder="不填默认 2000 秒"
-                      persistent-hint
-                    ></v-text-field>
-                  </div>
-                </v-col>
-
-                <v-col cols="12" md="2">
-                  <div class="field-stack">
-                    <div class="field-label">调度时间(HH:mm)</div>
-                    <v-text-field
-                      v-model="table.startAt"
-                      placeholder="为空则继承数据源"
-                      persistent-hint
-                      clearable
-                    >
-                      <template #append-inner>
-                        <v-tooltip location="bottom">
-                          <template #activator="{ props }">
-                            <v-icon v-bind="props" size="small" color="info">mdi-information-outline</v-icon>
-                          </template>
-                          <span>继承值：{{ inheritedStartAt || '-' }}</span>
-                        </v-tooltip>
-                      </template>
-                    </v-text-field>
-                  </div>
-                </v-col>
-
-
-                <v-col cols="12" md="6">
-                  <div class="field-stack field-stack--textarea">
-                    <div class="field-label">读取插件配置(JSON)</div>
-                    <v-textarea
-                      v-model="readerPluginConfigText"
-                      placeholder='例如: {"fetchSize": 50000}'
-                      :rules="[rules.jsonObjectOrEmpty]"
-                      rows="4"
-                      auto-grow
-                      hide-details="auto"
-                    ></v-textarea>
-                  </div>
-                </v-col>
-
-                <v-col cols="12" md="6">
-                  <div class="field-stack field-stack--textarea">
-                    <div class="field-label">写入插件配置(JSON)</div>
-                    <v-textarea
-                      v-model="writerPluginConfigText"
-                      placeholder='例如: {"writeMode": "append"}'
-                      :rules="[rules.jsonObjectOrEmpty]"
-                      rows="4"
-                      auto-grow
-                      hide-details="auto"
-                    ></v-textarea>
-                  </div>
-                </v-col>
-
-                <v-col cols="12" md="6">
-                  <div class="read-item">
-                    <div class="field-label">最近采集开始时间</div>
-                    <div class="read-value">{{ table.startTime || '-' }}</div>
-                  </div>
-                </v-col>
-
-                <v-col cols="12" md="6">
-                  <div class="read-item">
-                    <div class="field-label">最近采集结束时间</div>
-                    <div class="read-value">{{ table.endTime || '-' }}</div>
-                  </div>
-                </v-col>
-
-                <v-col cols="12" md="12">
-                  <div class="field-stack">
-                    <div class="field-label">备注</div>
-                    <v-textarea
-                      v-model="table.remark"
-                      placeholder="可选备注"
-                      rows="2"
-                      hide-details="auto"
-                    ></v-textarea>
-                  </div>
-                </v-col>
-              </v-row>
-      </v-card-text>
-
-      <v-card-actions class="action-bar">
-        <v-spacer />
-        <v-btn color="primary" @click="saveOds">保存</v-btn>
-      </v-card-actions>
-      <v-dialog v-model="showPlaceholderInfo" max-width="800">
-        <v-card>
-          <v-card-title>源表动态命名说明</v-card-title>
-          <v-card-text>
-            <p>系统支持在源表名中使用占位符来拼接运行时变量，例如日期。示例：<strong>t_${biz_date_dash}</strong>，实际采集时会解析为 <strong>t_2026-01-27</strong>。</p>
-            <p>当前支持的变量如下：</p>
-            <v-list dense>
-              <v-list-item v-for="v in placeholderVars" :key="v.name">
-                <v-list-item-title class="d-flex" style="gap:12px; align-items:center; justify-content:flex-start;">
-                  <strong style="width:150px; flex:0 0 200px; display:inline-block; text-align:right;">{{ v.name }}</strong>
-                  <span class="text--secondary" style="text-align:left">{{ v.desc }}</span>
-                </v-list-item-title>
-              </v-list-item>
-            </v-list>
+                </div>
+              </v-col>
+            </v-row>
           </v-card-text>
-          <v-card-actions>
-            <v-spacer />
-            <v-btn variant="text" @click="showPlaceholderInfo = false">关闭</v-btn>
-          </v-card-actions>
         </v-card>
-      </v-dialog>
+      </v-col>
 
-      <v-dialog v-model="showFilterRuleInfo" max-width="860">
-        <v-card>
-          <v-card-title>过滤规则说明</v-card-title>
-          <v-card-text>
-            <p>过滤规则用于控制每次采集读取哪些数据。未填写时，系统按 <strong>1=1</strong> 处理，也就是不过滤。</p>
-            <div class="filter-rule-list">
-              <div class="filter-rule-item">
-                <div class="filter-rule-item__title"><strong>1=1</strong></div>
-                <div class="filter-rule-item__desc">不添加任何过滤条件，适合作为默认值。</div>
+      <v-col cols="12" lg="5" class="panel-stack">
+        <v-card flat class="ds-card section-card">
+          <v-card-text class="section-body">
+            <div class="section-head">
+              <div>
+                <div class="section-title">插件配置</div>
               </div>
-              <div class="filter-rule-item">
-                <div class="filter-rule-item__title"><strong>字段条件</strong></div>
-                <div class="filter-rule-item__desc">
-                  按源表字段编写筛选条件，例如 <code>update_time &gt; '${biz_datetime_dash}'</code>。条件中可以直接复用“源表”右侧说明里的内置变量。
+            </div>
+
+            <v-row dense>
+              <v-col cols="12">
+                <div class="field-block">
+                  <div class="field-label">读取插件配置 (JSON)</div>
+                  <v-textarea
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="readerPluginConfigText"
+                    placeholder='例如: {"fetchSize": 50000}'
+                    :rules="[rules.jsonObjectOrEmpty]"
+                    rows="5"
+                    auto-grow
+                    hide-details="auto"
+                    class="mono-input"
+                  />
                 </div>
+              </v-col>
+
+              <v-col cols="12">
+                <div class="field-block">
+                  <div class="field-label">写入插件配置 (JSON)</div>
+                  <v-textarea
+                    variant="outlined"
+                    density="comfortable"
+                    v-model="writerPluginConfigText"
+                    placeholder='例如: {"writeMode": "append"}'
+                    :rules="[rules.jsonObjectOrEmpty]"
+                    rows="5"
+                    auto-grow
+                    hide-details="auto"
+                    class="mono-input"
+                  />
+                </div>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <v-card flat class="ds-card section-card">
+          <v-card-text class="section-body">
+            <div class="section-head">
+              <div>
+                <div class="section-title">运行快照</div>
               </div>
-              <div class="filter-rule-item">
-                <div class="filter-rule-item__title"><strong>特殊规则 <code>__max__&lt;field&gt;</code></strong></div>
-                <div class="filter-rule-item__desc">
-                  用于增量采集。系统会读取上一次采集时 <code>&lt;field&gt;</code> 的最大值 <code>m</code>，并自动转换为 <code>&lt;field&gt; &gt; m</code>。建议 <code>&lt;field&gt;</code> 选择数值型、单调递增的字段，通常优先使用主键。
-                </div>
+            </div>
+
+            <div class="snapshot-grid">
+              <div class="snapshot-item">
+                <span class="snapshot-label">最近采集开始</span>
+                <strong>{{ table.startTime || '-' }}</strong>
+              </div>
+              <div class="snapshot-item">
+                <span class="snapshot-label">最近采集结束</span>
+                <strong>{{ table.endTime || '-' }}</strong>
+              </div>
+              <div class="snapshot-item">
+                <span class="snapshot-label">继承调度时间</span>
+                <strong>{{ inheritedStartAt || '-' }}</strong>
+              </div>
+              <div class="snapshot-item">
+                <span class="snapshot-label">目标映射</span>
+                <strong>{{ targetIdentity }}</strong>
               </div>
             </div>
           </v-card-text>
-          <v-card-actions>
-            <v-spacer />
-            <v-btn variant="text" @click="showFilterRuleInfo = false">关闭</v-btn>
-          </v-card-actions>
         </v-card>
-      </v-dialog>
-  </v-card>
-      </v-form>
+
+        <v-card flat class="ds-card section-card">
+          <v-card-text class="section-body">
+            <div class="section-head">
+              <div>
+                <div class="section-title">备注与辅助说明</div>
+              </div>
+            </div>
+
+            <div class="helper-actions">
+              <v-btn variant="tonal" color="info" prepend-icon="mdi-lightbulb-outline" @click="showPlaceholderInfoDialog">
+                源表动态命名说明
+              </v-btn>
+              <v-btn variant="tonal" color="info" prepend-icon="mdi-filter-outline" @click="showFilterRuleInfoDialog">
+                过滤规则说明
+              </v-btn>
+            </div>
+
+            <div class="field-block mt-4">
+              <div class="field-label">备注</div>
+              <v-textarea
+                variant="outlined"
+                density="comfortable"
+                v-model="table.remark"
+                placeholder="可选备注"
+                rows="4"
+                auto-grow
+                hide-details="auto"
+              />
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-card flat class="ds-card action-card">
+      <v-card-actions class="action-bar">
+        <v-spacer />
+        <v-btn color="primary" variant="flat" @click="saveOds">保存更改</v-btn>
+      </v-card-actions>
+    </v-card>
+
+    <v-dialog v-model="showPlaceholderInfo" max-width="800">
+      <v-card>
+        <v-card-title>源表动态命名说明</v-card-title>
+        <v-card-text>
+          <p>
+            系统支持在源表名中使用占位符来拼接运行时变量，例如日期。示例：<strong>t_${biz_date_dash}</strong>，
+            实际采集时会解析为 <strong>t_2026-01-27</strong>。
+          </p>
+          <p>当前支持的变量如下：</p>
+          <div class="guide-list">
+            <div v-for="v in placeholderVars" :key="v.name" class="guide-item">
+              <div class="guide-item__key">{{ v.name }}</div>
+              <div class="guide-item__desc">{{ v.desc }}</div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showPlaceholderInfo = false">关闭</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showFilterRuleInfo" max-width="860">
+      <v-card>
+        <v-card-title>过滤规则说明</v-card-title>
+        <v-card-text>
+          <p>过滤规则用于控制每次采集读取哪些数据。未填写时，系统按 <strong>1=1</strong> 处理，也就是不过滤。</p>
+          <div class="guide-list">
+            <div class="guide-item">
+              <div class="guide-item__key">1=1</div>
+              <div class="guide-item__desc">不添加任何过滤条件，适合作为默认值。</div>
+            </div>
+            <div class="guide-item">
+              <div class="guide-item__key">字段条件</div>
+              <div class="guide-item__desc">
+                按源表字段编写筛选条件，例如 <code>update_time &gt; '${biz_datetime_dash}'</code>。条件中可以直接复用内置变量。
+              </div>
+            </div>
+            <div class="guide-item">
+              <div class="guide-item__key">__max__&lt;field&gt;</div>
+              <div class="guide-item__desc">
+                用于增量采集。系统会读取上一次采集时 <code>&lt;field&gt;</code> 的最大值 <code>m</code>，并自动转换为
+                <code>&lt;field&gt; &gt; m</code>。建议选择数值型、单调递增的字段，通常优先使用主键。
+              </div>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showFilterRuleInfo = false">关闭</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-form>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { notify } from '@/stores/notifier';
-import tableService from "@/service/table-service";
-import targetService from "@/service/target-service";
-import { VEtlWithSource, EtlTable, EtlTarget } from "@/types/database";
-import { TABLE_STATUS_OPTIONS, PARTITION_FORMATS, HDFS_COMPRESS_FORMATS } from "@/utils";
+import { notify } from '@/stores/notifier'
+import tableService from '@/service/table-service'
+import targetService from '@/service/target-service'
+import { VEtlWithSource, EtlTable, EtlTarget } from '@/types/database'
+import { TABLE_STATUS_OPTIONS, PARTITION_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils'
 
-// Why: read tid from route param instead of receiving via props in dialog environment
 const route = useRoute()
 const router = useRouter()
 const tid = computed(() => Number(route.params.tid))
-// ensure router is referenced for template usage to satisfy type-check
-void router
 
-// 使用公共的状态选项
-const statusOptions = TABLE_STATUS_OPTIONS;
-
-// storage options as requested
+const statusOptions = TABLE_STATUS_OPTIONS
 const storageOptions = ['orc', 'parquet', 'text']
-
-// reuse compress formats from constants
 const compressFormats = HDFS_COMPRESS_FORMATS || []
 const targetOptions = ref<{ label: string; value: number }[]>([])
 
-// 写入模式选项
 const writeModeOptions = [
   { label: '覆盖 (overwrite)', value: 'overwrite' },
   { label: '追加 (append)', value: 'append' },
-  { label: '无冲突追加 (nonConflict)', value: 'nonConflict' }
+  { label: '无冲突追加 (nonConflict)', value: 'nonConflict' },
 ]
 
-// validation rules
 const rules = {
   required: (v) => !!v || '此字段为必填项',
   nonNegative: (v) => {
@@ -422,20 +552,15 @@ const rules = {
     } catch {
       return '请输入合法 JSON'
     }
-  }
+  },
 }
 
-// 创建本地的响应式副本用于编辑
-const table = ref<VEtlWithSource>({} as VEtlWithSource);
+const table = ref<VEtlWithSource>({} as VEtlWithSource)
 const readerPluginConfigText = ref('')
 const writerPluginConfigText = ref('')
-
-
-// Dialog visibility flags for placeholder and filter rule info
 const showPlaceholderInfo = ref(false)
 const showFilterRuleInfo = ref(false)
 
-// Variables supported by backend SystemConfigService#getBizDateValues
 const placeholderVars = [
   { name: 'biz_date_short', desc: '业务日期(yyyyMMdd)' },
   { name: 'biz_date_dash', desc: '业务日期(yyyy-MM-dd)' },
@@ -455,14 +580,44 @@ const placeholderVars = [
   { name: 'curr_datetime_short', desc: '当前日期时间(yyyyMMddHHmmss)' },
   { name: 'curr_datetime_dash', desc: '当前日期时间(yyyy-MM-dd HH:mm:ss)' },
   { name: 'curr_datetime_0_dash', desc: '时间为 0 当前日期时间(yyyy-MM-dd 00:00:00)' },
-  { name: 'curr_datetime_0_short', desc: '时间为 0 的当前日期时间(yyyyMMdd000000)' }
+  { name: 'curr_datetime_0_short', desc: '时间为 0 的当前日期时间(yyyyMMdd000000)' },
 ]
 
-// inherited startAt helper (表级调度为空时，继承自采集源的调度时间)
 const inheritedStartAt = computed(() => {
   const v = (table.value as any)?.sourceStartAt
   if (!v) return ''
   return typeof v === 'string' && v.length >= 5 ? v.slice(0, 5) : String(v)
+})
+
+const sourceIdentity = computed(() => `${table.value.sourceDb || '未配置库'}.${table.value.sourceTable || '未配置表'}`)
+const targetIdentity = computed(() => `${table.value.targetDb || '未配置库'}.${table.value.targetTable || '未配置表'}`)
+const sourceSystemLabel = computed(() => {
+  if (!table.value.name && !table.value.code) return '未配置'
+  return table.value.code ? `${table.value.name || '-'} (${table.value.code})` : table.value.name
+})
+const targetLabel = computed(() => {
+  const matched = targetOptions.value.find((item) => item.value === table.value.targetId)
+  if (matched) return matched.label
+  if (table.value.targetName) return `${table.value.targetName} (${table.value.targetType || '-'})`
+  return '未选择'
+})
+const scheduleLabel = computed(() => table.value.startAt || inheritedStartAt.value || '未设置')
+const latestRunLabel = computed(() => table.value.endTime || table.value.startTime || '-')
+const statusLabel = computed(() => {
+  const matched = statusOptions.find((item) => item.value === table.value.status)
+  return matched?.label || table.value.status || '未设置'
+})
+const statusColor = computed(() => {
+  const statusColorMap = {
+    N: 'grey-lighten-1',
+    R: 'blue',
+    Y: 'success',
+    E: 'error',
+    X: 'warning',
+    W: 'amber',
+    U: 'grey-darken-1',
+  }
+  return statusColorMap[table.value.status] || 'grey'
 })
 
 const toJsonText = (value: unknown): string => {
@@ -502,9 +657,6 @@ const syncTableData = (newTable: VEtlWithSource) => {
   writerPluginConfigText.value = toJsonText(newTable.writerPluginConfig)
 }
 
-
-
-// Why: fetch table detail by tid on mount
 onMounted(async () => {
   if (!tid.value) return
   try {
@@ -520,15 +672,14 @@ onMounted(async () => {
       .filter((t) => t.id !== undefined)
       .map((t: EtlTarget) => ({
         label: `${t.name} (${t.targetType})`,
-        value: t.id as number
+        value: t.id as number,
       }))
-  } catch (e) {
+  } catch {
     notify('加载目标端列表失败', 'warning')
   }
 })
 
 const saveOds = async () => {
-  // validate
   if (typeof (formRef?.value as any)?.validate === 'function') {
     const valid = await (formRef?.value as any).validate()
     if (!valid.valid) {
@@ -579,12 +730,11 @@ const saveOds = async () => {
     writerPluginConfig,
     createdAt: table.value.createdAt,
     updatedAt: table.value.updatedAt,
-  };
+  }
 
   try {
     const updatedRecord = await tableService.save(etlTableData as EtlTable)
     notify('保存成功', 'success')
-    // keep on the detail page and update local state
     syncTableData({ ...table.value, ...updatedRecord } as VEtlWithSource)
   } catch (err) {
     notify('保存失败: ' + ((err as Error)?.message || String(err)), 'error')
@@ -599,162 +749,273 @@ const showFilterRuleInfoDialog = () => {
   showFilterRuleInfo.value = true
 }
 
-// form ref for programmatic validation
 const formRef = ref(null)
 </script>
 
 <style scoped>
-.table-title {
-  margin: 0;
-  font-weight: 600;
+.table-detail-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.field-stack {
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  column-gap: 16px;
+.hero-card__content {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), transparent 86%);
+}
+
+.hero-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-kicker {
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-primary), 0.9);
+}
+
+.hero-title-row {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
 }
 
-.field-stack--textarea {
-  align-items: start;
-}
-
-.field-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.2;
-  text-align: right;
-  white-space: nowrap;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
-
-.field-stack :deep(.v-input) {
-  width: 100%;
-}
-
-.field-stack :deep(.v-selection-control) {
-  margin-top: 0;
-}
-
-.advanced-panel {
-  margin-top: 2px;
-}
-
-.advanced-panel :deep(.v-expansion-panel) {
-  background: rgb(var(--v-theme-surface));
-  border: 1px dashed rgba(var(--v-theme-on-surface), 0.18);
-}
-
-.advanced-panel :deep(.v-expansion-panel-title) {
-  min-height: 42px;
-}
-
-.read-item {
-  min-height: 46px;
-  display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  column-gap: 16px;
-  align-items: center;
-  border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  background: rgb(var(--v-theme-surface));
-  padding: 8px 12px;
-}
-
-.read-value {
-  margin-top: 0;
+.hero-title {
+  font-size: 1.16rem;
+  font-weight: 700;
   color: rgb(var(--v-theme-on-surface));
   word-break: break-word;
 }
 
-.filter-rule-list {
+.hero-subtitle {
+  margin-top: 10px;
+  max-width: 760px;
+  color: rgba(var(--v-theme-on-surface), 0.68);
+  line-height: 1.7;
+}
+
+.hero-route {
+  min-width: 260px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-surface), 0.86);
+}
+
+.hero-route__label {
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.56);
+}
+
+.hero-route__value {
+  margin-top: 8px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-primary));
+  word-break: break-word;
+}
+
+.hero-route__meta {
+  margin-top: 8px;
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  line-height: 1.55;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summary-card,
+.snapshot-item {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background:
+    linear-gradient(180deg, rgba(var(--v-theme-primary), 0.055), rgba(var(--v-theme-primary), 0.01)),
+    rgb(var(--v-theme-surface));
+}
+
+.summary-label,
+.snapshot-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.56);
+}
+
+.panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 8px;
+  padding: 18px;
 }
 
-.filter-rule-item {
-  border-radius: 10px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  background: rgb(var(--v-theme-surface));
-  padding: 12px 14px;
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.filter-rule-item__title {
-  margin-bottom: 6px;
-  font-size: 0.95rem;
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
   color: rgb(var(--v-theme-on-surface));
 }
 
-.filter-rule-item__desc {
-  color: rgb(var(--v-theme-on-surface-variant));
-  line-height: 1.7;
-  white-space: normal;
-  word-break: break-word;
+.section-subtitle {
+  margin-top: 4px;
+  color: rgba(var(--v-theme-on-surface), 0.64);
+  line-height: 1.65;
 }
 
-.filter-rule-item__desc code,
-.filter-rule-item__title code {
-  white-space: normal;
-  word-break: break-word;
-}
-
-.action-bar {
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  padding-top: 12px;
-}
-
-.history-title {
+.field-block {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
 }
 
-.history-table {
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
-  border-radius: 8px;
+.field-block--switch {
+  height: 100%;
 }
 
-.history-table th {
-  white-space: nowrap;
+.field-label {
+  font-size: 0.84rem;
   font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.78);
 }
 
-.history-time {
-  min-width: 150px;
-  white-space: nowrap;
-}
-
-.history-fields {
+.field-label-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: 4px;
-  min-width: 140px;
 }
 
-.history-value {
-  max-width: 280px;
-  max-height: 180px;
-  overflow: auto;
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.history-empty {
-  height: 72px;
-  text-align: center;
-  color: rgb(var(--v-theme-on-surface-variant));
-}
-
-.history-pagination {
+.switch-shell {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.mono-input :deep(textarea) {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.helper-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-card {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+.action-bar {
+  padding: 14px 18px;
+}
+
+.action-copy {
+  color: rgba(var(--v-theme-on-surface), 0.62);
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-top: 12px;
+}
+
+.guide-item {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.guide-item__key {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  font-size: 0.84rem;
+  color: rgb(var(--v-theme-primary));
+  word-break: break-word;
+}
+
+.guide-item__desc {
+  color: rgba(var(--v-theme-on-surface), 0.68);
+  line-height: 1.65;
+}
+
+.guide-item__desc code {
+  word-break: break-word;
+}
+
+@media (max-width: 1180px) {
+  .hero-card__content,
+  .summary-grid,
+  .snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card__content {
+    flex-direction: column;
+  }
+
+  .hero-route {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .section-body,
+  .hero-card__content,
+  .action-bar {
+    padding: 16px;
+  }
+
+  .summary-grid,
+  .snapshot-grid,
+  .guide-item {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

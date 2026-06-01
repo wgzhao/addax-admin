@@ -164,7 +164,7 @@
 
                 <v-btn variant="text" color="secondary" icon size="small" aria-label="更多操作"
                   @click="router.push({ path: `/table/detail/${item.id}`, query: { tab: 'info', 'tblname': `${item.sourceDb}.${item.sourceTable}` } })">
-                  <v-icon size="18">mdi-dots-vertical</v-icon>
+                  <v-icon size="18">mdi-launch</v-icon>
                 </v-btn>
               </div>
             </template>

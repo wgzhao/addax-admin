@@ -8,25 +8,29 @@
 @use 'vuetify/settings' with (
   // Global font stack (unified with runtime CSS for predictable rendering)
   $body-font-family: (
-    'Inter',
-    '-apple-system',
-    'BlinkMacSystemFont',
     'PingFang SC',
     'Hiragino Sans GB',
+    'Microsoft YaHei UI',
     'Microsoft YaHei',
+    'Noto Sans CJK SC',
     'Noto Sans SC',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
     'Helvetica Neue',
     'Arial',
     sans-serif
   ),
   $heading-font-family: (
-    'Inter',
-    '-apple-system',
-    'BlinkMacSystemFont',
     'PingFang SC',
     'Hiragino Sans GB',
+    'Microsoft YaHei UI',
     'Microsoft YaHei',
+    'Noto Sans CJK SC',
     'Noto Sans SC',
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
     'Helvetica Neue',
     'Arial',
     sans-serif

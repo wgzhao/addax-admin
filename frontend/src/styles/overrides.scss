@@ -3,9 +3,8 @@ body,
 #app,
 .v-application {
   line-height: 1.6;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei',
+    'Noto Sans CJK SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
@@ -15,13 +14,16 @@ body,
   --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.08);
   --ds-border-default: rgba(var(--v-theme-on-surface), 0.12);
   --ds-border-strong: rgba(var(--v-theme-on-surface), 0.2);
-  --ds-surface-raised: rgb(var(--v-theme-surface));
+  --ds-surface-raised: rgb(var(--v-theme-surface-raised));
+  --ds-surface-overlay: rgb(var(--v-theme-surface-overlay));
+  --ds-text-2: rgb(var(--v-theme-on-surface-variant));
+  --ds-text-3: rgb(var(--v-theme-on-surface-muted));
 }
 
 .v-theme--dark {
-  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.16);
-  --ds-border-default: rgba(var(--v-theme-on-surface), 0.22);
-  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.32);
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.14);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.18);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.26);
 }
 
 input,
@@ -40,13 +42,20 @@ select,
 .v-application .v-list-item-title,
 .v-application .v-list-item-subtitle {
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.68;
 }
 
 .v-application .text-body-2,
 .v-application .text-caption {
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.6;
+}
+
+.v-application .v-list-item-subtitle,
+.v-application .text-medium-emphasis,
+.v-application .text-disabled,
+.v-application .page-subtitle {
+  color: var(--ds-text-2) !important;
 }
 
 .selected-row {
@@ -76,11 +85,17 @@ select,
 
 .v-data-table thead th,
 .v-data-table-server thead th {
-  background: rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.06);
   color: rgb(var(--v-theme-on-surface));
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
+}
+
+.v-theme--dark .v-data-table thead th,
+.v-theme--dark .v-data-table-server thead th,
+.v-theme--dark .v-data-table-virtual thead th {
+  background: rgba(var(--v-theme-surface-overlay), 0.68);
 }
 
 .v-data-table thead tr,
@@ -102,7 +117,13 @@ select,
 
 .v-data-table tbody tr:nth-child(even),
 .v-data-table-server tbody tr:nth-child(even) {
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: rgba(var(--v-theme-on-surface), 0.035);
+}
+
+.v-theme--dark .v-data-table tbody tr:nth-child(even),
+.v-theme--dark .v-data-table-server tbody tr:nth-child(even),
+.v-theme--dark .v-data-table-virtual tbody tr:nth-child(even) {
+  background: rgba(var(--v-theme-surface-overlay), 0.36);
 }
 
 .form-section {

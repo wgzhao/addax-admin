@@ -5,14 +5,14 @@ import 'vuetify/styles'
 // Composable
 import { createVuetify } from 'vuetify'
 import '@/styles/overrides.scss'
-import customTheme from './custom-theme'
+import modernTheme from './modern-theme'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
     defaultTheme: 'dark',
-    themes: customTheme
+    themes: modernTheme
   },
   icons: {
     defaultSet: 'mdi',
