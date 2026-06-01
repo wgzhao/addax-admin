@@ -35,8 +35,8 @@ const modernTheme = {
       'grey-900': '#18212B',
       'perfect-scrollbar-thumb': '#CBD5E1',
       'skin-bordered-background': '#F6F8FB',
-      'skin-bordered-surface': '#FFFFFF'
-    }
+      'skin-bordered-surface': '#FFFFFF',
+    },
   },
   dark: {
     dark: true,
@@ -74,9 +74,9 @@ const modernTheme = {
       'grey-900': '#EAF1F8',
       'perfect-scrollbar-thumb': '#334155',
       'skin-bordered-background': '#0B0F14',
-      'skin-bordered-surface': '#11161D'
-    }
-  }
-}
+      'skin-bordered-surface': '#11161D',
+    },
+  },
+};
 
-export default modernTheme
+export default modernTheme;

@@ -89,75 +89,75 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, computed, watch, nextTick } from 'vue'
-  import dictService from '@/service/dict-service'
-  import { notify } from '@/stores/notifier'
-  import { SysDict, SysItem } from '@/types/database'
+  import { ref, onMounted, computed, watch, nextTick } from 'vue';
+  import dictService from '@/service/dict-service';
+  import { notify } from '@/stores/notifier';
+  import { SysDict, SysItem } from '@/types/database';
 
-  const dicts = ref<SysDict[]>([])
-  const sysItems = ref<SysItem[]>([])
+  const dicts = ref<SysDict[]>([]);
+  const sysItems = ref<SysItem[]>([]);
 
   const dictHeaders = [
     { title: '字典编号', value: 'code', width: '10%' },
     { title: '字典名称', value: 'name', width: '25%' },
     { title: '字典分类', value: 'classification', width: '10%' },
     { title: '说明', value: 'remark', width: '50%' },
-    { title: '#', value: 'actions', width: '5%' }
-  ]
+    { title: '#', value: 'actions', width: '5%' },
+  ];
   const itemHeaders = [
     { title: '字典编号', value: 'dictCode' },
     { title: '参数项', value: 'itemKey' },
     { title: '参数值', value: 'itemValue' },
     { title: '备注', value: 'remark', width: '30%' },
-    { title: 'Action', value: 'actions', width: '10%' }
-  ]
-  const dialog = ref(false)
-  const dialogDelete = ref(false)
-  const currCode = ref<number>(0)
-  const editedIndex = ref(-1)
-  const editedItem = ref<Partial<SysItem>>({})
-  const defaultItem = ref<Partial<SysItem>>({})
+    { title: 'Action', value: 'actions', width: '10%' },
+  ];
+  const dialog = ref(false);
+  const dialogDelete = ref(false);
+  const currCode = ref<number>(0);
+  const editedIndex = ref(-1);
+  const editedItem = ref<Partial<SysItem>>({});
+  const defaultItem = ref<Partial<SysItem>>({});
   const formTitle = computed(() => {
-    return editedIndex.value === -1 ? 'New Item' : 'Edit Item'
-  })
+    return editedIndex.value === -1 ? 'New Item' : 'Edit Item';
+  });
 
   const close = () => {
-    dialog.value = false
+    dialog.value = false;
     nextTick(() => {
-      editedItem.value = Object.assign({}, defaultItem.value)
-      editedIndex.value = -1
-    })
-  }
+      editedItem.value = Object.assign({}, defaultItem.value);
+      editedIndex.value = -1;
+    });
+  };
 
   const closeDelete = () => {
-    dialogDelete.value = false
+    dialogDelete.value = false;
     nextTick(() => {
-      editedItem.value = Object.assign({}, defaultItem.value)
-      editedIndex.value = -1
-    })
-  }
-  watch(dialog, async (newVal) => {
+      editedItem.value = Object.assign({}, defaultItem.value);
+      editedIndex.value = -1;
+    });
+  };
+  watch(dialog, async newVal => {
     if (newVal) {
-      dialog.value = true
+      dialog.value = true;
     } else {
-      close()
+      close();
     }
-  })
+  });
 
-  watch(dialogDelete, async (newVal) => {
+  watch(dialogDelete, async newVal => {
     if (newVal) {
-      dialogDelete.value = true
+      dialogDelete.value = true;
     } else {
-      closeDelete()
+      closeDelete();
     }
-  })
+  });
 
-  const getItems = (code) => {
-    currCode.value = code
-    dictService.listSysItems(code).then((res) => {
-      sysItems.value = res
-    })
-  }
+  const getItems = code => {
+    currCode.value = code;
+    dictService.listSysItems(code).then(res => {
+      sysItems.value = res;
+    });
+  };
 
   const addItem = () => {
     // add default entry_code
@@ -165,44 +165,44 @@
     // editedItem.value = Object.assign({}, defaultItem.value)
     // editedItem.value.entryCode = entryCode;
 
-    editedItem.value = Object.assign({}, defaultItem.value)
-    editedItem.value.dictCode = currCode.value
+    editedItem.value = Object.assign({}, defaultItem.value);
+    editedItem.value.dictCode = currCode.value;
 
-    dialog.value = !dialog.value
-  }
-  const editItem = (item) => {
-    editedIndex.value = sysItems.value.indexOf(item)
-    editedItem.value = Object.assign({}, item)
-    dialog.value = true
-  }
+    dialog.value = !dialog.value;
+  };
+  const editItem = item => {
+    editedIndex.value = sysItems.value.indexOf(item);
+    editedItem.value = Object.assign({}, item);
+    dialog.value = true;
+  };
 
-  const deleteItem = (item) => {
-    editedIndex.value = sysItems.value.indexOf(item)
-    editedItem.value = Object.assign({}, item)
-    dialogDelete.value = true
-  }
+  const deleteItem = item => {
+    editedIndex.value = sysItems.value.indexOf(item);
+    editedItem.value = Object.assign({}, item);
+    dialogDelete.value = true;
+  };
 
   const deleteItemConfirm = () => {
-    const ec = editedItem.value.dictCode
-    const ev = editedItem.value.itemKey
+    const ec = editedItem.value.dictCode;
+    const ev = editedItem.value.itemKey;
     dictService
       .deleteDictItem(ec, ev)
       .then(() => {
         if (editedIndex.value > -1) {
-          sysItems.value.splice(editedIndex.value, 1)
+          sysItems.value.splice(editedIndex.value, 1);
         }
-        notify('删除成功', 'success')
-        closeDelete()
+        notify('删除成功', 'success');
+        closeDelete();
       })
-      .catch((err) => {
-        notify('删除失败: ' + err, 'error')
-      })
-  }
+      .catch(err => {
+        notify('删除失败: ' + err, 'error');
+      });
+  };
   const saveItem = () => {
     // 确保必要的字段存在
     if (!editedItem.value.dictCode || !editedItem.value.itemKey) {
-      notify('请填写必要的字段', 'warning')
-      return
+      notify('请填写必要的字段', 'warning');
+      return;
     }
 
     // const itemToSave = editedItem.value as SysItem;
@@ -226,27 +226,27 @@
       dictService
         .updateDictItem(editedItem.value as SysItem)
         .then(() => {
-          notify('保存成功', 'success')
-          sysItems[editedIndex.value] = editedItem.value as SysItem
+          notify('保存成功', 'success');
+          sysItems[editedIndex.value] = editedItem.value as SysItem;
         })
-        .catch((err) => notify('保存失败: ' + err, 'error'))
+        .catch(err => notify('保存失败: ' + err, 'error'));
     } else {
       // create
       dictService
         .createDictItem(editedItem.value as SysItem)
-        .then((res) => {
-          sysItems.value.push(res)
-          notify('保存成功', 'success')
+        .then(res => {
+          sysItems.value.push(res);
+          notify('保存成功', 'success');
         })
-        .catch((err) => notify('保存失败: ' + err, 'error'))
+        .catch(err => notify('保存失败: ' + err, 'error'));
     }
-    close()
-  }
+    close();
+  };
   onMounted(() => {
-    dictService.listDicts().then((res) => {
-      dicts.value = res
-    })
-  })
+    dictService.listDicts().then(res => {
+      dicts.value = res;
+    });
+  });
 </script>
 
 <route lang="json">

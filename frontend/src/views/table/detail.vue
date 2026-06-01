@@ -5,8 +5,9 @@
         <v-btn icon @click="router.back()" aria-label="返回">
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
-        <div class="page-title">采集表详情:
-          <v-chip>{{ tblname }}</v-chip></div>
+        <div class="page-title">
+          采集表详情: <v-chip>{{ tblname }}</v-chip>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -49,57 +50,66 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+  import { ref, watch, onMounted } from 'vue';
+  import { useRoute, useRouter } from 'vue-router';
 
-import TableDetail from '@/components/table/TableDetail.vue'
-import FieldsCompare from '@/components/table/FieldsCompare.vue'
-import AddaxJob from '@/components/table/AddaxJob.vue'
-import AddaxResult from '@/components/table/AddaxResult.vue'
-import LogFiles from '@/components/table/LogFiles.vue'
-import ChangeHistory from '@/components/table/ChangeHistory.vue'
+  import TableDetail from '@/components/table/TableDetail.vue';
+  import FieldsCompare from '@/components/table/FieldsCompare.vue';
+  import AddaxJob from '@/components/table/AddaxJob.vue';
+  import AddaxResult from '@/components/table/AddaxResult.vue';
+  import LogFiles from '@/components/table/LogFiles.vue';
+  import ChangeHistory from '@/components/table/ChangeHistory.vue';
 
-const route = useRoute()
-const router = useRouter()
+  const route = useRoute();
+  const router = useRouter();
 
-const currentTab = ref(String(route.query.tab || 'info'))
+  const currentTab = ref(String(route.query.tab || 'info'));
 
-const tblname = ref(String(route.query.tblname || ''))
+  const tblname = ref(String(route.query.tblname || ''));
 
-watch(() => route.query.tab, (newTab) => {
-  currentTab.value = String(newTab || 'info')
-})
+  watch(
+    () => route.query.tab,
+    newTab => {
+      currentTab.value = String(newTab || 'info');
+    }
+  );
 
-watch(currentTab, (val) => {
-  // Keep URL in sync for deep linking without adding new history entries
-  router.replace({ path: `/table/detail/${route.params.tid}`, query: { ...route.query, tab: val } })
-})
+  watch(currentTab, val => {
+    // Keep URL in sync for deep linking without adding new history entries
+    router.replace({
+      path: `/table/detail/${route.params.tid}`,
+      query: { ...route.query, tab: val },
+    });
+  });
 
-
-
-onMounted(() => {
-  if (!route.query.tab) {
-    router.replace({ path: `/table/detail/${route.params.tid}`, query: { ...route.query, tab: currentTab.value } })
-  }
-})
+  onMounted(() => {
+    if (!route.query.tab) {
+      router.replace({
+        path: `/table/detail/${route.params.tid}`,
+        query: { ...route.query, tab: currentTab.value },
+      });
+    }
+  });
 </script>
 
 <style scoped>
-.table-detail-page .page-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-left: 12px;
-}
+  .table-detail-page .page-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-left: 12px;
+  }
 
-.table-detail-card {
-  margin-top: 12px;
-}
+  .table-detail-card {
+    margin-top: 12px;
+  }
 </style>
 
-<route lang="json">{
+<route lang="json">
+{
   "path": "/table/detail/:tid",
   "meta": {
     "title": "采集表详情",
     "navHidden": true
   }
-}</route>
+}
+</route>

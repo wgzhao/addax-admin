@@ -1,6 +1,6 @@
 <script setup lang="ts">
-  import Topbar from './default/Topbar.vue'
-  import Footer from './default/Footer.vue'
+  import Topbar from './default/Topbar.vue';
+  import Footer from './default/Footer.vue';
 </script>
 
 <template>

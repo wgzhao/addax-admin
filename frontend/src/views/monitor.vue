@@ -109,11 +109,11 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
-  import type { DataTableHeader } from 'vuetify'
-  import { monitorService } from '@/service/monitor-service'
-  import { SortItem } from 'vuetify/lib/components/VDataTable/composables/sort.mjs'
-  import { createSort } from '@/utils/'
+  import { ref, onMounted } from 'vue';
+  import type { DataTableHeader } from 'vuetify';
+  import { monitorService } from '@/service/monitor-service';
+  import { SortItem } from 'vuetify/lib/components/VDataTable/composables/sort.mjs';
+  import { createSort } from '@/utils/';
 
   const data = ref({
     accomplishList: [] as Array<Map<string, any>>,
@@ -121,8 +121,8 @@
     rejectTask: [] as Array<Map<string, any>>,
     sysRisk: [] as Array<Map<string, any>>,
     fieldChange: [] as Array<Map<string, any>>,
-    smsDetail: [] as Array<Map<string, any>>
-  })
+    smsDetail: [] as Array<Map<string, any>>,
+  });
 
   // 各表单独定义，便于灵活处理
   const accomplishListTable = {
@@ -133,7 +133,7 @@
     headers: <DataTableHeader[]>[
       {
         title: '启动',
-        key: 'start_at'
+        key: 'start_at',
       },
       { title: '数据源', key: 'sys_name' },
       {
@@ -146,20 +146,20 @@
           {
             title: '完成率',
             key: 'overPrec',
-            value: (item) => `${Math.round((item.succ_cnt / item.total_cnt) * 100)}%`,
+            value: item => `${Math.round((item.succ_cnt / item.total_cnt) * 100)}%`,
             cellProps: ({ value }) => ({
-              class: value === '100%' ? 'text-success' : 'text-warning'
-            })
+              class: value === '100%' ? 'text-success' : 'text-warning',
+            }),
           },
           {
             title: '运行/错误/未执行/未建表',
             key: 'run_fail_noRun_noCreate',
             // 使用不间断空格确保渲染时空格可见
-            value: (item) =>
+            value: item =>
               `${item.run_cnt ?? 0}\u00A0/\u00A0${item.fail_cnt ?? 0}\u00A0/\u00A0${item.no_run_cnt ?? 0}\u00A0/\u00A0${item.no_create_table_cnt ?? 0}`,
-            align: 'center'
-          }
-        ]
+            align: 'center',
+          },
+        ],
       },
       {
         title: 'T-1 日',
@@ -168,8 +168,8 @@
         children: [
           { title: '开始时间', key: 'y_begin_at', align: 'center' },
           { title: '结束时间', key: 'y_finish_at', align: 'center' },
-          { title: '耗时', key: 'y_take_secs', align: 'center' }
-        ]
+          { title: '耗时', key: 'y_take_secs', align: 'center' },
+        ],
       },
       {
         title: 'T 日',
@@ -178,11 +178,11 @@
         children: [
           { title: '开始时间', key: 't_begin_at', align: 'center' },
           { title: '结束时间', key: 't_finish_at', align: 'center' },
-          { title: '耗时', key: 't_take_secs', align: 'center' }
-        ]
-      }
-    ]
-  }
+          { title: '耗时', key: 't_take_secs', align: 'center' },
+        ],
+      },
+    ],
+  };
 
   const specialTaskTable = {
     name: 'specialTask',
@@ -198,13 +198,13 @@
         title: '耗时',
         key: 'duration',
         cellProps: ({ value }) => ({
-          class: value > 1000 ? 'text-warning' : ''
-        })
+          class: value > 1000 ? 'text-warning' : '',
+        }),
       },
       { title: '开始时间', key: 'startTime' },
-      { title: '结束时间', key: 'endTime' }
-    ]
-  }
+      { title: '结束时间', key: 'endTime' },
+    ],
+  };
 
   const rejectTaskTable = {
     name: 'rejectTask',
@@ -215,9 +215,9 @@
       { title: '任务名称', key: 'jobname' },
       { title: '拒绝行', key: 'totalErr' },
       { title: '开始时间', key: 'startTs' },
-      { title: '结束时间', key: 'endTs' }
-    ]
-  }
+      { title: '结束时间', key: 'endTs' },
+    ],
+  };
 
   const sysRiskTable = {
     name: 'sysRisk',
@@ -229,9 +229,9 @@
       { title: '类别', key: 'riskLevel' },
       { title: '风险摘要', key: 'message', maxWidth: '1200px' },
       { title: '关联表 ID', key: 'tid' },
-      { title: '创建时间', key: 'createdAt' }
-    ]
-  }
+      { title: '创建时间', key: 'createdAt' },
+    ],
+  };
 
   const fieldChangeTable = {
     name: 'fieldChange',
@@ -247,33 +247,33 @@
       {
         title: '变更说明',
         key: 'change_summary',
-        value: (item) => {
-          const parts: string[] = []
+        value: item => {
+          const parts: string[] = [];
           // 类型变化
           if (item.oldSourceType || item.newSourceType) {
-            const oldT = item.oldSourceType ?? '—'
-            const newT = item.newSourceType ?? '—'
-            parts.push(`类型: ${oldT} → ${newT}`)
+            const oldT = item.oldSourceType ?? '—';
+            const newT = item.newSourceType ?? '—';
+            parts.push(`类型: ${oldT} → ${newT}`);
           }
           // 长度/精度/小数位变化（仅在有值时展示）
-          const oldLen = item.oldDataLength
-          const newLen = item.newDataLength
+          const oldLen = item.oldDataLength;
+          const newLen = item.newDataLength;
           if (oldLen != null || newLen != null)
-            parts.push(`长度: ${oldLen ?? '—'} → ${newLen ?? '—'}`)
-          const oldPrec = item.oldDataPrecision
-          const newPrec = item.newDataPrecision
+            parts.push(`长度: ${oldLen ?? '—'} → ${newLen ?? '—'}`);
+          const oldPrec = item.oldDataPrecision;
+          const newPrec = item.newDataPrecision;
           if (oldPrec != null || newPrec != null)
-            parts.push(`精度: ${oldPrec ?? '—'} → ${newPrec ?? '—'}`)
-          const oldScale = item.oldDataScale
-          const newScale = item.newDataScale
+            parts.push(`精度: ${oldPrec ?? '—'} → ${newPrec ?? '—'}`);
+          const oldScale = item.oldDataScale;
+          const newScale = item.newDataScale;
           if (oldScale != null || newScale != null)
-            parts.push(`小数位: ${oldScale ?? '—'} → ${newScale ?? '—'}`)
-          return parts.join('； ')
-        }
+            parts.push(`小数位: ${oldScale ?? '—'} → ${newScale ?? '—'}`);
+          return parts.join('； ');
+        },
       },
-      { title: '变更时间', key: 'changeAt' }
-    ]
-  }
+      { title: '变更时间', key: 'changeAt' },
+    ],
+  };
 
   const smsDetailTable = {
     name: 'smsDetail',
@@ -286,47 +286,47 @@
         value: 'msg',
         width: '70%',
         cellProps: ({ value }) => ({
-          class: value.includes('失败') ? 'bg-danger' : ''
-        })
+          class: value.includes('失败') ? 'bg-danger' : '',
+        }),
       },
-      { title: '发送时间', value: 'dwCltDate' }
-    ]
-  }
+      { title: '发送时间', value: 'dwCltDate' },
+    ],
+  };
 
   // 已按模板拆分为独立区块，移除通用 v-for 渲染
 
   // ---- 字段变更提醒：服务端分页状态 & 加载逻辑 ----
-  const fieldChangeItems = ref<Array<Map<string, any>>>([])
-  const fieldChangeTotal = ref(0)
-  const fieldChangeLoading = ref(false)
-  const fieldChangePageSize = ref(10)
-  const fieldChangeCurrentSort = ref<SortItem[]>(fieldChangeTable.sortBy)
+  const fieldChangeItems = ref<Array<Map<string, any>>>([]);
+  const fieldChangeTotal = ref(0);
+  const fieldChangeLoading = ref(false);
+  const fieldChangePageSize = ref(10);
+  const fieldChangeCurrentSort = ref<SortItem[]>(fieldChangeTable.sortBy);
 
   interface LoadItemsOptions {
-    page: number
-    itemsPerPage: number
-    sortBy: SortItem[]
+    page: number;
+    itemsPerPage: number;
+    sortBy: SortItem[];
   }
 
   const loadFieldChangeItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
-    fieldChangeLoading.value = true
-    fieldChangePageSize.value = itemsPerPage
-    const sortParam = createSort(sortBy || [])
-    if (sortParam.sortField != null) fieldChangeCurrentSort.value = sortBy
+    fieldChangeLoading.value = true;
+    fieldChangePageSize.value = itemsPerPage;
+    const sortParam = createSort(sortBy || []);
+    if (sortParam.sortField != null) fieldChangeCurrentSort.value = sortBy;
     // Vuetify page is 1-based; backend expects 0-based
     monitorService
       .fieldsChangesPaged(page - 1, itemsPerPage, sortParam)
-      .then((res) => {
-        fieldChangeItems.value = res.content
-        fieldChangeTotal.value = res.totalElements
-        fieldChangeLoading.value = false
+      .then(res => {
+        fieldChangeItems.value = res.content;
+        fieldChangeTotal.value = res.totalElements;
+        fieldChangeLoading.value = false;
       })
       .catch(() => {
-        fieldChangeItems.value = []
-        fieldChangeTotal.value = 0
-        fieldChangeLoading.value = false
-      })
-  }
+        fieldChangeItems.value = [];
+        fieldChangeTotal.value = 0;
+        fieldChangeLoading.value = false;
+      });
+  };
 
   const getData = async () => {
     try {
@@ -335,45 +335,45 @@
         monitorService.fetchSpecialTask(),
         monitorService.fetchRejectTask(),
         monitorService.sysRisks(),
-        monitorService.smsDetail()
-      ])
-      data.value.accomplishList = accomplishList
-      data.value.specialTask = specialTask
-      data.value.rejectTask = rejectTask
-      data.value.sysRisk = rawSysRisk
-      data.value.smsDetail = smsDetail
+        monitorService.smsDetail(),
+      ]);
+      data.value.accomplishList = accomplishList;
+      data.value.specialTask = specialTask;
+      data.value.rejectTask = rejectTask;
+      data.value.sysRisk = rawSysRisk;
+      data.value.smsDetail = smsDetail;
     } catch (error) {
-      console.error('Error fetching data:', error)
+      console.error('Error fetching data:', error);
     }
-  }
+  };
 
   onMounted(() => {
-    getData()
+    getData();
     // 触发表格首次加载
     loadFieldChangeItems({
       page: 1,
       itemsPerPage: fieldChangePageSize.value,
-      sortBy: fieldChangeCurrentSort.value
-    })
-  })
+      sortBy: fieldChangeCurrentSort.value,
+    });
+  });
 </script>
 <style scoped>
-.monitor-page {
-  background: rgb(var(--v-theme-surface));
-}
+  .monitor-page {
+    background: rgb(var(--v-theme-surface));
+  }
 
-.section-grid {
-  row-gap: 12px;
-}
+  .section-grid {
+    row-gap: 12px;
+  }
 
-.section-card {
-  background: rgb(var(--v-theme-surface-variant));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
+  .section-card {
+    background: rgb(var(--v-theme-surface-variant));
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  }
 
-.section-body {
-  background: transparent;
-}
+  .section-body {
+    background: transparent;
+  }
 </style>
 <route lang="json">
 {

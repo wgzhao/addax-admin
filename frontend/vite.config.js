@@ -43,7 +43,7 @@ export default defineConfig(function (_a) {
             // https://github.com/vuetifyjs/vuetify-loader/tree/master/packages/vite-plugin#readme
             Vuetify({
                 autoImport: true,
-                styles: 'css'
+                styles: 'sass'
             }),
             Components({
                 dts: "src/types/components.d.ts",

@@ -28,13 +28,13 @@
               <v-list-item
                 v-for="(child, index) in item.children"
                 :key="`${item.title}-${index}`"
-                            @click="(e) => handleNavChildClick(child, e)"
-                            :class="['top-nav-menu-item']"
-                            :prepend-icon="child.icon || 'mdi-chevron-right'"
-                            slim
-                          >
-                            <v-list-item-title>{{ child.title }}</v-list-item-title>
-                          </v-list-item>
+                @click="e => handleNavChildClick(child, e)"
+                :class="['top-nav-menu-item']"
+                :prepend-icon="child.icon || 'mdi-chevron-right'"
+                slim
+              >
+                <v-list-item-title>{{ child.title }}</v-list-item-title>
+              </v-list-item>
             </v-list>
           </v-menu>
           <v-btn
@@ -58,18 +58,38 @@
         :close-delay="120"
       >
         <template #activator="{ props }">
-          <v-btn v-bind="props" class="top-nav-btn" variant="text" prepend-icon="mdi-plus-circle-outline">
+          <v-btn
+            v-bind="props"
+            class="top-nav-btn"
+            variant="text"
+            prepend-icon="mdi-plus-circle-outline"
+          >
             新增
           </v-btn>
         </template>
         <v-list density="compact" nav class="top-nav-menu-list user-nav-menu-list">
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-database-cog" slim @click="goQuickCreate('/source')">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-database-cog"
+            slim
+            @click="goQuickCreate('/source')"
+          >
             <v-list-item-title>新增采集源</v-list-item-title>
           </v-list-item>
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-database-export" slim @click="goQuickCreate('/target')">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-database-export"
+            slim
+            @click="goQuickCreate('/target')"
+          >
             <v-list-item-title>新增目标端</v-list-item-title>
           </v-list-item>
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-table-plus" slim :to="'/table/batch-add'">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-table-plus"
+            slim
+            :to="'/table/batch-add'"
+          >
             <v-list-item-title>新增采集表</v-list-item-title>
           </v-list-item>
         </v-list>
@@ -129,7 +149,12 @@
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
         <v-list density="compact" nav class="top-nav-menu-list user-nav-menu-list">
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-account-circle-outline" slim @click="profileDialog = true">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-account-circle-outline"
+            slim
+            @click="profileDialog = true"
+          >
             <v-list-item-title>账号信息</v-list-item-title>
           </v-list-item>
           <v-list-item
@@ -142,19 +167,45 @@
             <v-list-item-title>跟随系统主题</v-list-item-title>
           </v-list-item>
           <v-divider class="my-1" />
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-information-outline" slim @click="versionDialog = true">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-information-outline"
+            slim
+            @click="versionDialog = true"
+          >
             <v-list-item-title>系统版本</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="isAdmin" class="top-nav-menu-item" prepend-icon="mdi-account-group-outline" slim @click="goAccounts">
+          <v-list-item
+            v-if="isAdmin"
+            class="top-nav-menu-item"
+            prepend-icon="mdi-account-group-outline"
+            slim
+            @click="goAccounts"
+          >
             <v-list-item-title>账号管理</v-list-item-title>
           </v-list-item>
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-book-open-variant" slim @click="goHelp">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-book-open-variant"
+            slim
+            @click="goHelp"
+          >
             <v-list-item-title>帮助文档</v-list-item-title>
           </v-list-item>
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-message-text-outline" slim @click="openFeedback">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-message-text-outline"
+            slim
+            @click="openFeedback"
+          >
             <v-list-item-title>我要反馈</v-list-item-title>
           </v-list-item>
-          <v-list-item class="top-nav-menu-item" prepend-icon="mdi-lock-reset" slim @click="$router.push('/change-password')">
+          <v-list-item
+            class="top-nav-menu-item"
+            prepend-icon="mdi-lock-reset"
+            slim
+            @click="$router.push('/change-password')"
+          >
             <v-list-item-title>修改密码</v-list-item-title>
           </v-list-item>
           <v-list-item class="top-nav-menu-item" prepend-icon="mdi-logout" slim @click="logout">
@@ -208,9 +259,7 @@
           </div>
           <div class="version-app-name">Addax Admin</div>
           <div class="version-app-meta">Version {{ APP_VERSION }}</div>
-          <div class="version-app-copyright">
-            &copy; 2023-{{ new Date().getFullYear() }} wgzhao
-          </div>
+          <div class="version-app-copyright">&copy; 2023-{{ new Date().getFullYear() }} wgzhao</div>
         </div>
       </v-card-text>
       <v-card-actions class="pb-4">
@@ -221,273 +270,272 @@
   </v-dialog>
 </template>
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useAppTheme } from '@/composables/useAppTheme'
-import { useRoute, useRouter } from 'vue-router'
-import { APP_VERSION } from '@/config/version'
-import userService from '@/service/user-service'
-import tableService from '@/service/table-service'
-import { notify } from '@/stores/notifier'
+  import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
+  import { useAuthStore } from '@/stores/auth';
+  import { useAppTheme } from '@/composables/useAppTheme';
+  import { useRoute, useRouter } from 'vue-router';
+  import { APP_VERSION } from '@/config/version';
+  import userService from '@/service/user-service';
+  import tableService from '@/service/table-service';
+  import { notify } from '@/stores/notifier';
 
-const router = useRouter()
-const route = useRoute()
+  const router = useRouter();
+  const route = useRoute();
 
-// const {global} = useTheme();
+  // const {global} = useTheme();
 
-const authStore = useAuthStore()
-const { isDarkTheme, toggleTheme, themeStore, resetToSystemTheme } = useAppTheme()
-const profileDialog = ref(false)
-const versionDialog = ref(false)
-const profileRole = ref('')
-const isAdmin = ref(false)
-const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new'
-// const notifyMenu = ref(false)
-let notifyTimer: number | null = null
+  const authStore = useAuthStore();
+  const { isDarkTheme, toggleTheme, themeStore, resetToSystemTheme } = useAppTheme();
+  const profileDialog = ref(false);
+  const versionDialog = ref(false);
+  const profileRole = ref('');
+  const isAdmin = ref(false);
+  const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new';
+  // const notifyMenu = ref(false)
+  let notifyTimer: number | null = null;
 
-// 定义菜单项类型
-interface MenuChildItem {
-  path?: string
-  title: string
-  icon?: string
-  onClick?: () => void
-}
+  // 定义菜单项类型
+  interface MenuChildItem {
+    path?: string;
+    title: string;
+    icon?: string;
+    onClick?: () => void;
+  }
 
-interface MenuItem {
-  path?: string
-  name?: string
-  title: string
-  children?: MenuChildItem[]
-}
+  interface MenuItem {
+    path?: string;
+    name?: string;
+    title: string;
+    children?: MenuChildItem[];
+  }
 
-type NavGroup = 'source' | 'target' | 'collect' | 'data' | 'systemManage'
+  type NavGroup = 'source' | 'target' | 'collect' | 'data' | 'systemManage';
 
-const navGroupOrder: NavGroup[] = ['source', 'target', 'collect', 'data', 'systemManage']
+  const navGroupOrder: NavGroup[] = ['source', 'target', 'collect', 'data', 'systemManage'];
 
-const navGroupTitle: Record<NavGroup, string> = {
-  source: '源端管理',
-  target: '目标端管理',
-  collect: '采集管理',
-  data: '数据管理',
-  systemManage: '系统管理'
-}
+  const navGroupTitle: Record<NavGroup, string> = {
+    source: '源端管理',
+    target: '目标端管理',
+    collect: '采集管理',
+    data: '数据管理',
+    systemManage: '系统管理',
+  };
 
-// 点击菜单项的通用处理器（支持 action 回调或路由 path）
+  // 点击菜单项的通用处理器（支持 action 回调或路由 path）
 
+  const handleNavChildClick = (child: any, ev?: Event) => {
+    if (child?.onClick) {
+      ev?.stopPropagation();
+      try {
+        child.onClick();
+      } catch (e) {
+        // swallow
+      }
+      return;
+    }
+    if (child?.path) {
+      router.push({ path: child.path });
+    }
+  };
 
-const handleNavChildClick = (child: any, ev?: Event) => {
-  if (child?.onClick) {
-    ev?.stopPropagation()
+  // 表结构更新操作（按需）
+  const updateSchemaNeed = async () => {
     try {
-      child.onClick()
-    } catch (e) {
-      // swallow
+      const res = await tableService.updateSchema({ mode: 'need' });
+      notify(res || '表结构更新任务已启动', 'success');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      notify('更新失败: ' + msg, 'error');
     }
-    return
-  }
-  if (child?.path) {
-    router.push({ path: child.path })
-  }
-}
+  };
 
-// 表结构更新操作（按需）
-const updateSchemaNeed = async () => {
-  try {
-    const res = await tableService.updateSchema({ mode: 'need' })
-    notify(res || '表结构更新任务已启动', 'success')
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    notify('更新失败: ' + msg, 'error')
-  }
-}
-
-// 表结构更新操作（全部）
-const updateSchemaAll = async () => {
-  try {
-    const res = await tableService.updateSchema({ mode: 'all' })
-    notify(res || '强制更新全部表信息任务已启动', 'success')
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    notify('强制更新失败: ' + msg, 'error')
-  }
-}
-
-const urls = computed<MenuItem[]>(() => {
-  const routeMap = new Map<
-    string,
-    {
-      path: string
-      title: string
-      icon?: string
-      navGroup?: NavGroup
-      navOrder: number
-      isHome: boolean
+  // 表结构更新操作（全部）
+  const updateSchemaAll = async () => {
+    try {
+      const res = await tableService.updateSchema({ mode: 'all' });
+      notify(res || '强制更新全部表信息任务已启动', 'success');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      notify('强制更新失败: ' + msg, 'error');
     }
-  >()
+  };
 
-  router.getRoutes().forEach((item) => {
-    const path = item.path
-    const meta = (item.meta || {}) as Record<string, any>
+  const urls = computed<MenuItem[]>(() => {
+    const routeMap = new Map<
+      string,
+      {
+        path: string;
+        title: string;
+        icon?: string;
+        navGroup?: NavGroup;
+        navOrder: number;
+        isHome: boolean;
+      }
+    >();
 
-    if (!path || path.includes('/:') || path === '/:pathMatch(.*)*') return
-    if (meta.layout === 'login' || meta.navHidden) return
+    router.getRoutes().forEach(item => {
+      const path = item.path;
+      const meta = (item.meta || {}) as Record<string, any>;
 
-    const title = typeof meta.title === 'string' ? meta.title.trim() : ''
-    const navTitle = typeof meta.navTitle === 'string' ? meta.navTitle.trim() : ''
-    const displayTitle = navTitle || title
-    if (!displayTitle) return
+      if (!path || path.includes('/:') || path === '/:pathMatch(.*)*') return;
+      if (meta.layout === 'login' || meta.navHidden) return;
 
-    const navGroup = navGroupOrder.includes(meta.navGroup as NavGroup)
-      ? (meta.navGroup as NavGroup)
-      : undefined
+      const title = typeof meta.title === 'string' ? meta.title.trim() : '';
+      const navTitle = typeof meta.navTitle === 'string' ? meta.navTitle.trim() : '';
+      const displayTitle = navTitle || title;
+      if (!displayTitle) return;
 
-    if (path !== '/' && !navGroup) return
+      const navGroup = navGroupOrder.includes(meta.navGroup as NavGroup)
+        ? (meta.navGroup as NavGroup)
+        : undefined;
 
-    const icon = typeof meta.icon === 'string' ? meta.icon : undefined
-    const navOrder = Number.isFinite(Number(meta.navOrder)) ? Number(meta.navOrder) : 999
+      if (path !== '/' && !navGroup) return;
 
-    const existing = routeMap.get(path)
-    if (!existing) {
-      routeMap.set(path, {
-        path,
-        title: displayTitle,
-        icon,
-        navGroup,
-        navOrder,
-        isHome: path === '/'
-      })
-      return
-    }
+      const icon = typeof meta.icon === 'string' ? meta.icon : undefined;
+      const navOrder = Number.isFinite(Number(meta.navOrder)) ? Number(meta.navOrder) : 999;
 
-    existing.title = existing.title || displayTitle
-    existing.icon = existing.icon || icon
-    existing.navGroup = existing.navGroup || navGroup
-    existing.navOrder = Math.min(existing.navOrder, navOrder)
-    existing.isHome = existing.isHome || path === '/'
-  })
+      const existing = routeMap.get(path);
+      if (!existing) {
+        routeMap.set(path, {
+          path,
+          title: displayTitle,
+          icon,
+          navGroup,
+          navOrder,
+          isHome: path === '/',
+        });
+        return;
+      }
 
-  const flatRoutes = Array.from(routeMap.values())
-  const homeRoute = flatRoutes.find((item) => item.isHome)
+      existing.title = existing.title || displayTitle;
+      existing.icon = existing.icon || icon;
+      existing.navGroup = existing.navGroup || navGroup;
+      existing.navOrder = Math.min(existing.navOrder, navOrder);
+      existing.isHome = existing.isHome || path === '/';
+    });
 
-  const result: MenuItem[] = []
-  if (homeRoute) {
-    result.push({ path: homeRoute.path, title: homeRoute.title, name: 'Home' })
-  }
+    const flatRoutes = Array.from(routeMap.values());
+    const homeRoute = flatRoutes.find(item => item.isHome);
 
-  navGroupOrder.forEach((groupKey) => {
-    const children: MenuChildItem[] = flatRoutes
-      .filter((item) => !item.isHome && item.navGroup === groupKey)
-      .sort((a, b) => a.navOrder - b.navOrder || a.title.localeCompare(b.title, 'zh-CN'))
-      .map((item) => ({
-        path: item.path,
-        title: item.title,
-        icon: item.icon
-      }))
-
-    // 在采集管理分组中附加独立操作（不是路由）
-    if (groupKey === 'collect') {
-      children.push(
-        { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: updateSchemaNeed },
-        { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: updateSchemaAll }
-      )
+    const result: MenuItem[] = [];
+    if (homeRoute) {
+      result.push({ path: homeRoute.path, title: homeRoute.title, name: 'Home' });
     }
 
-    if (children.length > 0) {
-      result.push({
-        title: navGroupTitle[groupKey],
-        children
-      })
+    navGroupOrder.forEach(groupKey => {
+      const children: MenuChildItem[] = flatRoutes
+        .filter(item => !item.isHome && item.navGroup === groupKey)
+        .sort((a, b) => a.navOrder - b.navOrder || a.title.localeCompare(b.title, 'zh-CN'))
+        .map(item => ({
+          path: item.path,
+          title: item.title,
+          icon: item.icon,
+        }));
+
+      // 在采集管理分组中附加独立操作（不是路由）
+      if (groupKey === 'collect') {
+        children.push(
+          { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: updateSchemaNeed },
+          { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: updateSchemaAll }
+        );
+      }
+
+      if (children.length > 0) {
+        result.push({
+          title: navGroupTitle[groupKey],
+          children,
+        });
+      }
+    });
+
+    return result;
+  });
+
+  const isPathActive = (path?: string) => {
+    if (!path) return false;
+    if (path === '/') return route.path === '/';
+    return route.path === path || route.path.startsWith(`${path}/`);
+  };
+
+  const isMenuActive = (item: MenuItem) => {
+    if (item.path && isPathActive(item.path)) return true;
+    if (!item.children?.length) return false;
+    return item.children.some(child => isPathActive(child.path));
+  };
+
+  // 切换主题函数
+  const toggleThemeWithLog = () => {
+    toggleTheme();
+    console.log('当前主题切换为：', themeStore.theme);
+  };
+
+  const resetThemeToSystem = () => {
+    resetToSystemTheme();
+    console.log('当前主题切换为：', themeStore.theme);
+  };
+
+  const goHelp = () => {
+    router.push('/help');
+  };
+
+  const goAccounts = () => {
+    router.push('/accounts');
+  };
+
+  const openFeedback = () => {
+    window.open(feedbackUrl, '_blank', 'noopener');
+  };
+
+  const goQuickCreate = (path: '/source' | '/target' | '/table') => {
+    router.push({
+      path,
+      query: {
+        action: 'create',
+      },
+    });
+  };
+
+  // Logout function
+  const logout = () => {
+    authStore.logout(); // Assuming authStore has a logout method
+    router.replace('/login');
+  };
+
+  const goLogin = () => {
+    router.replace('/login');
+  };
+
+  // const refreshNotifications = async () => {
+  //   if (!authStore.isLoggedIn) return
+  //   await notificationCenter.refreshUnreadCount()
+  // }
+
+  const normalizeAuthority = (authority?: string) => {
+    const value = (authority || '').trim().toLowerCase();
+    if (value.startsWith('role_')) {
+      return value.slice(5);
     }
-  })
+    return value;
+  };
 
-  return result
-})
-
-const isPathActive = (path?: string) => {
-  if (!path) return false
-  if (path === '/') return route.path === '/'
-  return route.path === path || route.path.startsWith(`${path}/`)
-}
-
-const isMenuActive = (item: MenuItem) => {
-  if (item.path && isPathActive(item.path)) return true
-  if (!item.children?.length) return false
-  return item.children.some((child) => isPathActive(child.path))
-}
-
-// 切换主题函数
-const toggleThemeWithLog = () => {
-  toggleTheme()
-  console.log('当前主题切换为：', themeStore.theme)
-}
-
-const resetThemeToSystem = () => {
-  resetToSystemTheme()
-  console.log('当前主题切换为：', themeStore.theme)
-}
-
-const goHelp = () => {
-  router.push('/help')
-}
-
-const goAccounts = () => {
-  router.push('/accounts')
-}
-
-const openFeedback = () => {
-  window.open(feedbackUrl, '_blank', 'noopener')
-}
-
-const goQuickCreate = (path: '/source' | '/target' | '/table') => {
-  router.push({
-    path,
-    query: {
-      action: 'create'
+  const refreshCurrentUserRole = async () => {
+    if (!authStore.isLoggedIn) {
+      profileRole.value = '';
+      isAdmin.value = false;
+      return;
     }
-  })
-}
 
-// Logout function
-const logout = () => {
-  authStore.logout() // Assuming authStore has a logout method
-  router.replace('/login')
-}
-
-const goLogin = () => {
-  router.replace('/login')
-}
-
-// const refreshNotifications = async () => {
-//   if (!authStore.isLoggedIn) return
-//   await notificationCenter.refreshUnreadCount()
-// }
-
-const normalizeAuthority = (authority?: string) => {
-  const value = (authority || '').trim().toLowerCase()
-  if (value.startsWith('role_')) {
-    return value.slice(5)
-  }
-  return value
-}
-
-const refreshCurrentUserRole = async () => {
-  if (!authStore.isLoggedIn) {
-    profileRole.value = ''
-    isAdmin.value = false
-    return
-  }
-
-  try {
-    const me = await userService.me()
-    const roles = (me?.authorities || []).map((item) => normalizeAuthority(item))
-    profileRole.value = roles[0] || ''
-    isAdmin.value = roles.includes('admin')
-  } catch {
-    profileRole.value = ''
-    isAdmin.value = false
-  }
-}
-/*
+    try {
+      const me = await userService.me();
+      const roles = (me?.authorities || []).map(item => normalizeAuthority(item));
+      profileRole.value = roles[0] || '';
+      isAdmin.value = roles.includes('admin');
+    } catch {
+      profileRole.value = '';
+      isAdmin.value = false;
+    }
+  };
+  /*
 const loadNotificationList = async () => {
   if (!authStore.isLoggedIn) return
   await notificationCenter.refreshList('ALL', 20)
@@ -528,212 +576,218 @@ watch(
   }
 )
 */
-watch(
-  () => authStore.isLoggedIn,
-  (loggedIn) => {
-    if (loggedIn) {
-      // refreshNotifications()
-      refreshCurrentUserRole()
-      // if (!notifyTimer) {
-      //   notifyTimer = window.setInterval(() => {
-      //     refreshNotifications()
-      //   }, 10000)
+  watch(
+    () => authStore.isLoggedIn,
+    loggedIn => {
+      if (loggedIn) {
+        // refreshNotifications()
+        refreshCurrentUserRole();
+        // if (!notifyTimer) {
+        //   notifyTimer = window.setInterval(() => {
+        //     refreshNotifications()
+        //   }, 10000)
+        // }
+      }
+      // else if (notifyTimer) {
+      //   window.clearInterval(notifyTimer)
+      //   notifyTimer = null
+      //   profileRole.value = ''
+      //   isAdmin.value = false
       // }
     }
-    // else if (notifyTimer) {
-    //   window.clearInterval(notifyTimer)
-    //   notifyTimer = null
-    //   profileRole.value = ''
-    //   isAdmin.value = false
-    // }
-  }
-)
+  );
 
-onMounted(() => {
-  if (authStore.isLoggedIn) {
-    // refreshNotifications()
-    refreshCurrentUserRole()
-    // notifyTimer = window.setInterval(() => {
-    //   refreshNotifications()
-    // }, 10000)
-  }
-})
+  onMounted(() => {
+    if (authStore.isLoggedIn) {
+      // refreshNotifications()
+      refreshCurrentUserRole();
+      // notifyTimer = window.setInterval(() => {
+      //   refreshNotifications()
+      // }, 10000)
+    }
+  });
 
-onUnmounted(() => {
-  if (notifyTimer) {
-    window.clearInterval(notifyTimer)
-    notifyTimer = null
-  }
-})
+  onUnmounted(() => {
+    if (notifyTimer) {
+      window.clearInterval(notifyTimer);
+      notifyTimer = null;
+    }
+  });
 </script>
 
 <style scoped>
-.topbar-bar {
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.16);
-}
+  .topbar-bar {
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+  }
 
-.top-nav-cluster {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.topbar-bar :deep(.top-nav-btn) {
-  border-radius: 8px;
-  min-height: 34px;
-  font-weight: 500;
-}
-
-:deep(.top-nav-menu-list) {
-  min-width: 0;
-  width: max-content;
-  max-width: 240px;
-}
-
-:deep(.top-nav-menu-item) {
-  min-height: 34px;
-  --v-list-prepend-gap: 18px;
-}
-
-:deep(.top-nav-menu-item .v-list-item__prepend) {
-  flex: 0 0 18px;
-  width: 18px;
-  min-width: 18px;
-  max-width: 18px;
-  margin-inline-end: 0;
-}
-
-:deep(.top-nav-menu-item .v-list-item__prepend > .v-list-item__spacer) {
-  width: 6px;
-}
-
-:deep(.top-nav-menu-item .v-list-item__prepend > .v-icon) {
-  font-size: 16px;
-  opacity: 0.92;
-}
-
-:deep(.top-nav-menu-item .v-list-item-title) {
-  font-size: 14px;
-  line-height: 1.35;
-  font-weight: 500;
-}
-
-:deep(.user-nav-menu-list) {
-  min-width: 0;
-  width: max-content;
-  max-width: 260px;
-}
-
-.topbar-bar :deep(.top-nav-btn--active) {
-  background: rgb(var(--v-theme-primary)) !important;
-  color: rgb(var(--v-theme-on-primary)) !important;
-}
-
-.topbar-bar :deep(.top-nav-btn--active .v-btn__overlay) {
-  opacity: 0 !important;
-}
-
-@media (max-width: 1280px) {
   .top-nav-cluster {
-    gap: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .topbar-bar :deep(.top-nav-btn) {
-    min-width: auto;
-    padding-inline: 10px;
+    border-radius: 8px;
+    min-height: 34px;
+    font-weight: 500;
   }
-}
 
-.notification-list {
-  max-height: 360px;
-  overflow-y: auto;
-  padding: 4px 8px 8px;
-}
+  :deep(.top-nav-menu-list) {
+    min-width: 0;
+    width: max-content;
+    max-width: 240px;
+  }
 
-.notification-bubble {
-  background: rgba(var(--v-theme-primary), 0.08);
-  border: 1px solid rgba(var(--v-theme-primary), 0.24);
-  border-radius: 12px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
+  :deep(.top-nav-menu-item) {
+    min-height: 34px;
+    --v-list-prepend-gap: 18px;
+  }
 
-.notification-bubble:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
+  :deep(.top-nav-menu-item .v-list-item__prepend) {
+    flex: 0 0 18px;
+    width: 18px;
+    min-width: 18px;
+    max-width: 18px;
+    margin-inline-end: 0;
+  }
 
-.notification-bubble.unread {
-  background: rgba(var(--v-theme-warning), 0.14);
-  border-color: rgba(var(--v-theme-warning), 0.42);
-}
+  :deep(.top-nav-menu-item .v-list-item__prepend > .v-list-item__spacer) {
+    width: 6px;
+  }
 
-.bubble-title {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
+  :deep(.top-nav-menu-item .v-list-item__prepend > .v-icon) {
+    font-size: 16px;
+    opacity: 0.92;
+  }
 
-.bubble-time {
-  font-size: 11px;
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  margin-left: 8px;
-}
+  :deep(.top-nav-menu-item .v-list-item-title) {
+    font-size: 14px;
+    line-height: 1.35;
+    font-weight: 500;
+  }
 
-.bubble-content {
-  font-size: 12px;
-  line-height: 1.5;
-  color: rgba(var(--v-theme-on-surface), 0.9);
-}
+  :deep(.user-nav-menu-list) {
+    min-width: 0;
+    width: max-content;
+    max-width: 260px;
+  }
 
-.version-dialog-card {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
-}
+  .topbar-bar :deep(.top-nav-btn--active) {
+    background: rgb(var(--v-theme-primary)) !important;
+    color: rgb(var(--v-theme-on-primary)) !important;
+  }
 
-.version-dialog-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 8px 6px;
-}
+  .topbar-bar :deep(.top-nav-btn--active .v-btn__overlay) {
+    opacity: 0 !important;
+  }
 
-.version-logo-wrap {
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, rgba(var(--v-theme-primary), 0.24), rgba(var(--v-theme-on-surface), 0.08));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
-}
+  @media (max-width: 1280px) {
+    .top-nav-cluster {
+      gap: 4px;
+    }
 
-.version-logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-}
+    .topbar-bar :deep(.top-nav-btn) {
+      min-width: auto;
+      padding-inline: 10px;
+    }
+  }
 
-.version-app-name {
-  font-size: 20px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-}
+  .notification-list {
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 4px 8px 8px;
+  }
 
-.version-app-meta {
-  font-size: 14px;
-  color: rgba(var(--v-theme-on-surface), 0.7);
-}
+  .notification-bubble {
+    background: rgba(var(--v-theme-primary), 0.08);
+    border: 1px solid rgba(var(--v-theme-primary), 0.24);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
+  }
 
-.version-app-copyright {
-  margin-top: 12px;
-  font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.55);
-}
+  .notification-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  }
+
+  .notification-bubble.unread {
+    background: rgba(var(--v-theme-warning), 0.14);
+    border-color: rgba(var(--v-theme-warning), 0.42);
+  }
+
+  .bubble-title {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .bubble-time {
+    font-size: 11px;
+    color: rgba(var(--v-theme-on-surface), 0.7);
+    margin-left: 8px;
+  }
+
+  .bubble-content {
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(var(--v-theme-on-surface), 0.9);
+  }
+
+  .version-dialog-card {
+    background: rgb(var(--v-theme-surface));
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.2);
+  }
+
+  .version-dialog-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 8px 6px;
+  }
+
+  .version-logo-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(
+      145deg,
+      rgba(var(--v-theme-primary), 0.24),
+      rgba(var(--v-theme-on-surface), 0.08)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+  }
+
+  .version-logo {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+  }
+
+  .version-app-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
+
+  .version-app-meta {
+    font-size: 14px;
+    color: rgba(var(--v-theme-on-surface), 0.7);
+  }
+
+  .version-app-copyright {
+    margin-top: 12px;
+    font-size: 12px;
+    color: rgba(var(--v-theme-on-surface), 0.55);
+  }
 </style>

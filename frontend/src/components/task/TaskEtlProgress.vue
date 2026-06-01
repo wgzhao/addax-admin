@@ -8,8 +8,13 @@
       <v-card-text class="pb-4">
         <div class="mb-4">
           <div class="text-body-1 mb-2">{{ message }}</div>
-          <v-progress-linear :indeterminate="inProgress" :model-value="inProgress ? undefined : 100" color="primary"
-            height="8" rounded></v-progress-linear>
+          <v-progress-linear
+            :indeterminate="inProgress"
+            :model-value="inProgress ? undefined : 100"
+            color="primary"
+            height="8"
+            rounded
+          ></v-progress-linear>
         </div>
         <div v-if="currentProcessingInfo" class="text-caption progress-info-muted">
           {{ currentProcessingInfo }}
@@ -18,8 +23,13 @@
           <v-divider class="mb-2"></v-divider>
           <div class="text-subtitle-2 mb-2">执行结果：</div>
           <div class="result-container" style="max-height: 200px; overflow-y: auto">
-            <v-chip v-for="(result, index) in results" :key="index" :color="result.success ? 'success' : 'error'"
-              size="small" class="mr-1 mb-1">
+            <v-chip
+              v-for="(result, index) in results"
+              :key="index"
+              :color="result.success ? 'success' : 'error'"
+              size="small"
+              class="mr-1 mb-1"
+            >
               <v-icon start :icon="result.success ? 'mdi-check' : 'mdi-alert'" />
               {{ result.message }}
             </v-chip>
@@ -39,22 +49,22 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  visible: boolean
-  title: string
-  message: string
-  inProgress: boolean
-  results: Array<{ success: boolean; message: string }>
-  currentProcessingInfo: string
-}>()
-const emit = defineEmits(['close'])
-function emitClose(val: boolean) {
-  if (!val) emit('close')
-}
+  defineProps<{
+    visible: boolean;
+    title: string;
+    message: string;
+    inProgress: boolean;
+    results: Array<{ success: boolean; message: string }>;
+    currentProcessingInfo: string;
+  }>();
+  const emit = defineEmits(['close']);
+  function emitClose(val: boolean) {
+    if (!val) emit('close');
+  }
 </script>
 
 <style scoped>
-.progress-info-muted {
-  color: rgba(var(--v-theme-on-surface), 0.68);
-}
+  .progress-info-muted {
+    color: rgba(var(--v-theme-on-surface), 0.68);
+  }
 </style>

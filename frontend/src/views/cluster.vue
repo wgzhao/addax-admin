@@ -21,7 +21,8 @@
           :loading="loading"
           prepend-icon="mdi-refresh"
           @click="refresh"
-        >刷新</v-btn>
+          >刷新</v-btn
+        >
       </v-col>
     </v-row>
 
@@ -29,13 +30,7 @@
 
     <!-- node cards -->
     <v-row dense>
-      <v-col
-        v-for="node in status.nodes"
-        :key="node.instanceId"
-        cols="12"
-        sm="6"
-        lg="4"
-      >
+      <v-col v-for="node in status.nodes" :key="node.instanceId" cols="12" sm="6" lg="4">
         <v-card
           :color="node.role.includes('MASTER') ? 'primary' : undefined"
           :variant="node.role.includes('MASTER') ? 'tonal' : 'outlined'"
@@ -54,7 +49,8 @@
               :color="node.role.includes('MASTER') ? 'primary' : 'default'"
               size="x-small"
               variant="elevated"
-            >{{ node.role }}</v-chip>
+              >{{ node.role }}</v-chip
+            >
           </v-card-title>
 
           <v-card-text class="pt-0">
@@ -64,7 +60,9 @@
               <span>{{ node.running }} / {{ node.concurrentLimit }}</span>
             </div>
             <v-progress-linear
-              :model-value="node.concurrentLimit > 0 ? (node.running / node.concurrentLimit) * 100 : 0"
+              :model-value="
+                node.concurrentLimit > 0 ? (node.running / node.concurrentLimit) * 100 : 0
+              "
               :color="slotColor(node)"
               rounded
               height="6"
@@ -105,7 +103,11 @@
                   <v-icon size="14" class="mr-1 text-medium-emphasis">mdi-database-sync</v-icon>
                 </template>
                 <v-list-item-subtitle class="text-caption">
-                  各源并发：{{ sourceRunningEntries(node).map(([k, v]) => `#${k}:${v}`).join('  ') }}
+                  各源并发：{{
+                    sourceRunningEntries(node)
+                      .map(([k, v]) => `#${k}:${v}`)
+                      .join('  ')
+                  }}
                 </v-list-item-subtitle>
               </v-list-item>
 
@@ -132,85 +134,83 @@
       </v-col>
     </v-row>
 
-    <div class="text-caption text-medium-emphasis mt-4 text-right">
-      上次刷新：{{ lastRefresh }}
-    </div>
+    <div class="text-caption text-medium-emphasis mt-4 text-right">上次刷新：{{ lastRefresh }}</div>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { clusterService, type ClusterStatus, type WorkerNode } from '@/service/cluster-service'
+  import { ref, onMounted, onUnmounted } from 'vue';
+  import { clusterService, type ClusterStatus, type WorkerNode } from '@/service/cluster-service';
 
-const loading = ref(false)
-const error = ref('')
-const lastRefresh = ref('')
-let timer: number | null = null
+  const loading = ref(false);
+  const error = ref('');
+  const lastRefresh = ref('');
+  let timer: number | null = null;
 
-const status = ref<ClusterStatus>({
-  nodes: [],
-  masterInstanceId: '',
-  totalNodes: 0,
-  timestamp: ''
-})
+  const status = ref<ClusterStatus>({
+    nodes: [],
+    masterInstanceId: '',
+    totalNodes: 0,
+    timestamp: '',
+  });
 
-const refresh = async () => {
-  loading.value = true
-  error.value = ''
-  try {
-    status.value = await clusterService.getNodes()
-    lastRefresh.value = new Date().toLocaleTimeString()
-  } catch (e: any) {
-    error.value = e?.message || '获取集群状态失败'
-  } finally {
-    loading.value = false
-  }
-}
+  const refresh = async () => {
+    loading.value = true;
+    error.value = '';
+    try {
+      status.value = await clusterService.getNodes();
+      lastRefresh.value = new Date().toLocaleTimeString();
+    } catch (e: any) {
+      error.value = e?.message || '获取集群状态失败';
+    } finally {
+      loading.value = false;
+    }
+  };
 
-const slotColor = (node: WorkerNode) => {
-  if (node.concurrentLimit === 0) return 'grey'
-  const ratio = node.running / node.concurrentLimit
-  if (ratio >= 0.9) return 'error'
-  if (ratio >= 0.7) return 'warning'
-  return 'success'
-}
+  const slotColor = (node: WorkerNode) => {
+    if (node.concurrentLimit === 0) return 'grey';
+    const ratio = node.running / node.concurrentLimit;
+    if (ratio >= 0.9) return 'error';
+    if (ratio >= 0.7) return 'warning';
+    return 'success';
+  };
 
-const sourceRunningEntries = (node: WorkerNode): [string, number][] => {
-  return Object.entries(node.sourceRunning ?? {}).filter(([, v]) => v > 0)
-}
+  const sourceRunningEntries = (node: WorkerNode): [string, number][] => {
+    return Object.entries(node.sourceRunning ?? {}).filter(([, v]) => v > 0);
+  };
 
-const formatLastSeen = (lastSeen: string | null): string => {
-  if (!lastSeen) return '—'
-  const d = new Date(lastSeen)
-  if (isNaN(d.getTime())) return lastSeen
-  const diffSecs = Math.round((Date.now() - d.getTime()) / 1000)
-  if (diffSecs < 60) return `${diffSecs}s 前`
-  return `${Math.round(diffSecs / 60)}m 前`
-}
+  const formatLastSeen = (lastSeen: string | null): string => {
+    if (!lastSeen) return '—';
+    const d = new Date(lastSeen);
+    if (isNaN(d.getTime())) return lastSeen;
+    const diffSecs = Math.round((Date.now() - d.getTime()) / 1000);
+    if (diffSecs < 60) return `${diffSecs}s 前`;
+    return `${Math.round(diffSecs / 60)}m 前`;
+  };
 
-onMounted(() => {
-  refresh()
-  timer = window.setInterval(refresh, 15000)
-})
+  onMounted(() => {
+    refresh();
+    timer = window.setInterval(refresh, 15000);
+  });
 
-onUnmounted(() => {
-  if (timer) window.clearInterval(timer)
-})
+  onUnmounted(() => {
+    if (timer) window.clearInterval(timer);
+  });
 </script>
 
 <style scoped>
-.cluster-page {
-  background: rgb(var(--v-theme-surface));
-}
-.node-card {
-  transition: box-shadow 0.15s ease;
-}
-.node-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-.node-info-list .v-list-item {
-  min-height: 24px !important;
-}
+  .cluster-page {
+    background: rgb(var(--v-theme-surface));
+  }
+  .node-card {
+    transition: box-shadow 0.15s ease;
+  }
+  .node-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+  .node-info-list .v-list-item {
+    min-height: 24px !important;
+  }
 </style>
 
 <route lang="json">

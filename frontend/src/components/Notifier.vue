@@ -22,6 +22,6 @@
 </template>
 
 <script setup lang="ts">
-  import { useNotifier } from '@/stores/notifier'
-  const { notice, hide } = useNotifier()
+  import { useNotifier } from '@/stores/notifier';
+  const { notice, hide } = useNotifier();
 </script>

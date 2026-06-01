@@ -1,46 +1,46 @@
-import { SysItem } from '@/types/database'
-import Requests from '@/utils/requests'
+import { SysItem } from '@/types/database';
+import Requests from '@/utils/requests';
 
 export interface ConfigItem {
-  item_key: string
-  item_value: string
-  remark: string
+  item_key: string;
+  item_value: string;
+  remark: string;
 }
 
 export interface HiveServer2Config {
-  url: string
-  username: string
-  password: string
-  driverPath: string
-  driverClassName?: string
+  url: string;
+  username: string;
+  password: string;
+  driverPath: string;
+  driverClassName?: string;
 }
 
 export interface SystemConfig {
-  HDFS_STORAGE_FORMAT: string
-  HDFS_COMPRESS_FORMAT: string
-  ADDAX: string
-  HIVE_SERVER2: HiveServer2Config
-  HDFS_PREFIX: string
-  SWITCH_TIME: string
-  CONCURRENT_LIMIT: number // 后端返回字符串格式
-  QUEUE_SIZE: number // 后端返回字符串格式
-  HDFS_CONFIG: String
+  HDFS_STORAGE_FORMAT: string;
+  HDFS_COMPRESS_FORMAT: string;
+  ADDAX: string;
+  HIVE_SERVER2: HiveServer2Config;
+  HDFS_PREFIX: string;
+  SWITCH_TIME: string;
+  CONCURRENT_LIMIT: number; // 后端返回字符串格式
+  QUEUE_SIZE: number; // 后端返回字符串格式
+  HDFS_CONFIG: String;
 }
 
 class SettingsService {
-  baseUrl = 'settings'
+  baseUrl = 'settings';
 
   /**
    * 获取所有系统配置
    */
   async getSettings(): Promise<any> {
     try {
-      const response = await Requests.get(`${this.baseUrl}/sys-config`)
+      const response = await Requests.get(`${this.baseUrl}/sys-config`);
 
-      return response
+      return response;
     } catch (error) {
-      console.error('获取配置失败:', error)
-      throw error
+      console.error('获取配置失败:', error);
+      throw error;
     }
   }
 
@@ -48,8 +48,8 @@ class SettingsService {
    * 保存系统配置
    */
   async saveSettings(config: any): Promise<boolean> {
-    await Requests.post(`${this.baseUrl}/sys-config`, config)
-    return true
+    await Requests.post(`${this.baseUrl}/sys-config`, config);
+    return true;
   }
 
   /**
@@ -57,8 +57,8 @@ class SettingsService {
    */
   testHiveConnection(config: HiveServer2Config): Promise<any> {
     return Requests.post(`${this.baseUrl}/test-hive-connect`, config, {
-      timeout: 5000
-    }) as unknown as Promise<any>
+      timeout: 5000,
+    }) as unknown as Promise<any>;
   }
 
   /**
@@ -66,11 +66,11 @@ class SettingsService {
    */
   async validateAddaxPath(path: string): Promise<any> {
     try {
-      const response = await Requests.get('/settings/addax-path/validate', { path })
-      return response
+      const response = await Requests.get('/settings/addax-path/validate', { path });
+      return response;
     } catch (error) {
-      console.error(error)
-      return null
+      console.error(error);
+      return null;
     }
   }
 
@@ -82,16 +82,16 @@ class SettingsService {
       const response = await Requests.post<boolean>(
         `${this.baseUrl}/addax-hdfs-writer-template`,
         configData
-      )
+      );
       // 处理不同的返回结构
-      const respObj: any = response as any
+      const respObj: any = response as any;
       if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
-        return respObj.data
+        return respObj.data;
       }
-      return response as boolean
+      return response as boolean;
     } catch (error) {
-      console.error('保存作业配置失败:', error)
-      throw error
+      console.error('保存作业配置失败:', error);
+      throw error;
     }
   }
 
@@ -100,11 +100,11 @@ class SettingsService {
    */
   async getHdfsWriterConfig(): Promise<any> {
     try {
-      const response = await Requests.get(`${this.baseUrl}/addax-hdfs-writer-template`)
-      return response
+      const response = await Requests.get(`${this.baseUrl}/addax-hdfs-writer-template`);
+      return response;
     } catch (error) {
-      console.error('获取作业配置失败:', error)
-      throw error
+      console.error('获取作业配置失败:', error);
+      throw error;
     }
   }
 
@@ -113,11 +113,11 @@ class SettingsService {
    */
   async getJobConfig(): Promise<Map<string, SysItem>> {
     try {
-      const response = await Requests.get<Map<string, SysItem>>(`${this.baseUrl}/job-templates`)
-      return response as Map<string, SysItem>
+      const response = await Requests.get<Map<string, SysItem>>(`${this.baseUrl}/job-templates`);
+      return response as Map<string, SysItem>;
     } catch (error) {
-      console.error('获取作业配置列表失败:', error)
-      throw error
+      console.error('获取作业配置列表失败:', error);
+      throw error;
     }
   }
 
@@ -126,15 +126,15 @@ class SettingsService {
    */
   async saveJobTemplates(templates: SysItem[]): Promise<boolean> {
     try {
-      const response = await Requests.put<boolean>(`${this.baseUrl}/job-templates`, templates)
-      const respObj: any = response as any
+      const response = await Requests.put<boolean>(`${this.baseUrl}/job-templates`, templates);
+      const respObj: any = response as any;
       if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
-        return respObj.data
+        return respObj.data;
       }
-      return response as boolean
+      return response as boolean;
     } catch (error) {
-      console.error('保存作业配置模板失败:', error)
-      throw error
+      console.error('保存作业配置模板失败:', error);
+      throw error;
     }
   }
 
@@ -143,15 +143,15 @@ class SettingsService {
    */
   async deleteJobConfig(id: string): Promise<boolean> {
     try {
-      const response = await Requests.delete<boolean>(`${this.baseUrl}/job-template/${id}`)
-      const respObj: any = response as any
+      const response = await Requests.delete<boolean>(`${this.baseUrl}/job-template/${id}`);
+      const respObj: any = response as any;
       if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
-        return respObj.data
+        return respObj.data;
       }
-      return response as boolean
+      return response as boolean;
     } catch (error) {
-      console.error('删除作业配置失败:', error)
-      throw error
+      console.error('删除作业配置失败:', error);
+      throw error;
     }
   }
 
@@ -160,11 +160,11 @@ class SettingsService {
    */
   async rescheduleSwitchTimeTask(): Promise<any> {
     try {
-      const response = await Requests.post(`${this.baseUrl}/reschedule-switch-time-task`)
-      return response
+      const response = await Requests.post(`${this.baseUrl}/reschedule-switch-time-task`);
+      return response;
     } catch (error) {
-      console.error('触发切日调度任务失败:', error)
-      throw error
+      console.error('触发切日调度任务失败:', error);
+      throw error;
     }
   }
 
@@ -173,13 +173,13 @@ class SettingsService {
    */
   async getAddaxJobContent(path: string): Promise<any> {
     try {
-      const response = await Requests.get('/settings/addax-content', { path })
-      return response
+      const response = await Requests.get('/settings/addax-content', { path });
+      return response;
     } catch (error) {
-      console.error(error)
-      return null
+      console.error(error);
+      return null;
     }
   }
 }
 
-export default new SettingsService()
+export default new SettingsService();

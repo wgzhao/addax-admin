@@ -5,7 +5,9 @@
         <div class="page-header">
           <div>
             <div class="page-title">系统配置</div>
-            <div class="page-subtitle">系统首次安装后，请完成必要配置项，确保采集与调度正常运行。</div>
+            <div class="page-subtitle">
+              系统首次安装后，请完成必要配置项，确保采集与调度正常运行。
+            </div>
           </div>
         </div>
       </v-card-text>
@@ -176,7 +178,10 @@
                   />
                   <ul class="field-hint field-hint-list caption">
                     <li>修改后需重启所有后端节点才生效</li>
-                    <li>该值为每个节点的最大并发值。例如设置为 20 最大并发且有 2 个节点时，则集群最多可同时发起 40 个采集任务(20 x 2)。</li>
+                    <li>
+                      该值为每个节点的最大并发值。例如设置为 20 最大并发且有 2
+                      个节点时，则集群最多可同时发起 40 个采集任务(20 x 2)。
+                    </li>
                   </ul>
                 </v-col>
                 <v-col cols="12">
@@ -296,180 +301,180 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
-  import { notify } from '@/stores/notifier'
-  import settingsService, { type HiveServer2Config } from '@/service/settings-service'
-  import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants'
-  import { SysItem } from '@/types/database'
+  import { ref, onMounted } from 'vue';
+  import { notify } from '@/stores/notifier';
+  import settingsService, { type HiveServer2Config } from '@/service/settings-service';
+  import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants';
+  import { SysItem } from '@/types/database';
 
   // 表单引用和状态
-  const form = ref<any>(null)
-  const valid = ref(false)
-  const saving = ref(false)
-  const testingConnection = ref(false)
-  const showPassword = ref(false)
+  const form = ref<any>(null);
+  const valid = ref(false);
+  const saving = ref(false);
+  const testingConnection = ref(false);
+  const showPassword = ref(false);
 
   // 配置数据
-  const settings = ref<any>({})
+  const settings = ref<any>({});
   // 保存原始的切日时间用于变更检测
-  const originalSwitchTime = ref<string>('')
+  const originalSwitchTime = ref<string>('');
 
   // 下拉选项（与 BatchAdd.vue 保持一致）
-  const storageFormats = HDFS_STORAGE_FORMATS
-  const compressFormats = HDFS_COMPRESS_FORMATS
+  const storageFormats = HDFS_STORAGE_FORMATS;
+  const compressFormats = HDFS_COMPRESS_FORMATS;
 
   const hiveServer2Config = ref<HiveServer2Config>({
     url: '',
     username: '',
     password: '',
     driverClassName: '',
-    driverPath: ''
-  })
+    driverPath: '',
+  });
 
-  const templates = ref<Map<string, SysItem>>(new Map())
-  const rRJobTemplate = ref<string>('')
-  const wHJobTemplate = ref<string>('')
-  const R2HJobTemplate = ref<string>('')
+  const templates = ref<Map<string, SysItem>>(new Map());
+  const rRJobTemplate = ref<string>('');
+  const wHJobTemplate = ref<string>('');
+  const R2HJobTemplate = ref<string>('');
 
   // 验证规则
   const rules = {
     required: (value: any) => {
       if (typeof value === 'number')
-        return (value !== null && value !== undefined) || '此字段为必填项'
-      return !!value || '此字段为必填项'
+        return (value !== null && value !== undefined) || '此字段为必填项';
+      return !!value || '此字段为必填项';
     },
     positiveNumber: (value: number) => {
-      return value > 0 || '请输入大于0的数字'
+      return value > 0 || '请输入大于0的数字';
     },
     timeFormat: (value: string) => {
-      if (!value) return '此字段为必填项'
-      const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/
-      return timeRegex.test(value) || '时间格式不正确，请使用 HH:mm 格式（如：16:30）'
+      if (!value) return '此字段为必填项';
+      const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
+      return timeRegex.test(value) || '时间格式不正确，请使用 HH:mm 格式（如：16:30）';
     },
     jdbcUrl: (value: string) => {
-      if (!value) return '此字段为必填项'
-      const jdbcRegex = /^jdbc:hive2:\/\/.+$/
-      return jdbcRegex.test(value) || 'JDBC地址格式不正确，应以 jdbc:hive2:// 开头'
+      if (!value) return '此字段为必填项';
+      const jdbcRegex = /^jdbc:hive2:\/\/.+$/;
+      return jdbcRegex.test(value) || 'JDBC地址格式不正确，应以 jdbc:hive2:// 开头';
     },
     jsonFormat: (value: string) => {
-      if (!value) return true // 允许为空
+      if (!value) return true; // 允许为空
       try {
-        JSON.parse(value)
-        return true
+        JSON.parse(value);
+        return true;
       } catch (error) {
-        return 'JSON 格式不正确，请检查语法'
+        return 'JSON 格式不正确，请检查语法';
       }
-    }
-  }
+    },
+  };
 
   // 测试Hive连接
   const testHiveConnection = async () => {
-    testingConnection.value = true
+    testingConnection.value = true;
     try {
-      const res = await settingsService.testHiveConnection(hiveServer2Config.value)
-      notify(res.data || '连接成功', 'success')
+      const res = await settingsService.testHiveConnection(hiveServer2Config.value);
+      notify(res.data || '连接成功', 'success');
     } catch (error: any) {
-      notify(error?.message || error || '连接失败', 'error')
+      notify(error?.message || error || '连接失败', 'error');
     } finally {
-      testingConnection.value = false
+      testingConnection.value = false;
     }
-  }
+  };
 
   // 保存配置
   const saveSettings = async () => {
-    const { valid: isValid } = await form.value.validate()
+    const { valid: isValid } = await form.value.validate();
     if (!isValid) {
-      notify('请修正表单中的错误', 'error')
-      return
+      notify('请修正表单中的错误', 'error');
+      return;
     }
 
     // 将 hiveServer2Config 的值更新到 settings 中
-    settings.value['HIVE_SERVER2'] = JSON.stringify(hiveServer2Config.value)
+    settings.value['HIVE_SERVER2'] = JSON.stringify(hiveServer2Config.value);
 
-    saving.value = true
+    saving.value = true;
     try {
-      const rRTemplate = templates.value.get('rR')
-      const wHTemplate = templates.value.get('wH')
-      const r2hTemplate = templates.value.get('R2H')
+      const rRTemplate = templates.value.get('rR');
+      const wHTemplate = templates.value.get('wH');
+      const r2hTemplate = templates.value.get('R2H');
 
       if (!rRTemplate || !wHTemplate || !r2hTemplate) {
-        notify('作业模板配置缺失，请刷新后重试', 'error')
-        return
+        notify('作业模板配置缺失，请刷新后重试', 'error');
+        return;
       }
 
-      const payload: SysItem[] = []
+      const payload: SysItem[] = [];
       payload.push({
         dictCode: rRTemplate.dictCode,
         itemKey: 'rR',
         itemValue: rRJobTemplate.value,
-        remark: rRTemplate.remark
-      })
+        remark: rRTemplate.remark,
+      });
       payload.push({
         dictCode: wHTemplate.dictCode,
         itemKey: 'wH',
         itemValue: wHJobTemplate.value,
-        remark: wHTemplate.remark
-      })
+        remark: wHTemplate.remark,
+      });
       payload.push({
         dictCode: r2hTemplate.dictCode,
         itemKey: 'R2H',
         itemValue: R2HJobTemplate.value,
-        remark: r2hTemplate.remark
-      })
+        remark: r2hTemplate.remark,
+      });
 
-      await settingsService.saveJobTemplates(payload)
+      await settingsService.saveJobTemplates(payload);
 
-      const result = await settingsService.saveSettings(settings.value)
+      const result = await settingsService.saveSettings(settings.value);
       if (result) {
-        notify('系统配置保存成功', 'success')
+        notify('系统配置保存成功', 'success');
         // 如果切日时间发生变化，则调用后端接口重新注册调度任务
-        const newSwitchTime = settings.value['SWITCH_TIME']
+        const newSwitchTime = settings.value['SWITCH_TIME'];
         if (
           originalSwitchTime.value &&
           newSwitchTime &&
           originalSwitchTime.value !== newSwitchTime
         ) {
           try {
-            const resp = await settingsService.rescheduleSwitchTimeTask()
+            const resp = await settingsService.rescheduleSwitchTimeTask();
             // 尽量从响应中取信息，否则给出默认成功提示
-            const msg = (resp && (resp.message || resp.data)) || '切日调度任务已重新注册'
-            notify(msg, 'success')
+            const msg = (resp && (resp.message || resp.data)) || '切日调度任务已重新注册';
+            notify(msg, 'success');
           } catch (err: any) {
-            notify('切日调度任务重新注册失败: ' + (err?.message || err), 'error')
+            notify('切日调度任务重新注册失败: ' + (err?.message || err), 'error');
           }
           // 更新原始值为最新保存的值
-          originalSwitchTime.value = newSwitchTime
+          originalSwitchTime.value = newSwitchTime;
         }
       } else {
-        notify('保存配置失败', 'warning')
+        notify('保存配置失败', 'warning');
       }
     } catch (error: any) {
-      notify('保存配置失败: ' + (error.message || error), 'error')
+      notify('保存配置失败: ' + (error.message || error), 'error');
     } finally {
-      saving.value = false
+      saving.value = false;
     }
-  }
+  };
 
   // 加载现有配置
   const loadSettings = async () => {
-    const loadedSettings = await settingsService.getSettings()
-    const loadTemplates = await settingsService.getJobConfig()
-    settings.value = loadedSettings
+    const loadedSettings = await settingsService.getSettings();
+    const loadTemplates = await settingsService.getJobConfig();
+    settings.value = loadedSettings;
     templates.value =
       loadTemplates instanceof Map
         ? loadTemplates
-        : new Map(Object.entries((loadTemplates as unknown as Record<string, SysItem>) || {}))
+        : new Map(Object.entries((loadTemplates as unknown as Record<string, SysItem>) || {}));
 
-    rRJobTemplate.value = templates.value.get('rR')?.itemValue || ''
-    wHJobTemplate.value = templates.value.get('wH')?.itemValue || ''
-    R2HJobTemplate.value = templates.value.get('R2H')?.itemValue || ''
+    rRJobTemplate.value = templates.value.get('rR')?.itemValue || '';
+    wHJobTemplate.value = templates.value.get('wH')?.itemValue || '';
+    R2HJobTemplate.value = templates.value.get('R2H')?.itemValue || '';
 
     // 初始化下拉选项默认值（如果未设置）
     if (!settings.value['HDFS_STORAGE_FORMAT']) {
-      settings.value['HDFS_STORAGE_FORMAT'] = storageFormats[0]
+      settings.value['HDFS_STORAGE_FORMAT'] = storageFormats[0];
     }
     if (!settings.value['HDFS_COMPRESS_FORMAT']) {
-      settings.value['HDFS_COMPRESS_FORMAT'] = compressFormats[0]
+      settings.value['HDFS_COMPRESS_FORMAT'] = compressFormats[0];
     }
 
     // 检查 HIVE_SERVER2 是否是字符串，如果是则需要解析
@@ -477,34 +482,34 @@
       if (typeof loadedSettings['HIVE_SERVER2'] === 'string') {
         // 如果是 JSON 字符串，需要解析
         try {
-          hiveServer2Config.value = JSON.parse(loadedSettings['HIVE_SERVER2'])
+          hiveServer2Config.value = JSON.parse(loadedSettings['HIVE_SERVER2']);
         } catch (error) {
-          console.error('解析 HIVE_SERVER2 配置失败:', error)
+          console.error('解析 HIVE_SERVER2 配置失败:', error);
           // 使用默认配置
           hiveServer2Config.value = {
             url: '',
             username: '',
             password: '',
             driverClassName: '',
-            driverPath: ''
-          }
+            driverPath: '',
+          };
         }
       } else {
         // 如果已经是对象，直接赋值
-        hiveServer2Config.value = loadedSettings['HIVE_SERVER2']
+        hiveServer2Config.value = loadedSettings['HIVE_SERVER2'];
       }
     }
 
     // 记录初始切日时间
     if (settings.value && typeof settings.value['SWITCH_TIME'] === 'string') {
-      originalSwitchTime.value = settings.value['SWITCH_TIME']
+      originalSwitchTime.value = settings.value['SWITCH_TIME'];
     }
-  }
+  };
 
   // 组件挂载时加载配置
   onMounted(() => {
-    loadSettings()
-  })
+    loadSettings();
+  });
 </script>
 <style scoped>
   .sys-settings-page {

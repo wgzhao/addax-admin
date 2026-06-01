@@ -7,11 +7,7 @@
       <v-list-item class="px-2">
         <slot name="header" />
         <template #append>
-          <v-btn
-            class="btn btn-primary bg-primary"
-            text="关闭"
-            @click="dialog = false"
-          ></v-btn>
+          <v-btn class="btn btn-primary bg-primary" text="关闭" @click="dialog = false"></v-btn>
         </template>
       </v-list-item>
       <v-card-text>
@@ -24,11 +20,11 @@
   </v-dialog>
 </template>
 <script setup lang="ts">
-const dialog = defineModel({ required: true, type: Boolean, default: true });
-defineProps({
-  title: {
-    type: String,
-    required: true
-  }
-});
+  const dialog = defineModel({ required: true, type: Boolean, default: true });
+  defineProps({
+    title: {
+      type: String,
+      required: true,
+    },
+  });
 </script>

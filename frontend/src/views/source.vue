@@ -1,20 +1,37 @@
 <template>
-  <div class="source-page" :class="{ 'source-page--modal-open': isShow || deleteDialog }">
-    <v-card flat class="mb-3 section-card">
-      <v-card-text class="py-3 d-flex align-center justify-space-between flex-wrap ga-2">
-        <div class="text-subtitle-1 font-weight-bold">数据源管理</div>
-        <v-btn variant="tonal" prepend-icon="mdi-plus" @click="doAction('-1', 'add')">新增</v-btn>
+  <div
+    class="source-page page-shell ds-management-page"
+    :class="{ 'ds-management-page--modal-open': isShow || deleteDialog }"
+  >
+    <v-card flat class="ds-card page-header-card">
+      <v-card-text class="ds-card__content">
+        <div class="page-header flex-wrap">
+          <div>
+            <div class="page-title">数据源管理</div>
+            <div class="page-subtitle">统一维护采集源、连接配置与启停状态。</div>
+          </div>
+          <div class="ds-actions">
+            <v-btn
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-plus"
+              @click="doAction('-1', 'add')"
+              >新增数据源</v-btn
+            >
+          </div>
+        </div>
       </v-card-text>
     </v-card>
 
-    <v-card flat class="mb-3 section-card">
-      <v-card-text>
+    <v-card flat class="ds-card toolbar-card">
+      <v-card-text class="ds-card__content">
         <v-row dense align="center">
           <v-col cols="12" md="5" lg="4">
             <v-text-field
               v-model="searchValue"
               density="compact"
-              label="搜索名称/采集代码/连接串"
+              variant="outlined"
+              label="搜索名称 / 采集代码 / 连接串"
               prepend-inner-icon="mdi-magnify"
               single-line
               hide-details
@@ -25,6 +42,7 @@
               v-model="showDisabled"
               density="compact"
               color="primary"
+              hide-details
               :label="showDisabled ? '显示全部源' : '仅显示启用源'"
             />
           </v-col>
@@ -32,66 +50,87 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="section-card">
-      <v-card-text>
-      <template v-if="sources.length === 0">
-        <EmptyState
-          title="暂无数据源"
-          description="当前没有可用的数据源。点击下方按钮添加新的数据源或导入已有配置。"
-          :primary="{ label: '新增数据源', icon: 'mdi-plus' }"
-          :secondary="{ label: '导入配置', icon: 'mdi-file-import' }"
-          @primary="() => doAction(-1, 'add')"
-          @secondary="() => doAction(-1, 'add')"
-        />
-      </template>
-      <template v-else>
-        <v-data-table
-          :items="sources"
-          :headers="headers"
-          :search="searchValue"
-          density="default"
-          items-per-page="20"
-        >
-          <template v-slot:item.enabled="{ item }">
-            <v-chip
-              size="small"
-              :color="item.enabled == true ? 'success' : 'error'"
-              :text="item.enabled == true ? '已启用' : '已禁用'"
-              class="ml-2"
-            ></v-chip>
-          </template>
-          <template v-slot:item.actions="{ item }">
-            <v-btn
-              variant="text"
-              color="primary"
-              class="me-2"
-              @click="doAction(item.id, 'edit')"
-              :title="'编辑'"
-              icon="mdi-pencil"
-            ></v-btn>
-            <v-btn
-              variant="text"
-              color="info"
-              class="me-2"
-              @click="cloneSource(item)"
-              :title="'克隆'"
-              icon="mdi-content-copy"
-            ></v-btn>
-            <v-btn
-              variant="text"
-              color="error"
-              class="me-2"
-              @click="openDeleteDialog(item.id, item.name)"
-              :title="'删除'"
-              icon="mdi-delete"
-            ></v-btn>
-          </template>
-        </v-data-table>
-      </template>
+    <v-card flat class="ds-card table-card ds-table-wrap">
+      <v-card-text class="ds-card__content">
+        <template v-if="sources.length === 0">
+          <EmptyState
+            title="暂无数据源"
+            description="当前还没有配置任何数据源。点击下方按钮新增数据源后，即可继续维护连接与采集配置。"
+            :primary="{ label: '新增数据源', icon: 'mdi-plus' }"
+            @primary="() => doAction('-1', 'add')"
+          />
+        </template>
+        <template v-else>
+          <v-data-table
+            :items="sources"
+            :headers="headers"
+            :search="searchValue"
+            density="comfortable"
+            items-per-page="20"
+          >
+            <template #item.name="{ item }">
+              <div class="ds-cell-stack">
+                <span class="ds-cell-meta">{{ item.code || '未配置采集代码' }}</span>
+                <span class="ds-cell-primary">{{ item.name || '-' }}</span>
+              </div>
+            </template>
+
+            <template #item.url="{ item }">
+              <span class="ds-cell-primary ds-mono-text ds-white-space-normal table-url">{{
+                item.url || '-'
+              }}</span>
+            </template>
+
+            <template #item.enabled="{ item }">
+              <v-chip
+                size="small"
+                :color="item.enabled ? 'success' : 'error'"
+                :variant="item.enabled ? 'tonal' : 'outlined'"
+              >
+                {{ item.enabled ? '已启用' : '已禁用' }}
+              </v-chip>
+            </template>
+
+            <template #item.startAt="{ item }">
+              <span class="ds-cell-support">{{ item.startAt || '-' }}</span>
+            </template>
+
+            <template #item.actions="{ item }">
+              <div class="ds-action-inline">
+                <v-btn
+                  variant="text"
+                  color="primary"
+                  size="small"
+                  class="px-2 ds-action-btn-main"
+                  @click="doAction(item.id, 'edit')"
+                >
+                  <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
+                </v-btn>
+                <v-btn
+                  variant="text"
+                  color="info"
+                  size="small"
+                  class="px-2"
+                  @click="cloneSource(item)"
+                >
+                  <v-icon size="16" class="mr-1">mdi-content-copy</v-icon>克隆
+                </v-btn>
+                <v-btn
+                  variant="text"
+                  color="error"
+                  size="small"
+                  class="px-2"
+                  @click="openDeleteDialog(item.id, item.name)"
+                >
+                  <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+                </v-btn>
+              </div>
+            </template>
+          </v-data-table>
+        </template>
       </v-card-text>
     </v-card>
   </div>
-  <!-- form -->
 
   <v-dialog
     v-model="isShow"
@@ -103,7 +142,6 @@
     <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
   </v-dialog>
 
-  <!-- 确认删除对话框 -->
   <v-dialog
     v-model="deleteDialog"
     class="ds-dialog-overlay"
@@ -112,163 +150,151 @@
   >
     <v-card>
       <v-card-title class="headline">确认删除</v-card-title>
-      <v-card-text>您确定要删除{{ itemNameToDelete }}这个数据源吗？</v-card-text>
+      <v-card-text>您确定要删除 {{ itemNameToDelete }} 这个数据源吗？</v-card-text>
       <v-card-actions>
-        <v-btn color="default" text @click="deleteDialog = false">取消</v-btn>
-        <v-btn color="error" text @click="confirmDelete">确认</v-btn>
+        <v-spacer />
+        <v-btn variant="text" @click="deleteDialog = false">取消</v-btn>
+        <v-btn color="error" variant="flat" @click="confirmDelete">确认删除</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, watch } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
-  import type { DataTableHeader } from 'vuetify'
-  import sourceService from '@/service/source-service'
-  import AddDataSource from '@/components/source/AddSource.vue'
-  import EmptyState from '@/components/EmptyState.vue'
-  import { notify } from '@/stores/notifier'
+  import { onMounted, ref, watch } from 'vue';
+  import { useRoute, useRouter } from 'vue-router';
+  import type { DataTableHeader } from 'vuetify';
+  import sourceService from '@/service/source-service';
+  import AddDataSource from '@/components/source/AddSource.vue';
+  import EmptyState from '@/components/EmptyState.vue';
+  import { notify } from '@/stores/notifier';
 
-  const route = useRoute()
-  const router = useRouter()
+  const route = useRoute();
+  const router = useRouter();
 
-  const sources = ref([])
-  const isShow = ref(false)
-  const deleteDialog = ref(false)
-  const itemIdToDelete = ref(null)
-  const itemNameToDelete = ref(null)
-  const showDisabled = ref(false) // 默认不显示禁用源
-  // 模式： show 显示，edit 编辑， add 新增
-  const mode = ref('show')
-  const searchValue = ref('')
+  const sources = ref([]);
+  const isShow = ref(false);
+  const deleteDialog = ref(false);
+  const itemIdToDelete = ref<number | null>(null);
+  const itemNameToDelete = ref<string | null>(null);
+  const showDisabled = ref(false);
+  const mode = ref('show');
+  const searchValue = ref('');
+
   const headers: DataTableHeader[] = [
-    { title: 'ID', key: 'id' },
-    { title: '名称', key: 'name' },
-    { title: '采集代码', key: 'code' },
-    { title: '连接串', key: 'url' },
-    { title: '是否启用', key: 'enabled' },
-    { title: '表数量', key: 'tableCount' },
-    { title: '有效表数量', key: 'validTableCount' },
-    {
-      title: '采集时间',
-      key: 'startAt'
-    },
-    { title: '操作', value: 'actions', align: 'center' }
-  ]
+    { title: 'ID', key: 'id', width: 72 },
+    { title: '数据源', key: 'name', minWidth: '180px' },
+    { title: '连接串', key: 'url', minWidth: '200px' },
+    { title: '状态', key: 'enabled', width: 96 },
+    { title: '表数量', key: 'tableCount', width: 96 },
+    { title: '有效表数量', key: 'validTableCount', width: 110 },
+    { title: '采集时间', key: 'startAt', width: 120 },
+    { title: '操作', key: 'actions', align: 'center', sortable: false, width: 260 },
+  ];
 
-  const params = ref({})
+  const params = ref({});
+
   const getSources = () => {
-    const loader = showDisabled.value ? sourceService.list() : sourceService.listActiveSources()
+    const loader = showDisabled.value ? sourceService.list() : sourceService.listActiveSources();
     loader
-      .then((resp) => {
-        sources.value = resp
+      .then(resp => {
+        sources.value = resp;
       })
-      .catch((error) => {
-        console.log(error)
-        notify('加载数据源列表失败: ' + error, 'error')
-      })
-  }
+      .catch(error => {
+        console.log(error);
+        notify('加载数据源列表失败: ' + error, 'error');
+      });
+  };
 
   const doAction = (id, ctype) => {
     params.value = {
       mode: ctype,
-      sid: id
-    }
-    isShow.value = true
-    mode.value = ctype
-  }
+      sid: id,
+    };
+    isShow.value = true;
+    mode.value = ctype;
+  };
 
-  const cloneSource = (item) => {
+  const cloneSource = item => {
     params.value = {
       mode: 'add',
       sid: -1,
       cloneData: {
         ...item,
         id: 0,
-        code: ''
-      }
-    }
-    isShow.value = true
-    mode.value = 'add'
-  }
+        code: '',
+      },
+    };
+    isShow.value = true;
+    mode.value = 'add';
+  };
 
   const closeDialog = () => {
-    isShow.value = false
-  }
+    isShow.value = false;
+  };
 
-  // 处理保存事件
   const handleSave = () => {
-    console.log('数据源保存成功，正在刷新列表...')
-    // 重新获取数据源列表，确保显示最新数据
-    getSources()
-    // 关闭对话框
-    closeDialog()
-  }
+    getSources();
+    closeDialog();
+  };
 
-  // 删除相关操作
-  // 打开删除确认对话框
   const openDeleteDialog = (id, name) => {
-    itemIdToDelete.value = id // 保存要删除的记录 ID
-    itemNameToDelete.value = name
-    deleteDialog.value = true // 打开对话框
-  }
+    itemIdToDelete.value = id;
+    itemNameToDelete.value = name;
+    deleteDialog.value = true;
+  };
 
-  // 确认删除
   const confirmDelete = () => {
     if (itemIdToDelete.value !== null) {
-      deleteSource(itemIdToDelete.value)
+      deleteSource(itemIdToDelete.value);
     }
-    deleteDialog.value = false
-  }
+    deleteDialog.value = false;
+  };
 
-  // 删除数据逻辑
-  const deleteSource = (id) => {
-    console.log(`删除记录 ID: ${id}`)
-    // 这里实现删除逻辑，例如调用 API 接口或移除本地数据
+  const deleteSource = id => {
     sourceService
       .delete(id)
       .then(() => {
-        notify('删除成功', 'success')
-        sources.value = sources.value.filter((item) => item.id !== id)
-        // 如果当前列表被删到 0，可重新拉取一遍（为未来分页兼容）
+        notify('删除成功', 'success');
+        sources.value = sources.value.filter(item => item.id !== id);
         if (sources.value.length === 0) {
-          getSources()
+          getSources();
         }
-        itemIdToDelete.value = null
+        itemIdToDelete.value = null;
       })
-      .catch((error) => {
-        notify('删除失败: ' + error.message, 'error')
-      })
-  }
+      .catch(error => {
+        notify('删除失败: ' + error.message, 'error');
+      });
+  };
+
   const openCreateFromQuery = () => {
-    const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action
-    if (action !== 'create') return
+    const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action;
+    if (action !== 'create') return;
 
-    doAction('-1', 'add')
+    doAction('-1', 'add');
 
-    const query = { ...route.query }
-    delete query.action
-    router.replace({ path: route.path, query })
-  }
+    const query = { ...route.query };
+    delete query.action;
+    router.replace({ path: route.path, query });
+  };
 
   onMounted(() => {
-    getSources()
-    openCreateFromQuery()
-  })
+    getSources();
+    openCreateFromQuery();
+  });
 
-  // 切换显示禁用源时，重新加载列表
   watch(showDisabled, () => {
-    getSources()
-  })
+    getSources();
+  });
 
   watch(
     () => route.query.action,
     () => {
-      openCreateFromQuery()
+      openCreateFromQuery();
     }
-  )
+  );
 </script>
+
 <route lang="json">
 {
   "meta": {
@@ -280,26 +306,10 @@
   }
 }
 </route>
+
 <style scoped>
-  .source-page {
-    padding: 8px 10px;
-  }
-
-  .source-page > .section-card {
-    transition: filter 0.2s ease, opacity 0.2s ease;
-    transform: translateZ(0);
-  }
-
-  .source-page--modal-open > .section-card {
-    filter: blur(3px) saturate(0.86);
-    opacity: 0.52;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  .section-card {
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    border-radius: 12px;
-    background: rgb(var(--v-theme-surface));
+  .table-url {
+    display: inline-block;
+    max-width: 100%;
   }
 </style>

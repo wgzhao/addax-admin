@@ -20,5 +20,5 @@
 </template>
 
 <script setup lang="ts">
-import BatchAdd from '@/components/table/BatchAdd.vue'
+  import BatchAdd from '@/components/table/BatchAdd.vue';
 </script>

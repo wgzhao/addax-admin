@@ -78,151 +78,153 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { notify } from '@/stores/notifier'
-import tableService from '@/service/table-service'
-import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils'
+  import { ref, computed } from 'vue';
+  import { notify } from '@/stores/notifier';
+  import tableService from '@/service/table-service';
+  import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils';
 
-const props = defineProps({
-  tid: {
-    type: Array,
-    required: true,
-  },
-})
+  const props = defineProps({
+    tid: {
+      type: Array,
+      required: true,
+    },
+  });
 
-const emit = defineEmits(['closeDialog', 'update:batch'])
+  const emit = defineEmits(['closeDialog', 'update:batch']);
 
-const status = ref('N')
-const retryCnt = ref(3)
-const loading = ref(false)
+  const status = ref('N');
+  const retryCnt = ref(3);
+  const loading = ref(false);
 
-const selectedCount = computed(() => (props.tid ? props.tid.length : 0))
-const isValid = computed(() => !!status.value || (retryCnt.value !== null && retryCnt.value !== undefined))
-const statusOptions = BATCH_UPDATE_STATUS_OPTIONS
+  const selectedCount = computed(() => (props.tid ? props.tid.length : 0));
+  const isValid = computed(
+    () => !!status.value || (retryCnt.value !== null && retryCnt.value !== undefined)
+  );
+  const statusOptions = BATCH_UPDATE_STATUS_OPTIONS;
 
-async function updateItem() {
-  if (!isValid.value) return
+  async function updateItem() {
+    if (!isValid.value) return;
 
-  loading.value = true
-  const payload = {
-    tids: props.tid,
-    status: status.value,
-    retryCnt: retryCnt.value,
+    loading.value = true;
+    const payload = {
+      tids: props.tid,
+      status: status.value,
+      retryCnt: retryCnt.value,
+    };
+
+    try {
+      const count = await tableService.batchUpdateStatus(payload);
+      notify(`批量更新成功 ${count} 条记录`, 'success');
+      emit('closeDialog');
+      emit('update:batch', payload);
+    } catch (error) {
+      notify(`批量更新失败: ${error}`, 'error');
+    } finally {
+      loading.value = false;
+    }
   }
-
-  try {
-    const count = await tableService.batchUpdateStatus(payload)
-    notify(`批量更新成功 ${count} 条记录`, 'success')
-    emit('closeDialog')
-    emit('update:batch', payload)
-  } catch (error) {
-    notify(`批量更新失败: ${error}`, 'error')
-  } finally {
-    loading.value = false
-  }
-}
 </script>
 
 <style scoped>
-.batch-update-card {
-  background: rgb(var(--v-theme-surface));
-}
+  .batch-update-card {
+    background: rgb(var(--v-theme-surface));
+  }
 
-.batch-update-head {
-  padding: 22px 24px 14px;
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), transparent 95%);
-}
+  .batch-update-head {
+    padding: 22px 24px 14px;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), transparent 95%);
+  }
 
-.batch-update-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+  .batch-update-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-.batch-update-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: rgb(var(--v-theme-on-surface));
-}
+  .batch-update-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-.batch-update-subtitle {
-  margin-top: 6px;
-  color: rgba(var(--v-theme-on-surface), 0.68);
-  line-height: 1.6;
-}
+  .batch-update-subtitle {
+    margin-top: 6px;
+    color: rgba(var(--v-theme-on-surface), 0.68);
+    line-height: 1.6;
+  }
 
-.impact-strip {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 18px 24px 0;
-}
+  .impact-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 18px 24px 0;
+  }
 
-.impact-item {
-  padding: 14px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  background: rgba(var(--v-theme-on-surface), 0.02);
-}
+  .impact-item {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background: rgba(var(--v-theme-on-surface), 0.02);
+  }
 
-.impact-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(var(--v-theme-on-surface), 0.56);
-}
+  .impact-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(var(--v-theme-on-surface), 0.56);
+  }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  padding: 18px 24px 10px;
-}
-
-.field-card {
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  background: rgba(var(--v-theme-on-surface), 0.015);
-}
-
-.field-card__head {
-  margin-bottom: 14px;
-}
-
-.field-card__title {
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-}
-
-.field-card__desc {
-  margin-top: 4px;
-  font-size: 0.84rem;
-  line-height: 1.6;
-  color: rgba(var(--v-theme-on-surface), 0.62);
-}
-
-.batch-update-actions {
-  padding: 14px 24px 20px;
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-@media (max-width: 760px) {
-  .impact-strip,
   .form-grid {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    padding: 18px 24px 10px;
   }
 
-  .batch-update-head,
-  .impact-strip,
-  .form-grid,
-  .batch-update-actions {
-    padding-left: 16px;
-    padding-right: 16px;
+  .field-card {
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background: rgba(var(--v-theme-on-surface), 0.015);
   }
-}
+
+  .field-card__head {
+    margin-bottom: 14px;
+  }
+
+  .field-card__title {
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
+
+  .field-card__desc {
+    margin-top: 4px;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    color: rgba(var(--v-theme-on-surface), 0.62);
+  }
+
+  .batch-update-actions {
+    padding: 14px 24px 20px;
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  }
+
+  @media (max-width: 760px) {
+    .impact-strip,
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .batch-update-head,
+    .impact-strip,
+    .form-grid,
+    .batch-update-actions {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+  }
 </style>
