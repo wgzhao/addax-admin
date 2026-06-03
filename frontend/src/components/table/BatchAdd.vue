@@ -1,8 +1,7 @@
 <template>
   <v-card flat class="batch-add-shell">
     <div class="workflow-head">
-      <div>
-      </div>
+      <div></div>
       <div class="overview-grid">
         <div class="overview-card">
           <span class="overview-label">采集源</span>
@@ -148,9 +147,7 @@
                   />
                 </div>
                 <div class="table-stage__toolbar-right">
-                  <v-chip color="primary" variant="tonal"
-                    >已选 {{ selectedCnt }}</v-chip
-                  >
+                  <v-chip color="primary" variant="tonal">已选 {{ selectedCnt }}</v-chip>
                 </div>
               </div>
 

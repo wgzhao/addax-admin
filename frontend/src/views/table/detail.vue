@@ -5,9 +5,7 @@
         <v-btn icon @click="router.back()" aria-label="返回">
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
-        <div class="page-title">
-          采集表详情: {{ tblname }}
-        </div>
+        <div class="page-title">采集表详情: {{ tblname }}</div>
       </v-card-text>
     </v-card>
 

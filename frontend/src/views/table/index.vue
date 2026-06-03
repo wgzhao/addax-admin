@@ -200,43 +200,31 @@
             </template>
 
             <template v-slot:item.action="{ item }">
-                  <v-btn
-                      color="primary"
-                      variant="plain"
-                      @click="doEtl(item)"
-                    >
-                      <v-icon>mdi-play-circle</v-icon>采集
-                  </v-btn>
+              <v-btn color="primary" variant="plain" @click="doEtl(item)">
+                <v-icon>mdi-play-circle</v-icon>采集
+              </v-btn>
 
-                <v-btn
-                  color="warning"
-                  variant="plain"
-                  @click="updateSchema(item)"
-                >
-                  <v-icon>mdi-database-refresh</v-icon>更新
-                </v-btn>
+              <v-btn color="warning" variant="plain" @click="updateSchema(item)">
+                <v-icon>mdi-database-refresh</v-icon>更新
+              </v-btn>
 
-                <v-btn
-                  variant="plain"
-                  color="error"
-                  @click="confirmDelete(item)"
-                >
-                  <v-icon>mdi-delete</v-icon>删除
-                </v-btn>
+              <v-btn variant="plain" color="error" @click="confirmDelete(item)">
+                <v-icon>mdi-delete</v-icon>删除
+              </v-btn>
 
-                <v-btn
-                  variant="plain"
-                  color="secondary"
-                  aria-label="更多操作"
-                  @click="
-                    router.push({
-                      path: `/table/detail/${item.id}`,
-                      query: { tab: 'info', tblname: `${item.sourceDb}.${item.sourceTable}` },
-                    })
-                  "
-                >
-                  <v-icon size="16">mdi-open-in-new</v-icon>
-                </v-btn>
+              <v-btn
+                variant="plain"
+                color="secondary"
+                aria-label="更多操作"
+                @click="
+                  router.push({
+                    path: `/table/detail/${item.id}`,
+                    query: { tab: 'info', tblname: `${item.sourceDb}.${item.sourceTable}` },
+                  })
+                "
+              >
+                <v-icon size="16">mdi-open-in-new</v-icon>
+              </v-btn>
             </template>
           </v-data-table-server>
         </template>
