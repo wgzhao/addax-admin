@@ -5,16 +5,16 @@
  */
 
 // Plugins
-import { registerPlugins } from "@/plugins";
+import { registerPlugins } from '@/plugins';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme-store';
-import pinia from '@/plugins/pinia'
+import pinia from '@/plugins/pinia';
 
 // Components
-import App from "./App.vue";
+import App from './App.vue';
 
 // Composables
-import { createApp } from "vue";
+import { createApp } from 'vue';
 
 const app = createApp(App);
 
@@ -27,4 +27,4 @@ authStore.loadTokenFromStorage();
 const themeStore = useThemeStore(pinia);
 themeStore.initTheme();
 
-app.mount("#app");
+app.mount('#app');

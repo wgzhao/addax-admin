@@ -1,25 +1,44 @@
 :root {
-  /* Chinese-friendly font stack:
-     - prefer modern UI/system fonts where available
-     - include common Chinese fonts for macOS, Windows and common CJK stacks
-     - fall back to latin-friendly fonts
-  */
-  font-family: Inter, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", "WenQuanYi Micro Hei", "Segoe UI", "Helvetica Neue", Arial, "Roboto", sans-serif;
+  /* Chinese-first font stack for admin readability */
+  font-family:
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    'Noto Sans CJK SC',
+    'Noto Sans SC',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
 }
 
 /* Improve Chinese readability across platforms (favor sharp small-size text) */
-html, body, #app, .v-application {
+html,
+body,
+#app,
+.v-application {
   -moz-osx-font-smoothing: grayscale; /* Firefox on macOS */
   text-rendering: auto;
   -webkit-text-size-adjust: 100%;
 }
 
 /* Ensure form controls and Vuetify components inherit the same stack */
-input, button, textarea, select, .v-btn, .v-label, .v-input {
+input,
+button,
+textarea,
+select,
+.v-btn,
+.v-label,
+.v-input {
   font-family: inherit;
 }
 
 /* Optional: reduce heavy font-weight rendering for better clarity */
 body {
   font-weight: 400;
+  color: rgb(var(--v-theme-on-background));
+  background: rgb(var(--v-theme-background));
 }

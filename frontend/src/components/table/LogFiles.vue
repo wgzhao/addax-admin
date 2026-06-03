@@ -1,38 +1,75 @@
 <template>
-  <!-- 调度和命令日志 -->
-  <!-- <dialog-comp v-mode="dialog" title="调度/命令日志"> -->
-  <v-card prepend-icon="mdi-file-document-outline" title="调度/命令日志" class="log-card" density="comfortable">
-    <v-card-text class="log-body">
-      <v-row dense>
-        <v-col cols="12">
-          <v-sheet class="form-section" rounded="lg" border>
-            <div class="section-header">
-              <v-icon size="18" color="primary">mdi-format-list-bulleted</v-icon>
-              <span>日志列表</span>
-              <v-spacer />
-              <span class="chip-hint">共 {{ logList.length }} 条</span>
+  <v-card flat class="ds-card table-panel log-files-panel">
+    <v-card-text class="table-panel__content">
+      <v-row dense class="content-grid">
+        <v-col cols="12" md="4" lg="3">
+          <div class="log-list-shell">
+            <div class="shell-header">
+              <div>
+                <div class="shell-title">日志列表</div>
+                <div class="shell-caption">按运行时间快速定位最近一次执行记录。</div>
+              </div>
             </div>
-            <v-divider />
-            <div class="chips-wrap">
-              <v-chip v-for="item in logList" :key="item.id" :color="selectedLogId === item.id ? 'primary' : 'default'"
-                :variant="selectedLogId === item.id ? 'elevated' : 'outlined'" clickable size="small"
-                @click="getContent(item.id)">
-                <v-icon start size="small">mdi-file-document-outline</v-icon>
-                {{ item.runAt }}
-              </v-chip>
+
+            <div v-if="listLoading" class="panel-state panel-state--compact">
+              <v-progress-circular indeterminate color="primary" size="34" width="4" />
+              <div class="panel-state__desc">正在加载日志列表</div>
             </div>
-          </v-sheet>
+
+            <div v-else-if="logList.length" class="log-list-wrap">
+              <v-list density="comfortable" nav class="log-list">
+                <v-list-item
+                  v-for="item in logList"
+                  :key="item.id"
+                  :active="selectedLogId === item.id"
+                  rounded="lg"
+                  @click="getContent(item.id)"
+                >
+                  <template #prepend>
+                    <v-avatar size="30" color="primary" variant="tonal">
+                      <v-icon size="16">mdi-text-box-search-outline</v-icon>
+                    </v-avatar>
+                  </template>
+
+                  <v-list-item-title class="log-item-title">
+                    {{ item.runAt || `日志 #${item.id}` }}
+                  </v-list-item-title>
+
+                  <template #append>
+                    <v-chip
+                      v-if="logList[0]?.id === item.id"
+                      size="x-small"
+                      variant="tonal"
+                      color="primary"
+                    >
+                      最新
+                    </v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </div>
+
+            <div v-else class="panel-state panel-state--compact">
+              <v-icon size="42" class="panel-state__icon">mdi-file-remove-outline</v-icon>
+              <div class="panel-state__title">暂无日志文件</div>
+            </div>
+          </div>
         </v-col>
-      </v-row>
-      <v-row dense>
-        <!-- 展示日志内容-->
-        <v-col cols="12">
-          <v-sheet class="form-section" rounded="lg" border>
-            <div class="section-header">
-              <v-icon size="18" color="primary">mdi-text-box-outline</v-icon>
-              <span>日志内容</span>
-              <v-spacer />
-              <div class="header-actions">
+
+        <v-col cols="12" md="8" lg="9">
+          <div class="log-content-shell">
+            <div class="shell-header shell-header--content">
+              <div>
+                <div class="shell-title">日志正文</div>
+                <div class="shell-caption">
+                  {{
+                    selectedLog?.runAt
+                      ? `当前日志：${selectedLog.runAt}`
+                      : '请选择左侧日志文件查看详细内容'
+                  }}
+                </div>
+              </div>
+              <div>
                 <v-btn
                   size="small"
                   variant="tonal"
@@ -43,6 +80,7 @@
                 >
                   复制
                 </v-btn>
+                &nbsp;&nbsp;
                 <v-btn
                   size="small"
                   variant="tonal"
@@ -50,264 +88,365 @@
                   :disabled="!fContent"
                   @click="downloadLog"
                   prepend-icon="mdi-download"
+                  style="mx-2"
                 >
                   下载
                 </v-btn>
               </div>
             </div>
-            <v-divider></v-divider>
+
             <div class="log-content-wrap">
-              <!-- 空状态 (没有选择任何日志) -->
-              <div v-if="!selectedLogId" class="empty-state">
-                <v-icon size="64" class="mb-4 empty-icon-muted">mdi-file-document-outline</v-icon>
-                <div class="text-h6 mb-2 empty-title-muted">No log selected</div>
-                <div class="text-body-2 empty-desc-muted">Please select a log file from above to view its content.</div>
-              </div>
-              <!-- 日志内容区域 -->
-              <div v-else class="position-relative">
-                <!-- 加载状态覆盖层 -->
-                <v-overlay v-model="loading" contained class="d-flex align-center justify-center">
-                  <div class="text-center">
-                    <v-progress-circular indeterminate color="primary" class="mb-4"></v-progress-circular>
-                    <div class="text-body-1">Loading log content...</div>
-                  </div>
-                </v-overlay>
-                <!-- 日志内容 -->
-                <div v-if="fContent" class="text-body-2 log-content" v-html="fContent"></div>
-                <!-- 加载失败状态 -->
-                <div v-else-if="!loading" class="empty-state">
-                  <v-icon size="48" color="error" class="mb-4">mdi-alert-circle</v-icon>
-                  <div class="text-h6 text-error mb-2">Failed to load log</div>
-                  <div class="text-body-2 empty-desc-muted">Please try selecting the log file again.</div>
+              <div v-if="!selectedLogId" class="panel-state panel-state--content-empty">
+                <v-icon size="52" class="panel-state__icon">mdi-file-document-outline</v-icon>
+                <div class="panel-state__title">尚未选择日志</div>
+                <div class="panel-state__desc">
+                  请从左侧选择一条日志记录，系统将在右侧显示完整内容。
                 </div>
               </div>
+
+              <div v-else-if="loading" class="panel-state panel-state--content-empty">
+                <v-progress-circular indeterminate color="primary" size="42" width="4" />
+                <div class="panel-state__title">正在加载日志内容</div>
+              </div>
+
+              <div v-else-if="fContent" class="log-body-shell">
+                <pre class="log-content">{{ fContent }}</pre>
+              </div>
+
+              <div v-else class="panel-state panel-state--content-empty panel-state--error-soft">
+                <v-icon size="46" color="error">mdi-alert-circle-outline</v-icon>
+                <div class="panel-state__title">日志内容加载失败</div>
+                <div class="panel-state__desc">请重新选择日志，或稍后再次尝试。</div>
+              </div>
             </div>
-          </v-sheet>
+          </div>
         </v-col>
       </v-row>
     </v-card-text>
   </v-card>
 </template>
+
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { notify } from "@/stores/notifier";
-import logService from "@/service/log-service";
+  import { ref, onMounted, computed } from 'vue';
+  import { useRoute } from 'vue-router';
+  import { notify } from '@/stores/notifier';
+  import logService from '@/service/log-service';
+  import type { AddaxLog } from '@/types/database';
 
-// const dialog = defineModel({ required: true, default: true });
-const props = defineProps({ tid: String });
+  const route = useRoute();
+  const tid = String(route.params.tid);
 
-const fContent = ref();
+  const fContent = ref('');
+  const selectedLogId = ref<number | null>(null);
+  const loading = ref(false);
+  const listLoading = ref(false);
+  const logList = ref<AddaxLog[]>([]);
 
-const selectedLogId = ref<number | null>(null);
-const loading = ref(false);
+  const selectedLog = computed(
+    () => logList.value.find(item => item.id === selectedLogId.value) || null
+  );
 
-const logList = ref([]);
+  const getContent = async (id: number) => {
+    if (selectedLogId.value === id && fContent.value) {
+      return;
+    }
 
-const emit = defineEmits(["closeDialog"]);
+    selectedLogId.value = id;
+    loading.value = true;
 
-
-const getContent = (id: number) => {
-  // 如果点击的是当前已选中的日志，不需要重新加载
-  if (selectedLogId.value === id && fContent.value) {
-    return;
-  }
-
-  selectedLogId.value = id;
-  loading.value = true;
-  // 不要立即清空内容，避免闪烁
-
-  logService.getContent(id)
-    .then((res: null | string) => {
-      // 只有在请求成功后才更新内容
-      fContent.value = res;
-    })
-    .catch((error) => {
+    try {
+      fContent.value = await logService.getContent(id);
+    } catch (error) {
       console.error('Failed to load log content:', error);
-      // 加载失败时清空内容并显示错误信息
-      fContent.value = null;
-    })
-    .finally(() => {
+      fContent.value = '';
+    } finally {
       loading.value = false;
-    });
-};
+    }
+  };
 
-onMounted(() => {
-  logService.getLogFiles(props.tid).then(res => {
-    logList.value = res.data;
-    // 如果有日志文件，自动选择并加载最新的一条（第一条）
-    if (res.data && res.data.length > 0) {
-      const latestLog = res.data[0];
-      getContent(latestLog.id);
+  onMounted(async () => {
+    listLoading.value = true;
+    try {
+      const res = await logService.getLogFiles(tid);
+      logList.value = res.data || [];
+      if (logList.value.length > 0) {
+        await getContent(logList.value[0].id);
+      }
+    } catch (error) {
+      notify(`加载日志列表失败: ${error}`, 'error');
+    } finally {
+      listLoading.value = false;
     }
   });
-});
 
-const copyLog = async () => {
-  if (!fContent.value) return;
-  try {
-    await navigator.clipboard.writeText(String(fContent.value));
-    notify('日志已复制到剪贴板', 'success');
-  } catch (err) {
-    notify('复制失败，请手动复制', 'error');
-  }
-};
+  const copyLog = async () => {
+    if (!fContent.value) return;
+    try {
+      await navigator.clipboard.writeText(String(fContent.value));
+      notify('日志已复制到剪贴板', 'success');
+    } catch {
+      notify('复制失败，请手动复制', 'error');
+    }
+  };
 
-const downloadLog = () => {
-  if (!fContent.value) return;
-  const fileName = selectedLogId.value ? `log-${selectedLogId.value}.txt` : 'log.txt';
-  const blob = new Blob([String(fContent.value)], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  notify('日志已开始下载', 'success');
-};
+  const downloadLog = () => {
+    if (!fContent.value) return;
+    const fileName = selectedLogId.value ? `log-${selectedLogId.value}.txt` : 'log.txt';
+    const blob = new Blob([String(fContent.value)], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    notify('日志已开始下载', 'success');
+  };
 </script>
+
 <style scoped>
-.log-card {
-  background: rgb(var(--v-theme-surface));
-}
+  .table-panel__content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+  }
 
-.log-body {
-  background: transparent;
-}
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
 
-.form-section {
-  background: rgb(var(--v-theme-surface));
-  border-color: rgba(var(--v-theme-on-surface), 0.08);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
+  .panel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-.form-section:hover {
-  border-color: rgba(var(--v-theme-primary), 0.2);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-}
+  .panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-}
+  .panel-subtitle {
+    margin-top: 6px;
+    max-width: 720px;
+    color: rgba(var(--v-theme-on-surface), 0.68);
+    line-height: 1.6;
+  }
 
-.header-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
+  .panel-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-.chips-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 14px 14px;
-}
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
 
-.chip-hint {
-  font-size: 12px;
-  color: rgba(var(--v-theme-on-surface), 0.6);
-}
+  .summary-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background:
+      linear-gradient(
+        180deg,
+        rgba(var(--v-theme-primary), 0.06),
+        rgba(var(--v-theme-primary), 0.01)
+      ),
+      rgb(var(--v-theme-surface));
+  }
 
-.log-content-wrap {
-  padding: 12px 14px 14px;
-}
+  .summary-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(var(--v-theme-on-surface), 0.56);
+  }
 
-.log-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.5;
-  border-radius: 10px;
-  max-height: 60vh;
-  overflow-y: auto;
-  font-size: 0.875rem;
-  min-height: 200px;
-  /* 确保有足够的高度显示加载状态 */
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
-}
+  .content-grid {
+    margin: 0;
+  }
 
-.log-content::-webkit-scrollbar {
-  width: 8px;
-}
+  .log-list-shell,
+  .log-content-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 520px;
+    border-radius: 18px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background: rgb(var(--v-theme-surface));
+    overflow: hidden;
+  }
 
-.log-content::-webkit-scrollbar-track {
-  background: rgba(var(--v-theme-on-surface), 0.1);
-  border-radius: 4px;
-}
+  .shell-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  }
 
-.log-content::-webkit-scrollbar-thumb {
-  background: rgba(var(--v-theme-on-surface), 0.3);
-  border-radius: 4px;
-}
+  .shell-header--content {
+    background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.04), transparent 96%);
+  }
 
-.log-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--v-theme-on-surface), 0.5);
-}
+  .shell-title {
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-/* 确保相对定位的容器有最小高度 */
-.position-relative {
-  min-height: 200px;
-}
+  .shell-caption {
+    margin-top: 2px;
+    font-size: 0.82rem;
+    color: rgba(var(--v-theme-on-surface), 0.62);
+  }
 
-.empty-state {
-  text-align: center;
-  padding: 32px 8px;
-}
+  .log-list-wrap {
+    flex: 1;
+    overflow: auto;
+    padding: 12px;
+  }
 
-.empty-icon-muted {
-  color: rgba(var(--v-theme-on-surface), 0.32);
-}
+  .log-list :deep(.v-list-item) {
+    margin-bottom: 8px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+    transition: all 0.2s ease;
+  }
 
-.empty-title-muted {
-  color: rgba(var(--v-theme-on-surface), 0.74);
-}
+  .log-list :deep(.v-list-item:hover) {
+    border-color: rgba(var(--v-theme-primary), 0.18);
+    background: rgba(var(--v-theme-primary), 0.04);
+  }
 
-.empty-desc-muted {
-  color: rgba(var(--v-theme-on-surface), 0.58);
-}
+  .log-list :deep(.v-list-item--active) {
+    background: rgba(var(--v-theme-primary), 0.08);
+    border-color: rgba(var(--v-theme-primary), 0.24);
+  }
 
-/* 改进空状态的图标动画 */
-.v-icon.mdi-file-document-outline {
-  transition: transform 0.3s ease;
-}
+  .log-item-title {
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-.v-icon.mdi-file-document-outline:hover {
-  transform: scale(1.1);
-}
+  .log-item-subtitle {
+    margin-top: 2px;
+  }
 
-/* 响应式改进 */
-@media (max-width: 600px) {
+  .log-content-wrap {
+    flex: 1;
+    min-height: 0;
+    padding: 16px;
+    background: rgba(var(--v-theme-on-surface), 0.015);
+  }
+
+  .log-body-shell {
+    height: 100%;
+    min-height: 420px;
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
   .log-content {
-    max-height: 50vh;
-    font-size: 0.75rem;
+    height: 100%;
+    min-height: 420px;
+    margin: 0;
+    padding: 18px;
+    overflow: auto;
+    color: #dbe4ff;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.72;
+    font-size: 0.83rem;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
   }
 
-  .v-card-title {
-    padding: 12px 16px;
+  .log-content::-webkit-scrollbar,
+  .log-list-wrap::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
 
-  .position-relative {
-    min-height: 150px;
+  .log-content::-webkit-scrollbar-thumb,
+  .log-list-wrap::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(var(--v-theme-on-surface), 0.24);
   }
-}
 
-/* chip样式优化 */
-.v-chip {
-  transition: all 0.2s ease;
-}
+  .panel-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 220px;
+    padding: 24px;
+    text-align: center;
+  }
 
-.v-chip:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
+  .panel-state--compact {
+    min-height: 180px;
+  }
 
-/* 选中状态的chip样式 */
-.v-chip[aria-pressed="true"] {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
+  .panel-state--content-empty {
+    height: 100%;
+    border-radius: 16px;
+    border: 1px dashed rgba(var(--v-theme-on-surface), 0.14);
+    background: rgba(var(--v-theme-on-surface), 0.02);
+  }
+
+  .panel-state--error-soft {
+    background: rgba(var(--v-theme-error), 0.04);
+  }
+
+  .panel-state__icon {
+    color: rgba(var(--v-theme-on-surface), 0.28);
+  }
+
+  .panel-state__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
+
+  .panel-state__desc {
+    max-width: 320px;
+    color: rgba(var(--v-theme-on-surface), 0.64);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 960px) {
+    .table-panel__content {
+      padding: 16px;
+    }
+
+    .summary-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .log-list-shell,
+    .log-content-shell {
+      min-height: auto;
+    }
+
+    .log-body-shell,
+    .log-content {
+      min-height: 320px;
+    }
+  }
 </style>

@@ -1,11 +1,11 @@
-import Requests from '@/utils/requests'
+import Requests from '@/utils/requests';
 
 class CloseCheckService {
-  prefix = '/closeCheck'
+  prefix = '/closeCheck';
 
   fetchAbnormalRecord() {
-    return Requests.get(this.prefix + '/abnormalRecord')
+    return Requests.get(this.prefix + '/abnormalRecord');
   }
 }
 
-export default new CloseCheckService()
+export default new CloseCheckService();

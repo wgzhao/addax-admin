@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+  import { ref, onMounted, onUnmounted } from 'vue';
 
-defineProps(["filename", "fcontent"]);
-const dialog = ref(true);
+  defineProps(['filename', 'fcontent']);
+  const dialog = ref(true);
 
-onMounted(() => {
-  console.log("LogModal mounted");
-  dialog.value = true;
-});
+  onMounted(() => {
+    console.log('LogModal mounted');
+    dialog.value = true;
+  });
 
-onUnmounted(() => {
-  console.log("LogModal unmounted");
-  dialog.value = false;
-});
+  onUnmounted(() => {
+    console.log('LogModal unmounted');
+    dialog.value = false;
+  });
 </script>
 
 <template>

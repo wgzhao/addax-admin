@@ -16,20 +16,17 @@
     <v-btn variant="plain" small class="mr-2">
       &copy; 2023-{{ new Date().getFullYear() }} &nbsp;wgzhao
     </v-btn>
-     <v-btn variant="plain" small class="mr-2">
-    Version: {{ APP_VERSION }}
-    </v-btn>
+    <v-btn variant="plain" small class="mr-2"> Version: {{ APP_VERSION }} </v-btn>
   </v-footer>
 </template>
 <script setup lang="ts">
+  import { APP_VERSION } from '@/config/version';
 
-import { APP_VERSION } from '@/config/version'
-
-const items = [
-  {
-    title: "Addax-Admin GitHub",
-    icon: `mdi-github`,
-    href: "https://github.com/wgzhao/addax-admin",
-  },
-];
+  const items = [
+    {
+      title: 'Addax-Admin GitHub',
+      icon: `mdi-github`,
+      href: 'https://github.com/wgzhao/addax-admin',
+    },
+  ];
 </script>

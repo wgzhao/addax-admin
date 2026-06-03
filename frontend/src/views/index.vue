@@ -52,7 +52,7 @@
             <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
             <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">{{ totalEtlData || 0}}</span>
+              <span class="stat-value">{{ totalEtlData || 0 }}</span>
             </v-card-text>
           </v-card>
         </v-col>
@@ -84,18 +84,18 @@
         </v-col>
 
         <v-col cols="6">
-                <v-row>
-        <v-col cols="12">
-          <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
-            <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
-            <v-card-text>
-              <div class="chart-container">
-                <LineChart />
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
+                <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
+                <v-card-text>
+                  <div class="chart-container">
+                    <LineChart />
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
           <v-row>
             <v-col cols="12">
               <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
@@ -127,54 +127,54 @@
 </template>
 
 <script setup lang="ts">
-  import request from '@/utils/requests'
-  import { ref, onMounted, computed } from 'vue'
-  import LineChart from '@/components/dashboard/LineChart.vue'
-  import L5TEtlTimeBar from '@/components/dashboard/L5TEtlTimeBar.vue'
-  import L5TEtlDataBar from '@/components/dashboard/L5TEtlDataBar.vue'
-  import { useTheme } from 'vuetify' // Vuetify 主题钩子
+  import request from '@/utils/requests';
+  import { ref, onMounted, computed } from 'vue';
+  import LineChart from '@/components/dashboard/LineChart.vue';
+  import L5TEtlTimeBar from '@/components/dashboard/L5TEtlTimeBar.vue';
+  import L5TEtlDataBar from '@/components/dashboard/L5TEtlDataBar.vue';
+  import { useTheme } from 'vuetify'; // Vuetify 主题钩子
 
-  const vuetifyTheme = useTheme()
-  const isDark = computed(() => vuetifyTheme.current.value.dark)
+  const vuetifyTheme = useTheme();
+  const isDark = computed(() => vuetifyTheme.current.value.dark);
 
-  const ratios = ref([])
-  const lastEtlData = ref(0.0)
-  const tableCount = ref(0)
-  const allTableCount = ref(0)
-  const allDbSourceCount = ref(0)
-  const totalEtlData = ref(0.0)
+  const ratios = ref([]);
+  const lastEtlData = ref(0.0);
+  const tableCount = ref(0);
+  const allTableCount = ref(0);
+  const allDbSourceCount = ref(0);
+  const totalEtlData = ref(0.0);
 
   // 使用主题色阶，保证明暗主题下都有清晰区分度
   function getProgressColor(prec: number) {
-    if (prec >= 100) return 'rgb(var(--v-theme-success))'
-    if (prec >= 85) return 'rgb(var(--v-theme-primary))'
-    if (prec >= 65) return 'rgb(var(--v-theme-info))'
-    if (prec >= 40) return 'rgb(var(--v-theme-warning))'
-    return 'rgb(var(--v-theme-error))'
+    if (prec >= 100) return 'rgb(var(--v-theme-success))';
+    if (prec >= 85) return 'rgb(var(--v-theme-primary))';
+    if (prec >= 65) return 'rgb(var(--v-theme-info))';
+    if (prec >= 40) return 'rgb(var(--v-theme-warning))';
+    return 'rgb(var(--v-theme-error))';
   }
 
   function fetchRatio() {
     try {
-      request.get('/dashboard/accomplish-ratio').then((res) => (ratios.value = res))
-      request.get('/dashboard/last-collect-data').then((res) => (lastEtlData.value = res))
-      request.get('/dashboard/collect-table-count').then((res) => (tableCount.value = res))
-      request.get('/dashboard/total-collect-data').then((res) => {
-        totalEtlData.value = res
-      })
-      request.get('/dashboard/all-collect-table-count').then((res) => {
-        allTableCount.value = res
-      })
-      request.get('/dashboard/all-collect-source-count').then((res) => {
-        allDbSourceCount.value = res
-      })
+      request.get('/dashboard/accomplish-ratio').then(res => (ratios.value = res));
+      request.get('/dashboard/last-collect-data').then(res => (lastEtlData.value = res));
+      request.get('/dashboard/collect-table-count').then(res => (tableCount.value = res));
+      request.get('/dashboard/total-collect-data').then(res => {
+        totalEtlData.value = res;
+      });
+      request.get('/dashboard/all-collect-table-count').then(res => {
+        allTableCount.value = res;
+      });
+      request.get('/dashboard/all-collect-source-count').then(res => {
+        allDbSourceCount.value = res;
+      });
     } catch (error) {
-      console.error('Error fetching ratios:', error)
+      console.error('Error fetching ratios:', error);
     }
   }
 
   onMounted(() => {
-    fetchRatio()
-  })
+    fetchRatio();
+  });
 </script>
 <route lang="json">
 {
@@ -242,7 +242,9 @@
   .stat-card {
     background: rgb(var(--v-theme-surface-variant));
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .stat-card:hover {

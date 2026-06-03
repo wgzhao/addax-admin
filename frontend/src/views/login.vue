@@ -81,45 +81,43 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
-  import router from '@/router'
-  import { useAuthStore } from '@/stores/auth'
+  import { ref } from 'vue';
+  import router from '@/router';
+  import { useAuthStore } from '@/stores/auth';
 
-  import { authService } from '@/service/auth-service'
-  import { notify } from '@/stores/notifier'
+  import { authService } from '@/service/auth-service';
+  import { notify } from '@/stores/notifier';
 
-  const form = ref(false)
+  const form = ref(false);
   const auth = ref({
     username: '',
-    password: ''
-  })
+    password: '',
+  });
 
-  const loading = ref<boolean>(false)
-  const authStore = useAuthStore()
+  const loading = ref<boolean>(false);
+  const authStore = useAuthStore();
 
   function required(v: string): boolean | string {
-    return !!v || 'Field is required'
+    return !!v || 'Field is required';
   }
 
   async function login() {
-    loading.value = true
+    loading.value = true;
     try {
-      const res: any = await authService.login(auth.value)
+      const res: any = await authService.login(auth.value);
       // 后端返回 ApiResponse<T>，约定 code==0 为成功
       if (res && res.code === 0 && res.data) {
-        authStore.setToken(res.data)
-        authStore.setUserName(auth.value.username)
-        await router.push({path: '/'})
+        authStore.setToken(res.data);
+        authStore.setUserName(auth.value.username);
+        await router.push({ path: '/' });
       } else {
-        const msg = res && res.message ? res.message : '登录失败'
-        notify(msg, 'error')
+        const msg = res && res.message ? res.message : '登录失败';
+        notify(msg, 'error');
       }
-    }
-    catch (err: any) {
-      notify('登录失败: ' + (err.message || err), 'error')
-    }
-    finally {
-      loading.value = false
+    } catch (err: any) {
+      notify('登录失败: ' + (err.message || err), 'error');
+    } finally {
+      loading.value = false;
     }
   }
 </script>

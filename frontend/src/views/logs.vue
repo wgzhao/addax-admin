@@ -32,56 +32,55 @@
         </v-tabs-window>
       </v-card-text>
     </v-card>
-
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue'
-  import AddaxLogList from '@/components/logs/AddaxLogList.vue'
-  const tab = ref('addax_log')
+  import { ref } from 'vue';
+  import AddaxLogList from '@/components/logs/AddaxLogList.vue';
+  const tab = ref('addax_log');
 </script>
 <style scoped>
-.logs-page {
-  background: rgb(var(--v-theme-surface));
-}
+  .logs-page {
+    background: rgb(var(--v-theme-surface));
+  }
 
-.logs-card {
-  background: rgb(var(--v-theme-surface-variant));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
+  .logs-card {
+    background: rgb(var(--v-theme-surface-variant));
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  }
 
-.logs-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-}
+  .logs-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-.logs-body {
-  background: transparent;
-}
+  .logs-body {
+    background: transparent;
+  }
 
-.logs-tabs :deep(.v-slide-group__content) {
-  gap: 8px;
-}
+  .logs-tabs :deep(.v-slide-group__content) {
+    gap: 8px;
+  }
 
-.logs-window {
-  margin-top: 12px;
-}
+  .logs-window {
+    margin-top: 12px;
+  }
 
-.tab-panel {
-  background: rgb(var(--v-theme-surface));
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  border-radius: 12px;
-  padding: 16px;
-}
+  .tab-panel {
+    background: rgb(var(--v-theme-surface));
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+    border-radius: 12px;
+    padding: 16px;
+  }
 
-.empty-placeholder {
-  color: rgba(var(--v-theme-on-surface), 0.6);
-  font-size: 14px;
-}
+  .empty-placeholder {
+    color: rgba(var(--v-theme-on-surface), 0.6);
+    font-size: 14px;
+  }
 </style>
 
 <route lang="json">

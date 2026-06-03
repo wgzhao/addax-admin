@@ -3,9 +3,19 @@ body,
 #app,
 .v-application {
   line-height: 1.6;
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  font-family:
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    'Noto Sans CJK SC',
+    'Noto Sans SC',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
@@ -15,13 +25,16 @@ body,
   --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.08);
   --ds-border-default: rgba(var(--v-theme-on-surface), 0.12);
   --ds-border-strong: rgba(var(--v-theme-on-surface), 0.2);
-  --ds-surface-raised: rgb(var(--v-theme-surface));
+  --ds-surface-raised: rgb(var(--v-theme-surface-raised));
+  --ds-surface-overlay: rgb(var(--v-theme-surface-overlay));
+  --ds-text-2: rgb(var(--v-theme-on-surface-variant));
+  --ds-text-3: rgb(var(--v-theme-on-surface-muted));
 }
 
 .v-theme--dark {
-  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.16);
-  --ds-border-default: rgba(var(--v-theme-on-surface), 0.22);
-  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.32);
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.14);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.18);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.26);
 }
 
 input,
@@ -40,13 +53,20 @@ select,
 .v-application .v-list-item-title,
 .v-application .v-list-item-subtitle {
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.68;
 }
 
 .v-application .text-body-2,
 .v-application .text-caption {
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.6;
+}
+
+.v-application .v-list-item-subtitle,
+.v-application .text-medium-emphasis,
+.v-application .text-disabled,
+.v-application .page-subtitle {
+  color: var(--ds-text-2) !important;
 }
 
 .selected-row {
@@ -76,11 +96,17 @@ select,
 
 .v-data-table thead th,
 .v-data-table-server thead th {
-  background: rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.06);
   color: rgb(var(--v-theme-on-surface));
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
+}
+
+.v-theme--dark .v-data-table thead th,
+.v-theme--dark .v-data-table-server thead th,
+.v-theme--dark .v-data-table-virtual thead th {
+  background: rgba(var(--v-theme-surface-overlay), 0.68);
 }
 
 .v-data-table thead tr,
@@ -102,11 +128,19 @@ select,
 
 .v-data-table tbody tr:nth-child(even),
 .v-data-table-server tbody tr:nth-child(even) {
-  background: rgba(var(--v-theme-on-surface), 0.04);
+  background: rgba(var(--v-theme-on-surface), 0.035);
+}
+
+.v-theme--dark .v-data-table tbody tr:nth-child(even),
+.v-theme--dark .v-data-table-server tbody tr:nth-child(even),
+.v-theme--dark .v-data-table-virtual tbody tr:nth-child(even) {
+  background: rgba(var(--v-theme-surface-overlay), 0.36);
 }
 
 .form-section {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .form-section:hover {
@@ -166,10 +200,95 @@ select,
   flex-wrap: wrap;
 }
 
+.ds-management-page {
+  min-width: 0;
+}
+
+.ds-management-page > .ds-card {
+  transition:
+    filter 0.2s ease,
+    opacity 0.2s ease;
+  transform: translateZ(0);
+}
+
+.ds-management-page--modal-open > .ds-card {
+  filter: blur(3px) saturate(0.86);
+  opacity: 0.52;
+  pointer-events: none;
+  user-select: none;
+}
+
 .ds-table-wrap .v-data-table,
 .ds-table-wrap .v-data-table-server,
 .ds-table-wrap .v-data-table-virtual {
   background: transparent;
+}
+
+.ds-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block: 4px;
+  min-width: 0;
+}
+
+.ds-cell-meta {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--ds-text-2);
+}
+
+.ds-cell-primary {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.ds-cell-support {
+  color: var(--ds-text-2);
+}
+
+.ds-white-space-normal {
+  white-space: normal !important;
+  word-break: break-all !important;
+}
+
+.ds-mono-text {
+  font-family:
+    'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+}
+
+.ds-action-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ds-action-btn-main {
+  font-weight: 600 !important;
+  letter-spacing: 0.4px;
+}
+
+.ds-dialog-overlay .v-card-actions {
+  padding: 12px 16px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+.ds-error-popover {
+  padding: 12px 16px;
+  max-width: 480px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #2a1b1b;
+  color: #ffb4ab;
+  border: 1px solid #93000a;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
 }
 
 .ds-dialog-overlay .v-overlay__scrim {

@@ -20,7 +20,5 @@
 </template>
 
 <script setup lang="ts">
-import BatchAdd from '@/components/table/BatchAdd.vue'
-import { useRouter } from 'vue-router'
-const router = useRouter()
+  import BatchAdd from '@/components/table/BatchAdd.vue';
 </script>

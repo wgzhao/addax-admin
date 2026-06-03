@@ -1,65 +1,65 @@
-import { computed, onMounted, onUnmounted, watch } from 'vue'
-import { useTheme } from 'vuetify'
-import { useThemeStore } from '@/stores/theme-store'
+import { computed, onMounted, onUnmounted, watch } from 'vue';
+import { useTheme } from 'vuetify';
+import { useThemeStore } from '@/stores/theme-store';
 
 export const useAppTheme = () => {
-  const themeStore = useThemeStore()
-  const theme = useTheme()
+  const themeStore = useThemeStore();
+  const theme = useTheme();
 
-  const themeName = computed(() => themeStore.theme)
-  const isDarkTheme = computed(() => themeStore.theme === 'dark')
+  const themeName = computed(() => themeStore.theme);
+  const isDarkTheme = computed(() => themeStore.theme === 'dark');
 
   const toggleTheme = () => {
-    themeStore.toggleTheme()
-  }
+    themeStore.toggleTheme();
+  };
 
   const resetToSystemTheme = () => {
-    themeStore.resetToSystemTheme()
-  }
+    themeStore.resetToSystemTheme();
+  };
 
   watch(
     () => themeStore.theme,
-    (value) => {
-      theme.change(value)
+    value => {
+      theme.change(value);
     },
     { immediate: true }
-  )
+  );
 
-  let mediaQuery: MediaQueryList | null = null
+  let mediaQuery: MediaQueryList | null = null;
   const handleSystemThemeChange = (event: MediaQueryListEvent) => {
-    if (themeStore.hasUserPreference) return
-    themeStore.setSystemTheme(event.matches ? 'dark' : 'light')
-  }
+    if (themeStore.hasUserPreference) return;
+    themeStore.setSystemTheme(event.matches ? 'dark' : 'light');
+  };
 
   onMounted(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return
-    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     if (!themeStore.hasUserPreference) {
-      themeStore.setSystemTheme(mediaQuery.matches ? 'dark' : 'light')
+      themeStore.setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
     }
 
     if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleSystemThemeChange)
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
     } else {
-      mediaQuery.addListener(handleSystemThemeChange)
+      mediaQuery.addListener(handleSystemThemeChange);
     }
-  })
+  });
 
   onUnmounted(() => {
-    if (!mediaQuery) return
+    if (!mediaQuery) return;
     if (mediaQuery.removeEventListener) {
-      mediaQuery.removeEventListener('change', handleSystemThemeChange)
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
     } else {
-      mediaQuery.removeListener(handleSystemThemeChange)
+      mediaQuery.removeListener(handleSystemThemeChange);
     }
-  })
+  });
 
   return {
     themeStore,
     themeName,
     isDarkTheme,
     toggleTheme,
-    resetToSystemTheme
-  }
-}
+    resetToSystemTheme,
+  };
+};

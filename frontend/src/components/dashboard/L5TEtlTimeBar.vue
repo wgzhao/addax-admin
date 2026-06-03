@@ -6,12 +6,12 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted } from 'vue'
-  import requests from '@/utils/requests'
-  import { defineAsyncComponent } from 'vue'
+  import { ref, computed, onMounted } from 'vue';
+  import requests from '@/utils/requests';
+  import { defineAsyncComponent } from 'vue';
   // 动态加载 chart.js 相关（首屏不再打包进主 bundle）
   const Bar = defineAsyncComponent(async () => {
-    const [{ Bar }, chart] = await Promise.all([import('vue-chartjs'), import('chart.js')])
+    const [{ Bar }, chart] = await Promise.all([import('vue-chartjs'), import('chart.js')]);
     chart.Chart.register(
       chart.Title,
       chart.Tooltip,
@@ -19,27 +19,27 @@
       chart.BarElement,
       chart.CategoryScale,
       chart.LinearScale
-    )
-    return Bar
-  })
-  import { useTheme } from 'vuetify' // Vuetify 主题钩子
+    );
+    return Bar;
+  });
+  import { useTheme } from 'vuetify'; // Vuetify 主题钩子
 
   // ChartJS 注册延迟到异步组件加载时完成
 
   // Vuetify 主题钩子
-  const vuetifyTheme = useTheme()
-  const isDark = computed(() => vuetifyTheme.current.value.dark)
+  const vuetifyTheme = useTheme();
+  const isDark = computed(() => vuetifyTheme.current.value.dark);
 
-  const rawData = ref([])
-  const chartReady = ref(false)
+  const rawData = ref([]);
+  const chartReady = ref(false);
 
   // 动态生成图表数据
   const chartData = computed(() => {
     if (!rawData.value || rawData.value.length === 0) {
       return {
         labels: [],
-        datasets: []
-      }
+        datasets: [],
+      };
     }
 
     // 收集所有唯一的采集源并按时间排序（最新的在前）
@@ -52,8 +52,8 @@
       '#A855F7', // 紫
       '#14B8A6', // 青
       '#F97316', // 深橙
-      '#0EA5E9' // 天蓝
-    ]
+      '#0EA5E9', // 天蓝
+    ];
 
     // 为每个 biz_date 创建一个数据集
     const datasets = rawData.value.map((item, index) => {
@@ -65,15 +65,15 @@
         borderWidth: 1,
         borderRadius: 6,
         borderSkipped: false,
-        maxBarThickness: 26
-      }
-    })
+        maxBarThickness: 26,
+      };
+    });
 
     return {
       labels: rawData.value[0].sources,
-      datasets: datasets
-    }
-  })
+      datasets: datasets,
+    };
+  });
 
   // 图表配置（动态主题）
   const chartOptions = computed(() => ({
@@ -82,29 +82,29 @@
     scales: {
       x: {
         grid: {
-          display: false
+          display: false,
         },
         ticks: {
           color: isDark.value ? '#E2E8F0' : '#334155',
-          font: { size: 11 }
-        }
+          font: { size: 11 },
+        },
       },
       y: {
         grid: {
-          color: isDark.value ? 'rgba(226, 232, 240, 0.12)' : 'rgba(15, 23, 42, 0.08)'
+          color: isDark.value ? 'rgba(226, 232, 240, 0.12)' : 'rgba(15, 23, 42, 0.08)',
         },
         ticks: {
           color: isDark.value ? '#E2E8F0' : '#334155',
           beginAtZero: true,
-          font: { size: 11 }
+          font: { size: 11 },
         },
         title: {
           display: true,
           text: '耗时 (秒)',
           color: isDark.value ? '#E2E8F0' : '#334155',
-          font: { size: 12, weight: 600 }
-        }
-      }
+          font: { size: 12, weight: 600 },
+        },
+      },
     },
     plugins: {
       legend: {
@@ -116,40 +116,40 @@
           boxWidth: 8,
           boxHeight: 8,
           padding: 16,
-          font: { size: 11 }
-        }
+          font: { size: 11 },
+        },
       },
       tooltip: {
         backgroundColor: isDark.value ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
         titleColor: isDark.value ? '#F8FAFC' : '#0F172A',
         bodyColor: isDark.value ? '#E2E8F0' : '#334155',
         borderColor: isDark.value ? 'rgba(148,163,184,0.2)' : 'rgba(15,23,42,0.1)',
-        borderWidth: 1
+        borderWidth: 1,
       },
       title: {
         display: false,
         text: 'Last 5 Days ETL Runtime by FID',
         color: isDark.value ? '#ffffff' : '#333333',
         font: {
-          size: 16
-        }
-      }
-    }
-  }))
+          size: 16,
+        },
+      },
+    },
+  }));
 
   const fetchData = async () => {
     try {
-      const res = await requests.get('/dashboard/last-5d-collect-time')
-      rawData.value = res
-      chartReady.value = true
+      const res = await requests.get('/dashboard/last-5d-collect-time');
+      rawData.value = res;
+      chartReady.value = true;
     } catch (err) {
-      console.error('Error fetching data:', err)
+      console.error('Error fetching data:', err);
     }
-  }
+  };
 
   onMounted(() => {
-    fetchData()
-  })
+    fetchData();
+  });
 </script>
 
 <style scoped>

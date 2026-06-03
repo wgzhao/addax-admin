@@ -60,29 +60,29 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
-  import systemInfoService from '@/service/system-info-service'
-  import type { ETLAndDS } from '@/types/database'
-  import type { LoadItemsOptions } from '@/types'
-  import type { DataTableHeader } from 'vuetify'
+  import { ref, onMounted } from 'vue';
+  import systemInfoService from '@/service/system-info-service';
+  import type { ETLAndDS } from '@/types/database';
+  import type { LoadItemsOptions } from '@/types';
+  import type { DataTableHeader } from 'vuetify';
 
-  const etlAndDs = ref<ETLAndDS[]>([])
-  const etlInfo = ref<any[]>([])
+  const etlAndDs = ref<ETLAndDS[]>([]);
+  const etlInfo = ref<any[]>([]);
   const etlInfoParams = ref<LoadItemsOptions>({
     page: 1,
     itemsPerPage: 10,
-    sortBy: null
-  })
-  const etlTotalItems = ref(0)
-  const filter = ref('')
+    sortBy: null,
+  });
+  const etlTotalItems = ref(0);
+  const filter = ref('');
 
   const etlAndDsHeaders: DataTableHeader[] = [
     { title: '类别', key: 'sysKind' },
     { title: '系统编号', key: 'sysid' },
     { title: '系统名称', key: 'sysName' },
     { title: '连接串', key: 'dbConstr' },
-    { title: '登录用户', key: 'dbUser' }
-  ]
+    { title: '登录用户', key: 'dbUser' },
+  ];
 
   const etlInfoHeaders: DataTableHeader[] = [
     { title: '系统名称', key: 'sysName' },
@@ -90,37 +90,37 @@
     { title: '源表名', key: 'sourceTable' },
     { title: '源表筛选', key: 'filter' },
     { title: '目标用户', key: 'destOwner' },
-    { title: '目标表名', key: 'targetTable' }
-  ]
+    { title: '目标表名', key: 'targetTable' },
+  ];
 
   const fetchData = () => {
-    systemInfoService.getEtlAndDs(filter.value).then((res) => {
-      etlAndDs.value = res.data
-    })
-    loadItems(etlInfoParams.value)
-  }
+    systemInfoService.getEtlAndDs(filter.value).then(res => {
+      etlAndDs.value = res.data;
+    });
+    loadItems(etlInfoParams.value);
+  };
 
   const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
     // const sort = createSort(sortBy)
     etlInfoParams.value = {
       page: page,
       itemsPerPage: itemsPerPage,
-      sortBy: sortBy
-    }
-    systemInfoService.getEtlInfo(etlInfoParams.value).then((res) => {
-      etlInfo.value = res.data.content
+      sortBy: sortBy,
+    };
+    systemInfoService.getEtlInfo(etlInfoParams.value).then(res => {
+      etlInfo.value = res.data.content;
       etlInfoParams.value = {
         page: res.data.pageable.pageNumber,
         itemsPerPage: res.data.pageable.pageSize,
-        sortBy: null
-      }
-      etlTotalItems.value = res.data.totalElements
-    })
-  }
+        sortBy: null,
+      };
+      etlTotalItems.value = res.data.totalElements;
+    });
+  };
 
   onMounted(() => {
-    fetchData()
-  })
+    fetchData();
+  });
 </script>
 <route lang="json">
 {

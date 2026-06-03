@@ -1,306 +1,387 @@
 <template>
-  <v-card class="mx-auto addax-card" max-width="1200" min-width="800" density="comfortable">
-    <v-card-title class="d-flex align-center addax-title">
-      <v-icon left class="mr-2">mdi-code-json</v-icon>
-      Addax 采集任务配置
-    </v-card-title>
-
-    <v-divider />
-    <v-card-text class="addax-body">
-      <div v-if="loading" class="d-flex justify-center">
-        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+  <v-card flat class="ds-card table-panel addax-job-panel">
+    <v-card-text class="table-panel__content">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title-row">
+            <div class="panel-title">采集作业配置</div>
+            <v-chip size="small" variant="tonal" color="primary">JSON</v-chip>
+            <v-chip v-if="editing" size="small" variant="outlined" color="warning">编辑中</v-chip>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <template v-if="!editing">
+            <v-btn
+              size="small"
+              variant="tonal"
+              @click="copyToClipboard"
+              prepend-icon="mdi-content-copy"
+            >
+              复制
+            </v-btn>
+            <v-btn
+              size="small"
+              variant="flat"
+              color="primary"
+              @click="startEdit"
+              prepend-icon="mdi-pencil"
+            >
+              编辑
+            </v-btn>
+          </template>
+          <template v-else>
+            <v-btn size="small" variant="text" @click="cancelEdit">取消</v-btn>
+            <v-btn size="small" color="primary" variant="flat" :disabled="!dirty" @click="saveEdit">
+              保存
+            </v-btn>
+          </template>
+        </div>
       </div>
 
-      <div v-else-if="error" class="text-error">
-        <v-alert type="error" class="mb-4">
+      <div v-if="loading" class="panel-state">
+        <v-progress-circular indeterminate color="primary" size="42" width="4" />
+        <div class="panel-state__title">正在加载作业配置</div>
+        <div class="panel-state__desc">系统正在读取当前采集表对应的 Addax JSON 内容。</div>
+      </div>
+
+      <div v-else-if="error" class="panel-state panel-state--error">
+        <v-icon size="44" color="error">mdi-alert-circle-outline</v-icon>
+        <div class="panel-state__title">配置加载失败</div>
+        <v-alert type="error" variant="tonal" class="mt-3">
           {{ error }}
         </v-alert>
       </div>
 
-      <div v-else-if="jobContent" class="json-container">
-        <v-sheet class="form-section" rounded="lg" border>
-          <div class="section-header">
-            <v-icon size="18" color="primary">mdi-file-code</v-icon>
-            <span>JSON 配置</span>
-            <v-spacer />
-            <div class="header-actions">
-              <template v-if="!editing">
-                <v-btn size="small" variant="tonal" @click="copyToClipboard" prepend-icon="mdi-content-copy">
-                  复制
-                </v-btn>
-                <v-btn size="small" variant="tonal" color="primary" @click="startEdit" prepend-icon="mdi-pencil">
-                  编辑
-                </v-btn>
-              </template>
-              <template v-else>
-                <v-btn size="small" variant="text" @click="cancelEdit">取消</v-btn>
-                <v-btn size="small" color="primary" :disabled="!dirty" @click="saveEdit">保存</v-btn>
-              </template>
-            </div>
-          </div>
-          <v-divider />
-          <div class="code-wrap">
-            <div v-if="!editing">
-              <pre><code class="language-json hljs" v-html="highlightedCode"></code></pre>
-            </div>
-            <div v-else>
-              <v-textarea
-                v-model="editContent"
-                auto-grow
-                rows="10"
-                class="mono-text"
-                style="width:100%"
-                @input="onEditInput"
-              />
-            </div>
-          </div>
-        </v-sheet>
+      <div v-else-if="jobContent" class="code-shell">
+        <div class="code-shell__body" :class="{ 'code-shell__body--editing': editing }">
+          <template v-if="!editing">
+            <pre><code class="language-json hljs" v-html="highlightedCode"></code></pre>
+          </template>
+          <template v-else>
+            <v-textarea
+              v-model="editContent"
+              auto-grow
+              rows="16"
+              variant="solo-filled"
+              flat
+              class="mono-text"
+              @input="onEditInput"
+            />
+          </template>
+        </div>
       </div>
 
-      <div v-else class="text-center text-medium-emphasis">
-        <v-icon size="48" class="mb-2">mdi-file-document-outline</v-icon>
-        <p>暂无配置内容</p>
+      <div v-else class="panel-state">
+        <v-icon size="48" class="panel-state__icon">mdi-file-document-outline</v-icon>
+        <div class="panel-state__title">暂无配置内容</div>
+        <div class="panel-state__desc">当前采集表还没有生成可展示的 Addax 作业配置。</div>
       </div>
     </v-card-text>
   </v-card>
 </template>
+
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import hljs from 'highlight.js/lib/core'
-import json from 'highlight.js/lib/languages/json'
-// 可以选择以下主题之一：
-import 'highlight.js/styles/atom-one-dark.css' // 深色主题，适合暗色界面
-// import 'highlight.js/styles/github.css'; // GitHub 风格
-// import 'highlight.js/styles/vs.css'; // Visual Studio 风格
-// import 'highlight.js/styles/default.css'; // 默认主题
-import tableService from '@/service/table-service'
-import { useNotifier } from '@/stores/notifier'
+  import { ref, onMounted, computed } from 'vue';
+  import hljs from 'highlight.js/lib/core';
+  import json from 'highlight.js/lib/languages/json';
+  import 'highlight.js/styles/atom-one-dark.css';
+  import tableService from '@/service/table-service';
+  import { useRoute } from 'vue-router';
+  import { useNotifier } from '@/stores/notifier';
 
-// 注册 JSON 语言支持
-hljs.registerLanguage('json', json)
+  hljs.registerLanguage('json', json);
 
-const { notify } = useNotifier()
+  const { notify } = useNotifier();
 
-const props = defineProps({
-  tid: Number
-})
+  // Why: read tid from route instead of props for page usage
+  const route = useRoute();
+  const tid = Number(route.params.tid);
 
-const jobContent = ref('')
-const loading = ref(false)
-const error = ref('');
-const editing = ref(false)
-const editContent = ref('')
-const dirty = ref(false)
+  const jobContent = ref('');
+  const loading = ref(false);
+  const error = ref('');
+  const editing = ref(false);
+  const editContent = ref('');
+  const dirty = ref(false);
 
-// 高亮后的 HTML 内容
-const highlightedCode = computed(() => {
-  if (!jobContent.value) return ''
-  let text = jobContent.value as unknown as string
-  try {
-    // 如果后端返回的是对象或可解析的 JSON 字符串，统一美化为字符串
+  const displayText = computed(() => {
+    if (!jobContent.value) return '';
     if (typeof jobContent.value === 'object') {
-      text = JSON.stringify(jobContent.value, null, 2)
-    } else {
-      // 尝试解析以确保缩进一致
-      const parsed = JSON.parse(text)
-      text = JSON.stringify(parsed, null, 2)
+      return JSON.stringify(jobContent.value, null, 2);
     }
-  } catch (_) {
-    // 非 JSON 字符串则保持原样
-  }
-  return hljs.highlight(text, { language: 'json' }).value
-})
 
-
-// 复制到剪贴板，内容为 jobContent.value 字符串
-async function copyToClipboard() {
-  try {
-    let text = jobContent.value
-    if (typeof text === 'object') {
-      text = JSON.stringify(text, null, 2)
-    }
-    await navigator.clipboard.writeText(text)
-    notify('配置已复制到剪贴板', 'success', 2000, undefined, 'mdi-check')
-  } catch (err) {
-    notify('复制失败，请手动复制', 'error', 3000, undefined, 'mdi-alert')
-  }
-}
-
-// 单独封装 job 刷新逻辑
-async function reloadJob() {
-  if (!props.tid) return
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await tableService.fetchAddaxJob(props.tid)
-    jobContent.value = res
-    if (!jobContent.value) {
-      error.value = '获取到的配置内容为空'
-    }
-  } catch (err) {
-    error.value = (err as Error).message || '获取配置失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(() => {
-  reloadJob()
-})
-
-function startEdit() {
-  editing.value = true
-  dirty.value = false
-  // ensure editContent is a prettified string
-  if (typeof jobContent.value === 'object') {
-    editContent.value = JSON.stringify(jobContent.value, null, 2)
-  } else {
+    const raw = String(jobContent.value);
     try {
-      const parsed = JSON.parse(String(jobContent.value))
-      editContent.value = JSON.stringify(parsed, null, 2)
-    } catch (_err) {
-      editContent.value = String(jobContent.value || '')
+      return JSON.stringify(JSON.parse(raw), null, 2);
+    } catch {
+      return raw;
+    }
+  });
+
+  const highlightedCode = computed(() => {
+    if (!displayText.value) return '';
+    return hljs.highlight(displayText.value, { language: 'json' }).value;
+  });
+
+  async function copyToClipboard() {
+    try {
+      await navigator.clipboard.writeText(displayText.value);
+      notify('配置已复制到剪贴板', 'success', 2000, undefined, 'mdi-check');
+    } catch {
+      notify('复制失败，请手动复制', 'error', 3000, undefined, 'mdi-alert');
     }
   }
-}
 
-function cancelEdit() {
-  editing.value = false
-  dirty.value = false
-}
-
-function onEditInput() {
-  dirty.value = true
-}
-
-async function saveEdit() {
-  if (!props.tid) return
-  try {
-    loading.value = true
-    // validate JSON where possible
+  async function reloadJob() {
+    if (!tid) return;
+    loading.value = true;
+    error.value = '';
     try {
-      JSON.parse(editContent.value)
+      const res = await tableService.fetchAddaxJob(tid);
+      jobContent.value = res;
+      if (!jobContent.value) {
+        error.value = '获取到的配置内容为空';
+      }
     } catch (err) {
-      notify('JSON 格式错误，请修正后保存', 'error')
-      return
+      error.value = (err as Error).message || '获取配置失败';
+    } finally {
+      loading.value = false;
     }
-    await tableService.updateAddaxJob(props.tid, editContent.value)
-    jobContent.value = editContent.value
-    editing.value = false
-    dirty.value = false
-    notify('保存成功', 'success')
-  } catch (err) {
-    const msg = (err as Error).message || String(err)
-    notify('保存失败: ' + msg, 'error')
-  } finally {
-    loading.value = false
   }
-}
+
+  onMounted(() => {
+    reloadJob();
+  });
+
+  function startEdit() {
+    editing.value = true;
+    dirty.value = false;
+    editContent.value = displayText.value;
+  }
+
+  function cancelEdit() {
+    editing.value = false;
+    dirty.value = false;
+  }
+
+  function onEditInput() {
+    dirty.value = true;
+  }
+
+  async function saveEdit() {
+    if (!tid) return;
+    try {
+      loading.value = true;
+      try {
+        JSON.parse(editContent.value);
+      } catch {
+        notify('JSON 格式错误，请修正后保存', 'error');
+        return;
+      }
+      await tableService.updateAddaxJob(tid, editContent.value);
+      jobContent.value = editContent.value;
+      editing.value = false;
+      dirty.value = false;
+      notify('保存成功', 'success');
+    } catch (err) {
+      const msg = (err as Error).message || String(err);
+      notify(`保存失败: ${msg}`, 'error');
+    } finally {
+      loading.value = false;
+    }
+  }
 </script>
+
 <style scoped>
-.addax-card {
-  background: rgb(var(--v-theme-surface));
-}
+  .table-panel__content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+  }
 
-.addax-title {
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-}
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
 
-.addax-body {
-  background: transparent;
-}
+  .panel-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-.form-section {
-  background: rgb(var(--v-theme-surface));
-  border-color: rgba(var(--v-theme-on-surface), 0.08);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
+  .panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-.form-section:hover {
-  border-color: rgba(var(--v-theme-primary), 0.2);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-}
+  .panel-subtitle {
+    margin-top: 6px;
+    max-width: 680px;
+    color: rgba(var(--v-theme-on-surface), 0.68);
+    line-height: 1.6;
+  }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  font-weight: 600;
-  color: rgb(var(--v-theme-on-surface));
-}
+  .panel-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
 
-.header-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
 
-.code-wrap {
-  padding: 12px 14px 14px;
-}
+  .summary-item {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background:
+      linear-gradient(
+        180deg,
+        rgba(var(--v-theme-primary), 0.06),
+        rgba(var(--v-theme-primary), 0.01)
+      ),
+      rgb(var(--v-theme-surface));
+  }
 
-.json-container {
-  width: 100%;
-}
+  .summary-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(var(--v-theme-on-surface), 0.56);
+  }
 
-.code-wrap pre {
-  margin: 0;
-  padding: 12px 12px;
-  background-color: transparent;
-  overflow-x: auto;
-  font-family:
-    'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
+  .code-shell {
+    border-radius: 18px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+    background:
+      linear-gradient(180deg, rgba(var(--v-theme-primary), 0.035), transparent 84%),
+      rgb(var(--v-theme-surface));
+    overflow: hidden;
+  }
 
-.mono-text textarea {
-  width: 100% !important;
-  min-height: 300px !important;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
-  font-size: 13px;
-}
+  .code-shell__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  }
 
-.code-wrap code {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 0;
-  font-family: inherit;
-  font-size: inherit;
-}
+  .code-shell__title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-/* 滚动条样式 */
-.code-wrap pre::-webkit-scrollbar {
-  height: 8px;
-}
+  .code-shell__title {
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
 
-.code-wrap pre::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
+  .code-shell__caption {
+    margin-top: 2px;
+    font-size: 0.82rem;
+    color: rgba(var(--v-theme-on-surface), 0.62);
+  }
 
-.code-wrap pre::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
-}
+  .code-shell__body {
+    padding: 16px;
+    background: #0f172a;
+  }
 
-.code-wrap pre::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.5);
-}
+  .code-shell__body--editing {
+    background: rgba(var(--v-theme-primary), 0.03);
+  }
 
-.v-theme--dark .code-wrap pre::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
+  .code-shell__body pre {
+    margin: 0;
+    overflow: auto;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.72;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 
-.v-theme--dark .code-wrap pre::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-}
+  .code-shell__body code {
+    font-family: inherit;
+  }
 
-.v-theme--dark .code-wrap pre::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
+  .mono-text :deep(textarea) {
+    min-height: 360px !important;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.72;
+  }
+
+  .mono-text :deep(.v-field) {
+    border-radius: 14px;
+    background: rgba(var(--v-theme-surface), 0.96);
+  }
+
+  .panel-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 260px;
+    padding: 24px;
+    text-align: center;
+    border-radius: 18px;
+    border: 1px dashed rgba(var(--v-theme-on-surface), 0.16);
+    background: rgba(var(--v-theme-on-surface), 0.02);
+  }
+
+  .panel-state--error {
+    border-style: solid;
+    background: rgba(var(--v-theme-error), 0.04);
+  }
+
+  .panel-state__icon {
+    color: rgba(var(--v-theme-on-surface), 0.28);
+  }
+
+  .panel-state__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
+
+  .panel-state__desc {
+    max-width: 520px;
+    color: rgba(var(--v-theme-on-surface), 0.64);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 960px) {
+    .summary-strip {
+      grid-template-columns: 1fr;
+    }
+
+    .table-panel__content {
+      padding: 16px;
+    }
+
+    .code-shell__header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
 </style>

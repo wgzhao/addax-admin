@@ -1,32 +1,32 @@
 // Styles
-import '@mdi/font/css/materialdesignicons.css'
-import 'vuetify/styles'
+import '@mdi/font/css/materialdesignicons.css';
+import 'vuetify/styles';
 
 // Composable
-import { createVuetify } from 'vuetify'
-import '@/styles/overrides.scss'
-import customTheme from './custom-theme'
-import { aliases, mdi } from 'vuetify/iconsets/mdi'
+import { createVuetify } from 'vuetify';
+import '@/styles/overrides.scss';
+import modernTheme from './modern-theme';
+import { aliases, mdi } from 'vuetify/iconsets/mdi';
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
     defaultTheme: 'dark',
-    themes: customTheme
+    themes: modernTheme,
   },
   icons: {
     defaultSet: 'mdi',
     aliases,
     sets: {
-      mdi
-    }
+      mdi,
+    },
   },
   defaults: {
     global: {
-      ripple: true
+      ripple: true,
     },
     VTextField: {
-      variant: 'outlined'
-    }
-  }
-})
+      variant: 'outlined',
+    },
+  },
+});

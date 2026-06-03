@@ -1,18 +1,18 @@
 <script setup lang="ts">
-  import { useTheme } from 'vuetify'
-  import { useCycleList } from '@vueuse/core'
-  import { watch } from 'vue'
+  import { useTheme } from 'vuetify';
+  import { useCycleList } from '@vueuse/core';
+  import { watch } from 'vue';
 
   const themes = [
     {
       name: 'light',
-      icon: 'fa-regular fa-sun'
+      icon: 'fa-regular fa-sun',
     },
     {
       name: 'dark',
-      icon: 'fa-regular fa-moon'
-    }
-  ]
+      icon: 'fa-regular fa-moon',
+    },
+  ];
 
   const IconBtn = {
     icon: true,
@@ -20,13 +20,13 @@
     color: 'default',
     variant: 'text',
     VIcon: {
-      size: 24
-    }
-  }
+      size: 24,
+    },
+  };
   const VTooltip = {
     // set v-tooltip default location to top
-    location: 'top'
-  }
+    location: 'top',
+  };
 
   // const props = defineProps({
   //   themes: {
@@ -35,28 +35,28 @@
   //   },
   // })
 
-  const { name: themeName, global: globalTheme } = useTheme()
+  const { name: themeName, global: globalTheme } = useTheme();
 
   const {
     state: currentThemeName,
     next: getNextThemeName,
-    index: currentThemeIndex
+    index: currentThemeIndex,
   } = useCycleList(
-    themes.map((t) => t.name),
+    themes.map(t => t.name),
     { initialValue: themeName }
-  )
+  );
 
   const changeTheme = () => {
-    globalTheme.name.value = getNextThemeName()
-  }
+    globalTheme.name.value = getNextThemeName();
+  };
 
   // Update icon if theme is changed from other sources
   watch(
     () => globalTheme.name.value,
-    (val) => {
-      currentThemeName.value = val
+    val => {
+      currentThemeName.value = val;
     }
-  )
+  );
 </script>
 
 <template>

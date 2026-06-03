@@ -31,8 +31,8 @@ const customTheme = {
       'grey-900': '#0B0D0E',
       'perfect-scrollbar-thumb': '#CDD7E1',
       'skin-bordered-background': '#FFFFFF',
-      'skin-bordered-surface': '#EFF2F5'
-    }
+      'skin-bordered-surface': '#EFF2F5',
+    },
   },
   dark: {
     dark: true,
@@ -67,9 +67,9 @@ const customTheme = {
       'grey-900': '#F0F4F8',
       'perfect-scrollbar-thumb': '#30363D',
       'skin-bordered-background': '#000000',
-      'skin-bordered-surface': '#010409'
-    }
-  }
-}
+      'skin-bordered-surface': '#010409',
+    },
+  },
+};
 
-export default customTheme
+export default customTheme;
