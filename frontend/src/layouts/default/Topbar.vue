@@ -268,6 +268,29 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+  <!-- Confirm dialog for destructive full schema update -->
+  <v-dialog v-model="confirmUpdateAllDialog" max-width="640">
+    <v-card>
+      <v-card-title class="text-h6">请确认：强制更新全部表信息</v-card-title>
+      <v-card-text>
+        <div>
+          警告：该操作会对所有采集表执行强制结构更新，可能耗时很久并产生破坏性变更（例如覆盖现有表结构）。请确保您已备份数据并明确需要执行此操作。
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn
+          variant="text"
+          @click="confirmUpdateAllDialog = false"
+          :disabled="confirmUpdateAllLoading"
+          >取消</v-btn
+        >
+        <v-btn color="error" :loading="confirmUpdateAllLoading" @click="confirmUpdateSchemaAll"
+          >确认并执行</v-btn
+        >
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 <script setup lang="ts">
   import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
@@ -360,6 +383,24 @@
     }
   };
 
+  // Why: prevent accidental destructive/costly operation by asking user to confirm before running the full update
+  const confirmUpdateAllDialog = ref(false);
+  const confirmUpdateAllLoading = ref(false);
+
+  const openConfirmUpdateAll = () => {
+    confirmUpdateAllDialog.value = true;
+  };
+
+  const confirmUpdateSchemaAll = async () => {
+    confirmUpdateAllLoading.value = true;
+    try {
+      await updateSchemaAll();
+      confirmUpdateAllDialog.value = false;
+    } finally {
+      confirmUpdateAllLoading.value = false;
+    }
+  };
+
   const urls = computed<MenuItem[]>(() => {
     const routeMap = new Map<
       string,
@@ -436,7 +477,7 @@
       if (groupKey === 'collect') {
         children.push(
           { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: updateSchemaNeed },
-          { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: updateSchemaAll }
+          { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: openConfirmUpdateAll }
         );
       }
 
