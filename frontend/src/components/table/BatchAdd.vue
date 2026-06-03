@@ -2,13 +2,7 @@
   <v-card flat class="batch-add-shell">
     <div class="workflow-head">
       <div>
-        <div class="workflow-kicker">批量新增流程</div>
-        <div class="workflow-title">按“源 → 表 → 目标”的顺序完成批量采集表创建</div>
-        <div class="workflow-subtitle">
-          采用更清晰的步骤分层：先确定来源，再筛选表，最后只聚焦真正影响结果的目标配置与预览。
-        </div>
       </div>
-
       <div class="overview-grid">
         <div class="overview-card">
           <span class="overview-label">采集源</span>
@@ -126,9 +120,6 @@
             <div class="step-hero">
               <div class="step-kicker">Step 2</div>
               <div class="step-title">筛选并选择待采集表</div>
-              <div class="step-desc">
-                把搜索、选择反馈和表清单放在同一层，用户可以快速定位重点而不是淹没在表格里。
-              </div>
             </div>
 
             <div v-if="loadingTables" class="panel-state">
@@ -155,13 +146,11 @@
                     clearable
                     class="search-field"
                   />
-                  <div class="toolbar-tip">优先通过表名或注释缩小范围，再做批量勾选。</div>
                 </div>
                 <div class="table-stage__toolbar-right">
-                  <v-chip color="primary" variant="tonal" size="small"
+                  <v-chip color="primary" variant="tonal"
                     >已选 {{ selectedCnt }}</v-chip
                   >
-                  <v-chip variant="outlined" size="small">候选 {{ tables.length }}</v-chip>
                 </div>
               </div>
 
@@ -209,9 +198,6 @@
             <div class="step-hero">
               <div class="step-kicker">Step 3</div>
               <div class="step-title">配置目标端并检查预览</div>
-              <div class="step-desc">
-                把真正影响落库结果的配置放在主区，把命名预览固定在右侧，避免提交前失焦。
-              </div>
             </div>
 
             <v-alert
@@ -233,9 +219,6 @@
                   <div class="stage-panel__header">
                     <div>
                       <div class="stage-panel__title">目标配置</div>
-                      <div class="stage-panel__caption">
-                        优先处理目标端、目标库和目标表模板，这是本步骤最核心的三项。
-                      </div>
                     </div>
                   </div>
                   <v-row dense>
@@ -280,9 +263,6 @@
                   <div class="stage-panel__header">
                     <div>
                       <div class="stage-panel__title">分区与存储</div>
-                      <div class="stage-panel__caption">
-                        这些配置决定了目标表的分区方式、格式与压缩策略，作为第二层信息展示。
-                      </div>
                     </div>
                   </div>
                   <v-row dense>
@@ -458,11 +438,8 @@
       >
     </v-card-actions>
 
-    <v-dialog v-model="showPartitionInfoDialog" max-width="600px">
+    <v-dialog v-model="showPartitionInfoDialog" max-width="700px">
       <v-card>
-        <v-card-title class="text-h6 bg-info text-white">
-          <h4 class="text-h6 mb-2">分区表 vs 非分区表</h4>
-        </v-card-title>
         <v-card-text>
           <v-row>
             <v-col cols="6">
@@ -470,7 +447,7 @@
                 <h5 class="text-subtitle-1 text-success mb-2">
                   <v-icon class="me-1" color="success">mdi-folder-table</v-icon>分区表
                 </h5>
-                <p class="text-body-2 mb-2"><strong>分区字段名:</strong> 有值（如：logdate、dt）</p>
+                <p class="text-body-2 mb-2"><strong>分区字段名:</strong> 有值(如: logdate、dt)</p>
                 <p class="text-body-2 mb-2"><strong>数据组织:</strong> 按分区目录存储</p>
               </v-card>
             </v-col>
@@ -486,8 +463,7 @@
             </v-col>
           </v-row>
           <v-alert type="info" variant="tonal" class="mt-4">
-            <v-icon>mdi-lightbulb-outline</v-icon>
-            <strong>提示：</strong>如果分区字段名为空，系统将为所有选中的表创建非分区表。
+            如果分区字段名为空，系统将为所有选中的表创建非分区表。
           </v-alert>
         </v-card-text>
         <v-card-actions>

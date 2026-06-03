@@ -200,48 +200,33 @@
             </template>
 
             <template v-slot:item.action="{ item }">
-              <div class="ds-action-inline d-flex align-center justify-center ga-1">
-                <v-tooltip location="top">
-                  <template #activator="{ props }">
-                    <v-btn
-                      v-bind="props"
+                  <v-btn
                       color="primary"
-                      variant="text"
-                      size="small"
-                      class="px-2 ds-action-btn-main"
+                      variant="plain"
                       @click="doEtl(item)"
                     >
-                      <v-icon size="16" class="mr-1">mdi-play-circle</v-icon>采集
-                    </v-btn>
-                  </template>
-                  <span>触发单表采集</span>
-                </v-tooltip>
+                      <v-icon>mdi-play-circle</v-icon>采集
+                  </v-btn>
 
                 <v-btn
-                  color="secondary"
-                  variant="text"
-                  size="small"
-                  class="px-2"
+                  color="warning"
+                  variant="plain"
                   @click="updateSchema(item)"
                 >
-                  <v-icon size="16" class="mr-1">mdi-database-refresh</v-icon>更新
+                  <v-icon>mdi-database-refresh</v-icon>更新
                 </v-btn>
 
                 <v-btn
-                  variant="text"
+                  variant="plain"
                   color="error"
-                  size="small"
-                  class="px-2"
                   @click="confirmDelete(item)"
                 >
-                  <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+                  <v-icon>mdi-delete</v-icon>删除
                 </v-btn>
 
                 <v-btn
-                  variant="text"
+                  variant="plain"
                   color="secondary"
-                  icon
-                  size="small"
                   aria-label="更多操作"
                   @click="
                     router.push({
@@ -250,9 +235,8 @@
                     })
                   "
                 >
-                  <v-icon size="18">mdi-launch</v-icon>
+                  <v-icon size="16">mdi-open-in-new</v-icon>
                 </v-btn>
-              </div>
             </template>
           </v-data-table-server>
         </template>
@@ -368,12 +352,12 @@
 
   // 优化后的 Headers 配置：精简列数，合并表达
   const headers: DataTableHeader[] = [
-    { title: '#', key: 'id', align: 'center', width: '60px' },
-    { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '24%' },
-    { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '24%' },
+    { title: '#', key: 'id', align: 'center', width: '1%' },
+    { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '25%' },
+    { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '25%' },
     { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '10%' },
-    { title: '状态', key: 'status', align: 'start', sortable: true, width: '10%' },
-    { title: '耗时 (s)', key: 'duration', align: 'center', sortable: true, width: '6%' },
+    { title: '状态', key: 'status', align: 'start', sortable: true, width: '5%' },
+    { title: '耗时(s)', key: 'duration', align: 'center', sortable: true, width: '6%' },
     { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '12%' },
     { title: '操作', key: 'action', align: 'center', sortable: false, width: '15%' },
   ];

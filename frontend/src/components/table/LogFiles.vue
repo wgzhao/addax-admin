@@ -358,7 +358,6 @@
     height: 100%;
     min-height: 420px;
     border-radius: 16px;
-    background: #0f172a;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 

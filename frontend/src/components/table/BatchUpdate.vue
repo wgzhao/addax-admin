@@ -6,20 +6,6 @@
           <div class="batch-update-title">批量修改采集表</div>
           <v-chip size="small" variant="tonal" color="primary">{{ selectedCount }} 条记录</v-chip>
         </div>
-        <div class="batch-update-subtitle">
-          将本次批量操作聚焦为两个关键字段：采集状态与剩余运行次数，减少误操作负担。
-        </div>
-      </div>
-    </div>
-
-    <div class="impact-strip">
-      <div class="impact-item">
-        <span class="impact-label">影响范围</span>
-        <strong>{{ selectedCount }} 条采集表记录</strong>
-      </div>
-      <div class="impact-item">
-        <span class="impact-label">修改字段</span>
-        <strong>状态 / 剩余运行次数</strong>
       </div>
     </div>
 
@@ -32,7 +18,6 @@
         <div class="field-card">
           <div class="field-card__head">
             <div class="field-card__title">采集状态</div>
-            <div class="field-card__desc">统一设置选中记录的运行状态。</div>
           </div>
           <v-select
             v-model="status"
@@ -40,9 +25,6 @@
             item-title="label"
             item-value="value"
             density="comfortable"
-            variant="outlined"
-            label="状态"
-            hint="选择要写入的状态值"
             persistent-hint
           />
         </div>
@@ -50,17 +32,13 @@
         <div class="field-card">
           <div class="field-card__head">
             <div class="field-card__title">剩余运行次数</div>
-            <div class="field-card__desc">适合对重试配额做统一回填或收缩。</div>
           </div>
           <v-text-field
             v-model="retryCnt"
-            label="剩余运行次数"
             type="number"
             min="0"
             max="99"
             density="comfortable"
-            variant="outlined"
-            hint="请输入 0 到 99 之间的非负整数"
             persistent-hint
           />
         </div>

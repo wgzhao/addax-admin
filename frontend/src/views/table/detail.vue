@@ -6,7 +6,7 @@
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
         <div class="page-title">
-          采集表详情: <v-chip>{{ tblname }}</v-chip>
+          采集表详情: {{ tblname }}
         </div>
       </v-card-text>
     </v-card>

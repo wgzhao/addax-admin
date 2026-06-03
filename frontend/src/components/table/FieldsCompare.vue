@@ -154,11 +154,11 @@
   const sameCount = computed(() => Math.max(mappedFields.value.length - diffCount.value, 0));
 
   const headers: DataTableHeader[] = [
-    { title: '序号', key: 'columnId', width: '88px' },
-    { title: '字段', key: 'columnName' },
-    { title: '源字段类型', key: 'sourceDescriptor' },
-    { title: '目标字段类型', key: 'targetDescriptor' },
-    { title: '差异状态', key: 'diffLabel', width: '132px' },
+    { title: '序号', key: 'columnId', width: '5%' },
+    { title: '字段', key: 'columnName', width: '65%' },
+    { title: '源字段类型', key: 'sourceDescriptor', width: '15%' },
+    { title: '目标字段类型', key: 'targetDescriptor', width: '10%' },
+    { title: '差异状态', key: 'diffLabel', width: '5%' },
   ];
 
   onMounted(async () => {

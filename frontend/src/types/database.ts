@@ -173,6 +173,7 @@ export interface EtlStatistic {
   totalRecs?: number; // 采集的总行数
   totalErrors?: number; // 采集时发生错误的行数
   runDate: Date; // 运行时的日期
+  bizDate?: Date; // 业务日期
 }
 
 // 采集源表 etl_source
