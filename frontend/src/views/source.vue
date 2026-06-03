@@ -68,13 +68,6 @@
             density="comfortable"
             items-per-page="20"
           >
-            <template #item.name="{ item }">
-              <div class="ds-cell-stack">
-                <span class="ds-cell-meta">{{ item.code || '未配置采集代码' }}</span>
-                <span class="ds-cell-primary">{{ item.name || '-' }}</span>
-              </div>
-            </template>
-
             <template #item.url="{ item }">
               <span class="ds-cell-primary ds-mono-text ds-white-space-normal table-url">{{
                 item.url || '-'
@@ -182,14 +175,15 @@
   const searchValue = ref('');
 
   const headers: DataTableHeader[] = [
-    { title: 'ID', key: 'id', width: 72 },
-    { title: '数据源', key: 'name', minWidth: '180px' },
-    { title: '连接串', key: 'url', minWidth: '200px' },
-    { title: '状态', key: 'enabled', width: 96 },
-    { title: '表数量', key: 'tableCount', width: 96 },
-    { title: '有效表数量', key: 'validTableCount', width: 110 },
-    { title: '采集时间', key: 'startAt', width: 120 },
-    { title: '操作', key: 'actions', align: 'center', sortable: false, width: 260 },
+    { title: 'ID', key: 'id', width: '2%' },
+    { title: '编号', key: 'code', width: '5%'},
+    { title: '数据源', key: 'name', minWidth: '5%' },
+    { title: '连接串', key: 'url', minWidth: '15%' },
+    { title: '状态', key: 'enabled', width: '3%' },
+    { title: '表数量', key: 'tableCount', width: '5%' },
+    { title: '有效表数量', key: 'validTableCount', width: '7%' },
+    { title: '采集时间', key: 'startAt', width: '6%' },
+    { title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' },
   ];
 
   const params = ref({});
