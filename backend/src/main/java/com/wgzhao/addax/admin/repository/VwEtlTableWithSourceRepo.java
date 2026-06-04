@@ -15,12 +15,21 @@ public interface VwEtlTableWithSourceRepo
 
     Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);
 
+    Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusInAndFilterColumnContaining(List<String> statuses, String filterContent, Pageable pageable);
+
+    Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusIn(List<String> statuses, Pageable pageable);
+
     Page<VwEtlTableWithSource> findByEnabledIsTrueAndFilterColumnContaining(String filterContent, Pageable pageable);
 
     Page<VwEtlTableWithSource> findByEnabledIsTrue(Pageable pageable);
 
     // 支持按数据源ID分页查询（sid = source id）
     Page<VwEtlTableWithSource> findBySidAndEnabledIsTrueAndStatusAndFilterColumnContaining(int sid, String status, String filterContent, Pageable pageable);
+
+    Page<VwEtlTableWithSource> findBySidAndEnabledIsTrueAndStatusInAndFilterColumnContaining(int sid, List<String> statuses, String filterContent,
+        Pageable pageable);
+
+    Page<VwEtlTableWithSource> findBySidAndEnabledIsTrueAndStatusIn(int sid, List<String> statuses, Pageable pageable);
 
     Page<VwEtlTableWithSource> findBySidAndEnabledIsTrueAndFilterColumnContaining(int sid, String filterContent, Pageable pageable);
 
