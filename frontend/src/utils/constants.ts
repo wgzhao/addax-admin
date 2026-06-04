@@ -16,12 +16,6 @@ export const TABLE_STATUS_OPTIONS: StatusOption[] = [
   { value: 'U', label: 'U - 等待更新', text: 'U - 等待更新' },
 ];
 
-// 批量更新时的状态选项（包含空选项）
-export const BATCH_UPDATE_STATUS_OPTIONS: StatusOption[] = [
-  { value: '', label: '请选择状态', text: '请选择状态' },
-  ...TABLE_STATUS_OPTIONS,
-];
-
 // 采集模式选项
 export const COLLECTION_MODE_OPTIONS = [
   { value: 'A', label: 'A - 盘后采集' },

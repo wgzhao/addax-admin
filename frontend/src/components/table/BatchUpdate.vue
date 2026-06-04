@@ -21,7 +21,7 @@
           </div>
           <v-select
             v-model="status"
-            :items="statusOptions"
+            :items="TABLE_STATUS_OPTIONS"
             item-title="label"
             item-value="value"
             density="comfortable"
@@ -59,7 +59,7 @@
   import { ref, computed } from 'vue';
   import { notify } from '@/stores/notifier';
   import tableService from '@/service/table-service';
-  import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils';
+  import { TABLE_STATUS_OPTIONS } from '@/utils';
 
   const props = defineProps({
     tid: {
@@ -78,7 +78,6 @@
   const isValid = computed(
     () => !!status.value || (retryCnt.value !== null && retryCnt.value !== undefined)
   );
-  const statusOptions = BATCH_UPDATE_STATUS_OPTIONS;
 
   async function updateItem() {
     if (!isValid.value) return;

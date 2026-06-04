@@ -43,7 +43,7 @@
           <v-col cols="12" md="2">
             <v-select
               v-model="runStatuses"
-              :items="statusOptions"
+              :items="TABLE_STATUS_OPTIONS"
               item-title="label"
               item-value="value"
               density="compact"
@@ -281,7 +281,7 @@
   import EmptyState from '@/components/EmptyState.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
-  import { BATCH_UPDATE_STATUS_OPTIONS } from '@/utils';
+  import { TABLE_STATUS_OPTIONS } from '@/utils';
   import tableService from '@/service/table-service';
   import taskService from '@/service/task-service';
   import sourceService from '@/service/source-service';
@@ -335,7 +335,6 @@
     return statusColorMap[status] || 'grey';
   }
 
-  const statusOptions = BATCH_UPDATE_STATUS_OPTIONS;
   const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
   const sourceOptions = ref<any[]>([]);

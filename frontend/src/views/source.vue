@@ -176,7 +176,7 @@
 
   const headers: DataTableHeader[] = [
     { title: 'ID', key: 'id', width: '2%' },
-    { title: '编号', key: 'code', width: '5%'},
+    { title: '编号', key: 'code', width: '5%' },
     { title: '数据源', key: 'name', minWidth: '5%' },
     { title: '连接串', key: 'url', minWidth: '15%' },
     { title: '状态', key: 'enabled', width: '3%' },
