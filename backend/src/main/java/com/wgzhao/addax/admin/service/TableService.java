@@ -281,23 +281,37 @@ public class TableService
     }
 
     /**
-     * 根据状态获取视图表信息
+     * 根据状态列表获取视图表信息
      *
      * @param page 页码
      * @param pageSize 每页大小
      * @param q 查询关键字
-     * @param status 表状态
+     * @param statuses 表状态列表
      * @param sortField 排序字段
      * @param sortOrder 排序方式
      * @return 视图表信息分页结果
      */
-    public Page<VwEtlTableWithSource> getVwTablesByStatus(int page, int pageSize, String q, String status, Integer sourceId, String sortField, String sortOrder)
+    public Page<VwEtlTableWithSource> getVwTablesByStatuses(int page, int pageSize, String q, List<String> statuses, Integer sourceId,
+        String sortField, String sortOrder)
     {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
-        if (sourceId != null) {
-            return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndStatusAndFilterColumnContaining(sourceId, status, q.toUpperCase(), pageable);
+        boolean hasQuery = q != null && !q.isEmpty();
+        String query = "";
+        if (hasQuery) {
+            query = q.toUpperCase();
         }
-        return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusAndFilterColumnContaining(status, q.toUpperCase(), pageable);
+
+        if (sourceId != null) {
+            if (hasQuery) {
+                return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndStatusInAndFilterColumnContaining(sourceId, statuses, query, pageable);
+            }
+            return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndStatusIn(sourceId, statuses, pageable);
+        }
+
+        if (hasQuery) {
+            return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusInAndFilterColumnContaining(statuses, query, pageable);
+        }
+        return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusIn(statuses, pageable);
     }
 
     /**

@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 采集表管理接口（RESTful规范），提供采集表的分页查询、详情、统计等功能
@@ -71,7 +72,7 @@ public class TableController
      * @param page 页码（查询参数），默认 0
      * @param pageSize 每页记录数（查询参数），默认 10，-1 表示不分页
      * @param q 查询关键字（查询参数），可选
-     * @param status 状态（查询参数），可选
+    * @param statuses 状态列表（查询参数，逗号分隔），可选
      * @param sortField 排序字段（查询参数），可选
      * @param sortOrder 排序顺序（查询参数），可选
      * @return 采集表分页结果
@@ -81,7 +82,7 @@ public class TableController
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
         @RequestParam(value = "q", required = false) String q,
-        @RequestParam(value = "status", required = false) String status,
+        @RequestParam(value = "statuses", required = false) String statuses,
         @RequestParam(value = "sourceId", required = false) Integer sourceId,
         @RequestParam(value = "sortField", required = false) String sortField,
         @RequestParam(value = "sortOrder", required = false) String sortOrder)
@@ -92,14 +93,30 @@ public class TableController
         if (pageSize == -1) {
             pageSize = Integer.MAX_VALUE;
         }
+
+        List<String> statusList = parseStatuses(statuses);
         Page<VwEtlTableWithSource> result;
-        if (status != null && !status.isEmpty()) {
-            result = tableService.getVwTablesByStatus(page, pageSize, q, status, sourceId, sortField, sortOrder);
+        if (!statusList.isEmpty()) {
+            result = tableService.getVwTablesByStatuses(page, pageSize, q, statusList, sourceId, sortField, sortOrder);
         }
         else {
             result = tableService.getVwTablesInfo(page, pageSize, q, sourceId, sortField, sortOrder);
         }
         return ResponseEntity.ok(PageResponse.from(result));
+    }
+
+    private List<String> parseStatuses(String statuses)
+    {
+        if (statuses == null || statuses.isBlank()) {
+            return List.of();
+        }
+        return List.of(statuses.split(","))
+            .stream()
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .map(String::toUpperCase)
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     /**

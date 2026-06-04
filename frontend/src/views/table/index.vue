@@ -27,7 +27,7 @@
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
         <v-row dense align="center">
-          <v-col cols="12" md="2" lg="2">
+          <v-col cols="12" md="2">
             <v-text-field
               v-model="search"
               density="compact"
@@ -40,15 +40,16 @@
               @click:append-inner="searchTable"
             />
           </v-col>
-          <v-col cols="12" md="1" lg="1">
+          <v-col cols="12" md="2">
             <v-select
-              v-model="runStatus"
+              v-model="runStatuses"
               :items="statusOptions"
               item-title="label"
               item-value="value"
               density="compact"
               variant="outlined"
-              single-line
+              multiple
+              clearable
               hide-details
               label="状态"
             />
@@ -335,7 +336,7 @@
   }
 
   const statusOptions = BATCH_UPDATE_STATUS_OPTIONS;
-  const runStatus = ref<string>();
+  const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
   const sourceOptions = ref<any[]>([]);
 
@@ -471,7 +472,7 @@
         page - 1,
         itemsPerPage,
         search.value,
-        runStatus.value,
+        runStatuses.value,
         sourceId.value,
         sortParam
       )

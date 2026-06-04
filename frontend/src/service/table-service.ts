@@ -16,7 +16,7 @@ class TableService {
     page: number,
     pageSize: number,
     q: string,
-    runStatus?: string,
+    runStatuses?: string[],
     sourceId?: number | null,
     sortBy?: any
   ): Promise<Page<VEtlWithSource>> {
@@ -25,7 +25,7 @@ class TableService {
       page: page,
       pageSize: pageSize,
       q: q,
-      status: runStatus,
+      statuses: runStatuses && runStatuses.length > 0 ? runStatuses.join(',') : undefined,
       sourceId: sourceId,
       sortField: sortBy?.sortField,
       sortOrder: sortBy?.sortOrder,
