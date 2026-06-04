@@ -13,6 +13,14 @@
   <name>addax-admin-backend</name>
   <description>Addax Management - Backend API</description>
 
+  <distributionManagement>
+     <repository>
+       <id>github</id>
+       <name>wgzhao</name>
+       <url>https://maven.pkg.github.com/wgzhao/addax-admin</url>
+     </repository>
+  </distributionManagement>
+
   <dependencyManagement>
     <dependencies>
       <dependency>
