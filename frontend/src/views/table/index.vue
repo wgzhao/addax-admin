@@ -73,37 +73,38 @@
           </v-col>
           <v-spacer />
           <template v-if="selected.length > 0">
-            <v-col cols="12" md="1">
+            <v-col cols="12" md="4" class="d-flex justify-end">
               <v-btn
                 variant="flat"
                 color="primary"
                 prepend-icon="mdi-database"
+                class="mx-1"
                 @click="doEtl(null)"
               >
                 批量采集
               </v-btn>
-            </v-col>
-            <v-col cols="12" md="1">
+
               <v-btn
                 color="secondary"
                 prepend-icon="mdi-pencil"
+                class="mx-1"
                 @click="openDialog('BatchUpdate', 'BatchUpdate')"
               >
                 批量修改
               </v-btn>
-            </v-col>
-            <v-col cols="12" md="1">
+
               <v-btn
                 variant="flat"
                 color="error"
                 prepend-icon="mdi-delete"
+                class="mx-1"
                 @click="confirmBatchDelete"
               >
                 批量删除
               </v-btn>
-            </v-col>
-            <v-col cols="12" md="1">
-              <v-btn color="secondary" variant="tonal"> 已选择 {{ selected.length }} 行 </v-btn>
+              <v-btn color="secondary" variant="tonal" class="mx-1">
+                已选择 {{ selected.length }} 行
+              </v-btn>
             </v-col>
           </template>
         </v-row>
