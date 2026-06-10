@@ -29,7 +29,7 @@
     <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable>{{ error }}</v-alert>
 
     <!-- node cards -->
-    <v-row dense>
+    <v-row density="comfortable">
       <v-col v-for="node in status.nodes" :key="node.instanceId" cols="12" sm="6" lg="4">
         <v-card
           :color="node.role.includes('MASTER') ? 'primary' : undefined"

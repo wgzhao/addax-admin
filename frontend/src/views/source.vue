@@ -15,7 +15,7 @@
               color="primary"
               variant="flat"
               prepend-icon="mdi-plus"
-              @click="doAction('-1', 'add')"
+              @click="doAction(-1, 'add')"
               >新增数据源</v-btn
             >
           </div>
@@ -25,7 +25,7 @@
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
-        <v-row dense align="center">
+        <v-row density="comfortable" align="center">
           <v-col cols="12" md="5" lg="4">
             <v-text-field
               v-model="searchValue"
@@ -57,7 +57,7 @@
             title="暂无数据源"
             description="当前还没有配置任何数据源。点击下方按钮新增数据源后，即可继续维护连接与采集配置。"
             :primary="{ label: '新增数据源', icon: 'mdi-plus' }"
-            @primary="() => doAction('-1', 'add')"
+            @primary="() => doAction(-1, 'add')"
           />
         </template>
         <template v-else>
@@ -200,7 +200,7 @@
       });
   };
 
-  const doAction = (id, ctype) => {
+  const doAction = (id: number, ctype) => {
     params.value = {
       mode: ctype,
       sid: id,

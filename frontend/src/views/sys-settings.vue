@@ -25,7 +25,7 @@
             </v-card-title>
             <v-divider />
             <v-card-text class="pa-4 section-body">
-              <v-row dense>
+              <v-row density="comfortable">
                 <v-col cols="12">
                   <div class="field-label">Addax程序目录</div>
                   <v-text-field
@@ -88,7 +88,7 @@
             </v-card-title>
             <v-divider />
             <v-card-text class="pa-4 section-body">
-              <v-row dense>
+              <v-row density="comfortable">
                 <v-col cols="12">
                   <div class="field-label">JDBC连接地址</div>
                   <v-text-field
@@ -165,7 +165,7 @@
             </v-card-title>
             <v-divider />
             <v-card-text class="pa-4 section-body">
-              <v-row dense>
+              <v-row density="comfortable">
                 <v-col cols="12">
                   <div class="field-label">最大采集并发数量</div>
                   <v-text-field

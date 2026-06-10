@@ -15,7 +15,7 @@
 
     <v-card flat class="ds-card toolbar-card filter-card">
       <v-card-text class="ds-card__content">
-        <v-row dense class="filter-row">
+        <v-row density="comfortable" class="filter-row">
           <v-col cols="auto">
             <v-text-field
               v-model.number="filters.days"

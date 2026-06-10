@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="pa-4">
     <!-- 搜索栏 -->
-    <v-row dense class="mb-2">
+    <v-row density="comfortable" class="mb-2">
       <v-col cols="12" md="4" lg="3">
         <v-text-field
           append-inner-icon="mdi-magnify"
@@ -19,7 +19,7 @@
     </v-row>
 
     <!-- 主内容网格 -->
-    <v-row dense>
+    <v-row density="comfortable">
       <!-- 数据中心采集及数据服务系统清单（全宽） -->
       <v-col cols="12">
         <v-card flat title="数据中心采集及数据服务系统清单" class="mb-4">

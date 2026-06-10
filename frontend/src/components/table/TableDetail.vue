@@ -35,7 +35,7 @@
       </div>
     </div>
 
-    <v-row dense class="detail-grid">
+    <v-row density="comfortable" class="detail-grid">
       <v-col cols="12" lg="7" class="panel-stack">
         <v-card flat class="ds-card section-card">
           <v-card-text class="section-body">
@@ -45,7 +45,7 @@
               </div>
             </div>
 
-            <v-row dense>
+            <v-row density="comfortable">
               <v-col cols="12" md="6">
                 <div class="field-block">
                   <div class="field-label">源系统</div>
@@ -138,7 +138,7 @@
               </div>
             </div>
 
-            <v-row dense>
+            <v-row density="comfortable">
               <v-col cols="12" md="6">
                 <div class="field-block">
                   <div class="field-label">目标端</div>
@@ -237,7 +237,7 @@
               </div>
             </div>
 
-            <v-row dense>
+            <v-row density="comfortable">
               <v-col cols="12" md="12">
                 <div class="field-block">
                   <div class="field-label field-label-row">
@@ -359,7 +359,7 @@
               </div>
             </div>
 
-            <v-row dense>
+            <v-row density="comfortable">
               <v-col cols="12">
                 <div class="field-block">
                   <div class="field-label">读取插件配置 (JSON)</div>

@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="pa-6 monitor-page">
-    <v-row dense class="section-grid">
+    <v-row density="comfortable" class="section-grid">
       <!-- 数据源完成情况 -->
       <v-col cols="12" md="12">
         <v-card flat :title="accomplishListTable.title" class="mb-4 section-card">
@@ -17,7 +17,7 @@
       </v-col>
     </v-row>
 
-    <v-row dense class="section-grid">
+    <v-row density="comfortable" class="section-grid">
       <!-- 特殊任务提醒 -->
       <v-col cols="12" md="7">
         <v-card flat :title="specialTaskTable.title" class="mb-4 section-card">

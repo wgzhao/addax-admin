@@ -21,7 +21,7 @@
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
-        <v-row dense align="center">
+        <v-row density="comfortable" align="center">
           <v-col cols="12" md="4" lg="3">
             <v-text-field
               v-model="searchValue"

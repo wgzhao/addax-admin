@@ -218,7 +218,7 @@
                       <div class="stage-panel__title">目标配置</div>
                     </div>
                   </div>
-                  <v-row dense>
+                  <v-row density="comfortable">
                     <v-col cols="12" md="4">
                       <v-select
                         v-model="targetId"
@@ -262,7 +262,7 @@
                       <div class="stage-panel__title">分区与存储</div>
                     </div>
                   </div>
-                  <v-row dense>
+                  <v-row density="comfortable">
                     <v-col cols="12" md="6">
                       <v-text-field
                         v-model="partName"

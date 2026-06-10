@@ -21,7 +21,7 @@
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
-        <v-row dense align="center">
+        <v-row density="comfortable" align="center">
           <v-col cols="12" md="5" lg="4">
             <v-text-field
               v-model="searchValue"
@@ -144,7 +144,7 @@
       <v-card>
         <v-card-title>{{ form.id ? '编辑目标端' : '新增目标端' }}</v-card-title>
         <v-card-text>
-          <v-row dense>
+          <v-row density="comfortable">
             <v-col cols="12" md="6">
               <v-text-field v-model="form.code" label="编码" variant="outlined" density="compact" />
             </v-col>

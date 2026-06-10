@@ -8,7 +8,7 @@
       </v-card-title>
 
       <v-card-text class="pa-4 add-source-body">
-        <v-row dense class="section-grid">
+        <v-row density="comfortable" class="section-grid">
           <v-col cols="12" md="6">
             <v-sheet class="form-section" rounded="lg" border>
               <div class="section-header">
@@ -16,7 +16,7 @@
                 <span>基本信息</span>
               </div>
               <v-divider />
-              <v-row dense class="section-body">
+              <v-row density="comfortable" class="section-body">
                 <v-col cols="12">
                   <div class="field-stack">
                     <div class="field-label">采集编号</div>
@@ -101,7 +101,7 @@
                 <span>连接信息</span>
               </div>
               <v-divider />
-              <v-row dense class="section-body">
+              <v-row density="comfortable" class="section-body">
                 <v-col cols="12">
                   <div class="field-stack">
                     <div class="field-label">JDBC 连接地址</div>
@@ -167,7 +167,7 @@
                 <span>备注信息</span>
               </div>
               <v-divider />
-              <v-row dense class="section-body">
+              <v-row density="comfortable" class="section-body">
                 <v-col cols="12">
                   <div class="field-stack field-stack-top">
                     <div class="field-label">备注信息</div>

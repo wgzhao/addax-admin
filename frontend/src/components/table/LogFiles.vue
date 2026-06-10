@@ -1,7 +1,7 @@
 <template>
   <v-card flat class="ds-card table-panel log-files-panel">
     <v-card-text class="table-panel__content">
-      <v-row dense class="content-grid">
+      <v-row density="comfortable" class="content-grid">
         <v-col cols="12" md="4" lg="3">
           <div class="log-list-shell">
             <div class="shell-header">
