@@ -240,8 +240,7 @@
     padding: 14px 16px;
     border-radius: 14px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background:
-      linear-gradient(
+    background: linear-gradient(
         180deg,
         rgba(var(--v-theme-primary), 0.06),
         rgba(var(--v-theme-primary), 0.01)
@@ -299,8 +298,8 @@
   }
 
   .mono-cell {
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
   }
 
   .panel-state {

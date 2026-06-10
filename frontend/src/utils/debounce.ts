@@ -16,13 +16,10 @@ export function throttle<T extends (...args: any[]) => void>(fn: T, interval = 2
       fn(...args);
     } else {
       clearTimeout(pending);
-      pending = setTimeout(
-        () => {
-          last = Date.now();
-          fn(...args);
-        },
-        interval - (now - last)
-      );
+      pending = setTimeout(() => {
+        last = Date.now();
+        fn(...args);
+      }, interval - (now - last));
     }
   };
 }

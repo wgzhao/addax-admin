@@ -242,9 +242,7 @@
   .stat-card {
     background: rgb(var(--v-theme-surface-variant));
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    transition:
-      transform 0.2s ease,
-      box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .stat-card:hover {

@@ -89,8 +89,8 @@
                     loadingDbs
                       ? '正在加载...'
                       : !selectedSourceId
-                        ? '请先选择采集源系统'
-                        : '请选择数据库'
+                      ? '请先选择采集源系统'
+                      : '请选择数据库'
                   "
                 />
               </section>
@@ -821,8 +821,7 @@
     padding: 14px 16px;
     border-radius: 16px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background:
-      linear-gradient(
+    background: linear-gradient(
         180deg,
         rgba(var(--v-theme-primary), 0.06),
         rgba(var(--v-theme-primary), 0.01)
@@ -1001,8 +1000,8 @@
   }
 
   .mono-data {
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
   }
 
   .config-grid {
@@ -1076,8 +1075,8 @@
 
   .src-col {
     color: rgba(var(--v-theme-on-surface), 0.7);
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
   }
 
   .arrow-col {
@@ -1087,8 +1086,8 @@
   }
 
   .dst-col {
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
     color: rgb(var(--v-theme-primary));
   }
 

@@ -174,9 +174,7 @@
     width: 100%;
     border-radius: 12px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-    transition:
-      background-color 0.3s ease,
-      border-color 0.3s ease;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
   }
 
   .dark-mode {

@@ -245,8 +245,7 @@
     padding: 12px 14px;
     border-radius: 14px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background:
-      linear-gradient(
+    background: linear-gradient(
         180deg,
         rgba(var(--v-theme-primary), 0.06),
         rgba(var(--v-theme-primary), 0.01)
@@ -266,8 +265,7 @@
   .code-shell {
     border-radius: 18px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background:
-      linear-gradient(180deg, rgba(var(--v-theme-primary), 0.035), transparent 84%),
+    background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.035), transparent 84%),
       rgb(var(--v-theme-surface));
     overflow: hidden;
   }
@@ -310,8 +308,8 @@
   .code-shell__body pre {
     margin: 0;
     overflow: auto;
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
     font-size: 13px;
     line-height: 1.72;
     white-space: pre-wrap;
@@ -324,8 +322,8 @@
 
   .mono-text :deep(textarea) {
     min-height: 360px !important;
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
     font-size: 13px;
     line-height: 1.72;
   }

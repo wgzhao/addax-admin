@@ -202,31 +202,56 @@
             </template>
 
             <template v-slot:item.action="{ item }">
-              <v-btn color="primary" variant="plain" @click="doEtl(item)">
-                <v-icon>mdi-play-circle</v-icon>采集
-              </v-btn>
-
-              <v-btn color="warning" variant="plain" @click="updateSchema(item)">
-                <v-icon>mdi-database-refresh</v-icon>更新
-              </v-btn>
-
-              <v-btn variant="plain" color="error" @click="confirmDelete(item)">
-                <v-icon>mdi-delete</v-icon>删除
-              </v-btn>
-
-              <v-btn
-                variant="plain"
-                color="secondary"
-                aria-label="更多操作"
-                @click="
-                  router.push({
-                    path: `/table/detail/${item.id}`,
-                    query: { tab: 'info', tblname: `${item.sourceDb}.${item.sourceTable}` },
-                  })
-                "
-              >
-                <v-icon size="16">mdi-open-in-new</v-icon>
-              </v-btn>
+              <div class="adjust-start align-center space-between">
+                <v-tooltip text="发起采集" location="top">
+                  <template v-slot:activator="{ props: activatorProps }">
+                    <v-icon-btn
+                      color="primary"
+                      size="small"
+                      class="mr-2"
+                      icon="mdi-play-circle"
+                      @click="doEtl(item)"
+                      v-bind="activatorProps"
+                    ></v-icon-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip text="更新表结构" location="top">
+                  <template v-slot:activator="{ props: activatorProps }">
+                    <v-icon-btn
+                      color="warning"
+                      size="small"
+                      class="mr-2"
+                      icon="mdi-database-refresh"
+                      @click="updateSchema(item)"
+                      v-bind="activatorProps"
+                    ></v-icon-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip text="删除此采集表" location="top">
+                  <template v-slot:activator="{ props: activatorProps }">
+                    <v-icon-btn
+                      color="error"
+                      size="small"
+                      class="mr-2"
+                      icon="mdi-delete"
+                      @click="confirmDelete(item)"
+                      v-bind="activatorProps"
+                    ></v-icon-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip text="查看详情" location="top">
+                  <template v-slot:activator="{ props: open }">
+                    <v-icon-btn
+                      color="secondary"
+                      size="small"
+                      class="mr-2"
+                      icon="mdi-open-in-new"
+                      @click="viewDetail(item)"
+                      v-bind="open"
+                    ></v-icon-btn>
+                  </template>
+                </v-tooltip>
+              </div>
             </template>
           </v-data-table-server>
         </template>
@@ -342,13 +367,13 @@
   // 优化后的 Headers 配置：精简列数，合并表达
   const headers: DataTableHeader[] = [
     { title: '#', key: 'id', align: 'center', width: '1%' },
-    { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '25%' },
+    { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '28%' },
     { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '25%' },
-    { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '10%' },
+    { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '13%' },
     { title: '状态', key: 'status', align: 'start', sortable: true, width: '5%' },
     { title: '耗时(s)', key: 'duration', align: 'center', sortable: true, width: '6%' },
-    { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '12%' },
-    { title: '操作', key: 'action', align: 'center', sortable: false, width: '15%' },
+    { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '10%' },
+    { title: '操作', key: 'action', align: 'center', sortable: false, width: '10%' },
   ];
 
   const errorMsgMap = ref<Record<number, string>>({});
@@ -510,6 +535,13 @@
     const query = { ...route.query };
     delete query.action;
     router.replace({ path: route.path, query });
+  };
+
+  const viewDetail = (item: any) => {
+    router.push({
+      path: `/table/detail/${item.id}`,
+      query: { tab: 'info', tblname: `${item.sourceDb}.${item.sourceTable}` },
+    });
   };
 
   onMounted(() => {

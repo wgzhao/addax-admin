@@ -3,19 +3,9 @@ body,
 #app,
 .v-application {
   line-height: 1.6;
-  font-family:
-    'PingFang SC',
-    'Hiragino Sans GB',
-    'Microsoft YaHei UI',
-    'Microsoft YaHei',
-    'Noto Sans CJK SC',
-    'Noto Sans SC',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei',
+    'Noto Sans CJK SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Helvetica Neue', Arial, sans-serif;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
@@ -138,9 +128,7 @@ select,
 }
 
 .form-section {
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-section:hover {
@@ -205,9 +193,7 @@ select,
 }
 
 .ds-management-page > .ds-card {
-  transition:
-    filter 0.2s ease,
-    opacity 0.2s ease;
+  transition: filter 0.2s ease, opacity 0.2s ease;
   transform: translateZ(0);
 }
 
@@ -255,8 +241,8 @@ select,
 }
 
 .ds-mono-text {
-  font-family:
-    'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+    monospace;
 }
 
 .ds-action-inline {
@@ -305,9 +291,7 @@ select,
   border: 1px solid var(--ds-border-strong);
   border-radius: 12px;
   background: rgb(var(--v-theme-surface));
-  box-shadow:
-    0 24px 72px rgba(0, 0, 0, 0.46),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   overflow: hidden;
 }
 

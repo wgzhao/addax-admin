@@ -221,8 +221,7 @@
     padding: 14px 16px;
     border-radius: 14px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background:
-      linear-gradient(
+    background: linear-gradient(
         180deg,
         rgba(var(--v-theme-primary), 0.06),
         rgba(var(--v-theme-primary), 0.01)
@@ -291,8 +290,8 @@
     max-width: 100%;
     padding: 6px 10px;
     border-radius: 999px;
-    font-family:
-      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+      monospace;
     font-size: 0.8rem;
     line-height: 1.35;
     word-break: break-all;

@@ -156,7 +156,9 @@
             key: 'run_fail_noRun_noCreate',
             // 使用不间断空格确保渲染时空格可见
             value: item =>
-              `${item.run_cnt ?? 0}\u00A0/\u00A0${item.fail_cnt ?? 0}\u00A0/\u00A0${item.no_run_cnt ?? 0}\u00A0/\u00A0${item.no_create_table_cnt ?? 0}`,
+              `${item.run_cnt ?? 0}\u00A0/\u00A0${item.fail_cnt ?? 0}\u00A0/\u00A0${
+                item.no_run_cnt ?? 0
+              }\u00A0/\u00A0${item.no_create_table_cnt ?? 0}`,
             align: 'center',
           },
         ],

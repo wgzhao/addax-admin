@@ -7,7 +7,8 @@
 // https://vuetifyjs.com/features/sass-variables/
 @use 'vuetify/settings' with (
   // Global font stack (unified with runtime CSS for predictable rendering)
-  $body-font-family: (
+  $body-font-family:
+    (
       'PingFang SC',
       'Hiragino Sans GB',
       'Microsoft YaHei UI',
@@ -43,5 +44,5 @@
   $border-radius-root: 4px,
 
   // Vuetify 4 shadows are now computed; overriding opacity variables is no longer supported
-   // (they are not exposed with !default). Remove custom shadow opacities to keep build compatible.
+  // (they are not exposed with !default). Remove custom shadow opacities to keep build compatible.
 );

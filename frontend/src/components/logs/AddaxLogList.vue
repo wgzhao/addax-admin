@@ -189,14 +189,14 @@
     white-space: pre-wrap;
     overflow: hidden;
     cursor: pointer;
-    font-family:
-      ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Helvetica Neue', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Helvetica Neue',
+      monospace;
     font-size: 13px;
   }
 
   .full-log {
-    font-family:
-      ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Helvetica Neue', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Helvetica Neue',
+      monospace;
     font-size: 13px;
     white-space: pre-wrap;
   }
