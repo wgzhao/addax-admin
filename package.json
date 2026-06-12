@@ -1,7 +1,7 @@
 {
   "name": "addax-admin-monorepo",
   "private": true,
-  "version": "4.0.2-SNAPSHOT",
+  "version": "4.0.2",
   "description": "Addax Admin Management System - Monorepo workspace configuration",
   "workspaces": [
     "frontend"
@@ -26,9 +26,9 @@
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "husky": "^9.1.7",
+    "lint-staged": "^13.0.6",
     "npm-run-all": "^4.1.5",
-    "prettier": "^2.8.8",
-    "lint-staged": "^13.0.6"
+    "prettier": "^2.8.8"
   },
   "lint-staged": {
     "frontend/**/*.{js,ts,vue,scss,css,json,md}": [

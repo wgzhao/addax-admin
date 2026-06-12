@@ -1,7 +1,7 @@
 {
   "name": "addax-ui",
   "private": true,
-  "version": "4.0.2-SNAPSHOT",
+  "version": "4.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite --force",
@@ -44,7 +44,9 @@
     "@types/node": "^22.9.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
+    "lint-staged": "^13.0.6",
     "npm-run-all2": "^8.0.4",
+    "prettier": "^2.8.8",
     "sass-embedded": "^1.92.1",
     "typescript": "~5.9.2",
     "unplugin-fonts": "^1.4.0",
@@ -52,9 +54,7 @@
     "unplugin-vue-router": "^0.19.2",
     "vite": "^8.0.0",
     "vite-plugin-vuetify": "^2.1.3",
-    "vue-tsc": "^3.2.6",
-    "prettier": "^2.8.8",
-    "lint-staged": "^13.0.6"
+    "vue-tsc": "^3.2.6"
   },
   "lint-staged": {
     "src/**/*.{js,ts,vue,scss,css,json,md}": [
