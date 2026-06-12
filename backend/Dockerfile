@@ -25,7 +25,7 @@ WORKDIR /app
 RUN apk add --no-cache busybox-extras
 
 # 从构建阶段复制 JAR 文件
-COPY --from=builder /build/target/*.jar app.jar
+COPY --from=builder /build/backend/target/*.jar app.jar
 
 # 创建必要的目录
 RUN mkdir -p /app/logs /app/drivers /app/config /app/job
