@@ -16,7 +16,7 @@ npm pkg set version="$VERSION"
 npm pkg set version="$VERSION" --prefix frontend
 
 # Single commit with repository-scoped conventional commit (why: satisfy commitlint and repo conventions)
-git add pom.xml package.json frontend/package.json
+git add pom.xml  backend/pom.xml package.json frontend/package.json
 git commit -m "chore(repo): release v$VERSION"
 git tag "v$VERSION"
 
