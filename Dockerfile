@@ -51,8 +51,8 @@ WORKDIR /app
 # Install nginx and busybox-extras (for nc in healthcheck)
 RUN apk add --no-cache nginx busybox-extras
 
-# Copy backend jar
-COPY --from=backend-builder /build/target/*.jar /app/app.jar
+# Why: backend artifacts are generated under the backend module target directory
+COPY --from=backend-builder /build/backend/target/*.jar /app/app.jar
 
 # Copy frontend static files into nginx html root
 COPY --from=frontend-builder /build/dist /usr/share/nginx/html
