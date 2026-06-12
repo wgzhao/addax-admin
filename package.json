@@ -1,7 +1,7 @@
 {
   "name": "addax-admin-monorepo",
   "private": true,
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "Addax Admin Management System - Monorepo workspace configuration",
   "workspaces": [
     "frontend"
