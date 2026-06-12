@@ -265,7 +265,7 @@
     const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action;
     if (action !== 'create') return;
 
-    doAction('-1', 'add');
+    doAction(-1, 'add');
 
     const query = { ...route.query };
     delete query.action;
