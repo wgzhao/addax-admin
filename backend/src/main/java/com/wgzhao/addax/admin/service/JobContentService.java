@@ -246,8 +246,8 @@ public class JobContentService
         String partFormat = table.getPartFormat();
         // 转为指定格式
         String partValue = lastEtlDate.format(DateTimeFormatter.ofPattern(partFormat));
-        Long maxValue = targetService.getMaxValue(table, columnName, partValue);
-        if (maxValue == null) {
+        Object maxValueObj = targetService.getMaxValue(table, columnName, partValue);
+        if (maxValueObj == null) {
             // 说明目标表还没有数据或者异常了，那么直接返回 1=1
             // 记录一条风险日志，提醒用户可能存在类型不兼容或查询异常
             try {
@@ -258,6 +258,8 @@ public class JobContentService
             }
             return "1=1";
         }
+        // Support both numeric (Long) and string types
+        String maxValue = (maxValueObj instanceof String) ? "'" + maxValueObj + "'" : String.valueOf(maxValueObj);
         return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
     }
 

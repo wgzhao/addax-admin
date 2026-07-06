@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
+import com.wgzhao.addax.admin.dto.MaxValue;
+import com.wgzhao.addax.admin.common.HiveType;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -531,75 +533,153 @@ public class TargetServiceWithHiveImpl
         }
     }
 
-    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    /**
+     * Get the maximum value of a column with proper type handling (numeric or string).
+     * For numeric columns, returns the numeric maximum value.
+     * For string columns, returns the lexicographic maximum value.
+     */
+    public MaxValue getMaxValueTyped(VwEtlTableWithSource table, String columnName, String partValue)
     {
         if (StringUtils.isEmpty(table.getPartName())) {
             return null;
         }
         String tableName = String.format("`%s`.`%s`", table.getTargetDb(), table.getTargetTable());
         String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'", columnName, tableName, table.getPartName(), partValue);
-        log.info("getMaxValue sql: {}", sql);
+        log.info("getMaxValueTyped sql: {}", sql);
 
         String redisKey = "target:max:" + table.getId() + ":" + columnName;
+
         try (Connection conn = getHiveConnect();
-            Statement stmt = conn.createStatement();
-            var rs = stmt.executeQuery(sql)) {
-            Long sqlMax = null;
-            if (rs.next()) {
-                Object maxVal = rs.getObject("max_val");
-                if (maxVal != null) {
-                    try {
-                        sqlMax = Long.parseLong(maxVal.toString());
-                    }
-                    catch (NumberFormatException nfe) {
-                        log.warn("Non-numeric max_val for {}: {}, falling back to redis if available", tableName, maxVal);
-                    }
-                }
+            Statement stmt = conn.createStatement()) {
+            // Get column type info first
+            LinkedHashMap<String, HiveCol> columns = describeHiveColumns(stmt, table.getTargetDb(), table.getTargetTable());
+            HiveCol targetCol = columns.get(columnName);
+
+            if (targetCol == null) {
+                log.warn("Column {} not found in table {}", columnName, tableName);
+                return null;
             }
 
-            // If sqlMax is null or zero, try to read from redis cache
-            if (sqlMax == null || sqlMax == 0L) {
-                try {
-                    String cached = redisTemplate.opsForValue().get(redisKey);
-                    if (cached != null) {
-                        try {
-                            return Long.parseLong(cached);
-                        }
-                        catch (NumberFormatException nfe) {
-                            log.warn("Cached max value for key {} is not a number: {}", redisKey, cached);
-                        }
-                    }
-                }
-                catch (Exception e) {
-                    log.warn("Failed to read max value from redis for key {}: {}", redisKey, e.getMessage());
-                }
-                // return sqlMax (which may be null or 0)
-                return sqlMax;
+            HiveType hiveType = HiveType.parse(targetCol.type);
+            MaxValue result = executeMaxValueQuery(stmt, sql, hiveType, tableName, redisKey);
+            if (result != null) {
+                return result;
             }
 
-            // sqlMax is a valid (>0) value: update redis and return
-            try {
-                redisTemplate.opsForValue().set(redisKey, sqlMax.toString());
-            }
-            catch (Exception e) {
-                log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
-            }
-            return sqlMax;
+            // If result is null, try to read from redis cache
+            return readMaxValueFromCache(redisKey, tableName, columnName);
         }
         catch (SQLException e) {
             log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
             // on SQL failure, try to read redis as a fallback
-            try {
-                String cached = redisTemplate.opsForValue().get(redisKey);
-                if (cached != null) {
-                    return Long.parseLong(cached);
+            return readMaxValueFromCache(redisKey, tableName, columnName);
+        }
+    }
+
+    private MaxValue executeMaxValueQuery(Statement stmt, String sql, HiveType hiveType, String tableName, String redisKey)
+            throws SQLException
+    {
+        try (var rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                Object maxVal = rs.getObject("max_val");
+                if (maxVal != null) {
+                    // Handle based on column type
+                    if (hiveType.getBase().isNumeric()) {
+                        // Numeric type: parse as Long
+                        try {
+                            Long numericMax = Long.parseLong(maxVal.toString());
+                            // Cache numeric result
+                            try {
+                                redisTemplate.opsForValue().set(redisKey, numericMax.toString());
+                            }
+                            catch (Exception e) {
+                                log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
+                            }
+                            return new MaxValue.NumericMax(numericMax);
+                        }
+                        catch (NumberFormatException nfe) {
+                            log.warn("Non-numeric max_val for numeric column {}: {}, falling back to redis if available", tableName, maxVal);
+                        }
+                    }
+                    else if (isStringType(hiveType)) {
+                        // String type: use string value directly (lexicographic max)
+                        String stringMax = maxVal.toString();
+                        // Cache string result
+                        try {
+                            redisTemplate.opsForValue().set(redisKey, stringMax);
+                        }
+                        catch (Exception e) {
+                            log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
+                        }
+                        return new MaxValue.StringMax(stringMax);
+                    }
+                    else {
+                        // Other types: treat as string
+                        String stringMax = maxVal.toString();
+                        try {
+                            redisTemplate.opsForValue().set(redisKey, stringMax);
+                        }
+                        catch (Exception e) {
+                            log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
+                        }
+                        return new MaxValue.StringMax(stringMax);
+                    }
                 }
             }
-            catch (Exception ex) {
-                log.warn("Failed to read max value from redis for key {} after sql failure: {}", redisKey, ex.getMessage());
-            }
-            return null;
         }
+        return null;
+    }
+
+    private MaxValue readMaxValueFromCache(String redisKey, String tableName, String columnName)
+    {
+        try {
+            String cached = redisTemplate.opsForValue().get(redisKey);
+            if (cached != null) {
+                // Try to determine type from cached value
+                try {
+                    Long numericVal = Long.parseLong(cached);
+                    return new MaxValue.NumericMax(numericVal);
+                }
+                catch (NumberFormatException nfe) {
+                    // Treat as string
+                    return new MaxValue.StringMax(cached);
+                }
+            }
+        }
+        catch (Exception e) {
+            log.warn("Failed to read max value from redis for key {} (table={}, column={}): {}", redisKey, tableName, columnName, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Check if a Hive type is a string-like type
+     */
+    private boolean isStringType(HiveType hiveType)
+    {
+        HiveType.Base base = hiveType.getBase();
+        return base == HiveType.Base.STRING ||
+               base == HiveType.Base.VARCHAR ||
+               base == HiveType.Base.CHAR ||
+               base == HiveType.Base.BINARY;
+    }
+
+    /**
+     * @deprecated Use {@link #getMaxValueTyped(VwEtlTableWithSource, String, String)} instead.
+     * This method is kept for backward compatibility but now supports both numeric and string types.
+     * Returns Long for numeric columns and String for string-type columns.
+     */
+    @Deprecated(since = "4.1.1", forRemoval = false)
+    public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    {
+        MaxValue result = getMaxValueTyped(table, columnName, partValue);
+        if (result instanceof MaxValue.NumericMax numericMax) {
+            return numericMax.value();
+        }
+        if (result instanceof MaxValue.StringMax stringMax) {
+            return stringMax.value();
+        }
+        return null;
     }
 
     private String getHdfsWriteColumns(VwEtlTableWithSource table)

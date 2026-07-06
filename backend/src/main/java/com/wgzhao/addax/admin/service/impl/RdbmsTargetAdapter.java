@@ -59,7 +59,7 @@ public class RdbmsTargetAdapter
     }
 
     @Override
-    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
         return null;
     }

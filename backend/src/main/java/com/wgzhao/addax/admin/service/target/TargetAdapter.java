@@ -17,7 +17,12 @@ public interface TargetAdapter
 
     boolean createOrUpdateTable(VwEtlTableWithSource etlTable);
 
-    Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
+    /**
+     * 获取目标表指定列的最大值。
+     * 返回类型支持 Long（数值列）或 String（字符串列），不存在则返回 null。
+     * 建议使用 {@link #getMaxValueTyped(VwEtlTableWithSource, String, String)} 获取类型化结果。
+     */
+    Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
 
     /**
      * 执行任务前的目标端准备动作（如分区创建）。

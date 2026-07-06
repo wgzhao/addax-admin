@@ -49,7 +49,11 @@ public interface TargetService
     DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
         throws MalformedURLException;
 
-    Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
+    /**
+     * 获取目标表指定列的最大值。
+     * 返回类型支持 Long（数值列）或 String（字符串列），不存在则返回 null。
+     */
+    Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
 
     /**
      * 生成 writer 模板片段。

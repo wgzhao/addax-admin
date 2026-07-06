@@ -224,6 +224,11 @@ public class HiveType
         return curRank >= desRank; // higher rank means wider
     }
 
+    public HiveType.Base getBase()
+    {
+        return base;
+    }
+
     public boolean isPrimitive()
     {
         return base != HiveType.Base.ARRAY && base != HiveType.Base.MAP && base != HiveType.Base.STRUCT && base != HiveType.Base.UNION && base != HiveType.Base.UNKNOWN;
@@ -247,7 +252,7 @@ public class HiveType
             Objects.equals(this.param2, other.param2);
     }
 
-    enum Base
+    public enum Base
     {
         STRING, VARCHAR, CHAR, BINARY,
         BOOLEAN,
