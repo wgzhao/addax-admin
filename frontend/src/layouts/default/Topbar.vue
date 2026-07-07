@@ -746,7 +746,9 @@ watch(
     padding: 10px 12px;
     margin-bottom: 8px;
     cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
   }
 
   .notification-bubble:hover {

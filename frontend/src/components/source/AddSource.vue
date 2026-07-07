@@ -402,7 +402,9 @@
   .form-section {
     background: rgb(var(--v-theme-surface));
     border-color: rgba(var(--v-theme-on-surface), 0.08);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .form-section:hover {

@@ -550,7 +550,8 @@
   }
 
   .json-editor textarea {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+    font-family:
+      'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
     font-size: 13px !important;
     line-height: 1.5 !important;
     tab-size: 2;

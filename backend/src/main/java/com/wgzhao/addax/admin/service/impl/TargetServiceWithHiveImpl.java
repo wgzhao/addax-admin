@@ -553,7 +553,7 @@ public class TargetServiceWithHiveImpl
             Statement stmt = conn.createStatement()) {
             // Get column type info first
             LinkedHashMap<String, HiveCol> columns = describeHiveColumns(stmt, table.getTargetDb(), table.getTargetTable());
-            HiveCol targetCol = columns.get(columnName);
+            HiveCol targetCol = getColumnIgnoreCase(columns, columnName);
 
             if (targetCol == null) {
                 log.warn("Column {} not found in table {}", columnName, tableName);
@@ -648,6 +648,29 @@ public class TargetServiceWithHiveImpl
         }
         catch (Exception e) {
             log.warn("Failed to read max value from redis for key {} (table={}, column={}): {}", redisKey, tableName, columnName, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Get column from map ignoring case, since Hive is case-insensitive
+     */
+    private HiveCol getColumnIgnoreCase(LinkedHashMap<String, HiveCol> columns, String columnName)
+    {
+        if (columnName == null) {
+            return null;
+        }
+        // First try exact match (fast path)
+        HiveCol col = columns.get(columnName);
+        if (col != null) {
+            return col;
+        }
+        // Fall back to case-insensitive search
+        String lowerName = columnName.toLowerCase();
+        for (Map.Entry<String, HiveCol> entry : columns.entrySet()) {
+            if (entry.getKey().toLowerCase().equals(lowerName)) {
+                return entry.getValue();
+            }
         }
         return null;
     }
