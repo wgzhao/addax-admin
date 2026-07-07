@@ -58,7 +58,7 @@ public class TargetServiceImpl
     }
 
     @Override
-    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
         return targetAdapterRegistry.resolve(table).getMaxValue(table, columnName, partValue);
     }

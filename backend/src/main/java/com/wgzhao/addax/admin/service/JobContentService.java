@@ -246,7 +246,7 @@ public class JobContentService
         String partFormat = table.getPartFormat();
         // 转为指定格式
         String partValue = lastEtlDate.format(DateTimeFormatter.ofPattern(partFormat));
-        Long maxValue = targetService.getMaxValue(table, columnName, partValue);
+        Object maxValue = targetService.getMaxValue(table, columnName, partValue);
         if (maxValue == null) {
             // 说明目标表还没有数据或者异常了，那么直接返回 1=1
             // 记录一条风险日志，提醒用户可能存在类型不兼容或查询异常
@@ -258,7 +258,13 @@ public class JobContentService
             }
             return "1=1";
         }
-        return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
+        try {
+            Long.parseLong(maxValue.toString());
+            return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
+        }
+        catch (NumberFormatException e) {
+            return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > '" + maxValue + "'";
+        }
     }
 
     /**
