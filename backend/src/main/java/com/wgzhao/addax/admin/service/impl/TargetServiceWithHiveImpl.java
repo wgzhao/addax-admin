@@ -531,7 +531,7 @@ public class TargetServiceWithHiveImpl
         }
     }
 
-    public Long getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
         if (StringUtils.isEmpty(table.getPartName())) {
             return null;
@@ -544,30 +544,19 @@ public class TargetServiceWithHiveImpl
         try (Connection conn = getHiveConnect();
             Statement stmt = conn.createStatement();
             var rs = stmt.executeQuery(sql)) {
-            Long sqlMax = null;
+            Object sqlMax = null;
             if (rs.next()) {
-                Object maxVal = rs.getObject("max_val");
-                if (maxVal != null) {
-                    try {
-                        sqlMax = Long.parseLong(maxVal.toString());
-                    }
-                    catch (NumberFormatException nfe) {
-                        log.warn("Non-numeric max_val for {}: {}, falling back to redis if available", tableName, maxVal);
-                    }
-                }
+                sqlMax = rs.getObject("max_val");
             }
-
+            if (sqlMax instanceof Number && ((Number) sqlMax).longValue() == 0L) {
+                sqlMax = null;
+            }
             // If sqlMax is null or zero, try to read from redis cache
-            if (sqlMax == null || sqlMax == 0L) {
+            if (sqlMax == null) {
                 try {
-                    String cached = redisTemplate.opsForValue().get(redisKey);
+                    Object cached = redisTemplate.opsForValue().get(redisKey);
                     if (cached != null) {
-                        try {
-                            return Long.parseLong(cached);
-                        }
-                        catch (NumberFormatException nfe) {
-                            log.warn("Cached max value for key {} is not a number: {}", redisKey, cached);
-                        }
+                       return cached;
                     }
                 }
                 catch (Exception e) {
@@ -577,7 +566,7 @@ public class TargetServiceWithHiveImpl
                 return sqlMax;
             }
 
-            // sqlMax is a valid (>0) value: update redis and return
+            // sqlMax is a valid value: update redis and return
             try {
                 redisTemplate.opsForValue().set(redisKey, sqlMax.toString());
             }
@@ -590,9 +579,9 @@ public class TargetServiceWithHiveImpl
             log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
             // on SQL failure, try to read redis as a fallback
             try {
-                String cached = redisTemplate.opsForValue().get(redisKey);
+                Object cached = redisTemplate.opsForValue().get(redisKey);
                 if (cached != null) {
-                    return Long.parseLong(cached);
+                    return cached;
                 }
             }
             catch (Exception ex) {
@@ -672,62 +661,62 @@ public class TargetServiceWithHiveImpl
     }
 
     // Driver shim to wrap a driver loaded from a custom classloader so DriverManager can use it
-        private record DriverShim(Driver driver)
-            implements Driver
+    private record DriverShim(Driver driver)
+        implements Driver
+    {
+
+        @Override
+        public boolean acceptsURL(String u)
+            throws SQLException
         {
+            return driver.acceptsURL(u);
+        }
 
-            @Override
-            public boolean acceptsURL(String u)
-                throws SQLException
-            {
-                return driver.acceptsURL(u);
+        @Override
+        public Connection connect(String u, Properties p)
+            throws SQLException
+        {
+            return driver.connect(u, p);
+        }
+
+        @Override
+        public int getMajorVersion()
+        {
+            return driver.getMajorVersion();
+        }
+
+        @Override
+        public int getMinorVersion()
+        {
+            return driver.getMinorVersion();
+        }
+
+        @Override
+        public DriverPropertyInfo[] getPropertyInfo(String u, Properties p)
+            throws SQLException
+        {
+            return driver.getPropertyInfo(u, p);
+        }
+
+        @Override
+        public boolean jdbcCompliant()
+        {
+            return driver.jdbcCompliant();
+        }
+
+        @Override
+        public Logger getParentLogger()
+            throws SQLFeatureNotSupportedException
+        {
+            try {
+                return driver.getParentLogger();
             }
-
-            @Override
-            public Connection connect(String u, Properties p)
-                throws SQLException
-            {
-                return driver.connect(u, p);
-            }
-
-            @Override
-            public int getMajorVersion()
-            {
-                return driver.getMajorVersion();
-            }
-
-            @Override
-            public int getMinorVersion()
-            {
-                return driver.getMinorVersion();
-            }
-
-            @Override
-            public DriverPropertyInfo[] getPropertyInfo(String u, Properties p)
-                throws SQLException
-            {
-                return driver.getPropertyInfo(u, p);
-            }
-
-            @Override
-            public boolean jdbcCompliant()
-            {
-                return driver.jdbcCompliant();
-            }
-
-            @Override
-            public Logger getParentLogger()
-                throws SQLFeatureNotSupportedException
-            {
-                try {
-                    return driver.getParentLogger();
-                }
-                catch (AbstractMethodError ame) {
-                    // some older drivers don't implement this
-                    throw new SQLFeatureNotSupportedException(ame);
-                }
+            catch (AbstractMethodError ame) {
+                // some older drivers don't implement this
+                throw new SQLFeatureNotSupportedException(ame);
             }
         }
+    }
 
     @PreDestroy
     public void destroy()
