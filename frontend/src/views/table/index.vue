@@ -538,10 +538,16 @@
   };
 
   const viewDetail = (item: any) => {
-    router.push({
+    const routeLocation = {
       path: `/table/detail/${item.id}`,
       query: { tab: 'info', tblname: `${item.sourceDb}.${item.sourceTable}` },
-    });
+    };
+    // Resolve the router location to an href and open it in a new tab.
+    // Prevent the new window from accessing window.opener for security reasons.
+    const href = router.resolve(routeLocation).href;
+    const url = href.startsWith('http') ? href : `${window.location.origin}${href}`;
+    const newWin = window.open(url, '_blank');
+    if (newWin) newWin.opener = null;
   };
 
   onMounted(() => {
