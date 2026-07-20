@@ -858,10 +858,10 @@ public class TaskQueueManagerV2Impl
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
 
-        // Determine whether to use pre-generated template or regenerate for a specific date.
-        // When overrideBizDate differs from the current system biz_date, the task is either
-        // a fillback or a normal task that crossed the daily switch boundary — either way,
-        // the pre-generated template has stale date values and must be regenerated.
+        // For fillback tasks, overrideBizDate contains the target fillback date
+        // which differs from the system biz_date. In this case the pre-generated
+        // template (built for the current biz_date) is stale and must be regenerated
+        // in-memory for the target date. Normal tasks pass null and use the cached template.
         String job;
         LocalDate systemBizDate = configService.getBizDateAsDate();
         if (overrideBizDate != null && !overrideBizDate.equals(systemBizDate)) {

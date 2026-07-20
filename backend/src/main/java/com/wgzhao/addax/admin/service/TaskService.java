@@ -329,10 +329,10 @@ public class TaskService
                 if (queueManager.addFillbackTaskToQueue(table, date, payload)) {
                     enqueuedForTable++;
                     totalEnqueued++;
+                    dates.add(date.format(dateFmt));
                 } else {
                     skipped++;
                 }
-                dates.add(date.format(dateFmt));
             }
 
             // Record audit journey
