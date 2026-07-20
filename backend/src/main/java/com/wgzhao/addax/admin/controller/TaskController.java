@@ -1,5 +1,8 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.FillbackRequestDto;
+import com.wgzhao.addax.admin.dto.FillbackResultDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -184,6 +187,25 @@ public class TaskController
         }
         return ResponseEntity.ok(TaskResultDto.success(
             String.format("批量任务提交完成: 成功 %d 个，失败 %d 个", successCount, failCount), 0));
+    }
+
+    /**
+     * 补数采集
+     * 对指定采集表在给定日期范围内重新采集数据。
+     * 每个表 × 每个日期会生成一个独立的采集任务，使用该日期作为业务日期。
+     * 非分区表会被跳过并记录风险日志。总任务数(表数 × 天数)不能超过 20。
+     *
+     * @param request 补数请求 (tids, startDate, endDate)
+     * @return 补数结果
+     */
+    @PostMapping("/fillback")
+    public ResponseEntity<ApiResponse<FillbackResultDto>> fillback(
+        @RequestBody FillbackRequestDto request)
+    {
+        String username = getCurrentUsername();
+        FillbackResultDto result = taskService.fillback(
+            request.tids(), request.startDate(), request.endDate(), username);
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     /**

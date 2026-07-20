@@ -86,6 +86,16 @@
               </v-btn>
 
               <v-btn
+                variant="flat"
+                color="info"
+                prepend-icon="mdi-calendar-refresh"
+                class="mx-1"
+                @click="openDialog('Fillback', 'Fillback')"
+              >
+                补采数据
+              </v-btn>
+
+              <v-btn
                 color="secondary"
                 prepend-icon="mdi-pencil"
                 class="mx-1"
@@ -313,8 +323,9 @@
   import { notify } from '@/stores/notifier';
   import taskCenter from '@/stores/task-center';
   import type { DataTableHeader } from 'vuetify';
-  // 异步按需加载组件，减轻首屏体积（仅保留批量修改对话框）
+  // 异步按需加载组件，减轻首屏体积
   const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'));
+  const Fillback = defineAsyncComponent(() => import('@/components/table/FillbackDialog.vue'));
 
   const route = useRoute();
   const router = useRouter();
@@ -340,6 +351,7 @@
   ]);
   const componentMap = {
     BatchUpdate,
+    Fillback,
   };
 
   function getRowClass(item: any) {
@@ -393,6 +405,7 @@
 
   const dialogMaxWidth = computed<number | undefined>(() => {
     if (currentDialogName.value === 'BatchUpdate') return 720;
+    if (currentDialogName.value === 'Fillback') return 640;
     return undefined;
   });
 
@@ -418,6 +431,10 @@
 
   function setParams(compName: string, comp: any) {
     if (compName == 'BatchUpdate') {
+      currentParams.value = { tid: selected.value };
+      return;
+    }
+    if (compName == 'Fillback') {
       currentParams.value = { tid: selected.value };
       return;
     }

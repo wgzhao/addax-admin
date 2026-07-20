@@ -1,8 +1,12 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.dto.FillbackResultDto;
+import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +14,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +39,7 @@ import java.util.regex.Pattern;
 public class TaskService
 {
     private static final Pattern INSTANCE_WITH_PID_PATTERN = Pattern.compile("^(.*)-\\d+@.*$");
+    private static final int FILLBACK_MAX_TASKS = 20;
 
     private final TaskQueueManager queueManager;
     private final TableService tableService;
@@ -40,6 +49,7 @@ public class TaskService
     private final ExecutionManager executionManager;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final RiskLogService riskLogService;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -244,6 +254,112 @@ public class TaskService
         }
         else {
             return TaskResultDto.failure("任务提交失败，可能是队列已满或任务已存在", 0);
+        }
+    }
+
+    /**
+     * Submit fillback (补数) tasks for the given tables and date range.
+     * Each (table, date) pair is enqueued as a separate task with the fillback date
+     * as its biz_date. Non-partitioned tables are skipped with a risk log entry.
+     * Total task count (tables × days) must not exceed {@value #FILLBACK_MAX_TASKS}.
+     *
+     * @param tids      table IDs to fillback
+     * @param startDate fillback start date (inclusive)
+     * @param endDate   fillback end date (inclusive)
+     * @param username  requesting user
+     * @return fillback result with enqueue details
+     */
+    public FillbackResultDto fillback(List<Long> tids, LocalDate startDate, LocalDate endDate, String username)
+    {
+        if (tids == null || tids.isEmpty()) {
+            throw new ApiException(400, "补数表列表不能为空");
+        }
+        if (startDate == null || endDate == null) {
+            throw new ApiException(400, "补数日期不能为空");
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new ApiException(400, "开始日期不能晚于结束日期");
+        }
+
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        long totalTasks = (long) tids.size() * days;
+        if (totalTasks > FILLBACK_MAX_TASKS) {
+            throw new ApiException(400,
+                String.format("补数任务总数(%d)超过上限(%d)：表数=%d, 天数=%d",
+                    totalTasks, FILLBACK_MAX_TASKS, tids.size(), days));
+        }
+
+        if (queueManager.isRefreshing()) {
+            throw new ApiException(409, "正在刷新表结构，暂时无法提交补数任务");
+        }
+
+        int totalEnqueued = 0;
+        int skipped = 0;
+        List<FillbackResultDto.Detail> details = new ArrayList<>();
+        DateTimeFormatter dateFmt = DateTimeFormatter.ISO_LOCAL_DATE;
+
+        for (Long tid : tids) {
+            EtlTable table = tableService.getTable(tid);
+            if (table == null) {
+                details.add(new FillbackResultDto.Detail(tid, "(unknown)", List.of(), 0, true, "表不存在"));
+                continue;
+            }
+
+            VwEtlTableWithSource tableView = tableService.getTableView(tid);
+            if (tableView == null) {
+                details.add(new FillbackResultDto.Detail(tid, "(unknown)", List.of(), 0, true, "表视图不存在"));
+                continue;
+            }
+
+            String tableLabel = tableView.getTargetDb() + "." + tableView.getTargetTable();
+
+            // Non-partitioned tables cannot be fillbacked (multiple dates would overwrite each other)
+            if (tableView.getPartName() == null || tableView.getPartName().isBlank()) {
+                String reason = "非分区表不支持补数，已跳过";
+                riskLogService.recordRisk("Fillback", "WARN",
+                    tableLabel + ": " + reason, tid);
+                details.add(new FillbackResultDto.Detail(tid, tableLabel, List.of(), 0, true, reason));
+                continue;
+            }
+
+            List<String> dates = new ArrayList<>();
+            int enqueuedForTable = 0;
+            for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+                String payload = buildFillbackPayload(username, date);
+                if (queueManager.addFillbackTaskToQueue(table, date, payload)) {
+                    enqueuedForTable++;
+                    totalEnqueued++;
+                } else {
+                    skipped++;
+                }
+                dates.add(date.format(dateFmt));
+            }
+
+            // Record audit journey
+            EtlJour jour = jourService.addJour(tid, JourKind.FILLBACK,
+                String.format("fillback %s ~ %s by %s, enqueued=%d",
+                    startDate.format(dateFmt), endDate.format(dateFmt), username, enqueuedForTable));
+            jourService.successJour(jour);
+
+            details.add(new FillbackResultDto.Detail(tid, tableLabel, dates, enqueuedForTable, false, null));
+        }
+
+        log.info("Fillback completed: totalEnqueued={}, skipped={}, tables={}", totalEnqueued, skipped, tids.size());
+        return new FillbackResultDto(totalEnqueued, skipped, details);
+    }
+
+    private String buildFillbackPayload(String username, LocalDate date)
+    {
+        try {
+            Map<String, Object> map = new HashMap<>();
+            map.put("submitter", username);
+            map.put("action", "fillback");
+            map.put("fillback_date", date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+            return objectMapper.writeValueAsString(map);
+        }
+        catch (Exception e) {
+            log.debug("Failed to serialize fillback payload: {}", e.getMessage());
+            return null;
         }
     }
 
