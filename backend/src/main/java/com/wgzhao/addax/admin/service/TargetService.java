@@ -8,6 +8,7 @@ import javax.sql.DataSource;
 
 import java.net.MalformedURLException;
 import java.sql.Connection;
+import java.time.LocalDate;
 
 /**
  * 采集任务目标管理服务。
@@ -55,4 +56,10 @@ public interface TargetService
      * 生成 writer 模板片段。
      */
     String buildWriterJob(VwEtlTableWithSource table);
+
+    /**
+     * 生成 writer 模板片段，使用指定日期替代当前业务日期。
+     * 用于补数场景。
+     */
+    String buildWriterJobForDate(VwEtlTableWithSource table, LocalDate targetDate);
 }

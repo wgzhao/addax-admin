@@ -317,27 +317,36 @@ public class SystemConfigService
 
     public Map<String, String> getBizDateValues()
     {
+        return getBizDateValuesForDate(getBizDateAsDate());
+    }
 
+    /**
+     * Build date variable map for an arbitrary date, used by fillback template generation.
+     *
+     * @param targetDate the date to compute variables for
+     * @return variable map with same keys as {@link #getBizDateValues()}
+     */
+    public Map<String, String> getBizDateValuesForDate(LocalDate targetDate)
+    {
         Map<String, String> values = new HashMap<>();
-        LocalDate bizDate = getBizDateAsDate();
-        values.put("biz_date_short", getBizDate());
-        values.put("biz_date_dash", bizDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        values.put("biz_date_short", targetDate.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+        values.put("biz_date_dash", targetDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
 
-        values.put("biz_year", String.valueOf(bizDate.getYear()));
-        values.put("biz_month", String.format("%02d", bizDate.getMonthValue()));
-        values.put("biz_short_month", String.format("%d", bizDate.getMonthValue()));
-        values.put("biz_day", String.format("%02d", bizDate.getDayOfMonth()));
-        values.put("biz_short_day", String.format("%d", bizDate.getDayOfMonth()));
-        values.put("biz_ym", bizDate.format(DateTimeFormatter.ofPattern("yyyyMM")));
-        values.put("biz_short_ym", bizDate.format(DateTimeFormatter.ofPattern("yyyyM")));
+        values.put("biz_year", String.valueOf(targetDate.getYear()));
+        values.put("biz_month", String.format("%02d", targetDate.getMonthValue()));
+        values.put("biz_short_month", String.format("%d", targetDate.getMonthValue()));
+        values.put("biz_day", String.format("%02d", targetDate.getDayOfMonth()));
+        values.put("biz_short_day", String.format("%d", targetDate.getDayOfMonth()));
+        values.put("biz_ym", targetDate.format(DateTimeFormatter.ofPattern("yyyyMM")));
+        values.put("biz_short_ym", targetDate.format(DateTimeFormatter.ofPattern("yyyyM")));
 
-        LocalDateTime dt = bizDate.atTime(LocalTime.now());
+        LocalDateTime dt = targetDate.atTime(LocalTime.now());
         values.put("biz_datetime_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
         values.put("biz_datetime_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         values.put("biz_datetime_0_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
         values.put("biz_datetime_0_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
 
-        // current date time
+        // current date time — always real now, not the target date
         LocalDateTime now = LocalDateTime.now();
         values.put("curr_date_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
         values.put("curr_date_dash", now.format(DateTimeFormatter.ISO_LOCAL_DATE));

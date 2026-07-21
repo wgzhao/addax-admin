@@ -857,7 +857,20 @@ public class TaskQueueManagerV2Impl
     {
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
-        String job = jobContentService.getJobContent(taskId);
+
+        // For fillback tasks, overrideBizDate contains the target fillback date
+        // which differs from the system biz_date. In this case the pre-generated
+        // template (built for the current biz_date) is stale and must be regenerated
+        // in-memory for the target date. Normal tasks pass null and use the cached template.
+        String job;
+        LocalDate systemBizDate = configService.getBizDateAsDate();
+        if (overrideBizDate != null && !overrideBizDate.equals(systemBizDate)) {
+            log.info("Task {} using fillback date {} (system biz_date={}), regenerating template",
+                taskId, overrideBizDate, systemBizDate);
+            job = jobContentService.getJobContentForDate(taskId, overrideBizDate);
+        } else {
+            job = jobContentService.getJobContent(taskId);
+        }
         if (job == null || job.isEmpty()) {
             log.warn("Job template not generated, taskId={}", taskId);
             return false;
@@ -884,14 +897,16 @@ public class TaskQueueManagerV2Impl
             String curDate = DateUtil.date().toDateStr();
             String jobsDir = Path.of(System.getProperty("app.home")).resolve("job").resolve(curDate) + "/";
             Files.createDirectories(Path.of(jobsDir));
-            tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + ".json");
+            // Include bizDateStr in the file name to prevent concurrent fillback tasks
+            // for the same table from overwriting each other's job files.
+            tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + "_" + bizDateStr + ".json");
             Files.writeString(tempFile.toPath(), job);
         }
         catch (IOException e) {
             log.error("Failed to write temp job file", e);
             return false;
         }
-        String logName = String.format("%s.%s_%d.log", task.getTargetDb(), task.getTargetTable(), taskId);
+        String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
         String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
         String jvmProps = String.format("-DjobName=%d -Dlog.file.name=%s", taskId, logName);
         List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
@@ -1026,6 +1041,16 @@ public class TaskQueueManagerV2Impl
     {
         EtlTable table = tableService.getTable(tableId);
         return table != null && addTaskToQueue(table);
+    }
+
+    @Override
+    public boolean addFillbackTaskToQueue(EtlTable etlTable, LocalDate fillbackDate, String payload)
+    {
+        if (!running) {
+            log.info("Schema refresh in progress, rejecting fillback task {} into queue", etlTable.getId());
+            return false;
+        }
+        return jobQueueService.enqueue(etlTable, fillbackDate, 100, payload) > 0;
     }
 
     @Override

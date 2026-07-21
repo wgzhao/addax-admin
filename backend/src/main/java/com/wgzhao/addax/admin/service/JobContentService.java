@@ -64,6 +64,38 @@ public class JobContentService
     }
 
     /**
+     * Generate addax job JSON for a specific date, used by fillback.
+     * Unlike {@link #getJobContent(long)} which returns a pre-generated template,
+     * this method regenerates the template in-memory using the target date
+     * for all date-dependent values (partition paths, WHERE conditions, dynamic table names).
+     * The result is NOT persisted to etl_job table.
+     *
+     * @param tid        table ID
+     * @param targetDate the fillback target date
+     * @return generated job JSON, or null if table not found
+     */
+    public String getJobContentForDate(long tid, LocalDate targetDate)
+    {
+        VwEtlTableWithSource etlTable = vwEtlTableWithSourceRepo.findById(tid).orElse(null);
+        if (etlTable == null) {
+            log.warn("Table view not found for fillback template generation, tid={}", tid);
+            return null;
+        }
+
+        Map<String, String> dateValues = configService.getBizDateValuesForDate(targetDate);
+        // For incremental tables, use the day before target date as the "last etl date"
+        LocalDate fillbackLastEtlDate = targetDate.minusDays(1);
+
+        Map<String, String> values = new HashMap<>();
+        values.put("reader", fillRdbmsReaderJobForDate(etlTable, dateValues, fillbackLastEtlDate));
+        values.put("writer", targetService.buildWriterJobForDate(etlTable, targetDate));
+
+        String jobTemplate = configService.getRdbms2HdfsJobTemplate();
+        StringSubstitutor substitutor = new StringSubstitutor(values);
+        return mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
+    }
+
+    /**
      * 更新采集任务的json模板
      * 扫描tb_imp_etl任务，生成addax采集需要的json模板，并写入tb_imp_etl_job表
      * 可定期运行，确保tb_imp_etl_job表中的json内容最新
@@ -152,6 +184,21 @@ public class JobContentService
 
     private String fillRdbmsReaderJob(VwEtlTableWithSource vTable)
     {
+        return fillRdbmsReaderJobForDate(vTable, configService.getBizDateValues(), null);
+    }
+
+    /**
+     * Build reader JSON with custom date values and optional lastEtlDate override.
+     * Used by fillback to generate templates for a specific target date.
+     *
+     * @param vTable           table view
+     * @param dateValues       pre-computed date variable map
+     * @param overrideLastEtlDate if non-null, used as the "last etl date" for incremental filters
+     *                            instead of querying etl_statistic
+     * @return reader JSON fragment
+     */
+    private String fillRdbmsReaderJobForDate(VwEtlTableWithSource vTable, Map<String, String> dateValues, LocalDate overrideLastEtlDate)
+    {
         String template = configService.getRdbmsReaderTemplate();
 
         Map<String, String> values = new HashMap<>();
@@ -161,8 +208,10 @@ public class JobContentService
         values.put("password", vTable.getPass() == null ? "" : vTable.getPass());
         values.put("jdbcUrl", vTable.getUrl());
         if (vTable.getFilter().startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
-            // 需要解析过滤条件
-            LocalDate lastEtlDate = statService.getLastEtlDateByTid(vTable.getId());
+            // incremental filter: use override date if provided, otherwise query latest stat
+            LocalDate lastEtlDate = overrideLastEtlDate != null
+                ? overrideLastEtlDate
+                : statService.getLastEtlDateByTid(vTable.getId());
             if (lastEtlDate != null) {
                 String parsedFilter = parseFilterCondition(vTable, vTable.getFilter(), lastEtlDate);
                 values.put("where", parsedFilter);
@@ -178,13 +227,13 @@ public class JobContentService
         values.put("fetchSize", "20480");
 
         // date time special values
-        values.putAll(configService.getBizDateValues());
+        values.putAll(dateValues);
 
         DbType dbType = getDbType(vTable.getUrl());
         String sourceTable = vTable.getSourceTable();
         if (sourceTable.contains("${")) {
-            // 包含变量占位符，一般是日期变量，需要替换，主要考虑日期值可能包含特殊字符（如 - ）
-            StringSubstitutor stringSubstitutor = new StringSubstitutor(configService.getBizDateValues());
+            // dynamic table name: replace date placeholders
+            StringSubstitutor stringSubstitutor = new StringSubstitutor(dateValues);
             sourceTable = stringSubstitutor.replace(sourceTable);
         }
         if (dbType == DbType.POSTGRESQL) {
@@ -194,17 +243,15 @@ public class JobContentService
             values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(sourceTable, dbType));
         }
 
-        // 处理列信息
+        // process column info
         List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
         List<String> srcColumns = new ArrayList<>();
         for (EtlColumn etlColumn : columnList) {
             String columnName = etlColumn.getColumnName();
             if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                // 被标记为删除的字段，那么使用 null 来填充该字段
                 srcColumns.add("\"NULL\"");
             }
             else {
-                // 如果列名是关键字，则还需要加上引号
                 srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
             }
         }

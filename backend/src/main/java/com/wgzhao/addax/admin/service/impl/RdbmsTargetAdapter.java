@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.time.LocalDate;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
@@ -73,10 +74,16 @@ public class RdbmsTargetAdapter
     @Override
     public String buildWriterJob(VwEtlTableWithSource table)
     {
-        return fillRdbmsWriterJob(table);
+        return buildWriterJobForDate(table, null);
     }
 
-    private String fillRdbmsWriterJob(VwEtlTableWithSource table)
+    @Override
+    public String buildWriterJobForDate(VwEtlTableWithSource table, LocalDate targetDate)
+    {
+        return fillRdbmsWriterJob(table, targetDate);
+    }
+
+    private String fillRdbmsWriterJob(VwEtlTableWithSource table, LocalDate targetDate)
     {
         String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
@@ -96,7 +103,9 @@ public class RdbmsTargetAdapter
         values.put("targetTable", table.getTargetTable());
         values.put("writeMode", table.getWriteMode() == null ? "insert" : table.getWriteMode());
         values.put("column", getRdbmsWriteColumns(table));
-        values.putAll(configService.getBizDateValues());
+        values.putAll(targetDate != null
+            ? configService.getBizDateValuesForDate(targetDate)
+            : configService.getBizDateValues());
         fillConnectionPlaceholders(values, table);
 
         return new StringSubstitutor(values).replace(template);

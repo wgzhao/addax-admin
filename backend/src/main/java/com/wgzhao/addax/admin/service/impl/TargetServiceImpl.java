@@ -12,6 +12,7 @@ import javax.sql.DataSource;
 
 import java.net.MalformedURLException;
 import java.sql.Connection;
+import java.time.LocalDate;
 
 /**
  * 目标端服务门面。
@@ -67,5 +68,11 @@ public class TargetServiceImpl
     public String buildWriterJob(VwEtlTableWithSource table)
     {
         return targetAdapterRegistry.resolve(table).buildWriterJob(table);
+    }
+
+    @Override
+    public String buildWriterJobForDate(VwEtlTableWithSource table, LocalDate targetDate)
+    {
+        return targetAdapterRegistry.resolve(table).buildWriterJobForDate(table, targetDate);
     }
 }

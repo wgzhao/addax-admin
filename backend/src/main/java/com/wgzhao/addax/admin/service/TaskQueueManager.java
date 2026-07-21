@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlTable;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface TaskQueueManager
@@ -27,6 +28,20 @@ public interface TaskQueueManager
     default boolean addTaskToQueue(long tableId, String payload)
     {
         return addTaskToQueue(tableId);
+    }
+
+    /**
+     * Enqueue a fillback task with a specific business date.
+     * The task will be executed with a template regenerated for the given date.
+     *
+     * @param etlTable    table to fillback
+     * @param fillbackDate the fillback business date
+     * @param payload     optional payload JSON
+     * @return true if enqueued successfully
+     */
+    default boolean addFillbackTaskToQueue(EtlTable etlTable, LocalDate fillbackDate, String payload)
+    {
+        return false;
     }
 
     /**

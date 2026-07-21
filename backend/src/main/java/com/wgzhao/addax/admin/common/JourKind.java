@@ -10,6 +10,7 @@ public class JourKind
     public static final String UPDATE_TABLE = "UPDATE_TABLE"; // 创建目标表
     public static final String UPDATE_COLUMN = "UPDATE_COLUMN"; // 表字段更新
     public static final String CREATE_COLUMN = "CREATE_COLUMN"; // 首次同步表结构
+    public static final String FILLBACK = "FILLBACK"; // 补数采集
 
     private JourKind() {}
 }

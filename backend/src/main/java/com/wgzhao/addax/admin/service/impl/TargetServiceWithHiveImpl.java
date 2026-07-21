@@ -39,6 +39,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -269,6 +270,12 @@ public class TargetServiceWithHiveImpl
     @Override
     public String buildWriterJob(VwEtlTableWithSource table)
     {
+        return buildWriterJobForDate(table, configService.getBizDateAsDate());
+    }
+
+    @Override
+    public String buildWriterJobForDate(VwEtlTableWithSource table, LocalDate targetDate)
+    {
         String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
         values.put("compress", table.getCompressFormat());
@@ -278,16 +285,19 @@ public class TargetServiceWithHiveImpl
         values.put("targetTable", table.getTargetTable());
         fillConnectionPlaceholders(values, table);
         values.put("column", resolveColumnPlaceholder(template, table));
-        values.putAll(configService.getBizDateValues());
+        values.putAll(configService.getBizDateValuesForDate(targetDate));
 
         Path hdfsPath = Paths.get(configService.getHdfsPrefix(), table.getTargetDb(), table.getTargetTable());
         String partName = table.getPartName();
         if (partName != null && !partName.isBlank()) {
-            String bizDate = configService.getBizDate();
-            if (!Objects.equals(table.getPartFormat(), DEFAULT_PART_FORMAT)) {
-                bizDate = configService.getBizDateAsDate().format(DateTimeFormatter.ofPattern(table.getPartFormat()));
+            String partFormat = table.getPartFormat();
+            String partValue;
+            if (partFormat != null && !partFormat.isBlank() && !DEFAULT_PART_FORMAT.equals(partFormat)) {
+                partValue = targetDate.format(DateTimeFormatter.ofPattern(partFormat));
+            } else {
+                partValue = targetDate.format(DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT));
             }
-            hdfsPath = hdfsPath.resolve(partName + "=" + bizDate);
+            hdfsPath = hdfsPath.resolve(partName + "=" + partValue);
         }
         values.put("path", hdfsPath.toString());
 
