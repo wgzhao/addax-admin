@@ -14,288 +14,285 @@
     </v-card>
 
     <v-form ref="form" v-model="valid" @submit.prevent="saveSettings">
-      <v-row class="section-grid stretch-row">
-        <!-- 左列：基础配置 (4/12 = 33%) -->
+      <!-- 上段：三张配置卡片并排 -->
+      <v-row class="config-row">
         <v-col cols="12" md="4" class="col-stack">
-          <!-- 基础系统配置 -->
-          <v-card flat class="ds-card mb-4 section-card">
+          <v-card flat class="ds-card section-card h-100">
             <v-card-title class="section-title">
-              <v-icon class="mr-2" color="primary">mdi-cog</v-icon>
+              <v-icon class="section-title-icon" color="primary">mdi-cog</v-icon>
               基础系统配置
             </v-card-title>
             <v-divider />
-            <v-card-text class="pa-4 section-body">
-              <v-row density="comfortable">
-                <v-col cols="12">
-                  <div class="field-label">Addax程序目录</div>
-                  <v-text-field
-                    v-model="settings['ADDAX']"
-                    placeholder="/opt/app/addax"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">HDFS 目录前缀</div>
-                  <v-text-field
-                    v-model="settings['HDFS_PREFIX']"
-                    placeholder="/ods"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">切日时间</div>
-                  <v-text-field
-                    v-model="settings['SWITCH_TIME']"
-                    placeholder="16:30"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required, rules.timeFormat]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">默认HDFS存储格式</div>
-                  <v-select
-                    v-model="settings['HDFS_STORAGE_FORMAT']"
-                    :items="storageFormats"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">默认压缩格式</div>
-                  <v-select
-                    v-model="settings['HDFS_COMPRESS_FORMAT']"
-                    :items="compressFormats"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-              </v-row>
+            <v-card-text class="section-body">
+              <div class="field-block">
+                <div class="field-label">Addax 程序目录</div>
+                <v-text-field
+                  v-model="settings['ADDAX']"
+                  placeholder="/opt/app/addax"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">HDFS 目录前缀</div>
+                <v-text-field
+                  v-model="settings['HDFS_PREFIX']"
+                  placeholder="/ods"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">切日时间</div>
+                <v-text-field
+                  v-model="settings['SWITCH_TIME']"
+                  placeholder="16:30"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required, rules.timeFormat]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">默认 HDFS 存储格式</div>
+                <v-select
+                  v-model="settings['HDFS_STORAGE_FORMAT']"
+                  :items="storageFormats"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">默认压缩格式</div>
+                <v-select
+                  v-model="settings['HDFS_COMPRESS_FORMAT']"
+                  :items="compressFormats"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
             </v-card-text>
           </v-card>
+        </v-col>
 
-          <!-- HiveServer2 配置 -->
-          <v-card flat class="ds-card mb-4 section-card">
+        <v-col cols="12" md="4" class="col-stack">
+          <v-card flat class="ds-card section-card h-100">
             <v-card-title class="section-title">
-              <v-icon class="mr-2" color="primary">mdi-server</v-icon>
+              <v-icon class="section-title-icon" color="primary">mdi-server</v-icon>
               HiveServer2 配置
             </v-card-title>
             <v-divider />
-            <v-card-text class="pa-4 section-body">
-              <v-row density="comfortable">
-                <v-col cols="12">
-                  <div class="field-label">JDBC连接地址</div>
-                  <v-text-field
-                    v-model="hiveServer2Config.url"
-                    placeholder="jdbc:hive2://<nn01>:10000"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required, rules.jdbcUrl]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">用户名</div>
-                  <v-text-field
-                    v-model="hiveServer2Config.username"
-                    density="comfortable"
-                    placeholder="hive"
-                    variant="outlined"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">密码</div>
-                  <v-text-field
-                    v-model="hiveServer2Config.password"
-                    density="comfortable"
-                    variant="outlined"
-                    :type="showPassword ? 'text' : 'password'"
-                    placeholder="请输入密码"
-                    :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showPassword = !showPassword"
-                    autocomplete="off"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">驱动类名</div>
-                  <v-text-field
-                    v-model="hiveServer2Config.driverClassName"
-                    placeholder="org.apache.hive.jdbc.HiveDriver"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">驱动路径</div>
-                  <v-text-field
-                    v-model="hiveServer2Config.driverPath"
-                    placeholder="/path/to/hive-jdbc.jar"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required]"
-                  />
-                </v-col>
-                <v-col cols="12">
-                  <v-btn
-                    color="info"
-                    variant="outlined"
-                    prepend-icon="mdi-connection"
-                    @click="testHiveConnection"
-                    :loading="testingConnection"
-                  >
-                    测试连接
-                  </v-btn>
-                </v-col>
-              </v-row>
+            <v-card-text class="section-body">
+              <div class="field-block">
+                <div class="field-label">JDBC 连接地址</div>
+                <v-text-field
+                  v-model="hiveServer2Config.url"
+                  placeholder="jdbc:hive2://<nn01>:10000"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required, rules.jdbcUrl]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">用户名</div>
+                <v-text-field
+                  v-model="hiveServer2Config.username"
+                  density="compact"
+                  placeholder="hive"
+                  variant="outlined"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">密码</div>
+                <v-text-field
+                  v-model="hiveServer2Config.password"
+                  density="compact"
+                  variant="outlined"
+                  :type="showPassword ? 'text' : 'password'"
+                  placeholder="请输入密码"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
+                  autocomplete="off"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">驱动类名</div>
+                <v-text-field
+                  v-model="hiveServer2Config.driverClassName"
+                  placeholder="org.apache.hive.jdbc.HiveDriver"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
+              <div class="field-block">
+                <div class="field-label">驱动路径</div>
+                <v-text-field
+                  v-model="hiveServer2Config.driverPath"
+                  placeholder="/path/to/hive-jdbc.jar"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required]"
+                  hide-details="auto"
+                />
+              </div>
+              <v-btn
+                color="info"
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-connection"
+                @click="testHiveConnection"
+                :loading="testingConnection"
+                class="mt-2"
+              >
+                测试连接
+              </v-btn>
             </v-card-text>
           </v-card>
+        </v-col>
 
-          <!-- 性能配置 -->
-          <v-card flat class="ds-card mb-4 section-card">
+        <v-col cols="12" md="4" class="col-stack">
+          <v-card flat class="ds-card section-card h-100">
             <v-card-title class="section-title">
-              <v-icon class="mr-2" color="primary">mdi-speedometer</v-icon>
+              <v-icon class="section-title-icon" color="primary">mdi-speedometer</v-icon>
               性能配置
             </v-card-title>
             <v-divider />
-            <v-card-text class="pa-4 section-body">
-              <v-row density="comfortable">
-                <v-col cols="12">
-                  <div class="field-label">最大采集并发数量</div>
-                  <v-text-field
-                    v-model.number="settings['CONCURRENT_LIMIT']"
-                    type="number"
-                    placeholder="30"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required, rules.positiveNumber]"
-                  />
-                  <ul class="field-hint field-hint-list caption">
-                    <li>修改后需重启所有后端节点才生效</li>
-                    <li>
-                      该值为每个节点的最大并发值。例如设置为 20 最大并发且有 2
-                      个节点时，则集群最多可同时发起 40 个采集任务(20 x 2)。
-                    </li>
-                  </ul>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-label">采集队列长度</div>
-                  <v-text-field
-                    v-model.number="settings['QUEUE_SIZE']"
-                    type="number"
-                    placeholder="100"
-                    variant="outlined"
-                    density="comfortable"
-                    :rules="[rules.required, rules.positiveNumber]"
-                  />
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-        </v-col>
-
-        <!-- 右列：作业模板配置 (8/12 = 67%, 使用6来达到4:6比例) -->
-        <v-col cols="12" md="8" class="col-stack">
-          <!-- 作业模板配置 -->
-          <v-card flat class="ds-card mb-2 section-card stretch-card">
-            <v-card-title class="section-title">
-              <v-icon class="mr-2" color="primary">mdi-file-code</v-icon>
-              作业模板配置
-            </v-card-title>
-            <v-divider />
-            <v-card-text class="pa-4 section-body">
-              <!-- 采集主模板 -->
-              <v-row class="mb-4">
-                <v-col cols="12">
-                  <div class="field-label">采集主模板</div>
-                  <v-textarea
-                    v-model="R2HJobTemplate"
-                    rows="15"
-                    variant="outlined"
-                    class="json-editor"
-                    hint="变量 ${reader} 指向 RDBMS 读取子模板 / ${writer} 指向 HDFS 写入子模板"
-                  />
-                </v-col>
-              </v-row>
-
-              <!-- RDBMS 读取子模板 -->
-              <v-row class="mb-2">
-                <v-col cols="12">
-                  <div class="field-label">
-                    RDBMS 读取子模板(参考
-                    <a
-                      href="https://wgzhao.github.io/Addax/latest/reader/rdbmsreader/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      RDBMS 读取插件
-                    </a>
-                    )
-                  </div>
-                  <v-textarea
-                    v-model="rRJobTemplate"
-                    rows="16"
-                    variant="outlined"
-                    class="json-editor"
-                    hint="包含 ${var} 占位符的 JSON；此处保留变量解释区"
-                  />
-                </v-col>
-              </v-row>
-
-              <!-- HDFS 写入子模板 -->
-              <v-row class="mb-2">
-                <v-col cols="12">
-                  <div class="field-label">
-                    HDFS 写入子模板(参考
-                    <a
-                      href="https://wgzhao.github.io/Addax/latest/writer/hdfswriter/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      HDFS 写入插件
-                    </a>
-                    )
-                  </div>
-                  <v-textarea
-                    v-model="wHJobTemplate"
-                    rows="18"
-                    variant="outlined"
-                    class="json-editor"
-                    hint="包含 ${var} 占位符的 JSON；此处保留变量解释区"
-                  />
-                </v-col>
-              </v-row>
+            <v-card-text class="section-body">
+              <div class="field-block">
+                <div class="field-label">最大采集并发数量</div>
+                <v-text-field
+                  v-model.number="settings['CONCURRENT_LIMIT']"
+                  type="number"
+                  placeholder="30"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required, rules.positiveNumber]"
+                  hide-details="auto"
+                />
+                <ul class="field-hint-list">
+                  <li>修改后需重启所有后端节点才生效</li>
+                  <li>
+                    该值为每个节点的最大并发值。例如设为 20 且有 2 个节点时，集群最多同时发起 40
+                    个采集任务。
+                  </li>
+                </ul>
+              </div>
+              <div class="field-block">
+                <div class="field-label">采集队列长度</div>
+                <v-text-field
+                  v-model.number="settings['QUEUE_SIZE']"
+                  type="number"
+                  placeholder="100"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[rules.required, rules.positiveNumber]"
+                  hide-details="auto"
+                />
+              </div>
             </v-card-text>
           </v-card>
         </v-col>
       </v-row>
 
-      <!-- 操作按钮 -->
-      <v-row>
-        <v-col cols="12">
-          <v-card flat class="ds-card section-card toolbar-card">
-            <v-card-actions class="pa-4 action-bar">
-              <v-spacer />
-              <v-btn
-                color="primary"
-                variant="flat"
-                type="submit"
-                :disabled="!valid"
-                :loading="saving"
-                prepend-icon="mdi-content-save"
+      <!-- 下段：作业模板（全宽） -->
+      <v-card flat class="ds-card section-card mt-4">
+        <v-card-title class="section-title">
+          <v-icon class="section-title-icon" color="primary">mdi-file-code</v-icon>
+          作业模板配置
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="section-body">
+          <div class="field-block">
+            <div class="field-label">
+              采集主模板
+              <span class="field-hint"
+                >变量 ${reader} 指向 RDBMS 读取子模板，${writer} 指向 HDFS 写入子模板</span
               >
-                保存配置
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-col>
-      </v-row>
+            </div>
+            <v-textarea
+              v-model="R2HJobTemplate"
+              rows="12"
+              variant="outlined"
+              class="json-editor"
+              hide-details
+            />
+          </div>
+          <v-row class="mt-4">
+            <v-col cols="12" md="6">
+              <div class="field-block">
+                <div class="field-label">
+                  RDBMS 读取子模板
+                  <a
+                    class="field-link"
+                    href="https://wgzhao.github.io/Addax/latest/reader/rdbmsreader/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    文档
+                  </a>
+                </div>
+                <v-textarea
+                  v-model="rRJobTemplate"
+                  rows="12"
+                  variant="outlined"
+                  class="json-editor"
+                  hide-details
+                />
+              </div>
+            </v-col>
+            <v-col cols="12" md="6">
+              <div class="field-block">
+                <div class="field-label">
+                  HDFS 写入子模板
+                  <a
+                    class="field-link"
+                    href="https://wgzhao.github.io/Addax/latest/writer/hdfswriter/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    文档
+                  </a>
+                </div>
+                <v-textarea
+                  v-model="wHJobTemplate"
+                  rows="12"
+                  variant="outlined"
+                  class="json-editor"
+                  hide-details
+                />
+              </div>
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-divider />
+        <v-card-actions class="px-4 py-3">
+          <v-spacer />
+          <v-btn
+            color="primary"
+            variant="flat"
+            type="submit"
+            :disabled="!valid"
+            :loading="saving"
+            prepend-icon="mdi-content-save"
+          >
+            保存配置
+          </v-btn>
+        </v-card-actions>
+      </v-card>
     </v-form>
   </div>
 </template>
@@ -516,12 +513,8 @@
     min-width: 0;
   }
 
-  .section-grid {
-    row-gap: 12px;
-  }
-
-  .stretch-row {
-    align-items: stretch;
+  .config-row {
+    row-gap: 16px;
   }
 
   .col-stack {
@@ -529,45 +522,76 @@
     flex-direction: column;
   }
 
-  .stretch-card {
+  .h-100 {
     flex: 1 1 auto;
   }
 
   .section-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: rgb(var(--v-theme-on-surface));
     font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .section-title-icon {
+    font-size: 20px;
+    opacity: 0.9;
   }
 
   .section-body {
-    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px !important;
   }
 
-  .action-bar {
-    border-top: 1px solid var(--ds-border-subtle);
-  }
-
-  .json-editor textarea {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
-    font-size: 13px !important;
-    line-height: 1.5 !important;
-    tab-size: 2;
+  .field-block {
+    display: flex;
+    flex-direction: column;
   }
 
   .field-label {
-    color: rgb(var(--v-theme-on-surface));
-    opacity: 0.8;
-    font-size: 0.9rem;
-    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+
+  .field-link {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: rgb(var(--v-theme-primary));
+    text-decoration: none;
+  }
+  .field-link:hover {
+    text-decoration: underline;
+  }
+
+  .field-hint {
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.65;
+    margin-left: 4px;
   }
 
   .field-hint-list {
-    margin-top: 6px;
-    color: rgba(var(--v-theme-on-surface), 0.72);
-    padding-left: 1.2em;
-    line-height: 1.5;
+    margin: 6px 0 0;
+    padding-left: 1.1em;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: rgba(var(--v-theme-on-surface), 0.62);
+  }
+  .field-hint-list li {
+    margin-bottom: 2px;
+  }
+
+  .json-editor :deep(textarea) {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important;
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    tab-size: 2;
   }
 </style>
 

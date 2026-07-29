@@ -25,6 +25,10 @@
             <!-- 归档日志自动压缩：将归档文件名后缀改为 .gz -->
             <fileNamePattern>${LOG_PATH}/addax-admin-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
             <maxFileSize>1000MB</maxFileSize>
+            <!-- 保留最近 30 天的日志文件 -->
+            <maxHistory>30</maxHistory>
+            <!-- 所有归档日志总大小上限，超出则删除最旧的 -->
+            <totalSizeCap>50GB</totalSizeCap>
         </rollingPolicy>
     </appender>
 

@@ -216,11 +216,13 @@
       <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">Login</v-btn>
       <!-- 深色/浅色模式切换按钮 -->
       <v-btn
-        icon
+        class="theme-toggle-btn"
+        variant="text"
         @click="toggleThemeWithLog"
         :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'"
+        :prepend-icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
       >
-        <v-icon>mdi-theme-light-dark</v-icon>
+        {{ isDarkTheme ? '浅色' : '深色' }}
       </v-btn>
     </template>
   </v-app-bar>
@@ -828,5 +830,17 @@ watch(
     margin-top: 12px;
     font-size: 12px;
     color: rgba(var(--v-theme-on-surface), 0.55);
+  }
+
+  .theme-toggle-btn {
+    border-radius: 8px;
+    margin-left: 4px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    opacity: 0.85;
+    transition: opacity 0.15s ease;
+  }
+  .theme-toggle-btn:hover {
+    opacity: 1;
   }
 </style>

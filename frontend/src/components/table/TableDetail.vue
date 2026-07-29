@@ -939,9 +939,9 @@
   }
 
   .field-label {
-    font-size: 0.84rem;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: rgba(var(--v-theme-on-surface), 0.78);
+    color: rgb(var(--v-theme-on-surface));
   }
 
   .field-label-row {
