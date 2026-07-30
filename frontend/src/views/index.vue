@@ -1,8 +1,8 @@
 <template>
-  <div class="dashboard-container" :class="{ 'dark-mode': isDark }">
+  <div class="min-h-screen relative overflow-x-hidden" style="background: rgb(var(--v-theme-surface))">
     <div class="background-overlay"></div>
 
-    <v-container fluid class="pa-8 dashboard-content">
+    <v-container fluid class="pa-8 relative" style="z-index: 1">
       <!-- Page Heading -->
       <!-- <div class="header-section mb-6">
         <h1 class="dashboard-title">Dashboard</h1>
@@ -12,13 +12,13 @@
       <v-row class="stats-row" dense>
         <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-import</v-icon>
-            <v-card-title class="stat-title">在用采集数据源/所有数据源</v-card-title>
+            <v-icon size="36" class="absolute top-4 left-4" color="primary">mdi-database-import</v-icon>
+            <v-card-title class="text-center text-sm font-semibold leading-relaxed mb-2" style="color: rgb(var(--v-theme-on-surface))">在用采集数据源/所有数据源</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">
-                <span class="stat-primary">{{ ratios.length }}</span>
-                <span class="stat-separator">/</span>
-                <span class="stat-secondary">{{ allDbSourceCount }}</span>
+              <span class="inline-block text-4xl font-bold leading-tight" style="color: rgb(var(--v-theme-on-surface))">
+                <span style="color: rgb(var(--v-theme-primary))">{{ ratios.length }}</span>
+                <span class="mx-1.5 font-medium" style="color: rgba(var(--v-theme-on-surface), 0.5)">/</span>
+                <span style="color: rgba(var(--v-theme-on-surface), 0.55)">{{ allDbSourceCount }}</span>
               </span>
             </v-card-text>
           </v-card>
@@ -26,13 +26,13 @@
 
         <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-table</v-icon>
-            <v-card-title class="stat-title">采集数据表/所有数据表</v-card-title>
+            <v-icon size="36" class="absolute top-4 left-4" color="primary">mdi-table</v-icon>
+            <v-card-title class="text-center text-sm font-semibold leading-relaxed mb-2" style="color: rgb(var(--v-theme-on-surface))">采集数据表/所有数据表</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">
-                <span class="stat-primary">{{ tableCount }}</span>
-                <span class="stat-separator">/</span>
-                <span class="stat-secondary">{{ allTableCount }}</span>
+              <span class="inline-block text-4xl font-bold leading-tight" style="color: rgb(var(--v-theme-on-surface))">
+                <span style="color: rgb(var(--v-theme-primary))">{{ tableCount }}</span>
+                <span class="mx-1.5 font-medium" style="color: rgba(var(--v-theme-on-surface), 0.5)">/</span>
+                <span style="color: rgba(var(--v-theme-on-surface), 0.55)">{{ allTableCount }}</span>
               </span>
             </v-card-text>
           </v-card>
@@ -40,19 +40,19 @@
 
         <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-plus</v-icon>
-            <v-card-title class="stat-title">昨日数据采集 (GiB)</v-card-title>
+            <v-icon size="36" class="absolute top-4 left-4" color="primary">mdi-database-plus</v-icon>
+            <v-card-title class="text-center text-sm font-semibold leading-relaxed mb-2" style="color: rgb(var(--v-theme-on-surface))">昨日数据采集 (GiB)</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">{{ lastEtlData }}</span>
+              <span class="inline-block text-4xl font-bold leading-tight" style="color: rgb(var(--v-theme-on-surface))">{{ lastEtlData }}</span>
             </v-card-text>
           </v-card>
         </v-col>
         <v-col cols="12" xl="3" lg="3" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
-            <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
+            <v-icon size="36" class="absolute top-4 left-4" color="primary">mdi-database-check</v-icon>
+            <v-card-title class="text-center text-sm font-semibold leading-relaxed mb-2" style="color: rgb(var(--v-theme-on-surface))">累计数据采集 (GiB)</v-card-title>
             <v-card-text class="text-center">
-              <span class="stat-value">{{ totalEtlData || 0 }}</span>
+              <span class="inline-block text-4xl font-bold leading-tight" style="color: rgb(var(--v-theme-on-surface))">{{ totalEtlData || 0 }}</span>
             </v-card-text>
           </v-card>
         </v-col>
@@ -62,13 +62,13 @@
       <v-row class="mt-6">
         <v-col cols="6">
           <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
-            <v-card-title class="detail-title">项目完成率</v-card-title>
+            <v-card-title class="text-base font-semibold" style="color: rgb(var(--v-theme-on-surface))">项目完成率</v-card-title>
             <v-card-text>
-              <div class="progress-stack">
+              <div class="flex flex-col gap-1">
                 <div class="progress-item" v-for="ratio in ratios" :key="ratio.pct">
-                  <div class="progress-header">
-                    <span class="progress-name">{{ ratio.source_name }}</span>
-                    <span class="progress-value">{{ ratio.pct }}%</span>
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <span class="font-semibold text-sm" style="color: rgb(var(--v-theme-on-surface))">{{ ratio.source_name }}</span>
+                    <span class="font-semibold text-xs" style="color: rgba(var(--v-theme-on-surface), 0.7)">{{ ratio.pct }}%</span>
                   </div>
                   <v-progress-linear
                     :model-value="ratio.pct"
@@ -87,9 +87,9 @@
           <v-row>
             <v-col cols="12">
               <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
+                <v-card-title class="text-lg font-semibold" style="color: rgb(var(--v-theme-on-surface))">最近12个月累计数据采集量 (GiB)</v-card-title>
                 <v-card-text>
-                  <div class="chart-container">
+                  <div class="h-[400px]">
                     <LineChart />
                   </div>
                 </v-card-text>
@@ -99,9 +99,9 @@
           <v-row>
             <v-col cols="12">
               <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="detail-title">数据采集耗时分析</v-card-title>
+                <v-card-title class="text-base font-semibold" style="color: rgb(var(--v-theme-on-surface))">数据采集耗时分析</v-card-title>
                 <v-card-text>
-                  <div class="bar-chart-container">
+                  <div class="h-[300px]">
                     <L5TEtlTimeBar />
                   </div>
                 </v-card-text>
@@ -111,9 +111,9 @@
           <v-row>
             <v-col cols="12">
               <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="detail-title">数据采集数量分析(MB)</v-card-title>
+                <v-card-title class="text-base font-semibold" style="color: rgb(var(--v-theme-on-surface))">数据采集数量分析(MB)</v-card-title>
                 <v-card-text>
-                  <div class="bar-chart-container">
+                  <div class="h-[300px]">
                     <L5TEtlDataBar />
                   </div>
                 </v-card-text>
@@ -128,14 +128,10 @@
 
 <script setup lang="ts">
   import request from '@/utils/requests';
-  import { ref, onMounted, computed } from 'vue';
+  import { ref, onMounted } from 'vue';
   import LineChart from '@/components/dashboard/LineChart.vue';
   import L5TEtlTimeBar from '@/components/dashboard/L5TEtlTimeBar.vue';
   import L5TEtlDataBar from '@/components/dashboard/L5TEtlDataBar.vue';
-  import { useTheme } from 'vuetify'; // Vuetify 主题钩子
-
-  const vuetifyTheme = useTheme();
-  const isDark = computed(() => vuetifyTheme.current.value.dark);
 
   const ratios = ref([]);
   const lastEtlData = ref(0.0);
@@ -187,56 +183,18 @@
 }
 </route>
 <style scoped>
-  .dashboard-container {
-    min-height: 100vh;
-    width: 100vw;
-    position: relative;
-    overflow-x: hidden;
-    transition: background 0.3s ease;
-    background: rgb(var(--v-theme-surface));
-  }
-
-  .dark-mode {
-    background: rgb(var(--v-theme-surface));
-  }
-
-  .dashboard-container:not(.dark-mode) {
-    background: rgb(var(--v-theme-surface));
-  }
-
   .background-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     z-index: 0;
   }
 
-  .dashboard-content {
-    position: relative;
-    z-index: 1;
-  }
-
-  .dark-mode .background-overlay {
+  .v-theme--dark .background-overlay {
     background: radial-gradient(circle, rgba(148, 163, 184, 0.08) 0%, rgba(15, 23, 42, 0.28) 80%);
   }
 
-  .dashboard-container:not(.dark-mode) .background-overlay {
+  .v-theme--light .background-overlay {
     background: radial-gradient(circle, rgba(15, 23, 42, 0.03) 0%, rgba(255, 255, 255, 0.6) 80%);
-  }
-
-  .header-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .dashboard-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
-    text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.12);
   }
 
   .stat-card {
@@ -249,74 +207,9 @@
     transform: translateY(-5px);
   }
 
-  .stat-icon {
-    opacity: 0.9;
-    position: absolute;
-    top: 16px;
-    left: 16px;
-    color: rgb(var(--v-theme-primary));
-  }
-
-  .stat-title {
-    font-size: 0.95rem;
-    font-weight: 600;
-    line-height: 1.5;
-    text-align: center;
-    margin-bottom: 10px;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .stat-value {
-    display: inline-block;
-    font-size: 2.4rem;
-    font-weight: 700;
-    line-height: 1.24;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .stat-primary {
-    color: rgb(var(--v-theme-primary));
-  }
-
-  .stat-secondary {
-    color: rgba(var(--v-theme-on-surface), 0.55);
-  }
-
-  .stat-separator {
-    margin: 0 6px;
-    color: rgba(var(--v-theme-on-surface), 0.5);
-    font-weight: 500;
-  }
-
   .section-card {
     background: rgb(var(--v-theme-surface-variant));
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  }
-
-  .chart-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .chart-container {
-    height: 400px;
-  }
-
-  .detail-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .progress-list {
-    background: transparent;
-  }
-
-  .progress-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
   }
 
   .progress-item {
@@ -324,29 +217,5 @@
     border-radius: 12px;
     background: rgba(var(--v-theme-on-surface), 0.04);
     border: 1px solid rgba(var(--v-theme-on-surface), 0.06);
-  }
-
-  .progress-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-    gap: 8px;
-  }
-
-  .progress-name {
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
-    font-size: 0.85rem;
-  }
-
-  .progress-value {
-    font-weight: 600;
-    color: rgba(var(--v-theme-on-surface), 0.7);
-    font-size: 0.8rem;
-  }
-
-  .bar-chart-container {
-    height: 300px;
   }
 </style>

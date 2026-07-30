@@ -22,11 +22,11 @@
     <v-row class="section-grid stretch-row" dense>
       <v-col cols="12" md="5" class="col-stack">
         <v-card flat class="ds-card table-card stretch-card ds-table-wrap">
-          <v-card-text class="ds-card__content section-body">
-            <div class="section-header">
+          <v-card-text class="ds-card__content flex flex-col gap-3.5">
+            <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="section-title">字典列表</div>
-                <div class="section-subtitle">左侧展示字典定义，点击任意一项即可切换右侧明细。</div>
+                <div class="text-base font-bold" style="color: rgb(var(--v-theme-on-surface))">字典列表</div>
+                <div class="mt-1 leading-relaxed" style="color: var(--ds-text-2)">左侧展示字典定义，点击任意一项即可切换右侧明细。</div>
               </div>
             </div>
 
@@ -86,10 +86,10 @@
 
       <v-col cols="12" md="7" class="col-stack">
         <v-card flat class="ds-card table-card stretch-card ds-table-wrap">
-          <v-card-text class="ds-card__content section-body">
-            <div class="section-header section-header--with-actions">
+          <v-card-text class="ds-card__content flex flex-col gap-3.5">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div class="section-title">
+                <div class="text-base font-bold" style="color: rgb(var(--v-theme-on-surface))">
                   {{
                     selectedDict
                       ? `字典明细 - ${selectedDict.name || selectedDict.code}`
@@ -446,50 +446,8 @@
 </script>
 
 <style scoped>
-  .section-grid {
-    row-gap: 12px;
-  }
-
-  .stretch-row {
-    align-items: stretch;
-  }
-
-  .col-stack {
-    display: flex;
-    flex-direction: column;
-  }
-
   .stretch-card {
     flex: 1 1 auto;
-  }
-
-  .section-body {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .section-header--with-actions {
-    flex-wrap: wrap;
-  }
-
-  .section-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .section-subtitle {
-    margin-top: 4px;
-    color: var(--ds-text-2);
-    line-height: 1.6;
   }
 
   .dict-empty-state {

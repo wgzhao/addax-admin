@@ -2,8 +2,8 @@
   <v-card flat class="batch-update-card">
     <div class="batch-update-head">
       <div>
-        <div class="batch-update-title-row">
-          <div class="batch-update-title">批量修改采集表</div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="text-lg font-bold" style="color: rgb(var(--v-theme-on-surface))">批量修改采集表</div>
           <v-chip size="small" variant="tonal" color="primary">{{ selectedCount }} 条记录</v-chip>
         </div>
       </div>
@@ -111,19 +111,6 @@
     padding: 22px 24px 14px;
     border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
     background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), transparent 95%);
-  }
-
-  .batch-update-title-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .batch-update-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
   }
 
   .batch-update-subtitle {

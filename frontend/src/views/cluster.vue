@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="pa-6 cluster-page">
+  <v-container fluid class="pa-6" style="background: rgb(var(--v-theme-surface))">
     <!-- header row -->
     <v-row align="center" class="mb-4">
       <v-col>
@@ -199,9 +199,6 @@
 </script>
 
 <style scoped>
-  .cluster-page {
-    background: rgb(var(--v-theme-surface));
-  }
   .node-card {
     transition: box-shadow 0.15s ease;
   }

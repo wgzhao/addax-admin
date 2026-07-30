@@ -1,6 +1,6 @@
 <template>
-  <v-form ref="form" fast-fail @submit.prevent="save" class="add-source-form">
-    <v-card class="compact-card add-source-card" density="comfortable">
+  <v-form ref="form" fast-fail @submit.prevent="save">
+    <v-card class="compact-card" density="comfortable">
       <v-card-title class="d-flex align-center">
         <v-icon class="me-2">mdi-database</v-icon>
         {{ mode === 'add' ? '新增采集源' : mode === 'edit' ? '编辑采集源' : '采集源详情' }}
@@ -8,10 +8,10 @@
       </v-card-title>
 
       <v-card-text class="pa-4 add-source-body">
-        <v-row density="comfortable" class="section-grid">
+        <v-row density="comfortable" class="mb-2">
           <v-col cols="12" md="6">
             <v-sheet class="form-section" rounded="lg" border>
-              <div class="section-header">
+              <div class="flex items-center gap-2 px-3.5 py-2.5 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
                 <v-icon size="18" color="primary">mdi-clipboard-text-outline</v-icon>
                 <span>基本信息</span>
               </div>
@@ -73,13 +73,13 @@
                 <v-col cols="12">
                   <div class="field-stack">
                     <div class="field-label">启用状态</div>
-                    <div class="field-control status-switch-wrap">
+                    <div class="flex items-center gap-1.5">
                       <v-switch
                         v-model="sourceItem.enabled"
                         color="primary"
                         hide-details
                         density="compact"
-                        class="status-switch"
+                        class="mt-0"
                       />
                       <v-chip
                         size="x-small"
@@ -96,7 +96,7 @@
 
           <v-col cols="12" md="6">
             <v-sheet class="form-section" rounded="lg" border>
-              <div class="section-header">
+              <div class="flex items-center gap-2 px-3.5 py-2.5 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
                 <v-icon size="18" color="primary">mdi-link-variant</v-icon>
                 <span>连接信息</span>
               </div>
@@ -145,7 +145,7 @@
                 <v-col cols="12">
                   <div class="field-stack field-stack-action">
                     <div class="field-label field-label-placeholder">操作</div>
-                    <div class="field-control">
+                    <div class="flex items-center gap-1.5">
                       <v-btn
                         color="info"
                         text="测试连接"
@@ -162,7 +162,7 @@
 
           <v-col cols="12">
             <v-sheet class="form-section" rounded="lg" border>
-              <div class="section-header">
+              <div class="flex items-center gap-2 px-3.5 py-2.5 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
                 <v-icon size="18" color="primary">mdi-note-text-outline</v-icon>
                 <span>备注信息</span>
               </div>
@@ -387,18 +387,6 @@
   );
 </script>
 <style scoped>
-  .add-source-card {
-    background: rgb(var(--v-theme-surface));
-  }
-
-  .add-source-form {
-    background: rgb(var(--v-theme-surface));
-  }
-
-  .section-grid {
-    row-gap: 12px;
-  }
-
   .form-section {
     background: rgb(var(--v-theme-surface));
     border-color: rgba(var(--v-theme-on-surface), 0.08);
@@ -408,15 +396,6 @@
   .form-section:hover {
     border-color: rgba(var(--v-theme-primary), 0.2);
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
   }
 
   .section-body {
@@ -449,22 +428,12 @@
     visibility: hidden;
   }
 
-  .field-control {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
   .field-stack :deep(.v-input) {
     width: 100%;
   }
 
-  .status-switch {
-    margin-top: 0;
-  }
-
-  .status-switch-wrap {
-    gap: 8px;
+  .action-bar {
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
   }
 
   @media (max-width: 960px) {
@@ -476,10 +445,6 @@
       grid-template-columns: 90px minmax(0, 1fr);
       column-gap: 12px;
     }
-  }
-
-  .action-bar {
-    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
   }
 </style>
 <!-- <style scoped>

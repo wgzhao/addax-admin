@@ -9,6 +9,7 @@ import { registerPlugins } from '@/plugins';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme-store';
 import pinia from '@/plugins/pinia';
+import 'uno.css'
 
 // Components
 import App from './App.vue';

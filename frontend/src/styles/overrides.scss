@@ -12,9 +12,9 @@ body,
 }
 
 .v-application {
-  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.08);
-  --ds-border-default: rgba(var(--v-theme-on-surface), 0.12);
-  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.2);
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.12);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.18);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.28);
   --ds-surface-raised: rgb(var(--v-theme-surface-raised));
   --ds-surface-overlay: rgb(var(--v-theme-surface-overlay));
   --ds-text-2: rgb(var(--v-theme-on-surface-variant));

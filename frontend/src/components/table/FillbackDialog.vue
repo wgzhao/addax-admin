@@ -2,8 +2,8 @@
   <v-card flat class="fillback-card">
     <div class="fillback-head">
       <div>
-        <div class="fillback-title-row">
-          <div class="fillback-title">补采数据</div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="text-lg font-bold" style="color: rgb(var(--v-theme-on-surface))">补采数据</div>
           <v-chip size="small" variant="tonal" color="primary">{{ selectedCount }} 张表</v-chip>
         </div>
       </div>
@@ -15,8 +15,8 @@
 
     <div class="form-grid">
       <div class="field-card">
-        <div class="field-card__head">
-          <div class="field-card__title">开始日期</div>
+        <div class="mb-3">
+          <div class="font-semibold" style="color: rgb(var(--v-theme-on-surface))">开始日期</div>
           <div class="field-card__desc">补数起始日（含）</div>
         </div>
         <v-text-field
@@ -31,7 +31,7 @@
 
       <div class="field-card">
         <div class="field-card__head">
-          <div class="field-card__title">结束日期</div>
+          <div class="font-semibold" style="color: rgb(var(--v-theme-on-surface))">结束日期</div>
           <div class="field-card__desc">补数截止日（含）</div>
         </div>
         <v-text-field
@@ -187,19 +187,6 @@
     background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.06), transparent 95%);
   }
 
-  .fillback-title-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .fillback-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
   .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -212,15 +199,6 @@
     border-radius: 16px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
     background: rgba(var(--v-theme-on-surface), 0.015);
-  }
-
-  .field-card__head {
-    margin-bottom: 14px;
-  }
-
-  .field-card__title {
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
   }
 
   .field-card__desc {
