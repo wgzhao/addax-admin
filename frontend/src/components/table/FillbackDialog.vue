@@ -87,11 +87,7 @@
               <span v-if="d.skipped" class="result-item__reason">{{ d.reason }}</span>
               <span v-else class="result-item__dates">{{ d.dates.join(', ') }}</span>
             </div>
-            <v-chip
-              size="x-small"
-              :color="d.skipped ? 'warning' : 'success'"
-              variant="flat"
-            >
+            <v-chip size="x-small" :color="d.skipped ? 'warning' : 'success'" variant="flat">
               {{ d.skipped ? '跳过' : `${d.enqueued} 个` }}
             </v-chip>
           </div>
@@ -112,9 +108,7 @@
       >
         提交补采
       </v-btn>
-      <v-btn v-else color="primary" variant="flat" @click="emit('closeDialog')">
-        完成
-      </v-btn>
+      <v-btn v-else color="primary" variant="flat" @click="emit('closeDialog')"> 完成 </v-btn>
     </v-card-actions>
   </v-card>
 </template>
