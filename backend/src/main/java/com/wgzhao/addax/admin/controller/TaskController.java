@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.service.AlertService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -59,6 +60,10 @@ public class TaskController
      * 日志服务
      */
     private final EtlJourService jourService;
+    /**
+     * 告警服务
+     */
+    private final AlertService alertService;
 
     /**
      * 获取队列状态
@@ -154,6 +159,15 @@ public class TaskController
                 throw new ApiException(400, "taskId 对应的采集任务不存在");
             }
             result = queueManager.executeEtlTaskWithConcurrencyControl(etlTable);
+            // 手动同步执行没有队列重试上下文,按"单次尝试即最终尝试"接入告警状态机:
+            // 失败发告警,成功时若该表此前处于告警状态则发恢复通知
+            if (result.success()) {
+                alertService.reportCollectionSuccess(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable());
+            }
+            else {
+                alertService.reportCollectionFailure(etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(),
+                    result.message(), 1, 1, true);
+            }
         }
         else {
             result = taskService.submitTask(taskId, getCurrentUsername());
