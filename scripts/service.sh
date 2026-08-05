@@ -71,7 +71,10 @@ start() {
     echo $! > "$PID_FILE"
     # check status
     echo -n "Checking port $port..."
-    for i in $(seq 1 30); do
+    # Startup takes ~35s (JVM + Spring init) and longer under DB/Redis
+    # contention when the peer node restarts simultaneously; a 30s window
+    # expired first and the script TERM'd a healthy-but-still-starting app.
+    for i in $(seq 1 60); do
         echo -n "."
         sleep 1
         nc -z localhost $port > /dev/null 2>&1
