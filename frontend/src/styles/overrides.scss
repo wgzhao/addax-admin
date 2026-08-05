@@ -12,9 +12,9 @@ body,
 }
 
 .v-application {
-  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.08);
-  --ds-border-default: rgba(var(--v-theme-on-surface), 0.12);
-  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.2);
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.12);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.18);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.28);
   --ds-surface-raised: rgb(var(--v-theme-surface-raised));
   --ds-surface-overlay: rgb(var(--v-theme-surface-overlay));
   --ds-text-2: rgb(var(--v-theme-on-surface-variant));
@@ -22,9 +22,9 @@ body,
 }
 
 .v-theme--dark {
-  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.14);
-  --ds-border-default: rgba(var(--v-theme-on-surface), 0.18);
-  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.26);
+  --ds-border-subtle: rgba(var(--v-theme-on-surface), 0.18);
+  --ds-border-default: rgba(var(--v-theme-on-surface), 0.24);
+  --ds-border-strong: rgba(var(--v-theme-on-surface), 0.32);
 }
 
 input,
@@ -297,4 +297,87 @@ select,
 
 .ds-dialog-overlay .v-overlay__content .v-card-title {
   border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+/* ============================================
+   Visual hierarchy — anchor points for the eye
+   ============================================ */
+
+/* Page header: distinguish from content cards */
+.page-header-card {
+  border-bottom: 2px solid rgba(var(--v-theme-primary), 0.18) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--v-theme-primary), 0.03) 0%,
+    var(--ds-surface-raised) 80%
+  ) !important;
+}
+
+/* Page title: make it a clear "this page starts here" anchor */
+.page-title {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+}
+
+.page-subtitle {
+  margin-top: 4px !important;
+}
+
+/* Section cards: left accent anchor so each content block is scannable */
+.section-card {
+  position: relative;
+  border-left: 3px solid rgba(var(--v-theme-primary), 0.12) !important;
+  border-radius: 14px !important;
+}
+
+/* Emphasise the first column of data tables (usually ID / name) */
+.v-data-table td:first-child,
+.v-data-table-server td:first-child {
+  font-weight: 500;
+}
+
+/* Status chips: more saturated and distinctive */
+.v-chip[color='error'],
+.v-chip[color='warning'] {
+  font-weight: 600;
+}
+.v-theme--dark .v-chip[color='error'] {
+  --v-chip-color: #f87171 !important;
+}
+.v-theme--dark .v-chip[color='warning'] {
+  --v-chip-color: #fbbf24 !important;
+}
+.v-theme--dark .v-chip[color='success'] {
+  --v-chip-color: #4ade80 !important;
+}
+
+/* ============================================
+   Form field pattern: custom label (field-label)
+   above outlined input (field-block)
+   ============================================ */
+
+/* Reduce the internal padding of outlined inputs when they're
+   inside a field-block, because the label is rendered above
+   and the floating-label space inside the outline is unused. */
+.field-block .v-field--variant-outlined .v-field__input {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  min-height: 40px;
+}
+
+/* Standard label styling for the custom-label-above pattern.
+   Components may also define their own scoped .field-label;
+   this is the baseline. */
+.field-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(var(--v-theme-on-surface));
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+/* 2-column form row: every column gets consistent gap between field-blocks */
+.field-row .field-block + .field-block {
+  margin-top: 16px;
 }

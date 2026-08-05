@@ -17,7 +17,7 @@ const getSystemTheme = (): ThemeName => {
 };
 
 export const useThemeStore = defineStore('curTheme', {
-  state: () => ({ theme: 'dark' as ThemeName, hasUserPreference: false }),
+  state: () => ({ theme: 'light' as ThemeName, hasUserPreference: false }),
   actions: {
     initTheme() {
       const savedTheme = parseTheme(localStorage.getItem(STORAGE_KEY));

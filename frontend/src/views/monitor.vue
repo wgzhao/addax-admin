@@ -1,10 +1,10 @@
 <template>
-  <v-container fluid class="pa-6 monitor-page">
-    <v-row density="comfortable" class="section-grid">
+  <v-container fluid class="pa-6" style="background: rgb(var(--v-theme-surface))">
+    <v-row density="comfortable" class="mb-2">
       <!-- 数据源完成情况 -->
       <v-col cols="12" md="12">
         <v-card flat :title="accomplishListTable.title" class="mb-4 section-card">
-          <v-card-text class="section-body">
+          <v-card-text style="background: transparent">
             <v-data-table
               :items="data.accomplishList"
               :headers="accomplishListTable.headers"
@@ -360,21 +360,8 @@
   });
 </script>
 <style scoped>
-  .monitor-page {
-    background: rgb(var(--v-theme-surface));
-  }
-
-  .section-grid {
-    row-gap: 12px;
-  }
-
   .section-card {
     background: rgb(var(--v-theme-surface-variant));
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  }
-
-  .section-body {
-    background: transparent;
   }
 </style>
 <route lang="json">

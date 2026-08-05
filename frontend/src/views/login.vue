@@ -1,5 +1,8 @@
 <template>
-  <div class="login-container">
+  <div
+    class="h-screen w-screen flex items-center justify-center fixed top-0 left-0 overflow-hidden"
+    style="background: rgb(var(--v-theme-background))"
+  >
     <div class="background-layer">
       <div class="gradient-overlay"></div>
       <div class="tech-particles"></div>
@@ -7,11 +10,19 @@
 
     <v-sheet class="login-sheet pa-16" rounded="xl" elevation="24">
       <v-card class="login-card px-10 py-12" max-width="480">
-        <div class="logo-container mb-8">
+        <div class="text-center mb-8">
           <img src="/logo.png" alt="Logo" class="logo" />
         </div>
 
-        <h2 class="login-title mb-10">Addax Admin Access</h2>
+        <h2
+          class="text-center font-bold text-3xl mb-10"
+          style="
+            color: rgb(var(--v-theme-on-surface));
+            text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.18);
+          "
+        >
+          Addax Admin Access
+        </h2>
 
         <v-form v-model="form" @submit.prevent="login">
           <v-text-field
@@ -69,12 +80,6 @@
             <v-icon right class="ml-2">mdi-login</v-icon>
           </v-btn>
         </v-form>
-
-        <!-- <div class="additional-links mt-6">
-          <v-btn type="text" color="secondary" >
-            Forgot Credentials?
-          </v-btn>
-        </div> -->
       </v-card>
     </v-sheet>
   </div>
@@ -123,19 +128,6 @@
 </script>
 
 <style scoped>
-  .login-container {
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    overflow: hidden;
-    background: rgb(var(--v-theme-background));
-  }
-
   .background-layer {
     position: absolute;
     width: 100%;
@@ -184,10 +176,6 @@
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.36);
   }
 
-  .logo-container {
-    text-align: center;
-  }
-
   .logo {
     width: 120px;
     transition: transform 0.4s ease;
@@ -195,14 +183,6 @@
 
   .logo:hover {
     transform: scale(1.1) rotate(5deg);
-  }
-
-  .login-title {
-    text-align: center;
-    color: rgb(var(--v-theme-on-surface));
-    font-weight: 700;
-    font-size: 28px;
-    text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.18);
   }
 
   .modern-input {

@@ -5,6 +5,7 @@ import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 import Fonts from 'unplugin-fonts/vite'
 import VueRouter from 'unplugin-vue-router/vite'
 import Layouts from "vite-plugin-vue-layouts-next";
+import UnoCSS from 'unocss/vite'
 import { loadEnv } from "vite";
 import { readFileSync } from "node:fs";
 
@@ -42,6 +43,7 @@ export default defineConfig(({ command, mode }) => {
       Vue({
         template: { transformAssetUrls }
       }),
+      UnoCSS(),
       // https://github.com/vuetifyjs/vuetify-loader/tree/master/packages/vite-plugin#readme
       Vuetify({
         autoImport: true,

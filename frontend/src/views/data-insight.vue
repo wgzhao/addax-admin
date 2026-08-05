@@ -85,31 +85,38 @@
           color="primary"
         >
           <v-btn value="noChange"
-            >无变化 <span class="segment-count">{{ filteredNoChange.length }}</span></v-btn
+            >无变化
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredNoChange.length }}</span></v-btn
           >
           <v-btn value="lowChange"
-            >低变化 <span class="segment-count">{{ filteredLowChange.length }}</span></v-btn
+            >低变化
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredLowChange.length }}</span></v-btn
           >
           <v-btn value="highChange"
-            >高变化 <span class="segment-count">{{ filteredHighChange.length }}</span></v-btn
+            >高变化
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredHighChange.length }}</span></v-btn
           >
           <v-btn value="timeChange"
-            >耗时异常 <span class="segment-count">{{ filteredTimeChange.length }}</span></v-btn
+            >耗时异常
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredTimeChange.length }}</span></v-btn
           >
           <v-btn value="missingCollect"
-            >缺采集 <span class="segment-count">{{ filteredMissingCollect.length }}</span></v-btn
+            >缺采集
+            <span class="ml-1 opacity-70 tabular-nums">{{
+              filteredMissingCollect.length
+            }}</span></v-btn
           >
         </v-btn-toggle>
       </v-card-text>
     </v-card>
 
-    <v-row v-show="activePanel === 'noChange'" dense class="section-grid">
+    <v-row v-show="activePanel === 'noChange'" dense class="mb-2">
       <v-col cols="12" md="12">
         <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ noChangeTable.title }}</div>
-              <div class="header-actions">
+          <v-card-text class="pt-2">
+            <div class="flex items-center justify-between gap-3 py-1 pb-3 font-semibold">
+              <div class="text-base">{{ noChangeTable.title }}</div>
+              <div class="inline-flex gap-2">
                 <v-btn
                   size="small"
                   variant="outlined"
@@ -141,13 +148,13 @@
       </v-col>
     </v-row>
 
-    <v-row v-show="activePanel === 'lowChange'" dense class="section-grid">
+    <v-row v-show="activePanel === 'lowChange'" dense class="mb-2">
       <v-col cols="12" md="12">
         <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ lowChangeTable.title }}</div>
-              <div class="header-actions">
+          <v-card-text class="pt-2">
+            <div class="flex items-center justify-between gap-3 py-1 pb-3 font-semibold">
+              <div class="text-base">{{ lowChangeTable.title }}</div>
+              <div class="inline-flex gap-2">
                 <v-btn
                   size="small"
                   variant="outlined"
@@ -175,13 +182,13 @@
       </v-col>
     </v-row>
 
-    <v-row v-show="activePanel === 'highChange'" dense class="section-grid">
+    <v-row v-show="activePanel === 'highChange'" dense class="mb-2">
       <v-col cols="12" md="12">
         <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ highChangeTable.title }}</div>
-              <div class="header-actions">
+          <v-card-text class="pt-2">
+            <div class="flex items-center justify-between gap-3 py-1 pb-3 font-semibold">
+              <div class="text-base">{{ highChangeTable.title }}</div>
+              <div class="inline-flex gap-2">
                 <v-btn
                   size="small"
                   variant="outlined"
@@ -209,13 +216,13 @@
       </v-col>
     </v-row>
 
-    <v-row v-show="activePanel === 'timeChange'" dense class="section-grid">
+    <v-row v-show="activePanel === 'timeChange'" dense class="mb-2">
       <v-col cols="12" md="12">
         <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ timeChangeTable.title }}</div>
-              <div class="header-actions">
+          <v-card-text class="pt-2">
+            <div class="flex items-center justify-between gap-3 py-1 pb-3 font-semibold">
+              <div class="text-base">{{ timeChangeTable.title }}</div>
+              <div class="inline-flex gap-2">
                 <v-btn
                   size="small"
                   variant="outlined"
@@ -243,13 +250,13 @@
       </v-col>
     </v-row>
 
-    <v-row v-show="activePanel === 'missingCollect'" dense class="section-grid">
+    <v-row v-show="activePanel === 'missingCollect'" dense class="mb-2">
       <v-col cols="12" md="12">
         <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ missingCollectTable.title }}</div>
-              <div class="header-actions">
+          <v-card-text class="pt-2">
+            <div class="flex items-center justify-between gap-3 py-1 pb-3 font-semibold">
+              <div class="text-base">{{ missingCollectTable.title }}</div>
+              <div class="inline-flex gap-2">
                 <v-btn
                   size="small"
                   variant="outlined"
@@ -277,7 +284,7 @@
               hide-no-data
             >
               <template #item.missing_dates="{ item }">
-                <div class="missing-dates-compact">
+                <div class="flex items-center justify-between gap-2 min-w-0">
                   <span class="text-caption text-medium-emphasis">
                     {{ compactMissingDates(item) }}
                   </span>
@@ -337,7 +344,7 @@
             }}
           </div>
           <div class="mb-3">缺失天数：{{ missingDatesDialog.dates.length }}</div>
-          <div class="missing-date-chips">
+          <div class="flex flex-wrap gap-2 max-h-80 overflow-auto">
             <v-chip
               v-for="date in missingDatesDialog.dates"
               :key="date"
@@ -652,10 +659,6 @@
 </route>
 
 <style scoped>
-  .insight-page {
-    min-width: 0;
-  }
-
   .segment-card-body {
     padding: 10px 12px;
   }
@@ -665,38 +668,6 @@
     justify-content: flex-start;
     flex-wrap: wrap;
     gap: 6px;
-  }
-
-  .segment-count {
-    margin-left: 4px;
-    opacity: 0.72;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .section-grid {
-    margin-bottom: 8px;
-  }
-
-  .section-body {
-    padding-top: 8px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 4px 0 12px;
-    font-weight: 600;
-  }
-
-  .section-title {
-    font-size: 16px;
-  }
-
-  .header-actions {
-    display: inline-flex;
-    gap: 8px;
   }
 
   .filter-actions {
@@ -721,22 +692,6 @@
     border: 1px solid var(--ds-border-subtle);
     border-radius: 10px;
     overflow: hidden;
-  }
-
-  .missing-dates-compact {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .missing-date-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    max-height: 320px;
-    overflow: auto;
   }
 
   @media (max-width: 960px) {

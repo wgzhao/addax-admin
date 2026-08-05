@@ -3,13 +3,16 @@
     <v-row justify="center">
       <v-col cols="12" md="6" lg="5">
         <v-card class="section-card" elevation="0">
-          <v-card-title class="section-title">
+          <v-card-title
+            class="flex items-center gap-2 font-semibold"
+            style="color: rgb(var(--v-theme-on-surface))"
+          >
             <v-icon class="mr-2" color="primary">mdi-lock-reset</v-icon>
             修改密码
           </v-card-title>
           <v-divider />
           <v-card-text class="section-body">
-            <v-form ref="form" v-model="valid" class="form-stack">
+            <v-form ref="form" v-model="valid" class="flex flex-col gap-3">
               <v-text-field
                 v-model="currentPassword"
                 label="当前密码"
@@ -37,7 +40,7 @@
                 variant="outlined"
                 density="compact"
               ></v-text-field>
-              <div class="action-bar">
+              <div class="flex justify-end gap-2 mt-1">
                 <v-btn variant="tonal" color="secondary" @click="router.back()">返回</v-btn>
                 <v-btn :disabled="!valid" color="primary" @click="changePassword">提交</v-btn>
               </div>
@@ -93,38 +96,9 @@
   };
 </script>
 <style scoped>
-  .change-password-page {
-    background: rgb(var(--v-theme-surface));
-  }
-
   .section-card {
     background: rgb(var(--v-theme-surface-variant));
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-  }
-
-  .section-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .section-body {
-    background: transparent;
-  }
-
-  .form-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .action-bar {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 6px;
   }
 </style>
 
