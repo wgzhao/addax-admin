@@ -35,6 +35,7 @@ public class ColumnService
     private final DictService dictService;
     private final EtlJourService jourService;
     private final SchemaChangeLogService schemaChangeLogService;
+    private final AlertService alertService;
 
     private static boolean isDeletedPlaceholder(String name)
     {
@@ -185,11 +186,21 @@ public class ColumnService
         boolean changed = false;
 
         try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
-            assert connection != null;
+            if (connection == null) {
+                // connection failure (bad network, wrong credentials, etc.):
+                // alert and skip this update instead of NPE'ing downstream
+                alertAndSkipFetch(etlTable, etlJour, "更新", "无法连接源数据库");
+                return -1;
+            }
             // 注意，这里的获取到的表字段类型是已经通过 hive 字段映射过后的，而不是原始字段类型
             // 比如原始类型是 varchar(255)，但映射后是 string
             List<EtlColumn> sourceCols = getEtlColumnV2(connection, etlTable);
-            if (sourceCols == null) {
+            if (sourceCols == null || sourceCols.isEmpty()) {
+                // metadata query failed (network, credentials, table dropped)
+                // or the table has no visible columns: alert and skip. An
+                // empty list must not be treated as "all columns deleted",
+                // which would placeholder-delete every existing target column.
+                alertAndSkipFetch(etlTable, etlJour, "更新", "获取源表字段失败或源表无字段");
                 return -1;
             }
             // name -> source column
@@ -274,7 +285,7 @@ public class ColumnService
             }
         }
         catch (SQLException e) {
-            jourService.failJour(etlJour, e.getMessage());
+            alertAndSkipFetch(etlTable, etlJour, "更新", e.getMessage());
             log.error("[V2] failed to update table columns for tid {}", etlTable.getId(), e);
             return -1;
         }
@@ -282,6 +293,19 @@ public class ColumnService
         log.info("[V2] table columns updated for tid {}, changed={}", etlTable.getId(), changed);
         jourService.successJour(etlJour);
         return changed ? 1 : 0;
+    }
+
+    /**
+     * Alert on failure to fetch source table columns, mark the jour as failed
+     * and skip this round (action: 更新 or 创建).
+     */
+    private void alertAndSkipFetch(VwEtlTableWithSource etlTable, EtlJour etlJour, String action, String reason)
+    {
+        String desc = String.format("%s.%s(%d)", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
+        alertService.sendToWeComRobot(
+            String.format("采集表 %s 字段%s失败，无法获取源表字段，原因：%s，已跳过本次%s", desc, action, reason, action));
+        jourService.failJour(etlJour, reason);
+        log.error("[V2] skip {} table columns for {}, reason: {}", action, desc, reason);
     }
 
     private List<EtlColumn> getEtlColumnV2(Connection connection, VwEtlTableWithSource etlTable)
@@ -356,10 +380,13 @@ public class ColumnService
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
 
         try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
-            assert connection != null;
+            if (connection == null) {
+                alertAndSkipFetch(etlTable, etlJour, "创建", "无法连接源数据库");
+                return false;
+            }
             List<EtlColumn> etlColumns = getEtlColumnV2(connection, etlTable);
             if (etlColumns == null || etlColumns.isEmpty()) {
-                jourService.failJour(etlJour, "failed to get source table metadata");
+                alertAndSkipFetch(etlTable, etlJour, "创建", "获取源表字段失败或源表无字段");
                 return false;
             }
             etlColumnRepo.saveAll(etlColumns);
@@ -369,7 +396,7 @@ public class ColumnService
             return true;
         }
         catch (SQLException e) {
-            jourService.failJour(etlJour, e.getMessage());
+            alertAndSkipFetch(etlTable, etlJour, "创建", e.getMessage());
             log.error("failed to create table columns for tid {}", etlTable.getId(), e);
             return false;
         }
