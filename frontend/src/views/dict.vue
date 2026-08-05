@@ -25,8 +25,12 @@
           <v-card-text class="ds-card__content flex flex-col gap-3.5">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="text-base font-bold" style="color: rgb(var(--v-theme-on-surface))">字典列表</div>
-                <div class="mt-1 leading-relaxed" style="color: var(--ds-text-2)">左侧展示字典定义，点击任意一项即可切换右侧明细。</div>
+                <div class="text-base font-bold" style="color: rgb(var(--v-theme-on-surface))">
+                  字典列表
+                </div>
+                <div class="mt-1 leading-relaxed" style="color: var(--ds-text-2)">
+                  左侧展示字典定义，点击任意一项即可切换右侧明细。
+                </div>
               </div>
             </div>
 

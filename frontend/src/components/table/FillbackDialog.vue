@@ -3,7 +3,9 @@
     <div class="fillback-head">
       <div>
         <div class="flex items-center gap-2 flex-wrap">
-          <div class="text-lg font-bold" style="color: rgb(var(--v-theme-on-surface))">补采数据</div>
+          <div class="text-lg font-bold" style="color: rgb(var(--v-theme-on-surface))">
+            补采数据
+          </div>
           <v-chip size="small" variant="tonal" color="primary">{{ selectedCount }} 张表</v-chip>
         </div>
       </div>

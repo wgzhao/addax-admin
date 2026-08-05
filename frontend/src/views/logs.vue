@@ -1,7 +1,10 @@
 <template>
   <div class="p-4" style="background: rgb(var(--v-theme-surface))">
     <v-card class="logs-card" elevation="0">
-      <v-card-title class="flex items-center gap-2 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
+      <v-card-title
+        class="flex items-center gap-2 font-semibold"
+        style="color: rgb(var(--v-theme-on-surface))"
+      >
         <v-icon color="primary" size="20">mdi-clipboard-text-outline</v-icon>
         <span>日志管理</span>
       </v-card-title>
@@ -21,12 +24,16 @@
           </v-tabs-window-item>
           <v-tabs-window-item value="etl_jour">
             <v-sheet class="tab-panel">
-              <div class="text-sm" style="color: rgba(var(--v-theme-on-surface), 0.6)">功能建设中</div>
+              <div class="text-sm" style="color: rgba(var(--v-theme-on-surface), 0.6)">
+                功能建设中
+              </div>
             </v-sheet>
           </v-tabs-window-item>
           <v-tabs-window-item value="etl_statistic">
             <v-sheet class="tab-panel">
-              <div class="text-sm" style="color: rgba(var(--v-theme-on-surface), 0.6)">功能建设中</div>
+              <div class="text-sm" style="color: rgba(var(--v-theme-on-surface), 0.6)">
+                功能建设中
+              </div>
             </v-sheet>
           </v-tabs-window-item>
         </v-tabs-window>

@@ -3,7 +3,10 @@
     <v-row justify="center">
       <v-col cols="12" md="6" lg="5">
         <v-card class="section-card" elevation="0">
-          <v-card-title class="flex items-center gap-2 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
+          <v-card-title
+            class="flex items-center gap-2 font-semibold"
+            style="color: rgb(var(--v-theme-on-surface))"
+          >
             <v-icon class="mr-2" color="primary">mdi-lock-reset</v-icon>
             修改密码
           </v-card-title>

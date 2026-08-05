@@ -85,19 +85,26 @@
           color="primary"
         >
           <v-btn value="noChange"
-            >无变化 <span class="ml-1 opacity-70 tabular-nums">{{ filteredNoChange.length }}</span></v-btn
+            >无变化
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredNoChange.length }}</span></v-btn
           >
           <v-btn value="lowChange"
-            >低变化 <span class="ml-1 opacity-70 tabular-nums">{{ filteredLowChange.length }}</span></v-btn
+            >低变化
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredLowChange.length }}</span></v-btn
           >
           <v-btn value="highChange"
-            >高变化 <span class="ml-1 opacity-70 tabular-nums">{{ filteredHighChange.length }}</span></v-btn
+            >高变化
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredHighChange.length }}</span></v-btn
           >
           <v-btn value="timeChange"
-            >耗时异常 <span class="ml-1 opacity-70 tabular-nums">{{ filteredTimeChange.length }}</span></v-btn
+            >耗时异常
+            <span class="ml-1 opacity-70 tabular-nums">{{ filteredTimeChange.length }}</span></v-btn
           >
           <v-btn value="missingCollect"
-            >缺采集 <span class="ml-1 opacity-70 tabular-nums">{{ filteredMissingCollect.length }}</span></v-btn
+            >缺采集
+            <span class="ml-1 opacity-70 tabular-nums">{{
+              filteredMissingCollect.length
+            }}</span></v-btn
           >
         </v-btn-toggle>
       </v-card-text>

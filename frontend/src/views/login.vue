@@ -1,5 +1,8 @@
 <template>
-  <div class="h-screen w-screen flex items-center justify-center fixed top-0 left-0 overflow-hidden" style="background: rgb(var(--v-theme-background))">
+  <div
+    class="h-screen w-screen flex items-center justify-center fixed top-0 left-0 overflow-hidden"
+    style="background: rgb(var(--v-theme-background))"
+  >
     <div class="background-layer">
       <div class="gradient-overlay"></div>
       <div class="tech-particles"></div>
@@ -11,7 +14,13 @@
           <img src="/logo.png" alt="Logo" class="logo" />
         </div>
 
-        <h2 class="text-center font-bold text-3xl mb-10" style="color: rgb(var(--v-theme-on-surface)); text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.18)">
+        <h2
+          class="text-center font-bold text-3xl mb-10"
+          style="
+            color: rgb(var(--v-theme-on-surface));
+            text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.18);
+          "
+        >
           Addax Admin Access
         </h2>
 

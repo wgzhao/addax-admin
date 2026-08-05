@@ -11,7 +11,10 @@
         <v-row density="comfortable" class="mb-2">
           <v-col cols="12" md="6">
             <v-sheet class="form-section" rounded="lg" border>
-              <div class="flex items-center gap-2 px-3.5 py-2.5 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
+              <div
+                class="flex items-center gap-2 px-3.5 py-2.5 font-semibold"
+                style="color: rgb(var(--v-theme-on-surface))"
+              >
                 <v-icon size="18" color="primary">mdi-clipboard-text-outline</v-icon>
                 <span>基本信息</span>
               </div>
@@ -96,7 +99,10 @@
 
           <v-col cols="12" md="6">
             <v-sheet class="form-section" rounded="lg" border>
-              <div class="flex items-center gap-2 px-3.5 py-2.5 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
+              <div
+                class="flex items-center gap-2 px-3.5 py-2.5 font-semibold"
+                style="color: rgb(var(--v-theme-on-surface))"
+              >
                 <v-icon size="18" color="primary">mdi-link-variant</v-icon>
                 <span>连接信息</span>
               </div>
@@ -162,7 +168,10 @@
 
           <v-col cols="12">
             <v-sheet class="form-section" rounded="lg" border>
-              <div class="flex items-center gap-2 px-3.5 py-2.5 font-semibold" style="color: rgb(var(--v-theme-on-surface))">
+              <div
+                class="flex items-center gap-2 px-3.5 py-2.5 font-semibold"
+                style="color: rgb(var(--v-theme-on-surface))"
+              >
                 <v-icon size="18" color="primary">mdi-note-text-outline</v-icon>
                 <span>备注信息</span>
               </div>

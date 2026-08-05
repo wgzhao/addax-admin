@@ -3,7 +3,9 @@
     <div class="batch-update-head">
       <div>
         <div class="flex items-center gap-2 flex-wrap">
-          <div class="text-lg font-bold" style="color: rgb(var(--v-theme-on-surface))">批量修改采集表</div>
+          <div class="text-lg font-bold" style="color: rgb(var(--v-theme-on-surface))">
+            批量修改采集表
+          </div>
           <v-chip size="small" variant="tonal" color="primary">{{ selectedCount }} 条记录</v-chip>
         </div>
       </div>
