@@ -728,6 +728,8 @@ public class TaskQueueManagerV2Impl
         long start = System.currentTimeMillis();
         TaskResultDto taskResultDto = null;
         ScheduledFuture<?> renewer = null;
+        // 声明在 try 外,异常分支(notifyFinalFailure)也需要引用
+        EtlTable task = null;
         final long jobId = job.getId();
 
         try {
@@ -744,7 +746,7 @@ public class TaskQueueManagerV2Impl
                 }
             }, renewInterval, renewInterval, TimeUnit.SECONDS);
 
-            EtlTable task = tableService.getTable(job.getTid());
+            task = tableService.getTable(job.getTid());
             if (task == null) {
                 throw new IllegalStateException("Task not found tid=" + job.getTid());
             }
@@ -756,10 +758,12 @@ public class TaskQueueManagerV2Impl
             }
             else if (taskResultDto.success()) {
                 jobQueueService.completeSuccess(job.getId());
+                alertService.reportCollectionSuccess(task.getId(), task.getSourceDb(), task.getSourceTable());
             }
             else {
                 Duration backoff = computeBackoff(job.getAttempts());
                 jobQueueService.failOrReschedule(job, "Addax non-zero exit", backoff);
+                notifyFinalFailure(job, task, "Addax 非0退出");
             }
         }
         catch (Exception e) {
@@ -776,6 +780,7 @@ public class TaskQueueManagerV2Impl
             else {
                 Duration backoff = computeBackoff(job.getAttempts());
                 try { jobQueueService.failOrReschedule(job, e.getMessage(), backoff); } catch (Exception ignored) {}
+                notifyFinalFailure(job, task, e.getMessage());
             }
         }
         finally {
@@ -816,6 +821,23 @@ public class TaskQueueManagerV2Impl
         return Duration.ofSeconds(secs);
     }
 
+    /**
+     * 最后一次尝试失败时发送告警(重试耗尽才告警)。
+     * AlertService 内部会记录告警状态,后续采集成功时自动发送恢复通知。
+     */
+    private void notifyFinalFailure(EtlJobQueue job, EtlTable task, String error)
+    {
+        boolean finalAttempt = job.getAttempts() >= job.getMaxAttempts();
+        if (task != null) {
+            alertService.reportCollectionFailure(task.getId(), task.getSourceDb(), task.getSourceTable(),
+                error, job.getAttempts(), job.getMaxAttempts(), finalAttempt);
+        }
+        else {
+            alertService.reportCollectionFailure(job.getTid(), null, null,
+                error, job.getAttempts(), job.getMaxAttempts(), finalAttempt);
+        }
+    }
+
     public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate)
     {
         long tid = task.getId();
@@ -832,7 +854,6 @@ public class TaskQueueManagerV2Impl
             }
             else {
                 tableService.setFailed(task);
-                alertService.sendToWeComRobot(String.format("采集任务 %s.%s(%d) 执行失败: Addax 非0退出", task.getSourceDb(), task.getSourceTable(), tid));
                 return TaskResultDto.failure("Failed: Addax non-zero exit", duration);
             }
         }
@@ -841,7 +862,6 @@ public class TaskQueueManagerV2Impl
             log.error("Task {}.{}({}) failed, elapsed={}s", task.getSourceDb(), task.getSourceTable(), tid, duration, e);
             task.setDuration(duration);
             tableService.setFailed(task);
-            alertService.sendToWeComRobot(String.format("采集任务 %s.%s(%d) 执行失败: %s", task.getSourceDb(), task.getSourceTable(), tid, e.getMessage()));
             String msg = e.getMessage() == null ? "Internal error" : e.getMessage();
             return TaskResultDto.failure("Exception: " + msg, duration);
         }
