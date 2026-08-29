@@ -10,49 +10,79 @@
 - Docker Compose 2.0 或更高版本
 
 检查版本：
+
 ```bash
 docker --version
-docker-compose --version
+docker compose version
 ```
 
 ## 🚀 快速启动
 
-### 1. 克隆项目（如果还未克隆）
+两种方式任选其一，快速部署请使用方式一（拉取预构建镜像，无需本地构建）。
+
+### 方式一：拉取预构建镜像（推荐）
+
+适用于快速体验与生产部署，不需要源码和构建工具链。
 
 ```bash
-git clone <repository-url>
+# 1. 创建部署目录
+mkdir addax-admin && cd addax-admin
+mkdir -p scripts
+
+# 2. 下载部署文件（docker-compose.yml 和数据库初始化脚本）
+wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/docker-compose.yml
+wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/schema.sql
+wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/data.sql
+
+# 3. 拉取镜像并启动（默认拉取 Docker Hub 上的 wgzhao/addax-admin:latest）
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
+
+# 4. 查看服务状态
+docker compose -f docker-compose.yml ps
+```
+
+> **国内网络提示**：无法访问 Docker Hub 时（`registry-1.docker.io` 超时），请先为 Docker
+> 配置镜像加速器（[官方文档](https://docs.docker.com/registry/recipes/mirror/)），
+> 或改用 Quay 备用源：
+> ```bash
+> echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env
+> docker compose -f docker-compose.yml pull
+> docker compose -f docker-compose.yml up -d
+> ```
+
+> **注意**：该方式不下载根目录 `Dockerfile`，若镜像拉取失败请勿直接 `up -d`
+> （compose 会尝试本地构建并报 `Dockerfile: no such file or directory`），
+> 应优先解决镜像拉取问题，或改用方式二。
+
+### 方式二：克隆源码本地构建
+
+适用于二次开发或希望构建最新代码的场景。
+
+```bash
+git clone https://github.com/wgzhao/addax-admin.git
 cd addax-admin
+docker compose up -d --build
 ```
 
-### 2. 构建并启动所有服务
+### 查看服务状态
 
 ```bash
-docker-compose up -d
+docker compose ps
 ```
 
-这个命令会：
-- 自动构建前端和后端 Docker 镜像
-- 拉取 PostgreSQL 和 Redis 官方镜像
-- 启动所有服务并进行数据库初始化
-- 在后台运行所有容器
+应该看到 3 个服务正在运行：
 
-### 3. 查看服务状态
+- `addax-admin` - 应用服务（前端 Nginx + 后端 Spring Boot 合一，前端端口 50080）
+- `addax-postgres` - PostgreSQL 数据库
+- `addax-redis` - Redis 缓存
 
-```bash
-docker-compose ps
-```
-
-应该看到 4 个服务正在运行：
-- `addax-frontend` - 前端服务 (端口 80)
-- `addax-backend` - 后端服务 (端口 50601)
-- `addax-postgres` - PostgreSQL 数据库 (端口 5432)
-- `addax-redis` - Redis 缓存 (端口 6379)
-
-### 4. 访问应用
+### 访问应用
 
 打开浏览器访问：
-- **前端应用**: http://localhost
-- **后端 API**: http://localhost:50601/api/v1
+
+- **前端应用**: http://localhost:50080 （默认账号 admin / admin123）
+- **后端 API**: http://localhost:50601/api/v1 （仅容器网络内使用，默认不对外暴露）
 
 ## 📦 服务架构
 
@@ -60,101 +90,70 @@ docker-compose ps
 ┌─────────────┐
 │   Browser   │
 └──────┬──────┘
-       │
-       ▼
-┌─────────────┐     ┌─────────────┐
-│  Frontend   │────▶│   Backend   │
-│   (Nginx)   │     │  (Spring)   │
-│   Port 80   │     │  Port 50601 │
-└─────────────┘     └──────┬──────┘
-                           │
-                    ┌──────┴──────┐
-                    ▼             ▼
-              ┌──────────┐  ┌─────────┐
-              │PostgreSQL│  │  Redis  │
-              │Port 5432 │  │Port 6379│
-              └──────────┘  └─────────┘
+       │  50080
+┌──────▼──────┐     ┌──────────────┐
+│    app      │────▶│   backend    │
+│ (Nginx 80)  │     │  (Spring)    │
+│  + backend  │     │  50601       │
+└──────┬──────┘     └──────┬───────┘
+       │                   │
+       │             ┌─────▼─────┐   ┌──────────┐
+       │             │ PostgreSQL│   │  Redis   │
+       └─────────────│ Port 5432 │   │ Port 6379│
+                     └───────────┘   └──────────┘
 ```
+
+- `app`：前后端合一容器，Nginx 监听 80（映射到宿主机 50080），反向代理同容器内的 Spring Boot（50601）
+- `postgres` / `redis`：仅在 compose 网络内互通，不暴露到宿主机
 
 ## 🔧 常用命令
 
 ### 启动服务
 ```bash
 # 启动所有服务（后台运行）
-docker-compose up -d
+docker compose up -d
 
 # 启动所有服务（前台运行，可查看日志）
-docker-compose up
+docker compose up
 
-# 启动特定服务
-docker-compose up -d backend
+# 拉取最新镜像后重启（方式一部署时使用）
+docker compose pull
+docker compose up -d
+
+# 重新构建并启动（方式二部署时使用）
+docker compose up -d --build
 ```
 
 ### 停止服务
 ```bash
 # 停止所有服务
-docker-compose stop
-
-# 停止特定服务
-docker-compose stop backend
+docker compose stop
 
 # 停止并删除容器
-docker-compose down
+docker compose down
 
 # 停止并删除容器、网络、卷（清空数据）
-docker-compose down -v
+docker compose down -v
 ```
 
 ### 查看日志
 ```bash
 # 查看所有服务日志
-docker-compose logs
+docker compose logs
 
 # 查看特定服务日志
-docker-compose logs backend
-docker-compose logs frontend
+docker compose logs app
 
 # 实时查看日志
-docker-compose logs -f backend
+docker compose logs -f app
 
 # 查看最近 100 行日志
-docker-compose logs --tail=100 backend
+docker compose logs --tail=100 app
 ```
 
 ### 重启服务
 ```bash
-# 重启所有服务
-docker-compose restart
-
-# 重启特定服务
-docker-compose restart backend
-```
-
-### 重新构建镜像
-```bash
-# 重新构建所有镜像
-docker-compose build
-
-# 重新构建特定服务
-docker-compose build backend
-
-# 强制重新构建（不使用缓存）
-docker-compose build --no-cache
-
-# 重新构建并启动
-docker-compose up -d --build
-```
-
-### 进入容器
-```bash
-# 进入后端容器
-docker-compose exec backend sh
-
-# 进入数据库容器
-docker-compose exec postgres psql -U addax_admin -d addax_admin
-
-# 进入 Redis 容器
-docker-compose exec redis redis-cli
+docker compose restart app
 ```
 
 ## 🔍 健康检查
@@ -162,11 +161,8 @@ docker-compose exec redis redis-cli
 所有服务都配置了健康检查：
 
 ```bash
-# 检查服务健康状态
-docker-compose ps
-
-# 查看详细健康信息
-docker inspect addax-backend | grep -A 10 Health
+docker compose ps
+docker inspect addax-admin | grep -A 10 Health
 ```
 
 ## 🗄️ 数据持久化
@@ -177,161 +173,132 @@ docker inspect addax-backend | grep -A 10 Health
 - `addax-redis-data`: Redis 缓存数据
 - `addax-backend-logs`: 后端日志文件
 
-查看卷信息：
-```bash
-docker volume ls | grep addax
-docker volume inspect addax-postgres-data
-```
+另外有两个 bind mount 目录（方式二克隆源码时位于 `backend/` 下，方式一下载部署时 compose 会自动创建）：
+
+- `./backend/drivers` -> `/app/drivers`：自定义 JDBC 驱动目录，放入后容器启动时自动加载
+- `./backend/job` -> `/app/job`：采集任务文件目录
 
 ## ⚙️ 环境变量配置
 
-可以通过修改 `docker-compose.yml` 中的环境变量来自定义配置：
+复制 `.env.example` 为 `.env` 后按需修改（两种方式均可下载：
+
+```bash
+wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/.env.example
+cp .env.example .env
+```
+
+### 镜像配置
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `DOCKER_REGISTRY` | `wgzhao` | 仓库用户名或地址前缀，最终镜像为 `${DOCKER_REGISTRY}/addax-admin:${VERSION}`；国内可改 `quay.io/wgzhao` |
+| `VERSION` | `latest` | 镜像版本（对应 GitHub Release tag，如 `4.1.1`） |
 
 ### 数据库配置
-```yaml
-environment:
-  POSTGRES_DB: addax_admin          # 数据库名
-  POSTGRES_USER: addax_admin        # 数据库用户
-  POSTGRES_PASSWORD: addax_admin@123 # 数据库密码
-```
 
-### 后端配置
-```yaml
-environment:
-  DB_HOST: postgres                  # 数据库主机
-  DB_PORT: 5432                      # 数据库端口
-  REDIS_HOST: redis                  # Redis 主机
-  REDIS_PORT: 6379                   # Redis 端口
-```
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `addax_admin` / `addax_admin` / `addax_admin@123` | 容器内 PostgreSQL 初始化参数 |
+| `POSTGRES_PORT` | `5432` | 数据库端口（默认不映射到宿主机） |
+
+### 应用配置
+
+| 变量 | 默认值 | 说明 |
+|---|---|---|
+| `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USERNAME` / `DB_PASSWORD` | 与数据库配置一致 | 后端连接数据库 |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` / `REDIS_DB` | `redis` / `6379` / 空 / `0` | 后端连接 Redis |
+| `SERVER_PORT` | `50601` | 后端服务端口（容器内） |
+| `FRONTEND_PORT` | `50080` | 前端（Nginx）映射到宿主机的端口 |
+| `LOG_DIR` | `/app/logs` | 后端日志目录（容器内） |
+| `WEIGHT` | `1.0` | 节点并发权重因子 (0.0 - 1.0) |
+| `WECOM_ROBOT_KEY` | 空 | 企业微信机器人 Key，用于告警（多个用逗号分隔） |
 
 ## 🔐 安全建议
 
 **生产环境部署时，请务必：**
 
 1. **修改默认密码**
-   ```yaml
-   POSTGRES_PASSWORD: 使用强密码
-   ```
-
-2. **限制端口暴露**
-   - 移除不需要外部访问的端口映射
-   - 仅保留前端 80 端口
-
-3. **使用环境变量文件**
    ```bash
-   # 创建 .env 文件
-   cp .env.example .env
-   # 编辑 .env 文件设置敏感信息
+   echo "POSTGRES_PASSWORD=使用强密码" >> .env
+   echo "DB_PASSWORD=使用强密码" >> .env
+   docker compose up -d
    ```
 
-4. **配置 HTTPS**
-   - 使用 Nginx 或反向代理配置 SSL 证书
-   - 建议使用 Let's Encrypt
+2. **限制端口暴露**：仅保留前端 `FRONTEND_PORT`，后端 `50601` 保持默认不映射
+
+3. **配置 HTTPS**：使用 Nginx 或反向代理配置 SSL 证书
 
 ## 🐛 故障排查
+
+### 拉取镜像失败 / registry-1.docker.io 超时
+
+国内网络常见问题。按优先级尝试：
+
+1. 为 Docker 配置镜像加速器后重启 Docker daemon
+2. 改用 Quay 备用源：`echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env`
+3. 使用方式二（克隆源码本地构建）
+
+### 报错 `failed to read dockerfile: open Dockerfile: no such file or directory`
+
+方式一（仅下载 compose 文件）下**没有 Dockerfile**，此报错表示镜像拉取失败后
+compose 回退到了本地构建。请先解决镜像拉取问题（见上一条），或改用方式二。
 
 ### 服务启动失败
 
 1. **检查日志**
    ```bash
-   docker-compose logs backend
-   docker-compose logs postgres
+   docker compose logs app
+   docker compose logs postgres
    ```
 
 2. **检查端口占用**
    ```bash
-   # macOS/Linux
-   lsof -i :80
-   lsof -i :50601
-   lsof -i :5432
+   lsof -i :50080
    ```
 
 3. **清理并重启**
    ```bash
-   docker-compose down
-   docker-compose up -d
+   docker compose down
+   docker compose up -d
    ```
 
 ### 数据库连接失败
 
 1. **等待数据库完全启动**
    ```bash
-   docker-compose logs postgres | grep "ready to accept connections"
+   docker compose logs postgres | grep "ready to accept connections"
    ```
 
 2. **手动测试连接**
    ```bash
-   docker-compose exec postgres psql -U addax_admin -d addax_admin -c "SELECT 1;"
+   docker compose exec postgres psql -U addax_admin -d addax_admin -c "SELECT 1;"
    ```
 
-### 前端无法访问后端
+### 健康检查失败（容器反复重启）
 
-1. **检查后端服务状态**
-   ```bash
-   curl http://localhost:50601/api/v1/actuator/health
-   ```
-
-2. **检查 Nginx 配置**
-   ```bash
-   docker-compose exec frontend cat /etc/nginx/conf.d/default.conf
-   ```
+```bash
+# 查看容器健康状态与日志
+docker inspect addax-admin | grep -A 10 Health
+docker compose logs app | tail -100
+```
 
 ## 🔄 更新部署
 
-### 更新代码后重新部署
+### 方式一（拉取镜像）更新
 
 ```bash
-# 拉取最新代码
+docker compose pull
+docker compose up -d
+```
+
+### 方式二（源码构建）更新
+
+```bash
 git pull
-
-# 重新构建并启动
-docker-compose up -d --build
-```
-
-### 仅更新前端
-```bash
-docker-compose up -d --build frontend
-```
-
-### 仅更新后端
-```bash
-docker-compose up -d --build backend
-```
-
-## 📊 性能优化
-
-### 调整资源限制
-
-在 `docker-compose.yml` 中添加：
-
-```yaml
-services:
-  backend:
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          memory: 512M
-```
-
-### 数据库性能调优
-
-```bash
-# 进入数据库容器
-docker-compose exec postgres psql -U addax_admin -d addax_admin
-
-# 查看连接数
-SELECT count(*) FROM pg_stat_activity;
-
-# 查看慢查询
-SELECT * FROM pg_stat_statements ORDER BY total_time DESC LIMIT 10;
+docker compose up -d --build
 ```
 
 ## 🧹 清理
-
-### 清理未使用的资源
 
 ```bash
 # 清理未使用的容器
@@ -340,24 +307,8 @@ docker container prune
 # 清理未使用的镜像
 docker image prune
 
-# 清理未使用的卷
-docker volume prune
-
-# 清理所有未使用资源
-docker system prune -a
-```
-
-### 完全重置
-
-```bash
-# 停止并删除所有容器和卷
-docker-compose down -v
-
-# 删除所有相关镜像
-docker images | grep addax | awk '{print $3}' | xargs docker rmi -f
-
-# 重新开始
-docker-compose up -d --build
+# 完全重置（删除容器、网络、卷，清空数据）
+docker compose down -v
 ```
 
 ## 📝 备份和恢复
@@ -366,22 +317,31 @@ docker-compose up -d --build
 
 ```bash
 # 导出数据库
-docker-compose exec postgres pg_dump -U addax_admin addax_admin > backup.sql
-
-# 或使用 docker cp
-docker-compose exec postgres pg_dump -U addax_admin addax_admin -f /tmp/backup.sql
-docker cp addax-postgres:/tmp/backup.sql ./backup.sql
+docker compose exec postgres pg_dump -U addax_admin addax_admin > backup.sql
 ```
 
 ### 恢复数据库
 
 ```bash
-# 方法 1: 直接导入
-docker-compose exec -T postgres psql -U addax_admin addax_admin < backup.sql
+# 方式 1: 直接导入
+docker compose exec -T postgres psql -U addax_admin addax_admin < backup.sql
 
-# 方法 2: 使用 docker cp
+# 方式 2: 使用 docker cp
 docker cp backup.sql addax-postgres:/tmp/backup.sql
-docker-compose exec postgres psql -U addax_admin addax_admin -f /tmp/backup.sql
+docker compose exec postgres psql -U addax_admin addax_admin -f /tmp/backup.sql
+```
+
+## 📊 资源限制（可选）
+
+```bash
+# 在 docker-compose.yml 的 app 服务下添加
+deploy:
+  resources:
+    limits:
+      cpus: '2'
+      memory: 2G
+    reservations:
+      memory: 512M
 ```
 
 ## 🔗 相关链接
@@ -390,13 +350,13 @@ docker-compose exec postgres psql -U addax_admin addax_admin -f /tmp/backup.sql
 - [Docker Compose 文档](https://docs.docker.com/compose/)
 - [PostgreSQL Docker 镜像](https://hub.docker.com/_/postgres)
 - [Redis Docker 镜像](https://hub.docker.com/_/redis)
-- [Nginx Docker 镜像](https://hub.docker.com/_/nginx)
 
 ## 💬 获取帮助
 
 如遇到问题，请：
-1. 查看日志：`docker-compose logs -f`
-2. 检查服务状态：`docker-compose ps`
+
+1. 查看日志：`docker compose logs -f`
+2. 检查服务状态：`docker compose ps`
 3. 提交 Issue 到项目仓库
 
 ---
