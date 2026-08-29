@@ -66,45 +66,53 @@ addax-admin/
 
 ### 容器模式
 
-#### 1. 准备部署目录
+#### 方式一：拉取预构建镜像（推荐，无需本地构建）
+
+适用于快速体验与生产部署，不需要源码和构建工具链。
 
 ```bash
-# 创建项目目录
+# 1. 创建部署目录
 mkdir addax-admin && cd addax-admin
+mkdir -p scripts
 
-# 创建必要的子目录
-mkdir -p scripts drivers job
-```
-
-#### 2. 下载必要文件
-
-```bash
-# 下载 docker-compose 配置文件
+# 2. 下载部署文件（docker-compose.yml 和数据库初始化脚本）
 wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/docker-compose.yml
-
-# 下载数据库初始化脚本
 wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/schema.sql
 wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/data.sql
+
+# 3. 拉取镜像并启动（默认拉取 Docker Hub 上的 wgzhao/addax-admin:latest）
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
+
+# 4. 查看状态与日志
+docker compose -f docker-compose.yml ps
+docker compose -f docker-compose.yml logs -f
 ```
 
-#### 3. 启动服务
+> 国内网络无法访问 Docker Hub 时（`registry-1.docker.io` 超时），请先为 Docker 配置
+> 镜像加速器（见 [Docker 镜像加速配置](https://docs.docker.com/registry/recipes/mirror/)），
+> 或改用 Quay 备用源：
+> ```bash
+> echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env
+> docker compose -f docker-compose.yml pull
+> docker compose -f docker-compose.yml up -d
+> ```
+
+#### 方式二：克隆源码本地构建
+
+适用于二次开发或希望构建最新代码的场景。
 
 ```bash
-# 启动所有服务
-docker-compose -f docker-compose.yml up -d
-
-# 查看服务状态
-docker-compose -f docker-compose.yml ps
-
-# 查看日志
-docker-compose -f docker-compose.yml logs -f
+git clone https://github.com/wgzhao/addax-admin.git
+cd addax-admin
+docker compose up -d --build
 ```
 
-#### 4. 访问应用
+#### 访问应用
 
-运行成功后，访问 <http://localhost:50080>，默认账号为 admin, 密码为 `admin123`
+运行成功后，访问 <http://localhost:50080>，默认账号为 admin，密码为 `admin123`
 
-更多详细配置请参考 [DOCKER-USER-GUIDE.md](DOCKER-USER-GUIDE.md)
+更多详细配置请参考 [DOCKER.md](DOCKER.md)
 
 ### 本地开发模式
 

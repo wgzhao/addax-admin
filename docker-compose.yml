@@ -40,8 +40,10 @@ services:
       retries: 5
 
   # 应用服务（前后端合一）
+  # Why: default registry is the published image owner, so plain `docker compose up` can pull
+  # instead of silently falling back to a build with a missing Dockerfile
   app:
-    image: ${DOCKER_REGISTRY:-addax-admin}:${VERSION:-latest}
+    image: ${DOCKER_REGISTRY:-wgzhao}/addax-admin:${VERSION:-latest}
     build:
       context: .
       dockerfile: Dockerfile
