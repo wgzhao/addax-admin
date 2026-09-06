@@ -1,0 +1,106 @@
+// Shared detail-form scaffolding imported by each detail card's scoped style.
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-block--switch {
+  height: 100%;
+}
+
+.field-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.78);
+}
+
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.switch-shell {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.mono-input :deep(textarea) {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+    monospace;
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.guide-item {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.guide-item__key {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+    monospace;
+  font-size: 0.84rem;
+  color: rgb(var(--v-theme-primary));
+  word-break: break-word;
+}
+
+.guide-item__desc {
+  color: rgba(var(--v-theme-on-surface), 0.68);
+  line-height: 1.65;
+}
+
+.guide-item__desc code {
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .section-body {
+    padding: 16px;
+  }
+
+  .guide-item {
+    grid-template-columns: 1fr;
+  }
+}
