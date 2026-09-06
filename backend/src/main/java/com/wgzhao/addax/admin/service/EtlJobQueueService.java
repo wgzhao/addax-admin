@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.repository.EtlJobQueueRepo;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -266,9 +267,19 @@ public class EtlJobQueueService
     }
 
     @Transactional
-    public void truncateQueueExceptRunningTasks()
+    public void truncateQueueExceptRunningTasksBefore(Instant createdBefore)
     {
-        jobRepo.deleteByStatusNot("running");
+        // Daily-refresh cleanup with a created_at cutoff: terminal history plus auto-scheduled
+        // pending rows from the previous period are dropped, while rows enqueued during the refresh
+        // window (created_at >= cutoff, e.g. by other nodes whose monitors kept running) and manual
+        // submits / fillbacks (pending rows carrying a payload) are preserved.
+        String sql = """
+                DELETE FROM public.etl_job_queue
+                WHERE status <> 'running'
+                  AND created_at < ?
+                  AND NOT (status = 'pending' AND payload IS NOT NULL)
+            """;
+        jdbcTemplate.update(sql, java.sql.Timestamp.from(createdBefore));
     }
 
     /**

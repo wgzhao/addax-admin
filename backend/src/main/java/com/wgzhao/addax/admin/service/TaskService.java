@@ -2,11 +2,14 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.redis.MasterElectionService;
+import com.wgzhao.addax.admin.redis.RedisLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,6 +17,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -50,6 +55,8 @@ public class TaskService
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
     private final RiskLogService riskLogService;
+    private final RedisLockService redisLockService;
+    private final MasterElectionService electionService;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -75,6 +82,25 @@ public class TaskService
         // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
         log.info("开始执行每日参数更新和任务重置...");
 
+        // Schema refresh mutates shared state (flags, queue truncation). It may be triggered from
+        // several places (master cron, manual endpoint), so gate on the master role first and then
+        // take a real cluster-wide Redis lock — the previous "已获取 schema refresh 锁" comment
+        // described a lock that was never written anywhere.
+        if (!electionService.isMaster()) {
+            log.warn("updateParams 仅允许 master 节点执行，本节点非 master，忽略本次触发");
+            return;
+        }
+        int timeout = configService.getSchemaRefreshTimeoutSeconds();
+        String lockToken = redisLockService.tryLock(Constants.SCHEMA_REFRESH_LOCK_KEY, Duration.ofSeconds(timeout + 60L));
+        if (lockToken == null) {
+            log.warn("schema refresh 锁被占用（{}），说明已有刷新在进行中，跳过本次刷新", Constants.SCHEMA_REFRESH_LOCK_KEY);
+            return;
+        }
+        // Cutoff for queue cleanup below: rows created after this instant (including enqueues made
+        // by other nodes while this refresh runs) must survive the truncation.
+        Instant refreshStartedAt = Instant.now();
+        log.info("已获取 schema refresh 锁：正在更新参数与刷新表结构，期间新任务将被延迟入队。已经在执行的任务不受影响。");
+
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "updateParams-worker");
             t.setDaemon(true);
@@ -83,8 +109,6 @@ public class TaskService
 
         Future<?> future = null;
         try {
-            log.info("已获取 schema refresh 锁：正在更新参数与刷新表结构，期间新任务将被拒绝或不被入队。已经在执行的任务不受影响。");
-
             // Stop the queue monitor to prevent new queued tasks from being dispatched while we refresh.
             // Note: running tasks are not interrupted.
             queueManager.stopQueueMonitor();
@@ -100,10 +124,11 @@ public class TaskService
                     // Refresh schema / resources for all tables. This checks source schema and updates target metadata when changed.
                     tableService.refreshAllTableResources();
 
-                    // truncate the job queue table except for running tasks
-                    // 106 行注释：在完成必要参数配置及初始化后，需要清理 etl_job_queue 中的历史记录
-                    // 这里只保留仍在运行中的任务，删除 completed/failed 等状态的记录，减轻后续查询压力
-                    queueManager.truncateQueueExceptRunningTasks();
+                    // Clean etl_job_queue history up to the refresh start: terminal rows and stale
+                    // auto-scheduled pending rows of the previous period. Manual submits / fillbacks
+                    // (pending rows carrying a payload) and rows enqueued during the refresh window
+                    // are kept.
+                    queueManager.truncateQueueExceptRunningTasksBefore(refreshStartedAt);
                 }
                 catch (Exception e) {
                     // Let outer handler deal with logging
@@ -112,12 +137,10 @@ public class TaskService
             });
 
             try {
-                int timeout = configService.getSchemaRefreshTimeoutSeconds();
                 future.get(timeout, TimeUnit.SECONDS);
                 log.info("参数更新与表结构刷新完成");
             }
             catch (TimeoutException te) {
-                int timeout = configService.getSchemaRefreshTimeoutSeconds();
                 log.error("参数更新/表结构刷新超时（>{}s），将中止刷新并释放锁", timeout);
                 // try to cancel the running task
                 future.cancel(true);
@@ -142,6 +165,7 @@ public class TaskService
                 log.warn("重启队列监控器时发生错误", e);
             }
 
+            redisLockService.release(Constants.SCHEMA_REFRESH_LOCK_KEY, lockToken);
             log.info("已释放 schema refresh 锁，队列监控器已重启，采集任务恢复正常");
 
             if (future != null && !future.isDone()) {

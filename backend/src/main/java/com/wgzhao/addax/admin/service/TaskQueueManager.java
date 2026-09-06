@@ -46,7 +46,6 @@ public interface TaskQueueManager
 
     /**
      * Returns true while schema refresh is in progress (queue monitor stopped).
-     * Use this instead of checking the Redis schema refresh lock key, which is no longer written.
      */
     default boolean isRefreshing()
     {
@@ -59,5 +58,9 @@ public interface TaskQueueManager
 
     TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable etlTable);
 
-    void truncateQueueExceptRunningTasks();
+    /**
+     * Delete terminal-history and stale pending queue rows created before the given instant
+     * (see EtlJobQueueService). Used by the daily schema refresh.
+     */
+    void truncateQueueExceptRunningTasksBefore(java.time.Instant createdBefore);
 }
