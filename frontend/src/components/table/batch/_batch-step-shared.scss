@@ -1,0 +1,140 @@
+// Shared step scaffolding styles for the batch-add wizard. Each step component
+// imports this into its scoped style, so every class stays scoped to the
+// component that renders it.
+
+.step-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+}
+
+.step-layout--config {
+  gap: 16px;
+}
+
+.step-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-kicker {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-primary), 0.86);
+}
+
+.step-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.step-desc {
+  max-width: 760px;
+  color: rgba(var(--v-theme-on-surface), 0.66);
+  line-height: 1.65;
+}
+
+.stage-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.stage-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stage-panel,
+.preview-card,
+.table-stage {
+  border-radius: 18px;
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+  background: rgba(var(--v-theme-surface), 0.98);
+  overflow: hidden;
+}
+
+.stage-panel {
+  padding: 18px;
+}
+
+.stage-panel__header {
+  margin-bottom: 14px;
+}
+
+.stage-panel__title,
+.preview-card__title {
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.stage-panel__caption,
+.preview-card__caption {
+  margin-top: 4px;
+  font-size: 0.84rem;
+  color: rgba(var(--v-theme-on-surface), 0.62);
+  line-height: 1.6;
+}
+
+.step-alert {
+  border-radius: 16px;
+}
+
+.panel-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 260px;
+  padding: 24px;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px dashed rgba(var(--v-theme-on-surface), 0.16);
+  background: rgba(var(--v-theme-on-surface), 0.02);
+}
+
+.panel-state__icon {
+  color: rgba(var(--v-theme-on-surface), 0.28);
+}
+
+.panel-state__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.panel-state__desc {
+  max-width: 520px;
+  color: rgba(var(--v-theme-on-surface), 0.64);
+  line-height: 1.6;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+@media (max-width: 1120px) {
+  .stage-grid--2,
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-card {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .step-layout {
+    padding: 16px;
+  }
+}
