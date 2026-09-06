@@ -389,6 +389,7 @@ public class TableService
      *
      * @param task 任务对象
      */
+    @Transactional
     public void setFinished(EtlTable task)
     {
         task.setStatus(TableStatus.COLLECTED);
@@ -405,6 +406,7 @@ public class TableService
      *
      * @param task 任务对象
      */
+    @Transactional
     public void setFailed(EtlTable task)
     {
         task.setStatus(TableStatus.COLLECT_FAIL);
