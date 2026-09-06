@@ -93,6 +93,11 @@ public class TaskQueueManagerV2Impl
     // Polling interval & lease
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
     private static final int DEFAULT_LEASE_SECONDS = 7300;
+    // Provisional lease granted at claim time, before delivery is confirmed. A job whose assignment
+    // message is lost (master crash between claim and publish, dead subscription, reconnect gap) is
+    // recovered by the 30s lease sweep within a few minutes instead of stranding for the full 7300s.
+    // The worker extends it to DEFAULT_LEASE_SECONDS at execution start (claim confirmation).
+    private static final int CLAIM_LEASE_SECONDS = 180;
     private static final int HEARTBEAT_INTERVAL_SECONDS = 15;
     // A worker missing from heartbeats for this long is considered dead. Must exceed the heartbeat
     // key TTL (45s) so a transient Redis blip/GC pause never releases claims of a live executor.
@@ -157,6 +162,7 @@ public class TaskQueueManagerV2Impl
     private volatile ScheduledFuture<?> recoverFuture;
     private volatile ScheduledFuture<?> heartbeatFuture;
     private volatile ScheduledFuture<?> orphanRecoverFuture;
+    private volatile ScheduledFuture<?> subscriptionRetryFuture;
 
     @PostConstruct
     public void init()
@@ -172,12 +178,17 @@ public class TaskQueueManagerV2Impl
         heartbeatService.bind(this.concurrentLimit, this.concurrencyWeight, runningTaskCount, sourceRunningTaskCount);
 
         // Subscribe to our personal task-assignment channel (worker side)
-        try {
-            listenerContainer.addMessageListener(this, new ChannelTopic(TASK_ASSIGN_CHANNEL_PREFIX + instanceId));
-            log.info("Subscribed to task assignment channel: {}", TASK_ASSIGN_CHANNEL_PREFIX + instanceId);
-        }
-        catch (Exception e) {
-            log.error("Failed to subscribe to task assignment channel", e);
+        if (!subscribeToAssignmentChannel()) {
+            // A node that never registers its listener still heartbeats normally and would keep
+            // receiving DB claims it never executes (see 0-receiver check in masterDispatch),
+            // stranding jobs for the whole provisional lease — retry until the listener is added.
+            log.error("Failed to subscribe to task assignment channel, retrying every 30s");
+            subscriptionRetryFuture = scheduler.scheduleWithFixedDelay(() -> {
+                if (!running) return;
+                if (subscribeToAssignmentChannel() && subscriptionRetryFuture != null) {
+                    subscriptionRetryFuture.cancel(false);
+                }
+            }, 30, 30, TimeUnit.SECONDS);
         }
 
         // Register master election callbacks
@@ -189,6 +200,19 @@ public class TaskQueueManagerV2Impl
 
         log.info("Task queue manager started (master-worker mode). originalConcurrentLimit={} weight={} effectiveConcurrentLimit={} enqueueCapacity={} instanceId={}",
             originalConcurrentLimit, concurrencyWeight, concurrentLimit, enqueueCapacity, instanceId);
+    }
+
+    private boolean subscribeToAssignmentChannel()
+    {
+        try {
+            listenerContainer.addMessageListener(this, new ChannelTopic(TASK_ASSIGN_CHANNEL_PREFIX + instanceId));
+            log.info("Subscribed to task assignment channel: {}", TASK_ASSIGN_CHANNEL_PREFIX + instanceId);
+            return true;
+        }
+        catch (Exception e) {
+            log.warn("Failed to subscribe to task assignment channel", e);
+            return false;
+        }
     }
 
     private void submitScheduledTasks()
@@ -205,6 +229,7 @@ public class TaskQueueManagerV2Impl
         if (pollFuture != null) pollFuture.cancel(false);
         if (recoverFuture != null) recoverFuture.cancel(false);
         if (heartbeatFuture != null) heartbeatFuture.cancel(false);
+        if (subscriptionRetryFuture != null) subscriptionRetryFuture.cancel(false);
     }
 
     // ---- Master election callbacks ----
@@ -463,7 +488,16 @@ public class TaskQueueManagerV2Impl
                 String channel = TASK_ASSIGN_CHANNEL_PREFIX + selected.instanceId();
                 int runningBefore = selected.running();
                 int sourceRunningBefore = trackedSid != null ? selected.sourceRunning(trackedSid) : -1;
-                stringRedisTemplate.convertAndSend(channel, assignPayload);
+                Long receivers = stringRedisTemplate.convertAndSend(channel, assignPayload);
+                if (receivers == null || receivers == 0) {
+                    // No subscriber heard us: the worker heartbeats but is not listening (boot-time
+                    // subscription failure or reconnect gap). Its claim is released and the short
+                    // provisional lease lets the 30s sweep recover it even if this release races.
+                    log.error("No listener on channel {} for job {} (worker deaf) — releasing claim", channel, job.getId());
+                    jobQueueService.releaseClaim(job.getId(), 2, selected.instanceId());
+                    selected.slots = 0; // do not keep claiming jobs for a worker that cannot hear us this cycle
+                    continue;
+                }
                 selected.reserve(trackedSid);
                 log.info("Assigned job {} (tid={}) to worker {} [source sid={} sourceRunning={} globalRunning={}/{}]",
                     job.getId(), job.getTid(), selected.instanceId(),
@@ -499,8 +533,10 @@ public class TaskQueueManagerV2Impl
                 continue;
             }
 
+            // Claim with a provisional short lease: delivery is only confirmed when the worker
+            // renews at execution start (see executeClaimedJob), after which the lease is long.
             Optional<EtlJobQueue> claimed = jobQueueService.assignSpecificJobToWorker(
-                jobId, selected.instanceId(), DEFAULT_LEASE_SECONDS);
+                jobId, selected.instanceId(), CLAIM_LEASE_SECONDS);
             if (claimed.isPresent()) {
                 consumedJobIds.add(jobId);
                 return Optional.of(new JobClaim(claimed.get(), check.trackedSid()));
