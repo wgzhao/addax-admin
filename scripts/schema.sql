@@ -265,6 +265,13 @@ CREATE TABLE public.etl_job_queue (
 );
 
 
+-- Enforce one active queue row per (tid, biz_date): the enqueue INSERT dedups via ON CONFLICT
+-- on this partial index. Terminal rows (completed/failed/cancelled) do not block re-enqueue.
+CREATE UNIQUE INDEX uq_etl_job_queue_active_tid_biz_date
+    ON public.etl_job_queue (tid, biz_date)
+    WHERE status IN ('pending', 'running');
+
+
 --
 -- Name: etl_job_queue_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --

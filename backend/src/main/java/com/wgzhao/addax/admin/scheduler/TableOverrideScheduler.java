@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
+import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import jakarta.annotation.PostConstruct;
@@ -33,6 +34,7 @@ public class TableOverrideScheduler
     private final TaskQueueManager queueManager;
     private final MasterElectionService electionService;
     private final TaskScheduler taskScheduler;
+    private final DictService dictService;
 
     /**
      * 覆盖调度补偿窗口（分钟）。
@@ -77,6 +79,7 @@ public class TableOverrideScheduler
     private void tick()
     {
         LocalTime nowMinute = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
+        LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime from = nowMinute.minusMinutes(OVERRIDE_MISFIRE_WINDOW_MINUTES);
 
         try {
@@ -84,10 +87,25 @@ public class TableOverrideScheduler
 
             // Handle midnight wrap: if from is after nowMinute, it means we crossed 00:00.
             if (from.isAfter(nowMinute)) {
+                // Before 00:00 the window covered the previous calendar day. When the business date
+                // rolls over at LocalTime.MIDNIGHT those minutes belong to the previous period and a
+                // rescan would enqueue them under the new biz_date — a duplicate of a fire that may
+                // already be pending under the old one. With any later switch time the wrapped range
+                // [from..23:59] still lies inside the current business period (started yesterday at
+                // switch time), so both sub-ranges are safe to rescan.
+                if (!switchTime.equals(LocalTime.MIDNIGHT)) {
+                    enqueued += enqueueRange(from, LocalTime.of(23, 59));
+                }
                 enqueued += enqueueRange(LocalTime.MIDNIGHT, nowMinute);
-                enqueued += enqueueRange(from, LocalTime.of(23, 59));
             }
             else {
+                // Clip the window to the current business period: rescans must never reach back into
+                // minutes that fired under the previous biz_date. After the daily switch a fire at
+                // switchTime-2min would otherwise be re-enqueued under the NEW biz_date while its row
+                // under the OLD one is still pending — collecting the table twice minutes apart.
+                if (!nowMinute.isBefore(switchTime) && from.isBefore(switchTime)) {
+                    from = switchTime;
+                }
                 enqueued += enqueueRange(from, nowMinute);
             }
 
