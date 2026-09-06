@@ -66,17 +66,16 @@ public class EtlJobQueueService
     public int enqueue(EtlTable table, LocalDate bizDate, int priority, String payload)
     {
         int maxAttempts = table.getRetryCnt() == null ? 3 : table.getRetryCnt();
+        // Concurrency-safe dedup: the partial unique index uq_etl_job_queue_active_tid_biz_date
+        // backs the ON CONFLICT target, so two concurrent enqueues of the same (tid, biz_date)
+        // cannot both insert even under READ COMMITTED (the old WHERE NOT EXISTS could).
         String sql = """
                 INSERT INTO public.etl_job_queue (tid, biz_date, part_name, priority, status, available_at, attempts, max_attempts, payload)
                 SELECT ?, ?, ?, ?, 'pending', now(), 0, ?, ?::jsonb
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM public.etl_job_queue
-                    WHERE tid = ? AND biz_date = ? AND status IN ('pending','running')
-                )
+                ON CONFLICT (tid, biz_date) WHERE status IN ('pending','running') DO NOTHING
             """;
         return jdbcTemplate.update(sql,
-            table.getId(), bizDate, table.getPartName(), priority, maxAttempts, payload,
-            table.getId(), bizDate);
+            table.getId(), bizDate, table.getPartName(), priority, maxAttempts, payload);
     }
 
     @Transactional
