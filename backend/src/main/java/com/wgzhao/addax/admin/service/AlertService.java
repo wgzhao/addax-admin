@@ -42,7 +42,24 @@ public class AlertService
     private static final String ALERT_STATE_KEY_PREFIX = "addax:alert:state:";
     // 告警状态 TTL,兜底清理:表被停用/删除后不会再有采集成功,防止状态永久残留
     private static final Duration ALERT_STATE_TTL = Duration.ofDays(7);
+    // Per-tid recovery-send marker: only one node may deliver a recovery notice at a time.
+    // TTL is a crash fallback — if the sender dies mid-delivery the marker expires and the next
+    // successful collection retries.
+    private static final String ALERT_RECOVERY_INFLIGHT_KEY_PREFIX = "addax:alert:recovery:";
+    private static final Duration ALERT_RECOVERY_INFLIGHT_TTL = Duration.ofSeconds(60);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    // Bounded-timeout client for the synchronous recovery send: the regular RestTemplate is used by
+    // the async failure path and may not have short timeouts configured.
+    private final RestTemplate syncRestTemplate = createSyncRestTemplate();
+
+    private static RestTemplate createSyncRestTemplate()
+    {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+            new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3000);
+        factory.setReadTimeout(5000);
+        return new RestTemplate(factory);
+    }
 
     @Value("${alert.wechat.url}")
     private String webchatUrl;
@@ -89,43 +106,111 @@ public class AlertService
 
     /**
      * 上报一次采集成功。若该表正处于告警状态,发送恢复通知并清除状态。
+     *
+     * Delivery ordering: the alert state is only cleared AFTER the recovery message has been
+     * delivered. Clearing first (the old code) permanently lost the recovery notice whenever the
+     * webhook call failed — no later success ever re-sent it. A per-tid inflight marker prevents
+     * two concurrent successes (duplicate executions) from double-sending.
      */
     public void reportCollectionSuccess(long tid, String sourceDb, String sourceTable)
     {
         String key = ALERT_STATE_KEY_PREFIX + tid;
-        String state = null;
+        String state;
         try {
             state = stringRedisTemplate.opsForValue().get(key);
-            if (state != null) {
-                stringRedisTemplate.delete(key);
-            }
         }
         catch (Exception e) {
             log.warn("读取采集告警状态失败 tid={}", tid, e);
+            return;
         }
         if (state == null) {
             return;
         }
-        String alertedAt = null;
-        String error = null;
+        String inflightKey = ALERT_RECOVERY_INFLIGHT_KEY_PREFIX + tid;
+        Boolean acquired;
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, String> stateMap = objectMapper.readValue(state, Map.class);
-            alertedAt = stateMap.get("alertedAt");
-            error = stateMap.get("error");
+            acquired = stringRedisTemplate.opsForValue().setIfAbsent(inflightKey, "1", ALERT_RECOVERY_INFLIGHT_TTL);
         }
         catch (Exception e) {
-            log.warn("解析采集告警状态失败 tid={}, state={}", tid, state, e);
+            log.warn("获取恢复通知发送标记失败 tid={}", tid, e);
+            return;
         }
-        String taskDesc = describeTask(tid, sourceDb, sourceTable);
-        StringBuilder content = new StringBuilder("采集任务 ").append(taskDesc).append(" 已恢复正常,采集成功");
-        if (alertedAt != null) {
-            content.append("\n**原告警时间**: ").append(alertedAt);
+        if (!Boolean.TRUE.equals(acquired)) {
+            log.debug("恢复通知发送中(另一节点),跳过 tid={}", tid);
+            return;
         }
-        if (error != null && !error.isBlank()) {
-            content.append("\n**原失败原因**: ").append(error);
+        try {
+            String alertedAt = null;
+            String error = null;
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, String> stateMap = objectMapper.readValue(state, Map.class);
+                alertedAt = stateMap.get("alertedAt");
+                error = stateMap.get("error");
+            }
+            catch (Exception e) {
+                log.warn("解析采集告警状态失败 tid={}", tid, e);
+            }
+            String taskDesc = describeTask(tid, sourceDb, sourceTable);
+            StringBuilder content = new StringBuilder("采集任务 ").append(taskDesc).append(" 已恢复正常,采集成功");
+            if (alertedAt != null) {
+                content.append("\n**原告警时间**: ").append(alertedAt);
+            }
+            if (error != null && !error.isBlank()) {
+                content.append("\n**原失败原因**: ").append(error);
+            }
+            boolean delivered = sendWeComRobotSync("【数据采集恢复】", "green", "恢复时间", content.toString());
+            if (delivered) {
+                try {
+                    stringRedisTemplate.delete(key);
+                    log.info("恢复通知已发送并清除告警状态 tid={}", tid);
+                }
+                catch (Exception e) {
+                    log.warn("清除告警状态失败 tid={}", tid, e);
+                }
+            }
+            else {
+                log.error("恢复通知发送失败,告警状态保留,下次采集成功时将重试 tid={}", tid);
+            }
         }
-        sendToWeComRobot("【数据采集恢复】", "green", "恢复时间", content.toString());
+        finally {
+            try {
+                stringRedisTemplate.delete(inflightKey);
+            }
+            catch (Exception ignored) {
+            }
+        }
+    }
+
+    /**
+     * Synchronous single-attempt WeCom delivery with bounded timeouts.
+     *
+     * @return true only when WeCom acknowledged the message (errcode 0)
+     */
+    private boolean sendWeComRobotSync(String title, String color, String timeLabel, String message)
+    {
+        try {
+            String content = buildMarkdownContent(title, color, timeLabel, message);
+            Map<String, Object> body = Map.of(
+                "msgtype", "markdown",
+                "markdown", Map.of("content", content)
+            );
+            Map<String, Object> resp = syncRestTemplate.postForObject(resolveTargetUrl(), body, Map.class);
+            if (resp == null) {
+                log.warn("WeCom sync response is null");
+                return false;
+            }
+            int errcode = Integer.parseInt(String.valueOf(resp.getOrDefault("errcode", "0")));
+            if (errcode == 0) {
+                return true;
+            }
+            log.warn("WeCom sync delivery rejected, errcode {}: {}", errcode, resp.get("errmsg"));
+            return false;
+        }
+        catch (Exception e) {
+            log.error("发送企业微信恢复消息失败(同步)", e);
+            return false;
+        }
     }
 
     private String describeTask(long tid, String sourceDb, String sourceTable)
@@ -141,24 +226,20 @@ public class AlertService
         sendToWeComRobot("【数据采集告警】", "red", "告警时间", message);
     }
 
-    private void sendToWeComRobot(String title, String color, String timeLabel, String message)
+    private String buildMarkdownContent(String title, String color, String timeLabel, String message)
     {
-        if (wechatKey == null || wechatKey.isEmpty()) {
-            log.warn("企业微信机器人Key未配置，跳过发送消息");
-            return;
-        }
         String currentTime = LocalDateTime.now().format(TIME_FORMATTER);
         String hostname = getHostname();
-        String formattedMessage = "## <font color=\"" + color + "\"> " + title + "</font>\n" +
+        return "## <font color=\"" + color + "\"> " + title + "</font>\n" +
             "**" + timeLabel + "**: " + currentTime + "\n" +
             "**告警主机**: " + hostname + "\n" +
             "---------------------------------\n" +
             "**告警内容**: " + message;
-        Map<String, Object> body = Map.of(
-            "msgtype", "markdown",
-            "markdown", Map.of("content", formattedMessage)
-        );
-        // Append key to webhook URL if not already present
+    }
+
+    /** Append the webhook key to the configured URL when it is not already embedded. */
+    private String resolveTargetUrl()
+    {
         String targetUrl = webchatUrl;
         if (!targetUrl.contains("key=")) {
             String encodedKey = URLEncoder.encode(wechatKey == null ? "" : wechatKey, StandardCharsets.UTF_8);
@@ -169,6 +250,21 @@ public class AlertService
                 targetUrl = targetUrl + "?key=" + encodedKey;
             }
         }
+        return targetUrl;
+    }
+
+    private void sendToWeComRobot(String title, String color, String timeLabel, String message)
+    {
+        if (wechatKey == null || wechatKey.isEmpty()) {
+            log.warn("企业微信机器人Key未配置，跳过发送消息");
+            return;
+        }
+        String formattedMessage = buildMarkdownContent(title, color, timeLabel, message);
+        Map<String, Object> body = Map.of(
+            "msgtype", "markdown",
+            "markdown", Map.of("content", formattedMessage)
+        );
+        String targetUrl = resolveTargetUrl();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
