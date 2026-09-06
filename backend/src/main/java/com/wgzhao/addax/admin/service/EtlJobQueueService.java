@@ -143,18 +143,20 @@ public class EtlJobQueueService
     }
 
     @Transactional
-    public void completeSuccess(long jobId)
+    public void completeSuccess(long jobId, String instanceId)
     {
-        String sql = "UPDATE public.etl_job_queue SET status='completed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=NULL WHERE id=? AND status='running'";
-        jdbcTemplate.update(sql, jobId);
+        String sql = "UPDATE public.etl_job_queue SET status='completed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=NULL WHERE id=? AND status='running' AND claimed_by=?";
+        jdbcTemplate.update(sql, jobId, instanceId);
     }
 
     @Transactional
-    public void releaseClaim(long jobId, int delaySeconds)
+    public void releaseClaim(long jobId, int delaySeconds, String instanceId)
     {
-        String sql = "UPDATE public.etl_job_queue SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL, available_at=now() + ?::interval WHERE id=?";
+        // Only compensate a claim this master still owns: a message delivered-but-timed-out may
+        // already have started execution on the worker, which must keep the row.
+        String sql = "UPDATE public.etl_job_queue SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL, available_at=now() + ?::interval WHERE id=? AND status='running' AND claimed_by=?";
         String interval = delaySeconds + " seconds";
-        jdbcTemplate.update(sql, interval, jobId);
+        jdbcTemplate.update(sql, interval, jobId, instanceId);
     }
 
     @Transactional
@@ -165,38 +167,40 @@ public class EtlJobQueueService
     }
 
     @Transactional
-    public void failOrReschedule(EtlJobQueue job, String error, Duration backoff)
+    public void failOrReschedule(EtlJobQueue job, String error, Duration backoff, String instanceId)
     {
+        // Both branches are guarded by claimed_by so an executor that lost ownership (dead-worker
+        // recovery, lease expiry) can never mutate a row a successor worker is executing.
         boolean canRetry = job.getAttempts() < job.getMaxAttempts();
         if (canRetry) {
             String sql = """
                     UPDATE public.etl_job_queue
                     SET status='pending', available_at = now() + ?::interval,
                         lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                    WHERE id=? AND status='running'
+                    WHERE id=? AND status='running' AND claimed_by=?
                 """;
             String interval = backoff.getSeconds() + " seconds";
-            jdbcTemplate.update(sql, interval, truncateError(error), job.getId());
+            jdbcTemplate.update(sql, interval, truncateError(error), job.getId(), instanceId);
         }
         else {
             String sql = """
                     UPDATE public.etl_job_queue
                     SET status='failed', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                    WHERE id=? AND status='running'
+                    WHERE id=? AND status='running' AND claimed_by=?
                 """;
-            jdbcTemplate.update(sql, truncateError(error), job.getId());
+            jdbcTemplate.update(sql, truncateError(error), job.getId(), instanceId);
         }
     }
 
     @Transactional
-    public void completeCancelled(long jobId, String reason)
+    public void completeCancelled(long jobId, String reason, String instanceId)
     {
         String sql = """
                 UPDATE public.etl_job_queue
                 SET status='cancelled', lease_until=NULL, claimed_by=NULL, claimed_at=NULL, last_error=?
-                WHERE id=? AND status='running'
+                WHERE id=? AND status='running' AND claimed_by=?
             """;
-        jdbcTemplate.update(sql, truncateError(reason), jobId);
+        jdbcTemplate.update(sql, truncateError(reason), jobId, instanceId);
     }
 
     private String truncateError(String error)
