@@ -495,12 +495,20 @@ public class TaskQueueManagerV2Impl
             return;
         }
 
+        // Cluster-wide per-source running totals (heartbeat + in-cycle reservations across all
+        // workers). Source maxConcurrency is a cluster-level guarantee: without this sum it is
+        // silently multiplied by the number of workers.
+        Map<Integer, Integer> clusterSourceRunning = new HashMap<>();
+        for (WorkerSlot slot : slots) {
+            slot.ledger.sourceRunningSnapshot().forEach((sid, count) -> clusterSourceRunning.merge(sid, count, Integer::sum));
+        }
+
         Set<Long> consumedJobIds = new HashSet<>();
         while (true) {
             WorkerSlot selected = selectWorkerSwrr(slots);
             if (selected == null) return; // all workers have no available slots
 
-            Optional<JobClaim> maybe = findClaimableJobForWorker(selected, pendingJobs, consumedJobIds);
+            Optional<JobClaim> maybe = findClaimableJobForWorker(selected, pendingJobs, consumedJobIds, clusterSourceRunning);
             if (maybe.isEmpty()) {
                 selected.slots = 0;
                 continue;
@@ -527,6 +535,9 @@ public class TaskQueueManagerV2Impl
                     continue;
                 }
                 selected.reserve(trackedSid);
+                if (trackedSid != null) {
+                    clusterSourceRunning.merge(trackedSid, 1, Integer::sum);
+                }
                 log.info("Assigned job {} (tid={}) to worker {} [source sid={} sourceRunning={} globalRunning={}/{}]",
                     job.getId(), job.getTid(), selected.instanceId(),
                     trackedSid != null ? String.valueOf(trackedSid) : "-",
@@ -548,7 +559,8 @@ public class TaskQueueManagerV2Impl
      */
     private Optional<JobClaim> findClaimableJobForWorker(WorkerSlot selected,
                                                          List<EtlJobQueue> candidates,
-                                                         Set<Long> consumedJobIds)
+                                                         Set<Long> consumedJobIds,
+                                                         Map<Integer, Integer> clusterSourceRunning)
     {
         for (EtlJobQueue candidate : candidates) {
             long jobId = candidate.getId();
@@ -556,7 +568,7 @@ public class TaskQueueManagerV2Impl
                 continue;
             }
 
-            JobCheck check = assessJobForWorker(selected, candidate);
+            JobCheck check = assessJobForWorker(selected, candidate, clusterSourceRunning);
             if (!check.assignable()) {
                 continue;
             }
@@ -579,7 +591,7 @@ public class TaskQueueManagerV2Impl
     /**
      * Check whether the current worker ledger can still accept this job without claiming it first.
      */
-    private JobCheck assessJobForWorker(WorkerSlot selected, EtlJobQueue job)
+    private JobCheck assessJobForWorker(WorkerSlot selected, EtlJobQueue job, Map<Integer, Integer> clusterSourceRunning)
     {
         if (selected.running() >= selected.concurrentLimit()) {
             return new JobCheck(false, null);
@@ -593,6 +605,12 @@ public class TaskQueueManagerV2Impl
         VwEtlTableWithSource source = tableService.getTableView(table.getId());
         if (source == null || source.getMaxConcurrency() == null || source.getMaxConcurrency() <= 0) {
             return new JobCheck(true, null);
+        }
+
+        // Cluster-wide gate: source maxConcurrency bounds total concurrent pulls from the source
+        // across ALL workers, so it must be checked against the cluster sum, not only this worker.
+        if (clusterSourceRunning.getOrDefault(table.getSid(), 0) >= source.getMaxConcurrency()) {
+            return new JobCheck(false, null);
         }
 
         int effectiveLimit = Math.max(1, Math.min(
@@ -765,6 +783,14 @@ public class TaskQueueManagerV2Impl
         {
             return heartbeat.sourceRunning().getOrDefault(sid, 0)
                 + reservedSourceRunning.getOrDefault(sid, 0);
+        }
+
+        /** Cluster-level accounting: per-source total across this worker (heartbeat + reservations). */
+        synchronized Map<Integer, Integer> sourceRunningSnapshot()
+        {
+            Map<Integer, Integer> snapshot = new HashMap<>(reservedSourceRunning);
+            heartbeat.sourceRunning().forEach((sid, count) -> snapshot.merge(sid, count, Integer::sum));
+            return snapshot;
         }
 
         synchronized void reserve(Integer sid)
