@@ -286,6 +286,24 @@ public class EtlJobQueueService
      * Release all running tasks claimed by a specific worker instance.
      * Called when master detects a worker has disappeared between dispatch cycles.
      */
+    public List<EtlJobQueue> findActiveByTid(long tid)
+    {
+        String sql = """
+                SELECT *
+                FROM public.etl_job_queue
+                WHERE tid = ? AND status IN ('pending','running')
+                ORDER BY id
+            """;
+        return jdbcTemplate.query(sql, JOB_ROW_MAPPER, tid);
+    }
+
+    @Transactional
+    public int cancelPendingByTid(long tid)
+    {
+        String sql = "UPDATE public.etl_job_queue SET status='cancelled', last_error=? WHERE tid=? AND status='pending'";
+        return jdbcTemplate.update(sql, "Cancelled by user request", tid);
+    }
+
     @Transactional
     public int releaseClaimedByInstance(String instanceId)
     {

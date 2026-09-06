@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.dto.FillbackResultDto;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -57,6 +58,7 @@ public class TaskService
     private final RiskLogService riskLogService;
     private final RedisLockService redisLockService;
     private final MasterElectionService electionService;
+    private final EtlJobQueueService jobQueueService;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -412,17 +414,28 @@ public class TaskService
     public TaskResultDto killTask(long tid)
     {
         try {
+            // Decide what there is to kill from the queue state first. A kill only reaches a process
+            // once it is registered in ExecutionManager: queued-but-not-dispatched rows would
+            // otherwise be published a 'successful' kill while running moments later.
+            List<EtlJobQueue> activeRows = jobQueueService.findActiveByTid(tid);
+            boolean hasRunning = activeRows.stream().anyMatch(row -> "running".equals(row.getStatus()));
+            int pendingCancelled = jobQueueService.cancelPendingByTid(tid);
+
+            if (!hasRunning) {
+                if (pendingCancelled > 0) {
+                    log.warn("Cancelled {} queued job(s) for table {} by user request", pendingCancelled, tid);
+                    recordKillJour(tid, "Cancelled by user request");
+                    return TaskResultDto.success("Cancelled " + pendingCancelled + " queued job(s)", 0);
+                }
+                log.warn("No running or queued task found for table {} on kill request", tid);
+                return TaskResultDto.failure("No running or queued task found for tid=" + tid, 0);
+            }
+
             // try local kill first
             boolean killedLocal = executionManager.killLocal(tid);
-            EtlJour etlJour = jourService.getLastByTidWithKind(tid, null);
             if (killedLocal) {
                 log.warn("Killed local collecting table {} by request", tid);
-                try {
-                    jourService.failJour(etlJour, "Killed by user request");
-                }
-                catch (Exception e) {
-                    log.warn("Failed to record kill reason to etl_jour for table {}", tid, e);
-                }
+                recordKillJour(tid, "Killed by user request");
                 return TaskResultDto.success("Killed local collecting job", 0);
             }
 
@@ -431,16 +444,12 @@ public class TaskService
             String payload = String.valueOf(tid);
             try {
                 stringRedisTemplate.convertAndSend(channel, payload);
-                // set fallback signal key for a short period so target node can detect if pub/sub missed
-                String signalKey = "etl:kill:signal:" + tid;
-                stringRedisTemplate.opsForValue().set(signalKey, "1", java.time.Duration.ofSeconds(30));
+                // set fallback signal key for a short period so a node that receives the assignment
+                // after the pub/sub kill message was missed still honors the kill before starting
+                stringRedisTemplate.opsForValue().set(
+                    Constants.TASK_KILL_SIGNAL_KEY_PREFIX + tid, "1", java.time.Duration.ofSeconds(30));
                 log.info("Published kill request for job {} to channel {}", tid, channel);
-                try {
-                    jourService.failJour(etlJour, "Kill requested by user (remote)");
-                }
-                catch (Exception e) {
-                    log.warn("Failed to record kill request to etl_jour for job {}", tid, e);
-                }
+                recordKillJour(tid, "Kill requested by user (remote)");
                 return TaskResultDto.success("Kill request published", 0);
             }
             catch (Exception e) {
@@ -451,6 +460,17 @@ public class TaskService
         catch (Exception e) {
             log.error("killTask failed for job {}", tid, e);
             return TaskResultDto.failure(e.getMessage() == null ? "internal error" : e.getMessage(), 0);
+        }
+    }
+
+    private void recordKillJour(long tid, String reason)
+    {
+        try {
+            EtlJour etlJour = jourService.getLastByTidWithKind(tid, null);
+            jourService.failJour(etlJour, reason);
+        }
+        catch (Exception e) {
+            log.warn("Failed to record kill reason to etl_jour for table {}", tid, e);
         }
     }
 

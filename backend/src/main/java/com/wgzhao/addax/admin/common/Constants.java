@@ -21,6 +21,9 @@ public final class Constants
     public static final int HIVE_DECIMAL_MAX_SCALE = 10;
     // Redis key for schema refresh lock (used to prevent submits/enqueues while schema refresh runs)
     public static final String SCHEMA_REFRESH_LOCK_KEY = "schema:refresh:lock";
+    // Fallback kill signal key prefix: written by the kill endpoint so a worker that receives an
+    // assignment after the pub/sub kill message was missed can still honor the kill before starting.
+    public static final String TASK_KILL_SIGNAL_KEY_PREFIX = "etl:kill:signal:";
     // Redis key prefix recording a successful schema refresh per business date (yyyyMMdd suffix).
     // A master that comes up after the switch time without this marker runs a catch-up refresh.
     public static final String SCHEMA_REFRESH_DONE_KEY_PREFIX = "schema:refresh:done:";
