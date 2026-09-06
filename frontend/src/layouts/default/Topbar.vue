@@ -301,6 +301,11 @@
   import userService from '@/service/user-service';
   import tableService from '@/service/table-service';
   import { notify } from '@/stores/notifier';
+  import {
+    buildNavMenu,
+    isPathActive as isPathActiveFor,
+    isMenuActive as isMenuActiveFor,
+  } from './build-nav';
 
   const router = useRouter();
   const route = useRoute();
@@ -331,18 +336,6 @@
     title: string;
     children?: MenuChildItem[];
   }
-
-  type NavGroup = 'source' | 'target' | 'collect' | 'data' | 'systemManage';
-
-  const navGroupOrder: NavGroup[] = ['source', 'target', 'collect', 'data', 'systemManage'];
-
-  const navGroupTitle: Record<NavGroup, string> = {
-    source: '源端管理',
-    target: '目标端管理',
-    collect: '采集管理',
-    data: '数据管理',
-    systemManage: '系统管理',
-  };
 
   // 点击菜单项的通用处理器（支持 action 回调或路由 path）
 
@@ -401,108 +394,16 @@
     }
   };
 
-  const urls = computed<MenuItem[]>(() => {
-    const routeMap = new Map<
-      string,
-      {
-        path: string;
-        title: string;
-        icon?: string;
-        navGroup?: NavGroup;
-        navOrder: number;
-        isHome: boolean;
-      }
-    >();
+  const urls = computed<MenuItem[]>(() =>
+    buildNavMenu(router.getRoutes(), {
+      updateSchemaNeed,
+      openConfirmUpdateAll,
+    })
+  );
 
-    router.getRoutes().forEach(item => {
-      const path = item.path;
-      const meta = (item.meta || {}) as Record<string, any>;
+  const isPathActive = (path?: string) => isPathActiveFor(route.path, path);
 
-      if (!path || path.includes('/:') || path === '/:pathMatch(.*)*') return;
-      if (meta.layout === 'login' || meta.navHidden) return;
-
-      const title = typeof meta.title === 'string' ? meta.title.trim() : '';
-      const navTitle = typeof meta.navTitle === 'string' ? meta.navTitle.trim() : '';
-      const displayTitle = navTitle || title;
-      if (!displayTitle) return;
-
-      const navGroup = navGroupOrder.includes(meta.navGroup as NavGroup)
-        ? (meta.navGroup as NavGroup)
-        : undefined;
-
-      if (path !== '/' && !navGroup) return;
-
-      const icon = typeof meta.icon === 'string' ? meta.icon : undefined;
-      const navOrder = Number.isFinite(Number(meta.navOrder)) ? Number(meta.navOrder) : 999;
-
-      const existing = routeMap.get(path);
-      if (!existing) {
-        routeMap.set(path, {
-          path,
-          title: displayTitle,
-          icon,
-          navGroup,
-          navOrder,
-          isHome: path === '/',
-        });
-        return;
-      }
-
-      existing.title = existing.title || displayTitle;
-      existing.icon = existing.icon || icon;
-      existing.navGroup = existing.navGroup || navGroup;
-      existing.navOrder = Math.min(existing.navOrder, navOrder);
-      existing.isHome = existing.isHome || path === '/';
-    });
-
-    const flatRoutes = Array.from(routeMap.values());
-    const homeRoute = flatRoutes.find(item => item.isHome);
-
-    const result: MenuItem[] = [];
-    if (homeRoute) {
-      result.push({ path: homeRoute.path, title: homeRoute.title, name: 'Home' });
-    }
-
-    navGroupOrder.forEach(groupKey => {
-      const children: MenuChildItem[] = flatRoutes
-        .filter(item => !item.isHome && item.navGroup === groupKey)
-        .sort((a, b) => a.navOrder - b.navOrder || a.title.localeCompare(b.title, 'zh-CN'))
-        .map(item => ({
-          path: item.path,
-          title: item.title,
-          icon: item.icon,
-        }));
-
-      // 在采集管理分组中附加独立操作（不是路由）
-      if (groupKey === 'collect') {
-        children.push(
-          { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: updateSchemaNeed },
-          { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: openConfirmUpdateAll }
-        );
-      }
-
-      if (children.length > 0) {
-        result.push({
-          title: navGroupTitle[groupKey],
-          children,
-        });
-      }
-    });
-
-    return result;
-  });
-
-  const isPathActive = (path?: string) => {
-    if (!path) return false;
-    if (path === '/') return route.path === '/';
-    return route.path === path || route.path.startsWith(`${path}/`);
-  };
-
-  const isMenuActive = (item: MenuItem) => {
-    if (item.path && isPathActive(item.path)) return true;
-    if (!item.children?.length) return false;
-    return item.children.some(child => isPathActive(child.path));
-  };
+  const isMenuActive = (item: MenuItem) => isMenuActiveFor(route.path, item);
 
   // 切换主题函数
   const toggleThemeWithLog = () => {
