@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -142,6 +143,10 @@ public class TaskQueueManagerV2Impl
 
     // Coalescing flag to prevent flooding dispatch on concurrent task completions
     private final AtomicBoolean dispatchScheduled = new AtomicBoolean(false);
+    // Enqueues rejected while the local monitor is stopped (schema refresh) are buffered and flushed
+    // when the monitor restarts. Rejecting outright silently lost scheduled fires whose 2-minute
+    // misfire window could elapse during a long refresh.
+    private final Deque<DeferredEnqueue> deferredEnqueues = new ConcurrentLinkedDeque<>();
     // Serializes every masterDispatch invocation: the 3s poll and async dispatches triggered by job
     // completions / DB notifications run on the same scheduler pool. Capacity check-then-reserve on
     // the per-worker ledger is only safe within a single dispatch thread.
@@ -781,6 +786,15 @@ public class TaskQueueManagerV2Impl
     {
     }
 
+    /**
+     * Deferred enqueue while the monitor is stopped. explicitBizDate is only set for fillbacks:
+     * normal enqueues resolve the business date against the config at flush time, because the
+     * daily switch may have happened while the enqueue was waiting.
+     */
+    private record DeferredEnqueue(EtlTable table, LocalDate explicitBizDate, String payload)
+    {
+    }
+
     private void triggerDispatchAsync()
     {
         if (!running || !electionService.isMaster()) return;
@@ -1121,14 +1135,14 @@ public class TaskQueueManagerV2Impl
         try { Thread.sleep(2000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
         running = true;
         submitScheduledTasks();
+        flushDeferredEnqueues();
     }
 
     @Override
     public boolean addTaskToQueue(@NonNull EtlTable etlTable)
     {
         if (!running) {
-            log.info("Schema refresh in progress, rejecting task {} into queue", etlTable.getId());
-            return false;
+            return deferEnqueue(etlTable, null, null);
         }
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;
@@ -1138,8 +1152,7 @@ public class TaskQueueManagerV2Impl
     public boolean addTaskToQueue(@NonNull EtlTable etlTable, String payload)
     {
         if (!running) {
-            log.info("Schema refresh in progress, rejecting task {} into queue", etlTable.getId());
-            return false;
+            return deferEnqueue(etlTable, null, payload);
         }
         LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
         return jobQueueService.enqueue(etlTable, bizDate, 100, payload) > 0;
@@ -1156,10 +1169,39 @@ public class TaskQueueManagerV2Impl
     public boolean addFillbackTaskToQueue(EtlTable etlTable, LocalDate fillbackDate, String payload)
     {
         if (!running) {
-            log.info("Schema refresh in progress, rejecting fillback task {} into queue", etlTable.getId());
-            return false;
+            return deferEnqueue(etlTable, fillbackDate, payload);
         }
         return jobQueueService.enqueue(etlTable, fillbackDate, 100, payload) > 0;
+    }
+
+    private boolean deferEnqueue(EtlTable etlTable, LocalDate explicitBizDate, String payload)
+    {
+        log.info("Schema refresh in progress, deferring enqueue of task {} until monitor restart", etlTable.getId());
+        deferredEnqueues.addLast(new DeferredEnqueue(etlTable, explicitBizDate, payload));
+        return true;
+    }
+
+    private void flushDeferredEnqueues()
+    {
+        int flushed = 0;
+        int failed = 0;
+        DeferredEnqueue d;
+        while ((d = deferredEnqueues.pollFirst()) != null) {
+            try {
+                LocalDate bizDate = d.explicitBizDate() != null ? d.explicitBizDate()
+                    : LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
+                if (jobQueueService.enqueue(d.table(), bizDate, 100, d.payload()) > 0) {
+                    flushed++;
+                }
+            }
+            catch (Exception e) {
+                failed++;
+                log.warn("Failed to flush deferred enqueue tid={}", d.table().getId(), e);
+            }
+        }
+        if (flushed > 0 || failed > 0) {
+            log.info("Deferred enqueue flush complete: {} enqueued, {} failed", flushed, failed);
+        }
     }
 
     @Override
@@ -1198,12 +1240,13 @@ public class TaskQueueManagerV2Impl
         if (running) return;
         running = true;
         submitScheduledTasks();
+        flushDeferredEnqueues();
     }
 
     @Override
-    public void truncateQueueExceptRunningTasks()
+    public void truncateQueueExceptRunningTasksBefore(Instant createdBefore)
     {
-        jobQueueService.truncateQueueExceptRunningTasks();
+        jobQueueService.truncateQueueExceptRunningTasksBefore(createdBefore);
     }
 
     @SuppressWarnings("unchecked")

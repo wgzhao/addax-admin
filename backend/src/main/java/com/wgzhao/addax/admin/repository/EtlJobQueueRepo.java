@@ -7,8 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 public interface EtlJobQueueRepo
     extends JpaRepository<EtlJobQueue, Long>
 {
-    void deleteByStatusNot(String status);
-
     long countByStatus(String pending);
 }
 
