@@ -5,7 +5,7 @@
       <v-card>
         <v-card-text>
           <v-data-table :headers="dictHeaders" :items="dicts" density="default">
-            <template v-slot:item.actions="{ item }">
+            <template #item.actions="{ item }">
               <v-icon
                 icon="mdi-chevron-right"
                 size="small"
@@ -38,7 +38,7 @@
             density="default"
             class="elevation-1"
           >
-            <template v-slot:top>
+            <template #top>
               <!-- edit/new form -->
               <v-dialog v-model="dialog" max-width="500px">
                 <v-card>
@@ -77,7 +77,7 @@
             </template>
 
             <!-- action -->
-            <template v-slot:item.actions="{ item }">
+            <template #item.actions="{ item }">
               <v-icon size="small" class="me-2" @click="editItem(item)">mdi-pencil</v-icon>
               <v-icon size="small" @click="deleteItem(item)">mdi-delete</v-icon>
             </template>

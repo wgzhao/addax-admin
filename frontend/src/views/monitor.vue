@@ -81,8 +81,8 @@
               :items-per-page="fieldChangePageSize"
               :items-length="fieldChangeTotal"
               :loading="fieldChangeLoading"
-              @update:options="loadFieldChangeItems"
               class="elevation-1"
+              @update:options="loadFieldChangeItems"
             />
           </v-card-text>
         </v-card>

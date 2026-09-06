@@ -75,8 +75,8 @@
                   variant="tonal"
                   color="primary"
                   :disabled="!fContent"
-                  @click="copyLog"
                   prepend-icon="mdi-content-copy"
+                  @click="copyLog"
                 >
                   复制
                 </v-btn>
@@ -86,9 +86,9 @@
                   variant="tonal"
                   color="secondary"
                   :disabled="!fContent"
-                  @click="downloadLog"
                   prepend-icon="mdi-download"
                   style="mx-2"
+                  @click="downloadLog"
                 >
                   下载
                 </v-btn>

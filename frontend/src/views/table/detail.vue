@@ -2,7 +2,7 @@
   <div class="table-detail-page page-shell">
     <v-card flat>
       <v-card-text class="ds-card__content d-flex align-center">
-        <v-btn icon @click="router.back()" aria-label="返回">
+        <v-btn icon aria-label="返回" @click="router.back()">
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
         <div class="page-title">采集表详情: {{ tblname }}</div>

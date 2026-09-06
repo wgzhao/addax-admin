@@ -118,8 +118,8 @@
                     :type="showPassword ? 'text' : 'password'"
                     placeholder="请输入密码"
                     :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                    @click:append-inner="showPassword = !showPassword"
                     autocomplete="off"
+                    @click:append-inner="showPassword = !showPassword"
                   />
                 </v-col>
                 <v-col cols="12">
@@ -147,8 +147,8 @@
                     color="info"
                     variant="outlined"
                     prepend-icon="mdi-connection"
-                    @click="testHiveConnection"
                     :loading="testingConnection"
+                    @click="testHiveConnection"
                   >
                     测试连接
                   </v-btn>

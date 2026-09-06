@@ -14,8 +14,8 @@
             <v-btn
               size="small"
               variant="tonal"
-              @click="copyToClipboard"
               prepend-icon="mdi-content-copy"
+              @click="copyToClipboard"
             >
               复制
             </v-btn>
@@ -23,8 +23,8 @@
               size="small"
               variant="flat"
               color="primary"
-              @click="startEdit"
               prepend-icon="mdi-pencil"
+              @click="startEdit"
             >
               编辑
             </v-btn>

@@ -3,10 +3,10 @@
     <a
       v-for="item in items"
       :key="item.title"
+      ref="noopener noreferrer"
       :href="item.href"
       :title="item.title"
       class="d-inline-block mx-2 text-decoration-none"
-      ref="noopener noreferrer"
       target="_blank"
     >
       <v-icon :icon="item.icon" />

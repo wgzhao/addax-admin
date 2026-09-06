@@ -1,5 +1,5 @@
 <template>
-  <v-form ref="form" fast-fail @submit.prevent="save" class="add-source-form">
+  <v-form ref="form" fast-fail class="add-source-form" @submit.prevent="save">
     <v-card class="compact-card add-source-card" density="comfortable">
       <v-card-title class="d-flex align-center">
         <v-icon class="me-2">mdi-database</v-icon>
@@ -137,8 +137,8 @@
                       density="compact"
                       autocomplete="new-password"
                       :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                      @click:append-inner="showPassword = !showPassword"
                       hide-details="auto"
+                      @click:append-inner="showPassword = !showPassword"
                     />
                   </div>
                 </v-col>
@@ -147,11 +147,11 @@
                     <div class="field-label field-label-placeholder">操作</div>
                     <div class="field-control">
                       <v-btn
+                        v-if="mode === 'add' || mode === 'edit'"
                         color="info"
                         text="测试连接"
-                        v-if="mode === 'add' || mode === 'edit'"
-                        @click="testConnect"
                         prepend-icon="mdi-connection"
+                        @click="testConnect"
                       ></v-btn>
                     </div>
                   </div>
@@ -188,13 +188,13 @@
 
       <v-card-actions class="pa-3 action-bar">
         <v-spacer></v-spacer>
-        <v-btn color="secondary" @click="close" variant="tonal" prepend-icon="mdi-close">
+        <v-btn color="secondary" variant="tonal" prepend-icon="mdi-close" @click="close">
           关闭
         </v-btn>
         <v-btn
+          v-if="mode === 'add' || mode === 'edit'"
           type="submit"
           color="primary"
-          v-if="mode === 'add' || mode === 'edit'"
           prepend-icon="mdi-content-save"
         >
           保存

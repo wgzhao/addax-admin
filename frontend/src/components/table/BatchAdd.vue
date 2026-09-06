@@ -53,9 +53,9 @@
                   </div>
                 </div>
                 <v-select
+                  v-model="selectedSourceId"
                   :items="sourceSystemList"
                   :item-props="item => ({ title: `${item.code} — ${item.name}` })"
-                  v-model="selectedSourceId"
                   item-value="id"
                   label="采集源系统 *"
                   density="comfortable"
@@ -76,10 +76,10 @@
                   </div>
                 </div>
                 <v-select
+                  v-model="selectedDb"
                   :items="sourceDbs"
                   :disabled="!selectedSourceId || loadingDbs"
                   :loading="loadingDbs"
-                  v-model="selectedDb"
                   label="源数据库 *"
                   density="comfortable"
                   variant="outlined"
@@ -152,12 +152,12 @@
               </div>
 
               <v-data-table
+                v-model="selectedTables"
                 :items="tables"
                 :headers="headers"
                 :items-per-page="15"
                 density="comfortable"
                 show-select
-                v-model="selectedTables"
                 :search="search"
                 item-value="sourceTable"
                 return-object

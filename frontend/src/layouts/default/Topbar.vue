@@ -1,6 +1,6 @@
 <template>
   <v-app-bar app color="surface" class="topbar-bar" elevation="0">
-    <template v-slot:default>
+    <template #default>
       <v-app-bar-title>统一采集管理系统</v-app-bar-title>
       <div class="top-nav-cluster">
         <template v-for="item in urls" :key="item.title">
@@ -12,7 +12,7 @@
             :open-delay="80"
             :close-delay="120"
           >
-            <template v-slot:activator="{ props }">
+            <template #activator="{ props }">
               <v-btn
                 v-bind="props"
                 class="top-nav-btn"
@@ -28,10 +28,10 @@
               <v-list-item
                 v-for="(child, index) in item.children"
                 :key="`${item.title}-${index}`"
-                @click="e => handleNavChildClick(child, e)"
                 :class="['top-nav-menu-item']"
                 :prepend-icon="child.icon || 'mdi-chevron-right'"
                 slim
+                @click="e => handleNavChildClick(child, e)"
               >
                 <v-list-item-title>{{ child.title }}</v-list-item-title>
               </v-list-item>
@@ -145,7 +145,7 @@
       </v-menu>
     -->
       <v-menu v-if="authStore.currentUserName" offset-y :min-width="0">
-        <template v-slot:activator="{ props }">
+        <template #activator="{ props }">
           <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
         </template>
         <v-list density="compact" nav class="top-nav-menu-list user-nav-menu-list">
@@ -217,8 +217,8 @@
       <!-- 深色/浅色模式切换按钮 -->
       <v-btn
         icon
-        @click="toggleThemeWithLog"
         :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'"
+        @click="toggleThemeWithLog"
       >
         <v-icon>mdi-theme-light-dark</v-icon>
       </v-btn>
@@ -281,8 +281,8 @@
         <v-spacer />
         <v-btn
           variant="text"
-          @click="confirmUpdateAllDialog = false"
           :disabled="confirmUpdateAllLoading"
+          @click="confirmUpdateAllDialog = false"
           >取消</v-btn
         >
         <v-btn color="error" :loading="confirmUpdateAllLoading" @click="confirmUpdateSchemaAll"

@@ -35,8 +35,8 @@
           ></v-text-field>
 
           <v-text-field
-            type="password"
             v-model="auth.password"
+            type="password"
             :readonly="loading"
             :rules="[required]"
             class="modern-input mb-10"

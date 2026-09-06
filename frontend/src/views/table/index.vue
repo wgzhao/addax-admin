@@ -136,6 +136,7 @@
         </template>
         <template v-else>
           <v-data-table-server
+            v-model="selected"
             density="comfortable"
             :items="table"
             :headers="headers"
@@ -144,12 +145,11 @@
             :items-length="totalItems"
             item-value="id"
             :loading="loading"
-            @update:options="loadItems"
             show-select
-            v-model="selected"
             :item-class="getRowClass"
+            @update:options="loadItems"
           >
-            <template v-slot:item.sourceTable="{ item }">
+            <template #item.sourceTable="{ item }">
               <div class="ds-cell-stack">
                 <span class="ds-cell-meta">{{ item.name }}({{ item.code }})</span>
                 <span class="ds-cell-primary ds-white-space-normal">
@@ -158,7 +158,7 @@
                 </span>
               </div>
             </template>
-            <template v-slot:item.status="{ item }">
+            <template #item.status="{ item }">
               <v-badge dot inline :color="getStatusColor(item.status)" class="mr-2" />
               <span class="text-body-2 font-weight-medium">{{ item.status }}</span>
               <!-- Kill icon for running tasks: move to right, match E icon style -->
@@ -201,7 +201,7 @@
               </template>
             </template>
 
-            <template v-slot:item.targetTable="{ item }">
+            <template #item.targetTable="{ item }">
               <div class="d-flex align-center py-1">
                 <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
                 <span class="ds-cell-primary ds-white-space-normal">
@@ -211,53 +211,53 @@
               </div>
             </template>
 
-            <template v-slot:item.action="{ item }">
+            <template #item.action="{ item }">
               <div class="adjust-start align-center space-between">
                 <v-tooltip text="发起采集" location="top">
-                  <template v-slot:activator="{ props: activatorProps }">
+                  <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="primary"
                       size="small"
                       class="mr-2"
                       icon="mdi-play-circle"
-                      @click="doEtl(item)"
                       v-bind="activatorProps"
+                      @click="doEtl(item)"
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
                 <v-tooltip text="更新表结构" location="top">
-                  <template v-slot:activator="{ props: activatorProps }">
+                  <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="warning"
                       size="small"
                       class="mr-2"
                       icon="mdi-database-refresh"
-                      @click="updateSchema(item)"
                       v-bind="activatorProps"
+                      @click="updateSchema(item)"
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
                 <v-tooltip text="删除此采集表" location="top">
-                  <template v-slot:activator="{ props: activatorProps }">
+                  <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="error"
                       size="small"
                       class="mr-2"
                       icon="mdi-delete"
-                      @click="confirmDelete(item)"
                       v-bind="activatorProps"
+                      @click="confirmDelete(item)"
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
                 <v-tooltip text="查看详情" location="top">
-                  <template v-slot:activator="{ props: open }">
+                  <template #activator="{ props: open }">
                     <v-icon-btn
                       color="secondary"
                       size="small"
                       class="mr-2"
                       icon="mdi-open-in-new"
-                      @click="viewDetail(item)"
                       v-bind="open"
+                      @click="viewDetail(item)"
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>

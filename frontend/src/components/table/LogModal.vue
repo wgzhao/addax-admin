@@ -16,7 +16,7 @@
 </script>
 
 <template>
-  <v-dialog max-width="800" v-model="dialog">
+  <v-dialog v-model="dialog" max-width="800">
     <v-card>
       <v-card-title class="headline">
         {{ filename }}

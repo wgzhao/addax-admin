@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" v-if="dialog" @keyup.esc="dialog = false">
+  <v-dialog v-if="dialog" v-model="dialog" @keyup.esc="dialog = false">
     <v-card>
       <v-card-title>
         {{ title }}

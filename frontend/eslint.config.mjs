@@ -49,6 +49,10 @@ export default tseslint.config(
       'vue/require-explicit-emits': 'off',
       'vue/require-default-prop': 'off',
       'vue/require-prop-types': 'off',
+      // The codebase uses camelCase emit names (@closeDialog, update:modelValue);
+      // the rule's autofix rewrites listeners to kebab-case, which breaks the
+      // emit contract (update:model-value would stop driving v-model).
+      'vue/v-on-event-hyphenation': 'off',
       'no-console': 'off',
     },
   },

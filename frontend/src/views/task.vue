@@ -2,12 +2,12 @@
   <v-card flat title="采集任务管理">
     <v-card-text>
       <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="default">
-        <template v-slot:item.status="{ item }">
+        <template #item.status="{ item }">
           <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
             {{ getStatusText(item.status) }}
           </v-chip>
         </template>
-        <template v-slot:item.progress="{ item }">
+        <template #item.progress="{ item }">
           <v-progress-linear
             :model-value="item.displayProgress ?? item.progress"
             :buffer-value="item.progress"
@@ -18,10 +18,10 @@
             style="min-width: 80px"
           ></v-progress-linear>
         </template>
-        <template v-slot:item.node_name="{ item }">
+        <template #item.node_name="{ item }">
           <span>{{ item.node_name || '-' }}</span>
         </template>
-        <template v-slot:item.action="{ item }">
+        <template #item.action="{ item }">
           <v-btn small color="primary" @click="$emit('executeTask', item.id)">采集</v-btn>
           <!-- 可扩展更多任务相关操作按钮 -->
         </template>

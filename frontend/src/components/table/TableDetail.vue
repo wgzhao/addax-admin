@@ -1,5 +1,5 @@
 <template>
-  <v-form fast-fail @submit.prevent="saveOds" ref="formRef" tag="form" class="table-detail-shell">
+  <v-form ref="formRef" fast-fail tag="form" class="table-detail-shell" @submit.prevent="saveOds">
     <v-card flat class="ds-card hero-card">
       <v-card-text class="hero-card__content">
         <div class="hero-main">
@@ -50,9 +50,9 @@
                 <div class="field-block">
                   <div class="field-label">源系统</div>
                   <v-text-field
+                    v-model="table.name"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.name"
                     placeholder="请输入源系统"
                     hide-details="auto"
                   />
@@ -63,9 +63,9 @@
                 <div class="field-block">
                   <div class="field-label">采集状态</div>
                   <v-select
+                    v-model="table.status"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.status"
                     :items="statusOptions"
                     item-title="label"
                     item-value="value"
@@ -79,9 +79,9 @@
                 <div class="field-block">
                   <div class="field-label">源库</div>
                   <v-text-field
+                    v-model="table.sourceDb"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.sourceDb"
                     placeholder="请输入源库"
                     hide-details="auto"
                   />
@@ -92,10 +92,10 @@
                 <div class="field-block">
                   <div class="field-label">剩余次数</div>
                   <v-text-field
+                    v-model="table.retryCnt"
                     variant="outlined"
                     density="comfortable"
                     type="number"
-                    v-model="table.retryCnt"
                     placeholder="请输入剩余次数"
                     :rules="[rules.nonNegative]"
                     hide-details="auto"
@@ -118,9 +118,9 @@
                     </v-btn>
                   </div>
                   <v-text-field
+                    v-model="table.sourceTable"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.sourceTable"
                     placeholder="请输入源表"
                     hide-details="auto"
                   />
@@ -143,9 +143,9 @@
                 <div class="field-block">
                   <div class="field-label">目标端</div>
                   <v-select
+                    v-model="table.targetId"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.targetId"
                     :items="targetOptions"
                     item-title="label"
                     item-value="value"
@@ -160,9 +160,9 @@
                 <div class="field-block">
                   <div class="field-label">写入模式</div>
                   <v-select
+                    v-model="table.writeMode"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.writeMode"
                     :items="writeModeOptions"
                     item-title="label"
                     item-value="value"
@@ -176,9 +176,9 @@
                 <div class="field-block">
                   <div class="field-label">目标库</div>
                   <v-text-field
+                    v-model="table.targetDb"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.targetDb"
                     placeholder="请输入目标库"
                     hide-details="auto"
                   />
@@ -189,9 +189,9 @@
                 <div class="field-block">
                   <div class="field-label">目标表</div>
                   <v-text-field
+                    v-model="table.targetTable"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.targetTable"
                     placeholder="请输入目标表"
                     hide-details="auto"
                   />
@@ -202,9 +202,9 @@
                 <div class="field-block">
                   <div class="field-label">调度时间 (HH:mm)</div>
                   <v-text-field
+                    v-model="table.startAt"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.startAt"
                     placeholder="为空则继承数据源"
                     clearable
                     persistent-hint
@@ -217,9 +217,9 @@
                 <div class="field-block">
                   <div class="field-label">最大运行时 (s)</div>
                   <v-text-field
+                    v-model="table.maxRuntime"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.maxRuntime"
                     placeholder="不填默认 2000 秒"
                     hide-details="auto"
                   />
@@ -253,9 +253,9 @@
                     </v-btn>
                   </div>
                   <v-text-field
+                    v-model="table.filter"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.filter"
                     placeholder="可选，例如 dt='${biz_date_dash}'"
                     hide-details="auto"
                   />
@@ -266,9 +266,9 @@
                 <div class="field-block">
                   <div class="field-label">分区字段</div>
                   <v-text-field
+                    v-model="table.partName"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.partName"
                     placeholder="例如 dt"
                     hide-details="auto"
                   />
@@ -279,9 +279,9 @@
                 <div class="field-block">
                   <div class="field-label">分区格式</div>
                   <v-select
+                    v-model="table.partFormat"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.partFormat"
                     :items="PARTITION_FORMATS"
                     placeholder="请选择分区格式"
                     hide-details="auto"
@@ -293,9 +293,9 @@
                 <div class="field-block">
                   <div class="field-label">切分字段</div>
                   <v-text-field
+                    v-model="table.splitPk"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.splitPk"
                     placeholder="为空则自动获取"
                     hide-details="auto"
                   />
@@ -306,9 +306,9 @@
                 <div class="field-block">
                   <div class="field-label">存储格式</div>
                   <v-select
+                    v-model="table.storageFormat"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.storageFormat"
                     :items="storageOptions"
                     placeholder="请选择存储格式"
                     hide-details="auto"
@@ -320,9 +320,9 @@
                 <div class="field-block">
                   <div class="field-label">压缩格式</div>
                   <v-select
+                    v-model="table.compressFormat"
                     variant="outlined"
                     density="comfortable"
-                    v-model="table.compressFormat"
                     :items="compressFormats"
                     placeholder="请选择压缩格式"
                     hide-details="auto"
@@ -364,9 +364,9 @@
                 <div class="field-block">
                   <div class="field-label">读取插件配置 (JSON)</div>
                   <v-textarea
+                    v-model="readerPluginConfigText"
                     variant="outlined"
                     density="comfortable"
-                    v-model="readerPluginConfigText"
                     placeholder='例如: {"fetchSize": 50000}'
                     :rules="[rules.jsonObjectOrEmpty]"
                     rows="5"
@@ -381,9 +381,9 @@
                 <div class="field-block">
                   <div class="field-label">写入插件配置 (JSON)</div>
                   <v-textarea
+                    v-model="writerPluginConfigText"
                     variant="outlined"
                     density="comfortable"
-                    v-model="writerPluginConfigText"
                     placeholder='例如: {"writeMode": "append"}'
                     :rules="[rules.jsonObjectOrEmpty]"
                     rows="5"
@@ -456,9 +456,9 @@
             <div class="field-block mt-4">
               <div class="field-label">备注</div>
               <v-textarea
+                v-model="table.remark"
                 variant="outlined"
                 density="comfortable"
-                v-model="table.remark"
                 placeholder="可选备注"
                 rows="4"
                 auto-grow
