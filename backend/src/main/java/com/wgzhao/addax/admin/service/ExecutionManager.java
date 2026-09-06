@@ -2,12 +2,15 @@ package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
@@ -35,6 +38,14 @@ public class ExecutionManager
     private final ConcurrentHashMap<Long, Instant> killRequested = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RedisMessageListenerContainer listenerContainer;
+    // Kill requests are executed off the shared RedisMessageListenerContainer dispatch thread:
+    // killing a process tree can take tens of seconds (up to 1.2s per descendant, twice), which
+    // would otherwise stall delivery of task-assignment messages on the same container.
+    private final ExecutorService killExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "etl-killer");
+        t.setDaemon(true);
+        return t;
+    });
 
     @PostConstruct
     public void subscribe()
@@ -76,7 +87,13 @@ public class ExecutionManager
     }
 
     /**
-     * Kill local process if present. Returns true if kill attempted (process existed), false if not found locally.
+     * Kill the registered process tree of a task, if present. Returns true if kill attempted
+     * (process existed), false if not found locally.
+     *
+     * Scope note: only the tree registered under the tid is killed. The previous machine-wide scan
+     * over "-DjobName={tid}" command lines was removed — it force-killed legitimate concurrent
+     * copies of the same table (e.g. a normal run plus a fillback for another date share the tid
+     * but register as separate trees) and it could stall the caller for 1.2s per unrelated process.
      */
     public boolean killLocal(long tid)
     {
@@ -113,24 +130,12 @@ public class ExecutionManager
                 forcedStopped++;
             }
 
-            String marker = "-DjobName=" + tid;
-            int markerStopped = 0;
-            List<ProcessHandle> all = ProcessHandle.allProcesses().toList();
-            for (ProcessHandle handle : all) {
-                if (!handle.isAlive()) {
-                    continue;
-                }
-                if (handle.pid() == root.pid()) {
-                    continue;
-                }
-                String cmdLine = handle.info().commandLine().orElse("");
-                if (cmdLine.contains(marker) && tryStopHandle(handle, true)) {
-                    markerStopped++;
-                }
-            }
+            // Deregister immediately: the executor's finally block unregisters again (idempotent),
+            // and a later killLocal for this tid should report 'not found'.
+            running.remove(tid, holder);
 
-            log.warn("Kill requested tid={} rootPid={} descendants={} gracefulStopped={} forcedStopped={} markerStopped={}",
-                tid, root.pid(), descendants.size(), gracefulStopped, forcedStopped, markerStopped);
+            log.warn("Kill requested tid={} rootPid={} descendants={} gracefulStopped={} forcedStopped={}",
+                tid, root.pid(), descendants.size(), gracefulStopped, forcedStopped);
             return true;
         }
         catch (Exception e) {
@@ -224,15 +229,24 @@ public class ExecutionManager
                 log.warn("Invalid kill message payload: {}", body);
             }
             if (jobId > 0) {
-                boolean killed = killLocal(jobId);
-                if (killed) {
-                    log.info("Handled kill for job {} locally via pubsub", jobId);
-                }
+                final long targetId = jobId;
+                killExecutor.submit(() -> {
+                    boolean killed = killLocal(targetId);
+                    if (killed) {
+                        log.info("Handled kill for job {} locally via pubsub", targetId);
+                    }
+                });
             }
         }
         catch (Exception e) {
             log.error("Failed to handle kill message", e);
         }
+    }
+
+    @PreDestroy
+    public void shutdown()
+    {
+        killExecutor.shutdownNow();
     }
 
     public record ProcessHolder(Process process, long pid, String instanceId, Instant startAt) {}
