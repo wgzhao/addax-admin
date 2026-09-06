@@ -65,6 +65,10 @@
 
   const tblname = ref(String(route.query.tblname || ''));
 
+  // unplugin-vue-router 0.19 does not emit param types for custom route-block
+  // paths, so the :tid param is absent from the generated RouteNamedMap
+  const tid = String((route.params as Record<string, string>).tid);
+
   watch(
     () => route.query.tab,
     newTab => {
@@ -75,7 +79,7 @@
   watch(currentTab, val => {
     // Keep URL in sync for deep linking without adding new history entries
     router.replace({
-      path: `/table/detail/${route.params.tid}`,
+      path: `/table/detail/${tid}`,
       query: { ...route.query, tab: val },
     });
   });
@@ -83,7 +87,7 @@
   onMounted(() => {
     if (!route.query.tab) {
       router.replace({
-        path: `/table/detail/${route.params.tid}`,
+        path: `/table/detail/${tid}`,
         query: { ...route.query, tab: currentTab.value },
       });
     }

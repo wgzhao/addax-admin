@@ -134,7 +134,8 @@
   import type { AddaxLog } from '@/types/database';
 
   const route = useRoute();
-  const tid = String(route.params.tid);
+  // cast: unplugin-vue-router does not type custom route-block path params
+  const tid = String((route.params as Record<string, string>).tid);
 
   const fContent = ref('');
   const selectedLogId = ref<number | null>(null);

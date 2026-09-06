@@ -550,7 +550,8 @@
   import { TABLE_STATUS_OPTIONS, PARTITION_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils';
 
   const route = useRoute();
-  const tid = computed(() => Number(route.params.tid));
+  // cast: unplugin-vue-router does not type custom route-block path params
+  const tid = computed(() => Number((route.params as Record<string, string>).tid));
 
   const statusOptions = TABLE_STATUS_OPTIONS;
   const storageOptions = ['orc', 'parquet', 'text'];

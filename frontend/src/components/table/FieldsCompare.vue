@@ -105,7 +105,8 @@
   import type { DataTableHeader } from 'vuetify';
 
   const route = useRoute();
-  const tid = Number(route.params.tid);
+  // cast: unplugin-vue-router does not type custom route-block path params
+  const tid = Number((route.params as Record<string, string>).tid);
 
   const fields = ref<EtlColumn[]>([]);
   const loading = ref(false);

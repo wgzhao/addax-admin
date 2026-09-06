@@ -95,7 +95,8 @@
 
   // Why: read tid from route instead of props for page usage
   const route = useRoute();
-  const tid = Number(route.params.tid);
+  // cast: unplugin-vue-router does not type custom route-block path params
+  const tid = Number((route.params as Record<string, string>).tid);
 
   const jobContent = ref('');
   const loading = ref(false);
