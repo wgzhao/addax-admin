@@ -309,14 +309,9 @@ public class TaskQueueManagerV2Impl
             String body = new String(message.getBody());
             EtlJobQueue job = objectMapper.readValue(body, EtlJobQueue.class);
             log.info("Received task assignment: jobId={} tid={}", job.getId(), job.getTid());
-            runningTaskCount.incrementAndGet();
-            EtlTable table = tableService.getTable(job.getTid());
-            if (table != null) {
-                VwEtlTableWithSource source = tableService.getTableView(table.getId());
-                if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
-                    sourceRunningTaskCount.computeIfAbsent(table.getSid(), k -> new AtomicInteger(0)).incrementAndGet();
-                }
-            }
+            // Capacity accounting happens inside executeClaimedJob: incrementing here (before any DB
+            // lookup and pool submit) leaked counts whenever this handler threw, permanently
+            // shrinking the node's advertised capacity until restart.
             workerPool.submit(() -> executeClaimedJob(job));
         }
         catch (Exception e) {
@@ -826,6 +821,9 @@ public class TaskQueueManagerV2Impl
         ScheduledFuture<?> renewer = null;
         // 声明在 try 外,异常分支(notifyFinalFailure)也需要引用
         EtlTable task = null;
+        // Source whose running counter was reserved at start; drives the finally decrement so a
+        // deleted table or a max_concurrency change mid-run cannot leak the counter.
+        Integer countedSourceSid = null;
         final long jobId = job.getId();
 
         try {
@@ -844,6 +842,21 @@ public class TaskQueueManagerV2Impl
                 jobQueueService.completeCancelled(job.getId(), "Killed by user request", instanceId);
                 return;
             }
+
+            // Reserve capacity now that this run is committed. Increments and the finally decrements
+            // below are symmetric by construction: any exception between here and the finally block
+            // releases what was reserved.
+            runningTaskCount.incrementAndGet();
+            task = tableService.getTable(job.getTid());
+            if (task == null) {
+                throw new IllegalStateException("Task not found tid=" + job.getTid());
+            }
+            VwEtlTableWithSource sourceView = tableService.getTableView(task.getId());
+            if (sourceView != null && sourceView.getMaxConcurrency() != null && sourceView.getMaxConcurrency() > 0) {
+                sourceRunningTaskCount.computeIfAbsent(task.getSid(), k -> new AtomicInteger(0)).incrementAndGet();
+                countedSourceSid = task.getSid();
+            }
+
             int renewInterval = Math.max(30, DEFAULT_LEASE_SECONDS / 3);
             renewer = scheduler.scheduleAtFixedRate(() -> {
                 try {
@@ -857,10 +870,6 @@ public class TaskQueueManagerV2Impl
                 }
             }, renewInterval, renewInterval, TimeUnit.SECONDS);
 
-            task = tableService.getTable(job.getTid());
-            if (task == null) {
-                throw new IllegalStateException("Task not found tid=" + job.getTid());
-            }
             taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
             // A kill recorded before this run's claim belongs to a previous execution of the same
             // tid and must not misclassify a genuine failure as a user cancel.
@@ -905,20 +914,20 @@ public class TaskQueueManagerV2Impl
 
             int afterGlobal = runningTaskCount.decrementAndGet();
 
-            EtlTable table = tableService.getTable(job.getTid());
-            if (table != null) {
-                VwEtlTableWithSource source = tableService.getTableView(table.getId());
-                if (source != null && source.getMaxConcurrency() != null && source.getMaxConcurrency() > 0) {
-                    sourceRunningTaskCount.computeIfPresent(table.getSid(), (k, v) -> {
-                        int after = v.decrementAndGet();
-                        log.debug("Source {} concurrency reduced to {} (max={})", k, after, source.getMaxConcurrency());
-                        return v;
-                    });
-                }
+            // Release the source reservation taken at start (countedSourceSid), even if the table
+            // or its source view disappeared mid-run — no re-fetch, no skipped decrement.
+            if (countedSourceSid != null) {
+                sourceRunningTaskCount.computeIfPresent(countedSourceSid, (k, v) -> {
+                    v.decrementAndGet();
+                    return v.get() <= 0 ? null : v;
+                });
             }
 
-            log.debug("jobId={} done, elapsed={}s, running={}, pending={}",
-                job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
+            // Guarded: countPending() is a DB round-trip, only pay for it when debug is enabled
+            if (log.isDebugEnabled()) {
+                log.debug("jobId={} done, elapsed={}s, running={}, pending={}",
+                    job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
+            }
 
             try { notifyJobCompletion(job, taskResultDto); } catch (Exception ignored) {}
 
