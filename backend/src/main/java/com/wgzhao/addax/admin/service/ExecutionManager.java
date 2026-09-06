@@ -141,10 +141,24 @@ public class ExecutionManager
 
     /**
      * Returns true once when a kill request has been recorded for this tid.
+     *
+     * @param notBefore kill requests recorded before this instant are stale — they belong to a
+     *     previous execution of the same tid (the executor failed to consume them) and must not
+     *     misclassify the current run's genuine failure as a user cancel. Pass the queue row's
+     *     claimedAt of the current run.
      */
-    public boolean consumeKillRequested(long tid)
+    public boolean consumeKillRequested(long tid, Instant notBefore)
     {
-        return killRequested.remove(tid) != null;
+        Instant killedAt = killRequested.get(tid);
+        if (killedAt == null) {
+            return false;
+        }
+        if (killedAt.isBefore(notBefore)) {
+            killRequested.remove(tid, killedAt);
+            return false;
+        }
+        killRequested.remove(tid);
+        return true;
     }
 
     private long depth(ProcessHandle handle)

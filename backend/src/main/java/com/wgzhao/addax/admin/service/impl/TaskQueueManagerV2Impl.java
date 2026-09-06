@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service.impl;
 
 import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
@@ -835,6 +836,14 @@ public class TaskQueueManagerV2Impl
                 log.warn("Job {} no longer owned by instance {}, skipping execution", job.getId(), instanceId);
                 return;
             }
+            // Honor a kill signal written while this assignment was in flight (kill pub/sub message
+            // missed during a reconnect gap, or a kill issued before this run's process registered):
+            // never start an execution the user asked to cancel.
+            if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(Constants.TASK_KILL_SIGNAL_KEY_PREFIX + job.getTid()))) {
+                log.warn("Kill signal present for tid={}, cancelling job {} before start", job.getTid(), job.getId());
+                jobQueueService.completeCancelled(job.getId(), "Killed by user request", instanceId);
+                return;
+            }
             int renewInterval = Math.max(30, DEFAULT_LEASE_SECONDS / 3);
             renewer = scheduler.scheduleAtFixedRate(() -> {
                 try {
@@ -853,7 +862,10 @@ public class TaskQueueManagerV2Impl
                 throw new IllegalStateException("Task not found tid=" + job.getTid());
             }
             taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
-            boolean killedByUser = executionManager.consumeKillRequested(job.getTid());
+            // A kill recorded before this run's claim belongs to a previous execution of the same
+            // tid and must not misclassify a genuine failure as a user cancel.
+            boolean killedByUser = executionManager.consumeKillRequested(job.getTid(),
+                job.getClaimedAt() != null ? job.getClaimedAt() : Instant.EPOCH);
             if (killedByUser) {
                 jobQueueService.completeCancelled(job.getId(), "Killed by user request", instanceId);
                 log.info("Task killed by user, marked queue job {} as cancelled", job.getId());
@@ -870,7 +882,8 @@ public class TaskQueueManagerV2Impl
         }
         catch (Exception e) {
             log.error("Task execution failed jobId={} tid={}", job.getId(), job.getTid(), e);
-            boolean killedByUser = executionManager.consumeKillRequested(job.getTid());
+            boolean killedByUser = executionManager.consumeKillRequested(job.getTid(),
+                job.getClaimedAt() != null ? job.getClaimedAt() : Instant.EPOCH);
             if (killedByUser) {
                 try {
                     jobQueueService.completeCancelled(job.getId(), "Killed by user request", instanceId);
