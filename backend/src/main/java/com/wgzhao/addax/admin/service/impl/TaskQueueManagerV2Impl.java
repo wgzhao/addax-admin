@@ -94,6 +94,9 @@ public class TaskQueueManagerV2Impl
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
     private static final int DEFAULT_LEASE_SECONDS = 7300;
     private static final int HEARTBEAT_INTERVAL_SECONDS = 15;
+    // A worker missing from heartbeats for this long is considered dead. Must exceed the heartbeat
+    // key TTL (45s) so a transient Redis blip/GC pause never releases claims of a live executor.
+    private static final int WORKER_RECOVERY_GRACE_SECONDS = 60;
     private static final int PENDING_JOB_PEEK_LIMIT = 200;
     // Redis channel for task assignment: master → worker
     private static final String TASK_ASSIGN_CHANNEL_PREFIX = "addax:task:assign:";
@@ -146,6 +149,8 @@ public class TaskQueueManagerV2Impl
     private final ConcurrentHashMap<String, WorkerLedger> workerLedgers = new ConcurrentHashMap<>();
     // Tracks alive workers seen in the previous dispatch cycle for dead-worker detection
     private final Set<String> knownWorkerIds = new HashSet<>();
+    // First dispatch cycle at which a currently-missing worker was observed gone (dead-worker grace)
+    private final ConcurrentHashMap<String, Instant> workerGoneSince = new ConcurrentHashMap<>();
 
     private volatile Future<?> listenFuture;
     private volatile ScheduledFuture<?> pollFuture;
@@ -209,6 +214,7 @@ public class TaskQueueManagerV2Impl
         log.info("Became master — starting dispatch loop");
         workerLedgers.clear();
         knownWorkerIds.clear();
+        workerGoneSince.clear();
         // Wait 2× heartbeat interval for workers to re-register, then release orphaned tasks
         if (orphanRecoverFuture != null) orphanRecoverFuture.cancel(false);
         orphanRecoverFuture = scheduler.schedule(this::recoverOrphanedJobs,
@@ -221,6 +227,7 @@ public class TaskQueueManagerV2Impl
         swrrCurrentWeight.clear();
         workerLedgers.clear();
         knownWorkerIds.clear();
+        workerGoneSince.clear();
         if (orphanRecoverFuture != null) {
             orphanRecoverFuture.cancel(false);
             orphanRecoverFuture = null;
@@ -378,23 +385,34 @@ public class TaskQueueManagerV2Impl
         }
 
         // Detect workers that disappeared since last dispatch cycle and proactively recover their tasks,
-        // avoiding waiting for DEFAULT_LEASE_SECONDS (7300s) expiry.
+        // avoiding waiting for DEFAULT_LEASE_SECONDS (7300s) expiry. A worker must stay absent for
+        // WORKER_RECOVERY_GRACE_SECONDS before its claims are released: a heartbeat key can expire on a
+        // transient Redis blip while the worker (and its addax processes) are still running, and releasing
+        // early would dispatch the same (tid, biz_date) to a second worker.
         Set<String> currentWorkerIds = workers.stream()
             .map(WorkerHeartbeatService.WorkerInfo::instanceId)
             .collect(Collectors.toSet());
+        Instant now = Instant.now();
         if (!knownWorkerIds.isEmpty()) {
-            for (String deadId : new HashSet<>(knownWorkerIds)) {
-                if (!currentWorkerIds.contains(deadId)) {
-                    log.warn("Worker {} disappeared — recovering its claimed tasks immediately", deadId);
-                    try {
-                        int recovered = jobQueueService.releaseClaimedByInstance(deadId);
-                        if (recovered > 0) {
-                            log.info("Released {} tasks from dead worker {}", recovered, deadId);
-                        }
+            for (String id : new HashSet<>(knownWorkerIds)) {
+                if (currentWorkerIds.contains(id)) {
+                    workerGoneSince.remove(id);
+                    continue;
+                }
+                Instant goneAt = workerGoneSince.computeIfAbsent(id, k -> now);
+                if (goneAt.plusSeconds(WORKER_RECOVERY_GRACE_SECONDS).isAfter(now)) {
+                    continue;
+                }
+                workerGoneSince.remove(id);
+                log.warn("Worker {} absent for {}s — recovering its claimed tasks", id, WORKER_RECOVERY_GRACE_SECONDS);
+                try {
+                    int recovered = jobQueueService.releaseClaimedByInstance(id);
+                    if (recovered > 0) {
+                        log.info("Released {} tasks from dead worker {}", recovered, id);
                     }
-                    catch (Exception e) {
-                        log.error("Failed to release tasks from dead worker {}", deadId, e);
-                    }
+                }
+                catch (Exception e) {
+                    log.error("Failed to release tasks from dead worker {}", id, e);
                 }
             }
         }
@@ -458,7 +476,7 @@ public class TaskQueueManagerV2Impl
             catch (Exception e) {
                 log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.instanceId(), e);
                 consumedJobIds.add(job.getId());
-                try { jobQueueService.releaseClaim(job.getId(), 5); } catch (Exception ignored) {}
+                try { jobQueueService.releaseClaim(job.getId(), 5, selected.instanceId()); } catch (Exception ignored) {}
             }
         }
     }
@@ -733,6 +751,13 @@ public class TaskQueueManagerV2Impl
         final long jobId = job.getId();
 
         try {
+            // Claim confirmation: only execute while this instance still owns the row. The row may
+            // have been released/reclaimed between dispatch and receipt (publish timeout, master
+            // crash, orphan recovery), in which case executing would duplicate a successor run.
+            if (!jobQueueService.renewLease(job.getId(), instanceId, DEFAULT_LEASE_SECONDS)) {
+                log.warn("Job {} no longer owned by instance {}, skipping execution", job.getId(), instanceId);
+                return;
+            }
             int renewInterval = Math.max(30, DEFAULT_LEASE_SECONDS / 3);
             renewer = scheduler.scheduleAtFixedRate(() -> {
                 try {
@@ -753,16 +778,16 @@ public class TaskQueueManagerV2Impl
             taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
             boolean killedByUser = executionManager.consumeKillRequested(job.getTid());
             if (killedByUser) {
-                jobQueueService.completeCancelled(job.getId(), "Killed by user request");
+                jobQueueService.completeCancelled(job.getId(), "Killed by user request", instanceId);
                 log.info("Task killed by user, marked queue job {} as cancelled", job.getId());
             }
             else if (taskResultDto.success()) {
-                jobQueueService.completeSuccess(job.getId());
+                jobQueueService.completeSuccess(job.getId(), instanceId);
                 alertService.reportCollectionSuccess(task.getId(), task.getSourceDb(), task.getSourceTable());
             }
             else {
                 Duration backoff = computeBackoff(job.getAttempts());
-                jobQueueService.failOrReschedule(job, "Addax non-zero exit", backoff);
+                jobQueueService.failOrReschedule(job, "Addax non-zero exit", backoff, instanceId);
                 notifyFinalFailure(job, task, "Addax 非0退出");
             }
         }
@@ -771,7 +796,7 @@ public class TaskQueueManagerV2Impl
             boolean killedByUser = executionManager.consumeKillRequested(job.getTid());
             if (killedByUser) {
                 try {
-                    jobQueueService.completeCancelled(job.getId(), "Killed by user request");
+                    jobQueueService.completeCancelled(job.getId(), "Killed by user request", instanceId);
                     log.info("Task killed by user during exception path, marked queue job {} as cancelled", job.getId());
                 }
                 catch (Exception ignored) {
@@ -779,7 +804,7 @@ public class TaskQueueManagerV2Impl
             }
             else {
                 Duration backoff = computeBackoff(job.getAttempts());
-                try { jobQueueService.failOrReschedule(job, e.getMessage(), backoff); } catch (Exception ignored) {}
+                try { jobQueueService.failOrReschedule(job, e.getMessage(), backoff, instanceId); } catch (Exception ignored) {}
                 notifyFinalFailure(job, task, e.getMessage());
             }
         }
@@ -993,7 +1018,8 @@ public class TaskQueueManagerV2Impl
 
     private void recoverLeases()
     {
-        if (!running) return;
+        // Lease recovery mutates the shared queue, so only the master may run it
+        if (!running || !electionService.isMaster()) return;
         try {
             int recovered = jobQueueService.recoverExpiredLeases();
             if (recovered > 0) {
