@@ -3,6 +3,8 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
@@ -45,6 +47,7 @@ public class TableService
     private final SystemConfigService configService;
     private final UserNotificationService userNotificationService;
     private final EntityManager entityManager;
+    private final EtlJobQueueService jobQueueService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -392,7 +395,9 @@ public class TableService
         // 重试次数也重置
         task.setRetryCnt(3);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
-        etlTableRepo.save(task);
+        // Conditional update (see EtlTableRepo.markFinished): a whole-row save would let a stale
+        // executor overwrite a fresher state and would resurrect a row deleted mid-run (merge→INSERT).
+        etlTableRepo.markFinished(task.getId(), task.getEndTime());
     }
 
     /**
@@ -405,7 +410,9 @@ public class TableService
         task.setStatus(TableStatus.COLLECT_FAIL);
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
         task.setRetryCnt(max(task.getRetryCnt() - 1, 0));
-        etlTableRepo.save(task);
+        // Conditional update: never downgrade a 'Y' written by a duplicate executor, and decrement
+        // retryCnt against the row's current value rather than this possibly-stale snapshot.
+        etlTableRepo.markFailed(task.getId(), task.getEndTime());
     }
 
     /**
@@ -543,6 +550,13 @@ public class TableService
     @Transactional
     public void deleteTable(long tableId)
     {
+        // Refuse deletion while the table has queued or running jobs: an in-flight worker would
+        // otherwise re-insert the row (whole-row merge on completion) and resurrect the deleted
+        // table with stale metadata, racing the jour cleanup.
+        List<EtlJobQueue> active = jobQueueService.findActiveByTid(tableId);
+        if (!active.isEmpty()) {
+            throw new ApiException(400, "表 " + tableId + " 存在运行中或排队中的采集任务，请先停止后再删除");
+        }
         // 首先删除列信息
         columnService.deleteByTid(tableId);
         // 然后删除任务信息

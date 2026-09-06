@@ -39,6 +39,30 @@ public interface EtlTableRepo
         """)
     void batchUpdateStatusAndFlag(List<Long> ids, String status, int retryCnt);
 
+    /**
+     * Mark a table as collected. Guarded so a stale executor (duplicate run that lost ownership)
+     * cannot downgrade a fresher terminal state, and a row deleted mid-run is never re-inserted
+     * through a whole-row merge.
+     */
+    @Modifying
+    @Query("""
+            UPDATE EtlTable t SET t.status='Y', t.retryCnt=3, t.endTime=:endTime
+            WHERE t.id=:id AND t.status NOT IN ('Y','X')
+        """)
+    int markFinished(@Param("id") long id, @Param("endTime") java.util.Date endTime);
+
+    /**
+     * Mark a table as failed, decrementing retryCnt against the row's current value. A success
+     * written by another (duplicate) executor is never downgraded to failed.
+     */
+    @Modifying
+    @Query("""
+            UPDATE EtlTable t SET t.status='E', t.endTime=:endTime,
+                  t.retryCnt = case when t.retryCnt > 0 then t.retryCnt - 1 else 0 end
+            WHERE t.id=:id AND t.status NOT IN ('Y','X')
+        """)
+    int markFailed(@Param("id") long id, @Param("endTime") java.util.Date endTime);
+
     @Query(value = """
         select count(*) from etl_table t left join etl_source s on t.sid = s.id
         where t.status = ?1 and s.enabled = true
