@@ -139,6 +139,7 @@ public class TaskService
             try {
                 future.get(timeout, TimeUnit.SECONDS);
                 log.info("参数更新与表结构刷新完成");
+                markSchemaRefreshDone();
             }
             catch (TimeoutException te) {
                 log.error("参数更新/表结构刷新超时（>{}s），将中止刷新并释放锁", timeout);
@@ -176,6 +177,24 @@ public class TaskService
                 }
             }
             executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Record that the schema refresh for the current business date completed successfully.
+     * A newly elected master checks this marker after the switch time to decide whether a
+     * catch-up refresh is needed (see SchemaRefreshScheduler).
+     */
+    private void markSchemaRefreshDone()
+    {
+        try {
+            stringRedisTemplate.opsForValue().set(
+                Constants.SCHEMA_REFRESH_DONE_KEY_PREFIX + configService.getBizDate(),
+                electionService.getInstanceId(), Duration.ofDays(2));
+
+        }
+        catch (Exception e) {
+            log.warn("Failed to record schema refresh completion marker", e);
         }
     }
 

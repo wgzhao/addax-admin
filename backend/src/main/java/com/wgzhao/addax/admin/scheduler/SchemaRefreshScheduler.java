@@ -1,16 +1,20 @@
 package com.wgzhao.addax.admin.scheduler;
 
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TaskService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.concurrent.ScheduledFuture;
 
@@ -25,10 +29,15 @@ public class SchemaRefreshScheduler
 {
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
+    private final SystemConfigService configService;
     private final TaskService taskService;
     private final MasterElectionService electionService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     private volatile ScheduledFuture<?> scheduledFuture;
+    // Guards the one-shot 5-minute retry after a failed refresh: never retry-storm the refresh
+    // (each attempt stops/restarts the queue monitor cluster-wide).
+    private volatile boolean retryScheduled;
 
     @PostConstruct
     public void init()
@@ -36,6 +45,7 @@ public class SchemaRefreshScheduler
         electionService.onBecameMaster(() -> {
             log.info("Became master — registering schema refresh cron");
             scheduleInternal();
+            maybeCatchUpRefresh();
         });
         electionService.onLostMaster(() -> {
             log.info("Lost master — cancelling schema refresh cron");
@@ -44,6 +54,7 @@ public class SchemaRefreshScheduler
         // Guard against election tick firing before this @PostConstruct runs
         if (electionService.isMaster()) {
             scheduleInternal();
+            maybeCatchUpRefresh();
         }
     }
 
@@ -90,9 +101,62 @@ public class SchemaRefreshScheduler
         try {
             taskService.updateParams();
             log.info("Schema refresh finished successfully");
+            retryScheduled = false;
         }
         catch (Exception e) {
             log.error("Schema refresh failed", e);
+            scheduleRetry();
+        }
+    }
+
+    /**
+     * One-shot retry 5 minutes after a failed refresh. A single retry only: repeated attempts would
+     * stop/restart the queue monitor repeatedly. updateParams itself takes the cluster refresh lock,
+     * so a concurrent trigger (daily cron, another retry) is skipped rather than duplicated.
+     */
+    private void scheduleRetry()
+    {
+        if (retryScheduled) {
+            return;
+        }
+        retryScheduled = true;
+        taskScheduler.schedule(() -> {
+            if (electionService.isMaster()) {
+                log.warn("Retrying schema refresh after earlier failure");
+                runRefresh();
+            }
+        }, Instant.now().plusSeconds(300));
+    }
+
+    /**
+     * If the business switch time has already passed for today but no successful refresh is recorded
+     * (master down across the switch, cron never fired, refresh failed without retry), run one
+     * immediately — otherwise the whole business date silently stays uncollected until the next day.
+     */
+    private void maybeCatchUpRefresh()
+    {
+        try {
+            LocalTime switchTime = dictService.getSwitchTimeAsTime();
+            if (LocalTime.now().isBefore(switchTime)) {
+                log.debug("Catch-up refresh not needed: switch time {} not reached yet", switchTime);
+                return;
+            }
+            // A successful refresh writes the marker under the business date it activated, which is
+            // the calendar date of the switch day (config load inside updateParams flips it).
+            String doneKey = Constants.SCHEMA_REFRESH_DONE_KEY_PREFIX + configService.getBizDate();
+            if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(doneKey))) {
+                log.info("Schema refresh already completed ({}), skipping catch-up", doneKey);
+                return;
+            }
+            log.warn("No successful schema refresh recorded for today ({}), scheduling catch-up", doneKey);
+            taskScheduler.schedule(() -> {
+                if (electionService.isMaster()) {
+                    runRefresh();
+                }
+            }, Instant.now().plusSeconds(5));
+        }
+        catch (Exception e) {
+            log.warn("Schema refresh catch-up check failed", e);
         }
     }
 

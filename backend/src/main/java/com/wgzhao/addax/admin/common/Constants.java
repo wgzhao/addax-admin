@@ -21,6 +21,9 @@ public final class Constants
     public static final int HIVE_DECIMAL_MAX_SCALE = 10;
     // Redis key for schema refresh lock (used to prevent submits/enqueues while schema refresh runs)
     public static final String SCHEMA_REFRESH_LOCK_KEY = "schema:refresh:lock";
+    // Redis key prefix recording a successful schema refresh per business date (yyyyMMdd suffix).
+    // A master that comes up after the switch time without this marker runs a catch-up refresh.
+    public static final String SCHEMA_REFRESH_DONE_KEY_PREFIX = "schema:refresh:done:";
     public static final String DEFAULT_PART_FORMAT = "yyyyMMdd";
     public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT);
     // Default SQL reserved keywords (used as fallback and baseline). Stored in upper-case.
