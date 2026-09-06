@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 
-# Run lint-staged to format staged frontend files with Prettier before commit
+# Run lint-staged to format and lint staged frontend files before commit
 cd frontend || exit 0
-yarn format
+npx lint-staged
