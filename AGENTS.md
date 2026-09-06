@@ -22,32 +22,12 @@
 - 随意移除功能标志而不搜索所有调用点
 - 提交代码前不运行测试
 
-## 技术栈
-
-- 前端: TypeScript, Vue 3 + Composition API, Vite, vuetifyjs, bun
-- 后端: Java (JDK 21+), SpringBoot 3.5.6
-
-## 编译
-
-- 前端: `bun build:frontend`
-- 后端: `bun build:backend`
-
 ## 本地测试流程
 
 1. `bun build:backend` 编译后端服务
 2. 执行 `/opt/app/addax-admin/service.sh restart` 重启本地的后端服务
 3. 执行 `VITE_API_HOST=http://localhost:50601 bun run dev` 启动前端开发服务器
 4. 访问 `http://localhost:3030` 进行功能测试
-
-## 系统目录结构
-
-```ini
-addax-admin/
-├── backend/                 # Spring Boot 3 后端服务（API、调度、持久化、Redis 仲裁）
-├── frontend/                # Vue 3 + Vite + TypeScript + Vuetify 管理界面
-├── scripts/                 # 部署与运维脚本（DB 初始化、systemd service 模板等）
-└── README.md                # 本文档
-```
 
 ## 架构与设计宗旨
 
@@ -56,14 +36,6 @@ addax-admin/
 - 解決根本问题，不要 workaround -如果现有架构不支持，重构它
 - 质疑不合理的需求和方向—发现问题立刻指出，不要等我问才说，不要奉承或无脑赞同
 - 架构设计时参考 ddia-principles 和 software-design-philosophy 规则
-
-## 核心文件说明
-
-- [TargetServiceWithHiveImpl](backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImpl.java)：实现了与 Hive 相关的目标表管理逻辑，包括表结构演化和动态表名支持。
-- [TaskQueueManagerV2Impl](backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java)：实现了基于数据库持久化队列和 Redis 仲裁的混合并发控制架构。
-- [JobContentService](backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java)：定义和实现采集任务文件的编排和更新，每天会自动更新采集任务文件
-- [TableService](backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java)：定义了表结构演化和版本控制的接口，确保采集表的结构能够适应不断变化的数据需求。
-- [TaskSchedulerService](backend/src/main/java/com/wgzhao/addax/admin/service/TaskSchedulerService.java)：定义了调度服务的接口，负责管理采集任务的调度和执行，确保任务按照预定的时间和依赖关系正确执行。
 
 ## 会话压缩指令
 
@@ -114,19 +86,13 @@ Mono repo 提交策略：
 4. `chore(deps): bump spring boot to 3.5.6`
 5. `feat(repo): support dynamic table versioning end-to-end`
 
-自动校验（本仓库已启用）：
-
-1. 使用 Husky 的 `commit-msg` hook 在本地提交时触发 commitlint
-2. 规则配置文件：`commitlint.config.cjs`
-3. 若本地未安装 hooks，可执行：`yarn prepare`
-
 当用户明确提出“提交并创建 PR”时，默认按以下流程执行（除非用户另有说明）：
 
 1. 创建新分支后再提交，分支名建议使用 `feat/<topic>` 或 `fix/<topic>` 格式，根据本次修改的性质选择 `feat`（新功能）或 `fix`（修复）。例如：`feat/add-protobuf-dependency`。
 2. 使用英文编写 commit message：
    - `title` 简洁明确（建议 Conventional Commits 风格）。
    - `description/body` 说明动机、核心改动、验证情况。
-3. 提交前至少完成相关构建/测试（遵循本文件“编译”与“本地测试流程”）。
+3. 提交前至少完成相关构建/测试（遵循本文件“本地测试流程”）。
 4. 使用 `gh` 命令创建 PR，不只推送分支：
    - 示例：`gh pr create --base master --head <branch> --title "<english title>" --body-file <file>`
 5. PR 内容必须使用英文，并尽量完整包含：
