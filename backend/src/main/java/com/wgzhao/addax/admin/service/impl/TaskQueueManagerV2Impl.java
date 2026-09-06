@@ -474,6 +474,10 @@ public class TaskQueueManagerV2Impl
 
         // Clean up SWRR state for workers that are no longer alive
         swrrCurrentWeight.keySet().retainAll(currentWorkerIds);
+        // Evict capacity ledgers of dead workers too: instanceId embeds the host pid, so every
+        // worker restart creates a new id and dead ledgers (with their reservation deque) would
+        // otherwise leak on a long-lived master for the process lifetime.
+        workerLedgers.keySet().retainAll(currentWorkerIds);
 
         // Reconcile the master's capacity ledger with the latest heartbeat snapshot.
         // The ledger is mutated on every successful assignment, so dispatch cycles do not
