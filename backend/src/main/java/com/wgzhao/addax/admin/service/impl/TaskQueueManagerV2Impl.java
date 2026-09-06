@@ -53,6 +53,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -141,6 +142,10 @@ public class TaskQueueManagerV2Impl
 
     // Coalescing flag to prevent flooding dispatch on concurrent task completions
     private final AtomicBoolean dispatchScheduled = new AtomicBoolean(false);
+    // Serializes every masterDispatch invocation: the 3s poll and async dispatches triggered by job
+    // completions / DB notifications run on the same scheduler pool. Capacity check-then-reserve on
+    // the per-worker ledger is only safe within a single dispatch thread.
+    private final ReentrantLock dispatchLock = new ReentrantLock();
 
     private int concurrentLimit;
     private int enqueueCapacity;
@@ -152,8 +157,10 @@ public class TaskQueueManagerV2Impl
     private final ConcurrentHashMap<String, Double> swrrCurrentWeight = new ConcurrentHashMap<>();
     // Master-side worker capacity ledger between heartbeat snapshots
     private final ConcurrentHashMap<String, WorkerLedger> workerLedgers = new ConcurrentHashMap<>();
-    // Tracks alive workers seen in the previous dispatch cycle for dead-worker detection
-    private final Set<String> knownWorkerIds = new HashSet<>();
+    // Tracks alive workers seen in the previous dispatch cycle for dead-worker detection.
+    // Read/written from the dispatch thread (serialized by dispatchLock) but also cleared by
+    // election callbacks on other threads, so it must tolerate concurrent mutation.
+    private final Set<String> knownWorkerIds = ConcurrentHashMap.newKeySet();
     // First dispatch cycle at which a currently-missing worker was observed gone (dead-worker grace)
     private final ConcurrentHashMap<String, Instant> workerGoneSince = new ConcurrentHashMap<>();
 
@@ -388,20 +395,40 @@ public class TaskQueueManagerV2Impl
 
     private void pollAndDispatch()
     {
-        if (!running) return;
-        if (electionService.isMaster()) {
-            masterDispatch();
+        try {
+            if (!running) return;
+            if (electionService.isMaster()) {
+                masterDispatch();
+            }
+        }
+        catch (Throwable t) {
+            // Never let the fixed-delay poll die silently: an unchecked error here would otherwise
+            // stop all scheduled dispatch for the process lifetime (scheduleWithFixedDelay drops the
+            // task on the first thrown exception).
+            log.error("Poll dispatch cycle failed, will retry next cycle", t);
+        }
+    }
+
+    private void masterDispatch()
+    {
+        dispatchLock.lock();
+        try {
+            masterDispatchLocked();
+        }
+        finally {
+            dispatchLock.unlock();
         }
     }
 
     /**
      * Master-only: read alive workers, assign pending jobs from DB queue via Redis pub/sub.
+     * Callers must hold dispatchLock — capacity bookkeeping and SWRR state are not thread-safe.
      *
      * Uses Smooth Weighted Round Robin (SWRR) to distribute tasks proportionally to worker weights.
      * Source-level concurrency is checked against worker.sourceRunning from the heartbeat
      * (up to HEARTBEAT_INTERVAL_SECONDS staleness — acceptable for this use case).
      */
-    private void masterDispatch()
+    private void masterDispatchLocked()
     {
         List<WorkerHeartbeatService.WorkerInfo> workers = heartbeatService.getAliveWorkers();
         if (workers.isEmpty()) {
