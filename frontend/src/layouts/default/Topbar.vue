@@ -133,7 +133,7 @@
 </script>
 
 <style lang="scss" scoped>
-  @import './_topbar-menu-shared.scss';
+  @use './topbar-menu-shared' as *;
 
   .topbar-bar {
     border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.16);

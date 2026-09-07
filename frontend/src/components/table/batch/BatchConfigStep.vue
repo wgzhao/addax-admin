@@ -272,7 +272,7 @@
 </script>
 
 <style lang="scss" scoped>
-  @import './_batch-step-shared.scss';
+  @use './batch-step-shared' as *;
 
   .config-grid {
     display: grid;

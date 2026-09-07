@@ -101,7 +101,7 @@
 </script>
 
 <style lang="scss" scoped>
-  @import './_batch-step-shared.scss';
+  @use './batch-step-shared' as *;
 
   .table-stage__toolbar {
     display: flex;

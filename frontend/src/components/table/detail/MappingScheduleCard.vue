@@ -124,5 +124,5 @@
 </script>
 
 <style lang="scss" scoped>
-  @import './_detail-shared.scss';
+  @use './detail-shared' as *;
 </style>

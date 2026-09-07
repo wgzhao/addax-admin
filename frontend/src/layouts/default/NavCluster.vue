@@ -79,7 +79,7 @@
 </script>
 
 <style lang="scss" scoped>
-  @import './_topbar-menu-shared.scss';
+  @use './topbar-menu-shared' as *;
 
   .top-nav-cluster {
     display: inline-flex;
