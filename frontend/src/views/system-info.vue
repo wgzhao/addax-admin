@@ -4,11 +4,11 @@
     <v-row density="comfortable" class="mb-2">
       <v-col cols="12" md="4" lg="3">
         <v-text-field
+          v-model="filter"
           append-inner-icon="mdi-magnify"
           density="compact"
           hide-details
           label="Search"
-          v-model="filter"
           rounded="lg"
           single-line
           variant="outlined"
@@ -31,7 +31,7 @@
               density="default"
               class="elevation-1"
             >
-              <template v-slot:item.dbConstr="{ item }">
+              <template #item.dbConstr="{ item }">
                 <code>{{ item.dbConstr }}</code>
               </template>
             </v-data-table>

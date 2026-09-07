@@ -65,7 +65,7 @@
             <v-card-title class="detail-title">项目完成率</v-card-title>
             <v-card-text>
               <div class="progress-stack">
-                <div class="progress-item" v-for="ratio in ratios" :key="ratio.pct">
+                <div v-for="ratio in ratios" :key="ratio.pct" class="progress-item">
                   <div class="progress-header">
                     <span class="progress-name">{{ ratio.source_name }}</span>
                     <span class="progress-value">{{ ratio.pct }}%</span>

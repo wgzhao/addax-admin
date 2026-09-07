@@ -63,18 +63,18 @@
         <div
           v-if="description"
           class="text-subtitle-1 my-4"
-          v-html="description"
           aria-live="polite"
+          v-html="description"
         ></div>
 
         <div class="d-flex justify-center flex-wrap actions">
           <v-btn class="ma-2" :color="primary.color || 'primary'" large @click="$emit('primary')">
-            <v-icon left v-if="primary.icon">{{ primary.icon }}</v-icon>
+            <v-icon v-if="primary.icon" left>{{ primary.icon }}</v-icon>
             {{ primary.label }}
           </v-btn>
 
           <v-btn v-if="secondary" class="ma-2" variant="text" @click="$emit('secondary')">
-            <v-icon left v-if="secondary.icon">{{ secondary.icon }}</v-icon>
+            <v-icon v-if="secondary.icon" left>{{ secondary.icon }}</v-icon>
             {{ secondary.label }}
           </v-btn>
         </div>
@@ -87,7 +87,7 @@
             class="mx-2"
             @click="$emit('action', i)"
           >
-            <v-icon left v-if="a.icon">{{ a.icon }}</v-icon>
+            <v-icon v-if="a.icon" left>{{ a.icon }}</v-icon>
             {{ a.label }}
           </v-btn>
         </div>

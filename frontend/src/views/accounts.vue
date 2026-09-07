@@ -144,13 +144,13 @@
               :label="dialogMode === 'create' ? '密码' : '新密码（留空表示不修改）'"
               :type="showPassword ? 'text' : 'password'"
               :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              @click:append-inner="showPassword = !showPassword"
               :rules="
                 dialogMode === 'create'
                   ? [rules.required, rules.password]
                   : [rules.passwordOptional]
               "
               autocomplete="off"
+              @click:append-inner="showPassword = !showPassword"
             />
             <v-select
               v-model="formModel.authority"

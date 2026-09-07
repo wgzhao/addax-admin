@@ -14,8 +14,8 @@
             <v-btn
               size="small"
               variant="tonal"
-              @click="copyToClipboard"
               prepend-icon="mdi-content-copy"
+              @click="copyToClipboard"
             >
               复制
             </v-btn>
@@ -23,8 +23,8 @@
               size="small"
               variant="flat"
               color="primary"
-              @click="startEdit"
               prepend-icon="mdi-pencil"
+              @click="startEdit"
             >
               编辑
             </v-btn>
@@ -95,7 +95,8 @@
 
   // Why: read tid from route instead of props for page usage
   const route = useRoute();
-  const tid = Number(route.params.tid);
+  // cast: unplugin-vue-router does not type custom route-block path params
+  const tid = Number((route.params as Record<string, string>).tid);
 
   const jobContent = ref('');
   const loading = ref(false);

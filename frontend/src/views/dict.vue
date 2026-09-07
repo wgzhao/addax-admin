@@ -110,8 +110,8 @@
                   variant="flat"
                   size="small"
                   prepend-icon="mdi-plus"
-                  @click="openItemDialog()"
                   :disabled="!selectedDict"
+                  @click="openItemDialog()"
                 >
                   新增明细
                 </v-btn>

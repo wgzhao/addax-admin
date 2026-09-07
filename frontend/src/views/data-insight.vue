@@ -85,287 +85,80 @@
           color="primary"
         >
           <v-btn value="noChange"
-            >无变化 <span class="segment-count">{{ filteredNoChange.length }}</span></v-btn
+            >无变化 <span class="segment-count">{{ filteredByKey.noChange.length }}</span></v-btn
           >
           <v-btn value="lowChange"
-            >低变化 <span class="segment-count">{{ filteredLowChange.length }}</span></v-btn
+            >低变化 <span class="segment-count">{{ filteredByKey.lowChange.length }}</span></v-btn
           >
           <v-btn value="highChange"
-            >高变化 <span class="segment-count">{{ filteredHighChange.length }}</span></v-btn
+            >高变化 <span class="segment-count">{{ filteredByKey.highChange.length }}</span></v-btn
           >
           <v-btn value="timeChange"
-            >耗时异常 <span class="segment-count">{{ filteredTimeChange.length }}</span></v-btn
+            >耗时异常
+            <span class="segment-count">{{ filteredByKey.timeChange.length }}</span></v-btn
           >
           <v-btn value="missingCollect"
-            >缺采集 <span class="segment-count">{{ filteredMissingCollect.length }}</span></v-btn
+            >缺采集
+            <span class="segment-count">{{ filteredByKey.missingCollect.length }}</span></v-btn
           >
         </v-btn-toggle>
       </v-card-text>
     </v-card>
 
-    <v-row v-show="activePanel === 'noChange'" dense class="section-grid">
-      <v-col cols="12" md="12">
-        <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ noChangeTable.title }}</div>
-              <div class="header-actions">
-                <v-btn
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  prepend-icon="mdi-download"
-                  :disabled="!filteredNoChange.length"
-                  @click="exportCsv(noChangeTable.headers, filteredNoChange, 'insight-no-change')"
-                >
-                  导出
-                </v-btn>
-              </div>
-            </div>
-            <v-data-table
-              :items="filteredNoChange"
-              :headers="noChangeTable.headers"
-              density="default"
-              :sort-by="noChangeTable.sortBy"
-              class="insight-table"
-              hide-no-data
-            >
-              <template #item.actions="{ item }">
-                <v-btn size="small" color="error" variant="text" @click="disableTable(item)">
-                  禁用采集
-                </v-btn>
-              </template>
-            </v-data-table>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <v-row v-show="activePanel === 'lowChange'" dense class="section-grid">
-      <v-col cols="12" md="12">
-        <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ lowChangeTable.title }}</div>
-              <div class="header-actions">
-                <v-btn
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  prepend-icon="mdi-download"
-                  :disabled="!filteredLowChange.length"
-                  @click="
-                    exportCsv(lowChangeTable.headers, filteredLowChange, 'insight-low-change')
-                  "
-                >
-                  导出
-                </v-btn>
-              </div>
-            </div>
-            <v-data-table
-              :items="filteredLowChange"
-              :headers="lowChangeTable.headers"
-              density="default"
-              :sort-by="lowChangeTable.sortBy"
-              class="insight-table"
-              hide-no-data
-            />
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <v-row v-show="activePanel === 'highChange'" dense class="section-grid">
-      <v-col cols="12" md="12">
-        <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ highChangeTable.title }}</div>
-              <div class="header-actions">
-                <v-btn
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  prepend-icon="mdi-download"
-                  :disabled="!filteredHighChange.length"
-                  @click="
-                    exportCsv(highChangeTable.headers, filteredHighChange, 'insight-high-change')
-                  "
-                >
-                  导出
-                </v-btn>
-              </div>
-            </div>
-            <v-data-table
-              :items="filteredHighChange"
-              :headers="highChangeTable.headers"
-              density="default"
-              :sort-by="highChangeTable.sortBy"
-              class="insight-table"
-              hide-no-data
-            />
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <v-row v-show="activePanel === 'timeChange'" dense class="section-grid">
-      <v-col cols="12" md="12">
-        <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ timeChangeTable.title }}</div>
-              <div class="header-actions">
-                <v-btn
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  prepend-icon="mdi-download"
-                  :disabled="!filteredTimeChange.length"
-                  @click="
-                    exportCsv(timeChangeTable.headers, filteredTimeChange, 'insight-time-change')
-                  "
-                >
-                  导出
-                </v-btn>
-              </div>
-            </div>
-            <v-data-table
-              :items="filteredTimeChange"
-              :headers="timeChangeTable.headers"
-              density="default"
-              :sort-by="timeChangeTable.sortBy"
-              class="insight-table"
-              hide-no-data
-            />
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <v-row v-show="activePanel === 'missingCollect'" dense class="section-grid">
-      <v-col cols="12" md="12">
-        <v-card flat class="ds-card table-card section-card">
-          <v-card-text class="section-body">
-            <div class="section-header">
-              <div class="section-title">{{ missingCollectTable.title }}</div>
-              <div class="header-actions">
-                <v-btn
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  prepend-icon="mdi-download"
-                  :disabled="!filteredMissingCollect.length"
-                  @click="
-                    exportCsv(
-                      missingCollectTable.headers,
-                      filteredMissingCollect,
-                      'insight-missing-collect'
-                    )
-                  "
-                >
-                  导出
-                </v-btn>
-              </div>
-            </div>
-            <v-data-table
-              :items="filteredMissingCollect"
-              :headers="missingCollectTable.headers"
-              density="default"
-              :sort-by="missingCollectTable.sortBy"
-              class="insight-table"
-              hide-no-data
-            >
-              <template #item.missing_dates="{ item }">
-                <div class="missing-dates-compact">
-                  <span class="text-caption text-medium-emphasis">
-                    {{ compactMissingDates(item) }}
-                  </span>
-                  <v-btn
-                    size="x-small"
-                    variant="text"
-                    color="primary"
-                    :disabled="!hasMissingDates(item)"
-                    @click="openMissingDatesDialog(item)"
-                  >
-                    查看明细
-                  </v-btn>
-                </div>
-              </template>
-            </v-data-table>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <v-dialog v-model="confirmDialog.open" max-width="520">
-      <v-card>
-        <v-card-title class="text-subtitle-1 font-weight-medium">确认禁用采集</v-card-title>
-        <v-card-text>
-          <v-alert type="warning" variant="tonal" border="start" class="mb-4">
-            禁用后该表采集状态将置为 X，后续采集将被跳过。
-          </v-alert>
-          <div>
-            目标表：{{ confirmDialog.item?.source_db }}.{{ confirmDialog.item?.source_table }}
-          </div>
-          <div>表 ID：{{ confirmDialog.item?.tid }}</div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" :disabled="confirmDialog.loading" @click="closeConfirm">
-            取消
-          </v-btn>
+    <InsightPanelTable
+      v-for="panel in panels"
+      :key="panel.key"
+      v-show="activePanel === panel.key"
+      :title="panel.title"
+      :headers="panel.headers"
+      :sort-by="panel.sortBy"
+      :items="filteredByKey[panel.key]"
+      :export-name="panel.exportName"
+    >
+      <template #item.actions="{ item }">
+        <v-btn size="small" color="error" variant="text" @click="disableTable(item)">
+          禁用采集
+        </v-btn>
+      </template>
+      <template #item.missing_dates="{ item }">
+        <div class="missing-dates-compact">
+          <span class="text-caption text-medium-emphasis">
+            {{ compactMissingDates(item) }}
+          </span>
           <v-btn
-            color="error"
-            variant="flat"
-            :loading="confirmDialog.loading"
-            @click="confirmDisable"
+            size="x-small"
+            variant="text"
+            color="primary"
+            :disabled="!hasMissingDates(item)"
+            @click="openMissingDatesDialog(item)"
           >
-            确认禁用
+            查看明细
           </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+        </div>
+      </template>
+    </InsightPanelTable>
 
-    <v-dialog v-model="missingDatesDialog.open" max-width="760">
-      <v-card>
-        <v-card-title class="text-subtitle-1 font-weight-medium">缺失日期明细</v-card-title>
-        <v-card-text>
-          <div class="mb-3">
-            目标表：{{ missingDatesDialog.item?.source_db }}.{{
-              missingDatesDialog.item?.source_table
-            }}
-          </div>
-          <div class="mb-3">缺失天数：{{ missingDatesDialog.dates.length }}</div>
-          <div class="missing-date-chips">
-            <v-chip
-              v-for="date in missingDatesDialog.dates"
-              :key="date"
-              size="small"
-              color="warning"
-              variant="tonal"
-            >
-              {{ date }}
-            </v-chip>
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="closeMissingDatesDialog">关闭</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ConfirmDisableDialog v-model="confirmOpen" :item="confirmItem" @confirmed="loadInsights" />
+    <MissingDatesDialog v-model="missingOpen" :item="missingItem" :dates="missingDates" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, computed } from 'vue';
-  import type { DataTableHeader } from 'vuetify';
+  import { ref, onMounted, computed, watch } from 'vue';
   import { monitorService } from '@/service/monitor-service';
-  import tableService from '@/service/table-service';
-  import { SortItem } from 'vuetify/lib/components/VDataTable/composables/sort.mjs';
+  import InsightPanelTable from '@/components/insight/InsightPanelTable.vue';
+  import ConfirmDisableDialog from '@/components/insight/ConfirmDisableDialog.vue';
+  import MissingDatesDialog from '@/components/insight/MissingDatesDialog.vue';
+  import {
+    createInsightPanels,
+    filterByKeyword,
+    parseMissingDates,
+    compactMissingDates,
+    hasMissingDates,
+  } from '@/components/insight/insight-panels';
+  import type { InsightFilters, InsightPanel } from '@/components/insight/insight-panels';
 
-  const defaultFilters = {
+  const defaultFilters: InsightFilters = {
     days: 15,
     lowRate: 2,
     highRate: 40,
@@ -375,144 +168,25 @@
 
   const filters = ref({ ...defaultFilters });
   const loading = ref(false);
-  const activePanel = ref<
-    'noChange' | 'lowChange' | 'highChange' | 'timeChange' | 'missingCollect'
-  >('noChange');
+  const activePanel = ref<InsightPanel['key']>('noChange');
 
-  const data = ref({
-    noChange: [] as Array<Map<string, any>>,
-    lowChange: [] as Array<Map<string, any>>,
-    highChange: [] as Array<Map<string, any>>,
-    timeChange: [] as Array<Map<string, any>>,
-    missingCollect: [] as Array<Map<string, any>>,
+  const data = ref<Record<InsightPanel['key'], Array<Map<string, any>>>>({
+    noChange: [],
+    lowChange: [],
+    highChange: [],
+    timeChange: [],
+    missingCollect: [],
   });
 
-  const noChangeTable = computed(() => ({
-    title: `近 ${filters.value.days} 天内，数据量无变化的表`,
-    sortBy: <SortItem[]>[{ key: 'total_recs', order: 'desc' }],
-    headers: <DataTableHeader[]>[
-      { title: '表 ID', key: 'tid', align: 'end', width: '64px' },
-      { title: '源库', key: 'source_db' },
-      { title: '表名', key: 'source_table' },
-      { title: '目标库表', key: 'target_table_full', value: item => formatTargetTable(item) },
-      { title: '记录数', key: 'total_recs', align: 'end' },
-      { title: '开始日期', key: 'start_date' },
-      { title: '结束日期', key: 'end_date' },
-      { title: '天数', key: 'day_count', align: 'end' },
-      { title: '操作', key: 'actions', sortable: false, align: 'center' },
-    ],
+  const panels = computed(() => createInsightPanels(filters.value));
+
+  const filteredByKey = computed(() => ({
+    noChange: filterByKeyword(data.value.noChange, filters.value.keyword),
+    lowChange: filterByKeyword(data.value.lowChange, filters.value.keyword),
+    highChange: filterByKeyword(data.value.highChange, filters.value.keyword),
+    timeChange: filterByKeyword(data.value.timeChange, filters.value.keyword),
+    missingCollect: filterByKeyword(data.value.missingCollect, filters.value.keyword),
   }));
-
-  const lowChangeTable = computed(() => ({
-    title: `近 ${filters.value.days} 天内，数据变化率小于 ${filters.value.lowRate}% 的表`,
-    sortBy: <SortItem[]>[{ key: 'change_rate_pct', order: 'asc' }],
-    headers: <DataTableHeader[]>[
-      { title: '表 ID', key: 'tid', align: 'end', width: '64px' },
-      { title: '源库', key: 'source_db' },
-      { title: '表名', key: 'source_table' },
-      { title: '目标库表', key: 'target_table_full', value: item => formatTargetTable(item) },
-      { title: '最小记录数', key: 'min_recs', align: 'end' },
-      { title: '最大记录数', key: 'max_recs', align: 'end' },
-      {
-        title: '变化率',
-        key: 'change_rate_pct',
-        align: 'end',
-        value: item => `${item.change_rate_pct ?? 0}%`,
-      },
-      { title: '开始日期', key: 'start_date' },
-      { title: '结束日期', key: 'end_date' },
-      { title: '天数', key: 'day_count', align: 'end' },
-    ],
-  }));
-
-  const highChangeTable = computed(() => ({
-    title: `近 ${filters.value.days} 天内，数据变化率超过 ${filters.value.highRate}% 的表`,
-    sortBy: <SortItem[]>[{ key: 'change_rate_pct', order: 'desc' }],
-    headers: <DataTableHeader[]>[
-      { title: '表 ID', key: 'tid', align: 'end', width: '64px' },
-      { title: '源库', key: 'source_db' },
-      { title: '表名', key: 'source_table' },
-      { title: '目标库表', key: 'target_table_full', value: item => formatTargetTable(item) },
-      { title: '最小记录数', key: 'min_recs', align: 'end' },
-      { title: '最大记录数', key: 'max_recs', align: 'end' },
-      {
-        title: '变化率',
-        key: 'change_rate_pct',
-        align: 'end',
-        value: item => `${item.change_rate_pct ?? 0}%`,
-      },
-      { title: '开始日期', key: 'start_date' },
-      { title: '结束日期', key: 'end_date' },
-      { title: '天数', key: 'day_count', align: 'end' },
-    ],
-  }));
-
-  const timeChangeTable = computed(() => ({
-    title: `近 ${filters.value.days} 天内，采集耗时变动率超过 ${filters.value.timeRate}% 的表`,
-    sortBy: <SortItem[]>[{ key: 'change_rate_pct', order: 'desc' }],
-    headers: <DataTableHeader[]>[
-      { title: '表 ID', key: 'tid', align: 'end', width: '64px' },
-      { title: '源库', key: 'source_db' },
-      { title: '表名', key: 'source_table' },
-      { title: '目标库表', key: 'target_table_full', value: item => formatTargetTable(item) },
-      { title: '最小耗时(秒)', key: 'min_secs', align: 'end' },
-      { title: '最大耗时(秒)', key: 'max_secs', align: 'end' },
-      {
-        title: '变动率',
-        key: 'change_rate_pct',
-        align: 'end',
-        value: item => `${item.change_rate_pct ?? 0}%`,
-      },
-      { title: '开始日期', key: 'start_date' },
-      { title: '结束日期', key: 'end_date' },
-      { title: '天数', key: 'day_count', align: 'end' },
-    ],
-  }));
-
-  const missingCollectTable = computed(() => ({
-    title: `近 ${filters.value.days} 天内，缺失采集记录的有效表`,
-    sortBy: <SortItem[]>[{ key: 'missing_days', order: 'desc' }],
-    headers: <DataTableHeader[]>[
-      { title: '表 ID', key: 'tid', align: 'end', width: '64px' },
-      { title: '源库', key: 'source_db' },
-      { title: '表名', key: 'source_table' },
-      { title: '目标库表', key: 'target_table_full', value: item => formatTargetTable(item) },
-      { title: '应采集天数', key: 'expected_days', align: 'end' },
-      { title: '实际采集天数', key: 'actual_days', align: 'end' },
-      { title: '缺失天数', key: 'missing_days', align: 'end' },
-      { title: '首次缺失日期', key: 'first_missing_date' },
-      { title: '最近缺失日期', key: 'last_missing_date' },
-      { title: '最近采集日期', key: 'last_collect_date' },
-      { title: '缺失日期', key: 'missing_dates', sortable: false, width: '280px' },
-    ],
-  }));
-
-  const normalizeKeyword = (value: string) => value.trim().toLowerCase();
-
-  const formatTargetTable = (item: any) => {
-    const targetDb = String(item?.target_db ?? '').trim();
-    const targetTable = String(item?.target_table ?? '').trim();
-    if (!targetDb && !targetTable) return '';
-    if (!targetDb) return targetTable;
-    if (!targetTable) return targetDb;
-    return `${targetDb}.${targetTable}`;
-  };
-
-  const filterByKeyword = (items: Array<Map<string, any>>) => {
-    const keyword = normalizeKeyword(filters.value.keyword || '');
-    if (!keyword) return items;
-    return items.filter((item: any) => {
-      const sourceDb = String(item?.source_db ?? '').toLowerCase();
-      const sourceTable = String(item?.source_table ?? '').toLowerCase();
-      return sourceDb.includes(keyword) || sourceTable.includes(keyword);
-    });
-  };
-
-  const filteredNoChange = computed(() => filterByKeyword(data.value.noChange));
-  const filteredLowChange = computed(() => filterByKeyword(data.value.lowChange));
-  const filteredHighChange = computed(() => filterByKeyword(data.value.highChange));
-  const filteredTimeChange = computed(() => filterByKeyword(data.value.timeChange));
-  const filteredMissingCollect = computed(() => filterByKeyword(data.value.missingCollect));
 
   const loadInsights = async () => {
     loading.value = true;
@@ -544,98 +218,39 @@
     loadInsights();
   };
 
-  const exportCsv = (headers: DataTableHeader[], items: Array<Map<string, any>>, name: string) => {
-    if (!items.length) return;
-    const exportHeaders = headers.filter(h => h.key && h.key !== 'actions');
-    const titleRow = exportHeaders.map(h => h.title);
-    const rows = items.map((row: any) =>
-      exportHeaders
-        .map((header: any) => {
-          if (typeof header.value === 'function') return header.value(row);
-          const key = String(header.key);
-          return row?.[key] ?? '';
-        })
-        .join(',')
-    );
-    const csv = [titleRow.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${name}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   onMounted(() => {
     loadInsights();
   });
 
-  const confirmDialog = ref({
-    open: false,
-    loading: false,
-    item: null as any,
+  const confirmOpen = ref(false);
+  const confirmItem = ref<any>(null);
+
+  // Keep parity with the previous inline dialog: clear the item when closed
+  watch(confirmOpen, value => {
+    if (!value) confirmItem.value = null;
   });
 
   const disableTable = (item: any) => {
     if (!item?.tid) return;
-    confirmDialog.value.item = item;
-    confirmDialog.value.open = true;
+    confirmItem.value = item;
+    confirmOpen.value = true;
   };
 
-  const closeConfirm = () => {
-    confirmDialog.value.open = false;
-    confirmDialog.value.item = null;
-  };
+  const missingOpen = ref(false);
+  const missingItem = ref<any>(null);
+  const missingDates = ref<string[]>([]);
 
-  const confirmDisable = async () => {
-    const item = confirmDialog.value.item;
-    if (!item?.tid) return;
-    confirmDialog.value.loading = true;
-    try {
-      await tableService.batchUpdateStatus({ tids: [item.tid], status: 'X' });
-      await loadInsights();
-      closeConfirm();
-    } catch (error) {
-      console.error('Failed to disable table:', error);
-    } finally {
-      confirmDialog.value.loading = false;
+  watch(missingOpen, value => {
+    if (!value) {
+      missingItem.value = null;
+      missingDates.value = [];
     }
-  };
-
-  const parseMissingDates = (value: string) =>
-    String(value ?? '')
-      .split('|')
-      .map(d => d.trim())
-      .filter(Boolean);
-
-  const compactMissingDates = (item: any) => {
-    const dates = parseMissingDates(item?.missing_dates);
-    if (!dates.length) return '-';
-    if (dates.length <= 2) return dates.join('、');
-    return `${dates[0]} ~ ${dates[dates.length - 1]}（共 ${dates.length} 天）`;
-  };
-
-  const hasMissingDates = (item: any) => parseMissingDates(item?.missing_dates).length > 0;
-
-  const missingDatesDialog = ref({
-    open: false,
-    item: null as any,
-    dates: [] as string[],
   });
 
   const openMissingDatesDialog = (item: any) => {
-    missingDatesDialog.value.item = item;
-    missingDatesDialog.value.dates = parseMissingDates(item?.missing_dates);
-    missingDatesDialog.value.open = true;
-  };
-
-  const closeMissingDatesDialog = () => {
-    missingDatesDialog.value.open = false;
-    missingDatesDialog.value.item = null;
-    missingDatesDialog.value.dates = [];
+    missingItem.value = item;
+    missingDates.value = parseMissingDates(item?.missing_dates);
+    missingOpen.value = true;
   };
 </script>
 
@@ -673,32 +288,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .section-grid {
-    margin-bottom: 8px;
-  }
-
-  .section-body {
-    padding-top: 8px;
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 4px 0 12px;
-    font-weight: 600;
-  }
-
-  .section-title {
-    font-size: 16px;
-  }
-
-  .header-actions {
-    display: inline-flex;
-    gap: 8px;
-  }
-
   .filter-actions {
     display: flex;
     align-items: center;
@@ -717,12 +306,6 @@
     flex: 1 1 260px;
   }
 
-  .insight-table {
-    border: 1px solid var(--ds-border-subtle);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-
   .missing-dates-compact {
     display: flex;
     align-items: center;
@@ -731,20 +314,7 @@
     min-width: 0;
   }
 
-  .missing-date-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    max-height: 320px;
-    overflow: auto;
-  }
-
   @media (max-width: 960px) {
-    .header-actions {
-      width: 100%;
-      justify-content: flex-start;
-    }
-
     .filter-actions {
       width: 100%;
       justify-content: flex-start;

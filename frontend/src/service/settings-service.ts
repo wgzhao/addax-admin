@@ -24,7 +24,7 @@ export interface SystemConfig {
   SWITCH_TIME: string;
   CONCURRENT_LIMIT: number; // 后端返回字符串格式
   QUEUE_SIZE: number; // 后端返回字符串格式
-  HDFS_CONFIG: String;
+  HDFS_CONFIG: string;
 }
 
 class SettingsService {

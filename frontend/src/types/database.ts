@@ -225,6 +225,12 @@ export interface EtlTable {
   updatedAt?: Date; // 更新时间
 }
 
+// Table candidate view used by the batch-add wizard; adds the approximate row
+// count reported by the source metadata scan.
+export interface EtlTableView extends EtlTable {
+  approxRowCount?: number;
+}
+
 export interface EtlTableChangeLog {
   id: number;
   tid: number;

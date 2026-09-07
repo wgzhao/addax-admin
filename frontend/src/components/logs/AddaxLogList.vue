@@ -1,11 +1,11 @@
 <template>
   <v-card title="采集日志表">
-    <template v-slot:text>
+    <template #text>
       <v-row justify="center" align-content="center">
         <v-col cols="col-3">
           <v-text-field
-            density="compact"
             v-model="selectedCleanupDate"
+            density="compact"
             placeholder="1989-09-12"
             clearable
           >
@@ -31,11 +31,11 @@
         :items-length="totalItems"
         item-value="id"
         :items="items"
-        @update:options="loadItems"
         :headers="headers"
+        @update:options="loadItems"
       >
         <template #item.log="{ item }">
-          <pre class="truncated-log" @click="openLog(item)" :title="item.log">{{
+          <pre class="truncated-log" :title="item.log" @click="openLog(item)">{{
             previewText(item.log)
           }}</pre>
         </template>

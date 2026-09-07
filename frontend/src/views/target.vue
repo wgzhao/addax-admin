@@ -196,7 +196,7 @@
                 density="compact"
               />
             </v-col>
-            <v-col cols="12" md="6" v-if="form.targetType === 'HDFS'">
+            <v-col v-if="form.targetType === 'HDFS'" cols="12" md="6">
               <v-text-field
                 v-model="connectForm.driverClassName"
                 label="驱动类名"
@@ -204,7 +204,7 @@
                 density="compact"
               />
             </v-col>
-            <v-col cols="12" md="6" v-if="form.targetType === 'HDFS'">
+            <v-col v-if="form.targetType === 'HDFS'" cols="12" md="6">
               <v-text-field
                 v-model="connectForm.driverPath"
                 label="驱动路径"

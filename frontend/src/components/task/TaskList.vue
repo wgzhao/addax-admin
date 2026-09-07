@@ -1,6 +1,6 @@
 <template>
   <v-row align="center" class="mb-2">
-    <v-btn icon @click="refreshTaskStatus" :loading="loading" class="ml-2" title="手动刷新">
+    <v-btn icon :loading="loading" class="ml-2" title="手动刷新" @click="refreshTaskStatus">
       <v-icon>mdi-refresh</v-icon>
     </v-btn>
   </v-row>
@@ -11,12 +11,12 @@
     density="default"
     :loading="loading"
   >
-    <template v-slot:item.status="{ item }">
+    <template #item.status="{ item }">
       <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
         {{ getStatusText(item.status) }}
       </v-chip>
     </template>
-    <template v-slot:item.progress="{ item }">
+    <template #item.progress="{ item }">
       <v-progress-linear
         :model-value="parseProgress(item.progress)"
         height="16"
@@ -32,7 +32,7 @@
         </template>
       </v-progress-linear>
     </template>
-    <template v-slot:item.action="{ item }">
+    <template #item.action="{ item }">
       <v-btn small color="primary" @click="$emit('executeTask', item.id)">采集</v-btn>
       <!-- 可扩展更多任务相关操作按钮 -->
     </template>

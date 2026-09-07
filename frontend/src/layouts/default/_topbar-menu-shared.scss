@@ -1,0 +1,43 @@
+// Shared topbar menu list styling. v-menu content teleports out of the
+// component tree, so each consumer imports this into its scoped style; the
+// scope attr still travels with the teleported nodes.
+
+:deep(.top-nav-menu-list) {
+  min-width: 0;
+  width: max-content;
+  max-width: 240px;
+}
+
+:deep(.top-nav-menu-item) {
+  min-height: 34px;
+  --v-list-prepend-gap: 18px;
+}
+
+:deep(.top-nav-menu-item .v-list-item__prepend) {
+  flex: 0 0 18px;
+  width: 18px;
+  min-width: 18px;
+  max-width: 18px;
+  margin-inline-end: 0;
+}
+
+:deep(.top-nav-menu-item .v-list-item__prepend > .v-list-item__spacer) {
+  width: 6px;
+}
+
+:deep(.top-nav-menu-item .v-list-item__prepend > .v-icon) {
+  font-size: 16px;
+  opacity: 0.92;
+}
+
+:deep(.top-nav-menu-item .v-list-item-title) {
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+:deep(.user-nav-menu-list) {
+  min-width: 0;
+  width: max-content;
+  max-width: 260px;
+}
