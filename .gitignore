@@ -45,3 +45,7 @@ frontend/tests/e2e/.auth/
 deploy.sh
 .agents/
 skills-lock.json
+
+### AI session-local state (not repo assets) ###
+.claude/
+.memory/
