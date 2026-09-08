@@ -28,6 +28,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -1116,7 +1117,14 @@ public class TaskQueueManagerV2Impl
         }
         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
         String logContent = null;
-        try { logContent = Files.readString(path); } catch (IOException e) { log.error("Failed to read Addax log: {}", path, e); }
+        try {
+            // Decode leniently instead of Files.readString: a torn multibyte char at EOF
+            // (e.g. addax killed mid-write) would otherwise discard the whole log as null.
+            // NUL bytes (invalid in PG text) are stripped later in AddaxLogService.insertLog.
+            logContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("Failed to read Addax log: {}", path, e);
+        }
         addaxLogService.insertLog(tid, logContent);
         etlJour.setDuration(taskResult.durationSeconds());
         etlJour.setStatus(true);

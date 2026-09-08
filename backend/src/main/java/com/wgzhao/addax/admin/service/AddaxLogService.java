@@ -25,7 +25,9 @@ public class AddaxLogService
     {
         AddaxLog addaxLog = new AddaxLog();
         addaxLog.setTid(tid);
-        addaxLog.setLog(message);
+        // PostgreSQL text cannot store NUL (0x00); source data or a torn log file
+        // may smuggle it in, so strip it at the persistence boundary
+        addaxLog.setLog(message == null ? null : message.replace("\u0000", ""));
         addaxLog.setRunDate(LocalDate.now());
         addaxLog.setRunAt(LocalDateTime.now());
         addaxLogRepo.save(addaxLog);
