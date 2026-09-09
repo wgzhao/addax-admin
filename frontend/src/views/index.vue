@@ -10,10 +10,10 @@
 
       <!-- Stats Cards Row -->
       <v-row class="stats-row" dense>
-        <v-col cols="12" xl="3" lg="3" class="mb-4">
+        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-database-import</v-icon>
-            <v-card-title class="stat-title">在用采集数据源/所有数据源</v-card-title>
+            <v-card-title class="stat-title">采集源/所有源</v-card-title>
             <v-card-text class="text-center">
               <span class="stat-value">
                 <span class="stat-primary">{{ ratios.length }}</span>
@@ -24,10 +24,10 @@
           </v-card>
         </v-col>
 
-        <v-col cols="12" xl="3" lg="3" class="mb-4">
+        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-table</v-icon>
-            <v-card-title class="stat-title">采集数据表/所有数据表</v-card-title>
+            <v-card-title class="stat-title">采集表/所有表</v-card-title>
             <v-card-text class="text-center">
               <span class="stat-value">
                 <span class="stat-primary">{{ tableCount }}</span>
@@ -38,7 +38,7 @@
           </v-card>
         </v-col>
 
-        <v-col cols="12" xl="3" lg="3" class="mb-4">
+        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-database-plus</v-icon>
             <v-card-title class="stat-title">昨日数据采集 (GiB)</v-card-title>
@@ -47,12 +47,32 @@
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="12" xl="3" lg="3" class="mb-4">
+        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
           <v-card class="stat-card pa-4" elevation="0" rounded="lg">
             <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
             <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
             <v-card-text class="text-center">
               <span class="stat-value">{{ totalEtlData || 0 }}</span>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+            <v-icon class="stat-icon" size="36">mdi-timer-outline</v-icon>
+            <v-card-title class="stat-title">最近采集总耗时</v-card-title>
+            <v-card-text class="text-center">
+              <span class="stat-value">{{ lastCollectTime }}</span>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+            <v-icon class="stat-icon" size="36">mdi-calendar-check</v-icon>
+            <v-card-title class="stat-title">累计采集天数</v-card-title>
+            <v-card-text class="text-center">
+              <span class="stat-value">{{ totalCollectDays }}</span>
             </v-card-text>
           </v-card>
         </v-col>
@@ -143,6 +163,8 @@
   const allTableCount = ref(0);
   const allDbSourceCount = ref(0);
   const totalEtlData = ref(0.0);
+  const totalCollectDays = ref(0);
+  const lastCollectTime = ref('');
 
   // 使用主题色阶，保证明暗主题下都有清晰区分度
   function getProgressColor(prec: number) {
@@ -153,22 +175,29 @@
     return 'rgb(var(--v-theme-error))';
   }
 
+  // Format total seconds of the last collect cycle into a readable duration
+  function formatDuration(totalSecs: number): string {
+    if (!totalSecs || totalSecs <= 0) return '0 分钟';
+    if (totalSecs < 3600) return `${Math.round(totalSecs / 60)} 分钟`;
+    if (totalSecs < 86400) return `${(totalSecs / 3600).toFixed(1)} 小时`;
+    return `${(totalSecs / 86400).toFixed(1)} 天`;
+  }
+
   function fetchRatio() {
     try {
-      request.get('/dashboard/accomplish-ratio').then(res => (ratios.value = res));
-      request.get('/dashboard/last-collect-data').then(res => (lastEtlData.value = res));
-      request.get('/dashboard/collect-table-count').then(res => (tableCount.value = res));
-      request.get('/dashboard/total-collect-data').then(res => {
-        totalEtlData.value = res;
-      });
-      request.get('/dashboard/all-collect-table-count').then(res => {
-        allTableCount.value = res;
-      });
-      request.get('/dashboard/all-collect-source-count').then(res => {
-        allDbSourceCount.value = res;
+      // Fetch all dashboard stat cards in one request to reduce round trips
+      request.get('/dashboard/summary').then(res => {
+        ratios.value = res.ratios;
+        allDbSourceCount.value = res.allDbSourceCount;
+        tableCount.value = res.tableCount;
+        allTableCount.value = res.allTableCount;
+        lastEtlData.value = res.lastDataGb;
+        totalEtlData.value = res.totalDataGb;
+        totalCollectDays.value = res.totalDays;
+        lastCollectTime.value = formatDuration(res.totalTimeSecs);
       });
     } catch (error) {
-      console.error('Error fetching ratios:', error);
+      console.error('Error fetching dashboard summary:', error);
     }
   }
 
