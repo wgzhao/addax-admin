@@ -205,6 +205,48 @@ public class StatService
         return jdbcTemplate.queryForObject(sql, Double.class);
     }
 
+    public long statTotalCollectDays()
+    {
+        // Count distinct biz_date records as the number of days data collection has been running
+        String sql = """
+            select count(distinct biz_date)
+            from etl_statistic
+            """;
+        Long days = jdbcTemplate.queryForObject(sql, Long.class);
+        return days == null ? 0L : days;
+    }
+
+    public long statTotalCollectTimeSecs()
+    {
+        LocalDate bizDate = configService.getBizDateAsDate();
+        String sql = """
+            select coalesce(sum(take_secs), 0)
+            from etl_statistic
+            where biz_date = ?
+            """;
+        Long secs = jdbcTemplate.queryForObject(sql, Long.class, bizDate);
+        return secs == null ? 0L : secs;
+    }
+
+    /**
+     * 一次查询聚合 etl_statistic 的四个统计指标：昨日数据量、累计数据量、最近采集总耗时、累计采集天数
+     *
+     * @return Map 聚合结果
+     */
+    public Map<String, Object> statEtlSummary()
+    {
+        LocalDate bizDate = configService.getBizDateAsDate();
+        String sql = """
+            select
+                round(coalesce(sum(total_bytes) filter (where biz_date = ?), 0) / 1024.0 / 1024 / 1024, 2) as "lastDataGb",
+                round(coalesce(sum(total_bytes), 0) / 1024.0 / 1024 / 1024, 2) as "totalDataGb",
+                coalesce(sum(take_secs) filter (where biz_date = ?), 0) as "totalTimeSecs",
+                count(distinct biz_date) as "totalDays"
+            from etl_statistic
+            """;
+        return jdbcTemplate.queryForMap(sql, bizDate, bizDate);
+    }
+
     public List<Map<String, Object>> statLast5DaysDataBySource()
     {
         return etlStatisticRepo.findLast5DaysDataMB();

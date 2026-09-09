@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -86,6 +87,45 @@ public class IndexController
     public ResponseEntity<Double> totalEtlData()
     {
         return ResponseEntity.ok(statService.statAllTotalData());
+    }
+
+    /**
+     * 累计采集天数（去重 biz_date）
+     *
+     * @return 累计天数
+     */
+    @RequestMapping("/total-collect-days")
+    public ResponseEntity<Long> totalCollectDays()
+    {
+        return ResponseEntity.ok(statService.statTotalCollectDays());
+    }
+
+    /**
+     * 最近采集周期（最新业务日期）全部任务耗时合计（秒）
+     *
+     * @return 耗时秒数
+     */
+    @RequestMapping("/total-collect-time")
+    public ResponseEntity<Long> totalCollectTime()
+    {
+        return ResponseEntity.ok(statService.statTotalCollectTimeSecs());
+    }
+
+    /**
+     * 首页统计卡片聚合数据：一次请求返回全部卡片所需指标
+     *
+     * @return 聚合数据
+     */
+    @RequestMapping("/summary")
+    public ResponseEntity<Map<String, Object>> summary()
+    {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("ratios", statService.statLastAccompliRatio());
+        data.put("allDbSourceCount", sourceService.getAllSources());
+        data.put("tableCount", tableService.getValidTableCount());
+        data.put("allTableCount", tableService.getAllTableCount());
+        data.putAll(statService.statEtlSummary());
+        return ResponseEntity.ok(data);
     }
 
     /**
