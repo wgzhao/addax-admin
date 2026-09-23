@@ -115,7 +115,8 @@
         notify(msg, 'error');
       }
     } catch (err: any) {
-      notify('登录失败: ' + (err.message || err), 'error');
+      // 拦截器已把后端业务消息（如"账号或密码不正确"）透传为 err.message
+      notify(err?.message || '登录失败', 'error');
     } finally {
       loading.value = false;
     }

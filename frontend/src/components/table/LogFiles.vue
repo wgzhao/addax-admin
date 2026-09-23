@@ -358,7 +358,10 @@
     height: 100%;
     min-height: 420px;
     border-radius: 16px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    /* surface-variant is the recessed tone of each palette, so the console reads as its own region
+       in both themes. The previous inset white highlight only existed to fake that on dark. */
+    background: rgb(var(--v-theme-surface-variant));
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   }
 
   .log-content {
@@ -367,7 +370,9 @@
     margin: 0;
     padding: 18px;
     overflow: auto;
-    color: #dbe4ff;
+    /* Must stay theme-derived: the log renders on the themed surface, so the old hardcoded pale
+       blue-on-dark turned into near-white-on-white and made the log look empty in light mode. */
+    color: rgb(var(--v-theme-on-surface));
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.72;
