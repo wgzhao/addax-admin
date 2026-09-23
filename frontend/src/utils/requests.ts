@@ -17,6 +17,31 @@ import { getActivePinia, setActivePinia } from 'pinia';
 
 // const requests = new Requests(import.meta.env.VITE_API_BASE_URL, 5000, authStore)
 
+// 凭证校验接口：这些接口的 401 是业务错误（账号或密码不正确），而非会话过期
+const CREDENTIAL_ENDPOINTS = ['/auth/login'];
+
+function isCredentialRequest(url?: string): boolean {
+  if (!url) {
+    return false;
+  }
+  return CREDENTIAL_ENDPOINTS.some(endpoint => url.includes(endpoint));
+}
+
+// 请求未到达服务端（网络异常、超时、取消）时，axios 给出的是英文消息，需转为面向用户的中文提示
+function resolveTransportMessage(error: AxiosError): string {
+  switch (error.code) {
+    case AxiosError.ECONNABORTED:
+    case AxiosError.ETIMEDOUT:
+      return '请求超时，请稍后重试';
+    case AxiosError.ERR_NETWORK:
+      return '网络连接失败，请检查网络或后端服务是否可用';
+    case AxiosError.ERR_CANCELED:
+      return '请求已取消';
+    default:
+      return error.message;
+  }
+}
+
 class Requests {
   private instance: AxiosInstance;
   private authStore: ReturnType<typeof useAuthStore>;
@@ -61,7 +86,8 @@ class Requests {
           const { status, data } = error.response;
 
           // 处理 401 未授权错误 - Token 过期或无效
-          if (status === 401) {
+          // 登录接口的 401 表示凭证错误，属于业务错误，需保留后端消息交给调用方展示
+          if (status === 401 && !isCredentialRequest(error.config?.url)) {
             // 清除本地存储的认证信息
             this.authStore.logout();
 
@@ -88,8 +114,8 @@ class Requests {
             message = `请求错误: ${status} ${error.response.statusText}`;
           }
         } else {
-          // 设置请求时触发了一个错误
-          message = error.message;
+          // 请求未发出或未收到响应
+          message = resolveTransportMessage(error);
         }
 
         // 抛出错误，以便业务代码的 .catch() 块可以捕获
