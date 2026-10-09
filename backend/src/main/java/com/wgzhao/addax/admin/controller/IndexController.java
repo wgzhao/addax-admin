@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.service.DashboardStatService;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -7,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
@@ -25,6 +27,10 @@ public class IndexController
      * 统计服务
      */
     private final StatService statService;
+    /**
+     * 首页图表聚合统计服务
+     */
+    private final DashboardStatService dashboardStatService;
     /**
      * 数据源服务
      */
@@ -179,5 +185,116 @@ public class IndexController
     public ResponseEntity<Integer> sourceCount()
     {
         return ResponseEntity.ok(sourceService.getValidSources());
+    }
+
+    /**
+     * 当前采集表状态分布（实时）
+     *
+     * @return 状态计数列表
+     */
+    @GetMapping("/table-status-dist")
+    public ResponseEntity<List<Map<String, Object>>> tableStatusDist()
+    {
+        return ResponseEntity.ok(dashboardStatService.statTableStatusDistribution());
+    }
+
+    /**
+     * 近 14 天按操作类型的失败趋势
+     *
+     * @return 每日每类型的失败次数
+     */
+    @GetMapping("/last-14d-fail-trend")
+    public ResponseEntity<List<Map<String, Object>>> last14dFailTrend()
+    {
+        return ResponseEntity.ok(dashboardStatService.statLast14DaysFailTrend());
+    }
+
+    /**
+     * 近 N 天失败次数最多的采集任务排行
+     *
+     * @param days 统计天数，默认 14
+     * @param limit 返回条数，默认 10
+     * @return 失败任务列表
+     */
+    @GetMapping("/fail-top-tables")
+    public ResponseEntity<List<Map<String, Object>>> failTopTables(
+        @RequestParam(defaultValue = "14") int days,
+        @RequestParam(defaultValue = "10") int limit)
+    {
+        return ResponseEntity.ok(dashboardStatService.statTopFailTables(days, limit));
+    }
+
+    /**
+     * 近 30 天每日错误行占比
+     *
+     * @return 每日错误行占比列表
+     */
+    @GetMapping("/last-30d-error-rate")
+    public ResponseEntity<List<Map<String, Object>>> last30dErrorRate()
+    {
+        return ResponseEntity.ok(dashboardStatService.statLast30DaysErrorRate());
+    }
+
+    /**
+     * 近 N 天采集缺失日历（每日应采/实采/缺失表数）
+     *
+     * @param days 统计天数，默认 56（8 周）
+     * @return 每日应采/实采/缺失数据
+     */
+    @GetMapping("/missing-collect-calendar")
+    public ResponseEntity<List<Map<String, Object>>> missingCollectCalendar(
+        @RequestParam(defaultValue = "56") int days)
+    {
+        return ResponseEntity.ok(dashboardStatService.statMissingCollectCalendar(days));
+    }
+
+    /**
+     * 近 12 个月每月记录数与数据量（GiB）
+     *
+     * @return 月度记录数与数据量列表
+     */
+    @GetMapping("/last-12m-recs-bytes")
+    public ResponseEntity<List<Map<String, Object>>> last12mRecsBytes()
+    {
+        return ResponseEntity.ok(dashboardStatService.statLast12MonthsRecsAndBytes());
+    }
+
+    /**
+     * 近 30 天各数据源采集量贡献（Top8 + 其他）
+     *
+     * @return 每日每源数据量长表
+     */
+    @GetMapping("/last-30d-source-contribution")
+    public ResponseEntity<List<Map<String, Object>>> last30dSourceContribution()
+    {
+        return ResponseEntity.ok(dashboardStatService.statLast30DaysSourceContribution());
+    }
+
+    /**
+     * 近 N 天平均耗时最长的采集任务排行
+     *
+     * @param days 统计天数，默认 30
+     * @param limit 返回条数，默认 10
+     * @return 慢表列表
+     */
+    @GetMapping("/slow-top-tables")
+    public ResponseEntity<List<Map<String, Object>>> slowTopTables(
+        @RequestParam(defaultValue = "30") int days,
+        @RequestParam(defaultValue = "10") int limit)
+    {
+        return ResponseEntity.ok(dashboardStatService.statTopSlowTables(days, limit));
+    }
+
+    /**
+     * 近 N 天采集耗时分布直方图及 P50/P95 分位数
+     *
+     * @param days 统计天数，默认 30
+     * @return 分桶计数与分位数
+     */
+    @GetMapping("/take-secs-histogram")
+    public ResponseEntity<Map<String, Object>> takeSecsHistogram(
+        @RequestParam(defaultValue = "30") int days)
+    {
+        return ResponseEntity.ok(dashboardStatService.statTakeSecsHistogram(days));
     }
 }

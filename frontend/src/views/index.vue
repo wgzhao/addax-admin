@@ -8,140 +8,185 @@
         <h1 class="dashboard-title">Dashboard</h1>
       </div> -->
 
-      <!-- Stats Cards Row -->
-      <v-row class="stats-row" dense>
-        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
-          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-import</v-icon>
-            <v-card-title class="stat-title">采集源/所有源</v-card-title>
-            <v-card-text class="text-center">
-              <span class="stat-value">
-                <span class="stat-primary">{{ ratios.length }}</span>
-                <span class="stat-separator">/</span>
-                <span class="stat-secondary">{{ allDbSourceCount }}</span>
-              </span>
-            </v-card-text>
-          </v-card>
-        </v-col>
+      <v-tabs v-model="tab" color="primary" density="comfortable" class="dashboard-tabs mb-4">
+        <v-tab value="overview">总览</v-tab>
+        <v-tab value="health">运行健康</v-tab>
+        <v-tab value="quality">数据质量</v-tab>
+        <v-tab value="sla">耗时与 SLA</v-tab>
+      </v-tabs>
 
-        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
-          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-table</v-icon>
-            <v-card-title class="stat-title">采集表/所有表</v-card-title>
-            <v-card-text class="text-center">
-              <span class="stat-value">
-                <span class="stat-primary">{{ tableCount }}</span>
-                <span class="stat-separator">/</span>
-                <span class="stat-secondary">{{ allTableCount }}</span>
-              </span>
-            </v-card-text>
-          </v-card>
-        </v-col>
+      <v-tabs-window v-model="tab">
+        <v-tabs-window-item value="overview">
+          <!-- Stats Cards Row -->
+          <v-row class="stats-row" dense>
+            <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+              <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+                <v-icon class="stat-icon" size="36">mdi-database-import</v-icon>
+                <v-card-title class="stat-title">采集源/所有源</v-card-title>
+                <v-card-text class="text-center">
+                  <span class="stat-value">
+                    <span class="stat-primary">{{ ratios.length }}</span>
+                    <span class="stat-separator">/</span>
+                    <span class="stat-secondary">{{ allDbSourceCount }}</span>
+                  </span>
+                </v-card-text>
+              </v-card>
+            </v-col>
 
-        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
-          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-plus</v-icon>
-            <v-card-title class="stat-title">昨日数据采集 (GiB)</v-card-title>
-            <v-card-text class="text-center">
-              <span class="stat-value">{{ lastEtlData }}</span>
-            </v-card-text>
-          </v-card>
-        </v-col>
-        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
-          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
-            <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
-            <v-card-text class="text-center">
-              <span class="stat-value">{{ totalEtlData || 0 }}</span>
-            </v-card-text>
-          </v-card>
-        </v-col>
+            <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+              <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+                <v-icon class="stat-icon" size="36">mdi-table</v-icon>
+                <v-card-title class="stat-title">采集表/所有表</v-card-title>
+                <v-card-text class="text-center">
+                  <span class="stat-value">
+                    <span class="stat-primary">{{ tableCount }}</span>
+                    <span class="stat-separator">/</span>
+                    <span class="stat-secondary">{{ allTableCount }}</span>
+                  </span>
+                </v-card-text>
+              </v-card>
+            </v-col>
 
-        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
-          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-timer-outline</v-icon>
-            <v-card-title class="stat-title">最近采集总耗时</v-card-title>
-            <v-card-text class="text-center">
-              <span class="stat-value">{{ lastCollectTime }}</span>
-            </v-card-text>
-          </v-card>
-        </v-col>
+            <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+              <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+                <v-icon class="stat-icon" size="36">mdi-database-plus</v-icon>
+                <v-card-title class="stat-title">昨日数据采集 (GiB)</v-card-title>
+                <v-card-text class="text-center">
+                  <span class="stat-value">{{ lastEtlData }}</span>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+              <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+                <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
+                <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
+                <v-card-text class="text-center">
+                  <span class="stat-value">{{ totalEtlData || 0 }}</span>
+                </v-card-text>
+              </v-card>
+            </v-col>
 
-        <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
-          <v-card class="stat-card pa-4" elevation="0" rounded="lg">
-            <v-icon class="stat-icon" size="36">mdi-calendar-check</v-icon>
-            <v-card-title class="stat-title">累计采集天数</v-card-title>
-            <v-card-text class="text-center">
-              <span class="stat-value">{{ totalCollectDays }}</span>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+            <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+              <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+                <v-icon class="stat-icon" size="36">mdi-timer-outline</v-icon>
+                <v-card-title class="stat-title">最近采集总耗时</v-card-title>
+                <v-card-text class="text-center">
+                  <span class="stat-value">{{ lastCollectTime }}</span>
+                </v-card-text>
+              </v-card>
+            </v-col>
 
-      <!-- Details Row -->
-      <v-row class="mt-6">
-        <v-col cols="6">
-          <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
-            <v-card-title class="detail-title">项目完成率</v-card-title>
-            <v-card-text>
-              <div class="progress-stack">
-                <div v-for="ratio in ratios" :key="ratio.pct" class="progress-item">
-                  <div class="progress-header">
-                    <span class="progress-name">{{ ratio.source_name }}</span>
-                    <span class="progress-value">{{ ratio.pct }}%</span>
-                  </div>
-                  <v-progress-linear
-                    :model-value="ratio.pct"
-                    bg-color="surface-variant"
-                    height="10"
-                    rounded
-                    :color="getProgressColor(ratio.pct)"
-                  />
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-col>
-
-        <v-col cols="6">
-          <v-row>
-            <v-col cols="12">
-              <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
-                <v-card-text>
-                  <div class="chart-container">
-                    <LineChart />
-                  </div>
+            <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
+              <v-card class="stat-card pa-4" elevation="0" rounded="lg">
+                <v-icon class="stat-icon" size="36">mdi-calendar-check</v-icon>
+                <v-card-title class="stat-title">累计采集天数</v-card-title>
+                <v-card-text class="text-center">
+                  <span class="stat-value">{{ totalCollectDays }}</span>
                 </v-card-text>
               </v-card>
             </v-col>
           </v-row>
-          <v-row>
-            <v-col cols="12">
+
+          <!-- Details Row -->
+          <v-row class="mt-6">
+            <v-col cols="6">
               <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="detail-title">数据采集耗时分析</v-card-title>
+                <v-card-title class="detail-title">项目完成率</v-card-title>
                 <v-card-text>
-                  <div class="bar-chart-container">
-                    <L5TEtlTimeBar />
+                  <div class="progress-stack">
+                    <div v-for="ratio in ratios" :key="ratio.pct" class="progress-item">
+                      <div class="progress-header">
+                        <span class="progress-name">{{ ratio.source_name }}</span>
+                        <span class="progress-value">{{ ratio.pct }}%</span>
+                      </div>
+                      <v-progress-linear
+                        :model-value="ratio.pct"
+                        bg-color="surface-variant"
+                        height="10"
+                        rounded
+                        :color="getProgressColor(ratio.pct)"
+                      />
+                    </div>
                   </div>
                 </v-card-text>
               </v-card>
+            </v-col>
+
+            <v-col cols="6">
+              <v-row>
+                <v-col cols="12">
+                  <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
+                    <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
+                    <v-card-text>
+                      <div class="chart-container">
+                        <LineChart />
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <TableStatusDonut />
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <L5TEtlCompareBar mode="time" />
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <L5TEtlCompareBar mode="data" />
+                </v-col>
+              </v-row>
+            </v-col>
+          </v-row>
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="health">
+          <v-row>
+            <v-col cols="12" lg="7">
+              <FailTrendBar />
+            </v-col>
+            <v-col cols="12" lg="5">
+              <FailTopTable />
             </v-col>
           </v-row>
           <v-row>
             <v-col cols="12">
-              <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="detail-title">数据采集数量分析(MB)</v-card-title>
-                <v-card-text>
-                  <div class="bar-chart-container">
-                    <L5TEtlDataBar />
-                  </div>
-                </v-card-text>
-              </v-card>
+              <MissingCollectCalendar />
             </v-col>
           </v-row>
-        </v-col>
-      </v-row>
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="quality">
+          <v-row>
+            <v-col cols="12" lg="6">
+              <ErrorRateLine />
+            </v-col>
+            <v-col cols="12" lg="6">
+              <RecsBytesDualLine />
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <SourceContributionArea />
+            </v-col>
+          </v-row>
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="sla">
+          <v-row>
+            <v-col cols="12" lg="6">
+              <SlowTableBar />
+            </v-col>
+            <v-col cols="12" lg="6">
+              <TakeSecsHistogram />
+            </v-col>
+          </v-row>
+        </v-tabs-window-item>
+      </v-tabs-window>
     </v-container>
   </div>
 </template>
@@ -150,12 +195,21 @@
   import request from '@/utils/requests';
   import { ref, onMounted, computed } from 'vue';
   import LineChart from '@/components/dashboard/LineChart.vue';
-  import L5TEtlTimeBar from '@/components/dashboard/L5TEtlTimeBar.vue';
-  import L5TEtlDataBar from '@/components/dashboard/L5TEtlDataBar.vue';
+  import L5TEtlCompareBar from '@/components/dashboard/L5TEtlCompareBar.vue';
+  import TableStatusDonut from '@/components/dashboard/TableStatusDonut.vue';
+  import FailTrendBar from '@/components/dashboard/FailTrendBar.vue';
+  import FailTopTable from '@/components/dashboard/FailTopTable.vue';
+  import MissingCollectCalendar from '@/components/dashboard/MissingCollectCalendar.vue';
+  import ErrorRateLine from '@/components/dashboard/ErrorRateLine.vue';
+  import RecsBytesDualLine from '@/components/dashboard/RecsBytesDualLine.vue';
+  import SourceContributionArea from '@/components/dashboard/SourceContributionArea.vue';
+  import SlowTableBar from '@/components/dashboard/SlowTableBar.vue';
+  import TakeSecsHistogram from '@/components/dashboard/TakeSecsHistogram.vue';
   import { useTheme } from 'vuetify'; // Vuetify 主题钩子
 
   const vuetifyTheme = useTheme();
   const isDark = computed(() => vuetifyTheme.current.value.dark);
+  const tab = ref('overview');
 
   const ratios = ref([]);
   const lastEtlData = ref(0.0);
@@ -377,5 +431,9 @@
 
   .bar-chart-container {
     height: 300px;
+  }
+
+  .dashboard-tabs {
+    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   }
 </style>
