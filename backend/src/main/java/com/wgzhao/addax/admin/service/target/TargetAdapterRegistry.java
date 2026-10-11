@@ -49,7 +49,9 @@ public class TargetAdapterRegistry
     {
         TargetAdapter adapter = adaptersByType.get(normalize(type));
         if (adapter == null) {
-            throw new IllegalStateException("No target adapter found for type: " + type);
+            throw new IllegalStateException("No target adapter found for type: " + type
+                + ". Registered types: " + adaptersByType.keySet()
+                + "; RDBMS targets must use a dialect that is implemented end to end.");
         }
         return adapter;
     }

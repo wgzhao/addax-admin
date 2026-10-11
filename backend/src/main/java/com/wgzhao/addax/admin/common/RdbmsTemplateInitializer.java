@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 /**
  * Ensure the built-in RDBMS job/writer templates exist as dict rows on startup, so the Java constants
  * stay the single source of truth and existing deployments get them without a manual migration.
+ *
+ * The seed only fills a missing row: once a dict row exists it wins over the Java constant, so changing
+ * a default template also requires shipping an update for the existing dict row (or deleting it).
  */
 @Component
 @Slf4j

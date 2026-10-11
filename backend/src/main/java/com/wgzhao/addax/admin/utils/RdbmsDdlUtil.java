@@ -49,6 +49,44 @@ public final class RdbmsDdlUtil
     }
 
     /**
+     * Escape a value for the inside of a JSON string literal. The writer template embeds ${table} and
+     * ${column} in JSON, so a quoted identifier (e.g. "tbl" for PostgreSQL) must not break the document.
+     */
+    public static String jsonEscape(String value)
+    {
+        if (value == null)
+        {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder(value.length() + 8);
+        for (int i = 0; i < value.length(); i++)
+        {
+            char ch = value.charAt(i);
+            switch (ch)
+            {
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+                case '"':
+                    sb.append("\\\"");
+                    break;
+                case '\n':
+                    sb.append("\\n");
+                    break;
+                case '\r':
+                    sb.append("\\r");
+                    break;
+                case '\t':
+                    sb.append("\\t");
+                    break;
+                default:
+                    sb.append(ch);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
      * 目标表的限定名。PostgreSQL 使用连接默认 schema，不拼库名（与 writer 的 table 占位符保持一致）。
      */
     public static String tableRef(DbType dialect, String db, String table)
@@ -73,11 +111,6 @@ public final class RdbmsDdlUtil
      * Build a column definition from an already-resolved type expression. Callers pass either a verbatim
      * source type (same dialect) or a rendered canonical type, so this stays dialect-agnostic.
      */
-    public static String columnDefinition(DbType dialect, String name, String typeExpr, String comment)
-    {
-        return columnDefinition(dialect, name, typeExpr, false, comment);
-    }
-
     public static String columnDefinition(DbType dialect, String name, String typeExpr, boolean notNull, String comment)
     {
         String def = quoteIdent(dialect, name) + " " + typeExpr;
@@ -188,23 +221,47 @@ public final class RdbmsDdlUtil
         return sb.toString();
     }
 
-    /**
-     * 现有列类型是否与期望一致（仅比较类型族）。族内差异（长度、枚举取值等）不算不一致，
-     * 是否改写由 {@link #isWidening} 决定。
-     */
-    public static boolean typeMatches(String currentTypeName, String desiredTypeExpr)
-    {
-        if (currentTypeName == null || currentTypeName.isBlank()
-            || desiredTypeExpr == null || desiredTypeExpr.isBlank())
-        {
-            return false;
-        }
-        return familyOf(currentTypeName).equals(familyOf(desiredTypeExpr));
-    }
-
     public static String familyOf(String typeExpr)
     {
         return family(baseName(typeExpr));
+    }
+
+    /**
+     * Capacity rank inside the ordered integer kinds. DECIMAL/BOOLEAN/FLOAT/DOUBLE return 0 because their
+     * capacity is not a total order over the integers (a double cannot hold every bigint).
+     */
+    private static int integerRank(String typeExpr)
+    {
+        switch (kindOf(typeExpr))
+        {
+            case TINYINT:
+                return 1;
+            case SMALLINT:
+                return 2;
+            case INTEGER:
+                return 3;
+            case BIGINT:
+                return 4;
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * Capacity rank inside the ordered floating kinds. Kept separate from {@link #integerRank} so an
+     * int <-> float change never counts as widening.
+     */
+    private static int floatRank(String typeExpr)
+    {
+        switch (kindOf(typeExpr))
+        {
+            case FLOAT:
+                return 1;
+            case DOUBLE:
+                return 2;
+            default:
+                return 0;
+        }
     }
 
     /**
@@ -229,6 +286,18 @@ public final class RdbmsDdlUtil
         }
         if ("number".equals(fam))
         {
+            int currentRank = integerRank(currentTypeName);
+            int desiredRank = integerRank(desiredTypeExpr);
+            if (currentRank > 0 && desiredRank > 0)
+            {
+                return desiredRank > currentRank;
+            }
+            currentRank = floatRank(currentTypeName);
+            desiredRank = floatRank(desiredTypeExpr);
+            if (currentRank > 0 && desiredRank > 0)
+            {
+                return desiredRank > currentRank;
+            }
             int[] ps = decimalPrecisionScale(desiredTypeExpr);
             if (ps != null)
             {
@@ -398,7 +467,8 @@ public final class RdbmsDdlUtil
             case SMALLINT:
                 return "smallint";
             case TINYINT:
-                return dialect == DbType.POSTGRESQL ? "smallint" : "tinyint";
+                // SQL Server TINYINT is unsigned (0..255), so a signed source tinyint can overflow it.
+                return (dialect == DbType.POSTGRESQL || dialect == DbType.SQLSERVER) ? "smallint" : "tinyint";
             case BOOLEAN:
                 if (dialect == DbType.POSTGRESQL)
                 {
@@ -536,10 +606,21 @@ public final class RdbmsDdlUtil
     }
 
     /**
+     * Some drivers (MySQL/MariaDB) report a nullable column without a default as the literal string
+     * "NULL" instead of a SQL NULL, so callers must not mistake it for a default that can be dropped.
+     */
+    public static boolean hasDefault(String v)
+    {
+        return v != null && !v.isBlank() && !"null".equalsIgnoreCase(v.trim());
+    }
+
+    /**
      * Only restate defaults we are confident about; an unrecognized default expression is dropped rather
      * than risking invalid DDL. Returns the SQL literal to append after DEFAULT, or null to omit.
+     * Callers that pass a non-null default must record a risk when this returns null, otherwise MODIFY
+     * COLUMN silently drops the existing default.
      */
-    private static String safeDefault(String v)
+    public static String safeDefault(String v)
     {
         if (v == null)
         {

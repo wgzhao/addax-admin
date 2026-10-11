@@ -16,6 +16,7 @@ import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.RiskLogService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
+import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +29,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,11 +38,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
-import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
 
 @Service
 @Slf4j
@@ -53,23 +50,6 @@ public class RdbmsTargetAdapter
 {
     private static final String DEFAULT_WRITER_TEMPLATE_KEY = "wR";
 
-    // Report a missing writer plugin only once per plugin to avoid log spam on every job build.
-    private final Set<String> warnedMissingPlugins = ConcurrentHashMap.newKeySet();
-
-    /**
-     * Explicit dialect -> addax writer plugin name. Generic/unknown types are rejected so we never emit a
-     * job referencing a plugin that does not exist (addax has no "rdbmswriter").
-     */
-    private static final Map<String, String> WRITER_PLUGIN = Map.of(
-        "MYSQL", "mysqlwriter",
-        "POSTGRESQL", "postgresqlwriter",
-        "ORACLE", "oraclewriter",
-        "SQLSERVER", "sqlserverwriter",
-        "SQLITE", "sqlitewriter",
-        "CLICKHOUSE", "clickhousewriter",
-        "DB2", "db2writer",
-        "SYBASE", "sybasewriter");
-
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
     private final ColumnService columnService;
@@ -77,6 +57,7 @@ public class RdbmsTargetAdapter
     private final ObjectMapper objectMapper;
     private final EtlJourService jourService;
     private final RiskLogService riskLogService;
+    private final RdbmsWriterPlugins rdbmsWriterPlugins;
 
     @Override
     public String getType()
@@ -106,6 +87,19 @@ public class RdbmsTargetAdapter
             return true;
         }
         DbType dialect = getDbType(conn.url());
+        if (!rdbmsWriterPlugins.isSupported(dialect))
+        {
+            log.warn("RDBMS target dialect {} is not supported for table {} ({}.{}), skip create/update",
+                dialect, etlTable.getId(), etlTable.getTargetDb(), etlTable.getTargetTable());
+            recordRisk(etlTable, "不支持的目标方言 " + dialect + "，Phase 1 仅支持 "
+                + rdbmsWriterPlugins.supportedDialectsText() + "，已跳过目标表结构同步");
+            return false;
+        }
+        if (requiresExplicitDatabase(dialect) && (etlTable.getTargetDb() == null || etlTable.getTargetDb().isBlank()))
+        {
+            recordRisk(etlTable, "目标方言 " + dialect + " 需要明确的目标库/模式名，当前为空，已跳过目标表结构同步");
+            return false;
+        }
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         List<EtlColumn> columns = columnService.getColumns(etlTable.getId());
         SourceMeta sourceMeta = loadSourceMeta(etlTable, dialect);
@@ -156,14 +150,6 @@ public class RdbmsTargetAdapter
                 }
                 log.info("create rdbms target table: {}", createSql);
                 stmt.execute(createSql);
-                for (EtlColumn col : columns)
-                {
-                    String commentSql = RdbmsDdlUtil.columnCommentStatement(dialect, tableRef, activeName(col), col.getColComment());
-                    if (commentSql != null)
-                    {
-                        stmt.execute(commentSql);
-                    }
-                }
                 jourService.successJour(etlJour);
             }
             if (!metadataOk)
@@ -175,6 +161,12 @@ public class RdbmsTargetAdapter
                 if (existedBefore)
                 {
                     applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes, sourceMeta.notNull());
+                }
+                else
+                {
+                    // Separate COMMENT ON COLUMN statements are only needed for a table we just created;
+                    // re-issuing them on every refresh fails for tables owned by someone else (e.g. a DBA).
+                    applyNewTableComments(c, dialect, tableRef, etlTable, columns);
                 }
                 warnOnWriteModeWithoutKey(c, dialect, etlTable);
             }
@@ -253,73 +245,38 @@ public class RdbmsTargetAdapter
     {
         String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
-        String plugin = writerPluginName(resolveTargetType(table));
-        warnIfWriterPluginMissing(plugin);
+        DbType dbType = resolveTargetDialect(table);
+        if (!rdbmsWriterPlugins.isSupported(dbType))
+        {
+            throw new ApiException(400, "Unsupported RDBMS target dialect '" + dbType + "' for table "
+                + table.getId() + "; supported dialects: " + rdbmsWriterPlugins.supportedDialectsText());
+        }
+        if (requiresExplicitDatabase(dbType)
+            && (table.getTargetDb() == null || table.getTargetDb().isBlank()))
+        {
+            throw new ApiException(400, "targetDb is required for " + dbType + " targets (table "
+                + table.getId() + ")");
+        }
+        String plugin = rdbmsWriterPlugins.pluginName(dbType);
+        rdbmsWriterPlugins.warnIfMissing(dbType);
 
         values.put("name", plugin);
-        DbType dbType = resolveTargetDialect(table);
-
-        if (dbType == DbType.POSTGRESQL) {
-            values.put("table", quoteIfNeeded(table.getTargetTable(), dbType));
-        }
-        else if (dbType == DbType.SQLSERVER) {
-            // SQL Server resolves a two-part name as schema.table, so qualify with the dbo schema.
-            values.put("table", quoteIfNeeded(table.getTargetDb(), dbType) + ".dbo."
-                + quoteIfNeeded(table.getTargetTable(), dbType));
-        }
-        else {
-            values.put("table", quoteIfNeeded(table.getTargetDb(), dbType) + "." + quoteIfNeeded(table.getTargetTable(), dbType));
-        }
+        // Same identifier rules as the DDL side, otherwise a mixed-case table name is created as quoted
+        // (case sensitive) but written to unquoted (folded), so the writer cannot find the table. The
+        // template embeds these values in JSON, hence the escaping.
+        values.put("table", RdbmsDdlUtil.jsonEscape(
+            RdbmsDdlUtil.tableRef(dbType, table.getTargetDb(), table.getTargetTable())));
 
         values.put("targetDb", table.getTargetDb());
         values.put("targetTable", table.getTargetTable());
         values.put("writeMode", resolveWriteMode(table.getWriteMode(), dbType, table.getId()));
-        values.put("column", getRdbmsWriteColumns(table));
+        values.put("column", getRdbmsWriteColumns(table, dbType));
         values.putAll(targetDate != null
             ? configService.getBizDateValuesForDate(targetDate)
             : configService.getBizDateValues());
         fillConnectionPlaceholders(values, table);
 
         return new StringSubstitutor(values).replace(template);
-    }
-
-    private String writerPluginName(String targetType)
-    {
-        String key = targetType == null ? "" : targetType.trim().toUpperCase(Locale.ROOT);
-        String plugin = WRITER_PLUGIN.get(key);
-        if (plugin == null)
-        {
-            throw new ApiException(400, "No addax writer plugin is mapped for target type '" + key
-                + "'. Configure the target as a concrete RDBMS dialect (MYSQL, POSTGRESQL, ...).");
-        }
-        return plugin;
-    }
-
-    /**
-     * Warn (once per plugin) when the mapped writer plugin is not installed under ADDAX_HOME, which is
-     * what actually makes collection fail. Not fatal: the layout may differ across addax builds.
-     */
-    private void warnIfWriterPluginMissing(String plugin)
-    {
-        try
-        {
-            String home = dictService.getAddaxHome();
-            if (home == null || home.isBlank())
-            {
-                return;
-            }
-            Path dir = Path.of(home, "plugin", "writer", plugin);
-            if (Files.isDirectory(dir) || !warnedMissingPlugins.add(plugin))
-            {
-                return;
-            }
-            log.warn("addax writer plugin '{}' is mapped for this target but not found at {}. "
-                + "Collection jobs will fail until the plugin is installed.", plugin, dir);
-        }
-        catch (Exception e)
-        {
-            log.debug("Failed to check addax writer plugin dir: {}", e.getMessage());
-        }
     }
 
     private String resolveWriterTemplate(VwEtlTableWithSource table)
@@ -418,10 +375,18 @@ public class RdbmsTargetAdapter
                 // Restate the old DEFAULT only when the type family is unchanged: a default that was
                 // valid for the old type (e.g. 'n' on a string) may be invalid for the new one.
                 String defaultValue = cur.defaultValue();
-                if (familyChanged && defaultValue != null && !defaultValue.isBlank())
+                if (familyChanged && RdbmsDdlUtil.hasDefault(defaultValue))
                 {
                     recordRisk(etlTable, "列 " + name + " 类型变更，原默认值已不再重述，请人工确认是否需要重新设置");
                     defaultValue = null;
+                }
+                else if (dialect == DbType.MYSQL && RdbmsDdlUtil.hasDefault(defaultValue)
+                    && RdbmsDdlUtil.safeDefault(defaultValue) == null)
+                {
+                    // MySQL MODIFY COLUMN restates the whole column; an expression we cannot quote back
+                    // (e.g. DEFAULT (uuid())) is dropped, so make that visible instead of silent.
+                    recordRisk(etlTable, "列 " + name + " 改写类型时无法重述默认值 " + defaultValue
+                        + "，默认值已丢失，请人工确认是否需要重新设置");
                 }
                 ddl = RdbmsDdlUtil.modifyColumn(dialect, tableRef, name, typeExpr, c.getColComment(),
                     !cur.nullable(), defaultValue, cur.autoIncrement());
@@ -436,6 +401,33 @@ public class RdbmsTargetAdapter
                 }
             }
         }
+    }
+
+    /**
+     * Column comments are inline for MySQL and separate statements for PostgreSQL, so a newly created
+     * table needs an explicit pass. Run through executeDdl so failures are journalled and auditable
+     * instead of aborting the whole refresh.
+     */
+    private void applyNewTableComments(Connection conn, DbType dialect, String tableRef,
+        VwEtlTableWithSource etlTable, List<EtlColumn> columns)
+    {
+        for (EtlColumn col : columns)
+        {
+            String commentSql = RdbmsDdlUtil.columnCommentStatement(dialect, tableRef, activeName(col), col.getColComment());
+            if (commentSql != null)
+            {
+                executeDdl(conn, etlTable, commentSql);
+            }
+        }
+    }
+
+    /**
+     * MySQL and SQL Server resolve an unqualified table through the connection, so an empty target_db
+     * either silently lands in the default database or builds a broken ".dbo.table" reference.
+     */
+    private boolean requiresExplicitDatabase(DbType dialect)
+    {
+        return dialect == DbType.MYSQL || dialect == DbType.SQLSERVER;
     }
 
     /**
@@ -574,10 +566,28 @@ public class RdbmsTargetAdapter
             ? db : null;
         try (ResultSet rs = conn.getMetaData().getTables(
             catalog,
-            null, table, new String[] {"TABLE"}))
+            metadataSchema(conn, dialect), table, new String[] {"TABLE"}))
         {
             return rs.next();
         }
+    }
+
+    /**
+     * Metadata lookups must use the same namespace as the DDL: SQL Server always writes to dbo, and
+     * PostgreSQL resolves through the connection's current schema. A mismatch would either hide the
+     * table or mix in a same-named table in another schema that the DDL never touches.
+     */
+    private String metadataSchema(Connection conn, DbType dialect) throws SQLException
+    {
+        if (dialect == DbType.SQLSERVER)
+        {
+            return "dbo";
+        }
+        if (dialect == DbType.POSTGRESQL)
+        {
+            return conn.getSchema();
+        }
+        return null;
     }
 
     private Map<String, ColumnMeta> describeColumns(Connection conn, DbType dialect, String db, String table) throws SQLException
@@ -587,7 +597,7 @@ public class RdbmsTargetAdapter
         Map<String, ColumnMeta> cols = new LinkedHashMap<>();
         try (ResultSet rs = conn.getMetaData().getColumns(
             catalog,
-            null, table, null))
+            metadataSchema(conn, dialect), table, null))
         {
             while (rs.next())
             {
@@ -614,7 +624,7 @@ public class RdbmsTargetAdapter
             ? db : null;
         Set<String> pk = new HashSet<>();
         try (ResultSet rs = conn.getMetaData().getPrimaryKeys(
-            catalog, null, table))
+            catalog, metadataSchema(conn, dialect), table))
         {
             while (rs.next())
             {
@@ -704,19 +714,7 @@ public class RdbmsTargetAdapter
         private static final SourceMeta EMPTY = new SourceMeta(Map.of(), Set.of(), List.of());
     }
 
-    private String resolveTargetType(VwEtlTableWithSource table)
-    {
-        if (table == null || table.getTargetId() == null) {
-            return "rdbms";
-        }
-        return etlTargetRepo.findById(table.getTargetId())
-            .map(t -> t.getTargetType())
-            .filter(t -> t != null && !t.isBlank())
-            .map(t -> t.toUpperCase(Locale.ROOT))
-            .orElse("RDBMS");
-    }
-
-    private String getRdbmsWriteColumns(VwEtlTableWithSource table)
+    private String getRdbmsWriteColumns(VwEtlTableWithSource table, DbType dialect)
     {
         List<EtlColumn> columnList = columnService.getColumns(table.getId());
         List<String> columns = new ArrayList<>();
@@ -728,7 +726,8 @@ public class RdbmsTargetAdapter
             if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
                 columnName = columnName.substring(DELETED_PLACEHOLDER_PREFIX.length());
             }
-            columns.add("\"" + columnName + "\"");
+            // ${column} is expanded inside a JSON array, so every entry must be a complete JSON string.
+            columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, columnName)) + '"');
         }
         return String.join(", ", columns);
     }

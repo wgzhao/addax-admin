@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -121,10 +122,23 @@ public class TaskController
     @PostMapping("/addax-jobs")
     public ResponseEntity<Map<String, Object>> updateAllJobs()
     {
+        int updated = 0;
+        List<String> failures = new ArrayList<>();
         for (VwEtlTableWithSource table : tableService.getValidTableViews()) {
-            jobContentService.updateJob(table);
+            try {
+                jobContentService.updateJob(table);
+                updated++;
+            }
+            catch (Exception e) {
+                // Routing is strict now, so one table with an unsupported/misconfigured target used to abort
+                // the loop and leave every later table unrefreshed. Keep going and report the failures.
+                log.error("Failed to update addax job for table {}", table.getId(), e);
+                failures.add(table.getId() + " (" + e.getMessage() + ")");
+            }
         }
-        return ResponseEntity.ok(Map.of("success", true, "message", "success"));
+        String message = failures.isEmpty() ? "success"
+            : "updated " + updated + ", failed " + failures.size() + ": " + String.join("; ", failures);
+        return ResponseEntity.ok(Map.of("success", true, "updated", updated, "failed", failures.size(), "message", message));
     }
 
     /**

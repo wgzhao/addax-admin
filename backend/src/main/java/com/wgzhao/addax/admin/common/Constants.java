@@ -61,9 +61,11 @@ public final class Constants
     public static final String DEFAULT_TARGET_TYPE = "HDFS";
 
     // 目标端类型别名：HDFS 适配器负责 Hive/HDFS，其余已知关系型方言统一路由到 RDBMS 适配器。
+    // Phase 1 只声明同时具备 writer 插件与方言化 DDL 的方言；ORACLE/DB2/SYBASE/CLICKHOUSE/SQLITE
+    // 尚未实现，保持未收录状态以便在配置阶段显式报错，而不是运行期静默失败。
     public static final Set<String> HDFS_TARGET_TYPES = Set.of("HDFS", "HIVE");
     public static final Set<String> RDBMS_TARGET_TYPES = Set.of(
-        "RDBMS", "MYSQL", "POSTGRESQL", "ORACLE", "SQLSERVER", "DB2", "SQLITE", "SYBASE", "CLICKHOUSE");
+        "RDBMS", "MYSQL", "POSTGRESQL", "SQLSERVER");
 
     private Constants()
     {
