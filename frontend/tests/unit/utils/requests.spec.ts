@@ -16,9 +16,15 @@ const { fakeInstance } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('axios', () => ({
-  default: { create: vi.fn(() => fakeInstance) },
-}));
+// requests.ts reads AxiosError constants at runtime, so the mock must keep the
+// real exports and only swap out the default instance factory.
+vi.mock('axios', async importOriginal => {
+  const actual = await importOriginal<typeof import('axios')>();
+  return {
+    ...actual,
+    default: { create: vi.fn(() => fakeInstance) },
+  };
+});
 
 vi.mock('@/router', () => ({ default: { push: vi.fn() } }));
 
