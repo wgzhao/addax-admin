@@ -28,13 +28,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.time.LocalDate;
+import java.util.Set;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
@@ -47,6 +49,20 @@ public class RdbmsTargetAdapter
     implements TargetAdapter
 {
     private static final String DEFAULT_WRITER_TEMPLATE_KEY = "wR";
+
+    /**
+     * Explicit dialect -> addax writer plugin name. Generic/unknown types are rejected so we never emit a
+     * job referencing a plugin that does not exist (addax has no "rdbmswriter").
+     */
+    private static final Map<String, String> WRITER_PLUGIN = Map.of(
+        "MYSQL", "mysqlwriter",
+        "POSTGRESQL", "postgresqlwriter",
+        "ORACLE", "oraclewriter",
+        "SQLSERVER", "sqlserverwriter",
+        "SQLITE", "sqlitewriter",
+        "CLICKHOUSE", "clickhousewriter",
+        "DB2", "db2writer",
+        "SYBASE", "sybasewriter");
 
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
@@ -86,18 +102,21 @@ public class RdbmsTargetAdapter
         DbType dialect = getDbType(conn.url());
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         List<EtlColumn> columns = columnService.getColumns(etlTable.getId());
-        Map<String, String> verbatim = loadVerbatimSourceTypes(etlTable, dialect);
+        SourceMeta sourceMeta = loadSourceMeta(etlTable, dialect);
         Map<String, String> desiredTypes = new LinkedHashMap<>();
 
         List<String> colDefs = new ArrayList<>();
         for (EtlColumn c : columns)
         {
             String name = activeName(c);
-            String typeExpr = resolveColumnType(dialect, c, verbatim);
-            desiredTypes.put(name.toLowerCase(Locale.ROOT), typeExpr);
-            colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr, c.getColComment()));
+            String key = name.toLowerCase(Locale.ROOT);
+            String typeExpr = resolveColumnType(dialect, c, sourceMeta.columnTypes());
+            desiredTypes.put(key, typeExpr);
+            colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
+                sourceMeta.notNull().contains(key), c.getColComment()));
         }
-        String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs, etlTable.getTblComment());
+        String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs,
+            sourceMeta.primaryKeys(), etlTable.getTblComment());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createSql);
 
         try (Connection c = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
@@ -107,7 +126,17 @@ public class RdbmsTargetAdapter
                 failJour(etlJour, etlTable, "无法连接目标数据库");
                 return false;
             }
-            boolean existedBefore = tableExists(c, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+            boolean metadataOk = true;
+            boolean existedBefore = false;
+            try
+            {
+                existedBefore = tableExists(c, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+            }
+            catch (SQLException e)
+            {
+                metadataOk = false;
+                recordRisk(etlTable, "无法读取目标表元数据（" + e.getMessage() + "），跳过目标表结构比对");
+            }
             try (Statement stmt = c.createStatement())
             {
                 // MySQL has no "schema" above the database, so parity with the Hive adapter
@@ -123,13 +152,23 @@ public class RdbmsTargetAdapter
                 stmt.execute(createSql);
                 jourService.successJour(etlJour);
             }
-            if (!existedBefore)
+            if (!metadataOk)
             {
-                log.info("RDBMS target table {}.{} was newly created; skip alter diff.",
-                    etlTable.getTargetDb(), etlTable.getTargetTable());
                 return true;
             }
-            applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes);
+            try
+            {
+                if (existedBefore)
+                {
+                    applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes, sourceMeta.notNull());
+                }
+                warnOnWriteModeWithoutKey(c, dialect, etlTable);
+            }
+            catch (SQLException e)
+            {
+                // A metadata/DDL failure must not fail the whole refresh, but it must be visible.
+                recordRisk(etlTable, "目标表结构比对失败（" + e.getMessage() + "），跳过本次比对");
+            }
             return true;
         }
         catch (SQLException e)
@@ -200,9 +239,9 @@ public class RdbmsTargetAdapter
     {
         String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
-        String targetType = resolveTargetType(table);
+        String plugin = writerPluginName(resolveTargetType(table));
 
-        values.put("name", targetType.toLowerCase(Locale.ROOT) + "writer");
+        values.put("name", plugin);
         DbType dbType = resolveTargetDialect(table);
 
         if (dbType == DbType.POSTGRESQL) {
@@ -222,6 +261,18 @@ public class RdbmsTargetAdapter
         fillConnectionPlaceholders(values, table);
 
         return new StringSubstitutor(values).replace(template);
+    }
+
+    private String writerPluginName(String targetType)
+    {
+        String key = targetType == null ? "" : targetType.trim().toUpperCase(Locale.ROOT);
+        String plugin = WRITER_PLUGIN.get(key);
+        if (plugin == null)
+        {
+            throw new ApiException(400, "No addax writer plugin is mapped for target type '" + key
+                + "'. Configure the target as a concrete RDBMS dialect (MYSQL, POSTGRESQL, ...).");
+        }
+        return plugin;
     }
 
     private String resolveWriterTemplate(VwEtlTableWithSource table)
@@ -257,8 +308,9 @@ public class RdbmsTargetAdapter
     }
 
     /**
-     * RDBMS targets have no native "overwrite". MySQL maps it to replace (delete+insert by key);
-     * other dialects fall back to insert because a hand-built replace would emit invalid SQL.
+     * RDBMS targets have no native "overwrite". MySQL maps it to REPLACE INTO, which requires a unique
+     * key to actually replace rows; other dialects fall back to insert because a hand-built replace
+     * would emit invalid SQL.
      */
     private String resolveWriteMode(String raw, DbType dialect, Long tableId)
     {
@@ -282,31 +334,71 @@ public class RdbmsTargetAdapter
     }
 
     private void applyColumnDiff(Connection conn, DbType dialect, String tableRef,
-        VwEtlTableWithSource etlTable, List<EtlColumn> columns, Map<String, String> desiredTypes) throws SQLException
+        VwEtlTableWithSource etlTable, List<EtlColumn> columns, Map<String, String> desiredTypes,
+        Set<String> sourceNotNull) throws SQLException
     {
-        Map<String, String> current = describeColumns(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+        Map<String, ColumnMeta> current = describeColumns(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+        Set<String> pk = targetPrimaryKeys(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         for (EtlColumn c : columns)
         {
             String name = activeName(c);
             String key = name.toLowerCase(Locale.ROOT);
             String typeExpr = desiredTypes.get(key);
-            String currentType = current.get(key);
+            ColumnMeta cur = current.get(key);
             String ddl;
-            if (currentType == null)
+            if (cur == null)
             {
                 ddl = RdbmsDdlUtil.addColumn(dialect, tableRef,
-                    RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr, c.getColComment()));
-            }
-            else if (!c.getColumnName().startsWith(DELETED_PLACEHOLDER_PREFIX)
-                && !RdbmsDdlUtil.typeMatches(currentType, typeExpr))
-            {
-                ddl = RdbmsDdlUtil.modifyColumn(dialect, tableRef, name, typeExpr, c.getColComment());
+                    RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr, sourceNotNull.contains(key), c.getColComment()));
             }
             else
             {
-                continue;
+                if (c.getColumnName().startsWith(DELETED_PLACEHOLDER_PREFIX))
+                {
+                    continue;
+                }
+                boolean familyChanged = !RdbmsDdlUtil.familyOf(cur.typeName()).equals(RdbmsDdlUtil.familyOf(typeExpr));
+                boolean widening = RdbmsDdlUtil.isWidening(cur.typeName(), cur.size(), cur.scale(), typeExpr);
+                if (!familyChanged && !widening)
+                {
+                    continue;
+                }
+                if (pk.contains(key))
+                {
+                    recordRisk(etlTable, "目标表主键列 " + name + " 需要变更类型，已跳过以避免破坏主键约束，请人工处理");
+                    continue;
+                }
+                // Restate the old DEFAULT only when the type family is unchanged: a default that was
+                // valid for the old type (e.g. 'n' on a string) may be invalid for the new one.
+                String defaultValue = cur.defaultValue();
+                if (familyChanged && defaultValue != null && !defaultValue.isBlank())
+                {
+                    recordRisk(etlTable, "列 " + name + " 类型变更，原默认值已不再重述，请人工确认是否需要重新设置");
+                    defaultValue = null;
+                }
+                ddl = RdbmsDdlUtil.modifyColumn(dialect, tableRef, name, typeExpr, c.getColComment(),
+                    !cur.nullable(), defaultValue, cur.autoIncrement());
             }
             executeDdl(conn, etlTable, ddl);
+        }
+    }
+
+    /**
+     * REPLACE/UPDATE need a unique key to locate existing rows; without one MySQL degrades to plain
+     * inserts and PG upsert fails, so repeated runs silently duplicate data. Surface that as a risk log.
+     */
+    private void warnOnWriteModeWithoutKey(Connection conn, DbType dialect, VwEtlTableWithSource etlTable) throws SQLException
+    {
+        String mode = resolveWriteMode(etlTable.getWriteMode(), dialect, etlTable.getId());
+        if (!mode.startsWith("replace") && !mode.startsWith("update"))
+        {
+            return;
+        }
+        Set<String> pk = targetPrimaryKeys(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+        if (pk.isEmpty())
+        {
+            recordRisk(etlTable, "目标表 " + etlTable.getTargetDb() + "." + etlTable.getTargetTable()
+                + " 未定义主键/唯一键，writeMode=" + mode + " 会退化为普通插入，重复执行可能产生重复数据");
         }
     }
 
@@ -327,32 +419,34 @@ public class RdbmsTargetAdapter
     }
 
     /**
-     * When the source and target share a dialect, reuse the source's verbatim COLUMN_TYPE so types that
-     * cannot be reconstructed from JDBC metadata (MySQL ENUM/SET values, unsigned, exact lengths) survive.
-     * Cross-dialect or unsupported sources fall back to canonical rendering.
+     * When the source and target share a dialect, reuse the source's verbatim COLUMN_TYPE and its primary
+     * key so types that cannot be reconstructed from JDBC metadata (MySQL ENUM/SET values, unsigned,
+     * exact lengths) and the key that REPLACE/UPDATE depend on survive. Cross-dialect or unsupported
+     * sources fall back to canonical rendering.
      */
-    private Map<String, String> loadVerbatimSourceTypes(VwEtlTableWithSource etlTable, DbType targetDialect)
+    private SourceMeta loadSourceMeta(VwEtlTableWithSource etlTable, DbType targetDialect)
     {
         if (targetDialect != DbType.MYSQL || etlTable.getUrl() == null
             || etlTable.getSourceDb() == null || etlTable.getSourceTable() == null
             || etlTable.getSourceTable().contains("${")
             || getDbType(etlTable.getUrl()) != DbType.MYSQL)
         {
-            return Map.of();
+            return SourceMeta.EMPTY;
         }
-        String sql = "select column_name, column_type from information_schema.columns "
+        String sql = "select column_name, column_type, is_nullable from information_schema.columns "
             + "where table_schema = ? and table_name = ?";
         try (Connection c = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass()))
         {
             if (c == null)
             {
-                return Map.of();
+                return SourceMeta.EMPTY;
             }
+            Map<String, String> types = new HashMap<>();
+            Set<String> notNull = new HashSet<>();
             try (PreparedStatement ps = c.prepareStatement(sql))
             {
                 ps.setString(1, etlTable.getSourceDb());
                 ps.setString(2, etlTable.getSourceTable());
-                Map<String, String> types = new HashMap<>();
                 try (ResultSet rs = ps.executeQuery())
                 {
                     while (rs.next())
@@ -361,18 +455,35 @@ public class RdbmsTargetAdapter
                         String type = rs.getString(2);
                         if (name != null && type != null && !type.isBlank())
                         {
-                            types.put(name.toLowerCase(Locale.ROOT), type);
+                            String key = name.toLowerCase(Locale.ROOT);
+                            types.put(key, type);
+                            if ("NO".equalsIgnoreCase(rs.getString(3)))
+                            {
+                                notNull.add(key);
+                            }
                         }
                     }
                 }
-                return types;
             }
+            List<String> pk = new ArrayList<>();
+            try (ResultSet rs = c.getMetaData().getPrimaryKeys(etlTable.getSourceDb(), null, etlTable.getSourceTable()))
+            {
+                while (rs.next())
+                {
+                    String name = rs.getString("COLUMN_NAME");
+                    if (name != null && !name.isBlank())
+                    {
+                        pk.add(name);
+                    }
+                }
+            }
+            return new SourceMeta(types, notNull, pk);
         }
         catch (SQLException e)
         {
-            log.warn("Failed to read verbatim source column types for {}.{}: {}", etlTable.getSourceDb(),
+            log.warn("Failed to read source metadata for {}.{}: {}", etlTable.getSourceDb(),
                 etlTable.getSourceTable(), e.getMessage());
-            return Map.of();
+            return SourceMeta.EMPTY;
         }
     }
 
@@ -394,44 +505,58 @@ public class RdbmsTargetAdapter
         }
     }
 
-    private boolean tableExists(Connection conn, DbType dialect, String db, String table)
+    private boolean tableExists(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
         try (ResultSet rs = conn.getMetaData().getTables(
             dialect == DbType.MYSQL && db != null && !db.isBlank() ? db : null,
-            dialect == DbType.POSTGRESQL && db != null && !db.isBlank() ? db : null,
-            table, new String[] {"TABLE"}))
+            null, table, new String[] {"TABLE"}))
         {
             return rs.next();
         }
-        catch (SQLException e)
-        {
-            log.warn("Failed to check existence of {}.{}: {}", db, table, e.getMessage());
-            return false;
-        }
     }
 
-    private Map<String, String> describeColumns(Connection conn, DbType dialect, String db, String table)
+    private Map<String, ColumnMeta> describeColumns(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
-        Map<String, String> cols = new LinkedHashMap<>();
+        Map<String, ColumnMeta> cols = new LinkedHashMap<>();
         try (ResultSet rs = conn.getMetaData().getColumns(
             dialect == DbType.MYSQL && db != null && !db.isBlank() ? db : null,
-            dialect == DbType.POSTGRESQL && db != null && !db.isBlank() ? db : null,
-            table, null))
+            null, table, null))
+        {
+            while (rs.next())
+            {
+                String name = rs.getString("COLUMN_NAME");
+                if (name == null)
+                {
+                    continue;
+                }
+                cols.put(name.toLowerCase(Locale.ROOT), new ColumnMeta(
+                    rs.getString("TYPE_NAME"),
+                    rs.getInt("COLUMN_SIZE"),
+                    rs.getInt("DECIMAL_DIGITS"),
+                    !"NO".equalsIgnoreCase(rs.getString("IS_NULLABLE")),
+                    rs.getString("COLUMN_DEF"),
+                    "YES".equalsIgnoreCase(rs.getString("IS_AUTOINCREMENT"))));
+            }
+        }
+        return cols;
+    }
+
+    private Set<String> targetPrimaryKeys(Connection conn, DbType dialect, String db, String table) throws SQLException
+    {
+        Set<String> pk = new HashSet<>();
+        try (ResultSet rs = conn.getMetaData().getPrimaryKeys(
+            dialect == DbType.MYSQL && db != null && !db.isBlank() ? db : null, null, table))
         {
             while (rs.next())
             {
                 String name = rs.getString("COLUMN_NAME");
                 if (name != null)
                 {
-                    cols.put(name.toLowerCase(Locale.ROOT), rs.getString("TYPE_NAME"));
+                    pk.add(name.toLowerCase(Locale.ROOT));
                 }
             }
         }
-        catch (SQLException e)
-        {
-            log.warn("Failed to describe columns of {}.{}: {}", db, table, e.getMessage());
-        }
-        return cols;
+        return pk;
     }
 
     private void failJour(EtlJour jour, VwEtlTableWithSource etlTable, String reason)
@@ -499,6 +624,15 @@ public class RdbmsTargetAdapter
 
     private record ConnectInfo(String url, String username, String password)
     {
+    }
+
+    private record ColumnMeta(String typeName, int size, int scale, boolean nullable, String defaultValue, boolean autoIncrement)
+    {
+    }
+
+    private record SourceMeta(Map<String, String> columnTypes, Set<String> notNull, List<String> primaryKeys)
+    {
+        private static final SourceMeta EMPTY = new SourceMeta(Map.of(), Set.of(), List.of());
     }
 
     private String resolveTargetType(VwEtlTableWithSource table)

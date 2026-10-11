@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wgzhao.addax.admin.service.target.TargetTypeResolver;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -51,6 +52,7 @@ public class JobContentService
     private final RiskLogService riskLogService;
     private final StatService statService;
     private final ObjectMapper objectMapper;
+    private final TargetTypeResolver targetTypeResolver;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -129,12 +131,13 @@ public class JobContentService
     /**
      * Pick the main job template by target family. The R2H and R2R templates are structurally identical;
      * keeping them separate lets RDBMS targets tune their own speed/setting without touching HDFS jobs.
+     * The family comes from the same resolver the adapter registry uses, so the template and adapter
+     * never disagree (e.g. writer key wR with a stale target_type).
      */
     private String resolveJobTemplate(VwEtlTableWithSource etlTable)
     {
-        String targetType = etlTable == null ? null : etlTable.getTargetType();
-        if (targetType == null || targetType.isBlank()
-            || "HDFS".equalsIgnoreCase(targetType) || "HIVE".equalsIgnoreCase(targetType))
+        String family = targetTypeResolver.resolveAdapterType(etlTable == null ? null : etlTable.getId());
+        if ("HDFS".equalsIgnoreCase(family))
         {
             return configService.getRdbms2HdfsJobTemplate();
         }

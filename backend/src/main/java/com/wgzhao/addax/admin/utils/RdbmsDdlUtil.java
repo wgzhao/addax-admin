@@ -2,12 +2,15 @@ package com.wgzhao.addax.admin.utils;
 
 import com.wgzhao.addax.admin.common.DbType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * RDBMS 目标端的类型映射与 DDL 生成工具。
- * 目标类型从源的 JDBC 类型名 + 长度/精度推导，按目标方言渲染，保证跨方言时不会直接把源类型写进 DDL。
+ * 目标类型优先使用源库原样类型（同方言），否则按目标方言从源的 JDBC 类型名 + 长度/精度推导。
  */
 public final class RdbmsDdlUtil
 {
@@ -24,6 +27,9 @@ public final class RdbmsDdlUtil
         DECIMAL, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP, TIMESTAMPTZ,
         BINARY, JSON, RAW
     }
+
+    private static final Pattern CHAR_LEN = Pattern.compile("^(?:var)?char2?\\s*\\(\\s*(\\d+)");
+    private static final Pattern DECIMAL_PS = Pattern.compile("^(?:decimal|numeric)\\s*\\(\\s*(\\d+)\\s*,\\s*(\\d+)");
 
     public static String quoteIdent(DbType dialect, String name)
     {
@@ -64,7 +70,16 @@ public final class RdbmsDdlUtil
      */
     public static String columnDefinition(DbType dialect, String name, String typeExpr, String comment)
     {
+        return columnDefinition(dialect, name, typeExpr, false, comment);
+    }
+
+    public static String columnDefinition(DbType dialect, String name, String typeExpr, boolean notNull, String comment)
+    {
         String def = quoteIdent(dialect, name) + " " + typeExpr;
+        if (notNull)
+        {
+            def += " NOT NULL";
+        }
         if (dialect == DbType.MYSQL && comment != null && !comment.isBlank())
         {
             def += " COMMENT '" + normalizeComment(comment) + "'";
@@ -72,9 +87,20 @@ public final class RdbmsDdlUtil
         return def;
     }
 
-    public static String createTableIfNotExists(DbType dialect, String tableRef, List<String> columnDefs, String tableComment)
+    public static String createTableIfNotExists(DbType dialect, String tableRef, List<String> columnDefs,
+        List<String> primaryKeyColumns, String tableComment)
     {
-        String body = String.join(",\n", columnDefs);
+        List<String> defs = new ArrayList<>(columnDefs);
+        if (primaryKeyColumns != null && !primaryKeyColumns.isEmpty())
+        {
+            List<String> pk = new ArrayList<>();
+            for (String c : primaryKeyColumns)
+            {
+                pk.add(quoteIdent(dialect, c));
+            }
+            defs.add("PRIMARY KEY (" + String.join(", ", pk) + ")");
+        }
+        String body = String.join(",\n", defs);
         switch (dialect)
         {
             case MYSQL:
@@ -102,19 +128,43 @@ public final class RdbmsDdlUtil
         return "ALTER TABLE " + tableRef + " ADD COLUMN " + columnDef;
     }
 
-    public static String modifyColumn(DbType dialect, String tableRef, String name, String typeExpr, String comment)
+    /**
+     * MySQL 的 MODIFY 是整列重定义，未重述的属性会被重置为默认值，因此需一并重述 NOT NULL / DEFAULT /
+     * AUTO_INCREMENT，否则会静默丢掉目标表已有的约束。其余方言仅调整类型。
+     */
+    public static String modifyColumn(DbType dialect, String tableRef, String name, String typeExpr, String comment,
+        boolean notNull, String defaultValue, boolean autoIncrement)
     {
         if (dialect == DbType.POSTGRESQL)
         {
             return "ALTER TABLE " + tableRef + " ALTER COLUMN " + quoteIdent(dialect, name)
                 + " TYPE " + typeExpr;
         }
-        return "ALTER TABLE " + tableRef + " MODIFY COLUMN " + columnDefinition(dialect, name, typeExpr, comment);
+        StringBuilder sb = new StringBuilder("ALTER TABLE ").append(tableRef)
+            .append(" MODIFY COLUMN ").append(quoteIdent(dialect, name)).append(' ').append(typeExpr);
+        if (notNull)
+        {
+            sb.append(" NOT NULL");
+        }
+        String def = safeDefault(defaultValue);
+        if (def != null)
+        {
+            sb.append(" DEFAULT ").append(def);
+        }
+        if (autoIncrement && dialect == DbType.MYSQL)
+        {
+            sb.append(" AUTO_INCREMENT");
+        }
+        if (dialect == DbType.MYSQL && comment != null && !comment.isBlank())
+        {
+            sb.append(" COMMENT '").append(normalizeComment(comment)).append('\'');
+        }
+        return sb.toString();
     }
 
     /**
-     * 现有列类型是否与期望一致。只比较类型"族"（字符串/数值/时间/二进制/JSON），族内差异（长度、枚举取值等）
-     * 不触发变更，避免对已有表做有损或高代价的改写，也避免因方言别名导致的反复改写。
+     * 现有列类型是否与期望一致（仅比较类型族）。族内差异（长度、枚举取值等）不算不一致，
+     * 是否改写由 {@link #isWidening} 决定。
      */
     public static boolean typeMatches(String currentTypeName, String desiredTypeExpr)
     {
@@ -123,7 +173,76 @@ public final class RdbmsDdlUtil
         {
             return false;
         }
-        return family(baseName(currentTypeName)).equals(family(baseName(desiredTypeExpr)));
+        return familyOf(currentTypeName).equals(familyOf(desiredTypeExpr));
+    }
+
+    public static String familyOf(String typeExpr)
+    {
+        return family(baseName(typeExpr));
+    }
+
+    /**
+     * 期望类型是否比现有列"更宽"（容量变大）。只有变宽才发 MODIFY——变窄可能导致数据截断，一律不自动执行。
+     * 无容量概念的类型（text/blob 等）返回 false。
+     */
+    public static boolean isWidening(String currentTypeName, int currentSize, int currentScale, String desiredTypeExpr)
+    {
+        if (currentTypeName == null || desiredTypeExpr == null)
+        {
+            return false;
+        }
+        String fam = familyOf(currentTypeName);
+        if (!fam.equals(familyOf(desiredTypeExpr)))
+        {
+            return false;
+        }
+        if ("string".equals(fam))
+        {
+            int want = stringLength(desiredTypeExpr);
+            return want > 0 && currentSize > 0 && want > currentSize;
+        }
+        if ("number".equals(fam))
+        {
+            int[] ps = decimalPrecisionScale(desiredTypeExpr);
+            if (ps != null)
+            {
+                if (currentSize > 0 && ps[0] > currentSize)
+                {
+                    return true;
+                }
+                if (ps[1] > currentScale)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** varchar/char 的字符长度，非长度型返回 -1。 */
+    public static int stringLength(String typeExpr)
+    {
+        if (typeExpr == null)
+        {
+            return -1;
+        }
+        Matcher m = CHAR_LEN.matcher(typeExpr.toLowerCase(Locale.ROOT).trim());
+        return m.find() ? Integer.parseInt(m.group(1)) : -1;
+    }
+
+    /** decimal(numeric) 的 precision/scale，非该类型返回 null。 */
+    public static int[] decimalPrecisionScale(String typeExpr)
+    {
+        if (typeExpr == null)
+        {
+            return null;
+        }
+        Matcher m = DECIMAL_PS.matcher(typeExpr.toLowerCase(Locale.ROOT).trim());
+        if (!m.find())
+        {
+            return null;
+        }
+        return new int[] {Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2))};
     }
 
     private static String baseName(String type)
@@ -132,7 +251,7 @@ public final class RdbmsDdlUtil
         {
             return "";
         }
-        String t = type.toLowerCase().trim();
+        String t = type.toLowerCase(Locale.ROOT).trim();
         int paren = t.indexOf('(');
         if (paren > 0)
         {
@@ -165,7 +284,6 @@ public final class RdbmsDdlUtil
             case "bool":
                 return "boolean";
             case "numeric":
-            case "numeric,":
             case "number":
                 return "decimal";
             case "float4":
@@ -186,7 +304,7 @@ public final class RdbmsDdlUtil
     }
 
     /**
-     * 类型族：用于判断"是否需要改写列类型"。族内不做改写，避免有损变更。
+     * 类型族：用于判断"是否需要改写列类型"。
      */
     private static String family(String base)
     {
@@ -230,7 +348,8 @@ public final class RdbmsDdlUtil
                     case SQLSERVER:
                         return n > 4000 ? "nvarchar(max)" : "nvarchar(" + n + ")";
                     default:
-                        return n > 65535 ? "text" : "varchar(" + n + ")";
+                        // utf8mb4 caps a single varchar column at 16383 characters; above that use text.
+                        return n > 16383 ? "text" : "varchar(" + n + ")";
                 }
             }
             case TEXT:
@@ -243,7 +362,8 @@ public final class RdbmsDdlUtil
                     case SQLSERVER:
                         return "nvarchar(max)";
                     default:
-                        return "text";
+                        // Cross-dialect CLOB/longtext sources must not shrink into 64KB text.
+                        return "longtext";
                 }
             case INTEGER:
                 return dialect == DbType.POSTGRESQL ? "integer" : "int";
@@ -306,7 +426,7 @@ public final class RdbmsDdlUtil
         {
             return Kind.TEXT;
         }
-        String t = sourceType.toLowerCase().trim();
+        String t = sourceType.toLowerCase(Locale.ROOT).trim();
         int paren = t.indexOf('(');
         if (paren > 0)
         {
@@ -363,6 +483,37 @@ public final class RdbmsDdlUtil
         }
         String t = sourceType.toLowerCase(Locale.ROOT).trim();
         return t.startsWith("enum") || t.startsWith("set");
+    }
+
+    /**
+     * Only restate defaults we are confident about; an unrecognized default expression is dropped rather
+     * than risking invalid DDL. Returns the SQL literal to append after DEFAULT, or null to omit.
+     */
+    private static String safeDefault(String v)
+    {
+        if (v == null)
+        {
+            return null;
+        }
+        String s = v.trim();
+        if (s.isEmpty() || "null".equalsIgnoreCase(s))
+        {
+            return null;
+        }
+        if (s.matches("-?\\d+(\\.\\d+)?"))
+        {
+            return s;
+        }
+        if (s.matches("'([^']|'')*'"))
+        {
+            return s;
+        }
+        String lower = s.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("current_timestamp") || lower.equals("now()"))
+        {
+            return s;
+        }
+        return null;
     }
 
     private static String normalizeComment(String comment)
