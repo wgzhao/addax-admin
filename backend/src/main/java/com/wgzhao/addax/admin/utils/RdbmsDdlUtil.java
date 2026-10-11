@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.utils;
 import com.wgzhao.addax.admin.common.DbType;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * RDBMS 目标端的类型映射与 DDL 生成工具。
@@ -57,10 +58,13 @@ public final class RdbmsDdlUtil
         return quoteIdent(dialect, db) + "." + quoteIdent(dialect, table);
     }
 
-    public static String columnDefinition(DbType dialect, String name, String sourceType,
-        int length, int precision, int scale, String comment)
+    /**
+     * Build a column definition from an already-resolved type expression. Callers pass either a verbatim
+     * source type (same dialect) or a rendered canonical type, so this stays dialect-agnostic.
+     */
+    public static String columnDefinition(DbType dialect, String name, String typeExpr, String comment)
     {
-        String def = quoteIdent(dialect, name) + " " + renderType(dialect, sourceType, length, precision, scale);
+        String def = quoteIdent(dialect, name) + " " + typeExpr;
         if (dialect == DbType.MYSQL && comment != null && !comment.isBlank())
         {
             def += " COMMENT '" + normalizeComment(comment) + "'";
@@ -98,31 +102,28 @@ public final class RdbmsDdlUtil
         return "ALTER TABLE " + tableRef + " ADD COLUMN " + columnDef;
     }
 
-    public static String modifyColumn(DbType dialect, String tableRef, String name, String sourceType,
-        int length, int precision, int scale, String comment)
+    public static String modifyColumn(DbType dialect, String tableRef, String name, String typeExpr, String comment)
     {
-        String def = columnDefinition(dialect, name, sourceType, length, precision, scale, comment);
         if (dialect == DbType.POSTGRESQL)
         {
             return "ALTER TABLE " + tableRef + " ALTER COLUMN " + quoteIdent(dialect, name)
-                + " TYPE " + renderType(dialect, sourceType, length, precision, scale);
+                + " TYPE " + typeExpr;
         }
-        return "ALTER TABLE " + tableRef + " MODIFY COLUMN " + def;
+        return "ALTER TABLE " + tableRef + " MODIFY COLUMN " + columnDefinition(dialect, name, typeExpr, comment);
     }
 
     /**
-     * 现有列类型是否与期望一致。JDBC 元数据只给出类型名，长度差异（如 varchar(50) vs varchar(255)）不触发变更，
-     * 避免对已有表做有损或高代价的类型改写。
+     * 现有列类型是否与期望一致。只比较类型"族"（字符串/数值/时间/二进制/JSON），族内差异（长度、枚举取值等）
+     * 不触发变更，避免对已有表做有损或高代价的改写，也避免因方言别名导致的反复改写。
      */
-    public static boolean typeMatches(DbType dialect, String currentTypeName, String sourceType, int length, int precision, int scale)
+    public static boolean typeMatches(String currentTypeName, String desiredTypeExpr)
     {
-        if (currentTypeName == null || currentTypeName.isBlank())
+        if (currentTypeName == null || currentTypeName.isBlank()
+            || desiredTypeExpr == null || desiredTypeExpr.isBlank())
         {
             return false;
         }
-        String current = baseName(currentTypeName);
-        String desired = baseName(renderType(dialect, sourceType, length, precision, scale));
-        return current.equalsIgnoreCase(desired) || alias(current).equalsIgnoreCase(alias(desired));
+        return family(baseName(currentTypeName)).equals(family(baseName(desiredTypeExpr)));
     }
 
     private static String baseName(String type)
@@ -184,6 +185,29 @@ public final class RdbmsDdlUtil
         }
     }
 
+    /**
+     * 类型族：用于判断"是否需要改写列类型"。族内不做改写，避免有损变更。
+     */
+    private static String family(String base)
+    {
+        switch (alias(base))
+        {
+            case "char", "varchar", "varchar2", "nvarchar", "nvarchar2", "nchar", "string", "uuid", "uniqueidentifier",
+                 "enum", "set", "text", "tinytext", "mediumtext", "longtext", "clob", "nclob", "ntext", "longvarchar":
+                return "string";
+            case "integer", "bigint", "smallint", "tinyint", "boolean", "decimal", "float", "real", "double", "number", "money":
+                return "number";
+            case "date", "time", "datetime", "timestamp", "timestamptz", "smalldatetime":
+                return "temporal";
+            case "binary", "varbinary", "blob", "bytea", "image":
+                return "binary";
+            case "json", "jsonb":
+                return "json";
+            default:
+                return base;
+        }
+    }
+
     public static String renderType(DbType dialect, String sourceType, int length, int precision, int scale)
     {
         Kind kind = kindOf(sourceType);
@@ -192,6 +216,11 @@ public final class RdbmsDdlUtil
             case STRING:
             {
                 int n = length > 0 ? length : 255;
+                // ENUM/SET values are not stored in our column metadata, so degrade to a plain string column.
+                if (isEnumOrSet(sourceType))
+                {
+                    n = Math.max(n, 255);
+                }
                 switch (dialect)
                 {
                     case POSTGRESQL:
@@ -319,9 +348,21 @@ public final class RdbmsDdlUtil
                 return Kind.BINARY;
             case "json", "jsonb":
                 return Kind.JSON;
+            case "enum", "set":
+                return Kind.STRING;
             default:
                 return Kind.RAW;
         }
+    }
+
+    private static boolean isEnumOrSet(String sourceType)
+    {
+        if (sourceType == null)
+        {
+            return false;
+        }
+        String t = sourceType.toLowerCase(Locale.ROOT).trim();
+        return t.startsWith("enum") || t.startsWith("set");
     }
 
     private static String normalizeComment(String comment)

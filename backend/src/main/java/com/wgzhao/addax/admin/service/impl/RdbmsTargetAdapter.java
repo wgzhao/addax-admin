@@ -24,6 +24,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -85,13 +86,16 @@ public class RdbmsTargetAdapter
         DbType dialect = getDbType(conn.url());
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         List<EtlColumn> columns = columnService.getColumns(etlTable.getId());
+        Map<String, String> verbatim = loadVerbatimSourceTypes(etlTable, dialect);
+        Map<String, String> desiredTypes = new LinkedHashMap<>();
 
         List<String> colDefs = new ArrayList<>();
         for (EtlColumn c : columns)
         {
-            colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, activeName(c), c.getSourceType(),
-                c.getDataLength(), c.getDataPrecision() == null ? 0 : c.getDataPrecision(),
-                c.getDataScale() == null ? 0 : c.getDataScale(), c.getColComment()));
+            String name = activeName(c);
+            String typeExpr = resolveColumnType(dialect, c, verbatim);
+            desiredTypes.put(name.toLowerCase(Locale.ROOT), typeExpr);
+            colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr, c.getColComment()));
         }
         String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs, etlTable.getTblComment());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createSql);
@@ -125,7 +129,7 @@ public class RdbmsTargetAdapter
                     etlTable.getTargetDb(), etlTable.getTargetTable());
                 return true;
             }
-            applyColumnDiff(c, dialect, tableRef, etlTable, columns);
+            applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes);
             return true;
         }
         catch (SQLException e)
@@ -278,31 +282,97 @@ public class RdbmsTargetAdapter
     }
 
     private void applyColumnDiff(Connection conn, DbType dialect, String tableRef,
-        VwEtlTableWithSource etlTable, List<EtlColumn> columns) throws SQLException
+        VwEtlTableWithSource etlTable, List<EtlColumn> columns, Map<String, String> desiredTypes) throws SQLException
     {
         Map<String, String> current = describeColumns(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         for (EtlColumn c : columns)
         {
             String name = activeName(c);
-            String currentType = current.get(name.toLowerCase(Locale.ROOT));
-            int precision = c.getDataPrecision() == null ? 0 : c.getDataPrecision();
-            int scale = c.getDataScale() == null ? 0 : c.getDataScale();
+            String key = name.toLowerCase(Locale.ROOT);
+            String typeExpr = desiredTypes.get(key);
+            String currentType = current.get(key);
             String ddl;
             if (currentType == null)
             {
                 ddl = RdbmsDdlUtil.addColumn(dialect, tableRef,
-                    RdbmsDdlUtil.columnDefinition(dialect, name, c.getSourceType(), c.getDataLength(), precision, scale, c.getColComment()));
+                    RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr, c.getColComment()));
             }
             else if (!c.getColumnName().startsWith(DELETED_PLACEHOLDER_PREFIX)
-                && !RdbmsDdlUtil.typeMatches(dialect, currentType, c.getSourceType(), c.getDataLength(), precision, scale))
+                && !RdbmsDdlUtil.typeMatches(currentType, typeExpr))
             {
-                ddl = RdbmsDdlUtil.modifyColumn(dialect, tableRef, name, c.getSourceType(), c.getDataLength(), precision, scale, c.getColComment());
+                ddl = RdbmsDdlUtil.modifyColumn(dialect, tableRef, name, typeExpr, c.getColComment());
             }
             else
             {
                 continue;
             }
             executeDdl(conn, etlTable, ddl);
+        }
+    }
+
+    private String resolveColumnType(DbType dialect, EtlColumn column, Map<String, String> verbatim)
+    {
+        String name = activeName(column);
+        if (name != null)
+        {
+            String v = verbatim.get(name.toLowerCase(Locale.ROOT));
+            if (v != null && !v.isBlank())
+            {
+                return v;
+            }
+        }
+        return RdbmsDdlUtil.renderType(dialect, column.getSourceType(), column.getDataLength(),
+            column.getDataPrecision() == null ? 0 : column.getDataPrecision(),
+            column.getDataScale() == null ? 0 : column.getDataScale());
+    }
+
+    /**
+     * When the source and target share a dialect, reuse the source's verbatim COLUMN_TYPE so types that
+     * cannot be reconstructed from JDBC metadata (MySQL ENUM/SET values, unsigned, exact lengths) survive.
+     * Cross-dialect or unsupported sources fall back to canonical rendering.
+     */
+    private Map<String, String> loadVerbatimSourceTypes(VwEtlTableWithSource etlTable, DbType targetDialect)
+    {
+        if (targetDialect != DbType.MYSQL || etlTable.getUrl() == null
+            || etlTable.getSourceDb() == null || etlTable.getSourceTable() == null
+            || etlTable.getSourceTable().contains("${")
+            || getDbType(etlTable.getUrl()) != DbType.MYSQL)
+        {
+            return Map.of();
+        }
+        String sql = "select column_name, column_type from information_schema.columns "
+            + "where table_schema = ? and table_name = ?";
+        try (Connection c = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass()))
+        {
+            if (c == null)
+            {
+                return Map.of();
+            }
+            try (PreparedStatement ps = c.prepareStatement(sql))
+            {
+                ps.setString(1, etlTable.getSourceDb());
+                ps.setString(2, etlTable.getSourceTable());
+                Map<String, String> types = new HashMap<>();
+                try (ResultSet rs = ps.executeQuery())
+                {
+                    while (rs.next())
+                    {
+                        String name = rs.getString(1);
+                        String type = rs.getString(2);
+                        if (name != null && type != null && !type.isBlank())
+                        {
+                            types.put(name.toLowerCase(Locale.ROOT), type);
+                        }
+                    }
+                }
+                return types;
+            }
+        }
+        catch (SQLException e)
+        {
+            log.warn("Failed to read verbatim source column types for {}.{}: {}", etlTable.getSourceDb(),
+                etlTable.getSourceTable(), e.getMessage());
+            return Map.of();
         }
     }
 
