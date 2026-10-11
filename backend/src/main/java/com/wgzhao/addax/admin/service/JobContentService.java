@@ -90,7 +90,7 @@ public class JobContentService
         values.put("reader", fillRdbmsReaderJobForDate(etlTable, dateValues, fillbackLastEtlDate));
         values.put("writer", targetService.buildWriterJobForDate(etlTable, targetDate));
 
-        String jobTemplate = configService.getRdbms2HdfsJobTemplate();
+        String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
         return mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
     }
@@ -115,7 +115,7 @@ public class JobContentService
         values.put("reader", fillRdbmsReaderJob(etlTable));
         values.put("writer", targetService.buildWriterJob(etlTable));
 
-        String jobTemplate = configService.getRdbms2HdfsJobTemplate();
+        String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
         String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
 
@@ -124,6 +124,21 @@ public class JobContentService
         jourService.successJour(etlJour);
         log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
         return TaskResultDto.success("更新采集任务模板成功", 0);
+    }
+
+    /**
+     * Pick the main job template by target family. The R2H and R2R templates are structurally identical;
+     * keeping them separate lets RDBMS targets tune their own speed/setting without touching HDFS jobs.
+     */
+    private String resolveJobTemplate(VwEtlTableWithSource etlTable)
+    {
+        String targetType = etlTable == null ? null : etlTable.getTargetType();
+        if (targetType == null || targetType.isBlank()
+            || "HDFS".equalsIgnoreCase(targetType) || "HIVE".equalsIgnoreCase(targetType))
+        {
+            return configService.getRdbms2HdfsJobTemplate();
+        }
+        return configService.getRdbms2RdbmsJobTemplate();
     }
 
     private String mergePluginConfigIntoJob(String job, VwEtlTableWithSource etlTable)

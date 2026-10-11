@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import java.util.Locale;
 
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_TARGET_TYPE;
+import static com.wgzhao.addax.admin.common.Constants.HDFS_TARGET_TYPES;
+import static com.wgzhao.addax.admin.common.Constants.RDBMS_TARGET_TYPES;
 
 /**
  * 目标端路由解析器。
@@ -29,9 +31,9 @@ public class TargetTypeResolver
     /**
      * 解析目标端适配器类型。
      * 路由优先级：
-     * 1) writer_template_key = wH -> HDFS
-     * 2) writer_template_key 其他非空值 -> RDBMS
-     * 3) target_type（兜底）
+     * 1) writer_template_key = wH -> HDFS，= wR -> RDBMS
+     * 2) target_type 命中已知 HDFS / RDBMS 方言
+     * 3) target_type 其他非空值原样返回（由注册中心显式拒绝，避免静默降级）
      * 4) DEFAULT_TARGET_TYPE
      */
     public String resolveAdapterType(Long tableId)
@@ -62,11 +64,18 @@ public class TargetTypeResolver
             if ("WH".equals(writerKey)) {
                 return "HDFS";
             }
-            if (!writerKey.isBlank()) {
+            if ("WR".equals(writerKey)) {
                 return "RDBMS";
             }
-            if (!normalize(route.targetType).isBlank()) {
-                return normalize(route.targetType);
+            String targetType = normalize(route.targetType);
+            if (HDFS_TARGET_TYPES.contains(targetType)) {
+                return "HDFS";
+            }
+            if (RDBMS_TARGET_TYPES.contains(targetType)) {
+                return "RDBMS";
+            }
+            if (!targetType.isBlank()) {
+                return targetType;
             }
             return DEFAULT_TARGET_TYPE;
         }

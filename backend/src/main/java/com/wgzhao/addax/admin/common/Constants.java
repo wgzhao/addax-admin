@@ -60,6 +60,11 @@ public final class Constants
     // 默认的目标端类型（HDFS），用于没有明确指定目标端的表
     public static final String DEFAULT_TARGET_TYPE = "HDFS";
 
+    // 目标端类型别名：HDFS 适配器负责 Hive/HDFS，其余已知关系型方言统一路由到 RDBMS 适配器。
+    public static final Set<String> HDFS_TARGET_TYPES = Set.of("HDFS", "HIVE");
+    public static final Set<String> RDBMS_TARGET_TYPES = Set.of(
+        "RDBMS", "MYSQL", "POSTGRESQL", "ORACLE", "SQLSERVER", "DB2", "SQLITE", "SYBASE", "CLICKHOUSE");
+
     private Constants()
     {
     }

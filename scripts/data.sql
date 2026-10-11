@@ -128,6 +128,22 @@ values  (5001, 'rR', '{
       "hadoopConfig": {}
     }
 }', 'HDFS写入模板'),
+        (5001, 'wR', '{
+    "name": "${name}",
+    "parameter": {
+        "username": "${username}",
+        "password": "${password}",
+        "column": [${column}],
+        "writeMode": "${writeMode}",
+        "batchSize": 1024,
+        "preSql": [],
+        "postSql": [],
+        "connection": {
+            "table": [ "${table}" ],
+            "jdbcUrl": "${jdbcUrl}"
+        }
+    }
+}', '通用关系型数据库写入模板'),
         (5000, 'R2H', '{
   "job": {
     "content": {
@@ -142,7 +158,22 @@ values  (5001, 'rR', '{
       }
     }
   }
-}', '关系型数据库到HDFS的模板');
+}', '关系型数据库到HDFS的模板'),
+        (5000, 'R2R', '{
+  "job": {
+    "content": {
+        "reader": ${reader},
+         "writer": ${writer},
+      "setting": {
+        "speed": {
+          "batchSize": 20480,
+          "bytes": -1,
+          "channel": 1
+        }
+      }
+    }
+  }
+}', '关系型数据库到关系型数据库的模板');
 
 
 select insert_dates_for_year(extract('year' from now())::integer, 1021);

@@ -32,6 +32,45 @@ import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 @Slf4j
 public class DictService
 {
+    // Built-in fallbacks so RDBMS targets work on existing deployments that predate the
+    // wR / R2R dict rows. Fresh installs seed the same content via scripts/data.sql.
+    private static final String DEFAULT_RDBMS_WRITER_TEMPLATE = """
+        {
+            "name": "${name}",
+            "parameter": {
+                "username": "${username}",
+                "password": "${password}",
+                "column": [${column}],
+                "writeMode": "${writeMode}",
+                "batchSize": 1024,
+                "preSql": [],
+                "postSql": [],
+                "connection": {
+                    "table": [ "${table}" ],
+                    "jdbcUrl": "${jdbcUrl}"
+                }
+            }
+        }
+        """;
+
+    private static final String DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE = """
+        {
+          "job": {
+            "content": {
+                "reader": ${reader},
+                 "writer": ${writer},
+              "setting": {
+                "speed": {
+                  "batchSize": 20480,
+                  "bytes": -1,
+                  "channel": 1
+                }
+              }
+            }
+          }
+        }
+        """;
+
     private final SysItemRepo sysItemRepo;
     private final SysDictRepo sysDictRepo;
 
@@ -155,6 +194,12 @@ public class DictService
         return getItemValue(5000, "R2H", String.class);
     }
 
+    public String getRdbms2RdbmsJobTemplate()
+    {
+        String res = getItemValue(5000, "R2R", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE : res;
+    }
+
     // 读取 RDBMS Reader 模板
     public String getRdbmsReaderTemplate()
     {
@@ -165,6 +210,37 @@ public class DictService
     public String getHdfsWriterTemplate()
     {
         return getItemValue(5001, "wH", String.class);
+    }
+
+    // 获取 RDBMS Writer 模板
+    public String getRdbmsWriterTemplate()
+    {
+        String res = getItemValue(5001, "wR", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_RDBMS_WRITER_TEMPLATE : res;
+    }
+
+    /**
+     * 按 writer 模板键读取模板，缺失的内置键回退到代码内置默认值，保证 RDBMS 目标端开箱可用。
+     *
+     * @param key writer 模板键（如 wH / wR）
+     * @return 模板内容，未命中返回 null
+     */
+    public String getWriterTemplate(String key)
+    {
+        if (key == null || key.isBlank())
+        {
+            return null;
+        }
+        String res = getItemValue(5001, key, String.class);
+        if (res != null && !res.isBlank())
+        {
+            return res;
+        }
+        if ("wR".equalsIgnoreCase(key))
+        {
+            return DEFAULT_RDBMS_WRITER_TEMPLATE;
+        }
+        return res;
     }
 
     /**
