@@ -84,6 +84,60 @@ docker compose ps
 - **前端应用**: http://localhost:50080 （默认账号 admin / admin123）
 - **后端 API**: http://localhost:50601/api/v1 （仅容器网络内使用，默认不对外暴露）
 
+## 📥 安装 Addax（采集引擎，必需）
+
+`addax-admin` 只是管理界面，本身不执行数据采集。真正跑采集任务时，它会以本地子进程的方式调用
+`<Addax程序目录>/bin/addax.sh`，执行完还会读取 `<Addax程序目录>/log/` 下的日志回写数据库。
+
+这意味着 **Addax 必须位于 `addax-admin` 容器自身的文件系统里**，不能单独跑在另一个容器中
+（跨容器无法执行脚本，也读不到日志目录）。
+
+本仓库的 `app` 镜像已自带 JRE（`eclipse-temurin:21-jre-alpine`），Addax 可安装到 `/opt/app/addax`，
+由同一个容器执行。Addax 官方镜像 `quay.io/wgzhao/addax` 中程序位于 `/opt/addax`，可直接导出到宿主机：
+
+```bash
+# 1. 从 Addax 官方镜像导出程序目录到宿主机
+docker create --name addax-tmp quay.io/wgzhao/addax:latest
+docker cp addax-tmp:/opt/addax ./addax
+docker rm addax-tmp
+```
+
+```yaml
+# 2. 在 docker-compose.yml 的 app 服务下把它挂载进容器
+services:
+  app:
+    volumes:
+      - backend_logs:/app/logs
+      - ./backend/drivers:/app/drivers
+      - ./backend/job:/app/job
+      - ./addax:/opt/app/addax        # 新增
+```
+
+```bash
+# 3. 重启生效
+docker compose up -d
+```
+
+```
+# 4. 登录后进入「系统管理 → 系统配置」，把「Addax程序目录」设为容器内路径
+/opt/app/addax
+```
+
+> 未安装 Addax 时服务本身能正常启动，但提交采集任务会因找不到 `bin/addax.sh` 而失败。
+
+### 使用已有的 Addax 安装
+
+若已从源码或安装脚本在宿主机准备好 Addax，直接把该目录挂载到容器即可，无需执行上面的 `docker cp`：
+
+```yaml
+services:
+  app:
+    volumes:
+      - /path/to/addax:/opt/app/addax
+```
+
+无论哪种方式，挂载路径都必须与「Addax程序目录」配置项保持一致（默认 `/opt/app/addax`）。
+
 ## 📦 服务架构
 
 ```
