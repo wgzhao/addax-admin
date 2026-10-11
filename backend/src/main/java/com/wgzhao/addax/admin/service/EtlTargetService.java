@@ -2,11 +2,13 @@ package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
+import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,8 @@ import java.util.List;
 import java.util.Locale;
 
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_TARGET_TYPE;
+import static com.wgzhao.addax.admin.common.Constants.HDFS_TARGET_TYPES;
+import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class EtlTargetService
     private final EtlTargetRepo etlTargetRepo;
     private final TargetService targetService;
     private final ObjectMapper objectMapper;
+    private final RdbmsWriterPlugins rdbmsWriterPlugins;
 
     public List<EtlTarget> listAll(Boolean enabledOnly)
     {
@@ -120,6 +125,7 @@ public class EtlTargetService
         }
 
         DbConnectDto dbConnectDto = parseDbConnect(target.getConnectConfig());
+        validateRdbmsTarget(target);
         if (!DbUtil.testConnection(dbConnectDto.url(), dbConnectDto.username(), dbConnectDto.password())) {
             throw new ApiException(400, "Failed to connect target");
         }
@@ -146,9 +152,52 @@ public class EtlTargetService
         if (target.getIsDefault() == null) {
             target.setIsDefault(false);
         }
+        validateRdbmsTarget(target);
         if (checkCodeConflict && etlTargetRepo.findByCode(target.getCode()).isPresent()) {
             throw new ApiException(409, "Target code already exists");
         }
+    }
+
+    /**
+     * Reject dialects we cannot serve end to end (DDL + writer plugin) while the target is being edited.
+     * Otherwise the misconfiguration only shows up when a collection job is refreshed or executed.
+     */
+    private void validateRdbmsTarget(EtlTarget target)
+    {
+        String writerKey = target.getWriterTemplateKey() == null ? ""
+            : target.getWriterTemplateKey().trim().toUpperCase(Locale.ROOT);
+        if ("WH".equals(writerKey) || HDFS_TARGET_TYPES.contains(normalizeType(target.getTargetType()))) {
+            return;
+        }
+        DbType dialect = resolveTargetDialect(target);
+        if (dialect == null || !rdbmsWriterPlugins.isSupported(dialect)) {
+            throw new ApiException(400, "Unsupported target dialect '" + (dialect == null ? target.getTargetType() : dialect)
+                + "'; supported RDBMS dialects: " + rdbmsWriterPlugins.supportedDialectsText()
+                + " (plus " + String.join(", ", HDFS_TARGET_TYPES) + " for Hive/HDFS)");
+        }
+        rdbmsWriterPlugins.requireInstalled(dialect);
+    }
+
+    /**
+     * The JDBC url is authoritative for the dialect because it decides the driver and the writer plugin;
+     * target_type is only a label that may lag behind a connection change.
+     */
+    private DbType resolveTargetDialect(EtlTarget target)
+    {
+        String config = target.getConnectConfig();
+        if (config != null && !config.isBlank()) {
+            try {
+                JsonNode node = objectMapper.readTree(config);
+                JsonNode url = node.get("url");
+                if (url != null && !url.isNull() && !url.asText().isBlank()) {
+                    return getDbType(url.asText());
+                }
+            }
+            catch (Exception e) {
+                log.debug("Failed to resolve target dialect from connectConfig: {}", e.getMessage());
+            }
+        }
+        return DbType.fromValue(target.getTargetType()).orElse(null);
     }
 
     private String normalizeType(String targetType)

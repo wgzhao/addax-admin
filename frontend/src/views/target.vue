@@ -277,7 +277,8 @@
   const enabledOnly = ref(true);
   const dialogVisible = ref(false);
   const searchValue = ref('');
-  const targetTypes = ['HDFS', 'MYSQL', 'POSTGRESQL', 'ORACLE', 'SQLSERVER', 'CLICKHOUSE'];
+  // Phase 1 only offers dialects that are implemented end to end (writer plugin + dialect-aware DDL).
+  const targetTypes = ['HDFS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'];
   const writerTemplateOptions = ref<{ label: string; value: string }[]>([]);
 
   const headers = [
@@ -315,9 +316,7 @@
       HDFS: 'primary',
       MYSQL: 'success',
       POSTGRESQL: 'info',
-      ORACLE: 'warning',
       SQLSERVER: 'secondary',
-      CLICKHOUSE: 'error',
     };
     return colorMap[targetType || ''] || 'secondary';
   };

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wgzhao.addax.admin.service.target.TargetTypeResolver;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -51,6 +52,7 @@ public class JobContentService
     private final RiskLogService riskLogService;
     private final StatService statService;
     private final ObjectMapper objectMapper;
+    private final TargetTypeResolver targetTypeResolver;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -90,7 +92,7 @@ public class JobContentService
         values.put("reader", fillRdbmsReaderJobForDate(etlTable, dateValues, fillbackLastEtlDate));
         values.put("writer", targetService.buildWriterJobForDate(etlTable, targetDate));
 
-        String jobTemplate = configService.getRdbms2HdfsJobTemplate();
+        String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
         return mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
     }
@@ -115,7 +117,7 @@ public class JobContentService
         values.put("reader", fillRdbmsReaderJob(etlTable));
         values.put("writer", targetService.buildWriterJob(etlTable));
 
-        String jobTemplate = configService.getRdbms2HdfsJobTemplate();
+        String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
         String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
 
@@ -124,6 +126,22 @@ public class JobContentService
         jourService.successJour(etlJour);
         log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
         return TaskResultDto.success("更新采集任务模板成功", 0);
+    }
+
+    /**
+     * Pick the main job template by target family. The R2H and R2R templates are structurally identical;
+     * keeping them separate lets RDBMS targets tune their own speed/setting without touching HDFS jobs.
+     * The family comes from the same resolver the adapter registry uses, so the template and adapter
+     * never disagree (e.g. writer key wR with a stale target_type).
+     */
+    private String resolveJobTemplate(VwEtlTableWithSource etlTable)
+    {
+        String family = targetTypeResolver.resolveAdapterType(etlTable == null ? null : etlTable.getId());
+        if ("HDFS".equalsIgnoreCase(family))
+        {
+            return configService.getRdbms2HdfsJobTemplate();
+        }
+        return configService.getRdbms2RdbmsJobTemplate();
     }
 
     private String mergePluginConfigIntoJob(String job, VwEtlTableWithSource etlTable)

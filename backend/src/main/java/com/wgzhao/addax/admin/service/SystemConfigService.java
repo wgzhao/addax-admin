@@ -106,7 +106,9 @@ public class SystemConfigService
         tmp.put("SCHEMA_REFRESH_TIMEOUT", dictService.getSchemaRefreshTimeout());
         tmp.put("RDBMS_READER_TEMPLATE", dictService.getRdbmsReaderTemplate());
         tmp.put("HDFS_WRITER_TEMPLATE", dictService.getHdfsWriterTemplate());
+        tmp.put("RDBMS_WRITER_TEMPLATE", dictService.getRdbmsWriterTemplate());
         tmp.put("RDBMS2HDFS_JOB_TEMPLATE", dictService.getRdbms2HdfsJobTemplate());
+        tmp.put("RDBMS2RDBMS_JOB_TEMPLATE", dictService.getRdbms2RdbmsJobTemplate());
         tmp.put("L2TD", dictService.bizDateAdd(bizDateStr, -1));
         return tmp;
     }
@@ -305,6 +307,20 @@ public class SystemConfigService
             log.warn("Failed to read RDBMS2HDFS_JOB_TEMPLATE from redis: {}", e.getMessage());
         }
         return dictService.getRdbms2HdfsJobTemplate();
+    }
+
+    public String getRdbms2RdbmsJobTemplate()
+    {
+        try {
+            String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "RDBMS2RDBMS_JOB_TEMPLATE");
+            if (s != null && !s.isEmpty()) {
+                return s;
+            }
+        }
+        catch (Exception e) {
+            log.warn("Failed to read RDBMS2RDBMS_JOB_TEMPLATE from redis: {}", e.getMessage());
+        }
+        return dictService.getRdbms2RdbmsJobTemplate();
     }
 
     /**

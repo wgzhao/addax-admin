@@ -32,6 +32,45 @@ import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 @Slf4j
 public class DictService
 {
+    // Built-in fallbacks so RDBMS targets work on existing deployments that predate the
+    // wR / R2R dict rows. Fresh installs seed the same content via scripts/data.sql.
+    private static final String DEFAULT_RDBMS_WRITER_TEMPLATE = """
+        {
+            "name": "${name}",
+            "parameter": {
+                "username": "${username}",
+                "password": "${password}",
+                "column": [${column}],
+                "writeMode": "${writeMode}",
+                "batchSize": 1024,
+                "preSql": [],
+                "postSql": [],
+                "connection": {
+                    "table": [ "${table}" ],
+                    "jdbcUrl": "${jdbcUrl}"
+                }
+            }
+        }
+        """;
+
+    private static final String DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE = """
+        {
+          "job": {
+            "content": {
+                "reader": ${reader},
+                 "writer": ${writer},
+              "setting": {
+                "speed": {
+                  "batchSize": 20480,
+                  "bytes": -1,
+                  "channel": 1
+                }
+              }
+            }
+          }
+        }
+        """;
+
     private final SysItemRepo sysItemRepo;
     private final SysDictRepo sysDictRepo;
 
@@ -155,6 +194,12 @@ public class DictService
         return getItemValue(5000, "R2H", String.class);
     }
 
+    public String getRdbms2RdbmsJobTemplate()
+    {
+        String res = getItemValue(5000, "R2R", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE : res;
+    }
+
     // 读取 RDBMS Reader 模板
     public String getRdbmsReaderTemplate()
     {
@@ -165,6 +210,70 @@ public class DictService
     public String getHdfsWriterTemplate()
     {
         return getItemValue(5001, "wH", String.class);
+    }
+
+    // 获取 RDBMS Writer 模板
+    public String getRdbmsWriterTemplate()
+    {
+        String res = getItemValue(5001, "wR", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_RDBMS_WRITER_TEMPLATE : res;
+    }
+
+    /**
+     * 按 writer 模板键读取模板，缺失的内置键回退到代码内置默认值，保证 RDBMS 目标端开箱可用。
+     *
+     * @param key writer 模板键（如 wH / wR）
+     * @return 模板内容，未命中返回 null
+     */
+    public String getWriterTemplate(String key)
+    {
+        if (key == null || key.isBlank())
+        {
+            return null;
+        }
+        String res = getItemValue(5001, key, String.class);
+        if (res != null && !res.isBlank())
+        {
+            return res;
+        }
+        if ("wR".equalsIgnoreCase(key))
+        {
+            return DEFAULT_RDBMS_WRITER_TEMPLATE;
+        }
+        return res;
+    }
+
+    /**
+     * Idempotently seed the built-in RDBMS templates. The Java constants are the single source of truth;
+     * seeding the dict rows (instead of duplicating them in scripts/data.sql) keeps fresh and existing
+     * installs identical and lets operators edit the templates afterwards.
+     */
+    public void ensureRdbmsTemplates()
+    {
+        ensureItem(5000, "R2R", DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE, "关系型数据库到关系型数据库的模板");
+        ensureItem(5001, "wR", DEFAULT_RDBMS_WRITER_TEMPLATE, "通用关系型数据库写入模板");
+    }
+
+    private void ensureItem(int dictCode, String itemKey, String itemValue, String remark)
+    {
+        try
+        {
+            if (sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey).isPresent())
+            {
+                return;
+            }
+            SysItem item = new SysItem();
+            item.setDictCode(dictCode);
+            item.setItemKey(itemKey);
+            item.setItemValue(itemValue);
+            item.setRemark(remark);
+            sysItemRepo.save(item);
+            log.info("Seeded dict item {}.{}", dictCode, itemKey);
+        }
+        catch (Exception e)
+        {
+            log.warn("Failed to seed dict item {}.{}: {}", dictCode, itemKey, e.getMessage());
+        }
     }
 
     /**
