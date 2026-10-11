@@ -28,6 +28,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
@@ -49,6 +52,9 @@ public class RdbmsTargetAdapter
     implements TargetAdapter
 {
     private static final String DEFAULT_WRITER_TEMPLATE_KEY = "wR";
+
+    // Report a missing writer plugin only once per plugin to avoid log spam on every job build.
+    private final Set<String> warnedMissingPlugins = ConcurrentHashMap.newKeySet();
 
     /**
      * Explicit dialect -> addax writer plugin name. Generic/unknown types are rejected so we never emit a
@@ -150,6 +156,14 @@ public class RdbmsTargetAdapter
                 }
                 log.info("create rdbms target table: {}", createSql);
                 stmt.execute(createSql);
+                for (EtlColumn col : columns)
+                {
+                    String commentSql = RdbmsDdlUtil.columnCommentStatement(dialect, tableRef, activeName(col), col.getColComment());
+                    if (commentSql != null)
+                    {
+                        stmt.execute(commentSql);
+                    }
+                }
                 jourService.successJour(etlJour);
             }
             if (!metadataOk)
@@ -240,6 +254,7 @@ public class RdbmsTargetAdapter
         String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
         String plugin = writerPluginName(resolveTargetType(table));
+        warnIfWriterPluginMissing(plugin);
 
         values.put("name", plugin);
         DbType dbType = resolveTargetDialect(table);
@@ -278,6 +293,33 @@ public class RdbmsTargetAdapter
                 + "'. Configure the target as a concrete RDBMS dialect (MYSQL, POSTGRESQL, ...).");
         }
         return plugin;
+    }
+
+    /**
+     * Warn (once per plugin) when the mapped writer plugin is not installed under ADDAX_HOME, which is
+     * what actually makes collection fail. Not fatal: the layout may differ across addax builds.
+     */
+    private void warnIfWriterPluginMissing(String plugin)
+    {
+        try
+        {
+            String home = dictService.getAddaxHome();
+            if (home == null || home.isBlank())
+            {
+                return;
+            }
+            Path dir = Path.of(home, "plugin", "writer", plugin);
+            if (Files.isDirectory(dir) || !warnedMissingPlugins.add(plugin))
+            {
+                return;
+            }
+            log.warn("addax writer plugin '{}' is mapped for this target but not found at {}. "
+                + "Collection jobs will fail until the plugin is installed.", plugin, dir);
+        }
+        catch (Exception e)
+        {
+            log.debug("Failed to check addax writer plugin dir: {}", e.getMessage());
+        }
     }
 
     private String resolveWriterTemplate(VwEtlTableWithSource table)
@@ -385,6 +427,14 @@ public class RdbmsTargetAdapter
                     !cur.nullable(), defaultValue, cur.autoIncrement());
             }
             executeDdl(conn, etlTable, ddl);
+            if (cur == null)
+            {
+                String commentSql = RdbmsDdlUtil.columnCommentStatement(dialect, tableRef, name, c.getColComment());
+                if (commentSql != null)
+                {
+                    executeDdl(conn, etlTable, commentSql);
+                }
+            }
         }
     }
 

@@ -135,6 +135,20 @@ public final class RdbmsDdlUtil
     }
 
     /**
+     * Column comments are inline for MySQL. PostgreSQL needs a separate COMMENT ON COLUMN; SQL Server
+     * would need extended properties, which we do not emit (a documented limitation).
+     */
+    public static String columnCommentStatement(DbType dialect, String tableRef, String name, String comment)
+    {
+        if (dialect != DbType.POSTGRESQL || comment == null || comment.isBlank())
+        {
+            return null;
+        }
+        return "COMMENT ON COLUMN " + tableRef + "." + quoteIdent(dialect, name)
+            + " IS '" + normalizeComment(comment) + "'";
+    }
+
+    /**
      * MySQL 的 MODIFY 是整列重定义，未重述的属性会被重置为默认值，因此需一并重述 NOT NULL / DEFAULT /
      * AUTO_INCREMENT，否则会静默丢掉目标表已有的约束。其余方言仅调整类型。
      */

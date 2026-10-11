@@ -244,6 +244,39 @@ public class DictService
     }
 
     /**
+     * Idempotently seed the built-in RDBMS templates. The Java constants are the single source of truth;
+     * seeding the dict rows (instead of duplicating them in scripts/data.sql) keeps fresh and existing
+     * installs identical and lets operators edit the templates afterwards.
+     */
+    public void ensureRdbmsTemplates()
+    {
+        ensureItem(5000, "R2R", DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE, "关系型数据库到关系型数据库的模板");
+        ensureItem(5001, "wR", DEFAULT_RDBMS_WRITER_TEMPLATE, "通用关系型数据库写入模板");
+    }
+
+    private void ensureItem(int dictCode, String itemKey, String itemValue, String remark)
+    {
+        try
+        {
+            if (sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey).isPresent())
+            {
+                return;
+            }
+            SysItem item = new SysItem();
+            item.setDictCode(dictCode);
+            item.setItemKey(itemKey);
+            item.setItemValue(itemValue);
+            item.setRemark(remark);
+            sysItemRepo.save(item);
+            log.info("Seeded dict item {}.{}", dictCode, itemKey);
+        }
+        catch (Exception e)
+        {
+            log.warn("Failed to seed dict item {}.{}: {}", dictCode, itemKey, e.getMessage());
+        }
+    }
+
+    /**
      * 获取 Addax 任务模板内容
      *
      * @param kind 模板类型标识
