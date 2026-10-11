@@ -28,7 +28,7 @@ public final class RdbmsDdlUtil
         BINARY, JSON, RAW
     }
 
-    private static final Pattern CHAR_LEN = Pattern.compile("^(?:var)?char2?\\s*\\(\\s*(\\d+)");
+    private static final Pattern CHAR_LEN = Pattern.compile("^n?(?:var)?char2?\\s*\\(\\s*(\\d+)");
     private static final Pattern DECIMAL_PS = Pattern.compile("^(?:decimal|numeric)\\s*\\(\\s*(\\d+)\\s*,\\s*(\\d+)");
 
     public static String quoteIdent(DbType dialect, String name)
@@ -60,6 +60,11 @@ public final class RdbmsDdlUtil
         if (db == null || db.isBlank())
         {
             return quoteIdent(dialect, table);
+        }
+        if (dialect == DbType.SQLSERVER)
+        {
+            // SQL Server is database.schema.table; the schema defaults to dbo.
+            return quoteIdent(dialect, db) + ".[dbo]." + quoteIdent(dialect, table);
         }
         return quoteIdent(dialect, db) + "." + quoteIdent(dialect, table);
     }
@@ -113,7 +118,8 @@ public final class RdbmsDdlUtil
                 }
                 return sb.toString();
             case SQLSERVER:
-                return "IF OBJECT_ID(" + tableRef + ", 'U') IS NULL CREATE TABLE " + tableRef + " (\n" + body + "\n)";
+                // OBJECT_ID takes a string literal, not an identifier.
+                return "IF OBJECT_ID('" + tableRef + "', 'U') IS NULL CREATE TABLE " + tableRef + " (\n" + body + "\n)";
             default:
                 return "CREATE TABLE IF NOT EXISTS " + tableRef + " (\n" + body + "\n)";
         }
@@ -139,6 +145,12 @@ public final class RdbmsDdlUtil
         {
             return "ALTER TABLE " + tableRef + " ALTER COLUMN " + quoteIdent(dialect, name)
                 + " TYPE " + typeExpr;
+        }
+        if (dialect == DbType.SQLSERVER)
+        {
+            // SQL Server has no MODIFY COLUMN; ALTER COLUMN also can't restate DEFAULT/AUTO_INCREMENT.
+            return "ALTER TABLE " + tableRef + " ALTER COLUMN " + quoteIdent(dialect, name) + " " + typeExpr
+                + (notNull ? " NOT NULL" : " NULL");
         }
         StringBuilder sb = new StringBuilder("ALTER TABLE ").append(tableRef)
             .append(" MODIFY COLUMN ").append(quoteIdent(dialect, name)).append(' ').append(typeExpr);
@@ -382,6 +394,10 @@ public final class RdbmsDdlUtil
                 {
                     return "tinyint(1)";
                 }
+                if (dialect == DbType.SQLSERVER)
+                {
+                    return "bit";
+                }
                 return "boolean";
             case DECIMAL:
             {
@@ -394,25 +410,45 @@ public final class RdbmsDdlUtil
                 return (dialect == DbType.POSTGRESQL ? "numeric(" : "decimal(") + p + "," + s + ")";
             }
             case FLOAT:
-                return dialect == DbType.POSTGRESQL ? "real" : "float";
+                return (dialect == DbType.POSTGRESQL || dialect == DbType.SQLSERVER) ? "real" : "float";
             case DOUBLE:
-                return dialect == DbType.POSTGRESQL ? "double precision" : "double";
+                if (dialect == DbType.POSTGRESQL)
+                {
+                    return "double precision";
+                }
+                return dialect == DbType.SQLSERVER ? "float" : "double";
             case DATE:
                 return "date";
             case TIME:
                 return "time";
             case TIMESTAMP:
-                return dialect == DbType.MYSQL ? "datetime" : "timestamp";
+                if (dialect == DbType.MYSQL)
+                {
+                    return "datetime";
+                }
+                return dialect == DbType.SQLSERVER ? "datetime2" : "timestamp";
             case TIMESTAMPTZ:
-                return dialect == DbType.POSTGRESQL ? "timestamptz" : "timestamp";
+                if (dialect == DbType.POSTGRESQL)
+                {
+                    return "timestamptz";
+                }
+                return dialect == DbType.SQLSERVER ? "datetimeoffset" : "timestamp";
             case BINARY:
                 if (dialect == DbType.MYSQL)
                 {
                     return "longblob";
                 }
-                return dialect == DbType.POSTGRESQL ? "bytea" : "blob";
+                if (dialect == DbType.POSTGRESQL)
+                {
+                    return "bytea";
+                }
+                return dialect == DbType.SQLSERVER ? "varbinary(max)" : "blob";
             case JSON:
-                return dialect == DbType.POSTGRESQL ? "jsonb" : "json";
+                if (dialect == DbType.POSTGRESQL)
+                {
+                    return "jsonb";
+                }
+                return dialect == DbType.SQLSERVER ? "nvarchar(max)" : "json";
             case RAW:
             default:
                 // Unknown/source-specific type: keep the source spelling as a last resort.

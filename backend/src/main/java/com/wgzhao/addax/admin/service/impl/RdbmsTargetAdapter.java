@@ -247,6 +247,11 @@ public class RdbmsTargetAdapter
         if (dbType == DbType.POSTGRESQL) {
             values.put("table", quoteIfNeeded(table.getTargetTable(), dbType));
         }
+        else if (dbType == DbType.SQLSERVER) {
+            // SQL Server resolves a two-part name as schema.table, so qualify with the dbo schema.
+            values.put("table", quoteIfNeeded(table.getTargetDb(), dbType) + ".dbo."
+                + quoteIfNeeded(table.getTargetTable(), dbType));
+        }
         else {
             values.put("table", quoteIfNeeded(table.getTargetDb(), dbType) + "." + quoteIfNeeded(table.getTargetTable(), dbType));
         }
@@ -426,13 +431,14 @@ public class RdbmsTargetAdapter
      */
     private SourceMeta loadSourceMeta(VwEtlTableWithSource etlTable, DbType targetDialect)
     {
-        if (targetDialect != DbType.MYSQL || etlTable.getUrl() == null
-            || etlTable.getSourceDb() == null || etlTable.getSourceTable() == null
-            || etlTable.getSourceTable().contains("${")
-            || getDbType(etlTable.getUrl()) != DbType.MYSQL)
+        if (etlTable.getUrl() == null || etlTable.getSourceTable() == null
+            || etlTable.getSourceTable().contains("${"))
         {
             return SourceMeta.EMPTY;
         }
+        DbType sourceDialect = getDbType(etlTable.getUrl());
+        // Verbatim types / NOT NULL are only meaningful when the source and target share the MySQL dialect.
+        boolean verbatim = targetDialect == DbType.MYSQL && sourceDialect == DbType.MYSQL && etlTable.getSourceDb() != null;
         String sql = "select column_name, column_type, is_nullable from information_schema.columns "
             + "where table_schema = ? and table_name = ?";
         try (Connection c = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass()))
@@ -443,30 +449,36 @@ public class RdbmsTargetAdapter
             }
             Map<String, String> types = new HashMap<>();
             Set<String> notNull = new HashSet<>();
-            try (PreparedStatement ps = c.prepareStatement(sql))
+            if (verbatim)
             {
-                ps.setString(1, etlTable.getSourceDb());
-                ps.setString(2, etlTable.getSourceTable());
-                try (ResultSet rs = ps.executeQuery())
+                try (PreparedStatement ps = c.prepareStatement(sql))
                 {
-                    while (rs.next())
+                    ps.setString(1, etlTable.getSourceDb());
+                    ps.setString(2, etlTable.getSourceTable());
+                    try (ResultSet rs = ps.executeQuery())
                     {
-                        String name = rs.getString(1);
-                        String type = rs.getString(2);
-                        if (name != null && type != null && !type.isBlank())
+                        while (rs.next())
                         {
-                            String key = name.toLowerCase(Locale.ROOT);
-                            types.put(key, type);
-                            if ("NO".equalsIgnoreCase(rs.getString(3)))
+                            String name = rs.getString(1);
+                            String type = rs.getString(2);
+                            if (name != null && type != null && !type.isBlank())
                             {
-                                notNull.add(key);
+                                String key = name.toLowerCase(Locale.ROOT);
+                                types.put(key, type);
+                                if ("NO".equalsIgnoreCase(rs.getString(3)))
+                                {
+                                    notNull.add(key);
+                                }
                             }
                         }
                     }
                 }
             }
+            // The primary key is dialect-agnostic metadata, so collect it for every source dialect.
+            String catalog = (sourceDialect == DbType.MYSQL || sourceDialect == DbType.SQLSERVER)
+                && etlTable.getSourceDb() != null && !etlTable.getSourceDb().isBlank() ? etlTable.getSourceDb() : null;
             List<String> pk = new ArrayList<>();
-            try (ResultSet rs = c.getMetaData().getPrimaryKeys(etlTable.getSourceDb(), null, etlTable.getSourceTable()))
+            try (ResultSet rs = c.getMetaData().getPrimaryKeys(catalog, null, etlTable.getSourceTable()))
             {
                 while (rs.next())
                 {
@@ -507,8 +519,11 @@ public class RdbmsTargetAdapter
 
     private boolean tableExists(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
+        // MySQL and SQL Server treat the "database" as the JDBC catalog; other dialects scope by schema.
+        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
+            ? db : null;
         try (ResultSet rs = conn.getMetaData().getTables(
-            dialect == DbType.MYSQL && db != null && !db.isBlank() ? db : null,
+            catalog,
             null, table, new String[] {"TABLE"}))
         {
             return rs.next();
@@ -517,9 +532,11 @@ public class RdbmsTargetAdapter
 
     private Map<String, ColumnMeta> describeColumns(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
+        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
+            ? db : null;
         Map<String, ColumnMeta> cols = new LinkedHashMap<>();
         try (ResultSet rs = conn.getMetaData().getColumns(
-            dialect == DbType.MYSQL && db != null && !db.isBlank() ? db : null,
+            catalog,
             null, table, null))
         {
             while (rs.next())
@@ -543,9 +560,11 @@ public class RdbmsTargetAdapter
 
     private Set<String> targetPrimaryKeys(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
+        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
+            ? db : null;
         Set<String> pk = new HashSet<>();
         try (ResultSet rs = conn.getMetaData().getPrimaryKeys(
-            dialect == DbType.MYSQL && db != null && !db.isBlank() ? db : null, null, table))
+            catalog, null, table))
         {
             while (rs.next())
             {
