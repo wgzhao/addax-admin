@@ -273,6 +273,14 @@ public class JobContentService
                 srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
             }
         }
+        // Snapshot mode: append the business date as a literal expression so the RDBMS target carries a
+        // date column even though the source table has none. It is placed last and the writer template
+        // appends the same column last, which keeps the positional reader→writer mapping aligned.
+        String bizDateColumn = vTable.getRdbmsBusinessDateColumn();
+        if (bizDateColumn != null && !bizDateColumn.isBlank()) {
+            String bizDateValue = dateValues.getOrDefault("biz_date_short", "");
+            srcColumns.add("\"'" + bizDateValue + "' as " + bizDateColumn.trim() + "\"");
+        }
         values.put("column", String.join(", ", srcColumns));
         StringSubstitutor substitutor = new StringSubstitutor(values);
         return substitutor.replace(template);

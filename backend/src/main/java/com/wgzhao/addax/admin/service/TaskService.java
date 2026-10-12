@@ -358,8 +358,11 @@ public class TaskService
 
             String tableLabel = tableView.getTargetDb() + "." + tableView.getTargetTable();
 
-            // Non-partitioned tables cannot be fillbacked (multiple dates would overwrite each other)
-            if (tableView.getPartName() == null || tableView.getPartName().isBlank()) {
+            // Tables without a date dimension cannot be fillbacked: multiple dates would overwrite each
+            // other. HDFS uses a partition column, an RDBMS snapshot target uses a business date column.
+            boolean hasDateDimension = tableView.isPartitioned()
+                || (tableView.getRdbmsBusinessDateColumn() != null && !tableView.getRdbmsBusinessDateColumn().isBlank());
+            if (!hasDateDimension) {
                 String reason = "非分区表不支持补数，已跳过";
                 riskLogService.recordRisk("Fillback", "WARN",
                     tableLabel + ": " + reason, tid);

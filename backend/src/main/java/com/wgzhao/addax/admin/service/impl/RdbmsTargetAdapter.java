@@ -49,6 +49,7 @@ public class RdbmsTargetAdapter
     implements TargetAdapter
 {
     private static final String DEFAULT_WRITER_TEMPLATE_KEY = "wR";
+    private static final String BUSINESS_DATE_COMMENT = "业务日期";
 
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
@@ -104,19 +105,37 @@ public class RdbmsTargetAdapter
         List<EtlColumn> columns = columnService.getColumns(etlTable.getId());
         SourceMeta sourceMeta = loadSourceMeta(etlTable, dialect);
         Map<String, String> desiredTypes = new LinkedHashMap<>();
+        String bizDateColumn = normalizeColumn(etlTable.getRdbmsBusinessDateColumn());
+        boolean createPrimaryKey = etlTable.isRdbmsCreatePrimaryKey();
 
         List<String> colDefs = new ArrayList<>();
+        Set<String> definedColumns = new HashSet<>();
         for (EtlColumn c : columns)
         {
             String name = activeName(c);
             String key = name.toLowerCase(Locale.ROOT);
             String typeExpr = resolveColumnType(dialect, c, sourceMeta.columnTypes());
             desiredTypes.put(key, typeExpr);
+            definedColumns.add(key);
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
                 sourceMeta.notNull().contains(key), c.getColComment()));
         }
+        boolean carryBizDate = bizDateColumn != null;
+        if (carryBizDate && !definedColumns.contains(bizDateColumn.toLowerCase(Locale.ROOT)))
+        {
+            colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect),
+                true, BUSINESS_DATE_COMMENT));
+        }
+        List<String> primaryKeys = createPrimaryKey
+            ? new ArrayList<>(sourceMeta.primaryKeys())
+            : new ArrayList<>();
+        if (createPrimaryKey && carryBizDate)
+        {
+            // The business date is part of the key so one day's snapshot is idempotent and several days coexist.
+            primaryKeys.add(bizDateColumn);
+        }
         String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs,
-            sourceMeta.primaryKeys(), etlTable.getTblComment());
+            primaryKeys, etlTable.getTblComment());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createSql);
 
         try (Connection c = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
@@ -161,6 +180,7 @@ public class RdbmsTargetAdapter
                 if (existedBefore)
                 {
                     applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes, sourceMeta.notNull());
+                    ensureBusinessDateColumn(c, dialect, etlTable, bizDateColumn);
                 }
                 else
                 {
@@ -169,6 +189,7 @@ public class RdbmsTargetAdapter
                     applyNewTableComments(c, dialect, tableRef, etlTable, columns);
                 }
                 warnOnWriteModeWithoutKey(c, dialect, etlTable);
+                warnOnSnapshotWithoutKey(etlTable, createPrimaryKey, bizDateColumn);
             }
             catch (SQLException e)
             {
@@ -447,6 +468,55 @@ public class RdbmsTargetAdapter
             recordRisk(etlTable, "目标表 " + etlTable.getTargetDb() + "." + etlTable.getTargetTable()
                 + " 未定义主键/唯一键，writeMode=" + mode + " 会退化为普通插入，重复执行可能产生重复数据");
         }
+    }
+
+    /**
+     * A snapshot target needs a unique key to be re-runnable. Carrying the business date without
+     * creating a primary key means every day and every retry appends, so surface that instead of
+     * letting it duplicate silently.
+     */
+    private void warnOnSnapshotWithoutKey(VwEtlTableWithSource etlTable, boolean createPrimaryKey, String bizDateColumn)
+    {
+        if (bizDateColumn != null && !createPrimaryKey)
+        {
+            recordRisk(etlTable, "已配置快照业务日期列 " + bizDateColumn
+                + " 但关闭了主键创建，重复执行会产生重复数据，请通过 writeMode/preSql 自行保证幂等");
+        }
+    }
+
+    /**
+     * Business date values are injected by the reader as a compact literal, so the column is a plain
+     * string on every dialect; that keeps the DDL, the reader literal and the writer binding aligned.
+     */
+    private String businessDateColumnType(DbType dialect)
+    {
+        return dialect == DbType.SQLSERVER ? "nvarchar(8)" : "varchar(8)";
+    }
+
+    private String normalizeColumn(String column)
+    {
+        return column == null || column.isBlank() ? null : column.trim();
+    }
+
+    /**
+     * Add the snapshot business-date column to a target table created before the option was set.
+     */
+    private void ensureBusinessDateColumn(Connection conn, DbType dialect, VwEtlTableWithSource etlTable,
+        String bizDateColumn) throws SQLException
+    {
+        if (bizDateColumn == null)
+        {
+            return;
+        }
+        Map<String, ColumnMeta> current = describeColumns(conn, dialect, etlTable.getTargetDb(),
+            etlTable.getTargetTable());
+        if (current.containsKey(bizDateColumn.toLowerCase(Locale.ROOT)))
+        {
+            return;
+        }
+        String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+        executeDdl(conn, etlTable, RdbmsDdlUtil.addColumn(dialect, tableRef,
+            RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect), true, BUSINESS_DATE_COMMENT)));
     }
 
     private String resolveColumnType(DbType dialect, EtlColumn column, Map<String, String> verbatim)
@@ -728,6 +798,13 @@ public class RdbmsTargetAdapter
             }
             // ${column} is expanded inside a JSON array, so every entry must be a complete JSON string.
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, columnName)) + '"');
+        }
+        // Snapshot mode: the reader injects the business date literal last, so the writer must carry the
+        // column in the same position for the positional mapping to line up.
+        String bizDateColumn = normalizeColumn(table.getRdbmsBusinessDateColumn());
+        if (bizDateColumn != null)
+        {
+            columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }
         return String.join(", ", columns);
     }
