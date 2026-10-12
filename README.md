@@ -74,6 +74,25 @@ addax-admin/
 - 暂未支持的方言：Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时会直接报错，不会生成引用不存在 writer 插件的采集任务。
 - 已知限制：SQL Server 列注释不落地；跨方言的 `enum`/`set` 退化为字符串列；源端 `DEFAULT` 仅在类型演化时重述、建表时不复制；宽字符集下的宽主键（如 `utf8mb4 varchar(1000)`）可能超过 InnoDB 3072 字节索引上限。
 
+### 目标端表属性（阶段二）
+
+目标端专属属性不再钉死在 `etl_table` 上，而是按目标端族存放在 `etl_table.target_options`（jsonb）：
+
+| 分组 | 属性 | 说明 |
+| --- | --- | --- |
+| `hdfs` | `partKind` / `partName` / `partFormat` / `storageFormat` / `compressFormat` | Hive/HDFS 的分区与存储属性；`partName` 为空表示非分区表 |
+| `rdbms` | `businessDateColumn` | 快照业务日期列，为空表示不承载业务日期 |
+| `rdbms` | `createPrimaryKey` | 是否按源端主键在目标表建主键，默认开 |
+
+表详情与批量创建表单按目标端能力动态渲染：Hive 目标端显示分区/存储字段，关系型目标端显示快照日期列与主键开关。
+
+- 快照式采集：配置 `businessDateColumn`（如 `logdate`）后，目标表会多出一列 `varchar(8)`（SQL Server 为 `nvarchar(8)`），建表时把业务日期并入主键，采集时由 reader 注入当天的业务日期字面量。同一天重跑（`replace`/`update`）幂等，不同天数据可以并存；这类表也支持补数。
+- 主键开关：关闭 `createPrimaryKey` 后建表不再生成主键，重复执行的去重交给 `writeMode` / `preSql`；配置了快照日期列又关闭主键时会记录风险日志提醒。
+
+升级说明：从 v4.2.0 升级时无需手工改表——服务启动会自动执行一次幂等迁移，把 `etl_table` 的
+`part_kind`/`part_name`/`part_format`/`storage_format`/`compress_format` 回填进 `target_options`，
+重建 `vw_etl_table_with_source` 视图，然后删除旧的 5 列。全新安装直接以 `scripts/schema.sql` 为准。
+
 ---
 
 ## 🚀 快速开始（5 分钟部署）
