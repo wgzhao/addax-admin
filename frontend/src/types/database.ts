@@ -219,7 +219,8 @@ export interface EtlTable {
   sourceTable: string; // 采集源表名
   targetDb: string; // 目标库名，即提供给hive的库名
   targetTable: string; // 目标表名，即Hive的表名
-  targetOptions?: EtlTargetOptions; // 目标端专属属性（hdfs / rdbms）
+  // 目标端专属属性（hdfs / rdbms）。只会携带该目标端族真正使用的段，见 pickTargetOptions。
+  targetOptions?: Partial<EtlTargetOptions>;
   splitPk?: string; // 指定切分字段
   autoPk?: boolean; // 是否自动获取切分字段
   filter?: string; // 采集过滤条件，即where条件

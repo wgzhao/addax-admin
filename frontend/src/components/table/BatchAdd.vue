@@ -124,7 +124,7 @@
   import targetService from '@/service/target-service';
   import dictService from '@/service/dict-service';
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils';
-  import { normalizeTargetOptions } from '@/utils/target-options';
+  import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
   import {
     EtlSource,
     EtlTable,
@@ -191,6 +191,9 @@
   const sourceDbs = ref<string[]>([]);
 
   const selectedCnt = computed(() => selectedTables.value.length);
+  const selectedTargetType = computed(
+    () => targetEndpoints.value.find(t => t.value === targetId.value)?.targetType
+  );
   const selectedSourceLabel = computed(() =>
     selectedSourceId.value
       ? `${selectedSourceId.value.code} · ${selectedSourceId.value.name}`
@@ -284,7 +287,7 @@
           newItem.sourceDb = selectedDb.value!;
           newItem.sourceTable = element.name;
           newItem.targetDb = targetDb.value;
-          newItem.targetOptions = normalizeTargetOptions(tableOptions.value);
+          newItem.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
           newItem.targetId = targetId.value;
           newItem.targetTable = element.name;
           newItem.tblComment = element.comment;
@@ -332,7 +335,7 @@
     const itemsToSave = selectedTables.value.map(item => {
       const s = { ...item };
       s.targetDb = targetDb.value;
-      s.targetOptions = normalizeTargetOptions(tableOptions.value);
+      s.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
       s.targetId = targetId.value;
       if (!s.targetTable) s.targetTable = s.sourceTable;
       return s;

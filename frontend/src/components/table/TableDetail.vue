@@ -49,7 +49,7 @@
   import targetService from '@/service/target-service';
   import { VEtlWithSource, EtlTable, EtlTarget } from '@/types/database';
   import { toJsonText, parseJsonObjectOrNull } from '@/utils/json-plugin';
-  import { normalizeTargetOptions } from '@/utils/target-options';
+  import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
   import HeroSummaryCard from './detail/HeroSummaryCard.vue';
   import BasicFieldsCard from './detail/BasicFieldsCard.vue';
   import MappingScheduleCard from './detail/MappingScheduleCard.vue';
@@ -135,7 +135,7 @@
       sourceTable: table.value.sourceTable,
       targetDb: table.value.targetDb,
       targetTable: table.value.targetTable,
-      targetOptions: table.value.targetOptions,
+      targetOptions: pickTargetOptions(table.value.targetOptions, selectedTargetType.value),
       splitPk: table.value.splitPk,
       autoPk: table.value.autoPk,
       filter: table.value.filter,

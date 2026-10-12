@@ -41,3 +41,17 @@ export function normalizeTargetOptions(
     rdbms: { ...DEFAULT_RDBMS_OPTIONS, ...(options?.rdbms || {}) },
   };
 }
+
+/**
+ * Only keep the section the target family actually uses. Writing the Hive section for an RDBMS target
+ * left a misleading `partName` on the table, which the backend then mistook for a real date dimension.
+ */
+export function pickTargetOptions(
+  options?: Partial<EtlTargetOptions> | null,
+  targetType?: string | null
+): Partial<EtlTargetOptions> {
+  const normalized = normalizeTargetOptions(options);
+  return targetFamily(targetType) === 'hdfs'
+    ? { hdfs: normalized.hdfs }
+    : { rdbms: normalized.rdbms };
+}
