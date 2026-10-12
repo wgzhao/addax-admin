@@ -363,8 +363,7 @@ public class TaskService
             // Tables without a date dimension cannot be fillbacked: multiple dates would overwrite each
             // other. Ask the target adapter instead of reading Hive columns directly, so an RDBMS target
             // is judged by its own business date column rather than by a leftover partition attribute.
-            String dateColumn = targetService.dateDimensionColumn(tableView);
-            if (dateColumn == null) {
+            if (!targetService.hasDateDimension(tableView)) {
                 String reason = "该表没有可用的日期维度（HDFS 分区字段或 RDBMS 快照业务日期列），不支持补数";
                 riskLogService.recordRisk("Fillback", "WARN",
                     tableLabel + ": " + reason, tid);

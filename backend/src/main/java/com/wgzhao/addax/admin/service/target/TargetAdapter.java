@@ -16,13 +16,13 @@ public interface TargetAdapter
     String getType();
 
     /**
-     * 该目标端用来承载业务日期的列名：HDFS 是分区字段，RDBMS 是快照业务日期列。
-     * 返回 null 表示这个目标端没有日期维度（不能按天补数、也不能按天幂等）。
-     * 通用链路只问这个能力，不再自己判断分区字段等 Hive 概念。
+     * Whether this target carries a per-day value: HDFS uses its partition column, RDBMS uses the
+     * snapshot business date column. Generic code asks this capability instead of reading Hive fields,
+     * so a target without a date dimension is never treated as if it had one.
      */
-    default String dateDimensionColumn(VwEtlTableWithSource table)
+    default boolean hasDateDimension(VwEtlTableWithSource table)
     {
-        return null;
+        return false;
     }
 
     boolean addPartition(long taskId, String db, String table, String partName, String partValue);

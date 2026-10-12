@@ -1,67 +1,63 @@
 package com.wgzhao.addax.admin.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 /**
  * Typed access to {@code etl_table.target_options}.
  *
  * <p>Target-specific attributes live in a namespaced bag (hdfs / rdbms / ...) instead of fixed columns
  * on {@code etl_table}, so a new target never grows the table and Hive-only concepts stop being table
- * level assumptions. Absent keys fall back to the historical defaults so a row written before the
- * migration keeps behaving the way it used to.</p>
+ * level assumptions.</p>
+ *
+ * <p>The accessors are deliberately literal: an absent section or key returns {@code null} rather than a
+ * default. A default here would be target-blind — {@code partName} would keep reporting "logdate" for
+ * every RDBMS row, the very bug this bag removes. Each adapter owns the defaults it actually needs:
+ * the HDFS adapter falls back to the global HDFS settings for storage/compression, and a missing
+ * partition column simply means the table is not partitioned.</p>
  */
 public final class TargetOptions
 {
     public static final String HDFS = "hdfs";
     public static final String RDBMS = "rdbms";
 
-    public static final String DEFAULT_PART_KIND = "D";
-    public static final String DEFAULT_PART_NAME = "logdate";
-    public static final String DEFAULT_PART_FORMAT = Constants.DEFAULT_PART_FORMAT;
-    public static final String DEFAULT_STORAGE_FORMAT = "orc";
-    public static final String DEFAULT_COMPRESS_FORMAT = "snappy";
-
-    private static final JsonNodeFactory NODES = JsonNodeFactory.instance;
-
     private TargetOptions()
     {
     }
 
     /**
-     * The Hive storage section, or an empty object so callers can read the defaults. Never returns null.
+     * Section of the bag, or null when this target family has no attributes on the row.
      */
     public static JsonNode section(JsonNode root, String section)
     {
         if (root == null || !root.isObject())
         {
-            return NODES.objectNode();
+            return null;
         }
         JsonNode node = root.get(section);
-        return node != null && node.isObject() ? node : NODES.objectNode();
+        return node != null && node.isObject() ? node : null;
     }
 
-    private static String text(JsonNode node, String key, String fallback)
+    private static String text(JsonNode section, String key)
     {
-        if (node == null)
+        if (section == null)
         {
-            return fallback;
+            return null;
         }
-        JsonNode value = node.get(key);
+        JsonNode value = section.get(key);
         if (value == null || value.isNull())
         {
-            return fallback;
+            return null;
         }
         return value.asText();
     }
 
-    private static boolean flag(JsonNode node, String key, boolean fallback)
+    private static boolean flag(JsonNode section, String key, boolean fallback)
     {
-        if (node == null)
+        if (section == null)
         {
             return fallback;
         }
-        JsonNode value = node.get(key);
+        JsonNode value = section.get(key);
         if (value == null || value.isNull())
         {
             return fallback;
@@ -73,39 +69,43 @@ public final class TargetOptions
 
     public static String hdfsPartKind(JsonNode root)
     {
-        return text(section(root, HDFS), "partKind", DEFAULT_PART_KIND);
+        return text(section(root, HDFS), "partKind");
     }
 
     public static String hdfsPartName(JsonNode root)
     {
-        return text(section(root, HDFS), "partName", DEFAULT_PART_NAME);
+        return text(section(root, HDFS), "partName");
     }
 
     public static String hdfsPartFormat(JsonNode root)
     {
-        return text(section(root, HDFS), "partFormat", DEFAULT_PART_FORMAT);
+        return text(section(root, HDFS), "partFormat");
     }
 
     public static String hdfsStorageFormat(JsonNode root)
     {
-        return text(section(root, HDFS), "storageFormat", DEFAULT_STORAGE_FORMAT);
+        return text(section(root, HDFS), "storageFormat");
     }
 
     public static String hdfsCompressFormat(JsonNode root)
     {
-        return text(section(root, HDFS), "compressFormat", DEFAULT_COMPRESS_FORMAT);
+        return text(section(root, HDFS), "compressFormat");
     }
 
     // --------------------------------------------------------------- rdbms
 
     /**
-     * Business date column carried into the target for snapshot collection, empty when unused.
+     * Business date column carried into the target for snapshot collection, null when unused.
      */
     public static String rdbmsBusinessDateColumn(JsonNode root)
     {
-        return text(section(root, RDBMS), "businessDateColumn", "");
+        return text(section(root, RDBMS), "businessDateColumn");
     }
 
+    /**
+     * A row that never configured the key means "create the primary key": the option only exists to turn
+     * it off, so an absent key cannot be read as "off".
+     */
     public static boolean rdbmsCreatePrimaryKey(JsonNode root)
     {
         return flag(section(root, RDBMS), "createPrimaryKey", true);

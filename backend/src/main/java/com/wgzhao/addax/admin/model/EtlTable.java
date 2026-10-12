@@ -48,7 +48,8 @@ public class EtlTable
     private String targetTable;
 
     /**
-     * 目标端专属属性，按目标端族分组保存（hdfs / rdbms / ...），避免 Hive 专属字段钉死在 etl_table 上。
+     * Target-specific attributes, grouped per target family (hdfs / rdbms / ...), so Hive-only fields
+     * are no longer pinned onto etl_table.
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "target_options", columnDefinition = "jsonb")
@@ -112,10 +113,12 @@ public class EtlTable
     @Column(name = "start_at")
     private LocalTime startAt;
 
-    @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , target_options::text , filter))")
+    // Only the partition column name is searchable, not the whole bag: matching target_options::text made
+    // a search for "hdfs" (or a storage format) hit every Hive table.
+    @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , target_options->'hdfs'->>'partName' , filter))")
     private String filterColumn;
 
-    // ---- derived Hive/HDFS attributes (persisted in target_options) -----------------------------
+    // ---- derived Hive/HDFS attributes (stored in target_options, read-only here) -----------------
 
     @JsonIgnore
     public String getPartKind()

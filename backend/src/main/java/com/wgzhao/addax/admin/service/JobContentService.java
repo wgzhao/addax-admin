@@ -274,13 +274,14 @@ public class JobContentService
             }
         }
         // Snapshot mode: append the business date as a literal expression so the RDBMS target carries a
-        // date column even though the source table has none. It is placed last and the writer template
-        // appends the same column last, which keeps the positional reader→writer mapping aligned. When the
-        // source already provides a column with that name, reuse it instead of injecting a duplicate.
+        // date column even though the source table has none. It goes last and the writer appends the same
+        // column last (see RdbmsTargetAdapter.getRdbmsWriteColumns) so the positional mapping stays
+        // aligned; a source column with that name is reused instead of injected. The identifier is quoted
+        // like every other reader column, otherwise a reserved word such as "date" only breaks the reader.
         String bizDateColumn = vTable.getRdbmsBusinessDateColumn();
-        if (bizDateColumn != null && !bizDateColumn.isBlank() && !ColumnService.hasColumn(columnList, bizDateColumn)) {
+        if (ColumnService.needsInjectedBusinessDate(columnList, bizDateColumn)) {
             String bizDateValue = dateValues.getOrDefault("biz_date_short", "");
-            srcColumns.add("\"'" + bizDateValue + "' as " + bizDateColumn.trim() + "\"");
+            srcColumns.add("\"'" + bizDateValue + "' as " + quoteIfNeeded(bizDateColumn.trim(), dbType) + "\"");
         }
         values.put("column", String.join(", ", srcColumns));
         StringSubstitutor substitutor = new StringSubstitutor(values);

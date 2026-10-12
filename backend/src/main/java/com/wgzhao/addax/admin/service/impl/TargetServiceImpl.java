@@ -28,9 +28,9 @@ public class TargetServiceImpl
     private final TargetServiceWithHiveImpl hiveTargetAdapter;
 
     @Override
-    public String dateDimensionColumn(VwEtlTableWithSource table)
+    public boolean hasDateDimension(VwEtlTableWithSource table)
     {
-        return targetAdapterRegistry.resolve(table).dateDimensionColumn(table);
+        return targetAdapterRegistry.resolve(table).hasDateDimension(table);
     }
 
     @Override

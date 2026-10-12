@@ -58,7 +58,9 @@ public class VwEtlTableWithSource
     private String startAt;
     private Boolean enabled;
     private String tblComment;
-    @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , target_options::text , code, name))")
+    // Only the partition column name is searchable, not the whole bag: matching target_options::text made
+    // a search for "hdfs" (or a storage format) hit every Hive table.
+    @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , target_options->'hdfs'->>'partName' , code, name))")
     private String filterColumn;
     private Integer maxConcurrency;
     private String splitPk;
@@ -80,7 +82,7 @@ public class VwEtlTableWithSource
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
 
-    // ---- derived Hive/HDFS attributes (persisted in target_options) -----------------------------
+    // ---- derived target attributes (stored in target_options, read-only here) -------------------
 
     @JsonIgnore
     public String getPartKind()

@@ -20,10 +20,10 @@ public interface TargetService
 {
 
     /**
-     * 目标端用来承载业务日期的列名（HDFS 分区字段 / RDBMS 快照业务日期列）。
-     * 返回 null 表示该表没有日期维度，不能按天补数。
+     * Whether this table has a per-target date dimension (HDFS partition column or RDBMS snapshot
+     * business date column). Without one, several fillback dates would overwrite each other.
      */
-    String dateDimensionColumn(VwEtlTableWithSource table);
+    boolean hasDateDimension(VwEtlTableWithSource table);
 
     /**
      * 为指定 Hive 表添加分区。

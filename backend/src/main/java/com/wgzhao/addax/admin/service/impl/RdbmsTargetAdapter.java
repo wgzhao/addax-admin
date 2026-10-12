@@ -67,9 +67,9 @@ public class RdbmsTargetAdapter
     }
 
     @Override
-    public String dateDimensionColumn(VwEtlTableWithSource table)
+    public boolean hasDateDimension(VwEtlTableWithSource table)
     {
-        return table == null ? null : normalizeColumn(table.getRdbmsBusinessDateColumn());
+        return table != null && normalizeColumn(table.getRdbmsBusinessDateColumn()) != null;
     }
 
     @Override
@@ -125,14 +125,12 @@ public class RdbmsTargetAdapter
                 sourceMeta.notNull().contains(key), c.getColComment()));
         }
         boolean carryBizDate = bizDateColumn != null;
-        boolean bizDateColumnPresent = carryBizDate && ColumnService.hasColumn(columns, bizDateColumn);
-        boolean sourceProvidesBizDate = carryBizDate && ColumnService.hasActiveColumn(columns, bizDateColumn);
-        if (carryBizDate && !bizDateColumnPresent)
+        if (ColumnService.needsInjectedBusinessDate(columns, bizDateColumn))
         {
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect),
                 true, BUSINESS_DATE_COMMENT));
         }
-        else if (carryBizDate && !sourceProvidesBizDate)
+        else if (carryBizDate && !ColumnService.hasActiveColumn(columns, bizDateColumn))
         {
             // The physical column exists but the source only has a deleted placeholder for it, so the
             // snapshot date cannot be fed without colliding on the column name.
@@ -193,7 +191,13 @@ public class RdbmsTargetAdapter
                 if (existedBefore)
                 {
                     applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes, sourceMeta.notNull());
-                    ensureBusinessDateColumn(c, dialect, etlTable, bizDateColumn);
+                    if (ensureBusinessDateColumn(c, dialect, etlTable, bizDateColumn) && createPrimaryKey)
+                    {
+                        // The column can be added but not folded into an existing primary key, so a
+                        // same-day re-run may duplicate rows until a human widens the key.
+                        recordRisk(etlTable, "目标表已存在，快照业务日期列 " + bizDateColumn
+                            + " 已补加但不会加入已有主键；同一天重复执行可能产生重复数据，请人工确认或改用 preSql 清理当日数据");
+                    }
                 }
                 else
                 {
@@ -526,22 +530,28 @@ public class RdbmsTargetAdapter
     /**
      * Add the snapshot business-date column to a target table created before the option was set.
      */
-    private void ensureBusinessDateColumn(Connection conn, DbType dialect, VwEtlTableWithSource etlTable,
+    /**
+     * Add the snapshot business-date column to a target table created before the option was set.
+     *
+     * @return true when the column had to be added, false when it was already there (or not configured)
+     */
+    private boolean ensureBusinessDateColumn(Connection conn, DbType dialect, VwEtlTableWithSource etlTable,
         String bizDateColumn) throws SQLException
     {
         if (bizDateColumn == null)
         {
-            return;
+            return false;
         }
         Map<String, ColumnMeta> current = describeColumns(conn, dialect, etlTable.getTargetDb(),
             etlTable.getTargetTable());
         if (current.containsKey(bizDateColumn.toLowerCase(Locale.ROOT)))
         {
-            return;
+            return false;
         }
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         executeDdl(conn, etlTable, RdbmsDdlUtil.addColumn(dialect, tableRef,
             RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect), true, BUSINESS_DATE_COMMENT)));
+        return true;
     }
 
     private String resolveColumnType(DbType dialect, EtlColumn column, Map<String, String> verbatim)
@@ -828,7 +838,7 @@ public class RdbmsTargetAdapter
         // column in the same position for the positional mapping to line up. When the source already has
         // a column with that name the reader does not inject one, so do not repeat it here either.
         String bizDateColumn = normalizeColumn(table.getRdbmsBusinessDateColumn());
-        if (bizDateColumn != null && !ColumnService.hasColumn(columnList, bizDateColumn))
+        if (ColumnService.needsInjectedBusinessDate(columnList, bizDateColumn))
         {
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }

@@ -84,13 +84,9 @@ public class TargetServiceWithHiveImpl
     }
 
     @Override
-    public String dateDimensionColumn(VwEtlTableWithSource table)
+    public boolean hasDateDimension(VwEtlTableWithSource table)
     {
-        if (table == null || table.getPartName() == null || table.getPartName().isBlank())
-        {
-            return null;
-        }
-        return table.getPartName().trim();
+        return table != null && table.getPartName() != null && !table.getPartName().isBlank();
     }
 
     private static String normalizeComment(String v)
@@ -288,8 +284,10 @@ public class TargetServiceWithHiveImpl
     {
         String template = resolveWriterTemplate(table);
         Map<String, String> values = new HashMap<>();
-        values.put("compress", table.getCompressFormat());
-        values.put("fileType", table.getStorageFormat());
+        // A row may not carry storage/compression in its bag; fall back to the global HDFS settings, which
+        // is what the table DDL already uses, so the writer and the table it writes to cannot disagree.
+        values.put("compress", StringUtils.defaultIfBlank(table.getCompressFormat(), dictService.getHdfsCompress()));
+        values.put("fileType", StringUtils.defaultIfBlank(table.getStorageFormat(), dictService.getHdfsStorageFormat()));
         values.put("writeMode", table.getWriteMode());
         values.put("targetDb", table.getTargetDb());
         values.put("targetTable", table.getTargetTable());
