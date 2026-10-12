@@ -504,7 +504,8 @@ public class RdbmsTargetAdapter
         else
         {
             recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
-                + "，同一天重复执行会产生重复数据，请用 preSql 先清理当日数据（或自行建唯一键）保证幂等");
+                + "，目标表没有可用唯一键，请确认任务模板用 preSql 按日清理（或自行建唯一键），"
+                + "否则同一天的重复执行会追加重复数据");
         }
     }
 
