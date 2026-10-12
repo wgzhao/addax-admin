@@ -398,7 +398,8 @@ public class TableService
         task.setEndTime(new Timestamp(System.currentTimeMillis()));
         // Conditional update (see EtlTableRepo.markFinished): a whole-row save would let a stale
         // executor overwrite a fresher state and would resurrect a row deleted mid-run (merge→INSERT).
-        etlTableRepo.markFinished(task.getId(), task.getEndTime());
+        // duration must be part of the same guarded write, otherwise the list page keeps showing 0.
+        etlTableRepo.markFinished(task.getId(), task.getEndTime(), durationOf(task));
     }
 
     /**
@@ -414,7 +415,16 @@ public class TableService
         task.setRetryCnt(max(task.getRetryCnt() - 1, 0));
         // Conditional update: never downgrade a 'Y' written by a duplicate executor, and decrement
         // retryCnt against the row's current value rather than this possibly-stale snapshot.
-        etlTableRepo.markFailed(task.getId(), task.getEndTime());
+        etlTableRepo.markFailed(task.getId(), task.getEndTime(), durationOf(task));
+    }
+
+    /**
+     * etl_table.duration is NOT NULL, but the entity may come from a not-yet-persisted transient
+     * object; fall back to 0 so the guarded update never writes null.
+     */
+    private long durationOf(EtlTable task)
+    {
+        return task.getDuration() == null ? 0L : task.getDuration();
     }
 
     /**

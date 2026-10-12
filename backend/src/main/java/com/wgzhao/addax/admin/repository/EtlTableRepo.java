@@ -42,26 +42,31 @@ public interface EtlTableRepo
     /**
      * Mark a table as collected. Guarded so a stale executor (duplicate run that lost ownership)
      * cannot downgrade a fresher terminal state, and a row deleted mid-run is never re-inserted
-     * through a whole-row merge.
+     * through a whole-row merge. duration is written here because this terminal update replaced the
+     * former whole-row save; without it the last-run elapsed time stayed frozen at its old value.
      */
     @Modifying
     @Query("""
-            UPDATE EtlTable t SET t.status='Y', t.retryCnt=3, t.endTime=:endTime
+            UPDATE EtlTable t SET t.status='Y', t.retryCnt=3, t.endTime=:endTime, t.duration=:duration
             WHERE t.id=:id AND t.status NOT IN ('Y','X')
         """)
-    int markFinished(@Param("id") long id, @Param("endTime") java.util.Date endTime);
+    int markFinished(@Param("id") long id, @Param("endTime") java.util.Date endTime,
+        @Param("duration") long duration);
 
     /**
      * Mark a table as failed, decrementing retryCnt against the row's current value. A success
-     * written by another (duplicate) executor is never downgraded to failed.
+     * written by another (duplicate) executor is never downgraded to failed. duration is written
+     * here for the same reason as {@link #markFinished}.
      */
     @Modifying
     @Query("""
             UPDATE EtlTable t SET t.status='E', t.endTime=:endTime,
-                  t.retryCnt = case when t.retryCnt > 0 then t.retryCnt - 1 else 0 end
+                  t.retryCnt = case when t.retryCnt > 0 then t.retryCnt - 1 else 0 end,
+                  t.duration=:duration
             WHERE t.id=:id AND t.status NOT IN ('Y','X')
         """)
-    int markFailed(@Param("id") long id, @Param("endTime") java.util.Date endTime);
+    int markFailed(@Param("id") long id, @Param("endTime") java.util.Date endTime,
+        @Param("duration") long duration);
 
     @Query(value = """
         select count(*) from etl_table t left join etl_source s on t.sid = s.id
