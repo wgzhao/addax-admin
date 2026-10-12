@@ -112,3 +112,17 @@ Mono repo 提交策略：
 1. 在 `.memory` 目录下创建一个当天日期（格式为`YYYY-MM-DD.md`）的文件，然后把总结写入到该文件中
 2. 如果文件已存在，则追加内容，不要覆盖原有内容
 3. 然后在 `.memory/index.md` 中添加一个索引，格式为 `[总结标题](./YYYY-MM-DD.md)`
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in GitHub Issues for `wgzhao/addax-admin`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, label strings equal to their names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
