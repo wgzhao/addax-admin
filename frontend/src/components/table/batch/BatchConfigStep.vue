@@ -136,7 +136,7 @@
                 label="快照业务日期列"
                 density="comfortable"
                 variant="outlined"
-                hint="为空表示不承载业务日期；填写后目标表会多加一列并写入每天的业务日期"
+                hint="为空表示不承载业务日期；填写后目标表会多加一列并写入每天的业务日期，该列分区式取值、不参与主键"
                 persistent-hint
               />
             </v-col>

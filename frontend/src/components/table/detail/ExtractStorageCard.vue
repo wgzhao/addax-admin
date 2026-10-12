@@ -68,7 +68,7 @@
               v-model="table.targetOptions.rdbms.businessDateColumn"
               variant="outlined"
               density="comfortable"
-              placeholder="例如 logdate，为空表示不承载日期"
+              placeholder="例如 logdate（分区式属性，不参与主键）；为空表示不承载日期"
               hide-details="auto"
             />
           </div>
