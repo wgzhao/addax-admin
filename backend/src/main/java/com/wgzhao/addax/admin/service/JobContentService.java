@@ -275,9 +275,10 @@ public class JobContentService
         }
         // Snapshot mode: append the business date as a literal expression so the RDBMS target carries a
         // date column even though the source table has none. It is placed last and the writer template
-        // appends the same column last, which keeps the positional reader→writer mapping aligned.
+        // appends the same column last, which keeps the positional reader→writer mapping aligned. When the
+        // source already provides a column with that name, reuse it instead of injecting a duplicate.
         String bizDateColumn = vTable.getRdbmsBusinessDateColumn();
-        if (bizDateColumn != null && !bizDateColumn.isBlank()) {
+        if (bizDateColumn != null && !bizDateColumn.isBlank() && !ColumnService.hasColumn(columnList, bizDateColumn)) {
             String bizDateValue = dateValues.getOrDefault("biz_date_short", "");
             srcColumns.add("\"'" + bizDateValue + "' as " + bizDateColumn.trim() + "\"");
         }

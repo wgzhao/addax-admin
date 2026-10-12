@@ -28,6 +28,12 @@ public class TargetServiceImpl
     private final TargetServiceWithHiveImpl hiveTargetAdapter;
 
     @Override
+    public String dateDimensionColumn(VwEtlTableWithSource table)
+    {
+        return targetAdapterRegistry.resolve(table).dateDimensionColumn(table);
+    }
+
+    @Override
     public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
     {
         return targetAdapterRegistry.resolveDefault().addPartition(taskId, db, table, partName, partValue);

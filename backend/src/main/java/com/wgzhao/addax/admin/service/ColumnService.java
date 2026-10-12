@@ -42,6 +42,44 @@ public class ColumnService
         return name != null && name.startsWith(DELETED_PLACEHOLDER_PREFIX);
     }
 
+    private static String activeColumnName(String name)
+    {
+        return isDeletedPlaceholder(name) ? name.substring(DELETED_PLACEHOLDER_PREFIX.length()) : name;
+    }
+
+    /**
+     * 是否已存在同名列（含已删除的占位列）。目标端建列前用它判断物理列是否已经存在。
+     */
+    public static boolean hasColumn(List<EtlColumn> columns, String name)
+    {
+        if (columns == null || name == null || name.isBlank()) {
+            return false;
+        }
+        for (EtlColumn column : columns) {
+            if (name.equalsIgnoreCase(activeColumnName(column.getColumnName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 是否已存在同名的<b>有效</b>列（已删除的占位列不算）。用它判断源端是否已经提供该字段。
+     */
+    public static boolean hasActiveColumn(List<EtlColumn> columns, String name)
+    {
+        if (columns == null || name == null || name.isBlank()) {
+            return false;
+        }
+        for (EtlColumn column : columns) {
+            if (!isDeletedPlaceholder(column.getColumnName())
+                && name.equalsIgnoreCase(column.getColumnName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean notEq(Integer a, Integer b)
     {
         return !Objects.equals(a, b);

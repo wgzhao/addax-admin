@@ -67,6 +67,12 @@ public class RdbmsTargetAdapter
     }
 
     @Override
+    public String dateDimensionColumn(VwEtlTableWithSource table)
+    {
+        return table == null ? null : normalizeColumn(table.getRdbmsBusinessDateColumn());
+    }
+
+    @Override
     public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
     {
         return true;
@@ -109,27 +115,34 @@ public class RdbmsTargetAdapter
         boolean createPrimaryKey = etlTable.isRdbmsCreatePrimaryKey();
 
         List<String> colDefs = new ArrayList<>();
-        Set<String> definedColumns = new HashSet<>();
         for (EtlColumn c : columns)
         {
             String name = activeName(c);
             String key = name.toLowerCase(Locale.ROOT);
             String typeExpr = resolveColumnType(dialect, c, sourceMeta.columnTypes());
             desiredTypes.put(key, typeExpr);
-            definedColumns.add(key);
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
                 sourceMeta.notNull().contains(key), c.getColComment()));
         }
         boolean carryBizDate = bizDateColumn != null;
-        if (carryBizDate && !definedColumns.contains(bizDateColumn.toLowerCase(Locale.ROOT)))
+        boolean bizDateColumnPresent = carryBizDate && ColumnService.hasColumn(columns, bizDateColumn);
+        boolean sourceProvidesBizDate = carryBizDate && ColumnService.hasActiveColumn(columns, bizDateColumn);
+        if (carryBizDate && !bizDateColumnPresent)
         {
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect),
                 true, BUSINESS_DATE_COMMENT));
         }
+        else if (carryBizDate && !sourceProvidesBizDate)
+        {
+            // The physical column exists but the source only has a deleted placeholder for it, so the
+            // snapshot date cannot be fed without colliding on the column name.
+            recordRisk(etlTable, "目标表已存在同名的日期列 " + bizDateColumn
+                + "，但源端该列已被标记删除，快照业务日期无法自动写入，请人工处理");
+        }
         List<String> primaryKeys = createPrimaryKey
             ? new ArrayList<>(sourceMeta.primaryKeys())
             : new ArrayList<>();
-        if (createPrimaryKey && carryBizDate)
+        if (createPrimaryKey && carryBizDate && !containsIgnoreCase(primaryKeys, bizDateColumn))
         {
             // The business date is part of the key so one day's snapshot is idempotent and several days coexist.
             primaryKeys.add(bizDateColumn);
@@ -498,6 +511,18 @@ public class RdbmsTargetAdapter
         return column == null || column.isBlank() ? null : column.trim();
     }
 
+    private static boolean containsIgnoreCase(List<String> values, String target)
+    {
+        for (String value : values)
+        {
+            if (value != null && value.equalsIgnoreCase(target))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Add the snapshot business-date column to a target table created before the option was set.
      */
@@ -800,9 +825,10 @@ public class RdbmsTargetAdapter
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, columnName)) + '"');
         }
         // Snapshot mode: the reader injects the business date literal last, so the writer must carry the
-        // column in the same position for the positional mapping to line up.
+        // column in the same position for the positional mapping to line up. When the source already has
+        // a column with that name the reader does not inject one, so do not repeat it here either.
         String bizDateColumn = normalizeColumn(table.getRdbmsBusinessDateColumn());
-        if (bizDateColumn != null)
+        if (bizDateColumn != null && !ColumnService.hasColumn(columnList, bizDateColumn))
         {
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }

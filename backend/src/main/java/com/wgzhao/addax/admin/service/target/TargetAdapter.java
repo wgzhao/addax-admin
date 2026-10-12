@@ -15,6 +15,16 @@ public interface TargetAdapter
      */
     String getType();
 
+    /**
+     * 该目标端用来承载业务日期的列名：HDFS 是分区字段，RDBMS 是快照业务日期列。
+     * 返回 null 表示这个目标端没有日期维度（不能按天补数、也不能按天幂等）。
+     * 通用链路只问这个能力，不再自己判断分区字段等 Hive 概念。
+     */
+    default String dateDimensionColumn(VwEtlTableWithSource table)
+    {
+        return null;
+    }
+
     boolean addPartition(long taskId, String db, String table, String partName, String partValue);
 
     boolean createOrUpdateTable(VwEtlTableWithSource etlTable);

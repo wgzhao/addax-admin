@@ -89,13 +89,6 @@ public class VwEtlTableWithSource
     }
 
     @JsonIgnore
-    public boolean isPartitioned()
-    {
-        String partName = getPartName();
-        return partName != null && !partName.trim().isEmpty();
-    }
-
-    @JsonIgnore
     public String getPartName()
     {
         return TargetOptions.hdfsPartName(targetOptions);

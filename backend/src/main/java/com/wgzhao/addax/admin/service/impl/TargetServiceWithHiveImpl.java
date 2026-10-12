@@ -83,6 +83,16 @@ public class TargetServiceWithHiveImpl
         return "HDFS";
     }
 
+    @Override
+    public String dateDimensionColumn(VwEtlTableWithSource table)
+    {
+        if (table == null || table.getPartName() == null || table.getPartName().isBlank())
+        {
+            return null;
+        }
+        return table.getPartName().trim();
+    }
+
     private static String normalizeComment(String v)
     {
         if (v == null) {

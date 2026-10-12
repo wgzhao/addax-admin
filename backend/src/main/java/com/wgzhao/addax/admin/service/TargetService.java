@@ -20,6 +20,12 @@ public interface TargetService
 {
 
     /**
+     * 目标端用来承载业务日期的列名（HDFS 分区字段 / RDBMS 快照业务日期列）。
+     * 返回 null 表示该表没有日期维度，不能按天补数。
+     */
+    String dateDimensionColumn(VwEtlTableWithSource table);
+
+    /**
      * 为指定 Hive 表添加分区。
      *
      * @param taskId 采集任务ID
