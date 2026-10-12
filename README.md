@@ -80,13 +80,13 @@ addax-admin/
 
 | 分组 | 属性 | 说明 |
 | --- | --- | --- |
-| `hdfs` | `partKind` / `partName` / `partFormat` / `storageFormat` / `compressFormat` | Hive/HDFS 的分区与存储属性；`partName` 为空表示非分区表 |
+| `hdfs` | `partKind` / `partName` / `partFormat` / `storageFormat` / `compressFormat` | Hive/HDFS 的分区与存储属性；`partName` 为空表示非分区表，`storageFormat` / `compressFormat` 为空时沿用系统设置（`HDFS_STORAGE_FORMAT` / `HDFS_COMPRESS_FORMAT`） |
 | `rdbms` | `businessDateColumn` | 快照业务日期列，为空表示不承载业务日期 |
 | `rdbms` | `createPrimaryKey` | 是否按源端主键在目标表建主键，默认开 |
 
 表详情与批量创建表单按目标端能力动态渲染：Hive 目标端显示分区/存储字段，关系型目标端显示快照日期列与主键开关。
 
-- 快照式采集：配置 `businessDateColumn`（如 `logdate`）后，目标表会多出一列 `varchar(8)`（SQL Server 为 `nvarchar(8)`），建表时把业务日期并入主键，采集时由 reader 注入当天的业务日期字面量。同一天重跑（`replace`/`update`）幂等，不同天数据可以并存；这类表也支持补数。源表若已有同名列则直接复用，不再重复注入。
+- 快照式采集：配置 `businessDateColumn`（如 `logdate`）后，目标表会多出一列 `varchar(8)`（SQL Server 为 `nvarchar(8)`），采集时由 reader 注入当天的业务日期字面量。新建表会把该列并入主键，同一天重跑（`replace`/`update`）幂等、不同天数据可以并存；已存在的表只补加该列、不改动已有主键，此时会记录一条风险日志（重复执行可能产生重复数据），需人工把该列加入唯一键或改用 `preSql` 清理当日数据。源表若已有同名列则直接复用，不再重复注入。这类表也支持补数。
 - 没有日期维度的表（HDFS 非分区表、未配置业务日期列的关系型目标表）不支持补数——补多个日期会互相覆盖，提交时会被跳过并记录风险日志。
 - 主键开关：关闭 `createPrimaryKey` 后建表不再生成主键，重复执行的去重交给 `writeMode` / `preSql`；配置了快照日期列又关闭主键时会记录风险日志提醒。
 

@@ -722,7 +722,7 @@ COMMENT ON COLUMN public.etl_table.target_table IS '目标表名，即 Hive 的�
 -- Name: COLUMN etl_table.target_options; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.etl_table.target_options IS '目标端专属属性，按目标端族分组，如 {"hdfs":{"partKind":"D","partName":"logdate","partFormat":"yyyyMMdd","storageFormat":"orc","compressFormat":"lz4"},"rdbms":{"businessDateColumn":"","createPrimaryKey":true}}';
+COMMENT ON COLUMN public.etl_table.target_options IS '目标端专属属性，按目标端族分组，如 {"hdfs":{"partKind":"D","partName":"logdate","partFormat":"yyyyMMdd","storageFormat":"orc","compressFormat":"snappy"},"rdbms":{"businessDateColumn":"logdate","createPrimaryKey":true}}';
 
 
 --
@@ -1570,6 +1570,8 @@ CREATE TABLE public.users (
 -- Name: vw_etl_table_with_source; Type: VIEW; Schema: public; Owner: -
 --
 
+-- Keep in sync with TargetOptionsSchemaInitializer, which recreates the same view for databases that
+-- still have the legacy etl_table columns.
 CREATE VIEW public.vw_etl_table_with_source AS
  SELECT t.id,
     t.source_db,
