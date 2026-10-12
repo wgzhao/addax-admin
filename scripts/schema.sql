@@ -653,8 +653,7 @@ CREATE TABLE public.etl_table (
     source_table character varying(64) NOT NULL,
     target_db character varying(50) NOT NULL,
     target_table character varying(200) NOT NULL,
-    part_kind character(1) DEFAULT 'D'::bpchar,
-    part_name character varying(20) DEFAULT 'logdate'::character varying,
+    target_options jsonb,
     filter character varying(2000) DEFAULT '1=1'::character varying NOT NULL,
     kind character(1) DEFAULT 'A'::bpchar,
     retry_cnt integer DEFAULT 3,
@@ -663,9 +662,6 @@ CREATE TABLE public.etl_table (
     max_runtime integer DEFAULT 2000,
     sid integer NOT NULL,
     duration integer DEFAULT 0 NOT NULL,
-    part_format character varying(10) DEFAULT 'yyyyMMdd'::character varying,
-    storage_format character varying(10) DEFAULT 'orc'::character varying NOT NULL,
-    compress_format character varying(10) DEFAULT 'snappy'::character varying NOT NULL,
     tbl_comment character varying(500),
     status character(1) DEFAULT 'U'::bpchar NOT NULL,
     split_pk character varying(50) DEFAULT NULL::character varying,
@@ -723,17 +719,10 @@ COMMENT ON COLUMN public.etl_table.target_table IS '目标表名，即 Hive 的�
 
 
 --
--- Name: COLUMN etl_table.part_kind; Type: COMMENT; Schema: public; Owner: -
+-- Name: COLUMN etl_table.target_options; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.etl_table.part_kind IS '分区类型，D - 按每日分区，如果为空，则表示不分区';
-
-
---
--- Name: COLUMN etl_table.part_name; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.etl_table.part_name IS '目标表分区字段名称，如果 dest_part_kind 不为空，则该字段也不能为空';
+COMMENT ON COLUMN public.etl_table.target_options IS '目标端专属属性，按目标端族分组，如 {"hdfs":{"partKind":"D","partName":"logdate","partFormat":"yyyyMMdd","storageFormat":"orc","compressFormat":"lz4"},"rdbms":{"businessDateColumn":"","createPrimaryKey":true}}';
 
 
 --
@@ -790,20 +779,6 @@ COMMENT ON COLUMN public.etl_table.sid IS '采集源 ID，对应 etl_source 表 
 --
 
 COMMENT ON COLUMN public.etl_table.duration IS '采集耗时，单位为秒';
-
-
---
--- Name: COLUMN etl_table.part_format; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.etl_table.part_format IS '分区字段日期格式';
-
-
---
--- Name: COLUMN etl_table.storage_format; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.etl_table.storage_format IS '压缩格式，可以是snappy,zlib,lz4,gz,bz2,zstd 等';
 
 
 --
@@ -1601,8 +1576,7 @@ CREATE VIEW public.vw_etl_table_with_source AS
     t.source_table,
     t.target_db,
     t.target_table,
-    t.part_kind,
-    t.part_name,
+    t.target_options,
     t.filter,
     t.kind,
     t.retry_cnt,
@@ -1611,9 +1585,6 @@ CREATE VIEW public.vw_etl_table_with_source AS
     t.max_runtime,
     t.sid,
     t.duration,
-    t.part_format,
-    t.storage_format,
-    t.compress_format,
     t.tbl_comment,
     t.status,
     t.split_pk,
@@ -2032,4 +2003,3 @@ ALTER TABLE ONLY public.sys_item
 --
 
 \unrestrict i4g0vrBPcLJ3HlM80zOMR8urxeKakf70KqxUbKftoZTTzQHBR7BHXcm5N83E2sA
-

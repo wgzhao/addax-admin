@@ -1,7 +1,9 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.wgzhao.addax.admin.common.TargetOptions;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -26,11 +28,9 @@ public class VwEtlTableWithSource
     private String sourceTable;
     private String targetDb;
     private String targetTable;
-    private String partKind;
-    private String partName;
-    private String partFormat;
-    private String storageFormat;
-    private String compressFormat;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "target_options")
+    private JsonNode targetOptions;
     private String filter;
     private String status;
     private String kind;
@@ -58,7 +58,7 @@ public class VwEtlTableWithSource
     private String startAt;
     private Boolean enabled;
     private String tblComment;
-    @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , code, name))")
+    @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , target_options::text , code, name))")
     private String filterColumn;
     private Integer maxConcurrency;
     private String splitPk;
@@ -79,4 +79,55 @@ public class VwEtlTableWithSource
     private LocalDateTime createdAt;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+
+    // ---- derived Hive/HDFS attributes (persisted in target_options) -----------------------------
+
+    @JsonIgnore
+    public String getPartKind()
+    {
+        return TargetOptions.hdfsPartKind(targetOptions);
+    }
+
+    @JsonIgnore
+    public boolean isPartitioned()
+    {
+        String partName = getPartName();
+        return partName != null && !partName.trim().isEmpty();
+    }
+
+    @JsonIgnore
+    public String getPartName()
+    {
+        return TargetOptions.hdfsPartName(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getPartFormat()
+    {
+        return TargetOptions.hdfsPartFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getStorageFormat()
+    {
+        return TargetOptions.hdfsStorageFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getCompressFormat()
+    {
+        return TargetOptions.hdfsCompressFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getRdbmsBusinessDateColumn()
+    {
+        return TargetOptions.rdbmsBusinessDateColumn(targetOptions);
+    }
+
+    @JsonIgnore
+    public boolean isRdbmsCreatePrimaryKey()
+    {
+        return TargetOptions.rdbmsCreatePrimaryKey(targetOptions);
+    }
 }
