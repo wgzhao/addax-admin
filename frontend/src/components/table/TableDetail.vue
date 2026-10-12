@@ -4,9 +4,16 @@
 
     <v-row density="comfortable" class="detail-grid">
       <v-col cols="12" lg="7" class="panel-stack">
-        <BasicFieldsCard v-model:table="table" @show-placeholder-help="showPlaceholderInfo = true" />
+        <BasicFieldsCard
+          v-model:table="table"
+          @show-placeholder-help="showPlaceholderInfo = true"
+        />
         <MappingScheduleCard v-model:table="table" :target-options="targetOptions" />
-        <ExtractStorageCard v-model:table="table" @show-filter-help="showFilterRuleInfo = true" />
+        <ExtractStorageCard
+          v-model:table="table"
+          :target-type="selectedTargetType"
+          @show-filter-help="showFilterRuleInfo = true"
+        />
       </v-col>
 
       <v-col cols="12" lg="5" class="panel-stack">
@@ -42,6 +49,7 @@
   import targetService from '@/service/target-service';
   import { VEtlWithSource, EtlTable, EtlTarget } from '@/types/database';
   import { toJsonText, parseJsonObjectOrNull } from '@/utils/json-plugin';
+  import { normalizeTargetOptions } from '@/utils/target-options';
   import HeroSummaryCard from './detail/HeroSummaryCard.vue';
   import BasicFieldsCard from './detail/BasicFieldsCard.vue';
   import MappingScheduleCard from './detail/MappingScheduleCard.vue';
@@ -55,19 +63,26 @@
   // cast: unplugin-vue-router does not type custom route-block path params
   const tid = computed(() => Number((route.params as Record<string, string>).tid));
 
-  const targetOptions = ref<{ label: string; value: number }[]>([]);
+  const targetOptions = ref<{ label: string; value: number; targetType: string }[]>([]);
 
-  const table = ref<VEtlWithSource>({} as VEtlWithSource);
+  // Render with a normalized options bag so the target-specific fields always have an object to bind to.
+  const table = ref<VEtlWithSource>({ targetOptions: normalizeTargetOptions() } as VEtlWithSource);
   const readerPluginConfigText = ref('');
   const writerPluginConfigText = ref('');
   const showPlaceholderInfo = ref(false);
   const showFilterRuleInfo = ref(false);
 
   const syncTableData = (newTable: VEtlWithSource) => {
-    table.value = { ...newTable };
+    table.value = { ...newTable, targetOptions: normalizeTargetOptions(newTable.targetOptions) };
     readerPluginConfigText.value = toJsonText(newTable.readerPluginConfig);
     writerPluginConfigText.value = toJsonText(newTable.writerPluginConfig);
   };
+
+  // The card re-renders on an unsaved target change, so prefer the picked endpoint over the persisted type.
+  const selectedTargetType = computed(() => {
+    const picked = targetOptions.value.find(t => t.value === table.value.targetId);
+    return picked?.targetType || table.value.targetType;
+  });
 
   onMounted(async () => {
     if (!tid.value) return;
@@ -85,6 +100,7 @@
         .map((t: EtlTarget) => ({
           label: `${t.name} (${t.targetType})`,
           value: t.id as number,
+          targetType: t.targetType,
         }));
     } catch {
       notify('加载目标端列表失败', 'warning');
@@ -119,13 +135,9 @@
       sourceTable: table.value.sourceTable,
       targetDb: table.value.targetDb,
       targetTable: table.value.targetTable,
-      partKind: table.value.partKind,
-      partName: table.value.partName,
-      partFormat: table.value.partFormat,
+      targetOptions: table.value.targetOptions,
       splitPk: table.value.splitPk,
       autoPk: table.value.autoPk,
-      storageFormat: table.value.storageFormat,
-      compressFormat: table.value.compressFormat,
       filter: table.value.filter,
       status: table.value.status,
       kind: table.value.kind,
