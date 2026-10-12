@@ -60,12 +60,9 @@
             v-model:target-id="targetId"
             v-model:target-db="targetDb"
             v-model:target-table-template="targetTableTemplate"
-            v-model:part-name="partName"
-            v-model:part-format="partFormat"
-            v-model:storage-format="storageFormat"
-            v-model:compress-format="compressFormat"
+            v-model:options="tableOptions"
             v-model:selected="selectedTables"
-            :target-options="targetOptions"
+            :targets="targetEndpoints"
             :storage-formats="storageFormats"
             :compress-formats="compressFormats"
           />
@@ -127,12 +124,14 @@
   import targetService from '@/service/target-service';
   import dictService from '@/service/dict-service';
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils';
+  import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
   import {
     EtlSource,
     EtlTable,
     EtlTableView,
     TableMeta,
     EtlTarget,
+    EtlTargetOptions,
   } from '@/types/database';
   import BatchSourceStep from './batch/BatchSourceStep.vue';
   import BatchTableStep from './batch/BatchTableStep.vue';
@@ -178,13 +177,10 @@
   const selectedTables = ref<EtlTableView[]>([]);
   const targetDb = ref('');
   const targetTableTemplate = ref('${table}');
-  const partName = ref('logdate');
-  const partFormat = ref('yyyyMMdd');
-  const storageFormat = ref('');
-  const compressFormat = ref('');
+  const tableOptions = ref<EtlTargetOptions>(normalizeTargetOptions());
   const storageFormats = ref(HDFS_STORAGE_FORMATS);
   const compressFormats = ref(HDFS_COMPRESS_FORMATS);
-  const targetOptions = ref<{ label: string; value: number }[]>([]);
+  const targetEndpoints = ref<{ label: string; value: number; targetType: string }[]>([]);
   const targetId = ref<number | null>(null);
 
   const selectedSourceId = ref<EtlSource | null>(null);
@@ -195,6 +191,9 @@
   const sourceDbs = ref<string[]>([]);
 
   const selectedCnt = computed(() => selectedTables.value.length);
+  const selectedTargetType = computed(
+    () => targetEndpoints.value.find(t => t.value === targetId.value)?.targetType
+  );
   const selectedSourceLabel = computed(() =>
     selectedSourceId.value
       ? `${selectedSourceId.value.code} · ${selectedSourceId.value.name}`
@@ -207,11 +206,7 @@
     sourceTable: '',
     targetDb: '',
     targetTable: '',
-    partKind: 'D',
-    partName: 'logdate',
-    partFormat: 'yyyyMMdd',
-    storageFormat: 'parquet',
-    compressFormat: 'SNAPPY',
+    targetOptions: normalizeTargetOptions(),
     filter: '1=1',
     status: 'U',
     kind: 'A',
@@ -292,10 +287,7 @@
           newItem.sourceDb = selectedDb.value!;
           newItem.sourceTable = element.name;
           newItem.targetDb = targetDb.value;
-          newItem.partName = partName.value;
-          newItem.partFormat = partFormat.value;
-          newItem.storageFormat = storageFormat.value;
-          newItem.compressFormat = compressFormat.value;
+          newItem.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
           newItem.targetId = targetId.value;
           newItem.targetTable = element.name;
           newItem.tblComment = element.comment;
@@ -343,10 +335,7 @@
     const itemsToSave = selectedTables.value.map(item => {
       const s = { ...item };
       s.targetDb = targetDb.value;
-      s.partName = partName.value;
-      s.partFormat = partFormat.value;
-      s.storageFormat = storageFormat.value;
-      s.compressFormat = compressFormat.value;
+      s.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
       s.targetId = targetId.value;
       if (!s.targetTable) s.targetTable = s.sourceTable;
       return s;
@@ -375,16 +364,20 @@
     targetService
       .list(true)
       .then(res => {
-        targetOptions.value = res
+        targetEndpoints.value = res
           .filter((t: EtlTarget) => t.id !== undefined)
-          .map((t: EtlTarget) => ({ label: `${t.name} (${t.targetType})`, value: t.id as number }));
-        if (targetOptions.value.length > 0) targetId.value = targetOptions.value[0].value;
+          .map((t: EtlTarget) => ({
+            label: `${t.name} (${t.targetType})`,
+            value: t.id as number,
+            targetType: t.targetType,
+          }));
+        if (targetEndpoints.value.length > 0) targetId.value = targetEndpoints.value[0].value;
       })
       .catch(error => notify(`获取目标端列表失败: ${error}`, 'error'));
 
     dictService.getHdfsStorageDefaults().then(res => {
-      storageFormat.value = res.storageFormat;
-      compressFormat.value = res.compressFormat;
+      tableOptions.value.hdfs.storageFormat = res.storageFormat;
+      tableOptions.value.hdfs.compressFormat = res.compressFormat;
     });
   });
 </script>

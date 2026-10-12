@@ -15,6 +15,16 @@ public interface TargetAdapter
      */
     String getType();
 
+    /**
+     * Whether this target carries a per-day value: HDFS uses its partition column, RDBMS uses the
+     * snapshot business date column. Generic code asks this capability instead of reading Hive fields,
+     * so a target without a date dimension is never treated as if it had one.
+     */
+    default boolean hasDateDimension(VwEtlTableWithSource table)
+    {
+        return false;
+    }
+
     boolean addPartition(long taskId, String db, String table, String partName, String partValue);
 
     boolean createOrUpdateTable(VwEtlTableWithSource etlTable);

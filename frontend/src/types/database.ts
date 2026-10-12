@@ -192,6 +192,25 @@ export interface EtlSource {
   maxConcurrency?: number; // 最大并发数
 }
 
+// Target-specific table attributes, grouped per target family (etl_table.target_options).
+export interface HdfsTargetOptions {
+  partKind?: string; // partition kind, D = daily; empty means the table is not partitioned
+  partName?: string; // target partition column; absent means the table is not partitioned
+  partFormat?: string; // date format of the partition value
+  storageFormat?: string; // target storage format; falls back to the HDFS_STORAGE_FORMAT setting
+  compressFormat?: string; // target compression; falls back to the HDFS_COMPRESS_FORMAT setting
+}
+
+export interface RdbmsTargetOptions {
+  businessDateColumn?: string; // snapshot business date column; empty means the target carries no date
+  createPrimaryKey?: boolean; // create the target primary key from the source one, default true
+}
+
+export interface EtlTargetOptions {
+  hdfs: HdfsTargetOptions;
+  rdbms: RdbmsTargetOptions;
+}
+
 // 采集表信息 etl_table
 export interface EtlTable {
   id: number; // 表ID，主键
@@ -200,13 +219,11 @@ export interface EtlTable {
   sourceTable: string; // 采集源表名
   targetDb: string; // 目标库名，即提供给hive的库名
   targetTable: string; // 目标表名，即Hive的表名
-  partKind?: string; // 分区类型，D - 按每日分区，如果为空，则表示不分区
-  partName?: string; // 目标表分区字段名称
-  partFormat?: string; // 目标表分区字段格式
+  // Target-specific attributes (hdfs / rdbms). Only the section of the picked target family is written;
+  // see pickTargetOptions.
+  targetOptions?: Partial<EtlTargetOptions>;
   splitPk?: string; // 指定切分字段
   autoPk?: boolean; // 是否自动获取切分字段
-  storageFormat?: string; // 目标表存储格式，默认是 orc
-  compressFormat?: string; // 目标表的压缩格式，默认是 lz4
   filter?: string; // 采集过滤条件，即where条件
   status?: string; // 当前采集状态：N-还没有采集;W-等待采集;E-采集发生错误;R-正在采集;X-不再采集; U-等待表更新
   kind?: string; // 采集类型:A-自动采集(默认值);M-手工采集;R-实时采集
@@ -252,6 +269,7 @@ export interface TableMeta {
 }
 
 export interface VEtlWithSource extends EtlTable {
+  targetOptions: EtlTargetOptions;
   code: string; // 采集编号，一般以两个大写字母作为标志
   name: string; // 采集源名称
   url: string; // 采集源JDBC连接串

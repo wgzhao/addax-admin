@@ -20,6 +20,12 @@ public interface TargetService
 {
 
     /**
+     * Whether this table has a per-target date dimension (HDFS partition column or RDBMS snapshot
+     * business date column). Without one, several fillback dates would overwrite each other.
+     */
+    boolean hasDateDimension(VwEtlTableWithSource table);
+
+    /**
      * 为指定 Hive 表添加分区。
      *
      * @param taskId 采集任务ID

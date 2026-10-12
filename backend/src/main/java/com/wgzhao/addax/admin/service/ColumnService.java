@@ -42,6 +42,55 @@ public class ColumnService
         return name != null && name.startsWith(DELETED_PLACEHOLDER_PREFIX);
     }
 
+    private static String activeColumnName(String name)
+    {
+        return isDeletedPlaceholder(name) ? name.substring(DELETED_PLACEHOLDER_PREFIX.length()) : name;
+    }
+
+    /**
+     * Whether a column with this name already exists physically, deleted placeholders included.
+     */
+    public static boolean hasColumn(List<EtlColumn> columns, String name)
+    {
+        return matches(columns, name, true);
+    }
+
+    /**
+     * Whether an active (not a deleted placeholder) column with this name exists, i.e. the source still
+     * provides the value.
+     */
+    public static boolean hasActiveColumn(List<EtlColumn> columns, String name)
+    {
+        return matches(columns, name, false);
+    }
+
+    /**
+     * A target must inject a business date literal only when the source does not already carry a column
+     * with that name. The reader (which injects the literal) and the writer (which appends the matching
+     * column) both go through this predicate so the positional reader→writer mapping cannot drift.
+     */
+    public static boolean needsInjectedBusinessDate(List<EtlColumn> columns, String businessDateColumn)
+    {
+        return businessDateColumn != null && !businessDateColumn.isBlank()
+            && !hasColumn(columns, businessDateColumn.trim());
+    }
+
+    private static boolean matches(List<EtlColumn> columns, String name, boolean includeDeleted)
+    {
+        if (columns == null || name == null || name.isBlank()) {
+            return false;
+        }
+        for (EtlColumn column : columns) {
+            if (!includeDeleted && isDeletedPlaceholder(column.getColumnName())) {
+                continue;
+            }
+            if (name.equalsIgnoreCase(activeColumnName(column.getColumnName()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean notEq(Integer a, Integer b)
     {
         return !Objects.equals(a, b);

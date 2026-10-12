@@ -1,7 +1,9 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.wgzhao.addax.admin.common.TargetOptions;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -45,20 +47,13 @@ public class EtlTable
     @Column(name = "target_table", length = 200, nullable = false)
     private String targetTable;
 
-    @Column(name = "part_kind", length = 1)
-    private String partKind;
-
-    @Column(name = "part_name", length = 20)
-    private String partName;
-
-    @Column(name = "part_format", length = 10)
-    private String partFormat;
-
-    @Column(name = "storage_format", length = 10)
-    private String storageFormat;
-
-    @Column(name = "compress_format", length = 10)
-    private String compressFormat;
+    /**
+     * Target-specific attributes, grouped per target family (hdfs / rdbms / ...), so Hive-only fields
+     * are no longer pinned onto etl_table.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "target_options", columnDefinition = "jsonb")
+    private JsonNode targetOptions;
 
     @Column(name = "filter", length = 2000, nullable = false)
     private String filter;
@@ -118,8 +113,42 @@ public class EtlTable
     @Column(name = "start_at")
     private LocalTime startAt;
 
-    @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , part_kind , part_name , filter))")
+    // Only the partition column name is searchable, not the whole bag: matching target_options::text made
+    // a search for "hdfs" (or a storage format) hit every Hive table.
+    @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , target_options->'hdfs'->>'partName' , filter))")
     private String filterColumn;
+
+    // ---- derived Hive/HDFS attributes (stored in target_options, read-only here) -----------------
+
+    @JsonIgnore
+    public String getPartKind()
+    {
+        return TargetOptions.hdfsPartKind(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getPartName()
+    {
+        return TargetOptions.hdfsPartName(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getPartFormat()
+    {
+        return TargetOptions.hdfsPartFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getStorageFormat()
+    {
+        return TargetOptions.hdfsStorageFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getCompressFormat()
+    {
+        return TargetOptions.hdfsCompressFormat(targetOptions);
+    }
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Column(name = "created_at")

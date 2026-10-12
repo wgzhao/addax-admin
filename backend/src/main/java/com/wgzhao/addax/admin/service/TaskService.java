@@ -59,6 +59,7 @@ public class TaskService
     private final RedisLockService redisLockService;
     private final MasterElectionService electionService;
     private final EtlJobQueueService jobQueueService;
+    private final TargetService targetService;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -305,7 +306,8 @@ public class TaskService
     /**
      * Submit fillback (补数) tasks for the given tables and date range.
      * Each (table, date) pair is enqueued as a separate task with the fillback date
-     * as its biz_date. Non-partitioned tables are skipped with a risk log entry.
+     * as its biz_date. Tables without a date dimension (no Hive partition column and no
+     * RDBMS business date column) are skipped with a risk log entry.
      * Total task count (tables × days) must not exceed {@value #FILLBACK_MAX_TASKS}.
      *
      * @param tids      table IDs to fillback
@@ -358,9 +360,11 @@ public class TaskService
 
             String tableLabel = tableView.getTargetDb() + "." + tableView.getTargetTable();
 
-            // Non-partitioned tables cannot be fillbacked (multiple dates would overwrite each other)
-            if (tableView.getPartName() == null || tableView.getPartName().isBlank()) {
-                String reason = "非分区表不支持补数，已跳过";
+            // Tables without a date dimension cannot be fillbacked: multiple dates would overwrite each
+            // other. Ask the target adapter instead of reading Hive columns directly, so an RDBMS target
+            // is judged by its own business date column rather than by a leftover partition attribute.
+            if (!targetService.hasDateDimension(tableView)) {
+                String reason = "该表没有可用的日期维度（HDFS 分区字段或 RDBMS 快照业务日期列），不支持补数";
                 riskLogService.recordRisk("Fillback", "WARN",
                     tableLabel + ": " + reason, tid);
                 details.add(new FillbackResultDto.Detail(tid, tableLabel, List.of(), 0, true, reason));

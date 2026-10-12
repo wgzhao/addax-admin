@@ -13,7 +13,9 @@
       class="step-alert"
     >
       共 <strong>{{ selectedCnt }}</strong> 张表待添加
-      <template v-if="targetDb">，目标库：<strong>{{ targetDb }}</strong></template>
+      <template v-if="targetDb"
+        >，目标库：<strong>{{ targetDb }}</strong></template
+      >
     </v-alert>
 
     <div class="config-grid">
@@ -28,7 +30,7 @@
             <v-col cols="12" md="4">
               <v-select
                 v-model="targetId"
-                :items="targetOptions"
+                :items="targets"
                 item-title="label"
                 item-value="value"
                 label="目标端 *"
@@ -68,10 +70,10 @@
               <div class="stage-panel__title">分区与存储</div>
             </div>
           </div>
-          <v-row density="comfortable">
+          <v-row v-if="family === 'hdfs'" density="comfortable">
             <v-col cols="12" md="6">
               <v-text-field
-                v-model="partName"
+                v-model="options.hdfs.partName"
                 label="分区字段名"
                 density="comfortable"
                 variant="outlined"
@@ -97,7 +99,7 @@
             </v-col>
             <v-col cols="12" md="6">
               <v-select
-                v-model="partFormat"
+                v-model="options.hdfs.partFormat"
                 :items="PARTITION_FORMATS"
                 label="分区日期格式"
                 density="comfortable"
@@ -108,7 +110,7 @@
             </v-col>
             <v-col cols="12" md="6">
               <v-combobox
-                v-model="storageFormat"
+                v-model="options.hdfs.storageFormat"
                 :items="storageFormats"
                 label="存储格式"
                 density="comfortable"
@@ -118,12 +120,34 @@
             </v-col>
             <v-col cols="12" md="6">
               <v-combobox
-                v-model="compressFormat"
+                v-model="options.hdfs.compressFormat"
                 :items="compressFormats"
                 label="压缩格式"
                 density="comfortable"
                 variant="outlined"
                 hide-details="auto"
+              />
+            </v-col>
+          </v-row>
+          <v-row v-else density="comfortable">
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="options.rdbms.businessDateColumn"
+                label="快照业务日期列"
+                density="comfortable"
+                variant="outlined"
+                hint="为空表示不承载业务日期；填写后目标表会多加一列并写入每天的业务日期，该列分区式取值、不参与主键"
+                persistent-hint
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-switch
+                v-model="options.rdbms.createPrimaryKey"
+                inset
+                label="按源端主键在目标表建主键"
+                :color="options.rdbms.createPrimaryKey ? 'primary' : undefined"
+                hide-details
+                class="config-switch"
               />
             </v-col>
           </v-row>
@@ -222,10 +246,11 @@
   import { computed, ref } from 'vue';
   import dayjs from 'dayjs';
   import { PARTITION_FORMATS } from '@/utils';
-  import type { EtlTableView } from '@/types/database';
+  import { targetFamily } from '@/utils/target-options';
+  import type { EtlTableView, EtlTargetOptions } from '@/types/database';
 
-  defineProps<{
-    targetOptions: { label: string; value: number }[];
+  const props = defineProps<{
+    targets: { label: string; value: number; targetType: string }[];
     storageFormats: string[];
     compressFormats: string[];
   }>();
@@ -233,13 +258,15 @@
   const targetId = defineModel<number | null>('targetId');
   const targetDb = defineModel<string>('targetDb');
   const targetTableTemplate = defineModel<string>('targetTableTemplate');
-  const partName = defineModel<string>('partName');
-  const partFormat = defineModel<string>('partFormat');
-  const storageFormat = defineModel<string>('storageFormat');
-  const compressFormat = defineModel<string>('compressFormat');
+  const options = defineModel<EtlTargetOptions>('options', { required: true });
   const selectedTables = defineModel<EtlTableView[]>('selected', { required: true });
 
   const selectedCnt = computed(() => selectedTables.value.length);
+
+  const family = computed(() => {
+    const picked = props.targets.find(t => t.value === targetId.value);
+    return targetFamily(picked?.targetType);
+  });
 
   const showPartitionInfoDialog = ref(false);
   const showPartitionInfo = () => {
@@ -247,8 +274,9 @@
   };
 
   const partitionFormatExample = computed(() => {
-    if (!partFormat.value) return '';
-    return dayjs('2025-03-12').format(partFormat.value.replace(/y/g, 'Y').replace(/d/g, 'D'));
+    const format = options.value.hdfs.partFormat;
+    if (!format) return '';
+    return dayjs('2025-03-12').format(format.replace(/y/g, 'Y').replace(/d/g, 'D'));
   });
 
   const rules = {

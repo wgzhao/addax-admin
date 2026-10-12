@@ -273,6 +273,16 @@ public class JobContentService
                 srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
             }
         }
+        // Snapshot mode: append the business date as a literal expression so the RDBMS target carries a
+        // date column even though the source table has none. It goes last and the writer appends the same
+        // column last (see RdbmsTargetAdapter.getRdbmsWriteColumns) so the positional mapping stays
+        // aligned; a source column with that name is reused instead of injected. The identifier is quoted
+        // like every other reader column, otherwise a reserved word such as "date" only breaks the reader.
+        String bizDateColumn = vTable.getRdbmsBusinessDateColumn();
+        if (ColumnService.needsInjectedBusinessDate(columnList, bizDateColumn)) {
+            String bizDateValue = dateValues.getOrDefault("biz_date_short", "");
+            srcColumns.add("\"'" + bizDateValue + "' as " + quoteIfNeeded(bizDateColumn.trim(), dbType) + "\"");
+        }
         values.put("column", String.join(", ", srcColumns));
         StringSubstitutor substitutor = new StringSubstitutor(values);
         return substitutor.replace(template);

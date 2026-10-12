@@ -49,6 +49,7 @@ public class RdbmsTargetAdapter
     implements TargetAdapter
 {
     private static final String DEFAULT_WRITER_TEMPLATE_KEY = "wR";
+    private static final String BUSINESS_DATE_COMMENT = "业务日期";
 
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
@@ -63,6 +64,12 @@ public class RdbmsTargetAdapter
     public String getType()
     {
         return "RDBMS";
+    }
+
+    @Override
+    public boolean hasDateDimension(VwEtlTableWithSource table)
+    {
+        return table != null && normalizeColumn(table.getRdbmsBusinessDateColumn()) != null;
     }
 
     @Override
@@ -104,6 +111,8 @@ public class RdbmsTargetAdapter
         List<EtlColumn> columns = columnService.getColumns(etlTable.getId());
         SourceMeta sourceMeta = loadSourceMeta(etlTable, dialect);
         Map<String, String> desiredTypes = new LinkedHashMap<>();
+        String bizDateColumn = normalizeColumn(etlTable.getRdbmsBusinessDateColumn());
+        boolean createPrimaryKey = etlTable.isRdbmsCreatePrimaryKey();
 
         List<String> colDefs = new ArrayList<>();
         for (EtlColumn c : columns)
@@ -115,8 +124,24 @@ public class RdbmsTargetAdapter
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
                 sourceMeta.notNull().contains(key), c.getColComment()));
         }
+        boolean carryBizDate = bizDateColumn != null;
+        if (ColumnService.needsInjectedBusinessDate(columns, bizDateColumn))
+        {
+            colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect),
+                true, BUSINESS_DATE_COMMENT));
+        }
+        else if (carryBizDate && !ColumnService.hasActiveColumn(columns, bizDateColumn))
+        {
+            // The physical column exists but the source only has a deleted placeholder for it, so the
+            // snapshot date cannot be fed without colliding on the column name.
+            recordRisk(etlTable, "目标表已存在同名的日期列 " + bizDateColumn
+                + "，但源端该列已被标记删除，快照业务日期无法自动写入，请人工处理");
+        }
+        List<String> primaryKeys = createPrimaryKey
+            ? new ArrayList<>(sourceMeta.primaryKeys())
+            : new ArrayList<>();
         String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs,
-            sourceMeta.primaryKeys(), etlTable.getTblComment());
+            primaryKeys, etlTable.getTblComment());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createSql);
 
         try (Connection c = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
@@ -161,6 +186,13 @@ public class RdbmsTargetAdapter
                 if (existedBefore)
                 {
                     applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes, sourceMeta.notNull());
+                    if (ensureBusinessDateColumn(c, dialect, etlTable, bizDateColumn) && createPrimaryKey)
+                    {
+                        // The column can be added but not folded into an existing primary key, so a
+                        // same-day re-run may duplicate rows until a human widens the key.
+                        recordRisk(etlTable, "目标表已存在，快照业务日期列 " + bizDateColumn
+                            + " 已补加但不会加入已有主键；同一天重复执行可能产生重复数据，请人工确认或改用 preSql 清理当日数据");
+                    }
                 }
                 else
                 {
@@ -169,6 +201,7 @@ public class RdbmsTargetAdapter
                     applyNewTableComments(c, dialect, tableRef, etlTable, columns);
                 }
                 warnOnWriteModeWithoutKey(c, dialect, etlTable);
+                warnOnSnapshotMode(etlTable, createPrimaryKey, bizDateColumn, primaryKeys);
             }
             catch (SQLException e)
             {
@@ -447,6 +480,74 @@ public class RdbmsTargetAdapter
             recordRisk(etlTable, "目标表 " + etlTable.getTargetDb() + "." + etlTable.getTargetTable()
                 + " 未定义主键/唯一键，writeMode=" + mode + " 会退化为普通插入，重复执行可能产生重复数据");
         }
+    }
+
+    /**
+     * The business date column is partition-like: it is constant within a run and is never part of the key,
+     * so no primary key can make a snapshot re-run idempotent. Surface the consequence instead of leaving a
+     * cross-day overwrite (source-key-only key) or a same-day duplication (no key) silent.
+     */
+    private void warnOnSnapshotMode(VwEtlTableWithSource etlTable, boolean createPrimaryKey, String bizDateColumn,
+        List<String> primaryKeys)
+    {
+        if (bizDateColumn == null)
+        {
+            return;
+        }
+        String notAKeyColumn = "（该列是分区式属性，不参与主键）";
+        if (createPrimaryKey && !primaryKeys.isEmpty())
+        {
+            recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
+                + "，目标主键只按源端主键（" + String.join(", ", primaryKeys) + "）生成；"
+                + "不同日期会因主键相同而互相覆盖，跨天采集请关闭主键创建或改用 preSql 清理当日数据");
+        }
+        else
+        {
+            recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
+                + "，目标表没有可用唯一键，请确认任务模板用 preSql 按日清理（或自行建唯一键），"
+                + "否则同一天的重复执行会追加重复数据");
+        }
+    }
+
+    /**
+     * Business date values are injected by the reader as a compact literal, so the column is a plain
+     * string on every dialect; that keeps the DDL, the reader literal and the writer binding aligned.
+     */
+    private String businessDateColumnType(DbType dialect)
+    {
+        return dialect == DbType.SQLSERVER ? "nvarchar(8)" : "varchar(8)";
+    }
+
+    private String normalizeColumn(String column)
+    {
+        return column == null || column.isBlank() ? null : column.trim();
+    }
+
+    /**
+     * Add the snapshot business-date column to a target table created before the option was set.
+     */
+    /**
+     * Add the snapshot business-date column to a target table created before the option was set.
+     *
+     * @return true when the column had to be added, false when it was already there (or not configured)
+     */
+    private boolean ensureBusinessDateColumn(Connection conn, DbType dialect, VwEtlTableWithSource etlTable,
+        String bizDateColumn) throws SQLException
+    {
+        if (bizDateColumn == null)
+        {
+            return false;
+        }
+        Map<String, ColumnMeta> current = describeColumns(conn, dialect, etlTable.getTargetDb(),
+            etlTable.getTargetTable());
+        if (current.containsKey(bizDateColumn.toLowerCase(Locale.ROOT)))
+        {
+            return false;
+        }
+        String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+        executeDdl(conn, etlTable, RdbmsDdlUtil.addColumn(dialect, tableRef,
+            RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect), true, BUSINESS_DATE_COMMENT)));
+        return true;
     }
 
     private String resolveColumnType(DbType dialect, EtlColumn column, Map<String, String> verbatim)
@@ -728,6 +829,14 @@ public class RdbmsTargetAdapter
             }
             // ${column} is expanded inside a JSON array, so every entry must be a complete JSON string.
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, columnName)) + '"');
+        }
+        // Snapshot mode: the reader injects the business date literal last, so the writer must carry the
+        // column in the same position for the positional mapping to line up. When the source already has
+        // a column with that name the reader does not inject one, so do not repeat it here either.
+        String bizDateColumn = normalizeColumn(table.getRdbmsBusinessDateColumn());
+        if (ColumnService.needsInjectedBusinessDate(columnList, bizDateColumn))
+        {
+            columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }
         return String.join(", ", columns);
     }
