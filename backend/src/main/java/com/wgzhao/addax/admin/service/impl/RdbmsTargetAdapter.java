@@ -140,11 +140,6 @@ public class RdbmsTargetAdapter
         List<String> primaryKeys = createPrimaryKey
             ? new ArrayList<>(sourceMeta.primaryKeys())
             : new ArrayList<>();
-        if (createPrimaryKey && carryBizDate && !containsIgnoreCase(primaryKeys, bizDateColumn))
-        {
-            // The business date is part of the key so one day's snapshot is idempotent and several days coexist.
-            primaryKeys.add(bizDateColumn);
-        }
         String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs,
             primaryKeys, etlTable.getTblComment());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createSql);
@@ -206,7 +201,7 @@ public class RdbmsTargetAdapter
                     applyNewTableComments(c, dialect, tableRef, etlTable, columns);
                 }
                 warnOnWriteModeWithoutKey(c, dialect, etlTable);
-                warnOnSnapshotWithoutKey(etlTable, createPrimaryKey, bizDateColumn);
+                warnOnSnapshotMode(etlTable, createPrimaryKey, bizDateColumn, primaryKeys);
             }
             catch (SQLException e)
             {
@@ -488,16 +483,28 @@ public class RdbmsTargetAdapter
     }
 
     /**
-     * A snapshot target needs a unique key to be re-runnable. Carrying the business date without
-     * creating a primary key means every day and every retry appends, so surface that instead of
-     * letting it duplicate silently.
+     * The business date column is partition-like: it is constant within a run and is never part of the key,
+     * so no primary key can make a snapshot re-run idempotent. Surface the consequence instead of leaving a
+     * cross-day overwrite (source-key-only key) or a same-day duplication (no key) silent.
      */
-    private void warnOnSnapshotWithoutKey(VwEtlTableWithSource etlTable, boolean createPrimaryKey, String bizDateColumn)
+    private void warnOnSnapshotMode(VwEtlTableWithSource etlTable, boolean createPrimaryKey, String bizDateColumn,
+        List<String> primaryKeys)
     {
-        if (bizDateColumn != null && !createPrimaryKey)
+        if (bizDateColumn == null)
         {
-            recordRisk(etlTable, "已配置快照业务日期列 " + bizDateColumn
-                + " 但关闭了主键创建，重复执行会产生重复数据，请通过 writeMode/preSql 自行保证幂等");
+            return;
+        }
+        String notAKeyColumn = "（该列是分区式属性，不参与主键）";
+        if (createPrimaryKey && !primaryKeys.isEmpty())
+        {
+            recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
+                + "，目标主键只按源端主键（" + String.join(", ", primaryKeys) + "）生成；"
+                + "不同日期会因主键相同而互相覆盖，跨天采集请关闭主键创建或改用 preSql 清理当日数据");
+        }
+        else
+        {
+            recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
+                + "，同一天重复执行会产生重复数据，请用 preSql 先清理当日数据（或自行建唯一键）保证幂等");
         }
     }
 
@@ -513,18 +520,6 @@ public class RdbmsTargetAdapter
     private String normalizeColumn(String column)
     {
         return column == null || column.isBlank() ? null : column.trim();
-    }
-
-    private static boolean containsIgnoreCase(List<String> values, String target)
-    {
-        for (String value : values)
-        {
-            if (value != null && value.equalsIgnoreCase(target))
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
