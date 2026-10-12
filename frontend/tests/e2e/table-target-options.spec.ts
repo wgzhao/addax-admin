@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
+import { apiLogin } from './helpers/auth';
 
 interface TableRow {
   id: number;
@@ -15,22 +16,11 @@ interface TableRow {
 
 const RDBMS_TYPES = ['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'];
 
-async function login(request: APIRequestContext): Promise<string> {
-  const res = await request.post('/api/v1/auth/login', {
-    data: {
-      username: process.env.E2E_USERNAME || 'admin',
-      password: process.env.E2E_PASSWORD || 'admin123',
-    },
-  });
-  expect(res.ok()).toBeTruthy();
-  const body = await res.json();
-  expect(body.code).toBe(0);
-  return body.data as string;
-}
+const authHeaders = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 async function listTables(request: APIRequestContext, token: string): Promise<TableRow[]> {
   const res = await request.get('/api/v1/tables?page=0&pageSize=500', {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
   });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
@@ -50,7 +40,7 @@ test('table detail renders target-specific attributes per target family', async 
   page,
   request,
 }) => {
-  const token = await login(request);
+  const token = await apiLogin(request);
   const tables = await listTables(request, token);
 
   const hdfs = tables.find(t => familyOf(t) === 'hdfs');
@@ -91,16 +81,16 @@ test('table detail renders target-specific attributes per target family', async 
  * date would write into the same rows.
  */
 test('fillback refuses an RDBMS table without a business date column', async ({ request }) => {
-  const token = await login(request);
+  const token = await apiLogin(request);
   const tables = await listTables(request, token);
 
   const target = tables.find(
     t => familyOf(t) === 'rdbms' && !t.targetOptions?.rdbms?.businessDateColumn
   );
-  test.skip(!target, 'no RDBMS target table without a business date column in this environment');
+  expect(target, 'expected an RDBMS target table without a business date column').toBeTruthy();
 
   const res = await request.post('/api/v1/tasks/fillback', {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(token),
     data: { tids: [target!.id], startDate: '2026-01-01', endDate: '2026-01-01' },
   });
   expect(res.ok()).toBeTruthy();
@@ -122,15 +112,20 @@ test('fillback refuses an RDBMS table without a business date column', async ({ 
 });
 
 /**
- * The save payload must only carry the section the picked target family uses. Writing the Hive
- * section for an RDBMS target used to leave a misleading `partName` that the backend mistook for a
- * real date dimension.
+ * The save payload must write the section the picked target family uses and leave the other section
+ * exactly as stored. Writing a fabricated Hive section for an RDBMS target left a misleading `partName`
+ * behind, while replacing the bag wholesale dropped the other family's settings when a table switched
+ * targets.
  */
-test('saving an RDBMS table only sends the rdbms options section', async ({ page, request }) => {
-  const token = await login(request);
+test('saving an RDBMS table writes rdbms options and keeps the stored hdfs options', async ({
+  page,
+  request,
+}) => {
+  const token = await apiLogin(request);
   const tables = await listTables(request, token);
   const rdbms = tables.find(t => familyOf(t) === 'rdbms');
   expect(rdbms, 'expected at least one RDBMS target table').toBeTruthy();
+  const storedOptions = rdbms!.targetOptions ?? {};
 
   let payload: Record<string, unknown> | null = null;
   // Intercept the save so the assertion cannot mutate the fixture table.
@@ -150,7 +145,8 @@ test('saving an RDBMS table only sends the rdbms options section', async ({ page
   await expect.poll(() => payload !== null, { timeout: 15_000 }).toBe(true);
   const options = (payload as unknown as { targetOptions: Record<string, unknown> }).targetOptions;
   expect(options.rdbms).toBeTruthy();
-  expect(options.hdfs).toBeUndefined();
+  // Present as stored, absent (undefined) when the row never had one — never a fabricated default.
+  expect(options.hdfs).toEqual(storedOptions.hdfs);
 
   const summary = `tid=${rdbms!.id} payload.targetOptions=${JSON.stringify(options)}`;
   console.log(`[target-options-payload] ${summary}`);
@@ -158,4 +154,73 @@ test('saving an RDBMS table only sends the rdbms options section', async ({ page
     body: summary,
     contentType: 'text/plain',
   });
+});
+
+/**
+ * Snapshot collection only works while the reader injects the business date last and the writer appends
+ * the matching column last, in the same position. Nothing but these two code paths enforce that, so pin
+ * the generated job: same amount of reader and writer columns, with the probe column in both.
+ *
+ * The probe is written through the API and reverted in `finally`; the target table itself is never
+ * touched because regenerating a job does not run the target DDL.
+ */
+test('snapshot job keeps reader and writer columns aligned', async ({ request }) => {
+  const token = await apiLogin(request);
+  const tables = await listTables(request, token);
+  const target = tables.find(t => familyOf(t) === 'rdbms');
+  expect(target, 'expected at least one RDBMS target table').toBeTruthy();
+
+  const detailUrl = `/api/v1/tables/${target!.id}`;
+  const detail = await (await request.get(detailUrl, { headers: authHeaders(token) })).json();
+  const storedOptions = detail.targetOptions ?? {};
+  const probe = 'addax_snapshot_probe';
+
+  const jobColumns = async () => {
+    const res = await request.get(`/api/v1/tables/${target!.id}/addax-job`, {
+      headers: authHeaders(token),
+    });
+    expect(res.ok()).toBeTruthy();
+    const job = await res.json();
+    return {
+      reader: job.job.content.reader.parameter.column as string[],
+      writer: job.job.content.writer.parameter.column as string[],
+    };
+  };
+
+  const writeOptions = async (targetOptions: unknown) => {
+    const res = await request.put(detailUrl, {
+      headers: authHeaders(token),
+      data: { ...detail, targetOptions },
+    });
+    expect(res.ok()).toBeTruthy();
+    const regenerate = await request.put(`/api/v1/tasks/${target!.id}/addax-job`, {
+      headers: authHeaders(token),
+    });
+    expect(regenerate.ok()).toBeTruthy();
+  };
+
+  try {
+    await writeOptions({
+      ...storedOptions,
+      rdbms: { ...(storedOptions.rdbms ?? {}), businessDateColumn: probe, createPrimaryKey: true },
+    });
+
+    const { reader, writer } = await jobColumns();
+    expect(reader).toHaveLength(writer.length);
+    expect(reader[reader.length - 1]).toContain(`as ${probe}`);
+    expect(writer[writer.length - 1]).toContain(probe);
+
+    const summary = `tid=${target!.id} columns=${reader.length}\nreader.last=${
+      reader[reader.length - 1]
+    }\nwriter.last=${writer[writer.length - 1]}`;
+    console.log(`[snapshot-column-alignment] ${summary}`);
+    await test.info().attach('snapshot-column-alignment', {
+      body: summary,
+      contentType: 'text/plain',
+    });
+  } finally {
+    await writeOptions(storedOptions);
+    const restored = await (await request.get(detailUrl, { headers: authHeaders(token) })).json();
+    expect(restored.targetOptions ?? {}).toEqual(storedOptions);
+  }
 });
