@@ -3,30 +3,54 @@ package com.wgzhao.addax.admin.config;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 /**
- * One-shot, idempotent upgrade of the target-attribute schema.
+ * One-shot upgrade of the target-attribute schema (Phase 2 of #66).
  *
- * <p>Phase 2 moves the Hive-only table attributes ({@code part_kind/part_name/part_format/
- * storage_format/compress_format}) out of {@code etl_table} into a per-target bag
- * ({@code etl_table.target_options}), which means the legacy columns and the
- * {@code vw_etl_table_with_source} view have to move in lockstep. There is no migration framework in
- * this project, so the upgrade runs on startup exactly like the other schema guards
- * ({@code TargetTypeResolver}, the dict/template initializers). Every step is guarded, so a fresh
- * database installed from {@code scripts/schema.sql} is a no-op.</p>
+ * <p>The five Hive-only columns ({@code part_kind / part_name / part_format / storage_format /
+ * compress_format}) move into a per-target bag ({@code etl_table.target_options}), so the legacy columns
+ * and the {@code vw_etl_table_with_source} view have to change in lockstep. There is no migration
+ * framework in this project, and {@code scripts/schema.sql} is written by hand for fresh installs, so the
+ * upgrade for an existing database runs here.</p>
  *
- * <p>PostgreSQL runs DDL transactionally, but JdbcTemplate auto-commits per statement; the steps are
- * therefore ordered so an interrupted run is safe to repeat: add column → backfill → recreate view →
- * drop legacy columns.</p>
+ * <p>This is the only startup DDL in the project, so it is deliberately conservative:</p>
+ * <ul>
+ *   <li>it runs in a single transaction that starts by taking a PostgreSQL advisory transaction lock, so
+ *       concurrent instances cannot interleave and PostgreSQL's transactional DDL rolls the whole upgrade
+ *       back on failure. A failure aborts startup on purpose — serving traffic against a half-migrated
+ *       schema (a view without its columns) would be worse than not starting.</li>
+ *   <li>the steps are ordered and guarded (add column → backfill → recreate view → drop legacy columns), so
+ *       a database installed from {@code scripts/schema.sql} is a no-op and an interrupted run is safe to
+ *       repeat.</li>
+ *   <li>it runs from {@code @PostConstruct}, i.e. before the web server accepts requests and before the
+ *       scheduled refresh starts.</li>
+ *   <li>the view definition below is duplicated from {@code scripts/schema.sql} on purpose; keep the two in
+ *       sync whenever the view changes.</li>
+ * </ul>
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class TargetOptionsSchemaInitializer
 {
+    /**
+     * Arbitrary but stable key; any instance running this migration contends for the same lock.
+     */
+    private static final long MIGRATION_LOCK_KEY = 662012001L;
+
     private static final String VIEW_NAME = "vw_etl_table_with_source";
+
+    private static final String ADD_COLUMN_SQL =
+        "alter table public.etl_table add column if not exists target_options jsonb";
 
     private static final String BACKFILL_SQL = """
         update public.etl_table
@@ -48,8 +72,10 @@ public class TargetOptionsSchemaInitializer
             drop column if exists compress_format
         """;
 
-    private static final String RECREATE_VIEW_SQL = """
-        drop view if exists public.vw_etl_table_with_source;
+    private static final String DROP_VIEW_SQL =
+        "drop view if exists public.vw_etl_table_with_source";
+
+    private static final String CREATE_VIEW_SQL = """
         create view public.vw_etl_table_with_source as
          select t.id,
             t.source_db,
@@ -99,71 +125,75 @@ public class TargetOptionsSchemaInitializer
     @PostConstruct
     public void migrate()
     {
-        if (!tableExists("etl_table"))
+        jdbcTemplate.execute((ConnectionCallback<Void>) connection -> {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (Statement statement = connection.createStatement())
+            {
+                statement.execute("select pg_advisory_xact_lock(" + MIGRATION_LOCK_KEY + ")");
+                upgrade(connection, statement);
+                connection.commit();
+                return null;
+            }
+            catch (SQLException | RuntimeException e)
+            {
+                connection.rollback();
+                throw e;
+            }
+            finally
+            {
+                connection.setAutoCommit(autoCommit);
+            }
+        });
+    }
+
+    private void upgrade(Connection connection, Statement statement) throws SQLException
+    {
+        if (!exists(connection, "tables", "etl_table", null))
         {
             log.info("etl_table not found, skip target_options migration");
             return;
         }
-        addTargetOptionsColumn();
-        if (columnExists("etl_table", "part_name"))
+        statement.execute(ADD_COLUMN_SQL);
+        if (exists(connection, "columns", "etl_table", "part_name"))
         {
-            backfillFromLegacyColumns();
-            recreateView();
-            dropLegacyColumns();
+            int updated = statement.executeUpdate(BACKFILL_SQL);
+            log.info("Backfilled target_options for {} etl_table row(s)", updated);
+            statement.execute(DROP_VIEW_SQL);
+            statement.execute(CREATE_VIEW_SQL);
+            statement.execute(DROP_LEGACY_COLUMNS_SQL);
             log.info("Migrated etl_table Hive attributes (part_*/storage/compress) into target_options");
         }
-        else
+        else if (!exists(connection, "columns", VIEW_NAME, "target_options"))
         {
-            // The view may still predate the new column even when the legacy columns are already gone.
-            if (!viewExposesTargetOptions())
-            {
-                recreateView();
-                log.info("Recreated {} to expose target_options", VIEW_NAME);
-            }
+            // The legacy columns are gone but the view may still predate the new column.
+            statement.execute(DROP_VIEW_SQL);
+            statement.execute(CREATE_VIEW_SQL);
+            log.info("Recreated {} to expose target_options", VIEW_NAME);
         }
     }
 
-    private void addTargetOptionsColumn()
+    /**
+     * Existence check on the migration's own connection: the DDL above is uncommitted, so a separate pooled
+     * connection (JdbcTemplate) would not see it. {@code relation} is a constant from this class, not input.
+     */
+    private boolean exists(Connection connection, String relation, String name, String column)
+        throws SQLException
     {
-        jdbcTemplate.execute("alter table public.etl_table add column if not exists target_options jsonb");
-    }
-
-    private void backfillFromLegacyColumns()
-    {
-        int updated = jdbcTemplate.update(BACKFILL_SQL);
-        log.info("Backfilled target_options for {} etl_table row(s)", updated);
-    }
-
-    private void recreateView()
-    {
-        jdbcTemplate.execute(RECREATE_VIEW_SQL);
-    }
-
-    private void dropLegacyColumns()
-    {
-        jdbcTemplate.execute(DROP_LEGACY_COLUMNS_SQL);
-    }
-
-    private boolean viewExposesTargetOptions()
-    {
-        return columnExists(VIEW_NAME, "target_options");
-    }
-
-    private boolean tableExists(String name)
-    {
-        Integer count = jdbcTemplate.queryForObject("""
-            select count(*) from information_schema.tables
-             where table_schema = 'public' and table_name = ?
-            """, Integer.class, name);
-        return count != null && count > 0;
-    }
-
-    private boolean columnExists(String table, String column)
-    {
-        Integer count = jdbcTemplate.queryForObject("""
-            select count(*) from information_schema.columns
-             where table_schema = 'public' and table_name = ? and column_name = ?
-            """, Integer.class, table, column);
-        return count != null && count > 0;
+        String sql = "select count(*) from information_schema." + relation
+            + " where table_schema = 'public' and table_name = ?"
+            + (column == null ? "" : " and column_name = ?");
+        try (PreparedStatement ps = connection.prepareStatement(sql))
+        {
+            ps.setString(1, name);
+            if (column != null)
+            {
+                ps.setString(2, column);
+            }
+            try (ResultSet rs = ps.executeQuery())
+            {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        }
     }
 }
