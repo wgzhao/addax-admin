@@ -1,12 +1,14 @@
 import type { EtlTargetOptions } from '@/types/database';
 
-// Defaults must match com.wgzhao.addax.admin.common.TargetOptions on the backend.
+// Fallbacks for a table whose bag does not carry the attribute yet. They must match the backend's
+// documented defaults (the Java defaults / the legacy column defaults): the effective defaults for a new
+// table come from the HDFS settings (HDFS_STORAGE_FORMAT / HDFS_COMPRESS_FORMAT), which BatchAdd loads.
 const DEFAULT_HDFS_OPTIONS = {
   partKind: 'D',
   partName: 'logdate',
   partFormat: 'yyyyMMdd',
   storageFormat: 'orc',
-  compressFormat: 'lz4',
+  compressFormat: 'snappy',
 };
 
 const DEFAULT_RDBMS_OPTIONS = {
@@ -25,10 +27,6 @@ export function targetFamily(targetType?: string | null): TargetFamily {
   return 'rdbms';
 }
 
-export function isHdfsTarget(targetType?: string | null): boolean {
-  return targetFamily(targetType) === 'hdfs';
-}
-
 /**
  * The API can return a null bag for rows written before the target_options migration and a partial bag
  * for older clients, so the UI always works on a fully populated object.
@@ -43,8 +41,9 @@ export function normalizeTargetOptions(
 }
 
 /**
- * Only keep the section the target family actually uses. Writing the Hive section for an RDBMS target
- * left a misleading `partName` on the table, which the backend then mistook for a real date dimension.
+ * The section to persist for the picked target family. Writing the Hive section for an RDBMS target left a
+ * misleading `partName` on the table, so callers must merge this over (not replace) the options already
+ * stored on the row: the bag is namespaced so a table can switch target families and keep both.
  */
 export function pickTargetOptions(
   options?: Partial<EtlTargetOptions> | null,

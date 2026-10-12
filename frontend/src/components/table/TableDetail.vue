@@ -47,7 +47,7 @@
   import { notify } from '@/stores/notifier';
   import tableService from '@/service/table-service';
   import targetService from '@/service/target-service';
-  import { VEtlWithSource, EtlTable, EtlTarget } from '@/types/database';
+  import { VEtlWithSource, EtlTable, EtlTarget, EtlTargetOptions } from '@/types/database';
   import { toJsonText, parseJsonObjectOrNull } from '@/utils/json-plugin';
   import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
   import HeroSummaryCard from './detail/HeroSummaryCard.vue';
@@ -67,12 +67,15 @@
 
   // Render with a normalized options bag so the target-specific fields always have an object to bind to.
   const table = ref<VEtlWithSource>({ targetOptions: normalizeTargetOptions() } as VEtlWithSource);
+  // The bag as stored on the row, so a save keeps the section of the other target family untouched.
+  const storedOptions = ref<Partial<EtlTargetOptions>>({});
   const readerPluginConfigText = ref('');
   const writerPluginConfigText = ref('');
   const showPlaceholderInfo = ref(false);
   const showFilterRuleInfo = ref(false);
 
   const syncTableData = (newTable: VEtlWithSource) => {
+    storedOptions.value = newTable.targetOptions ?? {};
     table.value = { ...newTable, targetOptions: normalizeTargetOptions(newTable.targetOptions) };
     readerPluginConfigText.value = toJsonText(newTable.readerPluginConfig);
     writerPluginConfigText.value = toJsonText(newTable.writerPluginConfig);
@@ -135,7 +138,11 @@
       sourceTable: table.value.sourceTable,
       targetDb: table.value.targetDb,
       targetTable: table.value.targetTable,
-      targetOptions: pickTargetOptions(table.value.targetOptions, selectedTargetType.value),
+      // Merge over the stored bag: switching target families must not drop the other family's settings.
+      targetOptions: {
+        ...storedOptions.value,
+        ...pickTargetOptions(table.value.targetOptions, selectedTargetType.value),
+      },
       splitPk: table.value.splitPk,
       autoPk: table.value.autoPk,
       filter: table.value.filter,

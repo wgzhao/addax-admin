@@ -192,18 +192,18 @@ export interface EtlSource {
   maxConcurrency?: number; // 最大并发数
 }
 
-// 目标端专属表属性，按目标端族分组保存（对应 etl_table.target_options）
+// Target-specific table attributes, grouped per target family (etl_table.target_options).
 export interface HdfsTargetOptions {
-  partKind?: string; // 分区类型，D - 按每日分区；为空表示不分区
-  partName?: string; // 目标表分区字段名称
-  partFormat?: string; // 目标表分区字段格式
-  storageFormat?: string; // 目标表存储格式，默认 orc
-  compressFormat?: string; // 目标表压缩格式，默认 lz4
+  partKind?: string; // partition kind, D = daily; empty means the table is not partitioned
+  partName?: string; // target partition column; absent means the table is not partitioned
+  partFormat?: string; // date format of the partition value
+  storageFormat?: string; // target storage format; falls back to the HDFS_STORAGE_FORMAT setting
+  compressFormat?: string; // target compression; falls back to the HDFS_COMPRESS_FORMAT setting
 }
 
 export interface RdbmsTargetOptions {
-  businessDateColumn?: string; // 快照业务日期列，为空表示不承载日期
-  createPrimaryKey?: boolean; // 是否用源端主键在目标表建主键
+  businessDateColumn?: string; // snapshot business date column; empty means the target carries no date
+  createPrimaryKey?: boolean; // create the target primary key from the source one, default true
 }
 
 export interface EtlTargetOptions {
@@ -219,7 +219,8 @@ export interface EtlTable {
   sourceTable: string; // 采集源表名
   targetDb: string; // 目标库名，即提供给hive的库名
   targetTable: string; // 目标表名，即Hive的表名
-  // 目标端专属属性（hdfs / rdbms）。只会携带该目标端族真正使用的段，见 pickTargetOptions。
+  // Target-specific attributes (hdfs / rdbms). Only the section of the picked target family is written;
+  // see pickTargetOptions.
   targetOptions?: Partial<EtlTargetOptions>;
   splitPk?: string; // 指定切分字段
   autoPk?: boolean; // 是否自动获取切分字段
