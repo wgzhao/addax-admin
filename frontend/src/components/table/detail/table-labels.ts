@@ -36,6 +36,13 @@ export const scheduleLabel = (table: VEtlWithSource) =>
 
 export const latestRunLabel = (table: VEtlWithSource) => table.endTime || table.startTime || '-';
 
+// createdAt is serialized by the API as "yyyy-MM-dd HH:mm:ss"; it is only a Date when built locally.
+export const createdAtLabel = (table: VEtlWithSource) => {
+  const v = (table as any)?.createdAt;
+  if (!v) return '-';
+  return v instanceof Date ? v.toLocaleString() : String(v);
+};
+
 export const statusLabel = (table: VEtlWithSource) => {
   const matched = TABLE_STATUS_OPTIONS.find(item => item.value === table.status);
   return matched?.label || table.status || '未设置';
