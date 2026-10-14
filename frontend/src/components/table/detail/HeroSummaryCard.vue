@@ -32,6 +32,10 @@
       <span class="summary-label">最近运行</span>
       <strong>{{ latestRunLabel }}</strong>
     </div>
+    <div class="summary-card">
+      <span class="summary-label">创建时间</span>
+      <strong>{{ createdAtLabel }}</strong>
+    </div>
   </div>
 </template>
 
@@ -45,6 +49,7 @@
     targetLabel as targetLabelOf,
     scheduleLabel as scheduleLabelOf,
     latestRunLabel as latestRunLabelOf,
+    createdAtLabel as createdAtLabelOf,
     statusLabel as statusLabelOf,
     statusColor as statusColorOf,
   } from './table-labels';
@@ -63,6 +68,7 @@
   const targetLabel = computed(() => targetLabelOf(table.value, props.targetOptions));
   const scheduleLabel = computed(() => scheduleLabelOf(table.value));
   const latestRunLabel = computed(() => latestRunLabelOf(table.value));
+  const createdAtLabel = computed(() => createdAtLabelOf(table.value));
   const statusLabel = computed(() => statusLabelOf(table.value));
   const statusColor = computed(() => statusColorOf(table.value));
 </script>
@@ -131,7 +137,7 @@
 
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 12px;
   }
 
