@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
+import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
@@ -12,6 +13,7 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -35,6 +37,7 @@ public class TableOverrideScheduler
     private final MasterElectionService electionService;
     private final TaskScheduler taskScheduler;
     private final DictService dictService;
+    private final CalendarService calendarService;
 
     /**
      * 覆盖调度补偿窗口（分钟）。
@@ -78,6 +81,7 @@ public class TableOverrideScheduler
 
     private void tick()
     {
+        LocalDate today = LocalDate.now();
         LocalTime nowMinute = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime from = nowMinute.minusMinutes(OVERRIDE_MISFIRE_WINDOW_MINUTES);
@@ -94,9 +98,9 @@ public class TableOverrideScheduler
                 // [from..23:59] still lies inside the current business period (started yesterday at
                 // switch time), so both sub-ranges are safe to rescan.
                 if (!switchTime.equals(LocalTime.MIDNIGHT)) {
-                    enqueued += enqueueRange(from, LocalTime.of(23, 59));
+                    enqueued += enqueueRange(from, LocalTime.of(23, 59), today.minusDays(1));
                 }
-                enqueued += enqueueRange(LocalTime.MIDNIGHT, nowMinute);
+                enqueued += enqueueRange(LocalTime.MIDNIGHT, nowMinute, today);
             }
             else {
                 // Clip the window to the current business period: rescans must never reach back into
@@ -106,7 +110,7 @@ public class TableOverrideScheduler
                 if (!nowMinute.isBefore(switchTime) && from.isBefore(switchTime)) {
                     from = switchTime;
                 }
-                enqueued += enqueueRange(from, nowMinute);
+                enqueued += enqueueRange(from, nowMinute, today);
             }
 
             if (enqueued > 0) {
@@ -118,7 +122,12 @@ public class TableOverrideScheduler
         }
     }
 
-    private int enqueueRange(LocalTime from, LocalTime to)
+    /**
+     * @param date the calendar date the minutes in {@code [from, to]} belong to. A window that crosses
+     *             midnight is scanned as two ranges and the earlier one belongs to the previous day;
+     *             gating it with today's date would let a table scheduled on a rest day through.
+     */
+    private int enqueueRange(LocalTime from, LocalTime to, LocalDate date)
     {
         List<EtlTable> tables = tableService.getRunnableOverrideTasksBetween(from, to);
         if (tables == null || tables.isEmpty()) {
@@ -126,6 +135,12 @@ public class TableOverrideScheduler
         }
         int enqueued = 0;
         for (EtlTable t : tables) {
+            CalendarService.Verdict verdict = calendarService.evaluate(t.getSourceCalendar(), date);
+            if (!verdict.due()) {
+                calendarService.reportRefusal(verdict, t.getSourceCalendar(),
+                    "table=" + t.getId() + ", date=" + date);
+                continue;
+            }
             if (queueManager.addTaskToQueue(t)) {
                 enqueued++;
             }

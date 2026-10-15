@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.wgzhao.addax.admin.common.CalendarType;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
@@ -127,7 +128,10 @@ public class DictService
         else {
             curDate = LocalDate.now().format(shortSdf);
         }
-        String res = sysItemRepo.findLastBizDateList(curDate);
+        // The global business date keeps its historical meaning (derived from the trade-date dictionary)
+        // so upgrading adds the per-source calendar without moving the anchor existing deployments,
+        // dashboards and cached templates were built on.
+        String res = sysItemRepo.findLastCalendarDateBefore(CalendarType.TRADE_DAY.getDictCode(), curDate);
         return res == null ? curDate : res;
     }
 
@@ -141,7 +145,7 @@ public class DictService
      */
     public String bizDateAdd(String bizDate, int days)
     {
-        String res = sysItemRepo.getBizDateOffset(bizDate, days);
+        String res = sysItemRepo.getCalendarDateOffset(bizDate, days, CalendarType.TRADE_DAY.getDictCode());
         return res == null ? bizDate : res;
     }
 
@@ -590,17 +594,21 @@ public class DictService
         return res == null ? 600 : res;
     }
 
-    /* 生成指定年份的交易日历
-     * 日期格式为 yyyyMMdd，比如 20260112
-     * 保存在 code = 1021 的字典中，item_key ，item_value 均为日期字符串
-     * remark 设定为自动生成
+    /**
+     * 按日期生成一份日历字典，日期格式 yyyyMMdd，item_key 与 item_value 均为日期字符串。
+     *
+     * 已存在的日期不会被覆盖：工作日历生成出来的是“周一至周五”这个起点，维护者随后要删掉法定节假日、
+     * 补上调休上班日，重新生成时必须保留这些人工修正，否则一次误操作就会把调休信息抹掉。
+     *
+     * @param dictCode 目标字典编号，交易日历 1021，工作日历 1022
      * @param year 指定年份，比如 2026
-     * @param includeWeekend 是否包含周末, true 包含，false 不包含
+     * @param includeWeekend 是否包含周末，true 包含，false 不包含
      */
-    public void generateTradeCalendar(int year, boolean includeWeekend)
+    public int generateCalendar(int dictCode, int year, boolean includeWeekend)
     {
         LocalDate start = LocalDate.of(year, 1, 1);
         LocalDate end = LocalDate.of(year, 12, 31);
+        int added = 0;
         for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
             if (!includeWeekend) {
                 int dayOfWeek = date.getDayOfWeek().getValue();
@@ -609,12 +617,18 @@ public class DictService
                 }
             }
             String dateStr = date.format(shortSdf);
+            if (sysItemRepo.findByDictCodeAndItemKey(dictCode, dateStr).isPresent()) {
+                continue;
+            }
             SysItem item = new SysItem();
-            item.setDictCode(1021);
+            item.setDictCode(dictCode);
             item.setItemKey(dateStr);
             item.setItemValue(dateStr);
             item.setRemark("自动生成");
             sysItemRepo.save(item);
+            added++;
         }
+        log.info("日历字典 {} 生成完成：{} 年新增 {} 条", dictCode, year, added);
+        return added;
     }
 }

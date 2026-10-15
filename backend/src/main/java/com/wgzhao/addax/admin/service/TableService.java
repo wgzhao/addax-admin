@@ -500,6 +500,14 @@ public class TableService
     }
 
     /**
+     * Collection calendar of the source a table belongs to; null when the table is gone (or has no source).
+     */
+    public String getSourceCalendar(long tid)
+    {
+        return etlTableRepo.findSourceCalendarByTid(tid);
+    }
+
+    /**
      * 获取有效表的数量
      *
      * @return 有效表的数量

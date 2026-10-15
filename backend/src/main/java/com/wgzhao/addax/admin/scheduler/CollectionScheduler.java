@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.scheduler;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.TaskSchedulerService;
 import com.wgzhao.addax.admin.service.TaskService;
 import jakarta.annotation.PostConstruct;
@@ -10,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -22,6 +24,7 @@ public class CollectionScheduler
     private final EtlSourceRepo etlSourceRepo;
     private final TaskService taskService;
     private final MasterElectionService electionService;
+    private final CalendarService calendarService;
 
     @PostConstruct
     public void init()
@@ -63,6 +66,16 @@ public class CollectionScheduler
             // Enqueue is idempotent: DB unique constraint prevents duplicate pending/running entries
             Runnable task = () -> {
                 try {
+                    // The cron fires every day; the calendar decides whether this day is one of them.
+                    // Cron expressions cannot express "trading days only", and gating here keeps the
+                    // registration/reschedule path untouched.
+                    LocalDate today = LocalDate.now();
+                    CalendarService.Verdict verdict = calendarService.evaluate(source.getCalendar(), today);
+                    if (!verdict.due()) {
+                        calendarService.reportRefusal(verdict, source.getCalendar(),
+                            "source=" + source.getCode() + ", date=" + today);
+                        return;
+                    }
                     taskService.executeTasksForSource(source.getId());
                 }
                 catch (Exception e) {

@@ -2,9 +2,13 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +22,17 @@ public class StatService
     private final JdbcTemplate jdbcTemplate;
     private final EtlStatisticRepo etlStatisticRepo;
     private final SystemConfigService configService;
+    private final EtlTableRepo etlTableRepo;
+    private final CalendarService calendarService;
+
+    // Keeps the merged, per-calendar result sets in the order the single-query version used to return:
+    // worst offenders first, then the most recent miss, then a stable tie-breaker for the UI.
+    private static final Comparator<Map<String, Object>> MISSING_ORDER =
+        Comparator.comparingLong((Map<String, Object> row) -> ((Number) row.get("missing_days")).longValue())
+            .reversed()
+            .thenComparing(row -> String.valueOf(row.get("last_missing_date")), Comparator.reverseOrder())
+            .thenComparing(row -> String.valueOf(row.get("source_db")))
+            .thenComparing(row -> String.valueOf(row.get("source_table")));
 
     // 最近一次采集的总数据量，单位 GB
     public Double statTotalData()
@@ -476,14 +491,37 @@ public class StatService
         return jdbcTemplate.queryForList(sql, offset, thresholdPct);
     }
 
-    // 近 N 天内缺失采集记录的有效表（默认每天应采集一次）
+    /**
+     * 近 N 天内缺失采集记录的有效表。
+     *
+     * 期望日期必须按每张表所属的采集日历推导：工作日/交易日表在周末和节假日本来就不该有采集记录，
+     * 按自然日判定会把每个休息日报成缺失，真正的漏采反而被淹没。日历分组最多三种，所以按日历分别
+     * 查询再合并排序，比在 SQL 里重复一遍“日历名到字典编号”的映射更不容易走样。
+     */
     public List<Map<String, Object>> getMissingCollectTablesInDays(int days)
     {
         int offset = Math.max(days - 1, 0);
         LocalDate bizDate = configService.getBizDateAsDate();
+        LocalDate windowStart = bizDate.minusDays(offset);
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (String calendar : etlTableRepo.findCalendarsInUse()) {
+            List<LocalDate> expected = calendarService.businessDatesInWindow(calendar, windowStart, bizDate);
+            if (expected.isEmpty()) {
+                continue;
+            }
+            rows.addAll(findMissingCollectTables(calendar, expected, windowStart, bizDate));
+        }
+        rows.sort(MISSING_ORDER);
+        return rows;
+    }
+
+    private List<Map<String, Object>> findMissingCollectTables(String calendar, List<LocalDate> expectedDates,
+        LocalDate windowStart, LocalDate windowEnd)
+    {
         String sql = """
             WITH date_span AS (
-              SELECT generate_series(?::date - ?, ?::date, interval '1 day')::date AS biz_date
+              SELECT unnest(?::date[]) AS biz_date
             ),
             valid_tables AS (
               SELECT
@@ -496,12 +534,20 @@ public class StatService
               FROM vw_etl_table_with_source
               WHERE status <> 'X'
                 AND COALESCE(enabled, false) = true
+                AND COALESCE(NULLIF(calendar, ''), 'NATURAL_DAY') = ?
             ),
             daily AS (
               SELECT tid, biz_date
               FROM etl_statistic
-              WHERE biz_date >= (?::date - ?)
+              WHERE biz_date >= ?::date
                 AND biz_date <= ?::date
+            ),
+            expected AS (
+              SELECT t.tid, COUNT(*) AS expected_days
+              FROM valid_tables t
+              JOIN date_span d
+                ON d.biz_date >= t.created_date
+              GROUP BY t.tid
             ),
             missing AS (
               SELECT
@@ -549,7 +595,7 @@ public class StatService
               m.source_table,
               m.target_db,
               m.target_table,
-              GREATEST(0, (?::date - GREATEST(m.created_date, ?::date - ?)) + 1) AS expected_days,
+              COALESCE(e.expected_days, 0) AS expected_days,
               COALESCE(a.actual_days, 0) AS actual_days,
               m.missing_days,
               m.first_missing_date,
@@ -559,14 +605,20 @@ public class StatService
             FROM missing_agg m
             LEFT JOIN actual a
               ON m.tid = a.tid
+            LEFT JOIN expected e
+              ON m.tid = e.tid
             ORDER BY m.missing_days DESC, m.last_missing_date DESC, m.source_db, m.source_table
             """;
         return jdbcTemplate.queryForList(sql,
-            bizDate, offset, bizDate,      // date_span
-            bizDate,                       // coalesce created_at fallback
-            bizDate, offset, bizDate,      // daily
-            bizDate, bizDate, offset       // expected_days params
-        );
+            toDateArrayLiteral(expectedDates),
+            windowStart,
+            calendar,
+            windowStart, windowEnd);
+    }
+
+    private static String toDateArrayLiteral(List<LocalDate> dates)
+    {
+        return dates.stream().map(LocalDate::toString).collect(Collectors.joining(",", "{", "}"));
     }
 
     // 获取指定表 ID 的最后一次采集时间

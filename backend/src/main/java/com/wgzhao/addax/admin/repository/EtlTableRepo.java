@@ -130,6 +130,26 @@ public interface EtlTableRepo
 
     List<EtlTable> findByStatus(String status);
 
+    /**
+     * Collection calendar of the source a table belongs to, for callers that only have a table id.
+     * Null (or blank) means natural day.
+     */
+    @Query(value = """
+        select s.calendar from etl_table t join etl_source s on t.sid = s.id where t.id = ?1
+        """, nativeQuery = true)
+    String findSourceCalendarByTid(long tid);
+
+    /**
+     * Distinct calendars in use by tables that can still collect, so the missing-collection report can
+     * judge each group of tables against its own calendar.
+     */
+    @Query(value = """
+        select distinct coalesce(nullif(calendar, ''), 'NATURAL_DAY')
+        from vw_etl_table_with_source
+        where status <> 'X' and coalesce(enabled, false) = true
+        """, nativeQuery = true)
+    List<String> findCalendarsInUse();
+
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
                 WHERE t.status <> 'X' AND s.enabled = true

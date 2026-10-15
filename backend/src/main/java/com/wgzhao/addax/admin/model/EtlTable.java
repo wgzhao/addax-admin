@@ -113,6 +113,14 @@ public class EtlTable
     @Column(name = "start_at")
     private LocalTime startAt;
 
+    /**
+     * Calendar of the owning source, read-only here. The table-level schedule override triggers on the
+     * same calendar as the source it belongs to, and the trigger gate runs for tables outside a source
+     * fire, so the value has to travel with the table.
+     */
+    @org.hibernate.annotations.Formula("(select s.calendar from etl_source s where s.id = sid)")
+    private String sourceCalendar;
+
     // Only the partition column name is searchable, not the whole bag: matching target_options::text made
     // a search for "hdfs" (or a storage format) hit every Hive table.
     @Formula("LOWER(concat_ws(',', source_db || '.' || source_table , target_db || '.' || target_table , target_options->'hdfs'->>'partName' , filter))")

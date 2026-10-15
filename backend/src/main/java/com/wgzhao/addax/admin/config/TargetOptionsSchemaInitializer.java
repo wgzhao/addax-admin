@@ -33,8 +33,8 @@ import java.sql.Statement;
  *       repeat.</li>
  *   <li>it runs from {@code @PostConstruct}, i.e. before the web server accepts requests and before the
  *       scheduled refresh starts.</li>
- *   <li>the view definition below is duplicated from {@code scripts/schema.sql} on purpose; keep the two in
- *       sync whenever the view changes.</li>
+ *   <li>the view definition lives in {@link EtlTableView} because several initializers recreate it; the copy
+ *       in {@code scripts/schema.sql} is maintained by hand and has to stay in sync.</li>
  * </ul>
  */
 @Component
@@ -47,7 +47,7 @@ public class TargetOptionsSchemaInitializer
      */
     private static final long MIGRATION_LOCK_KEY = 662012001L;
 
-    private static final String VIEW_NAME = "vw_etl_table_with_source";
+    private static final String VIEW_NAME = EtlTableView.NAME;
 
     private static final String ADD_COLUMN_SQL =
         "alter table public.etl_table add column if not exists target_options jsonb";
@@ -72,53 +72,9 @@ public class TargetOptionsSchemaInitializer
             drop column if exists compress_format
         """;
 
-    private static final String DROP_VIEW_SQL =
-        "drop view if exists public.vw_etl_table_with_source";
+    private static final String DROP_VIEW_SQL = EtlTableView.DROP_SQL;
 
-    private static final String CREATE_VIEW_SQL = """
-        create view public.vw_etl_table_with_source as
-         select t.id,
-            t.source_db,
-            t.source_table,
-            t.target_db,
-            t.target_table,
-            t.target_options,
-            t.filter,
-            t.kind,
-            t.retry_cnt,
-            t.start_time,
-            t.end_time,
-            t.max_runtime,
-            t.sid,
-            t.duration,
-            t.tbl_comment,
-            t.status,
-            t.split_pk,
-            t.auto_pk,
-            t.write_mode,
-            t.start_at,
-            t.target_id,
-            t.created_at,
-            t.updated_at,
-            t.reader_plugin_config,
-            t.writer_plugin_config,
-            s.code,
-            s.name,
-            s.url,
-            s.username,
-            s.pass,
-            s.start_at as source_start_at,
-            s.enabled,
-            s.max_concurrency,
-            s.db_type,
-            tt.target_type,
-            tt.code as target_code,
-            tt.name as target_name,
-            tt.enabled as target_enabled
-           from ((public.etl_table t
-             left join public.etl_source s on ((t.sid = s.id)))
-             left join public.etl_target tt on ((t.target_id = tt.id)))
-        """;
+    private static final String CREATE_VIEW_SQL = EtlTableView.CREATE_SQL;
 
     private final JdbcTemplate jdbcTemplate;
 

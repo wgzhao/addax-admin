@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.common.CalendarType;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
@@ -25,6 +26,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -80,6 +82,7 @@ public class SourceController
         }
         // 校验采集时间与切日时间的距离，创建时如果不满足规则则直接失败并返回提示
         validateStartAt(etlSource.getStartAt());
+        etlSource.setCalendar(normalizeCalendar(etlSource.getCalendar()));
         EtlSource saved = sourceService.create(etlSource);
         return ResponseEntity.status(201).body(saved);
     }
@@ -108,6 +111,7 @@ public class SourceController
         }
         // 校验采集时间与切日时间的距离，更新时如果不满足规则则直接失败并返回提示
         validateStartAt(etlSource.getStartAt());
+        etlSource.setCalendar(normalizeCalendar(etlSource.getCalendar()));
         sourceService.save(etlSource);
 
         return ResponseEntity.ok(1);
@@ -261,5 +265,17 @@ public class SourceController
         if (minDiff < 10) {
             throw new ApiException(400, "采集时间与切日时间(" + switchTime + ")过于接近（" + minDiff + " 分钟）。请确保至少相差 10 分钟以上，推荐前后间隔为 30 分钟。");
         }
+    }
+
+    /**
+     * 校验并归一化采集日历：空值表示自然日（统一存 null），未知取值直接拒绝。写错的日历名若静默退化成
+     * 自然日，就会在休息日照常采集，恰好是这个功能要避免的结果。
+     */
+    private String normalizeCalendar(String calendar)
+    {
+        CalendarType parsed = CalendarType.parse(calendar)
+            .orElseThrow(() -> new ApiException(400, "未知的采集日历：" + calendar
+                + "，可选值：" + Arrays.toString(CalendarType.values())));
+        return parsed == CalendarType.NATURAL_DAY ? null : parsed.name();
     }
 }

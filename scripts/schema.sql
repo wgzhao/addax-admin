@@ -367,7 +367,8 @@ CREATE TABLE public.etl_source (
     remark character varying(2000),
     enabled boolean DEFAULT true,
     max_concurrency integer DEFAULT 5 NOT NULL,
-    db_type character varying(20)
+    db_type character varying(20),
+    calendar character varying(32)
 );
 
 
@@ -1604,6 +1605,7 @@ CREATE VIEW public.vw_etl_table_with_source AS
     s.username,
     s.pass,
     s.start_at AS source_start_at,
+    s.calendar,
     s.enabled,
     s.max_concurrency,
     s.db_type,

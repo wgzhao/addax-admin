@@ -53,6 +53,11 @@ public class VwEtlTableWithSource
     private String sourceStartAt;
 
     /**
+     * 采集源的采集日历（自然日/工作日/交易日），为空表示自然日
+     */
+    private String calendar;
+
+    /**
      * 表级调度时间点（HH:mm:ss / HH:mm），可为空，表示继承 sourceStartAt
      */
     private String startAt;
