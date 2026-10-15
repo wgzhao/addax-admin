@@ -50,13 +50,31 @@ const getHdfsStorageDefaults = (): Promise<{ storageFormat: string; compressForm
   }>;
 };
 
-// 生成交易日（后端批量生成）。
-// year: 四位年份；includeWeekend: true/false
-const generateTradeCalendar = (year: number, includeWeekend: boolean): Promise<void> => {
+// 生成日历字典（后端批量生成）。
+// dictCode: 1021 交易日历、1022 工作日历；year: 四位年份；includeWeekend: true/false
+const generateCalendar = (
+  dictCode: number,
+  year: number,
+  includeWeekend: boolean
+): Promise<void> => {
   const include = includeWeekend ? 'true' : 'false';
   return Requests.post(
-    `${apiPrefix.value}/generate-trade-calendar/${year}/${include}`
+    `${apiPrefix.value}/${dictCode}/generate-calendar/${year}/${include}`
   ) as unknown as Promise<void>;
+};
+
+export interface CalendarCoverage {
+  code: number;
+  calendar: string;
+  lastDate: string | null;
+  warning: string | null;
+}
+
+// 日历覆盖范围，用于提醒维护者导入后续年份
+const getCalendarCoverage = (): Promise<CalendarCoverage[]> => {
+  return Requests.get(`${apiPrefix.value}/calendar-coverage`) as unknown as Promise<
+    CalendarCoverage[]
+  >;
 };
 
 export default {
@@ -68,5 +86,6 @@ export default {
   updateDictItem,
   deleteDictItem,
   getHdfsStorageDefaults,
-  generateTradeCalendar,
+  generateCalendar,
+  getCalendarCoverage,
 };
