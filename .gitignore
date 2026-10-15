@@ -49,3 +49,8 @@ skills-lock.json
 ### AI session-local state (not repo assets) ###
 .claude/
 .memory/
+
+### 本地端到端验证（脚本、用例与产物都不入库，按需在本地运行） ###
+/scripts/e2e/
+/frontend/tests/e2e/source-calendar.spec.ts
+/frontend/tests/e2e/artifacts/
