@@ -152,6 +152,21 @@
               autocomplete="off"
               @click:append-inner="showPassword = !showPassword"
             />
+            <v-text-field
+              v-if="showConfirmPassword"
+              ref="confirmPasswordRef"
+              v-model="formModel.confirmPassword"
+              label="确认密码"
+              :type="showPassword ? 'text' : 'password'"
+              :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+              :rules="
+                dialogMode === 'create'
+                  ? [rules.confirmRequired, rules.passwordMatch]
+                  : [rules.passwordMatchOptional]
+              "
+              autocomplete="off"
+              @click:append-inner="showPassword = !showPassword"
+            />
             <v-select
               v-model="formModel.authority"
               :items="authorityOptions"
@@ -171,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref } from 'vue';
+  import { computed, onMounted, ref, watch } from 'vue';
   import userService, { type AccountUser } from '@/service/user-service';
   import EmptyState from '@/components/EmptyState.vue';
   import { notify } from '@/stores/notifier';
@@ -183,6 +198,7 @@
   const dialogVisible = ref(false);
   const dialogMode = ref<DialogMode>('create');
   const showPassword = ref(false);
+  const confirmPasswordRef = ref<{ validate: () => void } | null>(null);
 
   const headers = [
     { title: '用户名', key: 'username', minWidth: '180px' },
@@ -193,16 +209,45 @@
 
   const authorityOptions = ['admin', 'user'];
 
-  const formModel = ref<{ username: string; password: string; authority: string }>({
+  const formModel = ref<{
+    username: string;
+    password: string;
+    confirmPassword: string;
+    authority: string;
+  }>({
     username: '',
     password: '',
+    confirmPassword: '',
     authority: 'user',
   });
+
+  // Create always needs the confirmation; edit only once a new password is being typed
+  const showConfirmPassword = computed(
+    () => dialogMode.value === 'create' || formModel.value.password.length > 0
+  );
+
+  // Drop a stale confirmation so a cleared password cannot block saving
+  watch(
+    () => formModel.value.password,
+    value => {
+      if (!value) {
+        formModel.value.confirmPassword = '';
+        return;
+      }
+      // Re-validate the confirmation immediately, otherwise a later edit of the password
+      // keeps showing a stale verdict
+      confirmPasswordRef.value?.validate();
+    }
+  );
 
   const rules = {
     required: (v: string) => !!v || '必填项',
     password: (v: string) => (v && v.length >= 6) || '密码至少 6 位',
     passwordOptional: (v: string) => !v || v.length >= 6 || '密码至少 6 位',
+    confirmRequired: (v: string) => !!v || '请再次输入密码',
+    passwordMatch: (v: string) => v === formModel.value.password || '两次输入的密码不一致',
+    passwordMatchOptional: (v: string) =>
+      !v || v === formModel.value.password || '两次输入的密码不一致',
   };
 
   const loadUsers = async () => {
@@ -234,6 +279,7 @@
     formModel.value = {
       username: '',
       password: '',
+      confirmPassword: '',
       authority: 'user',
     };
     showPassword.value = false;
@@ -245,6 +291,7 @@
     formModel.value = {
       username: item.username,
       password: '',
+      confirmPassword: '',
       authority: normalizeAuthority(item.authorities?.[0]),
     };
     showPassword.value = false;
@@ -254,6 +301,7 @@
   const saveUser = async () => {
     const username = formModel.value.username?.trim();
     const password = formModel.value.password || '';
+    const confirmPassword = formModel.value.confirmPassword || '';
     const authority = formModel.value.authority;
 
     if (!username) {
@@ -268,6 +316,16 @@
 
     if (dialogMode.value === 'edit' && password && password.length < 6) {
       notify('密码至少 6 位', 'warning');
+      return;
+    }
+
+    if (password && !confirmPassword) {
+      notify('请再次输入密码', 'warning');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      notify('两次输入的密码不一致', 'warning');
       return;
     }
 
