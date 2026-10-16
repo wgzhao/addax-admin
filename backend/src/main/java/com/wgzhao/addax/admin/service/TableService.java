@@ -22,8 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,6 +50,7 @@ public class TableService
     private final UserNotificationService userNotificationService;
     private final EntityManager entityManager;
     private final EtlJobQueueService jobQueueService;
+    private final CalendarService calendarService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -534,11 +537,29 @@ public class TableService
 
     /**
      * 重置所有表的标志位
+     *
+     * <p>只重置"今天确实有采集义务"的表：源配了工作日/交易日日历、而今天不是它的业务日时，
+     * 调度层的门禁会拒绝采集。这类表必须保持上一次采集的状态（已采集的仍是 Y），否则它们在
+     * 周末会一直显示未采集、看板成功率跟着掉，而且没有任何一次采集能把它们改回来。</p>
      */
     @Transactional
     public void resetAllFlags()
     {
-        etlTableRepo.resetAllEtlFlags();
+        LocalDate today = LocalDate.now();
+        List<String> dueCalendars = new ArrayList<>();
+        for (String calendar : etlTableRepo.findCalendarsInUse()) {
+            if (calendarService.evaluate(calendar, today).due()) {
+                dueCalendars.add(calendar);
+            }
+            else {
+                log.info("日历 {} 中 {} 不是业务日，跳过重置其表的采集状态", calendar, today);
+            }
+        }
+        if (dueCalendars.isEmpty()) {
+            log.info("今天不是任何日历的业务日，不重置任何表的采集状态");
+            return;
+        }
+        etlTableRepo.resetEtlFlagsForCalendars(dueCalendars);
     }
 
     /**
