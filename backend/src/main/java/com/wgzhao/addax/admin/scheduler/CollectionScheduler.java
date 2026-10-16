@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -64,22 +65,35 @@ public class CollectionScheduler
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
             taskSchedulerService.cancelTask(taskId);
             // Enqueue is idempotent: DB unique constraint prevents duplicate pending/running entries
+            int sourceId = source.getId();
+            String sourceCode = source.getCode();
             Runnable task = () -> {
                 try {
                     // The cron fires every day; the calendar decides whether this day is one of them.
                     // Cron expressions cannot express "trading days only", and gating here keeps the
                     // registration/reschedule path untouched.
-                    LocalDate today = LocalDate.now();
-                    CalendarService.Verdict verdict = calendarService.evaluate(source.getCalendar(), today);
-                    if (!verdict.due()) {
-                        calendarService.reportRefusal(verdict, source.getCalendar(),
-                            "source=" + source.getCode() + ", date=" + today);
+                    //
+                    // The calendar is read here rather than taken from the entity captured at registration:
+                    // only a schedule change is broadcast to the nodes, so a source whose calendar changed
+                    // on its own would otherwise keep collecting on days the calendar excludes until the
+                    // master happened to restart.
+                    Optional<EtlSource> current = etlSourceRepo.findById(sourceId);
+                    if (current.isEmpty()) {
+                        log.warn("Source {} is gone, skipping its scheduled collection", sourceCode);
                         return;
                     }
-                    taskService.executeTasksForSource(source.getId());
+                    String calendar = current.get().getCalendar();
+                    LocalDate today = LocalDate.now();
+                    CalendarService.Verdict verdict = calendarService.evaluate(calendar, today);
+                    if (!verdict.due()) {
+                        calendarService.reportRefusal(verdict, calendar,
+                            "source=" + sourceCode + ", date=" + today);
+                        return;
+                    }
+                    taskService.executeTasksForSource(sourceId);
                 }
                 catch (Exception e) {
-                    log.error("Error executing scheduled collection for source {}", source.getCode(), e);
+                    log.error("Error executing scheduled collection for source {}", sourceCode, e);
                 }
             };
             taskSchedulerService.scheduleTask(taskId, task, cronExpression);
