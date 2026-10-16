@@ -1571,8 +1571,8 @@ CREATE TABLE public.users (
 -- Name: vw_etl_table_with_source; Type: VIEW; Schema: public; Owner: -
 --
 
--- Keep in sync with TargetOptionsSchemaInitializer, which recreates the same view for databases that
--- still have the legacy etl_table columns.
+-- Keep in sync with EtlTableView, whose definition SchemaInitializer recreates on startup for databases
+-- created by an older release.
 CREATE VIEW public.vw_etl_table_with_source AS
  SELECT t.id,
     t.source_db,

@@ -1,12 +1,20 @@
 package com.wgzhao.addax.admin.config;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
 /**
  * Single source of truth for the {@code vw_etl_table_with_source} definition.
  *
- * <p>Several startup initializers have to recreate the view as they add columns, and each recreation
- * rewrites the whole definition — so each of them would otherwise carry its own copy and the last one
- * to run would decide which columns survive. {@code scripts/schema.sql} holds a hand-maintained copy
- * for fresh installs; keep that one in sync when this changes.</p>
+ * <p>{@link SchemaInitializer} recreates the view from this definition, and {@link #FINGERPRINT} — stored
+ * as the view's comment — is what tells a database whether the definition it holds is the current one, so
+ * adding a column here is enough for every deployment to pick it up on its next start.</p>
+ *
+ * <p>{@code scripts/schema.sql} holds a hand-maintained copy for fresh installs; keep that one in sync
+ * when this changes. It does not carry the fingerprint, so the first start of a fresh install recreates
+ * the view once and every start after that leaves it alone.</p>
  */
 public final class EtlTableView
 {
@@ -60,7 +68,35 @@ public final class EtlTableView
 
     public static final String DROP_SQL = "drop view if exists public." + NAME;
 
+    /**
+     * Fingerprint of {@link #CREATE_SQL}, used as the version marker of the view.
+     */
+    public static final String FINGERPRINT = fingerprint(CREATE_SQL);
+
+    /**
+     * Records {@link #FINGERPRINT} as the view's comment. {@code FINGERPRINT} is hex from {@link
+     * HexFormat}, so it needs no quoting or escaping.
+     */
+    public static String commentSql()
+    {
+        return "comment on view public." + NAME + " is '" + FINGERPRINT + "'";
+    }
+
     private EtlTableView()
     {
+    }
+
+    private static String fingerprint(String ddl)
+    {
+        try
+        {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(ddl.getBytes(StandardCharsets.UTF_8));
+            return "addax-view:" + HexFormat.of().formatHex(digest);
+        }
+        catch (NoSuchAlgorithmException e)
+        {
+            // Every JVM is required to ship SHA-256
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
     }
 }
