@@ -53,4 +53,6 @@ skills-lock.json
 ### 本地端到端验证（脚本、用例与产物都不入库，按需在本地运行） ###
 /scripts/e2e/
 /frontend/tests/e2e/source-calendar.spec.ts
+/frontend/tests/e2e/accounts-password-confirm.spec.ts
 /frontend/tests/e2e/artifacts/
+/screenshots/
