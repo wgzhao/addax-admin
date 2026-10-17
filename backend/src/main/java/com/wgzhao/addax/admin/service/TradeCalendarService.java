@@ -75,7 +75,12 @@ public class TradeCalendarService
     private final SysItemRepo sysItemRepo;
     private final ObjectMapper objectMapper;
 
-    @Value("${calendar.trade.url:https://www.ciis.com.hk/hongkong/transactionCalendar/queryTransactionCalendar.do}")
+    /**
+     * 默认走明文 HTTP：同一个地址的 HTTP 与 HTTPS 返回完全一致的报文（2026 年都是 19 个 SSE 休市日），
+     * 而 HTTPS 端只下发叶子证书、不带中间 CA，JVM 无法可靠校验（见 {@link #defaultTrustContext()}）。
+     * 想强制 TLS 时把 {@code calendar.trade.url} 配成 https 即可，下面的信任库会补齐那条链。
+     */
+    @Value("${calendar.trade.url:http://www.ciis.com.hk/hongkong/transactionCalendar/queryTransactionCalendar.do}")
     private String sourceUrl;
 
     @Value("${calendar.trade.timeout-ms:15000}")
@@ -186,6 +191,7 @@ public class TradeCalendarService
     private Set<LocalDate> remoteTradingDays(int year) throws Exception
     {
         URI uri = URI.create(sourceUrl);
+        log.info("获取 {} 年交易日历：{}", year, uri);
         String origin = uri.getScheme() + "://" + uri.getHost();
         HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofMillis(Math.min(timeoutMs, 10_000)))
