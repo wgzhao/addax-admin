@@ -83,11 +83,13 @@ public class CollectionScheduler
                         return;
                     }
                     String calendar = current.get().getCalendar();
-                    LocalDate today = LocalDate.now();
-                    CalendarService.Verdict verdict = calendarService.evaluate(calendar, today);
+                    // Judge the business period the trigger belongs to: before the switch time that is
+                    // the previous calendar day, which is also the date the run is booked under.
+                    LocalDate businessDate = calendarService.businessPeriodDate();
+                    CalendarService.Verdict verdict = calendarService.evaluate(calendar, businessDate);
                     if (!verdict.due()) {
                         calendarService.reportRefusal(verdict, calendar,
-                            "source=" + sourceCode + ", date=" + today);
+                            "source=" + sourceCode + ", date=" + businessDate);
                         return;
                     }
                     taskService.executeTasksForSource(sourceId);

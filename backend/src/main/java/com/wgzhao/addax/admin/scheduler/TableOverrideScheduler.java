@@ -85,6 +85,11 @@ public class TableOverrideScheduler
         LocalTime nowMinute = LocalTime.now().truncatedTo(ChronoUnit.MINUTES);
         LocalTime switchTime = dictService.getSwitchTimeAsTime();
         LocalTime from = nowMinute.minusMinutes(OVERRIDE_MISFIRE_WINDOW_MINUTES);
+        // The minutes being scanned belong to the business period that is open now: before the switch
+        // that is the previous calendar day. Judging an early-morning override against today's date
+        // refuses Friday's trading-day tables at 01:30 on Saturday (they would never collect again),
+        // and would let a rest day's trigger through on Monday morning.
+        LocalDate businessDate = calendarService.businessPeriodDate(today, nowMinute);
 
         try {
             int enqueued = 0;
@@ -100,7 +105,7 @@ public class TableOverrideScheduler
                 if (!switchTime.equals(LocalTime.MIDNIGHT)) {
                     enqueued += enqueueRange(from, LocalTime.of(23, 59), today.minusDays(1));
                 }
-                enqueued += enqueueRange(LocalTime.MIDNIGHT, nowMinute, today);
+                enqueued += enqueueRange(LocalTime.MIDNIGHT, nowMinute, businessDate);
             }
             else {
                 // Clip the window to the current business period: rescans must never reach back into
@@ -110,7 +115,7 @@ public class TableOverrideScheduler
                 if (!nowMinute.isBefore(switchTime) && from.isBefore(switchTime)) {
                     from = switchTime;
                 }
-                enqueued += enqueueRange(from, nowMinute, today);
+                enqueued += enqueueRange(from, nowMinute, businessDate);
             }
 
             if (enqueued > 0) {
@@ -123,9 +128,10 @@ public class TableOverrideScheduler
     }
 
     /**
-     * @param date the calendar date the minutes in {@code [from, to]} belong to. A window that crosses
-     *             midnight is scanned as two ranges and the earlier one belongs to the previous day;
-     *             gating it with today's date would let a table scheduled on a rest day through.
+     * @param date the business period the minutes in {@code [from, to]} belong to (see {@link
+     *             CalendarService#businessPeriodDate}). A window that crosses midnight is scanned as two
+     *             ranges and the earlier one belongs to the previous day; gating it with today's date
+     *             would let a table scheduled on a rest day through.
      */
     private int enqueueRange(LocalTime from, LocalTime to, LocalDate date)
     {

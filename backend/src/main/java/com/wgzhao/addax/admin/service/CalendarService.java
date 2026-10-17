@@ -95,6 +95,29 @@ public class CalendarService
     }
 
     /**
+     * Calendar date of the business period that is open right now, i.e. the date a trigger has to be
+     * judged against. The switch time opens a new period, so a trigger before it (early morning) still
+     * belongs to the previous calendar day: 01:30 on Saturday collects Friday's trading data, and the
+     * calendar has to allow Friday, not Saturday.
+     *
+     * <p>Do not confuse this with {@link #businessDate(String)}: that one returns the latest calendar
+     * business date before the cursor, which on a weekend morning is the previous trading day even though
+     * the period now open is the rest day itself.</p>
+     */
+    public LocalDate businessPeriodDate()
+    {
+        return businessPeriodDate(LocalDate.now(), LocalTime.now());
+    }
+
+    /**
+     * Same rule for callers that already hold the minute they are processing (the table-override tick).
+     */
+    public LocalDate businessPeriodDate(LocalDate today, LocalTime now)
+    {
+        return now.isBefore(dictService.getSwitchTimeAsTime()) ? today.minusDays(1) : today;
+    }
+
+    /**
      * Cursor rule shared with the historical {@code getBizDate()}: once the switch time has passed the
      * cursor moves to tomorrow, so the result is the latest calendar date strictly before it. After the
      * switch a run therefore carries today's date, before the switch the previous business date.
