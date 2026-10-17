@@ -111,7 +111,7 @@ public class TableService
                     return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
                 }
             }
-            setNotCollect(table);
+            setNotCollectIfDue(table);
             //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
         }
         else {
@@ -137,7 +137,7 @@ public class TableService
         }
         TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.success()) {
-            setNotCollect(table);
+            setNotCollectIfDue(table);
             return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }
         else {
@@ -443,6 +443,25 @@ public class TableService
     {
         task.setStatus(TableStatus.NOT_COLLECT);
         etlTableRepo.save(task);
+    }
+
+    /**
+     * 刷新完成后把表置为"未采集"——但只在当前业务周期确实欠它一次采集时。
+     *
+     * <p>工作日/交易日源在休息日本来就不该采集（调度门禁会拒绝），这些表必须保留上一次采集的状态；
+     * 否则切日刷新里这一步会把周末的表全部刷回 {@code N}，让它们看起来像"待采集"，
+     * 看板成功率也跟着掉。重置（{@link #resetAllFlags()}）与这里的刷新是两条独立路径，必须用同一个判定。</p>
+     */
+    private void setNotCollectIfDue(EtlTable task)
+    {
+        java.time.LocalDate periodDate = calendarService.businessPeriodDate();
+        if (calendarService.evaluate(task.getSourceCalendar(), periodDate).due()) {
+            setNotCollect(task);
+        }
+        else {
+            log.debug("日历 {} 中 {} 不是业务日，刷新后保持表 {} 的原状态", task.getSourceCalendar(), periodDate,
+                task.getId());
+        }
     }
 
     public void setUpdateSchema(EtlTable task)
