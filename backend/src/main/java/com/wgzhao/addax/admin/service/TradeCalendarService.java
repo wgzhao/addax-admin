@@ -11,20 +11,33 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 /**
  * 交易日历（字典 1021）的年度补全。
@@ -47,6 +60,11 @@ import java.util.Set;
 public class TradeCalendarService
 {
     private static final DateTimeFormatter SHORT = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    /**
+     * 柜台服务器的证书链缺这一张中间证书（见 {@link #defaultTrustContext()}）。
+     */
+    private static final String BUNDLED_CA = "/certs/rapidssl-tls-rsa-ca-g1.pem";
 
     /**
      * A year always has more weekday holidays than this; fewer means the response was empty (the next
@@ -171,6 +189,7 @@ public class TradeCalendarService
         String origin = uri.getScheme() + "://" + uri.getHost();
         HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofMillis(Math.min(timeoutMs, 10_000)))
+            .sslContext(defaultTrustContext())
             .build();
         HttpRequest request = HttpRequest.newBuilder(uri)
             .timeout(Duration.ofMillis(timeoutMs))
@@ -186,6 +205,55 @@ public class TradeCalendarService
             throw new IllegalStateException("HTTP " + response.statusCode());
         }
         return parseRemote(response.body(), year);
+    }
+
+    /**
+     * 信任库 = JDK cacerts + 随包的中间证书。
+     *
+     * <p>柜台服务器只下发叶子证书、不带中间 CA；叶子证书的 AIA 指向
+     * {@code http://cacerts.rapidssl.com/RapidSSLTLSRSACAG1.crt}，但 JVM 在应用里并没有靠 AIA
+     * 补齐（同样的代码在独立小程序里可以）。这张中间证书由 DigiCert Global Root G2 签发、其根在
+     * JDK cacerts 里，随包带上只是把链补齐，不放宽任何校验。</p>
+     */
+    private static SSLContext defaultTrustContext() throws GeneralSecurityException, IOException
+    {
+        KeyStore trust = KeyStore.getInstance(KeyStore.getDefaultType());
+        trust.load(null, null);
+        // JDK 自带的根证书仍然有效：先整体搬过来，再补一张柜台缺的中间证书。
+        Path cacerts = Path.of(System.getProperty("java.home"), "lib", "security", "cacerts");
+        if (Files.isReadable(cacerts))
+        {
+            KeyStore system = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (InputStream in = Files.newInputStream(cacerts))
+            {
+                system.load(in, "changeit".toCharArray());
+            }
+            for (String alias : Collections.list(system.aliases()))
+            {
+                trust.setCertificateEntry(alias, system.getCertificate(alias));
+            }
+        }
+        else
+        {
+            log.warn("找不到 JDK 的 cacerts（{}），仅使用随包的中间证书", cacerts);
+        }
+        try (InputStream in = TradeCalendarService.class.getResourceAsStream(BUNDLED_CA))
+        {
+            if (in != null)
+            {
+                CertificateFactory factory = CertificateFactory.getInstance("X.509");
+                for (Certificate certificate : factory.generateCertificates(in))
+                {
+                    String alias = "bundled-" + ((X509Certificate) certificate).getSerialNumber();
+                    trust.setCertificateEntry(alias, certificate);
+                }
+            }
+        }
+        TrustManagerFactory trustManagers = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagers.init(trust);
+        SSLContext context = SSLContext.getInstance("TLS");
+        context.init(null, trustManagers.getTrustManagers(), null);
+        return context;
     }
 
     /**
