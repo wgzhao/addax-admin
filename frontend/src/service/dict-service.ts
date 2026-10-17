@@ -70,6 +70,23 @@ export interface CalendarCoverage {
   warning: string | null;
 }
 
+export interface TradeCalendarRefreshResult {
+  year: number;
+  source: string;
+  tradingDays: number;
+  added: number;
+  removed: number;
+  removedDates: string[];
+  warning: string | null;
+}
+
+// 年度补全交易日历（1021）：优先柜台接口，取不到时后端退化为固定规则并在 warning 里说明
+const refreshTradeCalendar = (year: number): Promise<TradeCalendarRefreshResult> => {
+  return Requests.post(
+    `${apiPrefix.value}/1021/refresh-trade-calendar/${year}`
+  ) as unknown as Promise<TradeCalendarRefreshResult>;
+};
+
 // 日历覆盖范围，用于提醒维护者导入后续年份
 const getCalendarCoverage = (): Promise<CalendarCoverage[]> => {
   return Requests.get(`${apiPrefix.value}/calendar-coverage`) as unknown as Promise<
@@ -87,5 +104,6 @@ export default {
   deleteDictItem,
   getHdfsStorageDefaults,
   generateCalendar,
+  refreshTradeCalendar,
   getCalendarCoverage,
 };

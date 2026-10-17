@@ -1,7 +1,9 @@
 <template>
   <div
     class="dict-page page-shell ds-management-page"
-    :class="{ 'ds-management-page--modal-open': dictDialog || itemDialog || batchDialog }"
+    :class="{
+      'ds-management-page--modal-open': dictDialog || itemDialog || batchDialog || tradeDialog,
+    }"
   >
     <v-card flat class="ds-card page-header-card">
       <v-card-text class="ds-card__content">
@@ -136,6 +138,16 @@
                   @click="openBatchDialog()"
                 >
                   批量新增日历日期
+                </v-btn>
+                <v-btn
+                  v-if="selectedDict?.code === 1021"
+                  color="secondary"
+                  variant="tonal"
+                  size="small"
+                  prepend-icon="mdi-calendar-refresh"
+                  @click="openTradeDialog()"
+                >
+                  年度补全交易日历
                 </v-btn>
               </div>
             </div>
@@ -285,6 +297,36 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog
+      v-model="tradeDialog"
+      class="ds-dialog-overlay"
+      scrim="rgba(2, 6, 23, 0.62)"
+      max-width="600px"
+    >
+      <v-card>
+        <v-card-title>年度补全交易日历</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field v-model.number="tradeYear" type="number" label="年份 (YYYY)" />
+            </v-col>
+          </v-row>
+          <div class="text-caption text-medium-emphasis">
+            优先从柜台接口取 SSE
+            休市日。接口超时、返回结构变化或该年份尚未发布时会给出提示，并退化为固定规则：工作日（不含周六日），扣除元旦
+            1 月 1-3 日与国庆 10 月 1-7 日。可重复执行。
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="tradeDialog = false">取消</v-btn>
+          <v-btn color="primary" variant="flat" :loading="tradeLoading" @click="runTradeRefresh">
+            开始补全
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -331,6 +373,41 @@
     } catch (err) {
       console.error(err);
       alert('后端生成失败，请查看控制台');
+    }
+  };
+
+  // 年度补全交易日历：后端会优先取柜台数据，取不到时退化为固定规则并把原因放在 warning 里
+  const tradeDialog = ref(false);
+  const tradeLoading = ref(false);
+  const tradeYear = ref(new Date().getFullYear() + 1);
+
+  const openTradeDialog = () => {
+    tradeYear.value = new Date().getFullYear() + 1;
+    tradeDialog.value = true;
+  };
+
+  const runTradeRefresh = async () => {
+    const year = tradeYear.value;
+    if (!year || year < 2000 || year > 2100) return alert('请输入有效年份');
+    tradeLoading.value = true;
+    try {
+      const result = await dictService.refreshTradeCalendar(year);
+      tradeDialog.value = false;
+      if (selectedDict.value) loadItems(selectedDict.value.code);
+      loadCoverage();
+      const lines = [
+        `${result.year} 年交易日历补全完成`,
+        `来源：${result.source === 'SSE' ? '柜台接口（SSE）' : '默认规则（柜台接口不可用）'}`,
+        `交易日 ${result.tradingDays} 天，新增 ${result.added} 天，移除 ${result.removed} 天`,
+      ];
+      if (result.removedDates?.length) lines.push(`移除日期：${result.removedDates.join('、')}`);
+      if (result.warning) lines.push('', `⚠ ${result.warning}`);
+      alert(lines.join('\n'));
+    } catch (err) {
+      console.error(err);
+      alert('补全失败，请查看后端日志');
+    } finally {
+      tradeLoading.value = false;
     }
   };
 
