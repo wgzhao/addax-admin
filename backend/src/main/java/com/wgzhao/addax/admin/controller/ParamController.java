@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.CalendarService;
+import com.wgzhao.addax.admin.service.TradeCalendarService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +41,7 @@ public class ParamController
      */
     private final DictService dictService;
     private final CalendarService calendarService;
+    private final TradeCalendarService tradeCalendarService;
 
     /**
      * 日历覆盖范围：每个日历字典最后覆盖到哪一天，以及是否需要提醒维护者导入后续日期。
@@ -267,5 +269,25 @@ public class ParamController
         }
         dictService.generateCalendar(dictCode, year, includeWeekend);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /**
+     * 年度补全交易日历（1021）：优先从柜台接口取 SSE 休市日，取不到（超时、接口变动、未发布）时给出
+     * 提示并退化为固定规则（周末不算，元旦 1 月 1-3 日、国庆 10 月 1-7 日休市）。
+     *
+     * <p>可重复执行：官方数据会补齐并移除该年已不再交易的日子，退化数据只补不删。</p>
+     */
+    @PostMapping("/{dictCode}/refresh-trade-calendar/{year}")
+    public ResponseEntity<TradeCalendarService.RefreshResult> refreshTradeCalendar(
+        @PathVariable int dictCode,
+        @PathVariable int year)
+    {
+        if (!CalendarType.TRADE_DAY.getDictCode().equals(dictCode)) {
+            throw new ApiException(400, "仅交易日历（" + CalendarType.TRADE_DAY.getDictCode() + "）支持年度补全");
+        }
+        if (year < 2000 || year > 2100) {
+            throw new ApiException(400, "年份超出范围：" + year);
+        }
+        return ResponseEntity.ok(tradeCalendarService.refresh(year));
     }
 }
