@@ -121,7 +121,8 @@ public class SourceService
         if (existing == null) {
             return etlSource;
         }
-        boolean scheduleChanged = existing.getStartAt() != etlSource.getStartAt();
+        boolean scheduleChanged = !Objects.equals(existing.getStartAt(), etlSource.getStartAt());
+        boolean calendarChanged = !Objects.equals(existing.getCalendar(), etlSource.getCalendar());
 
         // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
@@ -134,8 +135,8 @@ public class SourceService
             eventPublisher.publishEvent(sourceUpdatedEvent);
         }
 
-        // 如果调度时间发生变更，则广播到集群中的其他节点，通知它们重新注册定时任务
-        if (scheduleChanged) {
+        // 如果调度时间或采集日历发生变更，则广播到集群中的其他节点，通知它们重新注册定时任务
+        if (scheduleChanged || calendarChanged) {
             try {
                 redisTemplate.convertAndSend(REDIS_SOURCE_UPDATE_CHANNEL, String.valueOf(etlSource.getId()));
                 log.info("Published source schedule change for sourceId={} to redis channel {}", etlSource.getId(), REDIS_SOURCE_UPDATE_CHANNEL);

@@ -53,6 +53,7 @@ public class JobContentService
     private final StatService statService;
     private final ObjectMapper objectMapper;
     private final TargetTypeResolver targetTypeResolver;
+    private final CalendarService calendarService;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -85,8 +86,10 @@ public class JobContentService
         }
 
         Map<String, String> dateValues = configService.getBizDateValuesForDate(targetDate);
-        // For incremental tables, use the day before target date as the "last etl date"
-        LocalDate fillbackLastEtlDate = targetDate.minusDays(1);
+        // For incremental tables, use the target date's previous business day as the "last etl date".
+        // Walking back one calendar day would pick a rest day for workday/trading-day sources, so the
+        // window would open earlier than the data that actually exists.
+        LocalDate fillbackLastEtlDate = calendarService.previousBusinessDay(etlTable.getCalendar(), targetDate);
 
         Map<String, String> values = new HashMap<>();
         values.put("reader", fillRdbmsReaderJobForDate(etlTable, dateValues, fillbackLastEtlDate));

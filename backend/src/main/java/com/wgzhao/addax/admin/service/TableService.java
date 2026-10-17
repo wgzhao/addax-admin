@@ -22,8 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,6 +50,7 @@ public class TableService
     private final UserNotificationService userNotificationService;
     private final EntityManager entityManager;
     private final EtlJobQueueService jobQueueService;
+    private final CalendarService calendarService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -108,7 +111,7 @@ public class TableService
                     return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
                 }
             }
-            setNotCollect(table);
+            setNotCollectIfDue(table);
             //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
         }
         else {
@@ -134,7 +137,7 @@ public class TableService
         }
         TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.success()) {
-            setNotCollect(table);
+            setNotCollectIfDue(table);
             return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }
         else {
@@ -442,6 +445,25 @@ public class TableService
         etlTableRepo.save(task);
     }
 
+    /**
+     * 刷新完成后把表置为"未采集"——但只在当前业务周期确实欠它一次采集时。
+     *
+     * <p>工作日/交易日源在休息日本来就不该采集（调度门禁会拒绝），这些表必须保留上一次采集的状态；
+     * 否则切日刷新里这一步会把周末的表全部刷回 {@code N}，让它们看起来像"待采集"，
+     * 看板成功率也跟着掉。重置（{@link #resetAllFlags()}）与这里的刷新是两条独立路径，必须用同一个判定。</p>
+     */
+    private void setNotCollectIfDue(EtlTable task)
+    {
+        java.time.LocalDate periodDate = calendarService.businessPeriodDate();
+        if (calendarService.evaluate(task.getSourceCalendar(), periodDate).due()) {
+            setNotCollect(task);
+        }
+        else {
+            log.debug("日历 {} 中 {} 不是业务日，刷新后保持表 {} 的原状态", task.getSourceCalendar(), periodDate,
+                task.getId());
+        }
+    }
+
     public void setUpdateSchema(EtlTable task)
     {
         task.setStatus(TableStatus.WAIT_SCHEMA);
@@ -500,6 +522,14 @@ public class TableService
     }
 
     /**
+     * Collection calendar of the source a table belongs to; null when the table is gone (or has no source).
+     */
+    public String getSourceCalendar(long tid)
+    {
+        return etlTableRepo.findSourceCalendarByTid(tid);
+    }
+
+    /**
      * 获取有效表的数量
      *
      * @return 有效表的数量
@@ -526,11 +556,29 @@ public class TableService
 
     /**
      * 重置所有表的标志位
+     *
+     * <p>只重置"今天确实有采集义务"的表：源配了工作日/交易日日历、而今天不是它的业务日时，
+     * 调度层的门禁会拒绝采集。这类表必须保持上一次采集的状态（已采集的仍是 Y），否则它们在
+     * 周末会一直显示未采集、看板成功率跟着掉，而且没有任何一次采集能把它们改回来。</p>
      */
     @Transactional
     public void resetAllFlags()
     {
-        etlTableRepo.resetAllEtlFlags();
+        LocalDate today = LocalDate.now();
+        List<String> dueCalendars = new ArrayList<>();
+        for (String calendar : etlTableRepo.findCalendarsInUse()) {
+            if (calendarService.evaluate(calendar, today).due()) {
+                dueCalendars.add(calendar);
+            }
+            else {
+                log.info("日历 {} 中 {} 不是业务日，跳过重置其表的采集状态", calendar, today);
+            }
+        }
+        if (dueCalendars.isEmpty()) {
+            log.info("今天不是任何日历的业务日，不重置任何表的采集状态");
+            return;
+        }
+        etlTableRepo.resetEtlFlagsForCalendars(dueCalendars);
     }
 
     /**

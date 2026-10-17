@@ -50,13 +50,48 @@ const getHdfsStorageDefaults = (): Promise<{ storageFormat: string; compressForm
   }>;
 };
 
-// 生成交易日（后端批量生成）。
-// year: 四位年份；includeWeekend: true/false
-const generateTradeCalendar = (year: number, includeWeekend: boolean): Promise<void> => {
+// 生成日历字典（后端批量生成）。
+// dictCode: 1021 交易日历、1022 工作日历；year: 四位年份；includeWeekend: true/false
+const generateCalendar = (
+  dictCode: number,
+  year: number,
+  includeWeekend: boolean
+): Promise<void> => {
   const include = includeWeekend ? 'true' : 'false';
   return Requests.post(
-    `${apiPrefix.value}/generate-trade-calendar/${year}/${include}`
+    `${apiPrefix.value}/${dictCode}/generate-calendar/${year}/${include}`
   ) as unknown as Promise<void>;
+};
+
+export interface CalendarCoverage {
+  code: number;
+  calendar: string;
+  lastDate: string | null;
+  warning: string | null;
+}
+
+export interface TradeCalendarRefreshResult {
+  year: number;
+  source: string;
+  tradingDays: number;
+  added: number;
+  removed: number;
+  removedDates: string[];
+  warning: string | null;
+}
+
+// 年度补全交易日历（1021）：优先柜台接口，取不到时后端退化为固定规则并在 warning 里说明
+const refreshTradeCalendar = (year: number): Promise<TradeCalendarRefreshResult> => {
+  return Requests.post(
+    `${apiPrefix.value}/1021/refresh-trade-calendar/${year}`
+  ) as unknown as Promise<TradeCalendarRefreshResult>;
+};
+
+// 日历覆盖范围，用于提醒维护者导入后续年份
+const getCalendarCoverage = (): Promise<CalendarCoverage[]> => {
+  return Requests.get(`${apiPrefix.value}/calendar-coverage`) as unknown as Promise<
+    CalendarCoverage[]
+  >;
 };
 
 export default {
@@ -68,5 +103,7 @@ export default {
   updateDictItem,
   deleteDictItem,
   getHdfsStorageDefaults,
-  generateTradeCalendar,
+  generateCalendar,
+  refreshTradeCalendar,
+  getCalendarCoverage,
 };

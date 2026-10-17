@@ -1,7 +1,9 @@
 <template>
   <div
     class="dict-page page-shell ds-management-page"
-    :class="{ 'ds-management-page--modal-open': dictDialog || itemDialog || batchDialog }"
+    :class="{
+      'ds-management-page--modal-open': dictDialog || itemDialog || batchDialog || tradeDialog,
+    }"
   >
     <v-card flat class="ds-card page-header-card">
       <v-card-text class="ds-card__content">
@@ -18,6 +20,18 @@
         </div>
       </v-card-text>
     </v-card>
+
+    <v-alert
+      v-for="warning in coverageWarnings"
+      :key="warning"
+      type="warning"
+      variant="tonal"
+      density="comfortable"
+      class="mb-2"
+      closable
+    >
+      {{ warning }}
+    </v-alert>
 
     <v-row class="section-grid stretch-row" dense>
       <v-col cols="12" md="5" class="col-stack">
@@ -116,14 +130,24 @@
                   新增明细
                 </v-btn>
                 <v-btn
-                  v-if="selectedDict && selectedDict.code === 1021"
+                  v-if="selectedDict && isCalendarDict(selectedDict.code)"
                   color="secondary"
                   variant="tonal"
                   size="small"
                   prepend-icon="mdi-calendar-plus"
                   @click="openBatchDialog()"
                 >
-                  批量新增交易日
+                  批量新增日历日期
+                </v-btn>
+                <v-btn
+                  v-if="selectedDict?.code === 1021"
+                  color="secondary"
+                  variant="tonal"
+                  size="small"
+                  prepend-icon="mdi-calendar-refresh"
+                  @click="openTradeDialog()"
+                >
+                  年度补全交易日历
                 </v-btn>
               </div>
             </div>
@@ -246,7 +270,7 @@
       max-width="600px"
     >
       <v-card>
-        <v-card-title>批量新增交易日</v-card-title>
+        <v-card-title>批量新增日历日期（{{ selectedDict?.name || '' }}）</v-card-title>
         <v-card-text>
           <v-form>
             <v-row>
@@ -254,15 +278,52 @@
                 <v-text-field v-model="batchForm.year" type="number" label="年份 (YYYY)" />
               </v-col>
               <v-col cols="12" md="6">
-                <v-checkbox v-model="batchForm.includeWeekend" label="包含周末" />
+                <v-checkbox
+                  v-if="selectedDict?.code === 1021"
+                  v-model="batchForm.includeWeekend"
+                  label="包含周末"
+                />
               </v-col>
             </v-row>
+            <div v-if="selectedDict?.code === 1022" class="text-caption text-medium-emphasis">
+              工作日历生成的是周一至周五，法定节假日需要删除，调休上班日需要手工补上；已存在的日期不会被覆盖。
+            </div>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="batchDialog = false">取消</v-btn>
           <v-btn color="primary" variant="flat" @click="batchAddDates">生成并保存</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog
+      v-model="tradeDialog"
+      class="ds-dialog-overlay"
+      scrim="rgba(2, 6, 23, 0.62)"
+      max-width="600px"
+    >
+      <v-card>
+        <v-card-title>年度补全交易日历</v-card-title>
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" md="6">
+              <v-text-field v-model.number="tradeYear" type="number" label="年份 (YYYY)" />
+            </v-col>
+          </v-row>
+          <div class="text-caption text-medium-emphasis">
+            优先从柜台接口取 SSE
+            休市日。接口超时、返回结构变化或该年份尚未发布时会给出提示，并退化为固定规则：工作日（不含周六日），扣除元旦
+            1 月 1-3 日与国庆 10 月 1-7 日。可重复执行。
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="tradeDialog = false">取消</v-btn>
+          <v-btn color="primary" variant="flat" :loading="tradeLoading" @click="runTradeRefresh">
+            开始补全
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -297,20 +358,72 @@
   };
 
   const batchAddDates = async () => {
-    if (!selectedDict.value || selectedDict.value.code !== 1021)
-      return alert('仅支持交易日字典 (1021)');
+    if (!selectedDict.value || !isCalendarDict(selectedDict.value.code))
+      return alert('仅支持日历字典（1021 交易日历、1022 工作日历）');
     const year = batchForm.value.year;
     if (!year || year < 1900 || year > 9999) return alert('请输入有效年份');
-    const include = batchForm.value.includeWeekend;
+    // 工作日历始终只生成工作日，是否包含周末只对交易日历有意义
+    const include = selectedDict.value.code === 1021 ? batchForm.value.includeWeekend : false;
     try {
-      await dictService.generateTradeCalendar(year, include);
+      await dictService.generateCalendar(selectedDict.value.code, year, include);
       batchDialog.value = false;
       if (selectedDict.value) loadItems(selectedDict.value.code);
-      alert('已请求后端生成交易日，完成后请刷新明细查看结果');
+      loadCoverage();
+      alert('日历日期已生成，请刷新明细查看结果');
     } catch (err) {
       console.error(err);
       alert('后端生成失败，请查看控制台');
     }
+  };
+
+  // 年度补全交易日历：后端会优先取柜台数据，取不到时退化为固定规则并把原因放在 warning 里
+  const tradeDialog = ref(false);
+  const tradeLoading = ref(false);
+  const tradeYear = ref(new Date().getFullYear() + 1);
+
+  const openTradeDialog = () => {
+    tradeYear.value = new Date().getFullYear() + 1;
+    tradeDialog.value = true;
+  };
+
+  const runTradeRefresh = async () => {
+    const year = tradeYear.value;
+    if (!year || year < 2000 || year > 2100) return alert('请输入有效年份');
+    tradeLoading.value = true;
+    try {
+      const result = await dictService.refreshTradeCalendar(year);
+      tradeDialog.value = false;
+      if (selectedDict.value) loadItems(selectedDict.value.code);
+      loadCoverage();
+      const lines = [
+        `${result.year} 年交易日历补全完成`,
+        `来源：${result.source === 'SSE' ? '柜台接口（SSE）' : '默认规则（柜台接口不可用）'}`,
+        `交易日 ${result.tradingDays} 天，新增 ${result.added} 天，移除 ${result.removed} 天`,
+      ];
+      if (result.removedDates?.length) lines.push(`移除日期：${result.removedDates.join('、')}`);
+      if (result.warning) lines.push('', `⚠ ${result.warning}`);
+      alert(lines.join('\n'));
+    } catch (err) {
+      console.error(err);
+      alert('补全失败，请查看后端日志');
+    } finally {
+      tradeLoading.value = false;
+    }
+  };
+
+  const isCalendarDict = (code?: number) => code === 1021 || code === 1022;
+
+  // 日历耗尽时调用方不会收到任何错误，只会静默停止采集，所以在字典页显式提醒
+  const coverageWarnings = ref<string[]>([]);
+  const loadCoverage = () => {
+    dictService
+      .getCalendarCoverage()
+      .then(rows => {
+        coverageWarnings.value = rows
+          .map(row => row.warning)
+          .filter((warning): warning is string => !!warning);
+      })
+      .catch(error => console.error('加载日历覆盖范围失败', error));
   };
 
   const dictHeaders = [
@@ -442,6 +555,7 @@
 
   onMounted(() => {
     loadDicts();
+    loadCoverage();
   });
 </script>
 

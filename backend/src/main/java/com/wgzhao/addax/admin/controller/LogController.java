@@ -7,9 +7,11 @@ import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
+import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.TableService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,6 +35,8 @@ public class LogController
     private final StatService statService;
     private final SystemConfigService configService;
     private final EtlJourService jourService;
+    private final TableService tableService;
+    private final CalendarService calendarService;
 
     @GetMapping("/addax")
     public PageResponse<AddaxLog> listAddaxLog(
@@ -100,15 +104,16 @@ public class LogController
     public boolean jobReport(@RequestBody AddaxReportDto dto)
     {
         log.debug("job report: {}", dto);
+        long tid;
         try {
-            Long.parseLong(dto.jobName());
+            tid = Long.parseLong(dto.jobName());
         }
         catch (NumberFormatException e) {
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
         EtlStatistic sta = new EtlStatistic();
-        sta.setTid(Long.parseLong(dto.jobName()));
+        sta.setTid(tid);
         sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
         sta.setEndAt(LocalDateTime.ofEpochSecond(dto.endTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
         sta.setTakeSecs(dto.totalCosts());
@@ -117,7 +122,11 @@ public class LogController
         sta.setTotalRecs(dto.totalReadRecords());
         sta.setTotalErrors(dto.totalErrorRecords());
         sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
-        sta.setBizDate(configService.getBizDateAsDate());
+        // addax reports only the table id, so the business date has to be derived here instead of being
+        // taken from the report. The table's own calendar decides it: a source collecting on workdays or
+        // trading days is stamped with a date the global business date does not match on the morning
+        // after a holiday, and the missing-collection report reads this column back.
+        sta.setBizDate(calendarService.businessDate(tableService.getSourceCalendar(tid)));
         return statService.saveOrUpdate(sta);
     }
 }

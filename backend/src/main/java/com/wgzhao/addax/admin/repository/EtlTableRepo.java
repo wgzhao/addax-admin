@@ -19,9 +19,20 @@ public interface EtlTableRepo
         """)
     Integer findValidTableCount();
 
+    /**
+     * Mark the tables a business day still owes a collection: those whose source calendar covers the day
+     * now open. Callers pass the calendars that are due, so a work-day / trade-day source on a rest day
+     * keeps the status of its last collection — the calendar gate refuses its trigger, so nothing could
+     * ever move such a table back to 'Y' until the next business day.
+     */
     @Modifying
-    @Query("UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3 where t.status not in ( 'X', 'U')")
-    void resetAllEtlFlags();
+    @Query("""
+            UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3
+            WHERE t.status not in ('X', 'U')
+              AND COALESCE(NULLIF((SELECT s.calendar FROM EtlSource s WHERE s.id = t.sid), ''), 'NATURAL_DAY')
+                  in (:calendars)
+        """)
+    void resetEtlFlagsForCalendars(@Param("calendars") List<String> calendars);
 
     @Query(value = """
         select t
@@ -129,6 +140,26 @@ public interface EtlTableRepo
     int countBySid(int sid);
 
     List<EtlTable> findByStatus(String status);
+
+    /**
+     * Collection calendar of the source a table belongs to, for callers that only have a table id.
+     * Null (or blank) means natural day.
+     */
+    @Query(value = """
+        select s.calendar from etl_table t join etl_source s on t.sid = s.id where t.id = ?1
+        """, nativeQuery = true)
+    String findSourceCalendarByTid(long tid);
+
+    /**
+     * Distinct calendars in use by tables that can still collect, so the missing-collection report can
+     * judge each group of tables against its own calendar.
+     */
+    @Query(value = """
+        select distinct coalesce(nullif(calendar, ''), 'NATURAL_DAY')
+        from vw_etl_table_with_source
+        where status <> 'X' and coalesce(enabled, false) = true
+        """, nativeQuery = true)
+    List<String> findCalendarsInUse();
 
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id

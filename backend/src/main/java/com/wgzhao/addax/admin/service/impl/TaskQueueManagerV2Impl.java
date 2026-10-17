@@ -13,6 +13,7 @@ import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.redis.WorkerHeartbeatService;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.AlertService;
+import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJobQueueService;
 import com.wgzhao.addax.admin.service.EtlJourService;
@@ -127,6 +128,7 @@ public class TaskQueueManagerV2Impl
     private final MasterElectionService electionService;
     private final WorkerHeartbeatService heartbeatService;
     private final RedisMessageListenerContainer listenerContainer;
+    private final CalendarService calendarService;
 
     // Local concurrency counters (worker-side)
     private final AtomicInteger runningTaskCount = new AtomicInteger(0);
@@ -339,11 +341,10 @@ public class TaskQueueManagerV2Impl
             if (tasks.isEmpty()) return;
             int room = (int) Math.max(0, enqueueCapacity - pending);
             int enqueued = 0, skipped = 0;
-            LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
             for (EtlTable t : tasks) {
                 if (enqueued >= room) { skipped++; continue; }
                 try {
-                    int added = jobQueueService.enqueue(t, bizDate, 100);
+                    int added = jobQueueService.enqueue(t, businessDateOf(t), 100);
                     if (added > 0) enqueued++; else skipped++;
                 }
                 catch (Exception ex) {
@@ -1204,8 +1205,18 @@ public class TaskQueueManagerV2Impl
         if (!running) {
             return deferEnqueue(etlTable, null, null);
         }
-        LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
-        return jobQueueService.enqueue(etlTable, bizDate, 100) > 0;
+        return jobQueueService.enqueue(etlTable, businessDateOf(etlTable), 100) > 0;
+    }
+
+    /**
+     * Business date a run of this table belongs to, derived from the calendar its source is configured
+     * with. The global business date cannot be used: a workday or trading-day source must be stamped with
+     * a date from its own calendar, and on the morning after a holiday the two differ. Fillback is the one
+     * caller that passes an explicit date, because it is collecting a date that is not the current one.
+     */
+    private LocalDate businessDateOf(EtlTable table)
+    {
+        return calendarService.businessDate(table.getSourceCalendar());
     }
 
     @Override
@@ -1214,8 +1225,7 @@ public class TaskQueueManagerV2Impl
         if (!running) {
             return deferEnqueue(etlTable, null, payload);
         }
-        LocalDate bizDate = LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
-        return jobQueueService.enqueue(etlTable, bizDate, 100, payload) > 0;
+        return jobQueueService.enqueue(etlTable, businessDateOf(etlTable), 100, payload) > 0;
     }
 
     @Override
@@ -1249,7 +1259,7 @@ public class TaskQueueManagerV2Impl
         while ((d = deferredEnqueues.pollFirst()) != null) {
             try {
                 LocalDate bizDate = d.explicitBizDate() != null ? d.explicitBizDate()
-                    : LocalDate.parse(configService.getBizDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
+                    : businessDateOf(d.table());
                 if (jobQueueService.enqueue(d.table(), bizDate, 100, d.payload()) > 0) {
                     flushed++;
                 }

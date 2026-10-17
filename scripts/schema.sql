@@ -367,7 +367,8 @@ CREATE TABLE public.etl_source (
     remark character varying(2000),
     enabled boolean DEFAULT true,
     max_concurrency integer DEFAULT 5 NOT NULL,
-    db_type character varying(20)
+    db_type character varying(20),
+    calendar character varying(32)
 );
 
 
@@ -1570,8 +1571,8 @@ CREATE TABLE public.users (
 -- Name: vw_etl_table_with_source; Type: VIEW; Schema: public; Owner: -
 --
 
--- Keep in sync with TargetOptionsSchemaInitializer, which recreates the same view for databases that
--- still have the legacy etl_table columns.
+-- Keep in sync with EtlTableView, whose definition SchemaInitializer recreates on startup for databases
+-- created by an older release.
 CREATE VIEW public.vw_etl_table_with_source AS
  SELECT t.id,
     t.source_db,
@@ -1604,6 +1605,7 @@ CREATE VIEW public.vw_etl_table_with_source AS
     s.username,
     s.pass,
     s.start_at AS source_start_at,
+    s.calendar,
     s.enabled,
     s.max_concurrency,
     s.db_type,
