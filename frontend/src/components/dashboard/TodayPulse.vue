@@ -89,128 +89,11 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue';
-  import { monitorService } from '@/service/monitor-service';
-  import settingsService from '@/service/settings-service';
+  import { computed, ref } from 'vue';
+  import { useTodayPulse } from '@/composables/useTodayPulse';
 
-  interface Row {
-    sys_name?: string;
-    start_at?: string;
-    total_cnt?: number | string;
-    succ_cnt?: number | string;
-    run_cnt?: number | string;
-    fail_cnt?: number | string;
-    no_run_cnt?: number | string;
-    t_begin_at?: string | null;
-    t_finish_at?: string | null;
-  }
-
-  interface PulseRow {
-    key: string;
-    name: string;
-    fullName: string;
-    total: number;
-    done: number;
-    failed: number;
-    state: 'done' | 'running' | 'failed' | 'pending';
-    startPct: number;
-    barStyle: Record<string, string>;
-    timeLabel: string;
-    timeTitle: string;
-  }
-
-  const DAY_MINUTES = 24 * 60;
-  const ALL_TICKS = Array.from({ length: 7 }, (_, i) => i * 240);
-
-  const loading = ref(true);
-  const raw = ref<Row[]>([]);
-  const switchTime = ref('');
+  const { loading, rows, counts, switchLabel, cutoverPct, ticks, nowPct } = useTodayPulse();
   const onlyUnfinished = ref(false);
-
-  // Why: the API mixes "HH:mm:ss" and "yyyy-MM-dd HH:mm:ss"; taking the last token keeps
-  // the date digits from being read as hours.
-  const timeToMinutes = (value?: string | null): number | null => {
-    if (!value) return null;
-    const time = value.includes(' ') ? value.split(' ').pop()! : value;
-    const [h, m] = time.split(':').map(Number);
-    if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    return h * 60 + m;
-  };
-
-  const toNumber = (value?: number | string) => {
-    const n = Number(value ?? 0);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  const rows = computed<PulseRow[]>(() => {
-    const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
-    return raw.value
-      .map(item => {
-        const fullName = item.sys_name || '未知采集源';
-        const match = fullName.match(/^(.*)\(([^()]*)\)$/);
-        const name = (match?.[1] || fullName).trim();
-        const total = toNumber(item.total_cnt);
-        const done = toNumber(item.succ_cnt);
-        const failed = toNumber(item.fail_cnt);
-        const running = toNumber(item.run_cnt);
-
-        const start = timeToMinutes(item.start_at) ?? 0;
-        const begin = timeToMinutes(item.t_begin_at) ?? start;
-        let finish = timeToMinutes(item.t_finish_at);
-        if (finish !== null && finish < begin) finish = DAY_MINUTES;
-        const end = running > 0 ? Math.max(begin, nowMinutes) : finish ?? begin;
-
-        const state: PulseRow['state'] =
-          failed > 0
-            ? 'failed'
-            : running > 0
-            ? 'running'
-            : done >= total && total > 0
-            ? 'done'
-            : 'pending';
-
-        const left = (Math.min(begin, DAY_MINUTES) / DAY_MINUTES) * 100;
-        const width = (Math.max(end - begin, 4) / DAY_MINUTES) * 100;
-
-        const timeLabel =
-          item.t_begin_at && item.t_finish_at
-            ? `${item.t_begin_at.split(' ').pop()?.slice(0, 5)}–${item.t_finish_at
-                .split(' ')
-                .pop()
-                ?.slice(0, 5)}`
-            : (item.start_at || '--:--').slice(0, 5);
-
-        return {
-          key: `${fullName}-${item.start_at}`,
-          name,
-          fullName,
-          total,
-          done,
-          failed,
-          state,
-          startPct: (start / DAY_MINUTES) * 100,
-          barStyle: { left: `${left}%`, width: `${width}%` },
-          timeLabel,
-          timeTitle: `${fullName} · 计划 ${item.start_at || '--'} · 已采 ${done}/${total}${
-            failed ? ` · 失败 ${failed}` : ''
-          }`,
-        };
-      })
-      .sort((a, b) => a.startPct - b.startPct);
-  });
-
-  const nowPct = computed(() => {
-    const now = new Date();
-    return ((now.getHours() * 60 + now.getMinutes()) / DAY_MINUTES) * 100;
-  });
-
-  const switchLabel = computed(() => switchTime.value.slice(0, 5));
-
-  const counts = computed(() => {
-    const result = { done: 0, running: 0, failed: 0, pending: 0 };
-    for (const row of rows.value) result[row.state] += 1;
-    return result;
-  });
 
   const visibleRows = computed(() =>
     onlyUnfinished.value ? rows.value.filter(row => row.state !== 'done') : rows.value
@@ -221,34 +104,6 @@
       ? `按采集源开始时间排列，横轴为 24 小时；切日 ${switchLabel.value} 之前的记录属于上一业务日`
       : '按采集源开始时间排列，横轴为 24 小时'
   );
-
-  const cutoverPct = computed(() => {
-    const minutes = timeToMinutes(switchTime.value);
-    return minutes === null ? null : (minutes / DAY_MINUTES) * 100;
-  });
-
-  const cutoverMinutes = computed(() => timeToMinutes(switchTime.value));
-
-  // Why: the cutover label sits at its exact minute, so drop the hour tick it would collide with
-  const ticks = computed(() =>
-    ALL_TICKS.filter(
-      tick => cutoverMinutes.value === null || Math.abs(tick - cutoverMinutes.value) > 60
-    )
-  );
-
-  onMounted(async () => {
-    const [rows, config] = await Promise.allSettled([
-      monitorService.fetchAccomplishList(),
-      settingsService.getSettings(),
-    ]);
-    raw.value =
-      rows.status === 'fulfilled' ? (((rows.value as unknown as Row[]) || []) as Row[]) : [];
-    if (config.status === 'fulfilled') {
-      const value = (config.value as { SWITCH_TIME?: string } | null)?.SWITCH_TIME;
-      if (value) switchTime.value = String(value);
-    }
-    loading.value = false;
-  });
 </script>
 
 <style scoped>
@@ -338,19 +193,20 @@
     padding: 4px 16px 16px;
   }
 
-  .pulse-scroll {
-    max-height: 372px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+  /* Why: v-card clips its content, which would break the sticky ruler */
+  .pulse-card {
+    overflow: visible;
   }
 
+  /* Why: with the list scrolling as part of the page, the ruler must follow the viewport */
   .pulse-axis-strip {
     position: sticky;
-    top: 0;
-    z-index: 2;
+    top: var(--v-layout-top, 0px);
+    z-index: 3;
     margin: 0 -16px;
-    padding: 0 16px;
-    background: rgb(var(--v-theme-surface));
+    padding: 4px 16px;
+    background: var(--ds-surface-raised);
+    border-bottom: 1px solid var(--ds-border-subtle);
   }
 
   .pulse-axis {
@@ -389,7 +245,7 @@
     grid-template-columns: 188px minmax(240px, 1fr) 84px;
     align-items: center;
     gap: 12px;
-    padding: 3px 0;
+    padding: 5px 0;
   }
 
   .pulse-row + .pulse-row {
