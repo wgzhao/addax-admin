@@ -4,6 +4,38 @@
     :class="{ 'ds-management-page--modal-open': dialogVisible || deleteDialogVisible }"
   >
     <PageHeader title="采集表配置" subtitle="统一维护采集表、批量采集与结构更新。">
+      <v-menu offset-y :close-on-content-click="false">
+        <template #activator="{ props }">
+          <v-btn variant="tonal" prepend-icon="mdi-tune" v-bind="props">显示设置</v-btn>
+        </template>
+        <v-list density="compact" class="table-display-menu">
+          <v-list-subheader>列显示</v-list-subheader>
+          <v-list-item
+            v-for="col in OPTIONAL_COLUMNS"
+            :key="col.key"
+            @click="toggleColumn(col.key, hiddenKeys.includes(col.key))"
+          >
+            <template #prepend>
+              <v-icon size="18">
+                {{
+                  hiddenKeys.includes(col.key)
+                    ? 'mdi-checkbox-blank-outline'
+                    : 'mdi-checkbox-marked'
+                }}
+              </v-icon>
+            </template>
+            <v-list-item-title>{{ col.title }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+      <v-btn
+        variant="tonal"
+        prepend-icon="mdi-download"
+        :disabled="!table.length"
+        @click="exportCurrentPage"
+      >
+        导出本页
+      </v-btn>
       <v-btn
         color="primary"
         variant="flat"
@@ -130,10 +162,11 @@
         <template v-else>
           <v-data-table-server
             v-model="selected"
+            v-model:page="currentPage"
+            v-model:items-per-page="currPageSize"
             density="comfortable"
             :items="table"
-            :headers="headers"
-            :items-per-page="currPageSize"
+            :headers="visibleHeaders"
             :items-per-page-options="[15, 20, 25, 30, 50, 100]"
             :items-length="totalItems"
             item-value="id"
@@ -145,7 +178,10 @@
             <template #item.sourceTable="{ item }">
               <div class="ds-cell-stack">
                 <span class="ds-cell-meta">{{ item.name }}({{ item.code }})</span>
-                <span class="ds-cell-primary ds-white-space-normal">
+                <span
+                  class="ds-cell-primary ds-ellipsis"
+                  :title="`${item.sourceDb || ''}.${item.sourceTable || ''}`"
+                >
                   <span class="ds-cell-support">{{ item.sourceDb || '' }}.</span
                   >{{ item.sourceTable || '' }}
                 </span>
@@ -203,7 +239,10 @@
             <template #item.targetTable="{ item }">
               <div class="d-flex align-center py-1">
                 <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
-                <span class="ds-cell-primary ds-white-space-normal">
+                <span
+                  class="ds-cell-primary ds-ellipsis"
+                  :title="`${item.targetDb || ''}.${item.targetTable || ''}`"
+                >
                   <span class="ds-cell-support">{{ item.targetDb || '' }}.</span
                   >{{ item.targetTable || '' }}
                 </span>
@@ -329,6 +368,7 @@
   import PageHeader from '@/components/PageHeader.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
+  import { buildCsv, downloadCsv } from '@/utils/csv';
   import { TABLE_STATUS_OPTIONS } from '@/utils';
   import tableService from '@/service/table-service';
   import taskService from '@/service/task-service';
@@ -415,10 +455,80 @@
     { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '25%' },
     { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '13%' },
     { title: '状态', key: 'status', align: 'start', sortable: true, width: '5%' },
-    { title: '耗时(s)', key: 'duration', align: 'center', sortable: true, width: '6%' },
+    { title: '耗时(s)', key: 'duration', align: 'end', sortable: true, width: '6%' },
     { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '10%' },
     { title: '操作', key: 'action', align: 'center', sortable: false, width: '10%' },
   ];
+
+  const COLUMNS_KEY = 'ds.table.hiddenColumns';
+  const OPTIONAL_COLUMNS = [
+    { key: 'filter', title: '过滤规则' },
+    { key: 'duration', title: '耗时(s)' },
+    { key: 'endTime', title: '完成时间' },
+  ];
+
+  const readStored = <T>(key: string, fallback: T): T => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const hiddenKeys = ref<string[]>(readStored<string[]>(COLUMNS_KEY, []));
+  const visibleHeaders = computed(() =>
+    headers.filter(header => !hiddenKeys.value.includes(String(header.key)))
+  );
+
+  const toggleColumn = (key: string, visible: boolean) => {
+    hiddenKeys.value = visible
+      ? hiddenKeys.value.filter(item => item !== key)
+      : [...hiddenKeys.value, key];
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(hiddenKeys.value));
+  };
+
+  const currentPage = ref(1);
+
+  const writeQuery = () => {
+    const query: Record<string, string> = {};
+    if (search.value) query.q = search.value;
+    if (runStatuses.value.length) query.status = runStatuses.value.join(',');
+    if (sourceId.value != null) query.source = String(sourceId.value);
+    if (currentPage.value > 1) query.page = String(currentPage.value);
+    if (currPageSize.value !== 15) query.size = String(currPageSize.value);
+    if (route.query.action) query.action = String(route.query.action);
+    router.replace({ path: route.path, query }).catch(() => {});
+  };
+
+  const readQuery = () => {
+    const query = route.query;
+    search.value = typeof query.q === 'string' ? query.q : '';
+    runStatuses.value =
+      typeof query.status === 'string' && query.status ? query.status.split(',') : [];
+    sourceId.value = query.source ? Number(query.source) : null;
+    currentPage.value = Number(query.page) > 0 ? Number(query.page) : 1;
+    currPageSize.value = Number(query.size) > 0 ? Number(query.size) : 15;
+  };
+
+  // Restore filters from the URL before the table mounts, so returning from a
+  // detail page keeps the same slice of data instead of refetching page one.
+  readQuery();
+
+  function exportCurrentPage() {
+    const rows = table.value.map(row => ({
+      序号: row.id,
+      源库表: `${row.sourceDb || ''}.${row.sourceTable || ''}`,
+      目标库表: `${row.targetDb || ''}.${row.targetTable || ''}`,
+      过滤规则: row.filter || '',
+      状态: statusLabel(row.status),
+      耗时秒: row.duration ?? '',
+      完成时间: row.endTime || '',
+    }));
+    if (!rows.length) return;
+    const csvHeaders = Object.keys(rows[0]).map(key => ({ title: key, key }));
+    downloadCsv(`tables-page-${currentPage.value}`, buildCsv(csvHeaders, rows));
+  }
 
   const errorMsgMap = ref<Record<number, string>>({});
 
@@ -534,6 +644,7 @@
 
   const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
     loading.value = true;
+    currentPage.value = page;
     currPageSize.value = itemsPerPage;
     const sortParam = createSort(sortBy);
     if (sortParam.sortField != null) {
@@ -553,6 +664,7 @@
         table.value = res.content;
         totalItems.value = res.totalElements;
         loading.value = false;
+        writeQuery();
       })
       .catch(error => {
         const msg = error instanceof Error ? error.message : String(error);
@@ -563,7 +675,7 @@
 
   const _searchCore = () => {
     selected.value = [];
-    loadItems({ page: 0, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value });
+    loadItems({ page: 1, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value });
   };
   const searchTable = debounce(_searchCore, 400);
 
@@ -740,6 +852,10 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+  }
+
+  .table-display-menu {
+    min-width: 232px;
   }
 
   .query-actions {
