@@ -64,6 +64,13 @@ public class EtlSource
     @Column(name = "start_at")
     private LocalTime startAt;
 
+    /**
+     * Collection calendar name ({@link com.wgzhao.addax.admin.common.CalendarType}), blank means natural day.
+     * Row-level, not table-level: a business system either works on a day or it does not.
+     */
+    @Column(name = "calendar", length = 32)
+    private String calendar;
+
     @Column(name = "prerequisite", length = 4000)
     private String prerequisite;
 

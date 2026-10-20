@@ -1,9 +1,12 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.common.CalendarType;
 import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.CalendarService;
+import com.wgzhao.addax.admin.service.TradeCalendarService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,11 +35,37 @@ public class ParamController
     /**
      * 保留的字典编码，不能被删除
      */
-    private static final List<Integer> RESERVED_DICT_CODES = List.of(1000, 1021, 2011, 5000, 5001);
+    private static final List<Integer> RESERVED_DICT_CODES = List.of(1000, 1021, 1022, 2011, 5000, 5001);
     /**
      * 字典服务，用于处理字典相关业务逻辑
      */
     private final DictService dictService;
+    private final CalendarService calendarService;
+    private final TradeCalendarService tradeCalendarService;
+
+    /**
+     * 日历覆盖范围：每个日历字典最后覆盖到哪一天，以及是否需要提醒维护者导入后续日期。
+     *
+     * 日历耗尽不会报错，只会让使用它的源静默停止采集，所以必须显式暴露出来。
+     */
+    public record CalendarCoverage(int code, String calendar, String lastDate, String warning)
+    {
+    }
+
+    @GetMapping("/calendar-coverage")
+    public List<CalendarCoverage> calendarCoverage()
+    {
+        List<CalendarCoverage> rows = new ArrayList<>();
+        for (CalendarType type : CalendarType.values()) {
+            if (!type.isDictBacked()) {
+                continue;
+            }
+            rows.add(new CalendarCoverage(type.getDictCode(), type.name(),
+                calendarService.lastCoveredDate(type.name()).map(LocalDate::toString).orElse(null),
+                calendarService.coverageWarning(type.name()).orElse(null)));
+        }
+        return rows;
+    }
 
     /**
      * 查询所有字典
@@ -224,13 +255,39 @@ public class ParamController
     }
 
     /**
-     * 生成指定年份的交易日历,同时包含一个可选参数，是否包含周末
+     * 生成指定年份的日历（交易日历 1021 / 工作日历 1022），includeWeekend 控制是否包含周末。
+     *
+     * 工作日历生成的是“周一至周五”的起点，节假日与调休仍需维护者按官方安排增删。
      */
-    @PostMapping("/generate-trade-calendar/{year}/{includeWeekend}")
-    public ResponseEntity<Void> generateTradeCalendar(@PathVariable int year,
-                                                      @PathVariable boolean includeWeekend)
+    @PostMapping("/{dictCode}/generate-calendar/{year}/{includeWeekend}")
+    public ResponseEntity<Void> generateCalendar(@PathVariable int dictCode,
+                                                 @PathVariable int year,
+                                                 @PathVariable boolean includeWeekend)
     {
-        dictService.generateTradeCalendar(year, includeWeekend);
+        if (CalendarType.ofDictCode(dictCode).isEmpty()) {
+            throw new ApiException(400, "字典 " + dictCode + " 不是日历字典");
+        }
+        dictService.generateCalendar(dictCode, year, includeWeekend);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /**
+     * 年度补全交易日历（1021）：优先从柜台接口取 SSE 休市日，取不到（超时、接口变动、未发布）时给出
+     * 提示并退化为固定规则（周末不算，元旦 1 月 1-3 日、国庆 10 月 1-7 日休市）。
+     *
+     * <p>可重复执行：官方数据会补齐并移除该年已不再交易的日子，退化数据只补不删。</p>
+     */
+    @PostMapping("/{dictCode}/refresh-trade-calendar/{year}")
+    public ResponseEntity<TradeCalendarService.RefreshResult> refreshTradeCalendar(
+        @PathVariable int dictCode,
+        @PathVariable int year)
+    {
+        if (!CalendarType.TRADE_DAY.getDictCode().equals(dictCode)) {
+            throw new ApiException(400, "仅交易日历（" + CalendarType.TRADE_DAY.getDictCode() + "）支持年度补全");
+        }
+        if (year < 2000 || year > 2100) {
+            throw new ApiException(400, "年份超出范围：" + year);
+        }
+        return ResponseEntity.ok(tradeCalendarService.refresh(year));
     }
 }

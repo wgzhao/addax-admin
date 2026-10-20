@@ -88,6 +88,10 @@
               <span class="ds-cell-support">{{ item.startAt || '-' }}</span>
             </template>
 
+            <template #item.calendar="{ item }">
+              <span class="ds-cell-support">{{ calendarLabel(item.calendar) }}</span>
+            </template>
+
             <template #item.actions="{ item }">
               <div class="ds-action-inline">
                 <v-btn
@@ -183,8 +187,16 @@
     { title: '表数量', key: 'tableCount', width: '5%' },
     { title: '有效表数量', key: 'validTableCount', width: '7%' },
     { title: '采集时间', key: 'startAt', width: '6%' },
+    { title: '采集日历', key: 'calendar', width: '8%' },
     { title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' },
   ];
+
+  // 空值即自然日，不显示成空白以免看起来像没配置
+  const calendarLabel = (calendar?: string) => {
+    if (calendar === 'WORK_DAY') return '工作日（含调休）';
+    if (calendar === 'TRADE_DAY') return '交易日';
+    return '自然日';
+  };
 
   const params = ref({});
 

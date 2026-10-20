@@ -59,6 +59,22 @@
                 </v-col>
                 <v-col cols="12">
                   <div class="field-stack">
+                    <div class="field-label">采集日历</div>
+                    <v-select
+                      v-model="sourceItem.calendar"
+                      :items="calendarOptions"
+                      item-title="label"
+                      item-value="value"
+                      placeholder="自然日"
+                      hint="决定哪些日期会触发采集；为空表示自然日"
+                      persistent-hint
+                      variant="outlined"
+                      density="compact"
+                    />
+                  </div>
+                </v-col>
+                <v-col cols="12">
+                  <div class="field-stack">
                     <div class="field-label">最大并发数</div>
                     <v-text-field
                       v-model.number="sourceItem.maxConcurrency"
@@ -227,6 +243,7 @@
     username: '',
     pass: '',
     startAt: '',
+    calendar: '',
     prerequisite: '',
     preScript: '',
     remark: '',
@@ -235,6 +252,13 @@
   };
 
   const sourceItem = ref<EtlSource>({ ...defaultSourceItem });
+
+  // 自然日不需要字典数据，所以是“空值即默认”，工作日/交易日各自对应一份日期字典。
+  const calendarOptions = [
+    { label: '自然日', value: '' },
+    { label: '工作日（含调休）', value: 'WORK_DAY' },
+    { label: '交易日', value: 'TRADE_DAY' },
+  ];
 
   const emit = defineEmits(['closeDialog', 'save']);
 
@@ -353,6 +377,7 @@
     sourceItem.value = {
       ...defaultSourceItem,
       ...cloneData,
+      calendar: cloneData.calendar ?? '',
       id: 0,
       code: '',
     };
@@ -369,7 +394,8 @@
       sourceService
         .get(Number(props.sid))
         .then(resp => {
-          sourceItem.value = resp;
+          // null 表示自然日，转成空串才能命中下拉项，否则会显示成原始值
+          sourceItem.value = { ...resp, calendar: resp.calendar ?? '' };
         })
         .catch(error => {
           console.log(error);
