@@ -1,217 +1,222 @@
 <template>
   <v-form ref="form" fast-fail class="add-source-form" @submit.prevent="save">
-    <v-card class="compact-card add-source-card" density="comfortable">
-      <v-card-title class="d-flex align-center">
-        <v-icon class="me-2">mdi-database</v-icon>
-        {{ mode === 'add' ? '新增采集源' : mode === 'edit' ? '编辑采集源' : '采集源详情' }}
-        <v-spacer />
-      </v-card-title>
+    <v-card class="add-source-card">
+      <div class="ds-dialog-head">
+        <span class="ds-dialog-icon"><v-icon size="20">mdi-database-cog-outline</v-icon></span>
+        <div class="ds-dialog-heading">
+          <h2 class="ds-dialog-title">{{ dialogTitle }}</h2>
+          <p class="ds-dialog-subtitle">{{ dialogSubtitle }}</p>
+        </div>
+        <v-btn icon="mdi-close" variant="text" size="small" aria-label="关闭" @click="close" />
+      </div>
 
-      <v-card-text class="pa-4 add-source-body">
-        <v-row density="comfortable" class="section-grid">
-          <v-col cols="12" md="6">
-            <v-sheet class="form-section" rounded="lg" border>
-              <div class="section-header">
-                <v-icon size="18" color="primary">mdi-clipboard-text-outline</v-icon>
-                <span>基本信息</span>
-              </div>
-              <v-divider />
-              <v-row density="comfortable" class="section-body">
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">采集编号</div>
-                    <v-text-field
-                      v-model="sourceItem.code"
-                      placeholder="两位大写字母"
-                      autocomplete="off"
-                      :rules="[rules.required, rules.codeExistsRule]"
-                      :disabled="mode === 'edit'"
-                      variant="outlined"
-                      density="compact"
-                      hide-details="auto"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">采集名称</div>
-                    <v-text-field
-                      v-model="sourceItem.name"
-                      :rules="[rules.required]"
-                      variant="outlined"
-                      density="compact"
-                      hide-details="auto"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">采集时间</div>
-                    <v-text-field
-                      v-model="sourceItem.startAt"
-                      placeholder="HH:mm 或 HH:mm:ss"
-                      :rules="[timeFormatRule]"
-                      :error-messages="timeError"
-                      variant="outlined"
-                      density="compact"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">采集日历</div>
-                    <v-select
-                      v-model="sourceItem.calendar"
-                      :items="calendarOptions"
-                      item-title="label"
-                      item-value="value"
-                      placeholder="自然日"
-                      hint="决定哪些日期会触发采集；为空表示自然日"
-                      persistent-hint
-                      variant="outlined"
-                      density="compact"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">最大并发数</div>
-                    <v-text-field
-                      v-model.number="sourceItem.maxConcurrency"
-                      type="number"
-                      variant="outlined"
-                      density="compact"
-                      placeholder="默认10"
-                      hint="留空则使用系统默认值"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">启用状态</div>
-                    <div class="field-control status-switch-wrap">
-                      <v-switch
-                        v-model="sourceItem.enabled"
-                        color="primary"
-                        hide-details
-                        density="compact"
-                        class="status-switch"
-                      />
-                      <v-chip
-                        size="x-small"
-                        :color="sourceItem.enabled ? 'success' : 'error'"
-                        :text="sourceItem.enabled ? '已启用' : '已禁用'"
-                        class="ml-1"
-                      ></v-chip>
-                    </div>
-                  </div>
-                </v-col>
-              </v-row>
-            </v-sheet>
-          </v-col>
+      <v-divider />
 
-          <v-col cols="12" md="6">
-            <v-sheet class="form-section" rounded="lg" border>
-              <div class="section-header">
-                <v-icon size="18" color="primary">mdi-link-variant</v-icon>
-                <span>连接信息</span>
-              </div>
-              <v-divider />
-              <v-row density="comfortable" class="section-body">
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">JDBC 连接地址</div>
-                    <v-text-field
-                      v-model="sourceItem.url"
-                      placeholder="jdbc:hive2://host:port"
-                      :rules="[rules.required]"
-                      variant="outlined"
-                      density="compact"
-                      hide-details="auto"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">用户名</div>
-                    <v-text-field
-                      v-model="sourceItem.username"
-                      variant="outlined"
-                      density="compact"
-                      autocomplete="off"
-                      hide-details="auto"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack">
-                    <div class="field-label">密码</div>
-                    <v-text-field
-                      v-model="sourceItem.pass"
-                      :type="showPassword ? 'text' : 'password'"
-                      variant="outlined"
-                      density="compact"
-                      autocomplete="new-password"
-                      :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                      hide-details="auto"
-                      @click:append-inner="showPassword = !showPassword"
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="12">
-                  <div class="field-stack field-stack-action">
-                    <div class="field-label field-label-placeholder">操作</div>
-                    <div class="field-control">
-                      <v-btn
-                        v-if="mode === 'add' || mode === 'edit'"
-                        color="info"
-                        text="测试连接"
-                        prepend-icon="mdi-connection"
-                        @click="testConnect"
-                      ></v-btn>
-                    </div>
-                  </div>
-                </v-col>
-              </v-row>
-            </v-sheet>
-          </v-col>
+      <v-card-text class="ds-dialog-body add-source-body">
+        <div class="dialog-grid">
+          <section class="form-section">
+            <header class="section-head">
+              <span class="section-index">01</span>
+              <h3>基本信息</h3>
+            </header>
 
-          <v-col cols="12">
-            <v-sheet class="form-section" rounded="lg" border>
-              <div class="section-header">
-                <v-icon size="18" color="primary">mdi-note-text-outline</v-icon>
-                <span>备注信息</span>
+            <div class="field-grid">
+              <div class="field">
+                <label class="field-label" for="src-code">采集编号</label>
+                <v-text-field
+                  id="src-code"
+                  v-model="sourceItem.code"
+                  placeholder="两位大写字母"
+                  autocomplete="off"
+                  :disabled="mode === 'edit'"
+                  :rules="[rules.required, rules.codeExistsRule]"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+                <p class="field-help">
+                  {{
+                    mode === 'edit' ? '编号保存后不可修改' : '建议使用两位大写字母，保存后不可修改'
+                  }}
+                </p>
               </div>
-              <v-divider />
-              <v-row density="comfortable" class="section-body">
-                <v-col cols="12">
-                  <div class="field-stack field-stack-top">
-                    <div class="field-label">备注信息</div>
-                    <v-textarea
-                      v-model="sourceItem.remark"
-                      auto-grow
-                      rows="4"
-                      variant="outlined"
-                      density="compact"
-                    />
-                  </div>
-                </v-col>
-              </v-row>
-            </v-sheet>
-          </v-col>
-        </v-row>
+
+              <div class="field">
+                <label class="field-label" for="src-name">采集名称</label>
+                <v-text-field
+                  id="src-name"
+                  v-model="sourceItem.name"
+                  placeholder="例如：巨源资讯"
+                  :rules="[rules.required]"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="src-start">采集时间</label>
+                <v-text-field
+                  id="src-start"
+                  v-model="sourceItem.startAt"
+                  placeholder="HH:mm 或 HH:mm:ss"
+                  :rules="[timeFormatRule]"
+                  :error-messages="timeError"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+                <p class="field-help">留空时使用系统默认调度时间</p>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="src-calendar">采集日历</label>
+                <v-select
+                  id="src-calendar"
+                  v-model="sourceItem.calendar"
+                  :items="calendarOptions"
+                  item-title="label"
+                  item-value="value"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                  placeholder="自然日"
+                />
+                <p class="field-help">决定哪些日期触发采集，默认自然日</p>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="src-concurrency">最大并发数</label>
+                <v-text-field
+                  id="src-concurrency"
+                  v-model.number="sourceItem.maxConcurrency"
+                  type="number"
+                  min="1"
+                  placeholder="默认 10"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+                <p class="field-help">留空则使用系统默认值</p>
+              </div>
+
+              <div class="field">
+                <span class="field-label">启用状态</span>
+                <div class="switch-row">
+                  <v-switch
+                    v-model="sourceItem.enabled"
+                    color="primary"
+                    hide-details
+                    density="compact"
+                    inset
+                    :label="sourceItem.enabled ? '已启用调度' : '已禁用调度'"
+                  />
+                </div>
+                <p class="field-help">禁用后不再参与调度，历史配置保留</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <header class="section-head">
+              <span class="section-index">02</span>
+              <h3>连接信息</h3>
+              <v-btn
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-lan-connect"
+                :loading="testingConnection"
+                :disabled="mode === 'detail' || !sourceItem.url"
+                @click="testConnect"
+              >
+                测试连接
+              </v-btn>
+            </header>
+
+            <div class="field-grid">
+              <div class="field span-2">
+                <label class="field-label" for="src-url">JDBC 连接地址</label>
+                <v-text-field
+                  id="src-url"
+                  v-model="sourceItem.url"
+                  placeholder="jdbc:hive2://host:port"
+                  :rules="[rules.required]"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="src-user">用户名</label>
+                <v-text-field
+                  id="src-user"
+                  v-model="sourceItem.username"
+                  variant="outlined"
+                  density="compact"
+                  autocomplete="off"
+                  hide-details="auto"
+                />
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="src-pass">密码</label>
+                <v-text-field
+                  id="src-pass"
+                  v-model="sourceItem.pass"
+                  :type="showPassword ? 'text' : 'password'"
+                  variant="outlined"
+                  density="compact"
+                  autocomplete="new-password"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
+                  hide-details="auto"
+                  @click:append-inner="showPassword = !showPassword"
+                />
+              </div>
+            </div>
+
+            <div
+              v-if="connectionState"
+              class="connection-result"
+              :class="connectionState.ok ? 'connection-result--ok' : 'connection-result--fail'"
+            >
+              <v-icon size="16">
+                {{ connectionState.ok ? 'mdi-check-circle-outline' : 'mdi-alert-circle-outline' }}
+              </v-icon>
+              <span>{{ connectionState.text }}</span>
+              <v-btn v-if="!connectionState.ok" size="x-small" variant="text" @click="testConnect">
+                重试
+              </v-btn>
+            </div>
+          </section>
+
+          <section class="form-section form-section--wide">
+            <header class="section-head">
+              <span class="section-index">03</span>
+              <h3>备注</h3>
+            </header>
+            <v-textarea
+              v-model="sourceItem.remark"
+              placeholder="补充该采集源的用途、负责人或注意事项"
+              auto-grow
+              rows="2"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
+          </section>
+        </div>
       </v-card-text>
 
-      <v-card-actions class="pa-3 action-bar">
-        <v-spacer></v-spacer>
-        <v-btn color="secondary" variant="tonal" prepend-icon="mdi-close" @click="close">
-          关闭
-        </v-btn>
+      <v-card-actions class="ds-dialog-actions">
+        <span class="ds-dialog-actions__hint">{{ dirty ? '有未保存的修改' : '' }}</span>
+        <v-spacer />
+        <v-btn variant="text" @click="close">取消</v-btn>
         <v-btn
           v-if="mode === 'add' || mode === 'edit'"
           type="submit"
           color="primary"
-          prepend-icon="mdi-content-save"
+          variant="flat"
         >
           保存
         </v-btn>
@@ -219,6 +224,7 @@
     </v-card>
   </v-form>
 </template>
+
 <script setup lang="ts">
   import { ref, computed, watch, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
@@ -232,8 +238,10 @@
   });
 
   const form = ref<any>(null);
-
   const showPassword = ref(false);
+  const testingConnection = ref(false);
+  const connectionState = ref<{ ok: boolean; text: string } | null>(null);
+  const dirty = ref(false);
 
   const defaultSourceItem: EtlSource = {
     id: 0,
@@ -253,14 +261,35 @@
 
   const sourceItem = ref<EtlSource>({ ...defaultSourceItem });
 
+  const dialogTitle = computed(() => {
+    if (props.mode === 'edit') return '编辑采集源';
+    if (props.mode === 'detail') return '采集源详情';
+    return '新增采集源';
+  });
+
+  const dialogSubtitle = computed(() => {
+    if (props.mode === 'edit') return '修改连接或调度参数，保存后立即生效。';
+    if (props.mode === 'detail') return '查看采集源连接与调度配置。';
+    return '配置连接与调度参数，保存后加入调度队列。';
+  });
+
   // Why: the source form is long; leaving by Esc/backdrop must not silently drop edits
   const initialSnapshot = ref('');
   const isDirty = () =>
     initialSnapshot.value !== '' && JSON.stringify(sourceItem.value) !== initialSnapshot.value;
 
-  onMounted(() => {
+  const markClean = () => {
     initialSnapshot.value = JSON.stringify(sourceItem.value);
-  });
+    dirty.value = false;
+  };
+
+  watch(
+    sourceItem,
+    () => {
+      dirty.value = isDirty();
+    },
+    { deep: true }
+  );
 
   defineExpose({ isDirty });
 
@@ -273,40 +302,27 @@
 
   const emit = defineEmits(['closeDialog', 'save']);
 
-  // 时间格式验证
-  const timeFormatRule = computed(() => {
-    // 支持 HH:mm 和 HH:mm:ss 两种格式
+  const timeFormatRule = (value: string) => {
+    if (!value) return true;
     const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
-    return (value: string) => {
-      if (!value) return true; // 允许空值
-      if (!timeRegex.test(value)) {
-        return '时间格式不正确，请使用 HH:mm 或 HH:mm:ss 格式（如：08:30 或 08:30:15）';
-      }
-      return true;
-    };
-  });
+    return timeRegex.test(value) || '时间格式不正确，请使用 HH:mm 或 HH:mm:ss 格式（如：08:30）';
+  };
 
-  // 时间错误消息
   const timeError = computed(() => {
     if (!sourceItem.value.startAt) return [];
-    // 支持 HH:mm 和 HH:mm:ss 两种格式
     const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
     if (!timeRegex.test(sourceItem.value.startAt)) {
-      return ['时间格式不正确，请使用 HH:mm 或 HH:mm:ss 格式（如：08:30 或 08:30:15）'];
+      return ['时间格式不正确，请使用 HH:mm 或 HH:mm:ss 格式（如：08:30）'];
     }
     return [];
   });
 
-  // 时间格式化函数：自动补充秒数
   const formatTimeInput = (value: string) => {
     if (!value) return value;
-
-    // 如果是 HH:mm 格式，自动补充 :00
     const timeWithoutSeconds = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
     if (timeWithoutSeconds.test(value)) {
       return value + ':00';
     }
-
     return value;
   };
 
@@ -327,62 +343,77 @@
   };
 
   const save = async () => {
-    if (props.mode === 'add' || props.mode === 'edit') {
-      const { valid } = await form.value.validate();
-      if (!valid) {
-        notify('请修正表单中的错误', 'error');
-        return;
-      }
+    if (props.mode !== 'add' && props.mode !== 'edit') return;
 
-      // 验证时间格式
-      if (sourceItem.value.startAt && timeError.value.length > 0) {
-        notify('请检查启动时间格式', 'error');
-        return;
-      }
-
-      // 格式化时间输入，自动补充秒数
-      if (sourceItem.value.startAt) {
-        sourceItem.value.startAt = formatTimeInput(sourceItem.value.startAt);
-      }
-
-      sourceService
-        .save(sourceItem.value)
-        .then(() => {
-          initialSnapshot.value = JSON.stringify(sourceItem.value);
-          notify('保存成功', 'success');
-          emit('save'); // 发出save事件，通知父组件更新列表
-          emit('closeDialog'); // 关闭对话框
-        })
-        .catch(error => {
-          notify('保存失败: ' + error, 'error');
-        });
+    const { valid } = await form.value.validate();
+    if (!valid) {
+      notify('请修正表单中的错误', 'error');
+      await new Promise(resolve => setTimeout(resolve, 60));
+      const firstInvalid = document.querySelector<HTMLElement>(
+        '.add-source-body .v-input--error, .add-source-body .v-field--error'
+      );
+      firstInvalid?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalid?.querySelector<HTMLInputElement>('input, textarea')?.focus();
+      return;
     }
-  };
 
-  // 定义关闭对话框的逻辑
-  const close = () => {
-    emit('closeDialog'); // 通知父组件关闭对话框
-  };
+    if (sourceItem.value.startAt && timeError.value.length > 0) {
+      notify('请检查启动时间格式', 'error');
+      return;
+    }
 
-  const testConnect = () => {
+    if (sourceItem.value.startAt) {
+      sourceItem.value.startAt = formatTimeInput(sourceItem.value.startAt);
+    }
+
     sourceService
-      .testConnection({
+      .save(sourceItem.value)
+      .then(() => {
+        markClean();
+        notify('保存成功', 'success');
+        emit('save');
+        emit('closeDialog');
+      })
+      .catch(error => {
+        notify('保存失败: ' + error, 'error');
+      });
+  };
+
+  const close = () => {
+    emit('closeDialog');
+  };
+
+  const testConnect = async () => {
+    if (!sourceItem.value.url) {
+      notify('请先填写 JDBC 连接地址', 'warning');
+      return;
+    }
+    testingConnection.value = true;
+    connectionState.value = null;
+    try {
+      const resp = await sourceService.testConnection({
         url: sourceItem.value.url,
         username: sourceItem.value.username,
         password: sourceItem.value.pass,
         sourceId: sourceItem.value.id > 0 ? sourceItem.value.id : undefined,
-      })
-      .then(resp => {
-        if (resp) {
-          notify('连接成功', 'success');
-        } else {
-          notify('连接失败', 'warning');
-        }
-      })
-      .catch(error => {
-        notify('连接失败: ' + error, 'error');
       });
+      connectionState.value = resp
+        ? { ok: true, text: '连接成功，可以保存配置' }
+        : { ok: false, text: '连接失败，请检查地址与账号密码' };
+    } catch (error: any) {
+      connectionState.value = { ok: false, text: '连接失败：' + (error?.message || error) };
+    } finally {
+      testingConnection.value = false;
+    }
   };
+
+  watch(
+    () => [sourceItem.value.url, sourceItem.value.username, sourceItem.value.pass],
+    () => {
+      connectionState.value = null;
+    }
+  );
+
   const applyCloneData = () => {
     const cloneData = props.cloneData as Partial<EtlSource> | undefined;
     if (!cloneData) return;
@@ -399,6 +430,7 @@
     if (props.mode === 'add') {
       sourceItem.value = { ...defaultSourceItem };
       applyCloneData();
+      markClean();
       return;
     }
 
@@ -408,6 +440,7 @@
         .then(resp => {
           // null 表示自然日，转成空串才能命中下拉项，否则会显示成原始值
           sourceItem.value = { ...resp, calendar: resp.calendar ?? '' };
+          markClean();
         })
         .catch(error => {
           console.log(error);
@@ -423,106 +456,133 @@
     },
     { immediate: true }
   );
+
+  onMounted(() => {
+    if (!initialSnapshot.value) markClean();
+  });
 </script>
+
 <style scoped>
   .add-source-card {
-    background: rgb(var(--v-theme-surface));
+    background: var(--ds-surface-raised);
   }
 
-  .add-source-form {
-    background: rgb(var(--v-theme-surface));
-  }
-
-  .section-grid {
-    row-gap: 12px;
+  .dialog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 28px;
   }
 
   .form-section {
-    background: rgb(var(--v-theme-surface));
-    border-color: rgba(var(--v-theme-on-surface), 0.08);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
   }
 
-  .form-section:hover {
-    border-color: rgba(var(--v-theme-primary), 0.2);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  .form-section--wide {
+    grid-column: 1 / -1;
   }
 
-  .section-header {
+  .section-head {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ds-border-subtle);
+  }
+
+  .section-head h3 {
+    margin: 0;
+    font-size: var(--ds-fs-body);
     font-weight: 600;
-    color: rgb(var(--v-theme-on-surface));
   }
 
-  .section-body {
-    padding: 12px 14px 6px;
-    max-width: 760px;
-    margin: 0 auto;
+  .section-head .v-btn {
+    margin-left: auto;
   }
 
-  .field-stack {
+  .section-index {
+    color: var(--ds-text-3);
+    font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 11px;
+  }
+
+  .field-grid {
     display: grid;
-    grid-template-columns: 110px minmax(0, 1fr);
-    column-gap: 16px;
-    align-items: center;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
   }
 
-  .field-stack-top {
-    align-items: flex-start;
+  .field {
+    min-width: 0;
+  }
+
+  .field.span-2 {
+    grid-column: 1 / -1;
   }
 
   .field-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    line-height: 1.2;
-    text-align: right;
-    white-space: nowrap;
-    color: rgb(var(--v-theme-on-surface-variant));
+    display: block;
+    margin-bottom: 6px;
+    color: rgb(var(--v-theme-on-surface));
+    font-size: 12.5px;
+    font-weight: 500;
   }
 
-  .field-label-placeholder {
-    visibility: hidden;
+  .field-help {
+    margin: 5px 0 0;
+    color: var(--ds-text-3);
+    font-size: 11.5px;
+    line-height: 1.45;
   }
 
-  .field-control {
+  .switch-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    min-height: 40px;
   }
 
-  .field-stack :deep(.v-input) {
-    width: 100%;
-  }
-
-  .status-switch {
+  .switch-row :deep(.v-switch) {
     margin-top: 0;
   }
 
-  .status-switch-wrap {
-    gap: 8px;
+  .connection-result {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: var(--ds-radius-sm);
+    font-size: 12px;
   }
 
-  @media (max-width: 960px) {
-    .section-body {
-      max-width: 100%;
+  .connection-result--ok {
+    background: rgba(var(--v-theme-success), 0.08);
+    color: rgb(var(--v-theme-success));
+  }
+
+  .connection-result--fail {
+    background: rgba(var(--v-theme-error), 0.08);
+    color: rgb(var(--v-theme-error));
+  }
+
+  @media (max-width: 900px) {
+    .dialog-grid {
+      grid-template-columns: minmax(0, 1fr);
     }
 
-    .field-stack {
-      grid-template-columns: 90px minmax(0, 1fr);
-      column-gap: 12px;
+    .form-section--wide {
+      grid-column: auto;
     }
   }
 
-  .action-bar {
-    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.06);
+  @media (max-width: 640px) {
+    .field-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .field.span-2 {
+      grid-column: auto;
+    }
   }
 </style>
-<!-- <style scoped>
-.compact-card {
-  max-width: 1080px; /* 放宽整体宽度，避免拥挤 */
-  margin: 0 auto;   /* 居中显示 */
-}
-</style> -->
