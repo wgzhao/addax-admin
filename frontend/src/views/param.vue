@@ -1,94 +1,97 @@
 <template>
-  <!-- 主表配置 -- 参数管理 -->
-  <v-row>
-    <v-col cols="col-6" align="left" justify="top">
-      <v-card>
-        <v-card-text>
-          <v-data-table :headers="dictHeaders" :items="dicts" density="default">
-            <template #item.actions="{ item }">
-              <v-icon
-                icon="mdi-chevron-right"
-                size="small"
-                class="me-2"
-                @click="getItems(item.code)"
-              ></v-icon>
-            </template>
-          </v-data-table>
-        </v-card-text>
-      </v-card>
-    </v-col>
+  <div class="page-shell">
+    <PageHeader title="参数配置" subtitle="维护字典主表与明细参数。" />
+    <v-row>
+      <v-col cols="col-6" align="left" justify="top">
+        <v-card>
+          <v-card-text>
+            <v-data-table :headers="dictHeaders" :items="dicts" density="default">
+              <template #item.actions="{ item }">
+                <v-icon
+                  icon="mdi-chevron-right"
+                  size="small"
+                  class="me-2"
+                  @click="getItems(item.code)"
+                ></v-icon>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
 
-    <v-col cols="col-6">
-      <v-card>
-        <v-card-text>
-          <v-row>
-            <v-col cols="auto">
-              <span class="text-h6">{{ currCode }} 参数详情</span>
-            </v-col>
-            <v-spacer></v-spacer>
-            <v-col>
-              <v-btn color="info" class="btn btn-primary" @click="addItem">新增</v-btn>
-            </v-col>
-          </v-row>
-          <v-data-table
-            v-if="sysItems"
-            :headers="itemHeaders"
-            :items="sysItems"
-            items-per-page="20"
-            density="default"
-            class="elevation-1"
-          >
-            <template #top>
-              <!-- edit/new form -->
-              <v-dialog v-model="dialog" max-width="500px">
-                <v-card>
-                  <v-card-title>
-                    <span class="text-h5">{{ formTitle }}</span>
-                  </v-card-title>
-                  <v-card-text>
-                    <v-text-field
-                      v-model="editedItem.dictCode"
-                      label="参数值"
-                      disabled
-                    ></v-text-field>
-                    <v-text-field v-model="editedItem.itemKey" label="参数项"></v-text-field>
-                    <v-textarea v-model="editedItem.itemValue" label="参数名称"></v-textarea>
-                    <v-text-field v-model="editedItem.remark" label="备注"></v-text-field>
-                  </v-card-text>
-                  <v-card-actions>
-                    <v-btn color="info" @click="close">取消</v-btn>
-                    <v-btn color="primary" @click="saveItem">保存</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-              <!-- delete alert dialog -->
-              <v-dialog v-model="dialogDelete" max-width="500px">
-                <v-card>
-                  <v-card-title class="text-h5">
-                    Are you sure you want to delete this item?
-                  </v-card-title>
-                  <v-card-actions>
-                    <v-spacer></v-spacer>
-                    <v-btn color="warning" @click="closeDelete">Cancel</v-btn>
-                    <v-btn color="primary" @click="deleteItemConfirm">OK</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-            </template>
+      <v-col cols="col-6">
+        <v-card>
+          <v-card-text>
+            <v-row>
+              <v-col cols="auto">
+                <span class="text-h6">{{ currCode }} 参数详情</span>
+              </v-col>
+              <v-spacer></v-spacer>
+              <v-col>
+                <v-btn color="info" class="btn btn-primary" @click="addItem">新增</v-btn>
+              </v-col>
+            </v-row>
+            <v-data-table
+              v-if="sysItems"
+              :headers="itemHeaders"
+              :items="sysItems"
+              items-per-page="20"
+              density="default"
+              class="elevation-1"
+            >
+              <template #top>
+                <!-- edit/new form -->
+                <v-dialog v-model="dialog" max-width="500px">
+                  <v-card>
+                    <v-card-title>
+                      <span class="text-h5">{{ formTitle }}</span>
+                    </v-card-title>
+                    <v-card-text>
+                      <v-text-field
+                        v-model="editedItem.dictCode"
+                        label="参数值"
+                        disabled
+                      ></v-text-field>
+                      <v-text-field v-model="editedItem.itemKey" label="参数项"></v-text-field>
+                      <v-textarea v-model="editedItem.itemValue" label="参数名称"></v-textarea>
+                      <v-text-field v-model="editedItem.remark" label="备注"></v-text-field>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-btn color="info" @click="close">取消</v-btn>
+                      <v-btn color="primary" @click="saveItem">保存</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+                <!-- delete alert dialog -->
+                <v-dialog v-model="dialogDelete" max-width="500px">
+                  <v-card>
+                    <v-card-title class="text-h5">
+                      Are you sure you want to delete this item?
+                    </v-card-title>
+                    <v-card-actions>
+                      <v-spacer></v-spacer>
+                      <v-btn color="warning" @click="closeDelete">Cancel</v-btn>
+                      <v-btn color="primary" @click="deleteItemConfirm">OK</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
+              </template>
 
-            <!-- action -->
-            <template #item.actions="{ item }">
-              <v-icon size="small" class="me-2" @click="editItem(item)">mdi-pencil</v-icon>
-              <v-icon size="small" @click="deleteItem(item)">mdi-delete</v-icon>
-            </template>
-          </v-data-table>
-        </v-card-text>
-      </v-card>
-    </v-col>
-  </v-row>
+              <!-- action -->
+              <template #item.actions="{ item }">
+                <v-icon size="small" class="me-2" @click="editItem(item)">mdi-pencil</v-icon>
+                <v-icon size="small" @click="deleteItem(item)">mdi-delete</v-icon>
+              </template>
+            </v-data-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </div>
 </template>
 
 <script setup lang="ts">
+  import PageHeader from '@/components/PageHeader.vue';
   import { ref, onMounted, computed, watch, nextTick } from 'vue';
   import dictService from '@/service/dict-service';
   import { notify } from '@/stores/notifier';
@@ -252,7 +255,7 @@
 <route lang="json">
 {
   "meta": {
-    "title": "系统配置",
+    "title": "参数配置",
     "icon": "mdi-settings",
     "requiresAuth": false,
     "navHidden": true

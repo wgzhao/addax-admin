@@ -3,26 +3,16 @@
     class="table-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': dialogVisible || deleteDialogVisible }"
   >
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header flex-wrap">
-          <div>
-            <div class="page-title">采集表配置</div>
-            <div class="page-subtitle">统一维护采集表、批量采集与结构更新。</div>
-          </div>
-          <div class="ds-actions">
-            <v-btn
-              color="primary"
-              variant="flat"
-              prepend-icon="mdi-plus"
-              @click="() => router.push('/table/batch-add')"
-            >
-              新增表
-            </v-btn>
-          </div>
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader title="采集表配置" subtitle="统一维护采集表、批量采集与结构更新。">
+      <v-btn
+        color="primary"
+        variant="flat"
+        prepend-icon="mdi-plus"
+        @click="() => router.push('/table/batch-add')"
+      >
+        新增表
+      </v-btn>
+    </PageHeader>
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
@@ -66,11 +56,14 @@
               single-line
               hide-details
               clearable
-              label="数据源"
+              label="采集源"
             />
           </v-col>
-          <v-col cols="12" md="1" lg="1">
-            <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
+          <v-col cols="12" md="2" lg="2">
+            <div class="filter-actions">
+              <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
+              <v-btn variant="text" @click="resetFilters">重置</v-btn>
+            </div>
           </v-col>
           <v-spacer />
           <template v-if="selected.length > 0">
@@ -122,7 +115,7 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap">
+    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
       <v-card-text class="ds-card__content">
         <template v-if="!loading && totalItems === 0">
           <EmptyState
@@ -159,8 +152,14 @@
               </div>
             </template>
             <template #item.status="{ item }">
-              <v-badge dot inline :color="getStatusColor(item.status)" class="mr-2" />
-              <span class="text-body-2 font-weight-medium">{{ item.status }}</span>
+              <v-chip
+                size="small"
+                :color="getStatusColor(item.status)"
+                variant="tonal"
+                :title="`状态码 ${item.status}`"
+              >
+                {{ statusLabel(item.status) }}
+              </v-chip>
               <!-- Kill icon for running tasks: move to right, match E icon style -->
               <template v-if="item.status === 'R'">
                 <v-tooltip location="top">
@@ -220,6 +219,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-play-circle"
+                      :aria-label="`发起采集 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="doEtl(item)"
                     ></v-icon-btn>
@@ -232,6 +232,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-database-refresh"
+                      :aria-label="`更新表结构 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="updateSchema(item)"
                     ></v-icon-btn>
@@ -244,6 +245,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-delete"
+                      :aria-label="`删除采集表 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="confirmDelete(item)"
                     ></v-icon-btn>
@@ -256,6 +258,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-open-in-new"
+                      :aria-label="`查看采集表详情 ${item.sourceTable || item.id}`"
                       v-bind="open"
                       @click="viewDetail(item)"
                     ></v-icon-btn>
@@ -291,7 +294,7 @@
     v-model="deleteDialogVisible"
     class="ds-dialog-overlay"
     scrim="rgba(2, 6, 23, 0.62)"
-    width="400"
+    width="480"
   >
     <v-card>
       <v-card-title class="text-h6">确认删除</v-card-title>
@@ -308,12 +311,22 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <ConfirmDialog
+    v-model="killConfirm.open"
+    title="中止采集任务"
+    :message="killConfirm.message"
+    confirm-text="中止任务"
+    @confirm="runKill"
+  />
 </template>
 
 <script setup lang="ts">
   import { ref, shallowRef, defineAsyncComponent, onMounted, watch, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import EmptyState from '@/components/EmptyState.vue';
+  import ConfirmDialog from '@/components/ConfirmDialog.vue';
+  import PageHeader from '@/components/PageHeader.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
   import { TABLE_STATUS_OPTIONS } from '@/utils';
@@ -358,6 +371,13 @@
     return selected.value.includes(item.id) ? 'selected-row' : '';
   }
 
+  function resetFilters() {
+    search.value = '';
+    runStatuses.value = [];
+    sourceId.value = null;
+    searchTable();
+  }
+
   // 映射 Vuetify 的标准状态色（支持 Badge 点）
   function getStatusColor(status: string) {
     const statusColorMap = {
@@ -371,6 +391,18 @@
     };
     return statusColorMap[status] || 'grey';
   }
+
+  const STATUS_LABEL: Record<string, string> = {
+    N: '未采集',
+    Y: '已采集',
+    X: '不采集',
+    W: '等待采集',
+    E: '采集错误',
+    R: '采集中',
+    U: '待更新',
+  };
+
+  const statusLabel = (status: string) => STATUS_LABEL[status] || status || '未知';
 
   const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
@@ -405,7 +437,7 @@
 
   const dialogMaxWidth = computed<number | undefined>(() => {
     if (currentDialogName.value === 'BatchUpdate') return 720;
-    if (currentDialogName.value === 'Fillback') return 640;
+    if (currentDialogName.value === 'Fillback') return 720;
     return undefined;
   });
 
@@ -541,7 +573,7 @@
       sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      notify('加载数据源失败: ' + msg, 'error');
+      notify('加载采集源失败: ' + msg, 'error');
     }
   }
 
@@ -659,9 +691,27 @@
   }
 
   function confirmKill(item: any) {
-    const ok = window.confirm(`确定要中止任务 ${item.id} 吗？`);
-    if (!ok) return;
-    killTask(item);
+    killConfirm.value = {
+      open: true,
+      message: `将中止「${item.sourceDb ? item.sourceDb + '.' : ''}${
+        item.sourceTable || item.id
+      }」正在运行的采集任务，已写入的数据会保留。`,
+      itemId: item.id,
+    };
+  }
+
+  const killConfirm = ref<{ open: boolean; message: string; itemId: number | null }>({
+    open: false,
+    message: '',
+    itemId: null,
+  });
+
+  function runKill() {
+    const id = killConfirm.value.itemId;
+    killConfirm.value.open = false;
+    if (id == null) return;
+    const target = table.value.find(t => t.id === id);
+    if (target) killTask(target);
   }
 
   async function killTask(item: any) {
@@ -684,6 +734,12 @@
 <style scoped>
   .table-page {
     min-width: 0;
+  }
+
+  .filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   .query-actions {

@@ -399,7 +399,7 @@
         })
         .catch(error => {
           console.log(error);
-          notify(`加载数据源失败: ${error}`, 'error');
+          notify(`加载采集源失败: ${error}`, 'error');
         });
     }
   };

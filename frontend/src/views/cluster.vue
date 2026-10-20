@@ -1,30 +1,18 @@
 <template>
-  <v-container fluid class="pa-6 cluster-page">
-    <!-- header row -->
-    <v-row align="center" class="mb-4">
-      <v-col>
-        <div class="text-h6 font-weight-medium">集群状态</div>
-        <div class="text-caption text-medium-emphasis">节点最近心跳超过 30 秒视为离线</div>
-      </v-col>
-      <v-col cols="auto">
-        <v-chip
-          :color="status.totalNodes > 0 ? 'success' : 'warning'"
-          variant="tonal"
-          size="small"
-          class="mr-2"
-        >
-          在线节点：{{ status.totalNodes }}
-        </v-chip>
-        <v-btn
-          variant="tonal"
-          size="small"
-          :loading="loading"
-          prepend-icon="mdi-refresh"
-          @click="refresh"
-          >刷新</v-btn
-        >
-      </v-col>
-    </v-row>
+  <div class="page-shell cluster-page">
+    <PageHeader title="集群状态" subtitle="节点最近心跳超过 30 秒视为离线">
+      <v-chip :color="status.totalNodes > 0 ? 'success' : 'warning'" variant="tonal" size="small">
+        在线节点：{{ status.totalNodes }}
+      </v-chip>
+      <v-btn
+        variant="tonal"
+        size="small"
+        :loading="loading"
+        prepend-icon="mdi-refresh"
+        @click="refresh"
+        >刷新</v-btn
+      >
+    </PageHeader>
 
     <v-alert v-if="error" type="error" variant="tonal" class="mb-4" closable>{{ error }}</v-alert>
 
@@ -135,10 +123,11 @@
     </v-row>
 
     <div class="text-caption text-medium-emphasis mt-4 text-right">上次刷新：{{ lastRefresh }}</div>
-  </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
+  import PageHeader from '@/components/PageHeader.vue';
   import { ref, onMounted, onUnmounted } from 'vue';
   import { clusterService, type ClusterStatus, type WorkerNode } from '@/service/cluster-service';
 

@@ -1,17 +1,9 @@
 <template>
   <div class="sys-settings-page page-shell">
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header">
-          <div>
-            <div class="page-title">系统配置</div>
-            <div class="page-subtitle">
-              系统首次安装后，请完成必要配置项，确保采集与调度正常运行。
-            </div>
-          </div>
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader
+      title="系统配置"
+      subtitle="系统首次安装后，请完成必要配置项，确保采集与调度正常运行。"
+    />
 
     <v-form ref="form" v-model="valid" @submit.prevent="saveSettings">
       <v-row class="section-grid stretch-row">
@@ -301,6 +293,7 @@
 </template>
 
 <script setup lang="ts">
+  import PageHeader from '@/components/PageHeader.vue';
   import { ref, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
   import settingsService, { type HiveServer2Config } from '@/service/settings-service';

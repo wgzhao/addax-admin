@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="open" max-width="520">
+  <v-dialog v-model="open" max-width="480">
     <v-card class="version-dialog-card">
       <v-card-text>
         <div class="version-dialog-body">

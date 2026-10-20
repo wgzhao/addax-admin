@@ -24,7 +24,7 @@
 
     <v-stepper v-model="currentStep" flat class="batch-stepper">
       <v-stepper-header class="stepper-header">
-        <v-stepper-item title="选择数据源" :value="1" :complete="currentStep > 1" color="primary" />
+        <v-stepper-item title="选择采集源" :value="1" :complete="currentStep > 1" color="primary" />
         <v-divider />
         <v-stepper-item title="选择采集表" :value="2" :complete="currentStep > 2" color="primary" />
         <v-divider />

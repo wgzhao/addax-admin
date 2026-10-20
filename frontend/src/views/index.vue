@@ -17,6 +17,7 @@
 
       <v-tabs-window v-model="tab">
         <v-tabs-window-item value="overview">
+          <TodayPulse class="mb-4" />
           <!-- Stats Cards Row -->
           <v-row class="stats-row" dense>
             <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
@@ -204,6 +205,7 @@
   import RecsBytesDualLine from '@/components/dashboard/RecsBytesDualLine.vue';
   import SourceContributionArea from '@/components/dashboard/SourceContributionArea.vue';
   import SlowTableBar from '@/components/dashboard/SlowTableBar.vue';
+  import TodayPulse from '@/components/dashboard/TodayPulse.vue';
   import TakeSecsHistogram from '@/components/dashboard/TakeSecsHistogram.vue';
   import { useTheme } from 'vuetify'; // Vuetify 主题钩子
 

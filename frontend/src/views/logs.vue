@@ -1,47 +1,22 @@
 <template>
-  <div class="p-4 logs-page">
-    <v-card class="logs-card" elevation="0">
-      <v-card-title class="logs-title">
-        <v-icon color="primary" size="20">mdi-clipboard-text-outline</v-icon>
-        <span>日志管理</span>
-      </v-card-title>
-      <v-divider />
+  <div class="page-shell logs-page">
+    <PageHeader title="日志管理" subtitle="查看采集执行日志，并按需清理历史记录。" />
+    <v-card class="logs-card ds-card" elevation="0">
       <v-card-text class="logs-body">
-        <v-tabs v-model="tab" color="primary" class="logs-tabs">
-          <v-tab value="addax_log">采集日志表</v-tab>
-          <v-tab value="etl_jour">采集流水表</v-tab>
-          <v-tab value="etl_statistic">统计表</v-tab>
-        </v-tabs>
-
-        <v-tabs-window v-model="tab" class="logs-window">
-          <v-tabs-window-item value="addax_log">
-            <v-sheet class="tab-panel">
-              <AddaxLogList table="addax_log" />
-            </v-sheet>
-          </v-tabs-window-item>
-          <v-tabs-window-item value="etl_jour">
-            <v-sheet class="tab-panel">
-              <div class="empty-placeholder">功能建设中</div>
-            </v-sheet>
-          </v-tabs-window-item>
-          <v-tabs-window-item value="etl_statistic">
-            <v-sheet class="tab-panel">
-              <div class="empty-placeholder">功能建设中</div>
-            </v-sheet>
-          </v-tabs-window-item>
-        </v-tabs-window>
+        <AddaxLogList table="addax_log" />
       </v-card-text>
     </v-card>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
   import AddaxLogList from '@/components/logs/AddaxLogList.vue';
-  const tab = ref('addax_log');
+  import PageHeader from '@/components/PageHeader.vue';
 </script>
 <style scoped>
   .logs-page {
+    --ds-table-max: calc(100vh - 395px);
+    --ds-table-max-md: calc(100vh - 600px);
     background: rgb(var(--v-theme-surface));
   }
 

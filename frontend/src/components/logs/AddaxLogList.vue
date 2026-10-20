@@ -1,5 +1,5 @@
 <template>
-  <v-card title="采集日志表">
+  <v-card title="采集日志表" class="ds-table-scroll">
     <template #text>
       <v-row justify="center" align-content="center">
         <v-col cols="col-3">

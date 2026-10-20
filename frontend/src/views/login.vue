@@ -1,82 +1,65 @@
 <template>
   <div class="login-container">
-    <div class="background-layer">
-      <div class="gradient-overlay"></div>
-      <div class="tech-particles"></div>
+    <div class="login-panel">
+      <div class="logo-container">
+        <img src="/logo.png" alt="Addax Admin" class="logo" />
+      </div>
+
+      <h1 class="login-title">统一采集管理系统</h1>
+      <p class="login-subtitle">使用系统账号登录以继续</p>
+
+      <v-form v-model="form" class="login-form" @submit.prevent="login">
+        <v-text-field
+          v-model="auth.username"
+          :readonly="loading"
+          :rules="[required]"
+          class="modern-input"
+          clearable
+          autocomplete="username"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+          label="用户名"
+          prepend-inner-icon="mdi-account-circle"
+          variant="outlined"
+          density="comfortable"
+          flat
+          color="primary"
+        ></v-text-field>
+
+        <v-text-field
+          v-model="auth.password"
+          type="password"
+          :readonly="loading"
+          :rules="[required]"
+          class="modern-input"
+          clearable
+          autocomplete="current-password"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+          label="密码"
+          prepend-inner-icon="mdi-lock"
+          variant="outlined"
+          density="comfortable"
+          flat
+          color="primary"
+        ></v-text-field>
+
+        <v-btn
+          :disabled="!form"
+          :loading="loading"
+          block
+          color="primary"
+          size="large"
+          type="submit"
+          variant="flat"
+          class="login-btn"
+        >
+          登录
+        </v-btn>
+      </v-form>
     </div>
-
-    <v-sheet class="login-sheet pa-16" rounded="xl" elevation="24">
-      <v-card class="login-card px-10 py-12" max-width="480">
-        <div class="logo-container mb-8">
-          <img src="/logo.png" alt="Logo" class="logo" />
-        </div>
-
-        <h2 class="login-title mb-10">Addax Admin Access</h2>
-
-        <v-form v-model="form" @submit.prevent="login">
-          <v-text-field
-            v-model="auth.username"
-            :readonly="loading"
-            :rules="[required]"
-            class="modern-input mb-8"
-            clearable
-            autocomplete="username"
-            autocorrect="off"
-            autocapitalize="none"
-            spellcheck="false"
-            label="Username/Email"
-            prepend-inner-icon="mdi-account-circle"
-            variant="outlined"
-            density="comfortable"
-            flat
-            color="primary"
-            bg-color="surface-variant"
-            base-color="on-surface"
-          ></v-text-field>
-
-          <v-text-field
-            v-model="auth.password"
-            type="password"
-            :readonly="loading"
-            :rules="[required]"
-            class="modern-input mb-10"
-            clearable
-            autocomplete="current-password"
-            autocorrect="off"
-            autocapitalize="none"
-            spellcheck="false"
-            label="Password"
-            prepend-inner-icon="mdi-lock"
-            variant="outlined"
-            density="comfortable"
-            flat
-            color="primary"
-            bg-color="surface-variant"
-            base-color="on-surface"
-          ></v-text-field>
-
-          <v-btn
-            :disabled="!form"
-            :loading="loading"
-            block
-            color="primary"
-            size="large"
-            type="submit"
-            variant="elevated"
-            class="login-btn"
-          >
-            <span>Login</span>
-            <v-icon right class="ml-2">mdi-login</v-icon>
-          </v-btn>
-        </v-form>
-
-        <!-- <div class="additional-links mt-6">
-          <v-btn type="text" color="secondary" >
-            Forgot Credentials?
-          </v-btn>
-        </div> -->
-      </v-card>
-    </v-sheet>
   </div>
 </template>
 
@@ -98,7 +81,7 @@
   const authStore = useAuthStore();
 
   function required(v: string): boolean | string {
-    return !!v || 'Field is required';
+    return !!v || '此项为必填项';
   }
 
   async function login() {
@@ -125,113 +108,65 @@
 
 <style scoped>
   .login-container {
-    height: 100vh;
-    width: 100vw;
+    min-height: 100vh;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    overflow: hidden;
+    padding: 24px;
     background: rgb(var(--v-theme-background));
   }
 
-  .background-layer {
-    position: absolute;
+  .login-panel {
     width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      135deg,
-      rgba(var(--v-theme-primary), 0.36) 0%,
-      rgba(var(--v-theme-surface-variant), 0.9) 55%,
-      rgba(var(--v-theme-background), 1) 100%
-    );
-  }
-
-  .gradient-overlay {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-      circle at center,
-      rgba(var(--v-theme-on-surface), 0.05) 0%,
-      rgba(var(--v-theme-background), 0.9) 70%
-    );
-  }
-
-  .tech-particles {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-  }
-
-  .login-sheet {
-    background: rgba(var(--v-theme-surface), 0.72);
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.16);
-    min-width: 600px;
-    position: relative;
-    z-index: 1;
-  }
-
-  .login-card {
-    background: linear-gradient(
-      145deg,
-      rgba(var(--v-theme-surface-variant), 0.96) 0%,
-      rgba(var(--v-theme-surface), 0.94) 100%
-    );
-    border-radius: 20px !important;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.36);
+    max-width: 420px;
+    padding: 40px 36px 32px;
+    border-radius: 16px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+    background: rgb(var(--v-theme-surface));
   }
 
   .logo-container {
     text-align: center;
+    margin-bottom: 24px;
   }
 
   .logo {
-    width: 120px;
-    transition: transform 0.4s ease;
-  }
-
-  .logo:hover {
-    transform: scale(1.1) rotate(5deg);
+    width: 104px;
   }
 
   .login-title {
+    margin: 0;
     text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
     color: rgb(var(--v-theme-on-surface));
-    font-weight: 700;
-    font-size: 28px;
-    text-shadow: 0 2px 8px rgba(var(--v-theme-on-surface), 0.18);
   }
 
-  .modern-input {
-    transition: transform 0.3s ease;
-    will-change: transform;
+  .login-subtitle {
+    margin: 8px 0 28px;
+    text-align: center;
+    font-size: 14px;
+    color: rgb(var(--v-theme-on-surface-variant));
   }
 
-  .modern-input:hover {
-    transform: translateX(4px);
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .login-btn {
-    border-radius: 10px;
-    height: 50px;
-    text-transform: none;
+    margin-top: 20px;
+    height: 46px;
     font-weight: 600;
-    letter-spacing: 1.5px;
-    background: linear-gradient(
-      90deg,
-      rgba(var(--v-theme-primary), 0.92) 0%,
-      rgba(var(--v-theme-info), 0.88) 100%
-    );
-    color: rgb(var(--v-theme-on-primary));
-    transition: all 0.4s ease;
+    letter-spacing: 0.4px;
   }
 
-  .login-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 20px rgba(var(--v-theme-primary), 0.4);
+  @media (max-width: 480px) {
+    .login-panel {
+      padding: 28px 20px 24px;
+    }
   }
 </style>

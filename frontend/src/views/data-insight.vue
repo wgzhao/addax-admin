@@ -1,17 +1,8 @@
 <template>
   <div class="insight-page page-shell">
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header">
-          <div>
-            <div class="page-title">数据洞察</div>
-          </div>
-          <v-chip size="small" variant="outlined" color="secondary"
-            >近 {{ filters.days }} 天</v-chip
-          >
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader title="数据洞察" subtitle="跟踪采集完整性、缺失日期与异常表。">
+      <v-chip size="small" variant="outlined" color="secondary">近 {{ filters.days }} 天</v-chip>
+    </PageHeader>
 
     <v-card flat class="ds-card toolbar-card filter-card">
       <v-card-text class="ds-card__content">
@@ -107,8 +98,8 @@
 
     <InsightPanelTable
       v-for="panel in panels"
-      :key="panel.key"
       v-show="activePanel === panel.key"
+      :key="panel.key"
       :title="panel.title"
       :headers="panel.headers"
       :sort-by="panel.sortBy"
@@ -146,6 +137,7 @@
 <script setup lang="ts">
   import { ref, onMounted, computed, watch } from 'vue';
   import { monitorService } from '@/service/monitor-service';
+  import PageHeader from '@/components/PageHeader.vue';
   import InsightPanelTable from '@/components/insight/InsightPanelTable.vue';
   import ConfirmDisableDialog from '@/components/insight/ConfirmDisableDialog.vue';
   import MissingDatesDialog from '@/components/insight/MissingDatesDialog.vue';

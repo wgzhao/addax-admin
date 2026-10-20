@@ -3,21 +3,11 @@
     class="target-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': dialogVisible }"
   >
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header flex-wrap">
-          <div>
-            <div class="page-title">目标端管理</div>
-            <div class="page-subtitle">统一维护目标端连接、模板键与默认落库策略。</div>
-          </div>
-          <div class="ds-actions">
-            <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreate"
-              >新增目标端</v-btn
-            >
-          </div>
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader title="目标端管理" subtitle="统一维护目标端连接、模板键与默认落库策略。">
+      <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreate">
+        新增目标端
+      </v-btn>
+    </PageHeader>
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
@@ -48,9 +38,10 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap">
+    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
       <v-card-text class="ds-card__content">
-        <template v-if="targets.length === 0">
+        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
+        <template v-else-if="targets.length === 0">
           <EmptyState
             title="暂无目标端"
             description="当前还没有配置任何目标端。点击下方按钮新增目标端后，即可配置连接、模板键和默认落库策略。"
@@ -138,7 +129,7 @@
       v-model="dialogVisible"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="760"
+      max-width="720"
       persistent
     >
       <v-card>
@@ -258,6 +249,14 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <ConfirmDialog
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      confirm-text="删除"
+      @confirm="runConfirmed"
+    />
   </div>
 </template>
 
@@ -265,6 +264,8 @@
   import { onMounted, ref, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import EmptyState from '@/components/EmptyState.vue';
+  import ConfirmDialog from '@/components/ConfirmDialog.vue';
+  import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
   import targetService from '@/service/target-service';
   import dictService from '@/service/dict-service';
@@ -275,8 +276,21 @@
 
   const targets = ref<EtlTarget[]>([]);
   const enabledOnly = ref(true);
+  const loading = ref(true);
   const dialogVisible = ref(false);
   const searchValue = ref('');
+  const confirmState = ref<{
+    open: boolean;
+    title: string;
+    message: string;
+    action: (() => unknown) | null;
+  }>({ open: false, title: '', message: '', action: null });
+
+  const runConfirmed = () => {
+    const action = confirmState.value.action;
+    confirmState.value.open = false;
+    action?.();
+  };
   // Phase 1 only offers dialects that are implemented end to end (writer plugin + dialect-aware DDL).
   const targetTypes = ['HDFS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'];
   const writerTemplateOptions = ref<{ label: string; value: string }[]>([]);
@@ -371,10 +385,13 @@
   };
 
   const loadTargets = async () => {
+    loading.value = true;
     try {
       targets.value = await targetService.list(enabledOnly.value);
     } catch (e: any) {
       notify(`加载目标端失败: ${e.message || e}`, 'error');
+    } finally {
+      loading.value = false;
     }
   };
 
@@ -409,14 +426,21 @@
 
   const remove = async (item: EtlTarget) => {
     if (!item.id) return;
-    if (!window.confirm(`确认删除目标端 ${item.name} 吗？`)) return;
-    try {
-      await targetService.remove(item.id);
-      notify('删除成功', 'success');
-      await loadTargets();
-    } catch (e: any) {
-      notify(`删除失败: ${e.message || e}`, 'error');
-    }
+    const id = item.id;
+    confirmState.value = {
+      open: true,
+      title: '删除目标端',
+      message: `将删除目标端「${item.name}」，引用它的采集表需要重新指定目标端。`,
+      action: async () => {
+        try {
+          await targetService.remove(id);
+          notify('删除成功', 'success');
+          await loadTargets();
+        } catch (e: any) {
+          notify(`删除失败: ${e.message || e}`, 'error');
+        }
+      },
+    };
   };
 
   const testConnect = async (item: EtlTarget) => {

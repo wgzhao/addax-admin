@@ -1,51 +1,63 @@
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 export interface Notice {
-  show: boolean;
+  id: number;
   text: string;
-  color?: string;
-  timeout?: number;
+  color: string;
+  timeout: number;
   icon?: string;
   title?: string;
 }
 
-const notice = ref<Notice>({ show: false, text: '', color: 'info', timeout: 3000 });
+const notices = ref<Notice[]>([]);
+const timers = new Map<number, ReturnType<typeof setTimeout>>();
+const MAX_VISIBLE = 4;
+let sequence = 0;
 
-let timeoutId: ReturnType<typeof setTimeout> | null = null;
+// Why: failures carry information the operator still needs after the next toast arrives,
+// so errors stay until dismissed while ordinary confirmations fade out on their own.
+const DEFAULT_TIMEOUT: Record<string, number> = {
+  success: 3000,
+  info: 4000,
+  primary: 4000,
+  warning: 6000,
+  error: 0,
+};
 
-watch(notice, newValue => {
-  if (timeoutId) {
-    clearTimeout(timeoutId);
-    timeoutId = null;
+export function dismiss(id: number) {
+  const timer = timers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    timers.delete(id);
   }
-  if (newValue.show) {
-    if (newValue.timeout && newValue.timeout > 0) {
-      timeoutId = setTimeout(() => {
-        notice.value.show = false;
-      }, newValue.timeout);
-    }
-  }
-});
-
-export function useNotifier() {
-  function notify(
-    text: string,
-    color: string = 'info',
-    timeout = 3000,
-    title?: string,
-    icon?: string
-  ) {
-    notice.value = { show: true, text, color: color, timeout, title, icon };
-  }
-
-  function hide() {
-    notice.value.show = false;
-  }
-
-  return { notice, notify, hide };
+  notices.value = notices.value.filter(item => item.id !== id);
 }
 
-// 函数式导出，便于在非 setup 场景使用
-export function notify(text: string, color: string = 'info', timeout = 3000, icon?: string) {
-  notice.value = { show: true, text, color: color, timeout, icon };
+export function notify(
+  text: string,
+  color: string = 'info',
+  timeout?: number,
+  title?: string,
+  icon?: string
+) {
+  const id = ++sequence;
+  const effectiveTimeout = timeout ?? DEFAULT_TIMEOUT[color] ?? 4000;
+
+  while (notices.value.length >= MAX_VISIBLE) {
+    dismiss(notices.value[0].id);
+  }
+
+  notices.value = [...notices.value, { id, text, color, timeout: effectiveTimeout, title, icon }];
+
+  if (effectiveTimeout > 0) {
+    timers.set(
+      id,
+      setTimeout(() => dismiss(id), effectiveTimeout)
+    );
+  }
+  return id;
+}
+
+export function useNotifier() {
+  return { notices, notify, dismiss };
 }

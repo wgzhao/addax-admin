@@ -68,7 +68,7 @@
       <v-icon size="48" class="panel-state__icon">mdi-table-off</v-icon>
       <div class="panel-state__title">该数据库下未找到待采集的表</div>
       <div class="panel-state__desc">
-        可以返回上一步重新选择数据源，或确认当前数据库是否已经全部纳入采集。
+        可以返回上一步重新选择采集源，或确认当前数据库是否已经全部纳入采集。
       </div>
     </div>
   </div>
