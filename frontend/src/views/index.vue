@@ -92,8 +92,8 @@
 
           <!-- Details Row -->
           <v-row class="mt-6">
-            <v-col cols="6">
-              <v-card class="detail-card section-card pa-6" elevation="0" rounded="lg">
+            <v-col cols="12" md="6">
+              <v-card class="detail-card section-card pa-6 mb-6" elevation="0" rounded="lg">
                 <v-card-title class="detail-title ratio-title">
                   <span>项目完成率</span>
                   <span class="ratio-actions">
@@ -128,36 +128,21 @@
                   </p>
                 </v-card-text>
               </v-card>
+
+              <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
+                <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
+                <v-card-text>
+                  <div class="chart-container">
+                    <LineChart />
+                  </div>
+                </v-card-text>
+              </v-card>
             </v-col>
 
-            <v-col cols="6">
-              <v-row>
-                <v-col cols="12">
-                  <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
-                    <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
-                    <v-card-text>
-                      <div class="chart-container">
-                        <LineChart />
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <TableStatusDonut />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <L5TEtlCompareBar mode="time" />
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12">
-                  <L5TEtlCompareBar mode="data" />
-                </v-col>
-              </v-row>
+            <v-col cols="12" md="6">
+              <TableStatusDonut class="mb-6" />
+              <L5TEtlCompareBar mode="time" class="mb-6" />
+              <L5TEtlCompareBar mode="data" />
             </v-col>
           </v-row>
 
