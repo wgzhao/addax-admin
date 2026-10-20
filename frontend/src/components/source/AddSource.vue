@@ -220,7 +220,7 @@
   </v-form>
 </template>
 <script setup lang="ts">
-  import { ref, computed, watch } from 'vue';
+  import { ref, computed, watch, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
   import sourceService from '@/service/source-service';
   import { EtlSource } from '@/types/database';
@@ -252,6 +252,17 @@
   };
 
   const sourceItem = ref<EtlSource>({ ...defaultSourceItem });
+
+  // Why: the source form is long; leaving by Esc/backdrop must not silently drop edits
+  const initialSnapshot = ref('');
+  const isDirty = () =>
+    initialSnapshot.value !== '' && JSON.stringify(sourceItem.value) !== initialSnapshot.value;
+
+  onMounted(() => {
+    initialSnapshot.value = JSON.stringify(sourceItem.value);
+  });
+
+  defineExpose({ isDirty });
 
   // 自然日不需要字典数据，所以是“空值即默认”，工作日/交易日各自对应一份日期字典。
   const calendarOptions = [
@@ -337,6 +348,7 @@
       sourceService
         .save(sourceItem.value)
         .then(() => {
+          initialSnapshot.value = JSON.stringify(sourceItem.value);
           notify('保存成功', 'success');
           emit('save'); // 发出save事件，通知父组件更新列表
           emit('closeDialog'); // 关闭对话框

@@ -118,9 +118,23 @@
     scrim="rgba(2, 6, 23, 0.62)"
     max-width="1040"
     scrollable
+    :persistent="isSourceDirty"
   >
-    <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
+    <AddDataSource
+      ref="addSourceRef"
+      v-bind="params"
+      @save="handleSave"
+      @close-dialog="requestClose"
+    />
   </v-dialog>
+
+  <ConfirmDialog
+    v-model="discardOpen"
+    title="放弃未保存的修改"
+    message="采集源表单还有未保存的修改，关闭后这些修改会丢失。"
+    confirm-text="放弃修改"
+    @confirm="forceClose"
+  />
 
   <v-dialog
     v-model="deleteDialog"
@@ -141,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, watch } from 'vue';
+  import { computed, onMounted, ref, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import type { DataTableHeader } from 'vuetify';
   import sourceService from '@/service/source-service';
@@ -155,6 +169,9 @@
 
   const sources = ref([]);
   const isShow = ref(false);
+  const addSourceRef = ref<{ isDirty?: () => boolean } | null>(null);
+  const discardOpen = ref(false);
+  const isSourceDirty = computed(() => addSourceRef.value?.isDirty?.() ?? false);
   const deleteDialog = ref(false);
   const loading = ref(true);
   const itemIdToDelete = ref<number | null>(null);
@@ -226,6 +243,19 @@
 
   const closeDialog = () => {
     isShow.value = false;
+  };
+
+  const requestClose = () => {
+    if (addSourceRef.value?.isDirty?.()) {
+      discardOpen.value = true;
+      return;
+    }
+    closeDialog();
+  };
+
+  const forceClose = () => {
+    discardOpen.value = false;
+    closeDialog();
   };
 
   const handleSave = () => {
