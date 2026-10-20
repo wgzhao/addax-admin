@@ -3,126 +3,169 @@
     class="table-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': dialogVisible || deleteDialogVisible }"
   >
-    <v-card flat class="ds-card page-header-card">
+    <PageHeader title="采集表配置" subtitle="统一维护采集表、批量采集与结构更新。">
+      <v-menu offset-y :close-on-content-click="false">
+        <template #activator="{ props }">
+          <v-btn variant="tonal" prepend-icon="mdi-tune" v-bind="props">显示设置</v-btn>
+        </template>
+        <v-list density="compact" class="table-display-menu">
+          <v-list-subheader>列显示</v-list-subheader>
+          <v-list-item
+            v-for="col in OPTIONAL_COLUMNS"
+            :key="col.key"
+            @click="toggleColumn(col.key, hiddenKeys.includes(col.key))"
+          >
+            <template #prepend>
+              <v-icon size="18">
+                {{
+                  hiddenKeys.includes(col.key)
+                    ? 'mdi-checkbox-blank-outline'
+                    : 'mdi-checkbox-marked'
+                }}
+              </v-icon>
+            </template>
+            <v-list-item-title>{{ col.title }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+      <v-btn
+        variant="tonal"
+        prepend-icon="mdi-download"
+        :disabled="!table.length"
+        @click="exportCurrentPage"
+      >
+        导出本页
+      </v-btn>
+      <v-btn
+        color="primary"
+        variant="flat"
+        prepend-icon="mdi-plus"
+        @click="() => router.push('/table/batch-add')"
+      >
+        新增表
+      </v-btn>
+    </PageHeader>
+
+    <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
-        <div class="page-header flex-wrap">
-          <div>
-            <div class="page-title">采集表配置</div>
-            <div class="page-subtitle">统一维护采集表、批量采集与结构更新。</div>
+        <div class="ds-filters">
+          <v-text-field
+            v-model="search"
+            class="ds-filters__keyword"
+            density="compact"
+            label="关键字"
+            placeholder="表名 / 编码 / 分区字段"
+            prepend-inner-icon="mdi-magnify"
+            single-line
+            variant="outlined"
+            hide-details
+            clearable
+            @keyup.enter="searchTable"
+          />
+          <!-- Why: a fixed-width trigger keeps the toolbar height stable, while a
+               multi-select field grew a line per selected status -->
+          <v-menu :close-on-content-click="false" offset-y>
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                v-bind="menuProps"
+                :class="[
+                  'ds-filters__status',
+                  { 'ds-filters__status--active': runStatuses.length },
+                ]"
+                variant="outlined"
+                height="40"
+                :title="statusFilterTitle"
+              >
+                <v-icon size="18" class="mr-2">mdi-filter-variant</v-icon>
+                <span class="ds-filters__status-label">{{ statusFilterLabel }}</span>
+                <v-icon size="18" class="ml-1">mdi-menu-down</v-icon>
+              </v-btn>
+            </template>
+            <v-list density="compact" class="ds-status-menu">
+              <v-list-item
+                v-for="option in TABLE_STATUS_OPTIONS"
+                :key="option.value"
+                :active="runStatuses.includes(option.value)"
+                role="menuitemcheckbox"
+                :aria-checked="runStatuses.includes(option.value)"
+                @click="toggleStatus(option.value)"
+              >
+                <template #prepend>
+                  <v-checkbox-btn
+                    :model-value="runStatuses.includes(option.value)"
+                    density="compact"
+                    tabindex="-1"
+                    aria-hidden="true"
+                  />
+                </template>
+                <v-list-item-title>{{ option.label }}</v-list-item-title>
+              </v-list-item>
+              <template v-if="runStatuses.length">
+                <v-divider class="my-1" />
+                <v-list-item @click="runStatuses = []">
+                  <template #prepend>
+                    <v-icon size="18">mdi-filter-remove-outline</v-icon>
+                  </template>
+                  <v-list-item-title>清除状态筛选</v-list-item-title>
+                </v-list-item>
+              </template>
+            </v-list>
+          </v-menu>
+          <v-select
+            v-model="sourceId"
+            class="ds-filters__source"
+            :items="sourceOptions"
+            item-title="label"
+            item-value="value"
+            :item-props="item => ({ title: item.label })"
+            density="compact"
+            variant="outlined"
+            single-line
+            hide-details
+            clearable
+            label="采集源"
+          />
+          <div class="filter-actions">
+            <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
+            <v-btn variant="text" @click="resetFilters">重置</v-btn>
           </div>
-          <div class="ds-actions">
+        </div>
+
+        <div v-if="selected.length > 0" class="ds-bulk-bar">
+          <span class="ds-bulk-bar__count">已选择 {{ selected.length }} 行</span>
+          <div class="ds-bulk-bar__actions">
+            <v-btn variant="flat" color="primary" prepend-icon="mdi-database" @click="doEtl(null)">
+              批量采集
+            </v-btn>
             <v-btn
-              color="primary"
               variant="flat"
-              prepend-icon="mdi-plus"
-              @click="() => router.push('/table/batch-add')"
+              color="info"
+              prepend-icon="mdi-calendar-refresh"
+              @click="openDialog('Fillback', 'Fillback')"
             >
-              新增表
+              补采数据
+            </v-btn>
+            <v-btn
+              color="secondary"
+              prepend-icon="mdi-pencil"
+              @click="openDialog('BatchUpdate', 'BatchUpdate')"
+            >
+              批量修改
+            </v-btn>
+            <v-btn
+              variant="flat"
+              color="error"
+              prepend-icon="mdi-delete"
+              @click="confirmBatchDelete"
+            >
+              批量删除
             </v-btn>
           </div>
         </div>
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card toolbar-card">
-      <v-card-text class="ds-card__content">
-        <v-row density="comfortable" align="center">
-          <v-col cols="12" md="2">
-            <v-text-field
-              v-model="search"
-              density="compact"
-              label="关键字"
-              prepend-inner-icon="mdi-magnify"
-              single-line
-              variant="outlined"
-              hide-details
-              @keyup.enter="searchTable"
-              @click:append-inner="searchTable"
-            />
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-select
-              v-model="runStatuses"
-              :items="TABLE_STATUS_OPTIONS"
-              item-title="label"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              multiple
-              clearable
-              hide-details
-              label="状态"
-            />
-          </v-col>
-          <v-col cols="12" md="2" lg="2">
-            <v-select
-              v-model="sourceId"
-              :items="sourceOptions"
-              item-title="label"
-              item-value="value"
-              :item-props="item => ({ title: item.label })"
-              density="compact"
-              variant="outlined"
-              single-line
-              hide-details
-              clearable
-              label="数据源"
-            />
-          </v-col>
-          <v-col cols="12" md="1" lg="1">
-            <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
-          </v-col>
-          <v-spacer />
-          <template v-if="selected.length > 0">
-            <v-col cols="12" md="4" class="d-flex justify-end">
-              <v-btn
-                variant="flat"
-                color="primary"
-                prepend-icon="mdi-database"
-                class="mx-1"
-                @click="doEtl(null)"
-              >
-                批量采集
-              </v-btn>
-
-              <v-btn
-                variant="flat"
-                color="info"
-                prepend-icon="mdi-calendar-refresh"
-                class="mx-1"
-                @click="openDialog('Fillback', 'Fillback')"
-              >
-                补采数据
-              </v-btn>
-
-              <v-btn
-                color="secondary"
-                prepend-icon="mdi-pencil"
-                class="mx-1"
-                @click="openDialog('BatchUpdate', 'BatchUpdate')"
-              >
-                批量修改
-              </v-btn>
-
-              <v-btn
-                variant="flat"
-                color="error"
-                prepend-icon="mdi-delete"
-                class="mx-1"
-                @click="confirmBatchDelete"
-              >
-                批量删除
-              </v-btn>
-              <v-btn color="secondary" variant="tonal" class="mx-1">
-                已选择 {{ selected.length }} 行
-              </v-btn>
-            </v-col>
-          </template>
-        </v-row>
-      </v-card-text>
-    </v-card>
-
-    <v-card flat class="ds-card table-card ds-table-wrap">
+    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
       <v-card-text class="ds-card__content">
         <template v-if="!loading && totalItems === 0">
           <EmptyState
@@ -137,10 +180,11 @@
         <template v-else>
           <v-data-table-server
             v-model="selected"
+            v-model:page="currentPage"
+            v-model:items-per-page="currPageSize"
             density="comfortable"
             :items="table"
-            :headers="headers"
-            :items-per-page="currPageSize"
+            :headers="visibleHeaders"
             :items-per-page-options="[15, 20, 25, 30, 50, 100]"
             :items-length="totalItems"
             item-value="id"
@@ -149,18 +193,65 @@
             :item-class="getRowClass"
             @update:options="loadItems"
           >
+            <!-- Why: the code stays the primary status signal, so the header carries
+                 the legend and the cell keeps its width stable across rows -->
+            <template #header.status="{ column, getSortIcon }">
+              <div class="v-data-table-header__content ds-status-header">
+                <span>{{ column.title }}</span>
+                <v-tooltip location="bottom" max-width="260" open-delay="150">
+                  <template #activator="{ props: tipProps }">
+                    <v-icon
+                      v-bind="tipProps"
+                      icon="mdi-information-outline"
+                      size="14"
+                      class="ds-status-header__hint"
+                      aria-label="查看状态码说明"
+                      @click.stop
+                    />
+                  </template>
+                  <div class="ds-status-legend">
+                    <div class="ds-status-legend__title">状态码说明</div>
+                    <div
+                      v-for="entry in STATUS_LEGEND"
+                      :key="entry.code"
+                      class="ds-status-legend__row"
+                    >
+                      <v-icon icon="mdi-circle" size="8" :color="getStatusColor(entry.code)" />
+                      <span class="ds-status-legend__code ds-mono-text">{{ entry.code }}</span>
+                      <span class="ds-status-legend__label">{{ entry.label }}</span>
+                    </div>
+                  </div>
+                </v-tooltip>
+                <v-icon
+                  v-if="column.sortable"
+                  class="v-data-table-header__sort-icon"
+                  :icon="getSortIcon(column)"
+                />
+              </div>
+            </template>
             <template #item.sourceTable="{ item }">
               <div class="ds-cell-stack">
                 <span class="ds-cell-meta">{{ item.name }}({{ item.code }})</span>
-                <span class="ds-cell-primary ds-white-space-normal">
+                <span
+                  class="ds-cell-primary ds-ellipsis"
+                  :title="`${item.sourceDb || ''}.${item.sourceTable || ''}`"
+                >
                   <span class="ds-cell-support">{{ item.sourceDb || '' }}.</span
                   >{{ item.sourceTable || '' }}
                 </span>
               </div>
             </template>
             <template #item.status="{ item }">
-              <v-badge dot inline :color="getStatusColor(item.status)" class="mr-2" />
-              <span class="text-body-2 font-weight-medium">{{ item.status }}</span>
+              <v-chip
+                size="small"
+                :color="getStatusColor(item.status)"
+                variant="tonal"
+                class="ds-status-code"
+                :class="`ds-status-code--${item.status}`"
+                :title="`${item.status} · ${statusLabel(item.status)}`"
+              >
+                <span class="ds-status-code__glyph">{{ item.status }}</span>
+              </v-chip>
               <!-- Kill icon for running tasks: move to right, match E icon style -->
               <template v-if="item.status === 'R'">
                 <v-tooltip location="top">
@@ -204,11 +295,18 @@
             <template #item.targetTable="{ item }">
               <div class="d-flex align-center py-1">
                 <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
-                <span class="ds-cell-primary ds-white-space-normal">
+                <span
+                  class="ds-cell-primary ds-ellipsis"
+                  :title="`${item.targetDb || ''}.${item.targetTable || ''}`"
+                >
                   <span class="ds-cell-support">{{ item.targetDb || '' }}.</span
                   >{{ item.targetTable || '' }}
                 </span>
               </div>
+            </template>
+
+            <template #item.endTime="{ item }">
+              <span class="ds-nowrap">{{ item.endTime }}</span>
             </template>
 
             <template #item.action="{ item }">
@@ -220,6 +318,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-play-circle"
+                      :aria-label="`发起采集 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="doEtl(item)"
                     ></v-icon-btn>
@@ -232,6 +331,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-database-refresh"
+                      :aria-label="`更新表结构 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="updateSchema(item)"
                     ></v-icon-btn>
@@ -244,6 +344,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-delete"
+                      :aria-label="`删除采集表 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="confirmDelete(item)"
                     ></v-icon-btn>
@@ -256,6 +357,7 @@
                       size="small"
                       class="mr-2"
                       icon="mdi-open-in-new"
+                      :aria-label="`查看采集表详情 ${item.sourceTable || item.id}`"
                       v-bind="open"
                       @click="viewDetail(item)"
                     ></v-icon-btn>
@@ -291,7 +393,7 @@
     v-model="deleteDialogVisible"
     class="ds-dialog-overlay"
     scrim="rgba(2, 6, 23, 0.62)"
-    width="400"
+    width="480"
   >
     <v-card>
       <v-card-title class="text-h6">确认删除</v-card-title>
@@ -308,14 +410,25 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <ConfirmDialog
+    v-model="killConfirm.open"
+    title="中止采集任务"
+    :message="killConfirm.message"
+    confirm-text="中止任务"
+    @confirm="runKill"
+  />
 </template>
 
 <script setup lang="ts">
   import { ref, shallowRef, defineAsyncComponent, onMounted, watch, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import EmptyState from '@/components/EmptyState.vue';
+  import ConfirmDialog from '@/components/ConfirmDialog.vue';
+  import PageHeader from '@/components/PageHeader.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
+  import { buildCsv, downloadCsv } from '@/utils/csv';
   import { TABLE_STATUS_OPTIONS } from '@/utils';
   import tableService from '@/service/table-service';
   import taskService from '@/service/task-service';
@@ -358,35 +471,177 @@
     return selected.value.includes(item.id) ? 'selected-row' : '';
   }
 
-  // 映射 Vuetify 的标准状态色（支持 Badge 点）
-  function getStatusColor(status: string) {
-    const statusColorMap = {
-      N: 'grey-lighten-1',
-      R: 'blue', // 运行中使用干净的蓝色
-      Y: 'success', // 成功绿色
-      E: 'error', // 错误红色
-      X: 'warning', // 警告橙色
-      W: 'amber',
-      U: 'grey-darken-1',
-    };
-    return statusColorMap[status] || 'grey';
+  function resetFilters() {
+    search.value = '';
+    runStatuses.value = [];
+    sourceId.value = null;
+    searchTable();
   }
+
+  // Why: single letters carry the meaning, so muted greys must still meet a
+  // readable contrast in both themes; hue alone no longer disambiguates rows
+  const STATUS_COLOR: Record<string, string> = {
+    N: 'secondary',
+    R: 'info',
+    Y: 'success',
+    E: 'error',
+    X: 'grey',
+    W: 'warning',
+    U: 'blue-grey-darken-1',
+  };
+
+  function getStatusColor(status: string) {
+    return STATUS_COLOR[status] || 'grey';
+  }
+
+  const STATUS_LABEL: Record<string, string> = {
+    N: '未采集',
+    Y: '已采集',
+    X: '不采集',
+    W: '等待采集',
+    E: '采集错误',
+    R: '采集中',
+    U: '待更新',
+  };
+
+  const statusLabel = (status: string) => STATUS_LABEL[status] || status || '未知';
+
+  // Lifecycle order reads better than an alphabetical or enum order
+  const STATUS_LEGEND = ['N', 'W', 'R', 'Y', 'E', 'U', 'X'].map(code => ({
+    code,
+    label: STATUS_LABEL[code],
+  }));
 
   const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
   const sourceOptions = ref<any[]>([]);
 
+  // Cap the visible codes so the trigger reads as a summary instead of an ellipsis
+  const statusFilterLabel = computed(() => {
+    const codes = runStatuses.value;
+    if (!codes.length) return '状态';
+    if (codes.length <= 3) return codes.join(', ');
+    return `${codes.slice(0, 3).join(', ')} +${codes.length - 3}`;
+  });
+  const statusFilterTitle = computed(() =>
+    runStatuses.value.length
+      ? runStatuses.value.map(code => `${code} ${statusLabel(code)}`).join('，')
+      : '按状态筛选'
+  );
+
+  function toggleStatus(code: string) {
+    runStatuses.value = runStatuses.value.includes(code)
+      ? runStatuses.value.filter(item => item !== code)
+      : [...runStatuses.value, code];
+  }
+
   // 优化后的 Headers 配置：精简列数，合并表达
   const headers: DataTableHeader[] = [
-    { title: '#', key: 'id', align: 'center', width: '1%' },
-    { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '28%' },
-    { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '25%' },
-    { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '13%' },
-    { title: '状态', key: 'status', align: 'start', sortable: true, width: '5%' },
-    { title: '耗时(s)', key: 'duration', align: 'center', sortable: true, width: '6%' },
-    { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '10%' },
-    { title: '操作', key: 'action', align: 'center', sortable: false, width: '10%' },
+    // Why: every short column has a knowable ceiling, so it gets a fixed width and
+    // the two table-name columns keep all the remaining space
+    // 84px covers six digits, so the next order of magnitude does not clip
+    { title: '#', key: 'id', align: 'center', width: 84 },
+    {
+      title: '源库表映射路径',
+      key: 'sourceTable',
+      align: 'start',
+      sortable: true,
+    },
+    { title: '目标库表', key: 'targetTable', align: 'start', sortable: true },
+    {
+      title: '过滤规则',
+      key: 'filter',
+      align: 'start',
+      sortable: true,
+      width: 140,
+    },
+    { title: '状态', key: 'status', align: 'start', sortable: true, width: 92 },
+    { title: '耗时(s)', key: 'duration', align: 'end', sortable: true, width: 96 },
+    {
+      title: '完成时间',
+      key: 'endTime',
+      align: 'center',
+      sortable: true,
+      width: 184,
+    },
+    {
+      title: '操作',
+      key: 'action',
+      align: 'center',
+      sortable: false,
+      width: 168,
+    },
   ];
+
+  const COLUMNS_KEY = 'ds.table.hiddenColumns';
+  const OPTIONAL_COLUMNS = [
+    { key: 'filter', title: '过滤规则' },
+    { key: 'duration', title: '耗时(s)' },
+    { key: 'endTime', title: '完成时间' },
+  ];
+
+  const readStored = <T>(key: string, fallback: T): T => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as T) : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const hiddenKeys = ref<string[]>(readStored<string[]>(COLUMNS_KEY, []));
+  const visibleHeaders = computed(() =>
+    headers.filter(header => !hiddenKeys.value.includes(String(header.key)))
+  );
+
+  const toggleColumn = (key: string, visible: boolean) => {
+    hiddenKeys.value = visible
+      ? hiddenKeys.value.filter(item => item !== key)
+      : [...hiddenKeys.value, key];
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(hiddenKeys.value));
+  };
+
+  const currentPage = ref(1);
+
+  const writeQuery = () => {
+    const query: Record<string, string> = {};
+    if (search.value) query.q = search.value;
+    if (runStatuses.value.length) query.status = runStatuses.value.join(',');
+    if (sourceId.value != null) query.source = String(sourceId.value);
+    if (currentPage.value > 1) query.page = String(currentPage.value);
+    if (currPageSize.value !== 15) query.size = String(currPageSize.value);
+    if (route.query.action) query.action = String(route.query.action);
+    router.replace({ path: route.path, query }).catch(() => {});
+  };
+
+  const readQuery = () => {
+    const query = route.query;
+    search.value = typeof query.q === 'string' ? query.q : '';
+    runStatuses.value =
+      typeof query.status === 'string' && query.status ? query.status.split(',') : [];
+    sourceId.value = query.source ? Number(query.source) : null;
+    currentPage.value = Number(query.page) > 0 ? Number(query.page) : 1;
+    currPageSize.value = Number(query.size) > 0 ? Number(query.size) : 15;
+  };
+
+  // Restore filters from the URL before the table mounts, so returning from a
+  // detail page keeps the same slice of data instead of refetching page one.
+  readQuery();
+
+  function exportCurrentPage() {
+    const rows = table.value.map(row => ({
+      序号: row.id,
+      源库表: `${row.sourceDb || ''}.${row.sourceTable || ''}`,
+      目标库表: `${row.targetDb || ''}.${row.targetTable || ''}`,
+      过滤规则: row.filter || '',
+      状态: statusLabel(row.status),
+      耗时秒: row.duration ?? '',
+      完成时间: row.endTime || '',
+    }));
+    if (!rows.length) return;
+    const csvHeaders = Object.keys(rows[0]).map(key => ({ title: key, key }));
+    downloadCsv(`tables-page-${currentPage.value}`, buildCsv(csvHeaders, rows));
+  }
 
   const errorMsgMap = ref<Record<number, string>>({});
 
@@ -405,7 +660,7 @@
 
   const dialogMaxWidth = computed<number | undefined>(() => {
     if (currentDialogName.value === 'BatchUpdate') return 720;
-    if (currentDialogName.value === 'Fillback') return 640;
+    if (currentDialogName.value === 'Fillback') return 720;
     return undefined;
   });
 
@@ -502,6 +757,7 @@
 
   const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
     loading.value = true;
+    currentPage.value = page;
     currPageSize.value = itemsPerPage;
     const sortParam = createSort(sortBy);
     if (sortParam.sortField != null) {
@@ -521,6 +777,7 @@
         table.value = res.content;
         totalItems.value = res.totalElements;
         loading.value = false;
+        writeQuery();
       })
       .catch(error => {
         const msg = error instanceof Error ? error.message : String(error);
@@ -531,7 +788,7 @@
 
   const _searchCore = () => {
     selected.value = [];
-    loadItems({ page: 0, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value });
+    loadItems({ page: 1, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value });
   };
   const searchTable = debounce(_searchCore, 400);
 
@@ -541,7 +798,7 @@
       sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      notify('加载数据源失败: ' + msg, 'error');
+      notify('加载采集源失败: ' + msg, 'error');
     }
   }
 
@@ -659,9 +916,27 @@
   }
 
   function confirmKill(item: any) {
-    const ok = window.confirm(`确定要中止任务 ${item.id} 吗？`);
-    if (!ok) return;
-    killTask(item);
+    killConfirm.value = {
+      open: true,
+      message: `将中止「${item.sourceDb ? item.sourceDb + '.' : ''}${
+        item.sourceTable || item.id
+      }」正在运行的采集任务，已写入的数据会保留。`,
+      itemId: item.id,
+    };
+  }
+
+  const killConfirm = ref<{ open: boolean; message: string; itemId: number | null }>({
+    open: false,
+    message: '',
+    itemId: null,
+  });
+
+  function runKill() {
+    const id = killConfirm.value.itemId;
+    killConfirm.value.open = false;
+    if (id == null) return;
+    const target = table.value.find(t => t.id === id);
+    if (target) killTask(target);
   }
 
   async function killTask(item: any) {
@@ -686,26 +961,121 @@
     min-width: 0;
   }
 
-  .query-actions {
+  .ds-filters {
+    display: flex;
+    align-items: center;
     flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .batch-toolbar {
-    row-gap: 8px;
+  .ds-filters__keyword {
+    flex: 1 1 420px;
+    min-width: 260px;
+    max-width: 840px;
   }
 
-  .selection-bar {
-    margin-bottom: 8px;
-    padding: 0 4px;
+  .ds-filters__status {
+    flex: 0 0 148px;
+    justify-content: flex-start;
+    padding-inline: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+  }
+
+  .ds-filters__status :deep(.v-btn__content) {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .ds-filters__status--active {
+    border-color: rgba(var(--v-theme-primary), 0.5);
+    color: rgb(var(--v-theme-primary));
+  }
+
+  .ds-filters__status-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: start;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ds-status-menu {
+    min-width: 200px;
+  }
+
+  .ds-nowrap {
+    white-space: nowrap;
+  }
+
+  /* Why: fixed layout keeps the short columns at their known sizes and lets the
+     name columns share the rest; auto layout sized columns by the longest name */
+  .table-card :deep(table) {
+    table-layout: fixed;
+    min-width: 1160px;
+  }
+
+  .ds-filters__source {
+    flex: 0 1 220px;
+    min-width: 180px;
+  }
+
+  .filter-actions {
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+    margin-left: auto;
+  }
+
+  .ds-bulk-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border: 1px solid rgba(var(--v-theme-primary), 0.24);
+    border-radius: 10px;
+    background: rgba(var(--v-theme-primary), 0.06);
+  }
+
+  .ds-bulk-bar__count {
+    color: rgb(var(--v-theme-primary));
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .ds-bulk-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .table-display-menu {
+    min-width: 232px;
   }
 
   .action-menu-list :deep(.danger-item) {
     color: rgb(var(--v-theme-error));
   }
 
-  .status-cell-wrap {
-    height: 32px;
+  @media (max-width: 700px) {
+    .ds-filters__keyword,
+    .ds-filters__status,
+    .ds-filters__source {
+      flex: 1 1 100%;
+      min-width: 0;
+      max-width: none;
+    }
+
+    .filter-actions,
+    .ds-bulk-bar__actions {
+      margin-left: 0;
+    }
   }
 </style>
 <route lang="json">

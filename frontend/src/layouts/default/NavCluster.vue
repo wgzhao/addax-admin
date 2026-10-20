@@ -5,7 +5,7 @@
         v-if="item.children"
         :min-width="0"
         open-on-hover
-        :open-on-click="false"
+        open-on-click
         :open-delay="80"
         :close-delay="120"
       >

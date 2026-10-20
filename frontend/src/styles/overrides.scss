@@ -19,6 +19,16 @@ body,
   --ds-surface-overlay: rgb(var(--v-theme-surface-overlay));
   --ds-text-2: rgb(var(--v-theme-on-surface-variant));
   --ds-text-3: rgb(var(--v-theme-on-surface-muted));
+
+  /* One scale for the whole console: 12 caption / 14 body / 16 section / 18 page */
+  --ds-fs-caption: 12px;
+  --ds-fs-body: 14px;
+  --ds-fs-section: 15px;
+  --ds-fs-title: 16px;
+  --ds-fs-page: 18px;
+  --ds-radius-sm: 8px;
+  --ds-radius-md: 12px;
+  --ds-radius-lg: 16px;
 }
 
 .v-theme--dark {
@@ -35,6 +45,45 @@ select,
 .v-label,
 .v-input {
   font-family: inherit;
+}
+
+/* Why: Vuetify drops the native outline, so keyboard users need an explicit focus ring */
+:where(a, button, summary, [tabindex]):focus-visible,
+.v-btn:focus-visible,
+.v-list-item:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary)) !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Why: text fields already highlight their own shell on focus; a ring on the inner input
+   draws a second border straight across the field and looks like a rendering bug */
+.v-field :is(input, textarea, select):focus-visible,
+.v-field :is(input, textarea, select):focus {
+  outline: none !important;
+}
+
+/* Color the field's own border instead of stacking a second frame on top of it */
+.v-field--focused .v-field__outline {
+  color: rgb(var(--v-theme-primary));
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 3000;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-size: 14px;
+  text-decoration: none;
+  transition: top 0.15s ease-out;
+}
+
+.skip-link:focus {
+  top: 12px;
 }
 
 .v-application,
@@ -73,7 +122,7 @@ select,
 .v-data-table-server .v-data-table th,
 .v-data-table-server .v-data-table td {
   padding: 10px 12px !important;
-  font-size: 15px;
+  font-size: var(--ds-fs-body);
   line-height: 1.5;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
@@ -88,7 +137,7 @@ select,
 .v-data-table-server thead th {
   background: rgba(var(--v-theme-on-surface), 0.06);
   color: rgb(var(--v-theme-on-surface));
-  font-size: 15px;
+  font-size: var(--ds-fs-body);
   font-weight: 600;
   line-height: 1.5;
 }
@@ -152,9 +201,15 @@ select,
   gap: 12px;
 }
 
-.page-title,
+.page-title {
+  font-size: var(--ds-fs-page);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: rgb(var(--v-theme-on-surface));
+}
+
 .ds-section-title {
-  font-size: 1rem;
+  font-size: var(--ds-fs-section);
   font-weight: 600;
   letter-spacing: 0;
   color: rgb(var(--v-theme-on-surface));
@@ -173,11 +228,69 @@ select,
 .ds-card {
   background: var(--ds-surface-raised);
   border: 1px solid var(--ds-border-default);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-md);
 }
 
 .ds-card__content {
   padding: 14px 16px;
+}
+
+/* Why: edit dialogs share one header/body/footer rhythm instead of each card inventing one */
+.ds-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px 14px;
+}
+
+.ds-dialog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  flex: none;
+}
+
+.ds-dialog-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ds-dialog-title {
+  margin: 0;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: var(--ds-fs-title);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ds-dialog-subtitle {
+  margin: 2px 0 0;
+  color: var(--ds-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ds-dialog-body {
+  padding: 18px 20px !important;
+}
+
+.ds-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface-raised);
+}
+
+.ds-dialog-actions__hint {
+  color: var(--ds-text-3);
+  font-size: 12px;
 }
 
 .section-actions,
@@ -218,6 +331,76 @@ select,
   min-width: 0;
 }
 
+.ds-status-code {
+  min-width: 30px;
+  justify-content: center;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+    monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Why: a single letter must stay legible on its own, and these three state
+   hues fall below 4.5:1 in one of the two themes */
+.v-theme--light .ds-status-code--W .ds-status-code__glyph {
+  color: #8a5310;
+}
+
+.v-theme--light .ds-status-code--X .ds-status-code__glyph {
+  color: #5f6b75;
+}
+
+.v-theme--dark .ds-status-code--U .ds-status-code__glyph {
+  color: #90a4ae;
+}
+
+.ds-status-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-status-header__hint {
+  opacity: 0.5;
+  cursor: help;
+  transition: opacity 0.15s ease;
+}
+
+.ds-status-header:hover .ds-status-header__hint {
+  opacity: 1;
+}
+
+.ds-status-legend {
+  padding: 2px 0;
+  min-width: 150px;
+}
+
+.ds-status-legend__title {
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.ds-status-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.ds-status-legend__code {
+  min-width: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.ds-status-legend__label {
+  font-size: 0.78rem;
+  color: var(--ds-text-2);
+}
+
 .ds-cell-meta {
   font-size: 0.78rem;
   line-height: 1.4;
@@ -240,9 +423,162 @@ select,
   word-break: break-all !important;
 }
 
+.ds-ellipsis {
+  display: block;
+  max-width: 100%;
+  /* Why: a flex child defaults to min-width auto, which stops long table names
+     from ellipsizing and forces the whole table to overflow instead */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ds-mono-text {
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
     monospace;
+}
+
+.ds-skeleton {
+  background: transparent !important;
+}
+
+.ds-skeleton .v-skeleton-loader__row {
+  max-width: 100%;
+}
+
+/* Why: a fixed dark highlight theme made the JSON panel ignore the app theme;
+   token colours now come from one light set and one dark set */
+.code-shell pre,
+pre code.hljs {
+  background: transparent;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.hljs-punctuation,
+.hljs-operator {
+  color: rgb(var(--v-theme-on-surface-variant));
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-selector-tag,
+.hljs-name {
+  color: #2f5fd0;
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: #1d7a49;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-built_in,
+.hljs-type {
+  color: #a05a00;
+}
+
+.hljs-keyword,
+.hljs-selector-class,
+.hljs-meta {
+  color: #8a3ffc;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #7a8494;
+  font-style: italic;
+}
+
+.hljs-title,
+.hljs-section {
+  color: #9a6700;
+}
+
+.hljs-variable,
+.hljs-template-variable {
+  color: #b3400f;
+}
+
+.v-theme--dark .hljs-attr,
+.v-theme--dark .hljs-attribute,
+.v-theme--dark .hljs-selector-tag,
+.v-theme--dark .hljs-name {
+  color: #61afef;
+}
+
+.v-theme--dark .hljs-string,
+.v-theme--dark .hljs-regexp,
+.v-theme--dark .hljs-selector-attr,
+.v-theme--dark .hljs-selector-pseudo {
+  color: #98c379;
+}
+
+.v-theme--dark .hljs-number,
+.v-theme--dark .hljs-literal,
+.v-theme--dark .hljs-built_in,
+.v-theme--dark .hljs-type {
+  color: #d19a66;
+}
+
+.v-theme--dark .hljs-keyword,
+.v-theme--dark .hljs-selector-class,
+.v-theme--dark .hljs-meta {
+  color: #c678dd;
+}
+
+.v-theme--dark .hljs-comment,
+.v-theme--dark .hljs-quote {
+  color: #7f848e;
+}
+
+.v-theme--dark .hljs-title,
+.v-theme--dark .hljs-section {
+  color: #e5c07b;
+}
+
+.v-theme--dark .hljs-variable,
+.v-theme--dark .hljs-template-variable {
+  color: #e06c75;
+}
+
+/* Why: long lists scroll inside their card so the header row and pagination stay in view */
+.ds-table-scroll .v-table__wrapper {
+  max-height: var(--ds-table-max, calc(100vh - 390px));
+  overflow: auto;
+}
+
+.ds-table-scroll .v-table__wrapper thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: rgb(var(--v-theme-surface)) !important;
+  background: color-mix(
+    in srgb,
+    rgb(var(--v-theme-surface)) 94%,
+    rgb(var(--v-theme-on-surface)) 6%
+  ) !important;
+  box-shadow: inset 0 -1px 0 var(--ds-border-default);
+}
+
+.ds-table-scroll .v-table__wrapper thead th:first-child {
+  z-index: 4;
+}
+
+@media (max-height: 700px) {
+  .ds-table-scroll .v-table__wrapper {
+    max-height: var(--ds-table-max-short, calc(100vh - 300px));
+  }
+}
+
+/* Tablet portrait stacks the filter fields above the table, so the list needs more room */
+@media (max-width: 1100px) {
+  .ds-table-scroll .v-table__wrapper {
+    max-height: var(--ds-table-max-md, calc(100vh - 560px));
+  }
 }
 
 .ds-action-inline {

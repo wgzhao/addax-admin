@@ -1,13 +1,21 @@
 <template>
   <v-app-bar app color="surface" class="topbar-bar" elevation="0">
     <template #default>
+      <v-btn
+        v-if="compactNav"
+        class="mr-1"
+        icon="mdi-menu"
+        variant="text"
+        aria-label="打开导航菜单"
+        @click="drawerOpen = true"
+      />
       <v-app-bar-title>统一采集管理系统</v-app-bar-title>
-      <NavCluster :items="urls" />
+      <NavCluster v-if="!compactNav" :items="urls" />
       <v-menu
         :min-width="0"
         offset-y
         open-on-hover
-        :open-on-click="false"
+        open-on-click
         :open-delay="80"
         :close-delay="120"
       >
@@ -49,22 +57,29 @@
         </v-list>
       </v-menu>
       <UserMenu v-if="authStore.currentUserName" @logout="logout" />
-      <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">Login</v-btn>
+      <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">登录</v-btn>
+      <v-btn icon title="全局搜索 (Ctrl+K)" aria-label="全局搜索" @click="toggleCommandPalette">
+        <v-icon>mdi-magnify</v-icon>
+      </v-btn>
       <!-- 深色/浅色模式切换按钮 -->
       <v-btn
         icon
         :title="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'"
+        :aria-label="isDarkTheme ? '切换为浅色模式' : '切换为深色模式'"
         @click="toggleThemeWithLog"
       >
         <v-icon>mdi-theme-light-dark</v-icon>
       </v-btn>
     </template>
   </v-app-bar>
+  <NavDrawer v-model="drawerOpen" :items="urls" />
   <!-- End of Topbar -->
   <SchemaUpdateAllDialog v-model="confirmUpdateAllDialog" />
 </template>
 <script setup lang="ts">
-  import { ref, computed } from 'vue';
+  import { ref, computed, watch } from 'vue';
+  import { useDisplay } from 'vuetify';
+  import { useRoute } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import { useAppTheme } from '@/composables/useAppTheme';
   import { useRouter } from 'vue-router';
@@ -72,11 +87,26 @@
   import { notify } from '@/stores/notifier';
   import { buildNavMenu } from './build-nav';
   import type { NavItem } from './build-nav';
+  import { toggleCommandPalette } from '@/stores/command-palette';
   import NavCluster from './NavCluster.vue';
+  import NavDrawer from './NavDrawer.vue';
   import UserMenu from './UserMenu.vue';
   import SchemaUpdateAllDialog from './SchemaUpdateAllDialog.vue';
 
   const router = useRouter();
+  const route = useRoute();
+  const { width } = useDisplay();
+
+  // Why: below ~1000px the topbar cannot fit every menu, so the same tree moves into a drawer
+  const compactNav = computed(() => width.value < 1000);
+  const drawerOpen = ref(false);
+
+  watch(
+    () => route.fullPath,
+    () => {
+      drawerOpen.value = false;
+    }
+  );
 
   const authStore = useAuthStore();
   const { isDarkTheme, toggleTheme, themeStore } = useAppTheme();

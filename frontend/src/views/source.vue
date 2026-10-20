@@ -3,25 +3,11 @@
     class="source-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': isShow || deleteDialog }"
   >
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header flex-wrap">
-          <div>
-            <div class="page-title">数据源管理</div>
-            <div class="page-subtitle">统一维护采集源、连接配置与启停状态。</div>
-          </div>
-          <div class="ds-actions">
-            <v-btn
-              color="primary"
-              variant="flat"
-              prepend-icon="mdi-plus"
-              @click="doAction(-1, 'add')"
-              >新增数据源</v-btn
-            >
-          </div>
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader title="采集源管理" subtitle="统一维护采集源、连接配置与启停状态。">
+      <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="doAction(-1, 'add')">
+        新增采集源
+      </v-btn>
+    </PageHeader>
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
@@ -50,13 +36,14 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap">
+    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
       <v-card-text class="ds-card__content">
-        <template v-if="sources.length === 0">
+        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
+        <template v-else-if="sources.length === 0">
           <EmptyState
-            title="暂无数据源"
-            description="当前还没有配置任何数据源。点击下方按钮新增数据源后，即可继续维护连接与采集配置。"
-            :primary="{ label: '新增数据源', icon: 'mdi-plus' }"
+            title="暂无采集源"
+            description="当前还没有配置任何采集源。点击下方按钮新增采集源后，即可继续维护连接与采集配置。"
+            :primary="{ label: '新增采集源', icon: 'mdi-plus' }"
             @primary="() => doAction(-1, 'add')"
           />
         </template>
@@ -75,11 +62,7 @@
             </template>
 
             <template #item.enabled="{ item }">
-              <v-chip
-                size="small"
-                :color="item.enabled ? 'success' : 'error'"
-                :variant="item.enabled ? 'tonal' : 'outlined'"
-              >
+              <v-chip size="small" :color="item.enabled ? 'success' : 'grey'" variant="tonal">
                 {{ item.enabled ? '已启用' : '已禁用' }}
               </v-chip>
             </template>
@@ -133,21 +116,35 @@
     v-model="isShow"
     class="ds-dialog-overlay"
     scrim="rgba(2, 6, 23, 0.62)"
-    max-width="1080"
+    max-width="1040"
     scrollable
+    :persistent="isSourceDirty"
   >
-    <AddDataSource v-bind="params" @save="handleSave" @close-dialog="closeDialog" />
+    <AddDataSource
+      ref="addSourceRef"
+      v-bind="params"
+      @save="handleSave"
+      @close-dialog="requestClose"
+    />
   </v-dialog>
+
+  <ConfirmDialog
+    v-model="discardOpen"
+    title="放弃未保存的修改"
+    message="采集源表单还有未保存的修改，关闭后这些修改会丢失。"
+    confirm-text="放弃修改"
+    @confirm="forceClose"
+  />
 
   <v-dialog
     v-model="deleteDialog"
     class="ds-dialog-overlay"
     scrim="rgba(2, 6, 23, 0.62)"
-    max-width="600"
+    max-width="480"
   >
     <v-card>
       <v-card-title class="headline">确认删除</v-card-title>
-      <v-card-text>您确定要删除 {{ itemNameToDelete }} 这个数据源吗？</v-card-text>
+      <v-card-text>您确定要删除采集源 {{ itemNameToDelete }} 吗？</v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="deleteDialog = false">取消</v-btn>
@@ -158,12 +155,13 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, watch } from 'vue';
+  import { computed, onMounted, ref, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import type { DataTableHeader } from 'vuetify';
   import sourceService from '@/service/source-service';
   import AddDataSource from '@/components/source/AddSource.vue';
   import EmptyState from '@/components/EmptyState.vue';
+  import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
 
   const route = useRoute();
@@ -171,7 +169,11 @@
 
   const sources = ref([]);
   const isShow = ref(false);
+  const addSourceRef = ref<{ isDirty?: () => boolean } | null>(null);
+  const discardOpen = ref(false);
+  const isSourceDirty = computed(() => addSourceRef.value?.isDirty?.() ?? false);
   const deleteDialog = ref(false);
+  const loading = ref(true);
   const itemIdToDelete = ref<number | null>(null);
   const itemNameToDelete = ref<string | null>(null);
   const showDisabled = ref(false);
@@ -181,7 +183,7 @@
   const headers: DataTableHeader[] = [
     { title: 'ID', key: 'id', width: '2%' },
     { title: '编号', key: 'code', width: '5%' },
-    { title: '数据源', key: 'name', minWidth: '5%' },
+    { title: '采集源', key: 'name', minWidth: '5%' },
     { title: '连接串', key: 'url', minWidth: '15%' },
     { title: '状态', key: 'enabled', width: '3%' },
     { title: '表数量', key: 'tableCount', width: '5%' },
@@ -201,6 +203,7 @@
   const params = ref({});
 
   const getSources = () => {
+    loading.value = true;
     const loader = showDisabled.value ? sourceService.list() : sourceService.listActiveSources();
     loader
       .then(resp => {
@@ -208,7 +211,10 @@
       })
       .catch(error => {
         console.log(error);
-        notify('加载数据源列表失败: ' + error, 'error');
+        notify('加载采集源列表失败: ' + error, 'error');
+      })
+      .finally(() => {
+        loading.value = false;
       });
   };
 
@@ -237,6 +243,19 @@
 
   const closeDialog = () => {
     isShow.value = false;
+  };
+
+  const requestClose = () => {
+    if (addSourceRef.value?.isDirty?.()) {
+      discardOpen.value = true;
+      return;
+    }
+    closeDialog();
+  };
+
+  const forceClose = () => {
+    discardOpen.value = false;
+    closeDialog();
   };
 
   const handleSave = () => {
@@ -304,7 +323,7 @@
 <route lang="json">
 {
   "meta": {
-    "title": "数据源管理",
+    "title": "采集源管理",
     "icon": "mdi-database-cog",
     "requiresAuth": false,
     "navGroup": "source",

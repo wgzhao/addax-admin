@@ -5,21 +5,11 @@
       'ds-management-page--modal-open': dictDialog || itemDialog || batchDialog || tradeDialog,
     }"
   >
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header flex-wrap">
-          <div>
-            <div class="page-title">字典维护</div>
-            <div class="page-subtitle">统一维护系统字典及其明细项。</div>
-          </div>
-          <div class="ds-actions">
-            <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openDictDialog()"
-              >新增字典</v-btn
-            >
-          </div>
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader title="字典维护" subtitle="统一维护系统字典及其明细项。">
+      <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openDictDialog()">
+        新增字典
+      </v-btn>
+    </PageHeader>
 
     <v-alert
       v-for="warning in coverageWarnings"
@@ -44,7 +34,8 @@
               </div>
             </div>
 
-            <template v-if="dicts.length === 0">
+            <v-skeleton-loader v-if="dictLoading" type="table-row@5" class="ds-skeleton" />
+            <template v-else-if="dicts.length === 0">
               <EmptyState
                 title="暂无字典"
                 description="当前还没有配置任何字典。点击下方按钮新增字典后，即可继续维护对应明细。"
@@ -209,23 +200,70 @@
       v-model="dictDialog"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="600px"
+      max-width="600"
     >
       <v-card>
-        <v-card-title>字典</v-card-title>
-        <v-card-text>
-          <v-form ref="dictForm">
-            <v-text-field
-              v-model="dictFormModel.code"
-              label="编码"
-              type="number"
-              :disabled="!!dictFormModel.codeExists"
-            />
-            <v-text-field v-model="dictFormModel.name" label="名称" />
-            <v-textarea v-model="dictFormModel.remark" label="说明" />
+        <div class="ds-dialog-head">
+          <span class="ds-dialog-icon"><v-icon size="20">mdi-book-cog-outline</v-icon></span>
+          <div class="ds-dialog-heading">
+            <h2 class="ds-dialog-title">
+              {{ dictFormModel.codeExists ? '编辑字典' : '新增字典' }}
+            </h2>
+            <p class="ds-dialog-subtitle">字典编码用于程序和配置引用，保存后不可修改。</p>
+          </div>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            aria-label="关闭"
+            @click="dictDialog = false"
+          />
+        </div>
+        <v-divider />
+        <v-card-text class="ds-dialog-body">
+          <v-form ref="dictForm" @submit.prevent="saveDict">
+            <div class="dialog-grid">
+              <div class="field">
+                <label class="field-label" for="dict-code">编码</label>
+                <v-text-field
+                  id="dict-code"
+                  v-model="dictFormModel.code"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                  :disabled="!!dictFormModel.codeExists"
+                  :rules="[dictRules.code]"
+                />
+                <p class="field-help">1-6 位数字，保存后不可修改</p>
+              </div>
+              <div class="field">
+                <label class="field-label" for="dict-name">名称</label>
+                <v-text-field
+                  id="dict-name"
+                  v-model="dictFormModel.name"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                  :rules="[dictRules.name]"
+                />
+              </div>
+              <div class="field span-2">
+                <label class="field-label" for="dict-remark">说明</label>
+                <v-textarea
+                  id="dict-remark"
+                  v-model="dictFormModel.remark"
+                  rows="2"
+                  auto-grow
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                />
+              </div>
+            </div>
           </v-form>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="ds-dialog-actions">
           <v-spacer />
           <v-btn variant="text" @click="dictDialog = false">取消</v-btn>
           <v-btn color="primary" variant="flat" @click="saveDict">保存</v-btn>
@@ -237,25 +275,88 @@
       v-model="itemDialog"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="600px"
+      max-width="640"
     >
       <v-card>
-        <v-card-title>字典明细</v-card-title>
-        <v-card-text>
-          <v-form ref="itemForm">
-            <v-text-field v-model="itemFormModel.itemKey" label="键" />
-            <v-textarea
-              v-if="isJsonValueDictCode(itemFormModel.dictCode)"
-              v-model="itemFormModel.itemValue"
-              label="值"
-              rows="8"
-              auto-grow
-            />
-            <v-text-field v-else v-model="itemFormModel.itemValue" label="值" />
-            <v-textarea v-model="itemFormModel.remark" label="说明" />
+        <div class="ds-dialog-head">
+          <span class="ds-dialog-icon"><v-icon size="20">mdi-format-list-bulleted</v-icon></span>
+          <div class="ds-dialog-heading">
+            <h2 class="ds-dialog-title">{{ itemEditing ? '编辑字典明细' : '新增字典明细' }}</h2>
+            <p class="ds-dialog-subtitle">
+              字典：{{ selectedDict?.name || '' }}（{{ selectedDict?.code ?? '' }}）
+            </p>
+          </div>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            aria-label="关闭"
+            @click="itemDialog = false"
+          />
+        </div>
+        <v-divider />
+        <v-card-text class="ds-dialog-body">
+          <v-form ref="itemForm" @submit.prevent="saveItem">
+            <div class="dialog-stack">
+              <div class="field">
+                <label class="field-label" for="item-key">键</label>
+                <v-text-field
+                  id="item-key"
+                  v-model="itemFormModel.itemKey"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                  :rules="[dictRules.name]"
+                />
+                <p class="field-help">程序按该键读取值，建议保持稳定</p>
+              </div>
+              <div class="field">
+                <label class="field-label" for="item-value">值</label>
+                <v-textarea
+                  v-if="isJsonValueDictCode(itemFormModel.dictCode)"
+                  id="item-value"
+                  v-model="itemFormModel.itemValue"
+                  rows="8"
+                  auto-grow
+                  variant="outlined"
+                  density="compact"
+                  class="json-field"
+                  hide-details="auto"
+                  spellcheck="false"
+                />
+                <v-text-field
+                  v-else
+                  id="item-value"
+                  v-model="itemFormModel.itemValue"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                  :rules="[dictRules.name]"
+                />
+                <p
+                  v-if="isJsonValueDictCode(itemFormModel.dictCode)"
+                  class="field-help"
+                  :class="{ 'field-help--error': !!itemJsonError }"
+                >
+                  {{ itemJsonError || '该字典按 JSON 解析，保存前会校验结构' }}
+                </p>
+              </div>
+              <div class="field">
+                <label class="field-label" for="item-remark">说明</label>
+                <v-textarea
+                  id="item-remark"
+                  v-model="itemFormModel.remark"
+                  rows="2"
+                  auto-grow
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                />
+              </div>
+            </div>
           </v-form>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="ds-dialog-actions">
           <v-spacer />
           <v-btn variant="text" @click="itemDialog = false">取消</v-btn>
           <v-btn color="primary" variant="flat" @click="saveItem">保存</v-btn>
@@ -267,30 +368,62 @@
       v-model="batchDialog"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="600px"
+      max-width="520"
     >
       <v-card>
-        <v-card-title>批量新增日历日期（{{ selectedDict?.name || '' }}）</v-card-title>
-        <v-card-text>
+        <div class="ds-dialog-head">
+          <span class="ds-dialog-icon"><v-icon size="20">mdi-calendar-plus</v-icon></span>
+          <div class="ds-dialog-heading">
+            <h2 class="ds-dialog-title">批量生成日历日期</h2>
+            <p class="ds-dialog-subtitle">{{ selectedDict?.name || '' }} · 按年批量写入</p>
+          </div>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            aria-label="关闭"
+            @click="batchDialog = false"
+          />
+        </div>
+        <v-divider />
+        <v-card-text class="ds-dialog-body">
           <v-form>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="batchForm.year" type="number" label="年份 (YYYY)" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-checkbox
-                  v-if="selectedDict?.code === 1021"
-                  v-model="batchForm.includeWeekend"
-                  label="包含周末"
+            <div class="dialog-stack">
+              <div class="field">
+                <label class="field-label" for="batch-year">年份</label>
+                <v-text-field
+                  id="batch-year"
+                  v-model="batchForm.year"
+                  type="number"
+                  placeholder="YYYY"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                  :rules="[batchYearRule]"
                 />
-              </v-col>
-            </v-row>
-            <div v-if="selectedDict?.code === 1022" class="text-caption text-medium-emphasis">
-              工作日历生成的是周一至周五，法定节假日需要删除，调休上班日需要手工补上；已存在的日期不会被覆盖。
+              </div>
+              <v-checkbox
+                v-if="selectedDict?.code === 1021"
+                v-model="batchForm.includeWeekend"
+                label="同时生成周末日期"
+                density="compact"
+                hide-details
+              />
+              <v-alert type="info" variant="tonal" density="comfortable">
+                <div class="batch-hint">{{ batchPreview }}</div>
+                <div class="batch-hint">
+                  {{
+                    selectedDict?.code === 1022
+                      ? '工作日历只生成周一至周五，法定节假日需删除，调休上班日需手工补上。'
+                      : '交易日历需按实际休市日调整。'
+                  }}
+                  已存在的日期不会被覆盖，可重复执行。
+                </div>
+              </v-alert>
             </div>
           </v-form>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="ds-dialog-actions">
           <v-spacer />
           <v-btn variant="text" @click="batchDialog = false">取消</v-btn>
           <v-btn color="primary" variant="flat" @click="batchAddDates">生成并保存</v-btn>
@@ -302,23 +435,47 @@
       v-model="tradeDialog"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="600px"
+      max-width="520"
     >
       <v-card>
-        <v-card-title>年度补全交易日历</v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" md="6">
-              <v-text-field v-model.number="tradeYear" type="number" label="年份 (YYYY)" />
-            </v-col>
-          </v-row>
-          <div class="text-caption text-medium-emphasis">
-            优先从柜台接口取 SSE
-            休市日。接口超时、返回结构变化或该年份尚未发布时会给出提示，并退化为固定规则：工作日（不含周六日），扣除元旦
-            1 月 1-3 日与国庆 10 月 1-7 日。可重复执行。
+        <div class="ds-dialog-head">
+          <span class="ds-dialog-icon"><v-icon size="20">mdi-calendar-sync-outline</v-icon></span>
+          <div class="ds-dialog-heading">
+            <h2 class="ds-dialog-title">年度补全交易日历</h2>
+            <p class="ds-dialog-subtitle">优先使用柜台接口，失败时退化为固定规则。</p>
+          </div>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            aria-label="关闭"
+            @click="tradeDialog = false"
+          />
+        </div>
+        <v-divider />
+        <v-card-text class="ds-dialog-body">
+          <div class="dialog-stack">
+            <div class="field">
+              <label class="field-label" for="trade-year">年份</label>
+              <v-text-field
+                id="trade-year"
+                v-model.number="tradeYear"
+                type="number"
+                placeholder="YYYY"
+                variant="outlined"
+                density="compact"
+                hide-details="auto"
+              />
+            </div>
+            <v-alert type="info" variant="tonal" density="comfortable">
+              <div class="batch-hint">接口超时、结构变化或年份未发布时会给出提示，并自动退化：</div>
+              <div class="batch-hint">
+                周一至周五，扣除元旦 1 月 1-3 日与国庆 10 月 1-7 日。可重复执行，不会重复写入。
+              </div>
+            </v-alert>
           </div>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="ds-dialog-actions">
           <v-spacer />
           <v-btn variant="text" @click="tradeDialog = false">取消</v-btn>
           <v-btn color="primary" variant="flat" :loading="tradeLoading" @click="runTradeRefresh">
@@ -327,22 +484,70 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="resultDialog" class="ds-dialog-overlay" max-width="480">
+      <v-card>
+        <v-card-title>交易日历补全结果</v-card-title>
+        <v-card-text class="result-lines">{{ resultText }}</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="primary" variant="flat" @click="resultDialog = false">知道了</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <ConfirmDialog
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      confirm-text="删除"
+      @confirm="runConfirmed"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { computed, ref, onMounted } from 'vue';
   import EmptyState from '@/components/EmptyState.vue';
+  import ConfirmDialog from '@/components/ConfirmDialog.vue';
+  import PageHeader from '@/components/PageHeader.vue';
   import dictService from '@/service/dict-service';
+  import { notify } from '@/stores/notifier';
   import type { SysDict, SysItem } from '@/types/database';
 
   const dicts = ref<SysDict[]>([]);
   const items = ref<SysItem[]>([]);
   const selectedDict = ref<SysDict | null>(null);
+  const dictLoading = ref(true);
+
+  // Why: one styled confirm replaces the blocking native dialogs, and every destructive
+  // action carries its target name so the operator can double-check the object
+  const confirmState = ref<{
+    open: boolean;
+    title: string;
+    message: string;
+    action: (() => void) | null;
+  }>({ open: false, title: '', message: '', action: null });
+
+  const askConfirm = (title: string, message: string, action: () => void) => {
+    confirmState.value = { open: true, title, message, action };
+  };
+
+  const runConfirmed = () => {
+    const action = confirmState.value.action;
+    confirmState.value.open = false;
+    action?.();
+  };
+
+  const resultDialog = ref(false);
+  const resultText = ref('');
 
   const dictDialog = ref(false);
   const itemDialog = ref(false);
 
+  const dictForm = ref<any>(null);
+  const itemForm = ref<any>(null);
+  const itemEditing = ref(false);
   const dictFormModel = ref<any>({ code: null, name: '', remark: '', codeExists: false });
   const itemFormModel = ref<any>({ dictCode: null, itemKey: '', itemValue: '', remark: '' });
 
@@ -357,11 +562,46 @@
     batchDialog.value = true;
   };
 
+  const dictRules = {
+    code: (value: any) => {
+      if (value === null || value === undefined || value === '') return '必填项';
+      return /^\d{1,6}$/.test(String(value)) || '编码应为 1-6 位数字';
+    },
+    name: (value: any) => !!(value && String(value).trim()) || '必填项',
+  };
+
+  const batchYearRule = (value: any) => {
+    const year = Number(value);
+    return (Number.isInteger(year) && year >= 1900 && year <= 9999) || '请输入 1900-9999 的年份';
+  };
+
+  const countWeekdays = (year: number) => {
+    let count = 0;
+    const cursor = new Date(year, 0, 1);
+    while (cursor.getFullYear() === year) {
+      const day = cursor.getDay();
+      if (day !== 0 && day !== 6) count += 1;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return count;
+  };
+
+  const batchPreview = computed(() => {
+    const year = Number(batchForm.value.year);
+    if (!Number.isInteger(year) || year < 1900 || year > 9999) {
+      return '输入年份后可预览生成数量';
+    }
+    const workdays = countWeekdays(year);
+    if (selectedDict.value?.code === 1022) return `预计生成 ${workdays} 个工作日`;
+    const allDays = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+    return `预计生成 ${batchForm.value.includeWeekend ? allDays : workdays} 天`;
+  });
+
   const batchAddDates = async () => {
     if (!selectedDict.value || !isCalendarDict(selectedDict.value.code))
-      return alert('仅支持日历字典（1021 交易日历、1022 工作日历）');
+      return notify('仅支持日历字典（1021 交易日历、1022 工作日历）', 'warning');
     const year = batchForm.value.year;
-    if (!year || year < 1900 || year > 9999) return alert('请输入有效年份');
+    if (!year || year < 1900 || year > 9999) return notify('请输入有效年份', 'warning');
     // 工作日历始终只生成工作日，是否包含周末只对交易日历有意义
     const include = selectedDict.value.code === 1021 ? batchForm.value.includeWeekend : false;
     try {
@@ -369,10 +609,10 @@
       batchDialog.value = false;
       if (selectedDict.value) loadItems(selectedDict.value.code);
       loadCoverage();
-      alert('日历日期已生成，请刷新明细查看结果');
+      notify('日历日期已生成，请刷新明细查看结果', 'success');
     } catch (err) {
       console.error(err);
-      alert('后端生成失败，请查看控制台');
+      notify('后端生成失败，请查看控制台', 'error');
     }
   };
 
@@ -388,7 +628,7 @@
 
   const runTradeRefresh = async () => {
     const year = tradeYear.value;
-    if (!year || year < 2000 || year > 2100) return alert('请输入有效年份');
+    if (!year || year < 2000 || year > 2100) return notify('请输入有效年份', 'warning');
     tradeLoading.value = true;
     try {
       const result = await dictService.refreshTradeCalendar(year);
@@ -402,10 +642,11 @@
       ];
       if (result.removedDates?.length) lines.push(`移除日期：${result.removedDates.join('、')}`);
       if (result.warning) lines.push('', `⚠ ${result.warning}`);
-      alert(lines.join('\n'));
+      resultText.value = lines.join('\n');
+      resultDialog.value = true;
     } catch (err) {
       console.error(err);
-      alert('补全失败，请查看后端日志');
+      notify('补全失败，请查看后端日志', 'error');
     } finally {
       tradeLoading.value = false;
     }
@@ -440,6 +681,7 @@
   ];
 
   const loadDicts = () => {
+    dictLoading.value = true;
     dictService
       .listDicts()
       .then(res => {
@@ -447,6 +689,9 @@
       })
       .catch(() => {
         dicts.value = [];
+      })
+      .finally(() => {
+        dictLoading.value = false;
       });
   };
 
@@ -477,7 +722,10 @@
     dictDialog.value = true;
   };
 
-  const saveDict = () => {
+  const saveDict = async () => {
+    const { valid } = await dictForm.value.validate();
+    if (!valid) return;
+
     const payload: SysDict = {
       code: Number(dictFormModel.value.code),
       name: dictFormModel.value.name,
@@ -489,22 +737,31 @@
         dictDialog.value = false;
         loadDicts();
       })
-      .catch(e => console.error(e));
+      .catch(e => {
+        console.error(e);
+        notify('字典保存失败: ' + (e?.message || e), 'error');
+      });
   };
 
   const deleteDict = (code: number) => {
-    if (!confirm('确认删除字典及其明细？')) return;
-    dictService.deleteDict(code).then(() => {
-      if (selectedDict.value && selectedDict.value.code === code) {
-        selectedDict.value = null;
-        items.value = [];
-      }
-      loadDicts();
-    });
+    const target = dicts.value.find(d => d.code === code);
+    askConfirm(
+      '删除字典',
+      `将删除字典「${target?.name || code}」及其全部明细，此操作不可撤销。`,
+      () =>
+        dictService.deleteDict(code).then(() => {
+          if (selectedDict.value && selectedDict.value.code === code) {
+            selectedDict.value = null;
+            items.value = [];
+          }
+          loadDicts();
+        })
+    );
   };
 
   const openItemDialog = (it?: SysItem) => {
     if (!selectedDict.value) return;
+    itemEditing.value = !!it;
     if (it) {
       itemFormModel.value = {
         dictCode: selectedDict.value.code,
@@ -527,7 +784,26 @@
     return [5000, 5001].includes(Number(dictCode));
   };
 
-  const saveItem = () => {
+  const itemJsonError = computed(() => {
+    if (!isJsonValueDictCode(itemFormModel.value.dictCode)) return '';
+    const text = itemFormModel.value.itemValue;
+    if (!text || !String(text).trim()) return '';
+    try {
+      JSON.parse(text);
+      return '';
+    } catch (error: any) {
+      return 'JSON 语法错误：' + (error?.message || '解析失败');
+    }
+  });
+
+  const saveItem = async () => {
+    const { valid } = await itemForm.value.validate();
+    if (!valid) return;
+    if (itemJsonError.value) {
+      notify(itemJsonError.value, 'error');
+      return;
+    }
+
     const payload: SysItem = {
       dictCode: itemFormModel.value.dictCode,
       itemKey: itemFormModel.value.itemKey,
@@ -542,15 +818,20 @@
         itemDialog.value = false;
         if (selectedDict.value) loadItems(selectedDict.value.code);
       })
-      .catch(e => console.error(e));
+      .catch(e => {
+        console.error(e);
+        notify('字典明细保存失败: ' + (e?.message || e), 'error');
+      });
   };
 
   const deleteItem = (itemKey: string) => {
     if (!selectedDict.value) return;
-    if (!confirm('确认删除该明细？')) return;
-    dictService.deleteDictItem(selectedDict.value.code, itemKey).then(() => {
-      loadItems(selectedDict.value!.code);
-    });
+    const dict = selectedDict.value;
+    askConfirm('删除字典明细', `将删除明细「${itemKey}」，此操作不可撤销。`, () =>
+      dictService.deleteDictItem(dict.code, itemKey).then(() => {
+        loadItems(dict.code);
+      })
+    );
   };
 
   onMounted(() => {
@@ -560,6 +841,12 @@
 </script>
 
 <style scoped>
+  .result-lines {
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
   .section-grid {
     row-gap: 12px;
   }
@@ -612,6 +899,66 @@
     border: 1px dashed var(--ds-border-default);
     color: var(--ds-text-2);
     text-align: center;
+  }
+
+  .dialog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+  }
+
+  .dialog-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .field {
+    min-width: 0;
+  }
+
+  .field.span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 6px;
+    color: rgb(var(--v-theme-on-surface));
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  .field-help {
+    margin: 5px 0 0;
+    color: var(--ds-text-3);
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+
+  .field-help--error {
+    color: rgb(var(--v-theme-error));
+  }
+
+  .json-field :deep(textarea) {
+    font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+
+  .batch-hint {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 640px) {
+    .dialog-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .field.span-2 {
+      grid-column: auto;
+    }
   }
 </style>
 

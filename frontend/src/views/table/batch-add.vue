@@ -11,7 +11,7 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card">
+    <v-card flat class="ds-card batch-add-card">
       <v-card-text class="ds-card__content">
         <BatchAdd tid="-1" />
       </v-card-text>
@@ -22,3 +22,10 @@
 <script setup lang="ts">
   import BatchAdd from '@/components/table/BatchAdd.vue';
 </script>
+
+<style scoped>
+  /* Why: the wizard's action bar is sticky, so the wrapping card must not clip it */
+  .batch-add-card {
+    overflow: visible;
+  }
+</style>

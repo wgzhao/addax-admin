@@ -94,11 +94,17 @@ public class StatService
         String sql = """
             SELECT
                 name || '(' || code || ')' AS source_name,
-                round(SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 0) AS pct
+                COUNT(*) AS total,
+                SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) AS done,
+                SUM(CASE WHEN t.status = 'E' THEN 1 ELSE 0 END) AS failed,
+                SUM(CASE WHEN t.status IN ('R', 'W', 'U') THEN 1 ELSE 0 END) AS running,
+                SUM(CASE WHEN t.status = 'N' THEN 1 ELSE 0 END) AS pending,
+                round(SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS pct
             FROM vw_etl_table_with_source t
             WHERE t.status <> 'X' and t.enabled = true
             GROUP BY t.code, t.name
             having count(*) > 0
+            ORDER BY SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) ASC
             """;
         return jdbcTemplate.queryForList(sql);
     }

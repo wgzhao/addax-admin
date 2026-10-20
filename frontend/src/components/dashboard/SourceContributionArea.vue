@@ -1,6 +1,6 @@
 <template>
   <DashboardChartCard
-    title="各数据源采集量贡献"
+    title="各采集源采集量贡献"
     subtitle="近 30 天 Top8 + 其他（GiB）"
     :height="340"
     :state="state"

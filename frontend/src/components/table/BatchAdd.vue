@@ -1,30 +1,29 @@
 <template>
   <v-card flat class="batch-add-shell">
     <div class="workflow-head">
-      <div></div>
-      <div class="overview-grid">
-        <div class="overview-card">
-          <span class="overview-label">采集源</span>
-          <strong>{{ selectedSourceLabel }}</strong>
-        </div>
-        <div class="overview-card">
-          <span class="overview-label">源数据库</span>
-          <strong>{{ selectedDb || '未选择' }}</strong>
-        </div>
-        <div class="overview-card">
-          <span class="overview-label">已选表</span>
-          <strong>{{ selectedCnt }} / {{ tables.length }}</strong>
-        </div>
-        <div class="overview-card">
-          <span class="overview-label">目标库</span>
-          <strong>{{ targetDb || '待配置' }}</strong>
-        </div>
+      <div class="context-row">
+        <span class="context-chip">
+          <v-icon size="14">mdi-database</v-icon>
+          {{ selectedSourceLabel }}
+        </span>
+        <span class="context-chip">
+          <v-icon size="14">mdi-database-search-outline</v-icon>
+          {{ selectedDb || '未选择源库' }}
+        </span>
+        <span class="context-chip" :class="{ 'context-chip--strong': selectedCnt > 0 }">
+          <v-icon size="14">mdi-table-check</v-icon>
+          已选 {{ selectedCnt }} / {{ tables.length }}
+        </span>
+        <span class="context-chip">
+          <v-icon size="14">mdi-database-arrow-right-outline</v-icon>
+          {{ targetDb || '目标库待配置' }}
+        </span>
       </div>
     </div>
 
     <v-stepper v-model="currentStep" flat class="batch-stepper">
       <v-stepper-header class="stepper-header">
-        <v-stepper-item title="选择数据源" :value="1" :complete="currentStep > 1" color="primary" />
+        <v-stepper-item title="选择采集源" :value="1" :complete="currentStep > 1" color="primary" />
         <v-divider />
         <v-stepper-item title="选择采集表" :value="2" :complete="currentStep > 2" color="primary" />
         <v-divider />
@@ -88,8 +87,9 @@
         @click="prevStep"
         >上一步</v-btn
       >
+      <span v-if="actionHint" class="step-hint">{{ actionHint }}</span>
       <v-spacer />
-      <v-btn variant="text" @click="router.push('/table')">取消</v-btn>
+      <v-btn variant="text" @click="requestCancel">取消</v-btn>
       <v-btn
         v-if="currentStep < 3"
         color="primary"
@@ -112,6 +112,15 @@
         >提交</v-btn
       >
     </v-card-actions>
+
+    <ConfirmDialog
+      v-model="cancelOpen"
+      title="放弃本次新增"
+      message="已选择的采集表与配置不会保存，确定离开？"
+      confirm-text="放弃并离开"
+      cancel-text="继续配置"
+      @confirm="router.push('/table')"
+    />
   </v-card>
 </template>
 
@@ -119,6 +128,7 @@
   import { ref, onMounted, computed, watch } from 'vue';
   import { useRouter } from 'vue-router';
   import { notify } from '@/stores/notifier';
+  import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import tableService from '@/service/table-service';
   import sourceService from '@/service/source-service';
   import targetService from '@/service/target-service';
@@ -154,6 +164,24 @@
     if (currentStep.value === 2) return selectedCnt.value > 0;
     return false;
   });
+
+  const actionHint = computed(() => {
+    if (currentStep.value === 1 && !canProceedToNext.value) return '请选择采集源与源数据库';
+    if (currentStep.value === 2 && !canProceedToNext.value) return '请至少选择一张采集表';
+    if (currentStep.value === 3 && (!targetId.value || !targetDb.value)) {
+      return '请选择目标端并确认目标库';
+    }
+    return '';
+  });
+
+  const cancelOpen = ref(false);
+  const requestCancel = () => {
+    if (currentStep.value >= 4 || (!selectedSourceId.value && selectedCnt.value === 0)) {
+      router.push('/table');
+      return;
+    }
+    cancelOpen.value = true;
+  };
 
   const nextStep = async () => {
     if (currentStep.value === 1) {
@@ -387,60 +415,46 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
+    /* Why: v-card clips overflow by default, which disables the sticky action bar */
+    overflow: visible;
   }
 
   .workflow-head {
     display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .workflow-kicker {
-    font-size: 0.76rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(var(--v-theme-primary), 0.9);
-  }
-
-  .workflow-title {
-    margin-top: 4px;
-    font-size: 1.12rem;
-    font-weight: 700;
-    color: rgb(var(--v-theme-on-surface));
-  }
-
-  .workflow-subtitle {
-    margin-top: 8px;
-    max-width: 780px;
-    color: rgba(var(--v-theme-on-surface), 0.68);
-    line-height: 1.7;
-  }
-
-  .overview-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
   }
 
-  .overview-card {
-    padding: 14px 16px;
-    border-radius: 16px;
-    border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background: linear-gradient(
-        180deg,
-        rgba(var(--v-theme-primary), 0.06),
-        rgba(var(--v-theme-primary), 0.01)
-      ),
-      rgba(var(--v-theme-surface), 0.96);
+  .context-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-height: 34px;
   }
 
-  .overview-label {
-    display: block;
-    margin-bottom: 6px;
-    font-size: 0.76rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(var(--v-theme-on-surface), 0.56);
+  .context-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 260px;
+    padding: 4px 10px;
+    border: 1px solid var(--ds-border-subtle);
+    border-radius: 999px;
+    background: rgba(var(--v-theme-on-surface), 0.03);
+    color: var(--ds-text-2);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .context-chip--strong {
+    border-color: rgba(var(--v-theme-primary), 0.25);
+    background: rgba(var(--v-theme-primary), 0.08);
+    color: rgb(var(--v-theme-primary));
+    font-weight: 500;
   }
 
   .batch-stepper {
@@ -464,12 +478,24 @@
   }
 
   .step-actions {
-    padding: 14px 18px;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 12px 18px;
+    border-top: 1px solid var(--ds-border-subtle);
+    background: var(--ds-surface-raised);
+    box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  .step-hint {
+    margin-left: 8px;
+    color: var(--ds-text-3);
+    font-size: 12px;
   }
 
   @media (max-width: 1120px) {
-    .overview-grid {
-      grid-template-columns: 1fr;
+    .context-row {
+      gap: 6px;
     }
   }
 

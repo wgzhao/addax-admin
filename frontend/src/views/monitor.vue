@@ -1,7 +1,8 @@
 <template>
-  <v-container fluid class="pa-6 monitor-page">
+  <div class="page-shell monitor-page">
+    <PageHeader title="监控与告警" subtitle="按采集源查看完成情况与异常表。" />
     <v-row density="comfortable" class="section-grid">
-      <!-- 数据源完成情况 -->
+      <!-- 采集源完成情况 -->
       <v-col cols="12" md="12">
         <v-card flat :title="accomplishListTable.title" class="mb-4 section-card">
           <v-card-text class="section-body">
@@ -105,10 +106,11 @@
         </v-card-text>
       </v-card>
     </v-col>
-  </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
+  import PageHeader from '@/components/PageHeader.vue';
   import { ref, onMounted } from 'vue';
   import type { DataTableHeader } from 'vuetify';
   import { monitorService } from '@/service/monitor-service';
@@ -128,14 +130,14 @@
   const accomplishListTable = {
     name: 'accomplishList',
     api: 'accomplishList',
-    title: '数据源完成情况',
+    title: '采集源完成情况',
     sortBy: <SortItem[]>[{ key: 'overPrec', order: 'asc' }],
     headers: <DataTableHeader[]>[
       {
         title: '启动',
         key: 'start_at',
       },
-      { title: '数据源', key: 'sys_name' },
+      { title: '采集源', key: 'sys_name' },
       {
         title: '整体情况',
         align: 'center',

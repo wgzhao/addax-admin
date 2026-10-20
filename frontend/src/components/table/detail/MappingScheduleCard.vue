@@ -75,7 +75,7 @@
               v-model="table.startAt"
               variant="outlined"
               density="comfortable"
-              placeholder="为空则继承数据源"
+              placeholder="为空则继承采集源"
               clearable
               persistent-hint
               :hint="`继承值：${inheritedStartAt || '-'}`"

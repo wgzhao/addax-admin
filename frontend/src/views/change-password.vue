@@ -1,13 +1,9 @@
 <template>
-  <v-container class="change-password-page">
+  <div class="page-shell change-password-page">
+    <PageHeader title="修改密码" subtitle="定期更换登录密码，修改后需要重新登录。" />
     <v-row justify="center">
       <v-col cols="12" md="6" lg="5">
-        <v-card class="section-card" elevation="0">
-          <v-card-title class="section-title">
-            <v-icon class="mr-2" color="primary">mdi-lock-reset</v-icon>
-            修改密码
-          </v-card-title>
-          <v-divider />
+        <v-card class="section-card ds-card" elevation="0">
           <v-card-text class="section-body">
             <v-form ref="form" v-model="valid" class="form-stack">
               <v-text-field
@@ -46,10 +42,11 @@
         </v-card>
       </v-col>
     </v-row>
-  </v-container>
+  </div>
 </template>
 
 <script setup lang="ts">
+  import PageHeader from '@/components/PageHeader.vue';
   import { ref } from 'vue';
   import { authService } from '@/service/auth-service';
   import { notify } from '@/stores/notifier';

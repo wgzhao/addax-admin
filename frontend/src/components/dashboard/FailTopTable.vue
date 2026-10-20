@@ -26,7 +26,8 @@
         :items-per-page="10"
         item-value="tid"
         hide-default-footer
-        class="fail-top-table"
+        class="fail-top-table fail-top-table--clickable"
+        @click:row="openTable"
       >
         <template #item.table="{ item }">
           <div class="cell-table">
@@ -66,6 +67,17 @@
   import { dashboardService } from '@/service/dashboard-service';
   import { buildCsv, downloadCsv } from '@/utils/csv';
   import { JOUR_KIND_META } from '@/utils/chart-colors';
+  import { useRouter } from 'vue-router';
+
+  const router = useRouter();
+
+  // Why: the ranking is the entry point for triage — jump straight to the
+  // filtered table list instead of making the operator copy the name across
+  const openTable = (_event: Event, payload: { item?: Record<string, any> }) => {
+    const sourceTable = String(payload?.item?.source_table || '').trim();
+    if (!sourceTable) return;
+    router.push({ path: '/table', query: { q: sourceTable } });
+  };
 
   const { raw, state, error } = useChartData(() => dashboardService.fetchFailTopTables());
   const rows = computed(() => raw.value ?? []);
@@ -94,6 +106,10 @@
 
   .fail-top-table {
     font-size: 12px;
+  }
+
+  .fail-top-table--clickable :deep(tbody tr) {
+    cursor: pointer;
   }
 
   .cell-table {

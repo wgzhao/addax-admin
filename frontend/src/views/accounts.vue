@@ -3,21 +3,11 @@
     class="accounts-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': dialogVisible }"
   >
-    <v-card flat class="ds-card page-header-card">
-      <v-card-text class="ds-card__content">
-        <div class="page-header flex-wrap">
-          <div>
-            <div class="page-title">账号管理</div>
-            <div class="page-subtitle">统一维护系统账号、角色与启停状态。</div>
-          </div>
-          <div class="ds-actions">
-            <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreateDialog"
-              >新增账号</v-btn
-            >
-          </div>
-        </div>
-      </v-card-text>
-    </v-card>
+    <PageHeader title="账号管理" subtitle="统一维护系统账号、角色与启停状态。">
+      <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreateDialog">
+        新增账号
+      </v-btn>
+    </PageHeader>
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
@@ -37,9 +27,10 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap">
+    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
       <v-card-text class="ds-card__content">
-        <template v-if="users.length === 0">
+        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
+        <template v-else-if="users.length === 0">
           <EmptyState
             title="暂无账号"
             description="当前还没有配置任何系统账号。点击下方按钮新增账号后，即可继续分配角色与启停状态。"
@@ -127,7 +118,7 @@
       v-model="dialogVisible"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="560"
+      max-width="480"
     >
       <v-card>
         <v-card-title>{{ dialogMode === 'create' ? '新增账号' : '编辑账号' }}</v-card-title>
@@ -182,6 +173,15 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <ConfirmDialog
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :tone="confirmState.tone"
+      :confirm-text="confirmState.tone === 'danger' ? '确认' : '确定'"
+      @confirm="runConfirmed"
+    />
   </div>
 </template>
 
@@ -189,12 +189,28 @@
   import { computed, onMounted, ref, watch } from 'vue';
   import userService, { type AccountUser } from '@/service/user-service';
   import EmptyState from '@/components/EmptyState.vue';
+  import ConfirmDialog from '@/components/ConfirmDialog.vue';
+  import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
 
   type DialogMode = 'create' | 'edit';
 
   const users = ref<AccountUser[]>([]);
+  const loading = ref(true);
   const searchValue = ref('');
+  const confirmState = ref<{
+    open: boolean;
+    title: string;
+    message: string;
+    tone: 'danger' | 'primary';
+    action: (() => unknown) | null;
+  }>({ open: false, title: '', message: '', tone: 'danger', action: null });
+
+  const runConfirmed = () => {
+    const action = confirmState.value.action;
+    confirmState.value.open = false;
+    action?.();
+  };
   const dialogVisible = ref(false);
   const dialogMode = ref<DialogMode>('create');
   const showPassword = ref(false);
@@ -251,11 +267,14 @@
   };
 
   const loadUsers = async () => {
+    loading.value = true;
     try {
       users.value = await userService.list();
     } catch (error: any) {
       notify('加载账号列表失败: ' + (error.message || error), 'error');
       users.value = [];
+    } finally {
+      loading.value = false;
     }
   };
 
@@ -360,35 +379,45 @@
 
   const toggleEnabled = async (item: AccountUser, enabled: boolean) => {
     const actionText = enabled ? '启用' : '禁用';
-    if (!confirm(`确认${actionText}账号 ${item.username} 吗？`)) {
-      return;
-    }
-
-    try {
-      if (enabled) {
-        await userService.enable(item.username);
-      } else {
-        await userService.disable(item.username);
-      }
-      notify(`${actionText}成功`, 'success');
-      await loadUsers();
-    } catch (error: any) {
-      notify(`${actionText}失败: ` + (error.message || error), 'error');
-    }
+    confirmState.value = {
+      open: true,
+      title: `${actionText}账号`,
+      message: enabled
+        ? `启用账号「${item.username}」后，该账号可以重新登录系统。`
+        : `禁用账号「${item.username}」后，该账号将无法登录系统。`,
+      tone: enabled ? 'primary' : 'danger',
+      action: async () => {
+        try {
+          if (enabled) {
+            await userService.enable(item.username);
+          } else {
+            await userService.disable(item.username);
+          }
+          notify(`${actionText}成功`, 'success');
+          await loadUsers();
+        } catch (error: any) {
+          notify(`${actionText}失败: ` + (error.message || error), 'error');
+        }
+      },
+    };
   };
 
   const removeUser = async (item: AccountUser) => {
-    if (!confirm(`确认删除账号 ${item.username} 吗？`)) {
-      return;
-    }
-
-    try {
-      await userService.delete(item.username);
-      notify('删除成功', 'success');
-      await loadUsers();
-    } catch (error: any) {
-      notify('删除失败: ' + (error.message || error), 'error');
-    }
+    confirmState.value = {
+      open: true,
+      title: '删除账号',
+      message: `将删除账号「${item.username}」，此操作不可撤销。`,
+      tone: 'danger',
+      action: async () => {
+        try {
+          await userService.delete(item.username);
+          notify('删除成功', 'success');
+          await loadUsers();
+        } catch (error: any) {
+          notify('删除失败: ' + (error.message || error), 'error');
+        }
+      },
+    };
   };
 
   onMounted(() => {

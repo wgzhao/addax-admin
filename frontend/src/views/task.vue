@@ -1,36 +1,40 @@
 <template>
-  <v-card flat title="采集任务管理">
-    <v-card-text>
-      <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="default">
-        <template #item.status="{ item }">
-          <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
-            {{ getStatusText(item.status) }}
-          </v-chip>
-        </template>
-        <template #item.progress="{ item }">
-          <v-progress-linear
-            :model-value="item.displayProgress ?? item.progress"
-            :buffer-value="item.progress"
-            height="16"
-            color="primary"
-            striped
-            rounded
-            style="min-width: 80px"
-          ></v-progress-linear>
-        </template>
-        <template #item.node_name="{ item }">
-          <span>{{ item.node_name || '-' }}</span>
-        </template>
-        <template #item.action="{ item }">
-          <v-btn small color="primary" @click="$emit('executeTask', item.id)">采集</v-btn>
-          <!-- 可扩展更多任务相关操作按钮 -->
-        </template>
-      </v-data-table>
-    </v-card-text>
-  </v-card>
+  <div class="page-shell">
+    <PageHeader title="采集任务管理" subtitle="查看排队中、运行中与最近完成的采集任务。" />
+    <v-card flat class="ds-card task-card ds-table-scroll">
+      <v-card-text>
+        <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="comfortable">
+          <template #item.status="{ item }">
+            <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
+              {{ getStatusText(item.status) }}
+            </v-chip>
+          </template>
+          <template #item.progress="{ item }">
+            <v-progress-linear
+              :model-value="item.displayProgress ?? item.progress"
+              :buffer-value="item.progress"
+              height="16"
+              color="primary"
+              striped
+              rounded
+              style="min-width: 80px"
+            ></v-progress-linear>
+          </template>
+          <template #item.node_name="{ item }">
+            <span>{{ item.node_name || '-' }}</span>
+          </template>
+          <template #item.action="{ item }">
+            <v-btn small color="primary" @click="$emit('executeTask', item.id)">采集</v-btn>
+            <!-- 可扩展更多任务相关操作按钮 -->
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+  </div>
 </template>
 
 <script setup lang="ts">
+  import PageHeader from '@/components/PageHeader.vue';
   import taskService from '@/service/task-service';
   import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
   import type { DataTableHeader } from 'vuetify';
@@ -198,6 +202,12 @@
     return Math.max(0, Math.min(100, Math.floor(num)));
   }
 </script>
+
+<style scoped>
+  .task-card {
+    --ds-table-max: calc(100vh - 250px);
+  }
+</style>
 
 <route lang="json">
 {
