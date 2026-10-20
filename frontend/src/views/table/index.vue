@@ -48,102 +48,120 @@
 
     <v-card flat class="ds-card toolbar-card">
       <v-card-text class="ds-card__content">
-        <v-row density="comfortable" align="center">
-          <v-col cols="12" md="2">
-            <v-text-field
-              v-model="search"
-              density="compact"
-              label="关键字"
-              prepend-inner-icon="mdi-magnify"
-              single-line
-              variant="outlined"
-              hide-details
-              @keyup.enter="searchTable"
-              @click:append-inner="searchTable"
-            />
-          </v-col>
-          <v-col cols="12" md="2">
-            <v-select
-              v-model="runStatuses"
-              :items="TABLE_STATUS_OPTIONS"
-              item-title="label"
-              item-value="value"
-              density="compact"
-              variant="outlined"
-              multiple
-              clearable
-              hide-details
-              label="状态"
-            />
-          </v-col>
-          <v-col cols="12" md="2" lg="2">
-            <v-select
-              v-model="sourceId"
-              :items="sourceOptions"
-              item-title="label"
-              item-value="value"
-              :item-props="item => ({ title: item.label })"
-              density="compact"
-              variant="outlined"
-              single-line
-              hide-details
-              clearable
-              label="采集源"
-            />
-          </v-col>
-          <v-col cols="12" md="2" lg="2">
-            <div class="filter-actions">
-              <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
-              <v-btn variant="text" @click="resetFilters">重置</v-btn>
-            </div>
-          </v-col>
-          <v-spacer />
-          <template v-if="selected.length > 0">
-            <v-col cols="12" md="4" class="d-flex justify-end">
+        <div class="ds-filters">
+          <v-text-field
+            v-model="search"
+            class="ds-filters__keyword"
+            density="compact"
+            label="关键字"
+            placeholder="表名 / 编码 / 分区字段"
+            prepend-inner-icon="mdi-magnify"
+            single-line
+            variant="outlined"
+            hide-details
+            clearable
+            @keyup.enter="searchTable"
+          />
+          <!-- Why: a fixed-width trigger keeps the toolbar height stable, while a
+               multi-select field grew a line per selected status -->
+          <v-menu :close-on-content-click="false" offset-y>
+            <template #activator="{ props: menuProps }">
               <v-btn
-                variant="flat"
-                color="primary"
-                prepend-icon="mdi-database"
-                class="mx-1"
-                @click="doEtl(null)"
+                v-bind="menuProps"
+                :class="[
+                  'ds-filters__status',
+                  { 'ds-filters__status--active': runStatuses.length },
+                ]"
+                variant="outlined"
+                height="40"
+                :title="statusFilterTitle"
               >
-                批量采集
+                <v-icon size="18" class="mr-2">mdi-filter-variant</v-icon>
+                <span class="ds-filters__status-label">{{ statusFilterLabel }}</span>
+                <v-icon size="18" class="ml-1">mdi-menu-down</v-icon>
               </v-btn>
+            </template>
+            <v-list density="compact" class="ds-status-menu">
+              <v-list-item
+                v-for="option in TABLE_STATUS_OPTIONS"
+                :key="option.value"
+                :active="runStatuses.includes(option.value)"
+                role="menuitemcheckbox"
+                :aria-checked="runStatuses.includes(option.value)"
+                @click="toggleStatus(option.value)"
+              >
+                <template #prepend>
+                  <v-checkbox-btn
+                    :model-value="runStatuses.includes(option.value)"
+                    density="compact"
+                    tabindex="-1"
+                    aria-hidden="true"
+                  />
+                </template>
+                <v-list-item-title>{{ option.label }}</v-list-item-title>
+              </v-list-item>
+              <template v-if="runStatuses.length">
+                <v-divider class="my-1" />
+                <v-list-item @click="runStatuses = []">
+                  <template #prepend>
+                    <v-icon size="18">mdi-filter-remove-outline</v-icon>
+                  </template>
+                  <v-list-item-title>清除状态筛选</v-list-item-title>
+                </v-list-item>
+              </template>
+            </v-list>
+          </v-menu>
+          <v-select
+            v-model="sourceId"
+            class="ds-filters__source"
+            :items="sourceOptions"
+            item-title="label"
+            item-value="value"
+            :item-props="item => ({ title: item.label })"
+            density="compact"
+            variant="outlined"
+            single-line
+            hide-details
+            clearable
+            label="采集源"
+          />
+          <div class="filter-actions">
+            <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
+            <v-btn variant="text" @click="resetFilters">重置</v-btn>
+          </div>
+        </div>
 
-              <v-btn
-                variant="flat"
-                color="info"
-                prepend-icon="mdi-calendar-refresh"
-                class="mx-1"
-                @click="openDialog('Fillback', 'Fillback')"
-              >
-                补采数据
-              </v-btn>
-
-              <v-btn
-                color="secondary"
-                prepend-icon="mdi-pencil"
-                class="mx-1"
-                @click="openDialog('BatchUpdate', 'BatchUpdate')"
-              >
-                批量修改
-              </v-btn>
-
-              <v-btn
-                variant="flat"
-                color="error"
-                prepend-icon="mdi-delete"
-                class="mx-1"
-                @click="confirmBatchDelete"
-              >
-                批量删除
-              </v-btn>
-              <v-btn color="secondary" variant="tonal" class="mx-1">
-                已选择 {{ selected.length }} 行
-              </v-btn>
-            </v-col>
-          </template>
-        </v-row>
+        <div v-if="selected.length > 0" class="ds-bulk-bar">
+          <span class="ds-bulk-bar__count">已选择 {{ selected.length }} 行</span>
+          <div class="ds-bulk-bar__actions">
+            <v-btn variant="flat" color="primary" prepend-icon="mdi-database" @click="doEtl(null)">
+              批量采集
+            </v-btn>
+            <v-btn
+              variant="flat"
+              color="info"
+              prepend-icon="mdi-calendar-refresh"
+              @click="openDialog('Fillback', 'Fillback')"
+            >
+              补采数据
+            </v-btn>
+            <v-btn
+              color="secondary"
+              prepend-icon="mdi-pencil"
+              @click="openDialog('BatchUpdate', 'BatchUpdate')"
+            >
+              批量修改
+            </v-btn>
+            <v-btn
+              variant="flat"
+              color="error"
+              prepend-icon="mdi-delete"
+              @click="confirmBatchDelete"
+            >
+              批量删除
+            </v-btn>
+          </div>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -175,6 +193,42 @@
             :item-class="getRowClass"
             @update:options="loadItems"
           >
+            <!-- Why: the code stays the primary status signal, so the header carries
+                 the legend and the cell keeps its width stable across rows -->
+            <template #header.status="{ column, getSortIcon }">
+              <div class="v-data-table-header__content ds-status-header">
+                <span>{{ column.title }}</span>
+                <v-tooltip location="bottom" max-width="260" open-delay="150">
+                  <template #activator="{ props: tipProps }">
+                    <v-icon
+                      v-bind="tipProps"
+                      icon="mdi-information-outline"
+                      size="14"
+                      class="ds-status-header__hint"
+                      aria-label="查看状态码说明"
+                      @click.stop
+                    />
+                  </template>
+                  <div class="ds-status-legend">
+                    <div class="ds-status-legend__title">状态码说明</div>
+                    <div
+                      v-for="entry in STATUS_LEGEND"
+                      :key="entry.code"
+                      class="ds-status-legend__row"
+                    >
+                      <v-icon icon="mdi-circle" size="8" :color="getStatusColor(entry.code)" />
+                      <span class="ds-status-legend__code ds-mono-text">{{ entry.code }}</span>
+                      <span class="ds-status-legend__label">{{ entry.label }}</span>
+                    </div>
+                  </div>
+                </v-tooltip>
+                <v-icon
+                  v-if="column.sortable"
+                  class="v-data-table-header__sort-icon"
+                  :icon="getSortIcon(column)"
+                />
+              </div>
+            </template>
             <template #item.sourceTable="{ item }">
               <div class="ds-cell-stack">
                 <span class="ds-cell-meta">{{ item.name }}({{ item.code }})</span>
@@ -192,9 +246,11 @@
                 size="small"
                 :color="getStatusColor(item.status)"
                 variant="tonal"
-                :title="`状态码 ${item.status}`"
+                class="ds-status-code"
+                :class="`ds-status-code--${item.status}`"
+                :title="`${item.status} · ${statusLabel(item.status)}`"
               >
-                {{ statusLabel(item.status) }}
+                <span class="ds-status-code__glyph">{{ item.status }}</span>
               </v-chip>
               <!-- Kill icon for running tasks: move to right, match E icon style -->
               <template v-if="item.status === 'R'">
@@ -247,6 +303,10 @@
                   >{{ item.targetTable || '' }}
                 </span>
               </div>
+            </template>
+
+            <template #item.endTime="{ item }">
+              <span class="ds-nowrap">{{ item.endTime }}</span>
             </template>
 
             <template #item.action="{ item }">
@@ -418,18 +478,20 @@
     searchTable();
   }
 
-  // 映射 Vuetify 的标准状态色（支持 Badge 点）
+  // Why: single letters carry the meaning, so muted greys must still meet a
+  // readable contrast in both themes; hue alone no longer disambiguates rows
+  const STATUS_COLOR: Record<string, string> = {
+    N: 'secondary',
+    R: 'info',
+    Y: 'success',
+    E: 'error',
+    X: 'grey',
+    W: 'warning',
+    U: 'blue-grey-darken-1',
+  };
+
   function getStatusColor(status: string) {
-    const statusColorMap = {
-      N: 'grey-lighten-1',
-      R: 'blue', // 运行中使用干净的蓝色
-      Y: 'success', // 成功绿色
-      E: 'error', // 错误红色
-      X: 'warning', // 警告橙色
-      W: 'amber',
-      U: 'grey-darken-1',
-    };
-    return statusColorMap[status] || 'grey';
+    return STATUS_COLOR[status] || 'grey';
   }
 
   const STATUS_LABEL: Record<string, string> = {
@@ -444,20 +506,71 @@
 
   const statusLabel = (status: string) => STATUS_LABEL[status] || status || '未知';
 
+  // Lifecycle order reads better than an alphabetical or enum order
+  const STATUS_LEGEND = ['N', 'W', 'R', 'Y', 'E', 'U', 'X'].map(code => ({
+    code,
+    label: STATUS_LABEL[code],
+  }));
+
   const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
   const sourceOptions = ref<any[]>([]);
 
+  // Cap the visible codes so the trigger reads as a summary instead of an ellipsis
+  const statusFilterLabel = computed(() => {
+    const codes = runStatuses.value;
+    if (!codes.length) return '状态';
+    if (codes.length <= 3) return codes.join(', ');
+    return `${codes.slice(0, 3).join(', ')} +${codes.length - 3}`;
+  });
+  const statusFilterTitle = computed(() =>
+    runStatuses.value.length
+      ? runStatuses.value.map(code => `${code} ${statusLabel(code)}`).join('，')
+      : '按状态筛选'
+  );
+
+  function toggleStatus(code: string) {
+    runStatuses.value = runStatuses.value.includes(code)
+      ? runStatuses.value.filter(item => item !== code)
+      : [...runStatuses.value, code];
+  }
+
   // 优化后的 Headers 配置：精简列数，合并表达
   const headers: DataTableHeader[] = [
-    { title: '#', key: 'id', align: 'center', width: '1%' },
-    { title: '源库表映射路径', key: 'sourceTable', align: 'start', sortable: true, width: '28%' },
-    { title: '目标库表', key: 'targetTable', align: 'start', sortable: true, width: '25%' },
-    { title: '过滤规则', key: 'filter', align: 'start', sortable: true, width: '13%' },
-    { title: '状态', key: 'status', align: 'start', sortable: true, width: '5%' },
-    { title: '耗时(s)', key: 'duration', align: 'end', sortable: true, width: '6%' },
-    { title: '完成时间', key: 'endTime', align: 'center', sortable: true, width: '10%' },
-    { title: '操作', key: 'action', align: 'center', sortable: false, width: '10%' },
+    // Why: every short column has a knowable ceiling, so it gets a fixed width and
+    // the two table-name columns keep all the remaining space
+    // 84px covers six digits, so the next order of magnitude does not clip
+    { title: '#', key: 'id', align: 'center', width: 84 },
+    {
+      title: '源库表映射路径',
+      key: 'sourceTable',
+      align: 'start',
+      sortable: true,
+    },
+    { title: '目标库表', key: 'targetTable', align: 'start', sortable: true },
+    {
+      title: '过滤规则',
+      key: 'filter',
+      align: 'start',
+      sortable: true,
+      width: 140,
+    },
+    { title: '状态', key: 'status', align: 'start', sortable: true, width: 92 },
+    { title: '耗时(s)', key: 'duration', align: 'end', sortable: true, width: 96 },
+    {
+      title: '完成时间',
+      key: 'endTime',
+      align: 'center',
+      sortable: true,
+      width: 184,
+    },
+    {
+      title: '操作',
+      key: 'action',
+      align: 'center',
+      sortable: false,
+      width: 168,
+    },
   ];
 
   const COLUMNS_KEY = 'ds.table.hiddenColumns';
@@ -848,36 +961,121 @@
     min-width: 0;
   }
 
+  .ds-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .ds-filters__keyword {
+    flex: 1 1 420px;
+    min-width: 260px;
+    max-width: 840px;
+  }
+
+  .ds-filters__status {
+    flex: 0 0 148px;
+    justify-content: flex-start;
+    padding-inline: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+  }
+
+  .ds-filters__status :deep(.v-btn__content) {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+
+  .ds-filters__status--active {
+    border-color: rgba(var(--v-theme-primary), 0.5);
+    color: rgb(var(--v-theme-primary));
+  }
+
+  .ds-filters__status-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: start;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ds-status-menu {
+    min-width: 200px;
+  }
+
+  .ds-nowrap {
+    white-space: nowrap;
+  }
+
+  /* Why: fixed layout keeps the short columns at their known sizes and lets the
+     name columns share the rest; auto layout sized columns by the longest name */
+  .table-card :deep(table) {
+    table-layout: fixed;
+    min-width: 1160px;
+  }
+
+  .ds-filters__source {
+    flex: 0 1 220px;
+    min-width: 180px;
+  }
+
   .filter-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .ds-bulk-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border: 1px solid rgba(var(--v-theme-primary), 0.24);
+    border-radius: 10px;
+    background: rgba(var(--v-theme-primary), 0.06);
+  }
+
+  .ds-bulk-bar__count {
+    color: rgb(var(--v-theme-primary));
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .ds-bulk-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
   }
 
   .table-display-menu {
     min-width: 232px;
   }
 
-  .query-actions {
-    flex-wrap: wrap;
-  }
-
-  .batch-toolbar {
-    row-gap: 8px;
-  }
-
-  .selection-bar {
-    margin-bottom: 8px;
-    padding: 0 4px;
-    gap: 8px;
-  }
-
   .action-menu-list :deep(.danger-item) {
     color: rgb(var(--v-theme-error));
   }
 
-  .status-cell-wrap {
-    height: 32px;
+  @media (max-width: 700px) {
+    .ds-filters__keyword,
+    .ds-filters__status,
+    .ds-filters__source {
+      flex: 1 1 100%;
+      min-width: 0;
+      max-width: none;
+    }
+
+    .filter-actions,
+    .ds-bulk-bar__actions {
+      margin-left: 0;
+    }
   }
 </style>
 <route lang="json">
