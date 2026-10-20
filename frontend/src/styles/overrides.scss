@@ -235,6 +235,64 @@ select,
   padding: 14px 16px;
 }
 
+/* Why: edit dialogs share one header/body/footer rhythm instead of each card inventing one */
+.ds-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px 14px;
+}
+
+.ds-dialog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.1);
+  color: rgb(var(--v-theme-primary));
+  flex: none;
+}
+
+.ds-dialog-heading {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ds-dialog-title {
+  margin: 0;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: var(--ds-fs-title);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ds-dialog-subtitle {
+  margin: 2px 0 0;
+  color: var(--ds-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ds-dialog-body {
+  padding: 18px 20px !important;
+}
+
+.ds-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface-raised);
+}
+
+.ds-dialog-actions__hint {
+  color: var(--ds-text-3);
+  font-size: 12px;
+}
+
 .section-actions,
 .ds-actions {
   display: inline-flex;
@@ -273,6 +331,76 @@ select,
   min-width: 0;
 }
 
+.ds-status-code {
+  min-width: 30px;
+  justify-content: center;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
+    monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Why: a single letter must stay legible on its own, and these three state
+   hues fall below 4.5:1 in one of the two themes */
+.v-theme--light .ds-status-code--W .ds-status-code__glyph {
+  color: #8a5310;
+}
+
+.v-theme--light .ds-status-code--X .ds-status-code__glyph {
+  color: #5f6b75;
+}
+
+.v-theme--dark .ds-status-code--U .ds-status-code__glyph {
+  color: #90a4ae;
+}
+
+.ds-status-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-status-header__hint {
+  opacity: 0.5;
+  cursor: help;
+  transition: opacity 0.15s ease;
+}
+
+.ds-status-header:hover .ds-status-header__hint {
+  opacity: 1;
+}
+
+.ds-status-legend {
+  padding: 2px 0;
+  min-width: 150px;
+}
+
+.ds-status-legend__title {
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.ds-status-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.ds-status-legend__code {
+  min-width: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.ds-status-legend__label {
+  font-size: 0.78rem;
+  color: var(--ds-text-2);
+}
+
 .ds-cell-meta {
   font-size: 0.78rem;
   line-height: 1.4;
@@ -298,6 +426,9 @@ select,
 .ds-ellipsis {
   display: block;
   max-width: 100%;
+  /* Why: a flex child defaults to min-width auto, which stops long table names
+     from ellipsizing and forces the whole table to overflow instead */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
