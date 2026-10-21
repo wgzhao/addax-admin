@@ -126,6 +126,7 @@ test('saving the detail form keeps the creation time in the payload', async ({ p
 
   await page.goto(`/table/detail/${target!.id}`);
   await expect(createdAtCard(page)).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: '编辑配置' }).click();
   await page.getByRole('button', { name: '保存更改' }).click();
 
   await expect.poll(() => payload !== null, { timeout: 15_000 }).toBe(true);

@@ -156,33 +156,28 @@
   .summary-label {
     display: block;
     margin-bottom: 6px;
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: rgba(var(--v-theme-on-surface), 0.56);
+    color: rgba(var(--v-theme-on-surface), 0.7);
   }
 
-  @media (max-width: 1180px) {
+  @media (max-width: 760px) {
     .hero-card__content {
       flex-direction: column;
+      padding: 16px;
     }
 
     .summary-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .hero-route {
       min-width: 0;
     }
-  }
 
-  @media (max-width: 760px) {
-    .hero-card__content {
-      padding: 16px;
-    }
-
-    .summary-grid {
-      grid-template-columns: 1fr;
+    .summary-card:last-child {
+      grid-column: 1 / -1;
     }
   }
 </style>

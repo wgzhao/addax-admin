@@ -140,6 +140,7 @@ test('saving an RDBMS table writes rdbms options and keeps the stored hdfs optio
 
   await page.goto(`/table/detail/${rdbms!.id}`);
   await expect(page.getByText('快照业务日期列', { exact: true })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: '编辑配置' }).click();
   await page.getByRole('button', { name: '保存更改' }).click();
 
   await expect.poll(() => payload !== null, { timeout: 15_000 }).toBe(true);

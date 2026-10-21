@@ -37,6 +37,7 @@
               item-title="label"
               item-value="value"
               placeholder="请选择写入模式"
+              :rules="[required]"
               hide-details="auto"
             />
           </div>
@@ -50,6 +51,7 @@
               variant="outlined"
               density="comfortable"
               placeholder="请输入目标库"
+              :rules="[required]"
               hide-details="auto"
             />
           </div>
@@ -63,6 +65,7 @@
               variant="outlined"
               density="comfortable"
               placeholder="请输入目标表"
+              :rules="[required]"
               hide-details="auto"
             />
           </div>
@@ -70,27 +73,32 @@
 
         <v-col cols="12" md="6">
           <div class="field-block">
-            <div class="field-label">调度时间 (HH:mm)</div>
+            <div class="field-label">调度时间</div>
             <v-text-field
               v-model="table.startAt"
               variant="outlined"
               density="comfortable"
-              placeholder="为空则继承采集源"
+              placeholder="HH:mm 或 HH:mm:ss"
               clearable
               persistent-hint
-              :hint="`继承值：${inheritedStartAt || '-'}`"
+              :hint="`留空则继承采集源（当前：${inheritedStartAt || '未设置'}）`"
+              :rules="[optionalTime]"
             />
           </div>
         </v-col>
 
         <v-col cols="12" md="6">
           <div class="field-block">
-            <div class="field-label">最大运行时 (s)</div>
+            <div class="field-label">最大运行时长</div>
             <v-text-field
-              v-model="table.maxRuntime"
+              v-model.number="table.maxRuntime"
               variant="outlined"
               density="comfortable"
-              placeholder="不填默认 2000 秒"
+              type="number"
+              min="1"
+              suffix="秒"
+              placeholder="默认 2000 秒"
+              :rules="[optionalPositiveInteger]"
               hide-details="auto"
             />
           </div>
@@ -120,7 +128,20 @@
     { label: '无冲突追加 (nonConflict)', value: 'nonConflict' },
   ];
 
-  const required = (v: unknown) => !!v || '此字段为必填项';
+  const required = (v: unknown) => !!String(v ?? '').trim() || '此字段为必填项';
+
+  const optionalTime = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return true;
+    const text = String(value).trim();
+    const format = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+    return format.test(text) || '时间格式不正确，请使用 HH:mm 或 HH:mm:ss';
+  };
+
+  const optionalPositiveInteger = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return true;
+    const number = Number(value);
+    return (Number.isInteger(number) && number > 0) || '必须为大于 0 的整数';
+  };
 </script>
 
 <style lang="scss" scoped>
