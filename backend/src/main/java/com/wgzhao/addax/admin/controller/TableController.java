@@ -377,12 +377,6 @@ public class TableController
     @PutMapping("/{tableId}/addax-job")
     public ResponseEntity<String> updateAddaxJob(@PathVariable long tableId, @RequestBody String jobContent)
     {
-        EtlTable table = etlTableRepo.findById(tableId)
-            .orElseThrow(() -> new ApiException(404, "Table not found"));
-        if (table.getRetiredAt() != null) {
-            throw new ApiException(409, "采集表已退役，恢复后才能修改任务");
-        }
-        // 具体实现略
         jobContentService.updateJobContent(tableId, jobContent);
         return ResponseEntity.ok("Job content updated successfully");
     }

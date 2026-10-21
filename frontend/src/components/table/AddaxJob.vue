@@ -7,6 +7,9 @@
             <div class="panel-title">采集作业配置</div>
             <v-chip size="small" variant="tonal" color="primary">JSON</v-chip>
             <v-chip v-if="editing" size="small" variant="outlined" color="warning">编辑中</v-chip>
+            <v-chip v-else-if="isRetired" size="small" variant="outlined" color="grey">
+              已退役
+            </v-chip>
           </div>
         </div>
         <div class="panel-actions">
@@ -20,6 +23,7 @@
               复制
             </v-btn>
             <v-btn
+              v-if="canEdit"
               size="small"
               variant="flat"
               color="primary"
@@ -81,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, computed } from 'vue';
+  import { ref, onMounted, computed, watch } from 'vue';
   import hljs from 'highlight.js/lib/core';
   import json from 'highlight.js/lib/languages/json';
   import tableService from '@/service/table-service';
@@ -89,6 +93,10 @@
   import { useNotifier } from '@/stores/notifier';
 
   hljs.registerLanguage('json', json);
+
+  const props = defineProps<{
+    retiredAt?: string | null;
+  }>();
 
   const { notify } = useNotifier();
 
@@ -103,6 +111,9 @@
   const editing = ref(false);
   const editContent = ref('');
   const dirty = ref(false);
+  // A missing value means the parent has not loaded the table lifecycle yet.
+  const canEdit = computed(() => props.retiredAt === null);
+  const isRetired = computed(() => Boolean(props.retiredAt));
 
   const displayText = computed(() => {
     if (!jobContent.value) return '';
@@ -154,6 +165,7 @@
   });
 
   function startEdit() {
+    if (!canEdit.value) return;
     editing.value = true;
     dirty.value = false;
     editContent.value = displayText.value;
@@ -169,7 +181,7 @@
   }
 
   async function saveEdit() {
-    if (!tid) return;
+    if (!tid || !canEdit.value) return;
     try {
       loading.value = true;
       try {
@@ -190,6 +202,12 @@
       loading.value = false;
     }
   }
+
+  watch(canEdit, editable => {
+    if (!editable && editing.value) {
+      cancelEdit();
+    }
+  });
 </script>
 
 <style scoped>

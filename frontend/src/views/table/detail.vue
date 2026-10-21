@@ -63,7 +63,7 @@
             <LogFiles />
           </v-tabs-window-item>
           <v-tabs-window-item value="job">
-            <AddaxJob />
+            <AddaxJob :retired-at="retiredAt" />
           </v-tabs-window-item>
           <v-tabs-window-item value="fields">
             <FieldsCompare />
@@ -103,7 +103,8 @@
   const detailRef = ref<{ canLeave: () => boolean } | null>(null);
 
   const tblname = ref(String(route.query.tblname || ''));
-  const retiredAt = ref<string | null>(null);
+  // undefined means the lifecycle is still unknown; editing must stay disabled until it is resolved.
+  const retiredAt = ref<string | null | undefined>(undefined);
   const retiredBy = ref<string | null>(null);
   const sourceEnabled = ref(true);
   const tableStatus = ref('');

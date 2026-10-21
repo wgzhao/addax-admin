@@ -8,11 +8,14 @@ import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlJour;
+import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlJobRepo;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -44,6 +47,7 @@ public class JobContentService
 {
 
     private final EtlJobRepo jobRepo;
+    private final EtlTableRepo tableRepo;
     private final ColumnService columnService;
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
@@ -368,7 +372,16 @@ public class JobContentService
     }
 
     public void updateJobContent(long tableId, String jobContent) {
-        EtlJob etlJob = jobRepo.findById(tableId).orElse(new EtlJob());
+        EtlTable table = tableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        if (table.getRetiredAt() != null) {
+            throw new ApiException(409, "采集表已退役，恢复后才能修改任务");
+        }
+        EtlJob etlJob = jobRepo.findById(tableId).orElseGet(() -> {
+            EtlJob newJob = new EtlJob();
+            newJob.setTid(tableId);
+            return newJob;
+        });
         etlJob.setJob(jobContent);
         jobRepo.save(etlJob);
     }
