@@ -15,8 +15,9 @@
               v-model="table.name"
               variant="outlined"
               density="comfortable"
-              placeholder="请输入源系统"
-              hide-details="auto"
+              readonly
+              persistent-hint
+              hint="源系统名称来自采集源，请在采集源页面修改"
             />
           </div>
         </v-col>
@@ -45,6 +46,7 @@
               variant="outlined"
               density="comfortable"
               placeholder="请输入源库"
+              :rules="[required]"
               hide-details="auto"
             />
           </div>
@@ -54,12 +56,13 @@
           <div class="field-block">
             <div class="field-label">剩余次数</div>
             <v-text-field
-              v-model="table.retryCnt"
+              v-model.number="table.retryCnt"
               variant="outlined"
               density="comfortable"
               type="number"
+              min="0"
               placeholder="请输入剩余次数"
-              :rules="[nonNegative]"
+              :rules="[nonNegativeInteger]"
               hide-details="auto"
             />
           </div>
@@ -84,6 +87,7 @@
               variant="outlined"
               density="comfortable"
               placeholder="请输入源表"
+              :rules="[required]"
               hide-details="auto"
             />
           </div>
@@ -102,10 +106,12 @@
   // Object-level model: mutate fields only, never assign the whole object
   const table = defineModel<VEtlWithSource>('table', { required: true });
 
-  const nonNegative = (v: unknown) => {
+  const required = (value: unknown) => !!String(value ?? '').trim() || '此字段为必填项';
+
+  const nonNegativeInteger = (v: unknown) => {
     if (v === null || v === undefined || v === '') return true;
     const n = Number(v);
-    return (!Number.isNaN(n) && n >= 0) || '必须为非负数';
+    return (Number.isInteger(n) && n >= 0) || '必须为非负整数';
   };
 </script>
 

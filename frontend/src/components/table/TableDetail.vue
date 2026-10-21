@@ -1,40 +1,46 @@
 <template>
   <v-form ref="formRef" fast-fail tag="form" class="table-detail-shell" @submit.prevent="saveOds">
-    <HeroSummaryCard v-model:table="table" :target-options="targetOptions" />
+    <TableDetailState
+      v-if="loading || loadError"
+      :loading="loading"
+      :error="loadError"
+      @retry="loadDetail"
+    />
 
-    <v-row density="comfortable" class="detail-grid">
-      <v-col cols="12" lg="7" class="panel-stack">
-        <BasicFieldsCard
-          v-model:table="table"
-          @show-placeholder-help="showPlaceholderInfo = true"
-        />
-        <MappingScheduleCard v-model:table="table" :target-options="targetOptions" />
-        <ExtractStorageCard
-          v-model:table="table"
-          :target-type="selectedTargetType"
-          @show-filter-help="showFilterRuleInfo = true"
-        />
-      </v-col>
+    <template v-else>
+      <HeroSummaryCard v-model:table="table" :target-options="targetOptions" />
 
-      <v-col cols="12" lg="5" class="panel-stack">
-        <PluginConfigCard
-          v-model:reader-plugin-config-text="readerPluginConfigText"
-          v-model:writer-plugin-config-text="writerPluginConfigText"
-        />
-        <SnapshotRemarkCard
-          v-model:table="table"
-          @show-placeholder-help="showPlaceholderInfo = true"
-          @show-filter-help="showFilterRuleInfo = true"
-        />
-      </v-col>
-    </v-row>
+      <TableDetailCommandBar
+        :editing="editing"
+        :dirty="dirty"
+        :saving="saving"
+        :retired="isRetired"
+        :updated-at="table.updatedAt"
+        @edit="beginEdit"
+        @cancel="cancelEdit"
+        @save="saveOds"
+      />
 
-    <v-card v-if="!table.retiredAt" flat class="ds-card action-card">
-      <v-card-actions class="action-bar">
-        <v-spacer />
-        <v-btn color="primary" variant="flat" @click="saveOds">保存更改</v-btn>
-      </v-card-actions>
-    </v-card>
+      <DetailOverviewCard
+        v-if="!editing"
+        :table="table"
+        :reader-plugin-config-text="readerPluginConfigText"
+        :writer-plugin-config-text="writerPluginConfigText"
+        @show-placeholder-help="showPlaceholderInfo = true"
+        @show-filter-help="showFilterRuleInfo = true"
+      />
+
+      <TableDetailEditForm
+        v-else
+        v-model:table="table"
+        v-model:reader-plugin-config-text="readerPluginConfigText"
+        v-model:writer-plugin-config-text="writerPluginConfigText"
+        :target-options="targetOptions"
+        :target-type="selectedTargetType"
+        @show-placeholder-help="showPlaceholderInfo = true"
+        @show-filter-help="showFilterRuleInfo = true"
+      />
+    </template>
 
     <DynamicNameHelpDialog v-model="showPlaceholderInfo" />
     <FilterRuleHelpDialog v-model="showFilterRuleInfo" />
@@ -42,8 +48,8 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue';
-  import { useRoute } from 'vue-router';
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+  import { onBeforeRouteLeave, useRoute } from 'vue-router';
   import { notify } from '@/stores/notifier';
   import tableService from '@/service/table-service';
   import targetService from '@/service/target-service';
@@ -51,13 +57,12 @@
   import { toJsonText, parseJsonObjectOrNull } from '@/utils/json-plugin';
   import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
   import HeroSummaryCard from './detail/HeroSummaryCard.vue';
-  import BasicFieldsCard from './detail/BasicFieldsCard.vue';
-  import MappingScheduleCard from './detail/MappingScheduleCard.vue';
-  import ExtractStorageCard from './detail/ExtractStorageCard.vue';
-  import PluginConfigCard from './detail/PluginConfigCard.vue';
-  import SnapshotRemarkCard from './detail/SnapshotRemarkCard.vue';
   import DynamicNameHelpDialog from './detail/DynamicNameHelpDialog.vue';
   import FilterRuleHelpDialog from './detail/FilterRuleHelpDialog.vue';
+  import DetailOverviewCard from './detail/DetailOverviewCard.vue';
+  import TableDetailCommandBar from './detail/TableDetailCommandBar.vue';
+  import TableDetailEditForm from './detail/TableDetailEditForm.vue';
+  import TableDetailState from './detail/TableDetailState.vue';
 
   const route = useRoute();
   // cast: unplugin-vue-router does not type custom route-block path params
@@ -73,6 +78,23 @@
   const writerPluginConfigText = ref('');
   const showPlaceholderInfo = ref(false);
   const showFilterRuleInfo = ref(false);
+  const loading = ref(true);
+  const loadError = ref('');
+  const editing = ref(false);
+  const dirty = ref(false);
+  const saving = ref(false);
+  const cleanSignature = ref('');
+  const originalTable = ref<VEtlWithSource | null>(null);
+
+  // The loaded value is a Vue proxy; a JSON round-trip provides a detached editable snapshot.
+  const cloneTable = (value: VEtlWithSource) => JSON.parse(JSON.stringify(value)) as VEtlWithSource;
+
+  const currentSignature = () =>
+    JSON.stringify({
+      table: table.value,
+      readerPluginConfigText: readerPluginConfigText.value,
+      writerPluginConfigText: writerPluginConfigText.value,
+    });
 
   const syncTableData = (newTable: VEtlWithSource) => {
     storedOptions.value = newTable.targetOptions ?? {};
@@ -81,19 +103,64 @@
     writerPluginConfigText.value = toJsonText(newTable.writerPluginConfig);
   };
 
+  const markClean = () => {
+    cleanSignature.value = currentSignature();
+    dirty.value = false;
+  };
+
+  const beginEdit = () => {
+    if (isRetired.value) return;
+    originalTable.value = cloneTable(table.value);
+    markClean();
+    editing.value = true;
+  };
+
+  const cancelEdit = () => {
+    if (originalTable.value) {
+      syncTableData(cloneTable(originalTable.value));
+    }
+    editing.value = false;
+    markClean();
+  };
+
+  const canLeave = () => !dirty.value || window.confirm('还有未保存的修改，确定要离开当前编辑吗？');
+
+  watch(
+    [table, readerPluginConfigText, writerPluginConfigText],
+    () => {
+      dirty.value = editing.value && currentSignature() !== cleanSignature.value;
+    },
+    { deep: true }
+  );
+
   // The card re-renders on an unsaved target change, so prefer the picked endpoint over the persisted type.
   const selectedTargetType = computed(() => {
     const picked = targetOptions.value.find(t => t.value === table.value.targetId);
     return picked?.targetType || table.value.targetType;
   });
 
-  onMounted(async () => {
-    if (!tid.value) return;
+  const isRetired = computed(() => !!table.value.retiredAt);
+
+  const loadDetail = async () => {
+    if (!tid.value) {
+      loading.value = false;
+      loadError.value = '缺少采集表编号';
+      return;
+    }
+
+    loading.value = true;
+    loadError.value = '';
+    editing.value = false;
+
     try {
       const details = await tableService.fetchTableDetail(tid.value);
+      originalTable.value = cloneTable(details);
       syncTableData(details);
+      markClean();
     } catch (e) {
-      notify('加载采集表详情失败: ' + ((e as Error)?.message || String(e)), 'error');
+      loadError.value = (e as Error)?.message || String(e);
+    } finally {
+      loading.value = false;
     }
 
     try {
@@ -108,9 +175,30 @@
     } catch {
       notify('加载目标端列表失败', 'warning');
     }
+  };
+
+  const onBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (!dirty.value) return;
+    event.preventDefault();
+    event.returnValue = '';
+  };
+
+  onMounted(() => {
+    loadDetail();
+    window.addEventListener('beforeunload', onBeforeUnload);
   });
 
+  onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', onBeforeUnload);
+  });
+
+  onBeforeRouteLeave(() => canLeave());
+
+  defineExpose({ canLeave });
+
   const saveOds = async () => {
+    if (!editing.value || isRetired.value) return;
+
     if (typeof (formRef?.value as any)?.validate === 'function') {
       const valid = await (formRef?.value as any).validate();
       if (!valid.valid) {
@@ -163,12 +251,18 @@
       updatedAt: table.value.updatedAt,
     };
 
+    saving.value = true;
     try {
       const updatedRecord = await tableService.save(etlTableData as EtlTable);
       notify('保存成功', 'success');
       syncTableData({ ...table.value, ...updatedRecord } as VEtlWithSource);
+      originalTable.value = cloneTable(table.value);
+      editing.value = false;
+      markClean();
     } catch (err) {
       notify('保存失败: ' + ((err as Error)?.message || String(err)), 'error');
+    } finally {
+      saving.value = false;
     }
   };
 
@@ -179,32 +273,6 @@
   .table-detail-shell {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-  }
-
-  .panel-stack {
-    display: flex;
-    flex-direction: column;
     gap: 12px;
-  }
-
-  .action-card {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-  }
-
-  .action-bar {
-    padding: 14px 18px;
-  }
-
-  .action-copy {
-    color: rgba(var(--v-theme-on-surface), 0.62);
-  }
-
-  @media (max-width: 760px) {
-    .action-bar {
-      padding: 16px;
-    }
   }
 </style>

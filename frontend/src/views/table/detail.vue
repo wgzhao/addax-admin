@@ -1,11 +1,14 @@
 <template>
   <div class="table-detail-page page-shell">
-    <v-card flat>
+    <v-card flat class="ds-card detail-header-card">
       <v-card-text class="ds-card__content d-flex align-center">
         <v-btn icon aria-label="返回" @click="router.back()">
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
-        <div class="page-title">采集表详情: {{ tblname }}</div>
+        <div class="page-title-block">
+          <h1 class="page-title">采集表详情</h1>
+          <span v-if="tblname" class="page-title__identity">{{ tblname }}</span>
+        </div>
       </v-card-text>
     </v-card>
 
@@ -34,7 +37,13 @@
 
     <v-card flat class="ds-card table-detail-card">
       <v-card-text class="ds-card__content">
-        <v-tabs v-model="currentTab" background-color="transparent">
+        <v-tabs
+          :model-value="currentTab"
+          show-arrows
+          background-color="transparent"
+          class="detail-tabs"
+          @update:model-value="handleTabChange"
+        >
           <v-tab value="info">基本详情</v-tab>
           <v-tab value="logs">采集日志</v-tab>
           <v-tab value="job">采集任务配置</v-tab>
@@ -48,7 +57,7 @@
 
         <v-tabs-window v-model="currentTab" class="mt-4">
           <v-tabs-window-item value="info">
-            <TableDetail />
+            <TableDetail ref="detailRef" />
           </v-tabs-window-item>
           <v-tabs-window-item value="logs">
             <LogFiles />
@@ -91,6 +100,7 @@
   const router = useRouter();
 
   const currentTab = ref(String(route.query.tab || 'info'));
+  const detailRef = ref<{ canLeave: () => boolean } | null>(null);
 
   const tblname = ref(String(route.query.tblname || ''));
   const retiredAt = ref<string | null>(null);
@@ -117,6 +127,13 @@
     });
   });
 
+  const handleTabChange = (nextTab: unknown) => {
+    const target = String(nextTab);
+    if (target === currentTab.value) return;
+    if (!detailRef.value?.canLeave()) return;
+    currentTab.value = target;
+  };
+
   onMounted(() => {
     tableService
       .fetchTableDetail(Number(tid))
@@ -138,13 +155,46 @@
 
 <style scoped>
   .table-detail-page .page-title {
+    margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .page-title-block {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
     margin-left: 12px;
+  }
+
+  .page-title__identity {
+    min-width: 0;
+    overflow: hidden;
+    color: rgba(var(--v-theme-on-surface), 0.62);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+    font-size: 0.84rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detail-header-card {
+    flex: none;
   }
 
   .table-detail-card {
     margin-top: 12px;
+  }
+
+  @media (max-width: 760px) {
+    .page-title__identity {
+      display: none;
+    }
+
+    .page-title-block {
+      flex: 1;
+    }
   }
 </style>
 
