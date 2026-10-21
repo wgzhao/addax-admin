@@ -125,13 +125,26 @@
             clearable
             label="采集源"
           />
+          <v-select
+            v-model="scope"
+            class="ds-filters__scope"
+            :items="SCOPE_OPTIONS"
+            item-title="label"
+            item-value="value"
+            density="compact"
+            variant="outlined"
+            single-line
+            hide-details
+            label="管理范围"
+            @update:model-value="searchTable"
+          />
           <div class="filter-actions">
             <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
             <v-btn variant="text" @click="resetFilters">重置</v-btn>
           </div>
         </div>
 
-        <div v-if="selected.length > 0" class="ds-bulk-bar">
+        <div v-if="selected.length > 0 && scope !== 'RETIRED'" class="ds-bulk-bar">
           <span class="ds-bulk-bar__count">已选择 {{ selected.length }} 行</span>
           <div class="ds-bulk-bar__actions">
             <v-btn variant="flat" color="primary" prepend-icon="mdi-database" @click="doEtl(null)">
@@ -169,8 +182,14 @@
       <v-card-text class="ds-card__content">
         <template v-if="!loading && totalItems === 0">
           <EmptyState
-            title="暂无采集表"
-            description="当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。"
+            :title="scope === 'RETIRED' ? '暂无已退役采集表' : '暂无采集表'"
+            :description="
+              scope === 'RETIRED'
+                ? '退役采集表会保留在当前历史入口中，统计、流水和日志不会随退役消失。'
+                : scope === 'DORMANT'
+                ? '没有因表停采或采集源停用而暂停的采集定义。'
+                : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
+            "
             :primary="{ label: '新增采集表', icon: 'mdi-plus' }"
             :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
             @primary="() => router.push('/table/batch-add')"
@@ -239,6 +258,25 @@
                   <span class="ds-cell-support">{{ item.sourceDb || '' }}.</span
                   >{{ item.sourceTable || '' }}
                 </span>
+                <v-chip
+                  v-if="item.retiredAt"
+                  size="x-small"
+                  color="grey"
+                  variant="tonal"
+                  class="mt-1"
+                >
+                  已退役 {{ item.retiredBy ? `· ${item.retiredBy}` : '' }}
+                </v-chip>
+                <v-chip
+                  v-else-if="item.enabled === false"
+                  size="x-small"
+                  color="warning"
+                  variant="tonal"
+                  class="mt-1"
+                  title="采集源停用只影响自动调度，仍可查看、编辑和手动执行"
+                >
+                  源已停用
+                </v-chip>
               </div>
             </template>
             <template #item.status="{ item }">
@@ -311,7 +349,7 @@
 
             <template #item.action="{ item }">
               <div class="adjust-start align-center space-between">
-                <v-tooltip text="发起采集" location="top">
+                <v-tooltip v-if="!item.retiredAt" text="发起采集" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="primary"
@@ -324,7 +362,7 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip text="更新表结构" location="top">
+                <v-tooltip v-if="!item.retiredAt" text="更新表结构" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="warning"
@@ -337,16 +375,29 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip text="删除此采集表" location="top">
+                <v-tooltip v-if="!item.retiredAt" text="退役此采集表" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="error"
                       size="small"
                       class="mr-2"
                       icon="mdi-delete"
-                      :aria-label="`删除采集表 ${item.sourceTable || item.id}`"
+                      :aria-label="`退役采集表 ${item.sourceTable || item.id}`"
                       v-bind="activatorProps"
                       @click="confirmDelete(item)"
+                    ></v-icon-btn>
+                  </template>
+                </v-tooltip>
+                <v-tooltip v-else text="恢复采集表" location="top">
+                  <template #activator="{ props: activatorProps }">
+                    <v-icon-btn
+                      color="success"
+                      size="small"
+                      class="mr-2"
+                      icon="mdi-backup-restore"
+                      :aria-label="`恢复采集表 ${item.sourceTable || item.id}`"
+                      v-bind="activatorProps"
+                      @click="restoreItem(item)"
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
@@ -396,7 +447,7 @@
     width="480"
   >
     <v-card>
-      <v-card-title class="text-h6">确认删除</v-card-title>
+      <v-card-title class="text-h6">确认退役</v-card-title>
       <v-card-text>{{ deleteConfirmMessage }}</v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -405,7 +456,7 @@
           color="error"
           variant="flat"
           @click="isBatchDelete ? batchDeleteItems() : deleteItem()"
-          >确认删除</v-btn
+          >确认退役</v-btn
         >
       </v-card-actions>
     </v-card>
@@ -475,6 +526,7 @@
     search.value = '';
     runStatuses.value = [];
     sourceId.value = null;
+    scope.value = 'CURRENT';
     searchTable();
   }
 
@@ -515,6 +567,13 @@
   const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
   const sourceOptions = ref<any[]>([]);
+  const scope = ref<'CURRENT' | 'DORMANT' | 'RETIRED' | 'ALL'>('CURRENT');
+  const SCOPE_OPTIONS = [
+    { label: '当前定义', value: 'CURRENT' },
+    { label: '暂停中', value: 'DORMANT' },
+    { label: '已退役', value: 'RETIRED' },
+    { label: '全部', value: 'ALL' },
+  ];
 
   // Cap the visible codes so the trigger reads as a summary instead of an ellipsis
   const statusFilterLabel = computed(() => {
@@ -608,6 +667,7 @@
     if (search.value) query.q = search.value;
     if (runStatuses.value.length) query.status = runStatuses.value.join(',');
     if (sourceId.value != null) query.source = String(sourceId.value);
+    if (scope.value !== 'CURRENT') query.scope = scope.value;
     if (currentPage.value > 1) query.page = String(currentPage.value);
     if (currPageSize.value !== 15) query.size = String(currPageSize.value);
     if (route.query.action) query.action = String(route.query.action);
@@ -620,6 +680,16 @@
     runStatuses.value =
       typeof query.status === 'string' && query.status ? query.status.split(',') : [];
     sourceId.value = query.source ? Number(query.source) : null;
+    const requestedScope =
+      typeof query.scope === 'string'
+        ? query.scope
+        : typeof query.lifecycle === 'string'
+        ? query.lifecycle
+        : 'CURRENT';
+    scope.value =
+      requestedScope === 'DORMANT' || requestedScope === 'RETIRED' || requestedScope === 'ALL'
+        ? requestedScope
+        : 'CURRENT';
     currentPage.value = Number(query.page) > 0 ? Number(query.page) : 1;
     currPageSize.value = Number(query.size) > 0 ? Number(query.size) : 15;
   };
@@ -635,6 +705,9 @@
       目标库表: `${row.targetDb || ''}.${row.targetTable || ''}`,
       过滤规则: row.filter || '',
       状态: statusLabel(row.status),
+      生命周期: row.retiredAt ? '已退役' : '使用中',
+      采集源状态: row.enabled === false ? '已停用' : '已启用',
+      退役时间: row.retiredAt || '',
       耗时秒: row.duration ?? '',
       完成时间: row.endTime || '',
     }));
@@ -771,7 +844,8 @@
         search.value,
         runStatuses.value,
         sourceId.value,
-        sortParam
+        sortParam,
+        scope.value
       )
       .then(res => {
         table.value = res.content;
@@ -794,8 +868,11 @@
 
   async function loadSources() {
     try {
-      const res = await sourceService.listActiveSources();
-      sourceOptions.value = res.map((s: any) => ({ label: `${s.code}_${s.name}`, value: s.id }));
+      const res = await sourceService.list();
+      sourceOptions.value = res.map((s: any) => ({
+        label: `${s.code}_${s.name}${s.enabled === false ? '（已停用）' : ''}`,
+        value: s.id,
+      }));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       notify('加载采集源失败: ' + msg, 'error');
@@ -865,14 +942,15 @@
 
   function confirmDelete(item) {
     itemToDelete.value = item;
-    deleteConfirmMessage.value = '您确定要删除此项吗？';
+    deleteConfirmMessage.value =
+      '退役后将从日常列表和调度中移除，但采集统计、流水、日志和配置历史都会保留。确认继续吗？';
     isBatchDelete.value = false;
     deleteDialogVisible.value = true;
   }
 
   function confirmBatchDelete() {
     if (selected.value.length === 0) return;
-    deleteConfirmMessage.value = `您确定要删除选中的 ${selected.value.length} 项吗？`;
+    deleteConfirmMessage.value = `您确定要退役选中的 ${selected.value.length} 项吗？历史统计和日志会保留。`;
     isBatchDelete.value = true;
     deleteDialogVisible.value = true;
   }
@@ -887,12 +965,12 @@
           if (index > -1) {
             table.value.splice(index, 1);
           }
-          notify('删除成功', 'success');
+          notify('采集表已退役，历史数据已保留', 'success');
           deleteDialogVisible.value = false;
           itemToDelete.value = null;
         })
         .catch(error => {
-          notify(`删除失败: ${error}`, 'error');
+          notify(`退役失败: ${error}`, 'error');
           deleteDialogVisible.value = false;
         });
     }
@@ -903,16 +981,26 @@
     const tids = [...selected.value];
     Promise.all(tids.map(tid => tableService.delete(tid)))
       .then(() => {
-        notify('批量删除成功', 'success');
+        notify('采集表已批量退役，历史数据已保留', 'success');
         deleteDialogVisible.value = false;
         selected.value = [];
         _searchCore();
       })
       .catch(error => {
-        notify(`批量删除时发生错误: ${error}`, 'error');
+        notify(`批量退役时发生错误: ${error}`, 'error');
         deleteDialogVisible.value = false;
         _searchCore();
       });
+  }
+
+  async function restoreItem(item: any) {
+    try {
+      await tableService.restore(item.id);
+      notify('采集表已恢复，可继续调度和编辑', 'success');
+      _searchCore();
+    } catch (error) {
+      notify(`恢复失败: ${error}`, 'error');
+    }
   }
 
   function confirmKill(item: any) {
@@ -1023,6 +1111,10 @@
     min-width: 180px;
   }
 
+  .ds-filters__scope {
+    flex: 0 0 132px;
+  }
+
   .filter-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1066,7 +1158,8 @@
   @media (max-width: 700px) {
     .ds-filters__keyword,
     .ds-filters__status,
-    .ds-filters__source {
+    .ds-filters__source,
+    .ds-filters__scope {
       flex: 1 1 100%;
       min-width: 0;
       max-width: none;

@@ -40,6 +40,7 @@ public class DashboardStatService
         String sql = """
             select status, count(*) as cnt
             from vw_etl_table_with_source
+            where retired_at is null
             group by status
             order by status
             """;
@@ -80,6 +81,7 @@ public class DashboardStatService
             with fails as (
               select tid,
                      start_at,
+                     execution_id,
                      kind,
                      left(coalesce(error_msg, ''), 160) as error_msg,
                      count(*) over (partition by tid) as fail_cnt
@@ -97,20 +99,21 @@ public class DashboardStatService
               from fails
               order by tid, start_at desc
             )
-            select v.id as tid,
-                   v.source_db,
-                   v.source_table,
-                   v.target_db,
-                   v.target_table,
-                   v.code as source_code,
-                   v.name as source_name,
+            select r.tid,
+                   coalesce(x.source_db, v.source_db) as source_db,
+                   coalesce(x.source_table, v.source_table) as source_table,
+                   coalesce(x.target_db, v.target_db) as target_db,
+                   coalesce(x.target_table, v.target_table) as target_table,
+                   coalesce(x.source_code, v.code) as source_code,
+                   coalesce(x.source_name, v.name) as source_name,
                    v.retry_cnt,
                    r.fail_cnt,
                    r.last_kind,
                    to_char(r.last_fail_at, 'YYYY-MM-DD HH24:MI:SS') as last_fail_at,
                    r.last_error
             from ranked r
-            join vw_etl_table_with_source v on v.id = r.tid
+            left join etl_execution x on x.id = r.execution_id
+            left join vw_etl_table_with_source v on v.id = r.tid
             order by r.fail_cnt desc, r.last_fail_at desc
             limit ?
             """;
@@ -160,6 +163,7 @@ public class DashboardStatService
               from vw_etl_table_with_source
               where status <> 'X'
                 and coalesce(enabled, false) = true
+                and retired_at is null
             ),
             expected as (
               select s.biz_date, count(*) as expected
@@ -223,15 +227,16 @@ public class DashboardStatService
         LocalDate bizDate = anchor();
         String sql = """
             with win as (
-              select v.code,
-                     min(v.name) as name,
+              select coalesce(x.source_code, v.code) as code,
+                     min(coalesce(x.source_name, v.name)) as name,
                      e.biz_date,
                      sum(e.total_bytes) as bytes
               from etl_statistic e
-              join vw_etl_table_with_source v on v.id = e.tid
+              left join etl_execution x on x.id = e.execution_id
+              left join vw_etl_table_with_source v on v.id = e.tid
               where e.biz_date > ?::date - 30
                 and e.biz_date <= ?::date
-              group by v.code, e.biz_date
+              group by coalesce(x.source_code, v.code), e.biz_date
             ),
             top_sources as (
               select code
@@ -272,6 +277,7 @@ public class DashboardStatService
         String sql = """
             with agg as (
               select tid,
+                     max(execution_id) as execution_id,
                      count(*) as days,
                      sum(take_secs) as total_secs,
                      max(take_secs) as max_secs,
@@ -282,19 +288,20 @@ public class DashboardStatService
                 and take_secs is not null
               group by tid
             )
-            select v.id as tid,
-                   v.source_db,
-                   v.source_table,
-                   v.target_db,
-                   v.target_table,
-                   v.code as source_code,
-                   v.name as source_name,
+            select a.tid,
+                   coalesce(x.source_db, v.source_db) as source_db,
+                   coalesce(x.source_table, v.source_table) as source_table,
+                   coalesce(x.target_db, v.target_db) as target_db,
+                   coalesce(x.target_table, v.target_table) as target_table,
+                   coalesce(x.source_code, v.code) as source_code,
+                   coalesce(x.source_name, v.name) as source_name,
                    a.days,
                    a.avg_secs,
                    a.max_secs,
                    a.total_secs
             from agg a
-            join vw_etl_table_with_source v on v.id = a.tid
+            left join etl_execution x on x.id = a.execution_id
+            left join vw_etl_table_with_source v on v.id = a.tid
             order by a.avg_secs desc
             limit ?
             """;

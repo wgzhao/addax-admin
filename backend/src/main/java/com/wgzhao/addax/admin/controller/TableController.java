@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
+import com.wgzhao.addax.admin.model.EtlExecution;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.EtlTableChangeLog;
@@ -12,6 +13,7 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.EtlTableChangeLogService;
+import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -65,6 +67,7 @@ public class TableController
      */
     private final JobContentService jobContentService;
     private final EtlTableChangeLogService changeLogService;
+    private final EtlExecutionService executionService;
 
     /**
      * 分页查询采集表
@@ -84,6 +87,8 @@ public class TableController
         @RequestParam(value = "q", required = false) String q,
         @RequestParam(value = "statuses", required = false) String statuses,
         @RequestParam(value = "sourceId", required = false) Integer sourceId,
+        @RequestParam(value = "scope", required = false) String scope,
+        @RequestParam(value = "lifecycle", required = false) String lifecycle,
         @RequestParam(value = "sortField", required = false) String sortField,
         @RequestParam(value = "sortOrder", required = false) String sortOrder)
     {
@@ -94,14 +99,22 @@ public class TableController
             pageSize = Integer.MAX_VALUE;
         }
 
+        String requestedScope = scope != null ? scope : lifecycle;
+        String normalizedScope = requestedScope == null ? "CURRENT" : requestedScope.toUpperCase();
+        if (normalizedScope.equals("ACTIVE")) {
+            // Keep old bookmarks working; ACTIVE previously meant non-retired tables.
+            normalizedScope = "CURRENT";
+        }
+        if (!normalizedScope.equals("CURRENT")
+            && !normalizedScope.equals("DORMANT")
+            && !normalizedScope.equals("RETIRED")
+            && !normalizedScope.equals("ALL")) {
+            throw new ApiException(400, "scope must be CURRENT, DORMANT, RETIRED, or ALL");
+        }
         List<String> statusList = parseStatuses(statuses);
         Page<VwEtlTableWithSource> result;
-        if (!statusList.isEmpty()) {
-            result = tableService.getVwTablesByStatuses(page, pageSize, q, statusList, sourceId, sortField, sortOrder);
-        }
-        else {
-            result = tableService.getVwTablesInfo(page, pageSize, q, sourceId, sortField, sortOrder);
-        }
+        result = tableService.findTables(
+            page, pageSize, q, statusList, sourceId, sortField, sortOrder, normalizedScope);
         return ResponseEntity.ok(PageResponse.from(result));
     }
 
@@ -147,8 +160,24 @@ public class TableController
         if (!etlTableRepo.existsById(tableId)) {
             throw new ApiException(404, "Table not found");
         }
-        tableService.deleteTable(tableId);
-        return ResponseEntity.ok("表以及相关资源删除成功");
+        tableService.retireTable(tableId, getCurrentUsername());
+        return ResponseEntity.ok("采集表已退役，历史统计和日志已保留");
+    }
+
+    @PostMapping("/{tableId}/restore")
+    public ResponseEntity<VwEtlTableWithSource> restoreTable(@PathVariable("tableId") long tableId)
+    {
+        tableService.restoreTable(tableId);
+        return ResponseEntity.ok(tableService.findOneTableInfo(tableId));
+    }
+
+    @GetMapping("/{tableId}/executions")
+    public ResponseEntity<PageResponse<EtlExecution>> getExecutions(
+        @PathVariable("tableId") long tableId,
+        @RequestParam(value = "page", defaultValue = "0") int page,
+        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize)
+    {
+        return ResponseEntity.ok(PageResponse.from(executionService.list(tableId, page, pageSize)));
     }
 
     /**
@@ -165,8 +194,10 @@ public class TableController
         if (etl.getId() == null || etl.getId() != tableId) {
             throw new ApiException(400, "Table ID in path and body must match");
         }
-        if (!etlTableRepo.existsById(tableId)) {
-            throw new ApiException(404, "Table not found");
+        EtlTable existing = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        if (existing.getRetiredAt() != null) {
+            throw new ApiException(409, "采集表已退役，恢复后才能修改");
         }
         EtlTable updated = tableService.updateTable(etl, getCurrentUsername());
         return ResponseEntity.ok(updated);
@@ -276,8 +307,12 @@ public class TableController
     @PostMapping("/{tableId}/actions/refresh")
     public ResponseEntity<TaskResultDto> refreshTableResources(@PathVariable long tableId)
     {
-        if (!etlTableRepo.existsById(tableId)) {
+        EtlTable table = etlTableRepo.findById(tableId).orElse(null);
+        if (table == null) {
             return ResponseEntity.status(400).body(TaskResultDto.failure("tableId 对应的采集表不存在", 0));
+        }
+        if (table.getRetiredAt() != null) {
+            return ResponseEntity.status(409).body(TaskResultDto.failure("采集表已退役，恢复后才能刷新", 0));
         }
         TaskResultDto taskResultDto = tableService.refreshTableResources(tableId);
         if (taskResultDto.success()) {
@@ -342,6 +377,11 @@ public class TableController
     @PutMapping("/{tableId}/addax-job")
     public ResponseEntity<String> updateAddaxJob(@PathVariable long tableId, @RequestBody String jobContent)
     {
+        EtlTable table = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        if (table.getRetiredAt() != null) {
+            throw new ApiException(409, "采集表已退役，恢复后才能修改任务");
+        }
         // 具体实现略
         jobContentService.updateJobContent(tableId, jobContent);
         return ResponseEntity.ok("Job content updated successfully");

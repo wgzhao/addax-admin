@@ -29,7 +29,7 @@
       </v-col>
     </v-row>
 
-    <v-card flat class="ds-card action-card">
+    <v-card v-if="!table.retiredAt" flat class="ds-card action-card">
       <v-card-actions class="action-bar">
         <v-spacer />
         <v-btn color="primary" variant="flat" @click="saveOds">保存更改</v-btn>

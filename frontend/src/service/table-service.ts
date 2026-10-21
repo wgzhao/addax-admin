@@ -5,6 +5,7 @@ import type {
   EtlColumn,
   EtlStatistic,
   EtlTableChangeLog,
+  EtlExecution,
 } from '@/types/database';
 import type { Page } from '@/types';
 
@@ -18,7 +19,8 @@ class TableService {
     q: string,
     runStatuses?: string[],
     sourceId?: number | null,
-    sortBy?: any
+    sortBy?: any,
+    scope: 'CURRENT' | 'DORMANT' | 'RETIRED' | 'ALL' = 'CURRENT'
   ): Promise<Page<VEtlWithSource>> {
     // `sortBy` 应该是一个包含 sortField 和 sortOrder 的对象
     const params: any = {
@@ -27,6 +29,7 @@ class TableService {
       q: q,
       statuses: runStatuses && runStatuses.length > 0 ? runStatuses.join(',') : undefined,
       sourceId: sourceId,
+      scope,
       sortField: sortBy?.sortField,
       sortOrder: sortBy?.sortOrder,
     };
@@ -41,6 +44,20 @@ class TableService {
   // 删除采集表
   delete(tableId: number): Promise<void> {
     return Requests.delete(`${this.prefix}/${tableId}`) as unknown as Promise<void>;
+  }
+
+  restore(tableId: number): Promise<VEtlWithSource> {
+    return Requests.post(
+      `${this.prefix}/${tableId}/restore`,
+      {}
+    ) as unknown as Promise<VEtlWithSource>;
+  }
+
+  fetchExecutions(tableId: number, page = 0, pageSize = 10): Promise<Page<EtlExecution>> {
+    return Requests.get(`${this.prefix}/${tableId}/executions`, {
+      page,
+      pageSize,
+    }) as unknown as Promise<Page<EtlExecution>>;
   }
 
   // 查询表字段对比

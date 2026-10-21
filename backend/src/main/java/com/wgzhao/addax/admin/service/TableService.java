@@ -17,6 +17,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -177,7 +178,7 @@ public class TableService
      */
     private void refreshUpdatedTableResourcesInternal()
     {
-        List<EtlTable> tables = etlTableRepo.findByStatus("U");
+        List<EtlTable> tables = etlTableRepo.findByStatusAndRetiredAtIsNull("U");
         for (EtlTable table : tables) {
             // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
             if (Thread.currentThread().isInterrupted()) {
@@ -266,24 +267,7 @@ public class TableService
      */
     public Page<VwEtlTableWithSource> getVwTablesInfo(int page, int pageSize, String q, Integer sourceId, String sortField, String sortOrder)
     {
-
-        Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
-        if (sourceId != null) {
-            // 按数据源过滤
-            if (q != null && !q.isEmpty()) {
-                return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndFilterColumnContaining(sourceId, q.toUpperCase(), pageable);
-            }
-            else {
-                return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrue(sourceId, pageable);
-            }
-        }
-
-        if (q != null && !q.isEmpty()) {
-            return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndFilterColumnContaining(q.toUpperCase(), pageable);
-        }
-        else {
-            return vwEtlTableWithSourceRepo.findByEnabledIsTrue(pageable);
-        }
+        return findTables(page, pageSize, q, List.of(), sourceId, sortField, sortOrder, "CURRENT");
     }
 
     /**
@@ -300,24 +284,40 @@ public class TableService
     public Page<VwEtlTableWithSource> getVwTablesByStatuses(int page, int pageSize, String q, List<String> statuses, Integer sourceId,
         String sortField, String sortOrder)
     {
+        return findTables(page, pageSize, q, statuses, sourceId, sortField, sortOrder, "CURRENT");
+    }
+
+    public Page<VwEtlTableWithSource> findTables(int page, int pageSize, String q, List<String> statuses,
+        Integer sourceId, String sortField, String sortOrder, String scope)
+    {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
-        boolean hasQuery = q != null && !q.isEmpty();
-        String query = "";
-        if (hasQuery) {
-            query = q.toUpperCase();
-        }
-
-        if (sourceId != null) {
-            if (hasQuery) {
-                return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndStatusInAndFilterColumnContaining(sourceId, statuses, query, pageable);
+        String normalizedScope = scope == null ? "CURRENT" : scope.toUpperCase();
+        Specification<VwEtlTableWithSource> spec = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            if ("CURRENT".equals(normalizedScope)) {
+                predicates.add(cb.isNull(root.get("retiredAt")));
             }
-            return vwEtlTableWithSourceRepo.findBySidAndEnabledIsTrueAndStatusIn(sourceId, statuses, pageable);
-        }
-
-        if (hasQuery) {
-            return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusInAndFilterColumnContaining(statuses, query, pageable);
-        }
-        return vwEtlTableWithSourceRepo.findByEnabledIsTrueAndStatusIn(statuses, pageable);
+            else if ("DORMANT".equals(normalizedScope)) {
+                predicates.add(cb.isNull(root.get("retiredAt")));
+                predicates.add(cb.or(
+                    cb.isFalse(root.get("enabled")),
+                    cb.equal(root.get("status"), TableStatus.EXCLUDE_COLLECT)));
+            }
+            else if ("RETIRED".equals(normalizedScope)) {
+                predicates.add(cb.isNotNull(root.get("retiredAt")));
+            }
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+            if (sourceId != null) {
+                predicates.add(cb.equal(root.get("sid"), sourceId));
+            }
+            if (q != null && !q.isBlank()) {
+                predicates.add(cb.like(root.get("filterColumn"), "%" + q.trim().toUpperCase() + "%"));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        return vwEtlTableWithSourceRepo.findAll(spec, pageable);
     }
 
     /**
@@ -551,7 +551,8 @@ public class TableService
      */
     public List<VwEtlTableWithSource> getValidTableViews()
     {
-        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNot(TableStatus.EXCLUDE_COLLECT);
+        return vwEtlTableWithSourceRepo.findByEnabledTrueAndStatusNotAndRetiredAtIsNull(
+            TableStatus.EXCLUDE_COLLECT);
     }
 
     /**
@@ -596,35 +597,47 @@ public class TableService
      */
     public List<String> getTablesBySidAndDb(int sid, String db)
     {
-        return vwEtlTableWithSourceRepo.findBySidAndSourceDb(sid, db)
+        return vwEtlTableWithSourceRepo.findBySidAndSourceDbAndRetiredAtIsNull(sid, db)
             .stream()
             .map(VwEtlTableWithSource::getSourceTable)
             .toList();
     }
 
     /**
-     * 删除指定ID的表及其相关信息
-     *
-     * @param tableId 表ID
+     * Retire a table definition while preserving every historical fact.
      */
     @Transactional
-    public void deleteTable(long tableId)
+    public void retireTable(long tableId, String username)
     {
-        // Refuse deletion while the table has queued or running jobs: an in-flight worker would
-        // otherwise re-insert the row (whole-row merge on completion) and resurrect the deleted
-        // table with stale metadata, racing the jour cleanup.
+        // Retirement must not race an in-flight worker that can still mutate the table status.
         List<EtlJobQueue> active = jobQueueService.findActiveByTid(tableId);
         if (!active.isEmpty()) {
-            throw new ApiException(400, "表 " + tableId + " 存在运行中或排队中的采集任务，请先停止后再删除");
+            throw new ApiException(400, "表 " + tableId + " 存在运行中或排队中的采集任务，请先停止后再退役");
         }
-        // 首先删除列信息
-        columnService.deleteByTid(tableId);
-        // 然后删除任务信息
-        jobContentService.deleteByTid(tableId);
-        // 删除流水
-        jourService.deleteByTid(tableId);
-        // 最后删除采集表信息
-        etlTableRepo.deleteById(tableId);
+        EtlTable table = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        if (table.getRetiredAt() == null) {
+            table.setRetiredAt(LocalDateTime.now());
+            table.setRetiredBy(username == null ? "" : username);
+            etlTableRepo.save(table);
+        }
+    }
+
+    @Transactional
+    public void restoreTable(long tableId)
+    {
+        EtlTable table = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        if (table.getRetiredAt() == null) {
+            throw new ApiException(400, "Table is not retired");
+        }
+        List<EtlJobQueue> active = jobQueueService.findActiveByTid(tableId);
+        if (!active.isEmpty()) {
+            throw new ApiException(409, "Table has an active queued or running job");
+        }
+        table.setRetiredAt(null);
+        table.setRetiredBy(null);
+        etlTableRepo.save(table);
     }
 
     /**

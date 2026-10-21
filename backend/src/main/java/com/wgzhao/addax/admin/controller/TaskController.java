@@ -172,6 +172,9 @@ public class TaskController
             if (etlTable == null) {
                 throw new ApiException(400, "taskId 对应的采集任务不存在");
             }
+            if (etlTable.getRetiredAt() != null) {
+                throw new ApiException(409, "采集表已退役，恢复后才能执行");
+            }
             result = queueManager.executeEtlTaskWithConcurrencyControl(etlTable);
             // 手动同步执行没有队列重试上下文,按"单次尝试即最终尝试"接入告警状态机:
             // 失败发告警,成功时若该表此前处于告警状态则发恢复通知

@@ -86,6 +86,9 @@ public class VwEtlTableWithSource
     private LocalDateTime createdAt;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime retiredAt;
+    private String retiredBy;
 
     // ---- derived target attributes (stored in target_options, read-only here) -------------------
 

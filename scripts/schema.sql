@@ -59,6 +59,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.addax_log (
     id bigint NOT NULL,
     tid bigint NOT NULL,
+    execution_id bigint,
     run_at timestamp without time zone,
     run_date date,
     log text
@@ -123,6 +124,67 @@ CREATE TABLE public.etl_column (
     target_type_full character varying(100),
     update_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
+
+
+--
+-- Name: etl_execution; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.etl_execution (
+    id bigint NOT NULL,
+    tid bigint NOT NULL,
+    job_queue_id bigint,
+    attempt_no integer DEFAULT 1 NOT NULL,
+    biz_date date NOT NULL,
+    source_db character varying(64),
+    source_table character varying(255),
+    source_code character varying(50),
+    source_name character varying(200),
+    target_db character varying(64),
+    target_table character varying(255),
+    target_code character varying(50),
+    target_name character varying(200),
+    status character varying(16) DEFAULT 'running'::character varying NOT NULL,
+    started_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    finished_at timestamp without time zone,
+    snapshot_version integer DEFAULT 1 NOT NULL,
+    config_snapshot jsonb NOT NULL,
+    job_digest character varying(64),
+    error_message text
+);
+
+
+--
+-- Name: etl_execution_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.etl_execution_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: etl_execution_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.etl_execution_id_seq OWNED BY public.etl_execution.id;
+
+
+--
+-- Name: TABLE etl_execution; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.etl_execution IS '不可变的采集执行尝试及其配置快照';
+
+
+--
+-- Name: COLUMN etl_execution.config_snapshot; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.etl_execution.config_snapshot IS '脱敏的执行时采集定义、字段映射和目标配置快照';
 
 
 --
@@ -310,6 +372,8 @@ ALTER SEQUENCE public.etl_job_queue_id_seq1 OWNED BY public.etl_job_queue.id;
 CREATE TABLE public.etl_jour (
     id bigint NOT NULL,
     tid bigint,
+    execution_id bigint,
+    context_snapshot jsonb,
     kind character varying(32),
     start_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     duration integer DEFAULT 0 NOT NULL,
@@ -510,6 +574,7 @@ ALTER SEQUENCE public.etl_source_id_seq1 OWNED BY public.etl_source.id;
 CREATE TABLE public.etl_statistic (
     id bigint NOT NULL,
     tid bigint,
+    execution_id bigint,
     start_at timestamp without time zone,
     end_at timestamp without time zone,
     take_secs integer,
@@ -672,6 +737,8 @@ CREATE TABLE public.etl_table (
     target_id integer,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    retired_at timestamp without time zone,
+    retired_by character varying(100),
     reader_plugin_config jsonb,
     writer_plugin_config jsonb
 );
@@ -1597,6 +1664,8 @@ CREATE VIEW public.vw_etl_table_with_source AS
     t.target_id,
     t.created_at,
     t.updated_at,
+    t.retired_at,
+    t.retired_by,
     t.reader_plugin_config,
     t.writer_plugin_config,
     s.code,
@@ -1623,6 +1692,14 @@ CREATE VIEW public.vw_etl_table_with_source AS
 --
 
 ALTER TABLE ONLY public.addax_log ALTER COLUMN id SET DEFAULT nextval('public.addax_log_id_seq1'::regclass);
+
+
+--
+-- Name: etl_execution id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.etl_execution
+    ALTER COLUMN id SET DEFAULT nextval('public.etl_execution_id_seq'::regclass);
 
 
 --
@@ -1694,6 +1771,14 @@ ALTER TABLE ONLY public.user_notification ALTER COLUMN id SET DEFAULT nextval('p
 
 ALTER TABLE ONLY public.addax_log
     ADD CONSTRAINT addax_log_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: etl_execution etl_execution_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.etl_execution
+    ADD CONSTRAINT etl_execution_pkey PRIMARY KEY (id);
 
 
 --
@@ -1869,10 +1954,45 @@ CREATE INDEX idx_etl_job_queue_status_available ON public.etl_job_queue USING bt
 
 
 --
+-- Name: idx_etl_execution_queue; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_etl_execution_queue ON public.etl_execution USING btree (job_queue_id);
+
+
+--
+-- Name: idx_etl_execution_tid_started; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_etl_execution_tid_started ON public.etl_execution USING btree (tid, started_at DESC, id DESC);
+
+
+--
+-- Name: idx_etl_statistic_execution; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_etl_statistic_execution ON public.etl_statistic USING btree (execution_id);
+
+
+--
 -- Name: idx_etl_jour_tid; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_etl_jour_tid ON public.etl_jour USING btree (tid);
+
+
+--
+-- Name: idx_etl_jour_execution; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_etl_jour_execution ON public.etl_jour USING btree (execution_id);
+
+
+--
+-- Name: idx_addax_log_execution; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_addax_log_execution ON public.addax_log USING btree (execution_id);
 
 
 --
@@ -1944,6 +2064,38 @@ CREATE TRIGGER trg_etl_table_record_change AFTER UPDATE ON public.etl_table FOR 
 
 ALTER TABLE ONLY public.etl_column
     ADD CONSTRAINT etl_column_tid_fk FOREIGN KEY (tid) REFERENCES public.etl_table(id);
+
+
+--
+-- Name: etl_execution etl_execution_tid_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.etl_execution
+    ADD CONSTRAINT etl_execution_tid_fk FOREIGN KEY (tid) REFERENCES public.etl_table(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: etl_statistic etl_statistic_execution_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.etl_statistic
+    ADD CONSTRAINT etl_statistic_execution_fk FOREIGN KEY (execution_id) REFERENCES public.etl_execution(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: etl_jour etl_jour_execution_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.etl_jour
+    ADD CONSTRAINT etl_jour_execution_fk FOREIGN KEY (execution_id) REFERENCES public.etl_execution(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: addax_log addax_log_execution_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.addax_log
+    ADD CONSTRAINT addax_log_execution_fk FOREIGN KEY (execution_id) REFERENCES public.etl_execution(id) ON DELETE RESTRICT;
 
 
 --

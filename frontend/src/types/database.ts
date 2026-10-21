@@ -164,6 +164,7 @@ export interface EtlSoutab {
 export interface EtlStatistic {
   id: number; // 逻辑主键
   tid?: number; // 采集表主键
+  executionId?: number; // 产生该统计的执行尝试
   startAt?: Date; // 采集开始时间
   endAt?: Date; // 采集结束时间
   takeSecs?: number; // 采集耗时
@@ -241,6 +242,31 @@ export interface EtlTable {
   writerPluginConfig?: Record<string, unknown> | string | null; // writer.parameter 的自定义配置(JSON对象)
   createdAt?: Date; // 创建时间
   updatedAt?: Date; // 更新时间
+  retiredAt?: string | null; // 退役时间；非空表示已从日常列表隐藏
+  retiredBy?: string | null; // 执行退役操作的用户
+}
+
+export interface EtlExecution {
+  id: number;
+  tid: number;
+  jobQueueId?: number | null;
+  attemptNo: number;
+  bizDate: string;
+  status: 'running' | 'succeeded' | 'failed';
+  startedAt: string;
+  finishedAt?: string | null;
+  snapshotVersion: number;
+  sourceDb?: string;
+  sourceTable?: string;
+  sourceCode?: string;
+  sourceName?: string;
+  targetDb?: string;
+  targetTable?: string;
+  targetCode?: string;
+  targetName?: string;
+  jobDigest?: string | null;
+  errorMessage?: string | null;
+  configSnapshot: Record<string, unknown>;
 }
 
 // Table candidate view used by the batch-add wizard; adds the approximate row
@@ -324,6 +350,7 @@ export interface EtlJob {
 export interface AddaxLog {
   id: number; // 主键，自增
   tid: number; // 采集表主键
+  executionId?: number; // 对应执行尝试
   runAt?: Date; // 运行时间
   runDate?: Date; // 运行日期
   log?: string; // 日志内容

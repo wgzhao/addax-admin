@@ -45,6 +45,8 @@ public final class EtlTableView
             t.target_id,
             t.created_at,
             t.updated_at,
+            t.retired_at,
+            t.retired_by,
             t.reader_plugin_config,
             t.writer_plugin_config,
             s.code,

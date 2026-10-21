@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.model.EtlExecution;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -16,6 +17,7 @@ import com.wgzhao.addax.admin.service.AlertService;
 import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJobQueueService;
+import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.ExecutionManager;
 import com.wgzhao.addax.admin.service.JobContentService;
@@ -115,6 +117,7 @@ public class TaskQueueManagerV2Impl
     private final AddaxLogService addaxLogService;
     private final AlertService alertService;
     private final TableService tableService;
+    private final EtlExecutionService executionService;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
     private final JobContentService jobContentService;
@@ -902,7 +905,8 @@ public class TaskQueueManagerV2Impl
                 }
             }, renewInterval, renewInterval, TimeUnit.SECONDS);
 
-            taskResultDto = executeEtlTaskWithConcurrencyControl(task, job.getBizDate());
+            taskResultDto = executeEtlTaskWithConcurrencyControl(
+                task, job.getBizDate(), job.getId(), job.getAttempts());
             // A kill recorded before this run's claim belongs to a previous execution of the same
             // tid and must not misclassify a genuine failure as a user cancel.
             boolean killedByUser = executionManager.consumeKillRequested(job.getTid(),
@@ -996,11 +1000,17 @@ public class TaskQueueManagerV2Impl
 
     public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate)
     {
+        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, null, 1);
+    }
+
+    private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
+        Long queueId, int attemptNo)
+    {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
         try {
             tableService.setRunning(task);
-            boolean result = executeEtlTaskLogic(task, overrideBizDate);
+            boolean result = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo);
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
             log.info("Task {}.{}({}) completed, elapsed={}s, result={}", task.getSourceDb(), task.getSourceTable(), tid, duration, result);
             task.setDuration(duration);
@@ -1031,8 +1041,19 @@ public class TaskQueueManagerV2Impl
 
     public boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate)
     {
+        return executeEtlTaskLogic(task, overrideBizDate, null, 1);
+    }
+
+    private boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo)
+    {
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
+
+        VwEtlTableWithSource tableView = tableService.getTableView(taskId);
+        if (tableView == null) {
+            log.warn("Table view not found, taskId={}", taskId);
+            return false;
+        }
 
         // For fillback tasks, overrideBizDate contains the target fillback date
         // which differs from the system biz_date. In this case the pre-generated
@@ -1049,8 +1070,14 @@ public class TaskQueueManagerV2Impl
         }
         if (job == null || job.isEmpty()) {
             log.warn("Job template not generated, taskId={}", taskId);
+            EtlExecution execution = executionService.start(
+                tableView, null, overrideBizDate != null ? overrideBizDate : systemBizDate, queueId, attemptNo);
+            executionService.finish(execution, false, "Job template not generated");
             return false;
         }
+        LocalDate executionBizDate = overrideBizDate != null ? overrideBizDate : systemBizDate;
+        EtlExecution execution = executionService.start(
+            tableView, job, executionBizDate, queueId, attemptNo);
         String partFormat = task.getPartFormat();
         String bizDateStr = configService.getBizDate();
         DateTimeFormatter dtf = shortSdf;
@@ -1060,41 +1087,50 @@ public class TaskQueueManagerV2Impl
         if (overrideBizDate != null) {
             bizDateStr = overrideBizDate.format(dtf);
         }
-        VwEtlTableWithSource tableView = tableService.getTableView(taskId);
-        if (tableView == null) {
-            log.warn("Table view not found, taskId={}", taskId);
-            return false;
-        }
-        boolean prepareResult = targetService.prepareBeforeRun(taskId, tableView, bizDateStr);
-        if (!prepareResult) return false;
-
-        File tempFile;
         try {
-            String curDate = DateUtil.date().toDateStr();
-            String jobsDir = Path.of(System.getProperty("app.home")).resolve("job").resolve(curDate) + "/";
-            Files.createDirectories(Path.of(jobsDir));
-            // Include bizDateStr in the file name to prevent concurrent fillback tasks
-            // for the same table from overwriting each other's job files.
-            tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + "_" + bizDateStr + ".json");
-            Files.writeString(tempFile.toPath(), job);
+            boolean prepareResult = targetService.prepareBeforeRun(taskId, tableView, bizDateStr);
+            if (!prepareResult) {
+                executionService.finish(execution, false, "Target preparation failed");
+                return false;
+            }
+
+            File tempFile;
+            try {
+                String curDate = DateUtil.date().toDateStr();
+                String jobsDir = Path.of(System.getProperty("app.home")).resolve("job").resolve(curDate) + "/";
+                Files.createDirectories(Path.of(jobsDir));
+                // Include bizDateStr in the file name to prevent concurrent fillback tasks
+                // for the same table from overwriting each other's job files.
+                tempFile = new File(jobsDir + task.getTargetDb() + "." + task.getTargetTable() + "_" + bizDateStr + ".json");
+                Files.writeString(tempFile.toPath(), job);
+            }
+            catch (IOException e) {
+                log.error("Failed to write temp job file", e);
+                executionService.finish(execution, false, "Failed to write temp job file: " + e.getMessage());
+                return false;
+            }
+            String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
+            String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
+            String jobName = taskId + ":" + execution.getId();
+            String jvmProps = String.format("-DjobName=%s -Dlog.file.name=%s", jobName, logName);
+            List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
+            String cmd = toCommandString(cmdArgs);
+            boolean retCode = executeAddax(cmdArgs, cmd, taskId, execution.getId(), logName,
+                task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime());
+            executionService.finish(execution, retCode, retCode ? null : "Addax exited with a non-zero code");
+            log.debug("Task {} log written to: {}", taskId, logName);
+            return retCode;
         }
-        catch (IOException e) {
-            log.error("Failed to write temp job file", e);
-            return false;
+        catch (RuntimeException e) {
+            executionService.finish(execution, false, e.getMessage());
+            throw e;
         }
-        String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
-        String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
-        String jvmProps = String.format("-DjobName=%d -Dlog.file.name=%s", taskId, logName);
-        List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
-        String cmd = toCommandString(cmdArgs);
-        boolean retCode = executeAddax(cmdArgs, cmd, taskId, logName, task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime());
-        log.debug("Task {} log written to: {}", taskId, logName);
-        return retCode;
     }
 
-    private boolean executeAddax(List<String> commandArgs, String commandForLog, long tid, String logName, long maxRuntimeSeconds)
+    private boolean executeAddax(List<String> commandArgs, String commandForLog, long tid, long executionId,
+        String logName, long maxRuntimeSeconds)
     {
-        EtlJour etlJour = jourService.addJour(tid, JourKind.COLLECT, commandForLog);
+        EtlJour etlJour = jourService.addJour(tid, executionId, JourKind.COLLECT, commandForLog);
         Process process;
         TaskResultDto taskResult;
         long pid = -1;
@@ -1126,7 +1162,7 @@ public class TaskQueueManagerV2Impl
         } catch (IOException e) {
             log.error("Failed to read Addax log: {}", path, e);
         }
-        addaxLogService.insertLog(tid, logContent);
+        addaxLogService.insertLog(tid, executionId, logContent);
         etlJour.setDuration(taskResult.durationSeconds());
         etlJour.setStatus(true);
         if (!taskResult.success()) {
@@ -1202,6 +1238,9 @@ public class TaskQueueManagerV2Impl
     @Override
     public boolean addTaskToQueue(@NonNull EtlTable etlTable)
     {
+        if (etlTable.getRetiredAt() != null) {
+            return false;
+        }
         if (!running) {
             return deferEnqueue(etlTable, null, null);
         }
@@ -1222,6 +1261,9 @@ public class TaskQueueManagerV2Impl
     @Override
     public boolean addTaskToQueue(@NonNull EtlTable etlTable, String payload)
     {
+        if (etlTable.getRetiredAt() != null) {
+            return false;
+        }
         if (!running) {
             return deferEnqueue(etlTable, null, payload);
         }
@@ -1238,6 +1280,9 @@ public class TaskQueueManagerV2Impl
     @Override
     public boolean addFillbackTaskToQueue(EtlTable etlTable, LocalDate fillbackDate, String payload)
     {
+        if (etlTable.getRetiredAt() != null) {
+            return false;
+        }
         if (!running) {
             return deferEnqueue(etlTable, fillbackDate, payload);
         }

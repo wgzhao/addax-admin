@@ -101,7 +101,7 @@ public class StatService
                 SUM(CASE WHEN t.status = 'N' THEN 1 ELSE 0 END) AS pending,
                 round(SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS pct
             FROM vw_etl_table_with_source t
-            WHERE t.status <> 'X' and t.enabled = true
+            WHERE t.status <> 'X' and t.enabled = true and t.retired_at is null
             GROUP BY t.code, t.name
             having count(*) > 0
             ORDER BY SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) ASC
@@ -154,7 +154,7 @@ public class StatService
                 sum(case when status = 'U' then 1 else 0 end ) as no_create_table_cnt
                 from
                 vw_etl_table_with_source s
-                where s.enabled = true and s.status <> 'X'
+                where s.enabled = true and s.status <> 'X' and s.retired_at is null
                 group by s.code
             ),
             last2_info as (
@@ -179,6 +179,7 @@ public class StatService
                           where biz_date = ?
                             and s.enabled = true
                             and s.status <> 'X'
+                            and s.retired_at is null
                           group by s.code, s.name, biz_date
                           union all
                           select code,
@@ -195,6 +196,7 @@ public class StatService
                           where biz_date = ?
                             and s.enabled = true
                             and s.status <> 'X'
+                            and s.retired_at is null
                           group by s.code, s.name, biz_date) t
                     group by t.code, t.name
             )
@@ -298,7 +300,7 @@ public class StatService
             FROM last_t l
             join etl_table t
             on l.tid = t.id
-            WHERE l.rn <= 5 and t.status <> 'X'
+            WHERE l.rn <= 5 and t.status <> 'X' and t.retired_at is null
             GROUP BY l.tid
             HAVING COUNT(*) = ?
                AND COUNT(DISTINCT total_recs) = 1
@@ -345,6 +347,7 @@ public class StatService
             JOIN etl_table t
               ON a.tid = t.id
             WHERE t.status <> 'X'
+              AND t.retired_at is null
               AND a.day_count >= 2
               AND a.max_recs = a.min_recs
             ORDER BY a.max_recs DESC
@@ -392,6 +395,7 @@ public class StatService
             JOIN etl_table t
               ON a.tid = t.id
             WHERE t.status <> 'X'
+              AND t.retired_at is null
               AND a.day_count >= 2
               AND a.min_recs > 0
               AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) > 0
@@ -441,6 +445,7 @@ public class StatService
             JOIN etl_table t
               ON a.tid = t.id
             WHERE t.status <> 'X'
+              AND t.retired_at is null
               AND a.day_count >= 2
               AND a.min_recs > 0
               AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) > ?
@@ -540,6 +545,7 @@ public class StatService
               FROM vw_etl_table_with_source
               WHERE status <> 'X'
                 AND COALESCE(enabled, false) = true
+                AND retired_at IS NULL
                 AND COALESCE(NULLIF(calendar, ''), 'NATURAL_DAY') = ?
             ),
             daily AS (
