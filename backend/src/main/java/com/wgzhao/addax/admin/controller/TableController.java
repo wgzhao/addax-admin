@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.audit.AuditSanitizer;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -21,6 +23,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -68,6 +71,8 @@ public class TableController
     private final JobContentService jobContentService;
     private final EtlTableChangeLogService changeLogService;
     private final EtlExecutionService executionService;
+    private final AuditRecorder auditRecorder;
+    private final AuditSanitizer auditSanitizer;
 
     /**
      * 分页查询采集表
@@ -155,20 +160,29 @@ public class TableController
      * @return 删除结果提示
      */
     @DeleteMapping("/{tableId}")
+    @Transactional
     public ResponseEntity<String> deleteTable(@PathVariable("tableId") long tableId)
     {
-        if (!etlTableRepo.existsById(tableId)) {
-            throw new ApiException(404, "Table not found");
-        }
+        EtlTable before = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
         tableService.retireTable(tableId, getCurrentUsername());
+        EtlTable after = etlTableRepo.findById(tableId).orElse(null);
+        auditRecorder.success("TABLE_RETIRED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            tableId, before.getSourceTable(), before, after);
         return ResponseEntity.ok("采集表已退役，历史统计和日志已保留");
     }
 
     @PostMapping("/{tableId}/restore")
+    @Transactional
     public ResponseEntity<VwEtlTableWithSource> restoreTable(@PathVariable("tableId") long tableId)
     {
+        EtlTable before = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
         tableService.restoreTable(tableId);
-        return ResponseEntity.ok(tableService.findOneTableInfo(tableId));
+        VwEtlTableWithSource after = tableService.findOneTableInfo(tableId);
+        auditRecorder.success("TABLE_RESTORED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            tableId, before.getSourceTable(), before, after);
+        return ResponseEntity.ok(after);
     }
 
     @GetMapping("/{tableId}/executions")
@@ -188,6 +202,7 @@ public class TableController
      * @return 更新后的采集表
      */
     @PutMapping("/{tableId}")
+    @Transactional
     public ResponseEntity<EtlTable> updateTable(@PathVariable("tableId") long tableId,
         @RequestBody EtlTable etl)
     {
@@ -200,6 +215,8 @@ public class TableController
             throw new ApiException(409, "采集表已退役，恢复后才能修改");
         }
         EtlTable updated = tableService.updateTable(etl, getCurrentUsername());
+        auditRecorder.success("TABLE_UPDATED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            tableId, updated.getSourceTable(), existing, updated);
         return ResponseEntity.ok(updated);
     }
 
@@ -254,11 +271,16 @@ public class TableController
      * @return 保存的采集表数量
      */
     @PostMapping("/batch")
+    @Transactional
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
         List<EtlTable> saveTables = tableService.batchCreateTable(etls);
         // 异步刷新资源并通知
         tableService.refreshTablesResourcesAsync(saveTables, getCurrentUsername());
+        auditRecorder.success("TABLES_BATCH_CREATED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            "batch", "batch create", null, null,
+            java.util.Map.of("count", saveTables.size(),
+                "tableIds", saveTables.stream().map(EtlTable::getId).toList()));
         return ResponseEntity.status(HttpStatus.CREATED).body(etls.size());
     }
 
@@ -269,9 +291,12 @@ public class TableController
      * @return 新增的采集表
      */
     @PostMapping("")
+    @Transactional
     public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
     {
         EtlTable saved = tableService.createTable(etl);
+        auditRecorder.success("TABLE_CREATED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            saved.getId(), saved.getSourceTable(), null, saved);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -283,6 +308,7 @@ public class TableController
      * @return 无内容响应（202 Accepted）或 400 当 mode 非法
      */
     @PostMapping("/actions/refresh")
+    @Transactional
     public ResponseEntity<Void> refreshAllTableResources(@RequestParam(value = "mode", defaultValue = "need") String mode)
     {
         if (!mode.equals("all") && !mode.equals("need")) {
@@ -294,6 +320,8 @@ public class TableController
         else {
             tableService.refreshUpdatedTableResourcesAsyncWithNotify(getCurrentUsername());
         }
+        auditRecorder.accepted("TABLE_RESOURCES_REFRESH_REQUESTED", "COLLECTION_DEFINITION",
+            "WARNING", "ETL_TABLE", "all", "all tables", java.util.Map.of("mode", mode));
         return ResponseEntity.accepted().build();
     }
 
@@ -305,6 +333,7 @@ public class TableController
      * @return 任务结果
      */
     @PostMapping("/{tableId}/actions/refresh")
+    @Transactional
     public ResponseEntity<TaskResultDto> refreshTableResources(@PathVariable long tableId)
     {
         EtlTable table = etlTableRepo.findById(tableId).orElse(null);
@@ -316,9 +345,14 @@ public class TableController
         }
         TaskResultDto taskResultDto = tableService.refreshTableResources(tableId);
         if (taskResultDto.success()) {
+            auditRecorder.success("TABLE_RESOURCES_REFRESHED", "COLLECTION_DEFINITION", "WARNING",
+                "ETL_TABLE", tableId, table.getSourceTable(), null, null);
             return ResponseEntity.ok(taskResultDto);
         }
         else {
+            auditRecorder.failed("TABLE_RESOURCES_REFRESHED", "COLLECTION_DEFINITION", "WARNING",
+                "ETL_TABLE", tableId, table.getSourceTable(), "REFRESH_FAILED",
+                taskResultDto.message(), java.util.Map.of());
             return ResponseEntity.internalServerError().body(taskResultDto);
         }
     }
@@ -330,9 +364,14 @@ public class TableController
      * @return 更新的表数量
      */
     @PostMapping("/batch/status")
+    @Transactional
     public ResponseEntity<Integer> batchUpdateStatus(@RequestBody BatchTableStatusDto params)
     {
         tableService.updateTableStatuses(params);
+        auditRecorder.success("TABLE_STATUSES_UPDATED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            "batch", "batch status", null, null,
+            java.util.Map.of("tids", params.tids(), "status", params.status(),
+                "retryCnt", params.retryCnt()));
         return ResponseEntity.ok(1);
     }
 
@@ -375,9 +414,19 @@ public class TableController
      * @return 更新结果提示
      */
     @PutMapping("/{tableId}/addax-job")
+    @Transactional
     public ResponseEntity<String> updateAddaxJob(@PathVariable long tableId, @RequestBody String jobContent)
     {
+        String before = jobContentService.getJobContent(tableId);
         jobContentService.updateJobContent(tableId, jobContent);
+        java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("beforeDigest", auditSanitizer.digest(before));
+        metadata.put("afterDigest", auditSanitizer.digest(jobContent));
+        metadata.put("beforeLength", before == null ? 0 : before.length());
+        metadata.put("afterLength", jobContent.length());
+        auditRecorder.success("TABLE_JOB_OVERRIDDEN", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
+            tableId, null, null, null,
+            metadata);
         return ResponseEntity.ok("Job content updated successfully");
     }
 

@@ -1,9 +1,11 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +18,7 @@ public class SystemFlagController
 {
     private final TaskQueueManager queueManager;
     private final TaskService taskService;
+    private final AuditRecorder auditRecorder;
 
     @GetMapping("/refresh/status")
     public RefreshStatus status()
@@ -25,9 +28,12 @@ public class SystemFlagController
     }
 
     @PostMapping("/refresh/start")
+    @Transactional
     public ResponseEntity<String> startRefresh()
     {
         taskService.updateParams();
+        auditRecorder.success("DAILY_REFRESH_STARTED", "SCHEDULING", "WARNING", "SYSTEM",
+            "refresh", "daily refresh", null, null);
         return ResponseEntity.ok("开始切日更新");
     }
 

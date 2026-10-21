@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.AuthRequestDTO;
 import com.wgzhao.addax.admin.dto.ChangePasswordDTO;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户认证接口，提供登录认证功能
@@ -47,6 +50,7 @@ public class AuthController
     // 注入用于更新密码的 manager 与编码器
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final AuditRecorder auditRecorder;
 
     /**
      * 用户登录认证，返回JWT令牌
@@ -65,19 +69,35 @@ public class AuthController
                     : authentication.getAuthorities().stream()
                     .map((item) -> normalizeAuthority(item.getAuthority()))
                     .toList();
-                return ResponseEntity.ok(ApiResponse.success(jwtService.generateToken(authRequestDTO.username(), authorities)));
+                String token = jwtService.generateToken(authRequestDTO.username(), authorities);
+                auditRecorder.success("AUTH_LOGIN_SUCCESS", "AUTH", "INFO", "USER",
+                    authRequestDTO.username(), authRequestDTO.username(), null, null,
+                    Map.of("authorities", authorities), authRequestDTO.username());
+                return ResponseEntity.ok(ApiResponse.success(token));
             }
             else {
+                auditRecorder.independentFailure("AUTH_LOGIN_FAILED", "AUTH", "WARNING",
+                    "USER", authRequestDTO.username(), authRequestDTO.username(),
+                    authRequestDTO.username(), "BAD_CREDENTIALS", null,
+                    Map.of("reason", "not_authenticated"));
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, "账号或密码不正确"));
             }
         }
         catch (org.springframework.security.core.AuthenticationException ex) {
             // 认证失败（如密码错误或用户不存在）——返回友好消息，而不是让异常传播导致 500
             log.debug("authentication failed for user {}: {}", authRequestDTO.username(), ex.getMessage());
+            auditRecorder.independentFailure("AUTH_LOGIN_FAILED", "AUTH", "WARNING",
+                "USER", authRequestDTO.username(), authRequestDTO.username(),
+                authRequestDTO.username(), "BAD_CREDENTIALS", ex,
+                Map.of("reason", "authentication_exception"));
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, "账号或密码不正确"));
         }
         catch (Exception ex) {
             log.error("unexpected error during authentication", ex);
+            auditRecorder.independentFailure("AUTH_LOGIN_FAILED", "AUTH", "WARNING",
+                "USER", authRequestDTO.username(), authRequestDTO.username(),
+                authRequestDTO.username(), "AUTH_INTERNAL_ERROR", ex,
+                Map.of("reason", "internal_error"));
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(500, "internal error"));
         }
     }
@@ -87,6 +107,7 @@ public class AuthController
      * 请求体: { "currentPassword": "old", "newPassword": "new" }
      */
     @PostMapping("/change-password")
+    @Transactional
     public ApiResponse<String> changePassword(@RequestBody ChangePasswordDTO dto)
     {
         String username = SecurityContextHolder.getContext().getAuthentication() == null
@@ -103,11 +124,17 @@ public class AuthController
                 new UsernamePasswordAuthenticationToken(username, dto.currentPassword())
             );
             if (!auth.isAuthenticated()) {
+                auditRecorder.independentFailure("AUTH_PASSWORD_CHANGED", "ACCOUNT", "WARNING",
+                    "USER", username, username, username, "CURRENT_PASSWORD_INCORRECT", null,
+                    Map.of());
                 return ApiResponse.error(403, "current password is incorrect");
             }
         }
         catch (Exception ex) {
             log.debug("Failed to authenticate current password for user {}", username);
+            auditRecorder.independentFailure("AUTH_PASSWORD_CHANGED", "ACCOUNT", "WARNING",
+                "USER", username, username, username, "CURRENT_PASSWORD_INCORRECT", ex,
+                Map.of());
             return ApiResponse.error(403, "current password is incorrect");
         }
 
@@ -125,12 +152,16 @@ public class AuthController
                 .password(encoded)
                 .build();
             ((JdbcUserDetailsManager) userDetailsService).updateUser(updated);
+            auditRecorder.success("AUTH_PASSWORD_CHANGED", "ACCOUNT", "WARNING", "USER",
+                username, username, null, null);
             // 在更新后，重新刷新 SecurityContext 中的认证信息为最新（可选）
             SecurityContextHolder.clearContext();
             return ApiResponse.success("password changed");
         }
         catch (Exception ex) {
             log.error("Failed to update password for user {}", username, ex);
+            auditRecorder.independentFailure("AUTH_PASSWORD_CHANGED", "ACCOUNT", "WARNING",
+                "USER", username, username, username, "PASSWORD_UPDATE_FAILED", ex, Map.of());
             return ApiResponse.error(500, "failed to update password");
         }
     }

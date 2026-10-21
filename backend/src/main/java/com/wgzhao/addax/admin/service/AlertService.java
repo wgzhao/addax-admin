@@ -226,6 +226,11 @@ public class AlertService
         sendToWeComRobot("【数据采集告警】", "red", "告警时间", message);
     }
 
+    public void sendSecurityAlert(String message)
+    {
+        sendToWeComRobot("【安全审计告警】", "red", "告警时间", message);
+    }
+
     private String buildMarkdownContent(String title, String color, String timeLabel, String message)
     {
         String currentTime = LocalDateTime.now().format(TIME_FORMATTER);

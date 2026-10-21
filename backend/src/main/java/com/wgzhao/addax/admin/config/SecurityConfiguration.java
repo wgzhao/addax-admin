@@ -46,6 +46,7 @@ public class SecurityConfiguration
                 .requestMatchers("/log/job-report")
                 .permitAll()
                 // 只读接口：登录即可
+                .requestMatchers(HttpMethod.GET, "/audit-events", "/audit-events/**").hasAuthority("admin")
                 .requestMatchers(HttpMethod.GET, "/**").authenticated()
                 // 写操作接口：仅 admin
                 .requestMatchers(HttpMethod.POST, "/**").hasAuthority("admin")

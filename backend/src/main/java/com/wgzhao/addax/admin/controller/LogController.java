@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
@@ -16,6 +17,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -37,6 +39,7 @@ public class LogController
     private final EtlJourService jourService;
     private final TableService tableService;
     private final CalendarService calendarService;
+    private final AuditRecorder auditRecorder;
 
     @GetMapping("/addax")
     public PageResponse<AddaxLog> listAddaxLog(
@@ -69,9 +72,13 @@ public class LogController
     }
 
     @PostMapping("/addax/cleanup")
+    @Transactional
     public ApiResponse<String> cleanupAddaxLogs(@RequestParam("before") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate before)
     {
         addaxLogService.cleanupLogsBefore(before);
+        auditRecorder.success("COLLECTION_LOGS_CLEANED", "DATA_ACCESS", "CRITICAL", "COLLECTION_LOG",
+            before.toString(), "logs before " + before, null, null,
+            java.util.Map.of("before", before.toString()));
         return ApiResponse.success("日志清理任务已提交");
     }
 
