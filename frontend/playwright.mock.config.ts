@@ -4,7 +4,7 @@ const host = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3030';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: /(table-detail-editing|help-dialogs)\.spec\.ts/,
+  testMatch: /(table-detail-editing|help-dialogs|source-editor-layout)\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   timeout: 30_000,

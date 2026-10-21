@@ -116,7 +116,8 @@
     v-model="isShow"
     class="ds-dialog-overlay"
     scrim="rgba(2, 6, 23, 0.62)"
-    max-width="1040"
+    max-width="1120"
+    width="min(1120px, calc(100vw - 32px))"
     scrollable
     :persistent="isSourceDirty"
   >

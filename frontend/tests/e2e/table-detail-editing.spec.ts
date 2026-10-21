@@ -76,6 +76,21 @@ const targets = [
   { id: 22, code: 'ODS', name: '关系型归档库', targetType: 'POSTGRESQL', enabled: true },
 ];
 
+const addaxJob = {
+  job: {
+    content: {
+      reader: {
+        name: 'postgresqlreader',
+        parameter: { column: ['customer_id', 'customer_name'], connection: [] },
+      },
+      writer: {
+        name: 'hdfswriter',
+        parameter: { column: ['customer_id', 'customer_name'], defaultFS: 'hdfs://namenode' },
+      },
+    },
+  },
+};
+
 async function mockSession(page: Page) {
   await page.addInitScript(
     ([authToken, username]) => {
@@ -93,6 +108,7 @@ async function mockApi(
     delayMs?: number;
     failDetail?: boolean;
     onSave?: (payload: Record<string, unknown>) => void;
+    onJobSave?: (payload: string) => void;
   } = {}
 ) {
   const detail = options.detail ?? table;
@@ -128,6 +144,26 @@ async function mockApi(
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ ...detail, ...payload }),
+      });
+      return;
+    }
+
+    if (pathname === '/api/v1/tables/101/addax-job' && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(addaxJob),
+      });
+      return;
+    }
+
+    if (pathname === '/api/v1/tables/101/addax-job' && method === 'PUT') {
+      const payload = request.postData() || '';
+      options.onJobSave?.(payload);
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/plain',
+        body: 'Job content updated successfully',
       });
       return;
     }
@@ -230,6 +266,91 @@ test('retired table is read-only end to end', async ({ page }) => {
   await expect(page.getByRole('button', { name: '编辑配置' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '保存更改' })).toHaveCount(0);
   await expect(page.locator('.section-card input')).toHaveCount(0);
+});
+
+test('current table keeps addax job editing available', async ({ page }) => {
+  await mockSession(page);
+  const jobSaves: string[] = [];
+  await mockApi(page, { onJobSave: payload => jobSaves.push(payload) });
+  await page.goto('/table/detail/101?tab=job&tblname=crm_prod.customer_profile');
+
+  await expect(page.getByText('采集作业配置')).toBeVisible({ timeout: 15_000 });
+  const editButton = page.getByRole('button', { name: '编辑', exact: true });
+  await expect(editButton).toBeVisible();
+  await editButton.click();
+
+  const editor = page.getByRole('textbox');
+  await expect(editor).toBeVisible();
+  const nextJob = JSON.stringify(
+    {
+      ...addaxJob,
+      job: {
+        ...addaxJob.job,
+        content: {
+          ...addaxJob.job.content,
+          reader: {
+            ...addaxJob.job.content.reader,
+            parameter: {
+              ...addaxJob.job.content.reader.parameter,
+              fetchSize: 20480,
+            },
+          },
+        },
+      },
+    },
+    null,
+    2
+  );
+  await editor.fill(nextJob);
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+
+  await expect.poll(() => jobSaves.length).toBe(1);
+  expect(JSON.parse(jobSaves[0]).job.content.reader.parameter.fetchSize).toBe(20480);
+});
+
+test('retired table hides addax job editing and never writes it', async ({ page }) => {
+  await mockSession(page);
+  const jobSaves: string[] = [];
+  await mockApi(page, {
+    detail: {
+      ...table,
+      retiredAt: '2026-09-01 10:00:00',
+      retiredBy: 'admin',
+    },
+    onJobSave: payload => jobSaves.push(payload),
+  });
+  await page.goto('/table/detail/101?tab=job&tblname=crm_prod.customer_profile');
+
+  await expect(page.getByText('该采集表已退役')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('采集作业配置')).toBeVisible();
+  await expect(page.getByRole('button', { name: '复制', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '编辑', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '保存', exact: true })).toHaveCount(0);
+  await expect(page.locator('textarea')).toHaveCount(0);
+  await expect(page.locator('pre code')).toContainText('postgresqlreader');
+  expect(jobSaves).toHaveLength(0);
+
+  fs.mkdirSync(artifactDir, { recursive: true });
+  const artifact = path.join(artifactDir, 'retired-addax-job-readonly.json');
+  fs.writeFileSync(
+    artifact,
+    JSON.stringify(
+      {
+        checkedAt: new Date().toISOString(),
+        retiredAt: '2026-09-01 10:00:00',
+        editButtonCount: 0,
+        editorCount: 0,
+        saveRequestCount: jobSaves.length,
+        jobStillVisible: true,
+      },
+      null,
+      2
+    )
+  );
+  await test.info().attach('retired-addax-job-readonly', {
+    path: artifact,
+    contentType: 'application/json',
+  });
 });
 
 test('loading and failure states never expose an editable empty form', async ({ page }) => {

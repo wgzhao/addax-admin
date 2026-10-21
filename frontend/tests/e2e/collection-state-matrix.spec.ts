@@ -28,6 +28,8 @@ interface MatrixCase {
   afterRestore: Record<Scope, boolean>;
   detailReadable?: boolean;
   editStatus?: number;
+  jobEditStatus?: number;
+  jobContentPreserved?: boolean;
   retireStatus?: number;
   restoreStatus?: number;
 }
@@ -336,6 +338,38 @@ test('collection table state matrix matches lifecycle, source and table boundari
       item.editStatus
     );
 
+    const originalJob = JSON.stringify({ marker: item.key, lifecycle: item.lifecycle });
+    psql(`
+      delete from etl_job where tid = ${item.tid};
+      insert into etl_job (tid, job) values (${item.tid}, '${originalJob}');
+    `);
+    const forgedJob = JSON.stringify({ marker: `tampered ${item.key}` });
+    const jobEditResponse = await request.put(`/api/v1/tables/${item.tid}/addax-job`, {
+      headers: {
+        ...authHeaders(token),
+        'Content-Type': 'text/plain',
+      },
+      data: forgedJob,
+    });
+    item.jobEditStatus = jobEditResponse.status();
+    const expectedJobEditStatus = item.lifecycle === 'retired' ? 409 : 200;
+    check(
+      item.jobEditStatus === expectedJobEditStatus,
+      `${item.key} addax job edit status`,
+      expectedJobEditStatus,
+      item.jobEditStatus
+    );
+
+    const persistedJob = psql(`select job from etl_job where tid = ${item.tid};`);
+    const expectedJob = item.lifecycle === 'retired' ? originalJob : forgedJob;
+    item.jobContentPreserved = persistedJob === expectedJob;
+    check(
+      item.jobContentPreserved,
+      `${item.key} addax job content after edit attempt`,
+      expectedJob,
+      persistedJob
+    );
+
     if (item.lifecycle === 'current') {
       const retireResponse = await request.delete(`/api/v1/tables/${item.tid}`, {
         headers: authHeaders(token),
@@ -424,8 +458,8 @@ test('collection table state matrix matches lifecycle, source and table boundari
   await page.keyboard.press('Escape');
 
   await page.goto(`/table/detail/${uiCase.tid}?tab=info&tblname=matrix_disabled_current_X`);
-  await expect(page.getByText('采集源已停用')).toBeVisible();
-  await expect(page.getByRole('button', { name: '保存更改' })).toBeVisible();
+  await expect(page.getByRole('alert').getByText('采集源已停用')).toBeVisible();
+  await expect(page.getByRole('button', { name: '编辑配置' })).toBeVisible();
 
   await page.goto('/table?scope=DORMANT&q=matrix_disabled_current_X');
   await expect(page.getByRole('row', { name: /matrix_disabled_current_X/ })).toBeVisible();
