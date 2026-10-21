@@ -1,8 +1,11 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.repository.EtlJourRepo;
+import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +21,8 @@ import java.time.LocalDateTime;
 public class EtlJourService
 {
     private final EtlJourRepo etlJourRepo;
+    private final VwEtlTableWithSourceRepo tableRepo;
+    private final ObjectMapper objectMapper;
 
     /**
      * 新增一条采集流水
@@ -30,8 +35,32 @@ public class EtlJourService
     @Transactional
     public EtlJour addJour(long taskId, String jourKind, String cmd)
     {
+        return addJour(taskId, null, jourKind, cmd);
+    }
+
+    /**
+     * Add an operation record tied to the exact execution attempt that produced it.
+     */
+    @Transactional
+    public EtlJour addJour(long taskId, Long executionId, String jourKind, String cmd)
+    {
         EtlJour jour = new EtlJour();
         jour.setTid(taskId);
+        jour.setExecutionId(executionId);
+        if (executionId == null) {
+            tableRepo.findById(taskId).ifPresent(table -> {
+                ObjectNode snapshot = objectMapper.createObjectNode();
+                snapshot.put("sourceDb", table.getSourceDb());
+                snapshot.put("sourceTable", table.getSourceTable());
+                snapshot.put("sourceCode", table.getCode());
+                snapshot.put("sourceName", table.getName());
+                snapshot.put("targetDb", table.getTargetDb());
+                snapshot.put("targetTable", table.getTargetTable());
+                snapshot.put("targetCode", table.getTargetCode());
+                snapshot.put("targetName", table.getTargetName());
+                jour.setContextSnapshot(snapshot);
+            });
+        }
         jour.setKind(jourKind);
         jour.setCmd(cmd);
         jour.setStartAt(LocalDateTime.now());

@@ -354,7 +354,8 @@ public class JobContentService
     @Async
     public void updateJobBySourceId(int sid)
     {
-        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNot(sid, TableStatus.EXCLUDE_COLLECT)
+        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNotAndRetiredAtIsNull(
+                sid, TableStatus.EXCLUDE_COLLECT)
             .forEach(this::updateJob);
     }
 

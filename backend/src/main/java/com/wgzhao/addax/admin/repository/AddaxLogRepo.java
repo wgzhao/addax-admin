@@ -16,7 +16,8 @@ public interface AddaxLogRepo
     extends JpaRepository<AddaxLog, Long>
 {
     @Query(value = """
-        select new com.wgzhao.addax.admin.dto.AddaxLogDto(a.id, to_char(a.runAt, 'YYYY-MM-DD HH24:MI:SS'))
+        select new com.wgzhao.addax.admin.dto.AddaxLogDto(
+            a.id, a.executionId, to_char(a.runAt, 'YYYY-MM-DD HH24:MI:SS'))
         from AddaxLog a
         where a.tid = ?1
         order by a.runAt desc

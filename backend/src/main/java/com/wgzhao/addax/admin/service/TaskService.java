@@ -351,6 +351,10 @@ public class TaskService
                 details.add(new FillbackResultDto.Detail(tid, "(unknown)", List.of(), 0, true, "表不存在"));
                 continue;
             }
+            if (table.getRetiredAt() != null) {
+                details.add(new FillbackResultDto.Detail(tid, "(retired)", List.of(), 0, true, "采集表已退役"));
+                continue;
+            }
 
             VwEtlTableWithSource tableView = tableService.getTableView(tid);
             if (tableView == null) {

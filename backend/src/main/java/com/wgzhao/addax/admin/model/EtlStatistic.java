@@ -29,6 +29,9 @@ public class EtlStatistic
     @Column(name = "tid")
     private Long tid;
 
+    @Column(name = "execution_id")
+    private Long executionId;
+
     @Column(name = "start_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startAt;

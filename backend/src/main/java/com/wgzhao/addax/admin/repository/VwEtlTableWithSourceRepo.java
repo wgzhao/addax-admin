@@ -4,13 +4,14 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
 public interface VwEtlTableWithSourceRepo
-    extends JpaRepository<VwEtlTableWithSource, Long>
+    extends JpaRepository<VwEtlTableWithSource, Long>, JpaSpecificationExecutor<VwEtlTableWithSource>
 {
 
     Page<VwEtlTableWithSource> findByEnabledIsTrueAndStatusAndFilterColumnContaining(String status, String filterContent, Pageable pageable);
@@ -35,9 +36,9 @@ public interface VwEtlTableWithSourceRepo
 
     Page<VwEtlTableWithSource> findBySidAndEnabledIsTrue(int sid, Pageable pageable);
 
-    List<VwEtlTableWithSource> findBySidAndSourceDb(int sid, String db);
+    List<VwEtlTableWithSource> findBySidAndSourceDbAndRetiredAtIsNull(int sid, String db);
 
-    List<VwEtlTableWithSource> findByEnabledTrueAndStatusNot(String x);
+    List<VwEtlTableWithSource> findByEnabledTrueAndStatusNotAndRetiredAtIsNull(String status);
 
-    List<VwEtlTableWithSource> findBySidAndEnabledTrueAndStatusNot(int sid, String status);
+    List<VwEtlTableWithSource> findBySidAndEnabledTrueAndStatusNotAndRetiredAtIsNull(int sid, String status);
 }

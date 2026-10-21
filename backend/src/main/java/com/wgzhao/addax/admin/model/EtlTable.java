@@ -166,6 +166,13 @@ public class EtlTable
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @Column(name = "retired_at")
+    private LocalDateTime retiredAt;
+
+    @Column(name = "retired_by", length = 100)
+    private String retiredBy;
+
     @PrePersist
     public void prePersist()
     {

@@ -28,6 +28,7 @@ public class AddaxLog
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long tid;
+    private Long executionId;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime runAt;
     private LocalDate runDate;

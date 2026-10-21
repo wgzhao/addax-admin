@@ -16,6 +16,7 @@ public interface EtlTableRepo
         select count(t.id) from VwEtlTableWithSource t
         where t.status not in ( 'X' ,'U')
               and t.enabled = true
+              and t.retiredAt is null
         """)
     Integer findValidTableCount();
 
@@ -29,6 +30,7 @@ public interface EtlTableRepo
     @Query("""
             UPDATE EtlTable t SET t.status = 'N', t.retryCnt = 3
             WHERE t.status not in ('X', 'U')
+              AND t.retiredAt is null
               AND COALESCE(NULLIF((SELECT s.calendar FROM EtlSource s WHERE s.id = t.sid), ''), 'NATURAL_DAY')
                   in (:calendars)
         """)
@@ -37,7 +39,9 @@ public interface EtlTableRepo
     @Query(value = """
         select t
         from EtlTable t
-        where (t.status='E' or t.duration>=1200 or t.retryCnt<3) and t.status <> 'X'
+        where (t.status='E' or t.duration>=1200 or t.retryCnt<3)
+          and t.status <> 'X'
+          and t.retiredAt is null
         order by t.duration desc
         """)
     List<EtlTable> findSpecialTasks();
@@ -47,6 +51,7 @@ public interface EtlTableRepo
                 update EtlTable t
                 set t.status = ?2, t.retryCnt = ?3
                 where t.id in ?1
+                  and t.retiredAt is null
         """)
     void batchUpdateStatusAndFlag(List<Long> ids, String status, int retryCnt);
 
@@ -81,13 +86,14 @@ public interface EtlTableRepo
 
     @Query(value = """
         select count(*) from etl_table t left join etl_source s on t.sid = s.id
-        where t.status = ?1 and s.enabled = true
+        where t.status = ?1 and s.enabled = true and t.retired_at is null
         """, nativeQuery = true)
     int countByStatusEquals(String status);
 
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
-            WHERE t.status NOT IN ('Y','X','U') AND t.retryCnt > 0
+            WHERE t.retiredAt is null
+              AND t.status NOT IN ('Y','X','U') AND t.retryCnt > 0
             AND (
                 :checkTime = false OR
                 (s.startAt > :switchTime AND s.startAt < :currentTime)
@@ -103,6 +109,7 @@ public interface EtlTableRepo
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
+              AND t.retiredAt is null
               AND t.sid = :sid
               AND t.startAt is null
               AND t.status NOT IN ('Y','X','U')
@@ -116,6 +123,7 @@ public interface EtlTableRepo
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
+              AND t.retiredAt is null
               AND t.startAt = :startAt
               AND t.status = 'N'
               AND t.retryCnt > 0
@@ -128,6 +136,7 @@ public interface EtlTableRepo
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
             WHERE s.enabled = true
+              AND t.retiredAt is null
               AND t.startAt is not null
               AND t.startAt >= :from
               AND t.startAt <= :to
@@ -139,7 +148,7 @@ public interface EtlTableRepo
 
     int countBySid(int sid);
 
-    List<EtlTable> findByStatus(String status);
+    List<EtlTable> findByStatusAndRetiredAtIsNull(String status);
 
     /**
      * Collection calendar of the source a table belongs to, for callers that only have a table id.
@@ -157,13 +166,13 @@ public interface EtlTableRepo
     @Query(value = """
         select distinct coalesce(nullif(calendar, ''), 'NATURAL_DAY')
         from vw_etl_table_with_source
-        where status <> 'X' and coalesce(enabled, false) = true
+        where status <> 'X' and coalesce(enabled, false) = true and retired_at is null
         """, nativeQuery = true)
     List<String> findCalendarsInUse();
 
     @Query("""
             SELECT t FROM EtlTable t JOIN EtlSource s on t.sid = s.id
-                WHERE t.status <> 'X' AND s.enabled = true
+                WHERE t.status <> 'X' AND s.enabled = true AND t.retiredAt is null
         """)
     List<EtlTable> findCanRefreshTables();
 }

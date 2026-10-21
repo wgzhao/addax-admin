@@ -33,18 +33,20 @@ public interface EtlStatisticRepo
             array_agg(total_secs) AS total_secs
         FROM (
                  SELECT
-                     b.code,
+                     coalesce(x.source_code, b.code) AS code,
                      t.biz_date,
                      SUM(t.take_secs) AS total_secs
                  FROM
                      etl_statistic t
+                         LEFT JOIN
+                     etl_execution x ON t.execution_id = x.id
                          LEFT JOIN
                      vw_etl_table_with_source b
                  on t.tid = b.id
                  WHERE
                      t.biz_date >= current_date - 5
                  GROUP BY
-                     b.code, t.biz_date
+                     coalesce(x.source_code, b.code), t.biz_date
              ) sub
         GROUP BY
             biz_date
@@ -60,18 +62,21 @@ public interface EtlStatisticRepo
                  array_agg(total_bytes) AS total_bytes
              FROM (
                       SELECT
-                          b.code,
+                          coalesce(x.source_code, b.code) AS code,
                           t.biz_date,
                           round(SUM(total_bytes) / 1024 / 1024,2) AS total_bytes
                       FROM
                           etl_statistic t
+                              LEFT JOIN
+                          etl_execution x
+                          ON t.execution_id = x.id
                               LEFT JOIN
                           vw_etl_table_with_source b
                       on t.tid = b.id
                       WHERE
                           t.biz_date >= current_date - INTERVAL '5 days'
                       GROUP BY
-                          b.code, t.biz_date
+                          coalesce(x.source_code, b.code), t.biz_date
                   ) sub
              GROUP BY
                  biz_date

@@ -105,8 +105,13 @@ public class LogController
     {
         log.debug("job report: {}", dto);
         long tid;
+        Long executionId = null;
         try {
-            tid = Long.parseLong(dto.jobName());
+            String[] parts = dto.jobName().split(":", 2);
+            tid = Long.parseLong(parts[0]);
+            if (parts.length == 2) {
+                executionId = Long.parseLong(parts[1]);
+            }
         }
         catch (NumberFormatException e) {
             log.error("Invalid jobName format: {}", dto.jobName());
@@ -114,6 +119,7 @@ public class LogController
         }
         EtlStatistic sta = new EtlStatistic();
         sta.setTid(tid);
+        sta.setExecutionId(executionId);
         sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
         sta.setEndAt(LocalDateTime.ofEpochSecond(dto.endTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
         sta.setTakeSecs(dto.totalCosts());
