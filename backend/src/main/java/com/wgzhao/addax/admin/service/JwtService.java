@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -102,6 +103,7 @@ public class JwtService
         // 构建JWT令牌
         return Jwts.builder()
             .claims(claims)
+            .id(UUID.randomUUID().toString())
             .subject(username)
             .issuedAt(new Date())
             .expiration(expiryDate)

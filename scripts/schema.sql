@@ -2155,6 +2155,76 @@ ALTER TABLE ONLY public.sys_item
 
 
 --
+--
+-- Security audit events are append-only. Application code may only insert;
+-- retention uses a transaction-local opt-in for DELETE.
+--
+
+CREATE TABLE public.audit_event (
+    id bigint NOT NULL,
+    event_id uuid NOT NULL,
+    occurred_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    request_id character varying(64),
+    actor_type character varying(16) DEFAULT 'USER'::character varying NOT NULL,
+    actor_username character varying(100),
+    actor_roles jsonb DEFAULT '[]'::jsonb NOT NULL,
+    session_id character varying(64),
+    action character varying(80) NOT NULL,
+    category character varying(32) NOT NULL,
+    severity character varying(16) NOT NULL,
+    resource_type character varying(64),
+    resource_id character varying(128),
+    resource_name character varying(255),
+    outcome character varying(16) NOT NULL,
+    http_method character varying(8),
+    request_path character varying(512),
+    client_ip inet,
+    user_agent character varying(512),
+    node_id character varying(128),
+    before_data jsonb,
+    after_data jsonb,
+    changed_fields jsonb DEFAULT '[]'::jsonb NOT NULL,
+    error_code character varying(64),
+    error_message character varying(1000),
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+CREATE SEQUENCE public.audit_event_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.audit_event_id_seq OWNED BY public.audit_event.id;
+ALTER TABLE ONLY public.audit_event ALTER COLUMN id SET DEFAULT nextval('public.audit_event_id_seq'::regclass);
+ALTER TABLE ONLY public.audit_event ADD CONSTRAINT audit_event_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.audit_event ADD CONSTRAINT audit_event_event_id_key UNIQUE (event_id);
+
+CREATE INDEX idx_audit_event_occurred_at ON public.audit_event USING btree (occurred_at DESC, id DESC);
+CREATE INDEX idx_audit_event_actor_occurred ON public.audit_event USING btree (actor_username, occurred_at DESC);
+CREATE INDEX idx_audit_event_action_occurred ON public.audit_event USING btree (action, occurred_at DESC);
+CREATE INDEX idx_audit_event_resource_occurred ON public.audit_event USING btree (resource_type, resource_id, occurred_at DESC);
+CREATE INDEX idx_audit_event_request ON public.audit_event USING btree (request_id);
+CREATE INDEX idx_audit_event_outcome_occurred ON public.audit_event USING btree (outcome, occurred_at DESC);
+
+CREATE FUNCTION public.fn_audit_event_append_only() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+    if tg_op = 'DELETE' and current_setting('addax.audit_purge', true) = 'on' then
+        return old;
+    end if;
+    raise exception 'audit_event is append-only';
+end;
+$$;
+
+CREATE TRIGGER trg_audit_event_append_only
+    BEFORE UPDATE OR DELETE ON public.audit_event
+    FOR EACH ROW EXECUTE FUNCTION public.fn_audit_event_append_only();
+
+
+--
 -- PostgreSQL database dump complete
 --
 

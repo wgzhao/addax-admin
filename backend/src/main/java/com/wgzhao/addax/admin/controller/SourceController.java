@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -12,6 +13,7 @@ import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +47,7 @@ public class SourceController
     private final SourceService sourceService;
     private final TableService tableService;
     private final SystemConfigService configService;
+    private final AuditRecorder auditRecorder;
 
     /**
      * 查询所有数据源
@@ -75,6 +78,7 @@ public class SourceController
      * @return 新建的数据源对象（201 Created）
      */
     @PostMapping("")
+    @Transactional
     public ResponseEntity<EtlSource> createSource(@RequestBody EtlSource etlSource)
     {
         if (etlSource.getId() > 0) {
@@ -84,6 +88,8 @@ public class SourceController
         validateStartAt(etlSource.getStartAt());
         etlSource.setCalendar(normalizeCalendar(etlSource.getCalendar()));
         EtlSource saved = sourceService.create(etlSource);
+        auditRecorder.success("SOURCE_CREATED", "CONFIG", "WARNING", "ETL_SOURCE",
+            saved.getId(), saved.getName(), null, saved);
         return ResponseEntity.status(201).body(saved);
     }
 
@@ -95,12 +101,14 @@ public class SourceController
      * @return 更新的记录数
      */
     @PutMapping("/{id}")
+    @Transactional
     public ResponseEntity<Integer> updateSource(@PathVariable int id, @RequestBody EtlSource etlSource)
     {
         if (etlSource.getId() != id) {
             throw new ApiException(400, "ID in path and body do not match");
         }
         EtlSource existing = sourceService.findById(id).orElseThrow(() -> new ApiException(404, "Source not found"));
+        java.util.Map<String, Object> before = sourceSnapshot(existing);
         // etlSource.code 不允许修改
         if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
             throw new ApiException(400, "Source code cannot be modified");
@@ -113,8 +121,34 @@ public class SourceController
         validateStartAt(etlSource.getStartAt());
         etlSource.setCalendar(normalizeCalendar(etlSource.getCalendar()));
         sourceService.save(etlSource);
+        auditRecorder.success("SOURCE_UPDATED", "CONFIG", "WARNING", "ETL_SOURCE",
+            id, etlSource.getName(), before, sourceSnapshot(etlSource),
+            java.util.Map.of("connectionChanged",
+                !java.util.Objects.equals(existing.getUrl(), etlSource.getUrl())
+                    || !java.util.Objects.equals(existing.getUsername(), etlSource.getUsername())
+                    || !java.util.Objects.equals(existing.getPass(), etlSource.getPass())));
 
         return ResponseEntity.ok(1);
+    }
+
+    private java.util.Map<String, Object> sourceSnapshot(EtlSource source)
+    {
+        java.util.Map<String, Object> snapshot = new java.util.LinkedHashMap<>();
+        snapshot.put("id", source.getId());
+        snapshot.put("code", source.getCode());
+        snapshot.put("name", source.getName());
+        snapshot.put("url", source.getUrl());
+        snapshot.put("username", source.getUsername());
+        snapshot.put("pass", source.getPass());
+        snapshot.put("startAt", source.getStartAt());
+        snapshot.put("calendar", source.getCalendar());
+        snapshot.put("prerequisite", source.getPrerequisite());
+        snapshot.put("preScript", source.getPreScript());
+        snapshot.put("remark", source.getRemark());
+        snapshot.put("enabled", source.isEnabled());
+        snapshot.put("maxConcurrency", source.getMaxConcurrency());
+        snapshot.put("dbType", source.getDbType());
+        return snapshot;
     }
 
     /**
@@ -139,6 +173,7 @@ public class SourceController
      * @return 无内容响应（204）或错误（400/404）
      */
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> delete(
         @PathVariable int id)
     {
@@ -146,8 +181,11 @@ public class SourceController
         if (tableCountBySourceId > 0) {
             throw new ApiException(400, "Cannot delete source with associated tables");
         }
+        EtlSource before = sourceService.getSource(id);
         if (sourceService.existsById(id)) {
             sourceService.deleteById(id);
+            auditRecorder.success("SOURCE_DELETED", "CONFIG", "WARNING", "ETL_SOURCE",
+                id, before == null ? null : before.getName(), before, null);
             return ResponseEntity.noContent().build();
         }
         else {
@@ -162,6 +200,7 @@ public class SourceController
      * @return 是否连接成功
      */
     @PostMapping("/test-connect")
+    @Transactional
     public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload)
     {
         String password = payload.password();
@@ -174,6 +213,12 @@ public class SourceController
             password = source.getPass();
         }
         boolean isConnected = DbUtil.testConnection(payload.url(), payload.username(), password);
+        java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("connected", isConnected);
+        metadata.put("username", payload.username());
+        auditRecorder.success("SOURCE_CONNECTION_TESTED", "CONFIG", "INFO", "ETL_SOURCE",
+            payload.sourceId(), payload.url(), null, null,
+            metadata);
         return ResponseEntity.ok(isConnected);
     }
 

@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.config;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.audit.AuditRequestFilter;
 import com.wgzhao.addax.admin.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -20,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -29,6 +32,7 @@ public class JwtFilter
 {
 
     private final JwtService jwtService;
+    private final AuditRecorder auditRecorder;
 
     @Override
     protected void doFilterInternal(
@@ -52,6 +56,9 @@ public class JwtFilter
         }
         catch (ExpiredJwtException ex) {
             log.debug("JWT token expired for request {}", request.getRequestURI());
+            auditRecorder.independentFailure("AUTH_TOKEN_REJECTED", "AUTH", "WARNING",
+                "API", null, request.getRequestURI(), null, "TOKEN_EXPIRED", ex,
+                Map.of("reason", "expired"));
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"message\":\"token 已过期\"}");
@@ -59,17 +66,24 @@ public class JwtFilter
         }
         catch (JwtException | IllegalArgumentException ex) {
             log.debug("Invalid JWT token: {}", ex.getMessage());
+            auditRecorder.independentFailure("AUTH_TOKEN_REJECTED", "AUTH", "WARNING",
+                "API", null, request.getRequestURI(), null, "TOKEN_INVALID", ex,
+                Map.of("reason", "invalid"));
             filterChain.doFilter(request, response);
             return;
         }
 
         String username = claims.getSubject();
         if (username == null || username.isBlank()) {
+            auditRecorder.independentFailure("AUTH_TOKEN_REJECTED", "AUTH", "WARNING",
+                "API", null, request.getRequestURI(), null, "TOKEN_SUBJECT_MISSING", null,
+                Map.of("reason", "missing_subject"));
             filterChain.doFilter(request, response);
             return;
         }
 
         log.debug("valid token, username: {}", username);
+        request.setAttribute(AuditRequestFilter.JWT_ID_ATTRIBUTE, claims.getId());
         List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(token).stream()
             .map((item) -> item == null ? "" : item.trim().toLowerCase())
             .filter((item) -> !item.isBlank())

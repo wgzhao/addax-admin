@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.FillbackRequestDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
@@ -16,6 +17,7 @@ import com.wgzhao.addax.admin.service.TaskService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,6 +67,7 @@ public class TaskController
      * 告警服务
      */
     private final AlertService alertService;
+    private final AuditRecorder auditRecorder;
 
     /**
      * 获取队列状态
@@ -85,6 +88,7 @@ public class TaskController
      * @return 操作结果
      */
     @PatchMapping("/queue")
+    @Transactional
     public ResponseEntity<Map<String, Object>> configureQueue(
         @RequestBody Map<String, String> payload)
     {
@@ -99,6 +103,9 @@ public class TaskController
         else {
             throw new ApiException(400, "Invalid state value");
         }
+        auditRecorder.success("TASK_QUEUE_CONFIGURED", "SCHEDULING", "WARNING", "TASK_QUEUE",
+            "queue", "task queue", null, null,
+            Map.of("state", state, "result", result));
         return ResponseEntity.ok(Map.of("result", result));
     }
 
@@ -108,9 +115,12 @@ public class TaskController
      * @return 操作结果
      */
     @PostMapping("/queue/actions/reset")
+    @Transactional
     public ResponseEntity<Map<String, Object>> resetQueue()
     {
         String result = taskService.resetQueue();
+        auditRecorder.success("TASK_QUEUE_RESET", "SCHEDULING", "CRITICAL", "TASK_QUEUE",
+            "queue", "task queue", null, null, Map.of("result", result));
         return ResponseEntity.ok(Map.of("success", true, "message", result));
     }
 
@@ -120,6 +130,7 @@ public class TaskController
      * @return 操作结果
      */
     @PostMapping("/addax-jobs")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateAllJobs()
     {
         int updated = 0;
@@ -138,6 +149,9 @@ public class TaskController
         }
         String message = failures.isEmpty() ? "success"
             : "updated " + updated + ", failed " + failures.size() + ": " + String.join("; ", failures);
+        auditRecorder.success("ALL_TABLE_JOBS_UPDATED", "SCHEDULING", "WARNING", "ADDAX_JOB",
+            "all", "all table jobs", null, null,
+            Map.of("updated", updated, "failed", failures.size()));
         return ResponseEntity.ok(Map.of("success", true, "updated", updated, "failed", failures.size(), "message", message));
     }
 
@@ -148,9 +162,12 @@ public class TaskController
      * @return 操作结果
      */
     @PutMapping("/{taskId}/addax-job")
+    @Transactional
     public ResponseEntity<Map<String, Object>> updateJob(@PathVariable long taskId)
     {
         jobContentService.updateJob(tableService.getTableView(taskId));
+        auditRecorder.success("TABLE_JOB_REGENERATED", "SCHEDULING", "WARNING", "ETL_TABLE",
+            taskId, null, null, null);
         return ResponseEntity.ok(Map.of("success", true, "message", "success"));
     }
 
@@ -162,6 +179,7 @@ public class TaskController
      * @return 任务执行结果
      */
     @PostMapping("/{taskId}/executions")
+    @Transactional
     public ResponseEntity<TaskResultDto> executeTask(
         @PathVariable long taskId,
         @RequestParam(name = "isSync", required = false, defaultValue = "false") boolean isSync)
@@ -189,6 +207,16 @@ public class TaskController
         else {
             result = taskService.submitTask(taskId, getCurrentUsername());
         }
+        String action = isSync ? "COLLECTION_EXECUTED_SYNC" : "COLLECTION_SUBMITTED";
+        String resultMessage = result.message() == null ? "" : result.message();
+        if (result.success()) {
+            auditRecorder.accepted(action, "SCHEDULING", "WARNING", "ETL_TABLE",
+                taskId, null, Map.of("sync", isSync, "message", resultMessage));
+        }
+        else {
+            auditRecorder.failed(action, "SCHEDULING", "WARNING", "ETL_TABLE",
+                taskId, null, "COLLECTION_SUBMIT_FAILED", resultMessage, Map.of("sync", isSync));
+        }
         return ResponseEntity.ok(result);
     }
 
@@ -200,6 +228,7 @@ public class TaskController
      * @return 执行结果摘要
      */
     @PostMapping("/executions/batch")
+    @Transactional
     public ResponseEntity<TaskResultDto> executeTasksBatch(
         @RequestBody List<Long> tids)
     {
@@ -216,8 +245,10 @@ public class TaskController
                 failCount++;
             }
         }
-        return ResponseEntity.ok(TaskResultDto.success(
-            String.format("批量任务提交完成: 成功 %d 个，失败 %d 个", successCount, failCount), 0));
+        String message = String.format("批量任务提交完成: 成功 %d 个，失败 %d 个", successCount, failCount);
+        auditRecorder.accepted("COLLECTIONS_BATCH_SUBMITTED", "SCHEDULING", "WARNING", "ETL_TABLE",
+            "batch", "batch executions", Map.of("tids", tids, "success", successCount, "failed", failCount));
+        return ResponseEntity.ok(TaskResultDto.success(message, 0));
     }
 
     /**
@@ -230,12 +261,21 @@ public class TaskController
      * @return 补数结果
      */
     @PostMapping("/fillback")
+    @Transactional
     public ResponseEntity<ApiResponse<FillbackResultDto>> fillback(
         @RequestBody FillbackRequestDto request)
     {
         String username = getCurrentUsername();
         FillbackResultDto result = taskService.fillback(
             request.tids(), request.startDate(), request.endDate(), username);
+        auditRecorder.accepted("COLLECTION_FILLBACK_SUBMITTED", "SCHEDULING", "CRITICAL", "ETL_TABLE",
+            "fillback", "fillback", Map.of(
+                "tids", request.tids(),
+                "startDate", request.startDate().toString(),
+                "endDate", request.endDate().toString(),
+                "enqueued", result.totalEnqueued(),
+                "skipped", result.skipped()
+            ));
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -277,10 +317,20 @@ public class TaskController
      * @return 任务终止结果
      */
     @PostMapping("/{tid}/kill")
+    @Transactional
     public ResponseEntity<TaskResultDto> killTask(
         @PathVariable long tid)
     {
         TaskResultDto result = taskService.killTask(tid);
+        if (result.success()) {
+            auditRecorder.accepted("COLLECTION_KILL_REQUESTED", "SCHEDULING", "CRITICAL", "ETL_TABLE",
+                tid, null, Map.of("message", result.message() == null ? "" : result.message()));
+        }
+        else {
+            auditRecorder.failed("COLLECTION_KILL_REQUESTED", "SCHEDULING", "CRITICAL", "ETL_TABLE",
+                tid, null, "KILL_REQUEST_FAILED",
+                result.message() == null ? "" : result.message(), Map.of());
+        }
         return ResponseEntity.ok(result);
     }
 

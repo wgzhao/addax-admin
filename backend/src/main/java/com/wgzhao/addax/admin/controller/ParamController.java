@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
+import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.common.CalendarType;
 import com.wgzhao.addax.admin.model.SysDict;
@@ -10,6 +11,7 @@ import com.wgzhao.addax.admin.service.TradeCalendarService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +44,7 @@ public class ParamController
     private final DictService dictService;
     private final CalendarService calendarService;
     private final TradeCalendarService tradeCalendarService;
+    private final AuditRecorder auditRecorder;
 
     /**
      * 日历覆盖范围：每个日历字典最后覆盖到哪一天，以及是否需要提醒维护者导入后续日期。
@@ -87,12 +90,15 @@ public class ParamController
      * @return 新建的字典对象（201 Created）
      */
     @PostMapping("")
+    @Transactional
     public ResponseEntity<SysDict> createDict(
         @RequestBody SysDict dict)
     {
         SysDict result = dictService.findDictByCode(dict.getCode());
         if (result == null) {
             SysDict saved = dictService.saveDict(dict);
+            auditRecorder.success("DICT_CREATED", "CONFIG", "WARNING", "DICT",
+                saved.getCode(), saved.getName(), null, saved);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         }
         else {
@@ -123,12 +129,17 @@ public class ParamController
      * @return 更新后的字典对象
      */
     @PutMapping("/{dictCode}")
+    @Transactional
     public SysDict updateDict(
         @PathVariable int dictCode,
         @RequestBody SysDict dict)
     {
+        SysDict before = dictService.findDictById(dictCode).orElse(null);
         dict.setCode(dictCode);
-        return dictService.saveDict(dict);
+        SysDict saved = dictService.saveDict(dict);
+        auditRecorder.success("DICT_UPDATED", "CONFIG", "WARNING", "DICT",
+            dictCode, saved.getName(), before, saved);
+        return saved;
     }
 
     /**
@@ -138,6 +149,7 @@ public class ParamController
      * @return 无内容响应
      */
     @DeleteMapping("/{dictCode}")
+    @Transactional
     public ResponseEntity<Void> deleteDict(
         @PathVariable int dictCode)
     {
@@ -145,7 +157,10 @@ public class ParamController
             throw new ApiException(400, "Cannot delete reserved dict");
         }
         if (dictService.existsDict(dictCode)) {
+            SysDict before = dictService.findDictById(dictCode).orElse(null);
             dictService.deleteDict(dictCode);
+            auditRecorder.success("DICT_DELETED", "CONFIG", "WARNING", "DICT",
+                dictCode, before == null ? null : before.getName(), before, null);
             return ResponseEntity.noContent().build();
         }
         else {
@@ -175,6 +190,7 @@ public class ParamController
      * @return 新建的字典项对象（201 Created）
      */
     @PostMapping("/{dictCode}/items")
+    @Transactional
     public ResponseEntity<SysItem> createItem(
         @PathVariable int dictCode,
         @RequestBody SysItem sysItem)
@@ -184,6 +200,8 @@ public class ParamController
             throw new ApiException(409, "Item already exists");
         }
         SysItem saved = dictService.saveItem(sysItem);
+        auditRecorder.success("DICT_ITEM_CREATED", "CONFIG", "WARNING", "DICT_ITEM",
+            dictCode + ":" + saved.getItemKey(), saved.getItemKey(), null, saved);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -213,14 +231,19 @@ public class ParamController
      * @return 更新后的字典项对象
      */
     @PutMapping("/{dictCode}/items/{itemKey}")
+    @Transactional
     public SysItem updateItem(
         @PathVariable int dictCode,
         @PathVariable String itemKey,
         @RequestBody SysItem sysItem)
     {
+        SysItem before = dictService.findItemById(dictCode, itemKey).orElse(null);
         sysItem.setDictCode(dictCode);
         sysItem.setItemKey(itemKey);
-        return dictService.saveItem(sysItem);
+        SysItem saved = dictService.saveItem(sysItem);
+        auditRecorder.success("DICT_ITEM_UPDATED", "CONFIG", "WARNING", "DICT_ITEM",
+            dictCode + ":" + itemKey, itemKey, before, saved);
+        return saved;
     }
 
     /**
@@ -231,12 +254,16 @@ public class ParamController
      * @return 无内容响应
      */
     @DeleteMapping("/{dictCode}/items/{itemKey}")
+    @Transactional
     public ResponseEntity<Void> deleteItem(
         @PathVariable int dictCode,
         @PathVariable String itemKey)
     {
         if (dictService.existsItem(dictCode, itemKey)) {
+            SysItem before = dictService.findItemById(dictCode, itemKey).orElse(null);
             dictService.deleteItem(dictCode, itemKey);
+            auditRecorder.success("DICT_ITEM_DELETED", "CONFIG", "WARNING", "DICT_ITEM",
+                dictCode + ":" + itemKey, itemKey, before, null);
             return ResponseEntity.noContent().build();
         }
         else {
@@ -260,6 +287,7 @@ public class ParamController
      * 工作日历生成的是“周一至周五”的起点，节假日与调休仍需维护者按官方安排增删。
      */
     @PostMapping("/{dictCode}/generate-calendar/{year}/{includeWeekend}")
+    @Transactional
     public ResponseEntity<Void> generateCalendar(@PathVariable int dictCode,
                                                  @PathVariable int year,
                                                  @PathVariable boolean includeWeekend)
@@ -267,7 +295,10 @@ public class ParamController
         if (CalendarType.ofDictCode(dictCode).isEmpty()) {
             throw new ApiException(400, "字典 " + dictCode + " 不是日历字典");
         }
-        dictService.generateCalendar(dictCode, year, includeWeekend);
+        int added = dictService.generateCalendar(dictCode, year, includeWeekend);
+        auditRecorder.success("CALENDAR_GENERATED", "CONFIG", "WARNING", "DICT",
+            dictCode, "calendar " + year, null, null,
+            Map.of("year", year, "includeWeekend", includeWeekend, "added", added));
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
@@ -278,6 +309,7 @@ public class ParamController
      * <p>可重复执行：官方数据会补齐并移除该年已不再交易的日子，退化数据只补不删。</p>
      */
     @PostMapping("/{dictCode}/refresh-trade-calendar/{year}")
+    @Transactional
     public ResponseEntity<TradeCalendarService.RefreshResult> refreshTradeCalendar(
         @PathVariable int dictCode,
         @PathVariable int year)
@@ -288,6 +320,10 @@ public class ParamController
         if (year < 2000 || year > 2100) {
             throw new ApiException(400, "年份超出范围：" + year);
         }
-        return ResponseEntity.ok(tradeCalendarService.refresh(year));
+        TradeCalendarService.RefreshResult result = tradeCalendarService.refresh(year);
+        auditRecorder.success("TRADE_CALENDAR_REFRESHED", "CONFIG", "WARNING", "DICT",
+            dictCode, "trade calendar " + year, null, result,
+            Map.of("year", year));
+        return ResponseEntity.ok(result);
     }
 }
