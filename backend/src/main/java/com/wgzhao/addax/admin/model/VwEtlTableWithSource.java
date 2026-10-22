@@ -3,9 +3,12 @@ package com.wgzhao.addax.admin.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.common.TargetOptions;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
@@ -31,6 +34,9 @@ public class VwEtlTableWithSource
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "target_options")
     private JsonNode targetOptions;
+    @Enumerated(EnumType.STRING)
+    private SchemaManagementMode schemaManagementMode;
+    private String targetSchemaFingerprint;
     private String filter;
     private String status;
     private String kind;
@@ -120,6 +126,12 @@ public class VwEtlTableWithSource
     public String getCompressFormat()
     {
         return TargetOptions.hdfsCompressFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getPartitionCreationMode()
+    {
+        return TargetOptions.hdfsPartitionCreationMode(targetOptions);
     }
 
     @JsonIgnore

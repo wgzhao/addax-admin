@@ -49,13 +49,13 @@ test('table detail renders target-specific attributes per target family', async 
   expect(rdbms, 'expected at least one RDBMS target table').toBeTruthy();
 
   await page.goto(`/table/detail/${hdfs!.id}`);
-  await expect(page.getByText('抽取与存储配置')).toBeVisible();
+  await expect(page.getByText('抽取与存储')).toBeVisible();
   await expect(page.getByText('分区字段', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('存储格式', { exact: true })).toBeVisible();
   await expect(page.getByText('快照业务日期列', { exact: true })).toHaveCount(0);
 
   await page.goto(`/table/detail/${rdbms!.id}`);
-  await expect(page.getByText('抽取与存储配置')).toBeVisible();
+  await expect(page.getByText('抽取与存储')).toBeVisible();
   await expect(page.getByText('快照业务日期列', { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('目标表主键', { exact: true })).toBeVisible();
   await expect(page.getByText('分区字段', { exact: true })).toHaveCount(0);
@@ -141,6 +141,8 @@ test('saving an RDBMS table writes rdbms options and keeps the stored hdfs optio
   await page.goto(`/table/detail/${rdbms!.id}`);
   await expect(page.getByText('快照业务日期列', { exact: true })).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: '编辑配置' }).click();
+  const targetTableInput = page.getByPlaceholder('请输入目标表');
+  await targetTableInput.fill(`${rdbms!.targetTable}_probe`);
   await page.getByRole('button', { name: '保存更改' }).click();
 
   await expect.poll(() => payload !== null, { timeout: 15_000 }).toBe(true);

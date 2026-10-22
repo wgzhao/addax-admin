@@ -28,6 +28,8 @@ public final class EtlTableView
             t.target_db,
             t.target_table,
             t.target_options,
+            t.schema_management_mode,
+            t.target_schema_fingerprint,
             t.filter,
             t.kind,
             t.retry_cnt,

@@ -9,7 +9,6 @@ import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.exception.ApiException;
-import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -24,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.wgzhao.addax.admin.service.target.TargetTypeResolver;
+import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -32,7 +32,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 
-import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
@@ -49,6 +48,7 @@ public class JobContentService
     private final EtlJobRepo jobRepo;
     private final EtlTableRepo tableRepo;
     private final ColumnService columnService;
+    private final ColumnMappingService columnMappingService;
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final SystemConfigService configService;
@@ -268,17 +268,25 @@ public class JobContentService
             values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(sourceTable, dbType));
         }
 
-        // process column info
-        List<EtlColumn> columnList = columnService.getColumns(vTable.getId());
+        // A mapping row is the source of truth for both the source expression and the record field name
+        // consumed by either writer shape.
+        List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(vTable.getId());
         List<String> srcColumns = new ArrayList<>();
-        for (EtlColumn etlColumn : columnList) {
-            String columnName = etlColumn.getColumnName();
-            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                srcColumns.add("\"NULL\"");
+        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings) {
+            String sourceName = mapping.sourceColumnName();
+            String targetName = mapping.targetColumnName();
+            String expression;
+            if (!mapping.sourceActive()) {
+                expression = "NULL as " + outputAlias(targetName);
+            }
+            else if (sourceName.equalsIgnoreCase(targetName)) {
+                expression = quoteIfNeeded(sourceName, dbType);
             }
             else {
-                srcColumns.add("\"" + quoteIfNeeded(columnName, dbType) + "\"");
+                expression = quoteIfNeeded(sourceName, dbType)
+                    + " as " + outputAlias(targetName);
             }
+            srcColumns.add("\"" + RdbmsDdlUtil.jsonEscape(expression) + "\"");
         }
         // Snapshot mode: append the business date as a literal expression so the RDBMS target carries a
         // date column even though the source table has none. It goes last and the writer appends the same
@@ -286,13 +294,25 @@ public class JobContentService
         // aligned; a source column with that name is reused instead of injected. The identifier is quoted
         // like every other reader column, otherwise a reserved word such as "date" only breaks the reader.
         String bizDateColumn = vTable.getRdbmsBusinessDateColumn();
-        if (ColumnService.needsInjectedBusinessDate(columnList, bizDateColumn)) {
+        if (bizDateColumn != null && !bizDateColumn.isBlank()
+            && mappings.stream().noneMatch(mapping ->
+                bizDateColumn.trim().equalsIgnoreCase(mapping.targetColumnName()))) {
             String bizDateValue = dateValues.getOrDefault("biz_date_short", "");
-            srcColumns.add("\"'" + bizDateValue + "' as " + quoteIfNeeded(bizDateColumn.trim(), dbType) + "\"");
+            String expression = "'" + bizDateValue + "' as " + outputAlias(bizDateColumn.trim());
+            srcColumns.add("\"" + RdbmsDdlUtil.jsonEscape(expression) + "\"");
         }
         values.put("column", String.join(", ", srcColumns));
         StringSubstitutor substitutor = new StringSubstitutor(values);
         return substitutor.replace(template);
+    }
+
+    private String outputAlias(String name)
+    {
+        if (name != null && name.matches("[A-Za-z_][A-Za-z0-9_$]*"))
+        {
+            return name;
+        }
+        return "\"" + (name == null ? "" : name.replace("\"", "\"\"")) + "\"";
     }
 
     /**

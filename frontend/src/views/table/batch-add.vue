@@ -5,7 +5,7 @@
         <div class="page-header flex-wrap">
           <div>
             <div class="page-title">批量新增采集表</div>
-            <div class="page-subtitle">按步骤添加并预览目标表名</div>
+            <div class="page-subtitle">选择采集范围，配置目标策略，确认字段映射后再创建</div>
           </div>
         </div>
       </v-card-text>

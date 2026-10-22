@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service.target;
 
+import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 
 import java.time.LocalDate;
@@ -29,12 +30,17 @@ public interface TargetAdapter
 
     boolean createOrUpdateTable(VwEtlTableWithSource etlTable);
 
+    /**
+     * Read the actual target contract without changing it.
+     */
+    TargetTableMetadata inspectTable(VwEtlTableWithSource etlTable);
+
     Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
 
     /**
      * 执行任务前的目标端准备动作（如分区创建）。
      */
-    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue);
+    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate);
 
     /**
      * 生成目标端 writer 模板片段。

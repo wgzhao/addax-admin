@@ -6,6 +6,11 @@ import type {
   EtlStatistic,
   EtlTableChangeLog,
   EtlExecution,
+  ColumnMapping,
+  CollectionSchemaPreview,
+  CollectionPlanPreview,
+  CollectionPlanCommitResult,
+  TargetContractReport,
 } from '@/types/database';
 import type { Page } from '@/types';
 
@@ -63,6 +68,95 @@ class TableService {
   // 查询表字段对比
   fetchFieldsCompare(tableId: number): Promise<EtlColumn[]> {
     return Requests.get(`${this.prefix}/${tableId}/columns`) as unknown as Promise<EtlColumn[]>;
+  }
+
+  fetchColumnMappings(tableId: number): Promise<ColumnMapping[]> {
+    return Requests.get(`${this.prefix}/${tableId}/column-mappings`) as unknown as Promise<
+      ColumnMapping[]
+    >;
+  }
+
+  saveColumnMappings(
+    tableId: number,
+    mappings: Array<{
+      sourceColumnName: string;
+      targetColumnName: string;
+      ordinalNo: number;
+    }>
+  ): Promise<ColumnMapping[]> {
+    return Requests.put(`${this.prefix}/${tableId}/column-mappings`, mappings, {
+      timeout: 300000,
+    }) as unknown as Promise<ColumnMapping[]>;
+  }
+
+  checkTargetContract(tableId: number): Promise<TargetContractReport> {
+    return Requests.post(
+      `${this.prefix}/${tableId}/target-contract/check`,
+      {},
+      { timeout: 120000 }
+    ) as unknown as Promise<TargetContractReport>;
+  }
+
+  previewExternalSchema(data: {
+    sourceId: number;
+    sourceDb: string;
+    sourceTable: string;
+    targetId: number;
+    targetDb: string;
+    targetTable: string;
+    schemaManagementMode: 'EXTERNAL';
+    targetOptions: Partial<EtlTable['targetOptions']>;
+  }): Promise<CollectionSchemaPreview> {
+    return Requests.post(`${this.prefix}/schema-preview`, data, {
+      timeout: 300000,
+    }) as unknown as Promise<CollectionSchemaPreview>;
+  }
+
+  previewCollectionPlans(
+    data: Array<{
+      sourceId: number;
+      sourceDb: string;
+      sourceTable: string;
+      targetId: number;
+      targetDb: string;
+      targetTable: string;
+      schemaManagementMode: 'MANAGED' | 'EXTERNAL';
+      targetOptions: Partial<EtlTable['targetOptions']>;
+    }>
+  ): Promise<CollectionPlanPreview[]> {
+    return Requests.post(`${this.prefix}/schema-plans/preview`, data, {
+      timeout: 300000,
+    }) as unknown as Promise<CollectionPlanPreview[]>;
+  }
+
+  commitCollectionPlans(
+    data: Array<{
+      table: EtlTable;
+      mappings: Array<{
+        sourceColumnName: string;
+        targetColumnName: string;
+        ordinalNo: number;
+      }>;
+      targetSchemaFingerprint?: string | null;
+    }>
+  ): Promise<CollectionPlanCommitResult[]> {
+    return Requests.post(`${this.prefix}/schema-plans/commit`, data, {
+      timeout: 600000,
+    }) as unknown as Promise<CollectionPlanCommitResult[]>;
+  }
+
+  createExternal(data: {
+    table: EtlTable;
+    mappings: Array<{
+      sourceColumnName: string;
+      targetColumnName: string;
+      ordinalNo: number;
+    }>;
+    targetSchemaFingerprint?: string | null;
+  }): Promise<EtlTable> {
+    return Requests.post(`${this.prefix}/external`, data, {
+      timeout: 300000,
+    }) as unknown as Promise<EtlTable>;
   }
 
   // 查询表采集统计

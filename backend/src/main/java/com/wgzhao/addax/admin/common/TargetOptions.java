@@ -2,6 +2,10 @@ package com.wgzhao.addax.admin.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 /**
  * Typed access to {@code etl_table.target_options}.
  *
@@ -92,6 +96,61 @@ public final class TargetOptions
         return text(section(root, HDFS), "compressFormat");
     }
 
+    /**
+     * Partition creation is runtime preparation, separate from table/column schema ownership.
+     */
+    public static String hdfsPartitionCreationMode(JsonNode root)
+    {
+        String mode = text(section(root, HDFS), "partitionCreationMode");
+        return mode == null || mode.isBlank() ? "PLATFORM" : mode.trim().toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * Binds discovered target partition keys to runtime values. Legacy partName/partFormat is accepted
+     * as one business-date binding so existing rows keep producing the same HDFS path.
+     */
+    public static List<HdfsPartitionBinding> hdfsPartitionBindings(JsonNode root)
+    {
+        JsonNode section = section(root, HDFS);
+        if (section != null)
+        {
+            JsonNode array = section.get("partitionBindings");
+            if (array != null && array.isArray())
+            {
+                List<HdfsPartitionBinding> result = new ArrayList<>();
+                for (JsonNode node : array)
+                {
+                    String name = text(node, "name");
+                    String valueType = text(node, "valueType");
+                    if (name == null || name.isBlank() || valueType == null || valueType.isBlank())
+                    {
+                        continue;
+                    }
+                    result.add(new HdfsPartitionBinding(
+                        name.trim(),
+                        valueType.trim().toUpperCase(Locale.ROOT),
+                        text(node, "value"),
+                        text(node, "format")));
+                }
+                if (!result.isEmpty())
+                {
+                    return List.copyOf(result);
+                }
+            }
+        }
+        String legacyName = hdfsPartName(root);
+        if (legacyName == null || legacyName.isBlank())
+        {
+            return List.of();
+        }
+        String format = hdfsPartFormat(root);
+        return List.of(new HdfsPartitionBinding(
+            legacyName.trim(),
+            "BIZ_DATE",
+            null,
+            format == null || format.isBlank() ? "yyyyMMdd" : format.trim()));
+    }
+
     // --------------------------------------------------------------- rdbms
 
     /**
@@ -109,5 +168,14 @@ public final class TargetOptions
     public static boolean rdbmsCreatePrimaryKey(JsonNode root)
     {
         return flag(section(root, RDBMS), "createPrimaryKey", true);
+    }
+
+    public record HdfsPartitionBinding(
+        String name,
+        String valueType,
+        String value,
+        String format
+    )
+    {
     }
 }

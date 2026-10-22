@@ -85,6 +85,61 @@ public class TargetTypeResolver
         }
     }
 
+    /**
+     * Resolve before a collection definition exists, when only etl_target.id is available.
+     */
+    public String resolveAdapterTypeByTargetId(Long targetId)
+    {
+        if (targetId == null || !isRoutingSchemaReady())
+        {
+            return DEFAULT_TARGET_TYPE;
+        }
+        try
+        {
+            RouteInfo route = jdbcTemplate.query("""
+                select target_type, writer_template_key
+                  from etl_target
+                 where id = ?
+                """, rs -> rs.next()
+                ? new RouteInfo(rs.getString("target_type"), rs.getString("writer_template_key"))
+                : null, targetId);
+            return resolveRoute(route);
+        }
+        catch (Exception e)
+        {
+            log.warn("Failed to resolve target type for target {}, fallback to {}: {}",
+                targetId, DEFAULT_TARGET_TYPE, e.getMessage());
+            return DEFAULT_TARGET_TYPE;
+        }
+    }
+
+    private String resolveRoute(RouteInfo route)
+    {
+        if (route == null)
+        {
+            return DEFAULT_TARGET_TYPE;
+        }
+        String writerKey = normalize(route.writerTemplateKey);
+        if ("WH".equals(writerKey))
+        {
+            return "HDFS";
+        }
+        if ("WR".equals(writerKey))
+        {
+            return "RDBMS";
+        }
+        String targetType = normalize(route.targetType);
+        if (HDFS_TARGET_TYPES.contains(targetType))
+        {
+            return "HDFS";
+        }
+        if (RDBMS_TARGET_TYPES.contains(targetType))
+        {
+            return "RDBMS";
+        }
+        return targetType.isBlank() ? DEFAULT_TARGET_TYPE : targetType;
+    }
+
     private boolean isRoutingSchemaReady()
     {
         if (routingSchemaReady != null) {

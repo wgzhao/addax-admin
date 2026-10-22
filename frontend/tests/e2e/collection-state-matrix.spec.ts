@@ -76,6 +76,9 @@ function seedMatrix(): MatrixCase[] {
     delete from etl_job where tid in (
       select id from etl_table where source_table like 'matrix_%'
     );
+    delete from etl_column_mapping where tid in (
+      select id from etl_table where source_table like 'matrix_%'
+    );
     delete from etl_column where tid in (
       select id from etl_table where source_table like 'matrix_%'
     );

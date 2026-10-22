@@ -32,6 +32,7 @@ import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX
 public class ColumnService
 {
     private final EtlColumnRepo etlColumnRepo;
+    private final ColumnMappingService columnMappingService;
     private final DictService dictService;
     private final EtlJourService jourService;
     private final SchemaChangeLogService schemaChangeLogService;
@@ -340,6 +341,7 @@ public class ColumnService
         }
 
         log.info("[V2] table columns updated for tid {}, changed={}", etlTable.getId(), changed);
+        columnMappingService.reconcile(etlTable.getId());
         jourService.successJour(etlJour);
         return changed ? 1 : 0;
     }
@@ -439,6 +441,7 @@ public class ColumnService
                 return false;
             }
             etlColumnRepo.saveAll(etlColumns);
+            columnMappingService.reconcile(etlTable.getId());
 
             log.info("table columns created for tid {}, total {} columns", etlTable.getId(), etlColumns.size());
             jourService.successJour(etlJour);
@@ -460,15 +463,12 @@ public class ColumnService
     public List<String> getHiveColumnsAsDDL(Long tid)
     {
         List<String> result = new ArrayList<>();
-        List<EtlColumn> columns = getColumns(tid);
-        for (EtlColumn col : columns) {
-            String colName;
-            if (isDeletedPlaceholder(col.getColumnName())) {
-                colName = col.getColumnName().substring(DELETED_PLACEHOLDER_PREFIX.length());
+        for (ColumnMappingService.ResolvedColumnMapping mapping : columnMappingService.resolve(tid)) {
+            EtlColumn col = mapping.sourceColumn();
+            if (col == null || mapping.targetColumnName() == null || mapping.targetColumnName().isBlank()) {
+                continue;
             }
-            else {
-                colName = col.getColumnName();
-            }
+            String colName = mapping.targetColumnName().replace("`", "``");
             String comment = nvlStr(col.getColComment());
             if (comment.isEmpty()) {
                 result.add("`" + colName + "` " + col.getTargetTypeFull());

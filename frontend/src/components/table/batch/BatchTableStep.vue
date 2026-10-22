@@ -3,6 +3,9 @@
     <div class="step-hero">
       <div class="step-kicker">Step 2</div>
       <div class="step-title">筛选并选择待采集表</div>
+      <div class="step-desc">
+        只展示当前源库中尚未纳入采集的表。目标位置和结构策略将在下一步统一配置。
+      </div>
     </div>
 
     <div v-if="loading" class="panel-state">
@@ -31,6 +34,9 @@
           />
         </div>
         <div class="table-stage__toolbar-right">
+          <v-chip size="small" variant="outlined" prepend-icon="mdi-database-outline">
+            {{ tables[0]?.sourceDb || '-' }}
+          </v-chip>
           <v-chip color="primary" variant="tonal">已选 {{ selectedCnt }}</v-chip>
         </div>
       </div>
@@ -89,14 +95,9 @@
   const search = defineModel<string>('search');
 
   const headers: DataTableHeader[] = [
-    { title: '源系统', key: 'sid' },
-    { title: '源筛选', key: 'filter' },
-    { title: '源用户', key: 'sourceDb' },
-    { title: '源表名', key: 'sourceTable' },
+    { title: '源表名', key: 'sourceTable', width: '48%' },
     { title: '表注释', key: 'tblComment' },
-    { title: '近似行数', key: 'approxRowCount' },
-    { title: '目标库', key: 'targetDb' },
-    { title: '目标表', key: 'targetTable' },
+    { title: '近似行数', key: 'approxRowCount', align: 'end', width: 140 },
   ];
 </script>
 

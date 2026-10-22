@@ -27,9 +27,11 @@
         <v-divider />
         <v-stepper-item title="选择采集表" :value="2" :complete="currentStep > 2" color="primary" />
         <v-divider />
-        <v-stepper-item title="配置并提交" :value="3" :complete="currentStep > 3" color="primary" />
+        <v-stepper-item title="目标策略" :value="3" :complete="currentStep > 3" color="primary" />
         <v-divider />
-        <v-stepper-item title="完成" :value="4" color="primary" />
+        <v-stepper-item title="预览与校验" :value="4" :complete="currentStep > 4" color="primary" />
+        <v-divider />
+        <v-stepper-item title="创建结果" :value="5" color="primary" />
       </v-stepper-header>
 
       <v-stepper-window class="stepper-window">
@@ -59,6 +61,7 @@
             v-model:target-id="targetId"
             v-model:target-db="targetDb"
             v-model:target-table-template="targetTableTemplate"
+            v-model:schema-management-mode="schemaManagementMode"
             v-model:options="tableOptions"
             v-model:selected="selectedTables"
             :targets="targetEndpoints"
@@ -68,8 +71,12 @@
         </v-stepper-window-item>
 
         <v-stepper-window-item :value="4">
+          <BatchReviewStep v-model:rows="reviewRows" />
+        </v-stepper-window-item>
+
+        <v-stepper-window-item :value="5">
           <BatchDoneStep
-            :saved-count="savedCount"
+            :results="commitResults"
             :target-db="targetDb"
             @restart="resetFlow"
             @back="router.push({ path: '/table', query: { refresh: Date.now() } })"
@@ -79,9 +86,9 @@
     </v-stepper>
 
     <v-divider />
-    <v-card-actions class="step-actions">
+    <v-card-actions v-if="currentStep < 5" class="step-actions">
       <v-btn
-        v-if="currentStep > 1 && currentStep < 4"
+        v-if="currentStep > 1 && currentStep < 5"
         variant="text"
         prepend-icon="mdi-chevron-left"
         @click="prevStep"
@@ -107,9 +114,19 @@
         variant="flat"
         :loading="loadingSave"
         :disabled="!targetDb || !targetId"
-        prepend-icon="mdi-check"
-        @click="saveItems"
-        >提交</v-btn
+        append-icon="mdi-shield-search"
+        @click="preparePlans"
+        >生成预览并校验</v-btn
+      >
+      <v-btn
+        v-if="currentStep === 4"
+        color="primary"
+        variant="flat"
+        :loading="loadingSave"
+        :disabled="includedCount === 0 || invalidIncludedCount > 0"
+        prepend-icon="mdi-database-check-outline"
+        @click="commitPlans"
+        >确认创建 {{ includedCount }} 张表</v-btn
       >
     </v-card-actions>
 
@@ -142,11 +159,14 @@
     TableMeta,
     EtlTarget,
     EtlTargetOptions,
+    CollectionPlanReviewRow,
+    CollectionPlanCommitResult,
   } from '@/types/database';
   import BatchSourceStep from './batch/BatchSourceStep.vue';
   import BatchTableStep from './batch/BatchTableStep.vue';
   import BatchConfigStep from './batch/BatchConfigStep.vue';
   import BatchDoneStep from './batch/BatchDoneStep.vue';
+  import BatchReviewStep from './batch/BatchReviewStep.vue';
 
   defineProps({
     tid: { type: String, required: false },
@@ -157,7 +177,6 @@
   const router = useRouter();
 
   const currentStep = ref(1);
-  const savedCount = ref(0);
 
   const canProceedToNext = computed(() => {
     if (currentStep.value === 1) return !!selectedSourceId.value && !!selectedDb.value;
@@ -210,7 +229,9 @@
   const compressFormats = ref(HDFS_COMPRESS_FORMATS);
   const targetEndpoints = ref<{ label: string; value: number; targetType: string }[]>([]);
   const targetId = ref<number | null>(null);
-
+  const schemaManagementMode = ref<'MANAGED' | 'EXTERNAL'>('MANAGED');
+  const reviewRows = ref<CollectionPlanReviewRow[]>([]);
+  const commitResults = ref<CollectionPlanCommitResult[]>([]);
   const selectedSourceId = ref<EtlSource | null>(null);
   const selectedDb = ref<string | null>(null);
   const tables = ref<EtlTableView[]>([]);
@@ -219,6 +240,23 @@
   const sourceDbs = ref<string[]>([]);
 
   const selectedCnt = computed(() => selectedTables.value.length);
+  const includedCount = computed(() => reviewRows.value.filter(row => row.included).length);
+  const invalidIncludedCount = computed(
+    () => reviewRows.value.filter(row => row.included && !reviewRowValid(row)).length
+  );
+
+  const reviewRowValid = (row: CollectionPlanReviewRow) => {
+    const targets = row.mappings.map(mapping => mapping.targetColumnName?.trim().toLowerCase());
+    if (targets.some(target => !target)) return false;
+    if (new Set(targets).size !== targets.length) return false;
+    if (row.plan.schemaManagementMode === 'EXTERNAL') {
+      const available = new Set(
+        row.plan.actualTargetTable.columns.map(column => column.name.toLowerCase())
+      );
+      if (targets.some(target => !available.has(target!))) return false;
+    }
+    return true;
+  };
   const selectedTargetType = computed(
     () => targetEndpoints.value.find(t => t.value === targetId.value)?.targetType
   );
@@ -343,7 +381,7 @@
     });
   };
 
-  const saveItems = async () => {
+  const preparePlans = async () => {
     if (!selectedCnt.value) {
       notify('请选择至少一个表', 'warning');
       return;
@@ -365,13 +403,36 @@
       s.targetDb = targetDb.value;
       s.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
       s.targetId = targetId.value;
+      s.schemaManagementMode = schemaManagementMode.value;
       if (!s.targetTable) s.targetTable = s.sourceTable;
       return s;
     });
     try {
-      const response = await tableService.batchSave(itemsToSave);
-      const saved = Number(response) || itemsToSave.length;
-      savedCount.value = saved;
+      const plans = await tableService.previewCollectionPlans(
+        itemsToSave.map(item => ({
+          sourceId: item.sid as number,
+          sourceDb: item.sourceDb,
+          sourceTable: item.sourceTable,
+          targetId: item.targetId as number,
+          targetDb: item.targetDb,
+          targetTable: item.targetTable,
+          schemaManagementMode: schemaManagementMode.value,
+          targetOptions: item.targetOptions || {},
+        }))
+      );
+      reviewRows.value = itemsToSave.map((table, index) => {
+        const plan = plans[index];
+        return {
+          table,
+          plan,
+          mappings: plan.mappings.map((mapping, mappingIndex) => ({
+            sourceColumnName: mapping.sourceColumnName,
+            targetColumnName: mapping.targetColumnName,
+            ordinalNo: mappingIndex + 1,
+          })),
+          included: plan.status !== 'ERROR',
+        };
+      });
       currentStep.value = 4;
     } catch (error) {
       notify('保存失败: ' + (error || '未知错误'), 'error');
@@ -380,9 +441,37 @@
     }
   };
 
+  const commitPlans = async () => {
+    const selected = reviewRows.value.filter(row => row.included);
+    if (!selected.length || invalidIncludedCount.value > 0) {
+      notify('请先处理本次纳入创建的阻断项', 'warning');
+      return;
+    }
+    loadingSave.value = true;
+    try {
+      commitResults.value = await tableService.commitCollectionPlans(
+        selected.map(row => ({
+          table: row.table as EtlTable,
+          mappings: row.mappings.map((mapping, index) => ({
+            sourceColumnName: mapping.sourceColumnName,
+            targetColumnName: mapping.targetColumnName!,
+            ordinalNo: index + 1,
+          })),
+          targetSchemaFingerprint: row.plan.targetSchemaFingerprint,
+        }))
+      );
+      currentStep.value = 5;
+    } catch (error) {
+      notify(`创建失败: ${(error as Error)?.message || String(error)}`, 'error');
+    } finally {
+      loadingSave.value = false;
+    }
+  };
+
   const resetFlow = () => {
     selectedTables.value = [];
-    savedCount.value = 0;
+    reviewRows.value = [];
+    commitResults.value = [];
     currentStep.value = 1;
     search.value = '';
   };
