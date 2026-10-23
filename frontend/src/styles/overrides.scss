@@ -56,6 +56,11 @@ select,
   border-radius: 6px;
 }
 
+/* Why: dialogs focus their surface to trap focus; a ring around the whole card reads as a bug */
+.ds-dialog-overlay .v-overlay__content:focus-visible {
+  outline: none !important;
+}
+
 /* Why: text fields already highlight their own shell on focus; a ring on the inner input
    draws a second border straight across the field and looks like a rendering bug */
 .v-field :is(input, textarea, select):focus-visible,
