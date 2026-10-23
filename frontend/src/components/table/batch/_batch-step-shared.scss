@@ -4,9 +4,15 @@
 
 .step-layout {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 18px;
-  padding: 20px;
+  padding: 22px;
+}
+
+// Why: the sticky action bar sits at the viewport bottom; keep focused controls clear of it.
+.step-layout :deep(:is(button, input, select, textarea, [tabindex])) {
+  scroll-margin-bottom: 88px;
 }
 
 .step-layout--config {
@@ -14,28 +20,49 @@
 }
 
 .step-hero {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 2px 2px 4px 14px;
+}
+
+.step-hero::before {
+  position: absolute;
+  inset: 4px auto 4px 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--v-theme-primary)),
+    rgba(var(--v-theme-primary), 0.24)
+  );
+  content: '';
 }
 
 .step-kicker {
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  color: rgb(var(--v-theme-primary));
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.69rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(var(--v-theme-primary), 0.86);
 }
 
 .step-title {
-  font-size: 1.02rem;
-  font-weight: 700;
+  margin: 0;
+  font-size: 1.28rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
   color: rgb(var(--v-theme-on-surface));
 }
 
 .step-desc {
   max-width: 760px;
-  color: rgba(var(--v-theme-on-surface), 0.66);
-  line-height: 1.65;
+  color: var(--ds-text-2);
+  font-size: 0.88rem;
+  line-height: 1.6;
 }
 
 .stage-grid {
@@ -57,7 +84,7 @@
 }
 
 .stage-panel {
-  padding: 18px;
+  padding: 20px;
 }
 
 .stage-panel__header {
@@ -80,6 +107,14 @@
 
 .step-alert {
   border-radius: 16px;
+}
+
+.alert-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .panel-state {
@@ -122,6 +157,13 @@
   opacity: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
+  }
+}
+
 @media (max-width: 1120px) {
   .stage-grid--2,
   .config-grid {
@@ -136,5 +178,9 @@
 @media (max-width: 760px) {
   .step-layout {
     padding: 16px;
+  }
+
+  .step-title {
+    font-size: 1.16rem;
   }
 }

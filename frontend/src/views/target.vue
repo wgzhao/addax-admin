@@ -129,7 +129,7 @@
       v-model="dialogVisible"
       class="ds-dialog-overlay"
       scrim="rgba(2, 6, 23, 0.62)"
-      max-width="720"
+      max-width="880"
       persistent
       scrollable
     >
@@ -159,24 +159,31 @@
                 </header>
                 <div class="field-grid">
                   <div class="field">
-                    <label class="field-label" for="target-code">编码</label>
+                    <label class="field-label" for="target-code">
+                      编码 <span class="field-required" aria-hidden="true">*</span>
+                    </label>
                     <v-text-field
                       id="target-code"
                       v-model="form.code"
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
+                      autofocus
+                      autocomplete="off"
                       :rules="[targetRules.required]"
                     />
                   </div>
                   <div class="field">
-                    <label class="field-label" for="target-name">名称</label>
+                    <label class="field-label" for="target-name">
+                      名称 <span class="field-required" aria-hidden="true">*</span>
+                    </label>
                     <v-text-field
                       id="target-name"
                       v-model="form.name"
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
+                      autocomplete="off"
                       :rules="[targetRules.required]"
                     />
                   </div>
@@ -211,6 +218,14 @@
                 <header class="section-head">
                   <span class="section-index">02</span>
                   <h3>连接信息</h3>
+                  <v-btn
+                    size="x-small"
+                    variant="text"
+                    class="section-toggle"
+                    @click="showConnectJson = !showConnectJson"
+                  >
+                    {{ showConnectJson ? '隐藏连接 JSON' : '查看连接 JSON' }}
+                  </v-btn>
                 </header>
                 <div class="field-grid">
                   <div class="field span-2">
@@ -222,6 +237,7 @@
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
+                      autocomplete="url"
                     />
                   </div>
                   <div class="field">
@@ -232,6 +248,7 @@
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
+                      autocomplete="username"
                     />
                   </div>
                   <div class="field">
@@ -239,11 +256,26 @@
                     <v-text-field
                       id="target-pass"
                       v-model="connectForm.password"
-                      type="password"
+                      :type="showPassword ? 'text' : 'password'"
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
-                    />
+                      autocomplete="new-password"
+                    >
+                      <template #append-inner>
+                        <v-btn
+                          icon
+                          size="x-small"
+                          variant="text"
+                          :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                          @click="showPassword = !showPassword"
+                        >
+                          <v-icon size="18">
+                            {{ showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline' }}
+                          </v-icon>
+                        </v-btn>
+                      </template>
+                    </v-text-field>
                   </div>
                   <div v-if="form.targetType === 'HDFS'" class="field">
                     <label class="field-label" for="target-driver">驱动类名</label>
@@ -253,6 +285,7 @@
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
+                      autocomplete="off"
                     />
                   </div>
                   <div v-if="form.targetType === 'HDFS'" class="field">
@@ -263,48 +296,44 @@
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div v-if="showConnectJson" class="field span-2">
+                    <label class="field-label" for="target-connect-json">连接配置 JSON</label>
+                    <v-textarea
+                      id="target-connect-json"
+                      :model-value="form.connectConfig"
+                      variant="outlined"
+                      density="compact"
+                      rows="3"
+                      hide-details
+                      readonly
+                      class="config-preview"
                     />
                   </div>
                 </div>
               </section>
 
-              <section class="form-section form-section--wide">
+              <section class="form-section">
                 <header class="section-head">
                   <span class="section-index">03</span>
-                  <h3>连接配置预览</h3>
-                  <v-btn
-                    size="x-small"
-                    variant="text"
-                    class="section-toggle"
-                    @click="showConnectJson = !showConnectJson"
-                  >
-                    {{ showConnectJson ? '收起 JSON' : '查看 JSON' }}
-                  </v-btn>
-                </header>
-                <v-textarea
-                  v-if="showConnectJson"
-                  :model-value="form.connectConfig"
-                  variant="outlined"
-                  density="compact"
-                  rows="3"
-                  hide-details
-                  readonly
-                  class="config-preview"
-                />
-              </section>
-
-              <section class="form-section form-section--wide">
-                <header class="section-head">
-                  <span class="section-index">04</span>
                   <h3>状态与备注</h3>
                 </header>
-                <v-text-field
-                  v-model="form.remark"
-                  placeholder="备注（可选）"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                />
+                <div class="field-grid">
+                  <div class="field span-2">
+                    <label class="field-label" for="target-remark">备注</label>
+                    <v-text-field
+                      id="target-remark"
+                      v-model="form.remark"
+                      placeholder="可选"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      autocomplete="off"
+                    />
+                  </div>
+                </div>
                 <div class="switch-row">
                   <v-switch
                     v-model="form.enabled"
@@ -374,6 +403,7 @@
   const targetForm = ref<any>(null);
   const testingTarget = ref(false);
   const showConnectJson = ref(false);
+  const showPassword = ref(false);
   const searchValue = ref('');
   const confirmState = ref<{
     open: boolean;
@@ -496,6 +526,7 @@
     form.value.writerTemplateKey = form.value.targetType === 'HDFS' ? 'wH' : 'wR';
     parseConnectConfig(form.value);
     showConnectJson.value = false;
+    showPassword.value = false;
     dialogVisible.value = true;
   };
 
@@ -503,6 +534,7 @@
     form.value = { ...item };
     parseConnectConfig(form.value);
     showConnectJson.value = false;
+    showPassword.value = false;
     dialogVisible.value = true;
   };
 
@@ -615,8 +647,8 @@
 
   .dialog-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px 28px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
   }
 
   .form-section {
@@ -624,10 +656,6 @@
     flex-direction: column;
     gap: 12px;
     min-width: 0;
-  }
-
-  .form-section--wide {
-    grid-column: 1 / -1;
   }
 
   .section-head {
@@ -658,7 +686,7 @@
   .field-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px 16px;
+    gap: 14px 18px;
   }
 
   .field {
@@ -677,6 +705,10 @@
     font-weight: 500;
   }
 
+  .field-required {
+    color: rgb(var(--v-theme-error));
+  }
+
   .switch-row {
     display: flex;
     align-items: center;
@@ -693,16 +725,6 @@
     font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
     font-size: 12px;
     line-height: 1.5;
-  }
-
-  @media (max-width: 900px) {
-    .dialog-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .form-section--wide {
-      grid-column: auto;
-    }
   }
 
   @media (max-width: 640px) {

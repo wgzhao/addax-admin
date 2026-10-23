@@ -4,13 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
-import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.RiskLogService;
@@ -53,7 +54,7 @@ public class RdbmsTargetAdapter
 
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
-    private final ColumnService columnService;
+    private final ColumnMappingService columnMappingService;
     private final SystemConfigService configService;
     private final ObjectMapper objectMapper;
     private final EtlJourService jourService;
@@ -76,6 +77,54 @@ public class RdbmsTargetAdapter
     public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
     {
         return true;
+    }
+
+    @Override
+    public TargetTableMetadata inspectTable(VwEtlTableWithSource etlTable)
+    {
+        ConnectInfo conn = resolveTargetConnection(etlTable);
+        if (conn == null)
+        {
+            throw new ApiException(400, "目标端连接未配置，无法读取目标表元数据");
+        }
+        DbType dialect = getDbType(conn.url());
+        if (!rdbmsWriterPlugins.isSupported(dialect))
+        {
+            throw new ApiException(400, "Unsupported RDBMS target dialect '" + dialect
+                + "'; supported dialects: " + rdbmsWriterPlugins.supportedDialectsText());
+        }
+        try (Connection connection = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
+        {
+            if (connection == null)
+            {
+                throw new ApiException(400, "无法连接目标数据库");
+            }
+            if (!tableExists(connection, dialect, etlTable.getTargetDb(), etlTable.getTargetTable()))
+            {
+                return TargetTableMetadata.missing();
+            }
+            List<TargetTableMetadata.TargetColumn> columns = new ArrayList<>();
+            Map<String, ColumnMeta> described = describeColumns(
+                connection, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
+            int ordinal = 0;
+            for (Map.Entry<String, ColumnMeta> entry : described.entrySet())
+            {
+                ColumnMeta meta = entry.getValue();
+                columns.add(new TargetTableMetadata.TargetColumn(
+                    meta.name(), meta.typeName(), meta.size(), meta.scale(), meta.nullable(),
+                    meta.defaultValue(), meta.autoIncrement(), ++ordinal));
+            }
+            return new TargetTableMetadata(
+                true,
+                columns,
+                List.of(),
+                targetPrimaryKeys(connection, dialect, etlTable.getTargetDb(), etlTable.getTargetTable()),
+                targetUniqueKeys(connection, dialect, etlTable.getTargetDb(), etlTable.getTargetTable()));
+        }
+        catch (SQLException e)
+        {
+            throw new ApiException(400, "读取目标表元数据失败: " + e.getMessage());
+        }
     }
 
     @Override
@@ -108,29 +157,36 @@ public class RdbmsTargetAdapter
             return false;
         }
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
-        List<EtlColumn> columns = columnService.getColumns(etlTable.getId());
+        List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(etlTable.getId());
         SourceMeta sourceMeta = loadSourceMeta(etlTable, dialect);
         Map<String, String> desiredTypes = new LinkedHashMap<>();
         String bizDateColumn = normalizeColumn(etlTable.getRdbmsBusinessDateColumn());
         boolean createPrimaryKey = etlTable.isRdbmsCreatePrimaryKey();
 
         List<String> colDefs = new ArrayList<>();
-        for (EtlColumn c : columns)
+        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings)
         {
-            String name = activeName(c);
+            EtlColumn c = mapping.sourceColumn();
+            if (c == null)
+            {
+                continue;
+            }
+            String name = mapping.targetColumnName();
             String key = name.toLowerCase(Locale.ROOT);
             String typeExpr = resolveColumnType(dialect, c, sourceMeta.columnTypes());
             desiredTypes.put(key, typeExpr);
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
-                sourceMeta.notNull().contains(key), c.getColComment()));
+                sourceMeta.notNull().contains(activeName(c).toLowerCase(Locale.ROOT)), c.getColComment()));
         }
         boolean carryBizDate = bizDateColumn != null;
-        if (ColumnService.needsInjectedBusinessDate(columns, bizDateColumn))
+        if (bizDateColumn != null && mappings.stream()
+            .noneMatch(mapping -> bizDateColumn.equalsIgnoreCase(mapping.targetColumnName())))
         {
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, bizDateColumn, businessDateColumnType(dialect),
                 true, BUSINESS_DATE_COMMENT));
         }
-        else if (carryBizDate && !ColumnService.hasActiveColumn(columns, bizDateColumn))
+        else if (carryBizDate && mappings.stream().noneMatch(mapping ->
+            bizDateColumn.equalsIgnoreCase(mapping.targetColumnName()) && mapping.sourceActive()))
         {
             // The physical column exists but the source only has a deleted placeholder for it, so the
             // snapshot date cannot be fed without colliding on the column name.
@@ -138,7 +194,7 @@ public class RdbmsTargetAdapter
                 + "，但源端该列已被标记删除，快照业务日期无法自动写入，请人工处理");
         }
         List<String> primaryKeys = createPrimaryKey
-            ? new ArrayList<>(sourceMeta.primaryKeys())
+            ? mapPrimaryKeys(sourceMeta.primaryKeys(), mappings)
             : new ArrayList<>();
         String createSql = RdbmsDdlUtil.createTableIfNotExists(dialect, tableRef, colDefs,
             primaryKeys, etlTable.getTblComment());
@@ -185,7 +241,7 @@ public class RdbmsTargetAdapter
             {
                 if (existedBefore)
                 {
-                    applyColumnDiff(c, dialect, tableRef, etlTable, columns, desiredTypes, sourceMeta.notNull());
+                    applyColumnDiff(c, dialect, tableRef, etlTable, mappings, desiredTypes, sourceMeta.notNull());
                     if (ensureBusinessDateColumn(c, dialect, etlTable, bizDateColumn) && createPrimaryKey)
                     {
                         // The column can be added but not folded into an existing primary key, so a
@@ -198,7 +254,7 @@ public class RdbmsTargetAdapter
                 {
                     // Separate COMMENT ON COLUMN statements are only needed for a table we just created;
                     // re-issuing them on every refresh fails for tables owned by someone else (e.g. a DBA).
-                    applyNewTableComments(c, dialect, tableRef, etlTable, columns);
+                    applyNewTableComments(c, dialect, tableRef, etlTable, mappings);
                 }
                 warnOnWriteModeWithoutKey(c, dialect, etlTable);
                 warnOnSnapshotMode(etlTable, createPrimaryKey, bizDateColumn, primaryKeys);
@@ -257,7 +313,7 @@ public class RdbmsTargetAdapter
     }
 
     @Override
-    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue)
+    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate)
     {
         return true;
     }
@@ -371,14 +427,20 @@ public class RdbmsTargetAdapter
     }
 
     private void applyColumnDiff(Connection conn, DbType dialect, String tableRef,
-        VwEtlTableWithSource etlTable, List<EtlColumn> columns, Map<String, String> desiredTypes,
+        VwEtlTableWithSource etlTable, List<ColumnMappingService.ResolvedColumnMapping> mappings,
+        Map<String, String> desiredTypes,
         Set<String> sourceNotNull) throws SQLException
     {
         Map<String, ColumnMeta> current = describeColumns(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         Set<String> pk = targetPrimaryKeys(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
-        for (EtlColumn c : columns)
+        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings)
         {
-            String name = activeName(c);
+            EtlColumn c = mapping.sourceColumn();
+            if (c == null)
+            {
+                continue;
+            }
+            String name = mapping.targetColumnName();
             String key = name.toLowerCase(Locale.ROOT);
             String typeExpr = desiredTypes.get(key);
             ColumnMeta cur = current.get(key);
@@ -386,11 +448,12 @@ public class RdbmsTargetAdapter
             if (cur == null)
             {
                 ddl = RdbmsDdlUtil.addColumn(dialect, tableRef,
-                    RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr, sourceNotNull.contains(key), c.getColComment()));
+                    RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
+                        sourceNotNull.contains(activeName(c).toLowerCase(Locale.ROOT)), c.getColComment()));
             }
             else
             {
-                if (c.getColumnName().startsWith(DELETED_PLACEHOLDER_PREFIX))
+                if (!mapping.sourceActive())
                 {
                     continue;
                 }
@@ -442,11 +505,17 @@ public class RdbmsTargetAdapter
      * instead of aborting the whole refresh.
      */
     private void applyNewTableComments(Connection conn, DbType dialect, String tableRef,
-        VwEtlTableWithSource etlTable, List<EtlColumn> columns)
+        VwEtlTableWithSource etlTable, List<ColumnMappingService.ResolvedColumnMapping> mappings)
     {
-        for (EtlColumn col : columns)
+        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings)
         {
-            String commentSql = RdbmsDdlUtil.columnCommentStatement(dialect, tableRef, activeName(col), col.getColComment());
+            EtlColumn col = mapping.sourceColumn();
+            if (col == null)
+            {
+                continue;
+            }
+            String commentSql = RdbmsDdlUtil.columnCommentStatement(
+                dialect, tableRef, mapping.targetColumnName(), col.getColComment());
             if (commentSql != null)
             {
                 executeDdl(conn, etlTable, commentSql);
@@ -708,6 +777,7 @@ public class RdbmsTargetAdapter
                     continue;
                 }
                 cols.put(name.toLowerCase(Locale.ROOT), new ColumnMeta(
+                    name,
                     rs.getString("TYPE_NAME"),
                     rs.getInt("COLUMN_SIZE"),
                     rs.getInt("DECIMAL_DIGITS"),
@@ -717,6 +787,26 @@ public class RdbmsTargetAdapter
             }
         }
         return cols;
+    }
+
+    private Set<String> targetUniqueKeys(Connection conn, DbType dialect, String db, String table) throws SQLException
+    {
+        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
+            ? db : null;
+        Set<String> keys = new HashSet<>();
+        try (ResultSet rs = conn.getMetaData().getIndexInfo(
+            catalog, metadataSchema(conn, dialect), table, false, false))
+        {
+            while (rs.next())
+            {
+                String name = rs.getString("COLUMN_NAME");
+                if (name != null && !rs.getBoolean("NON_UNIQUE"))
+                {
+                    keys.add(name.toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        return keys;
     }
 
     private Set<String> targetPrimaryKeys(Connection conn, DbType dialect, String db, String table) throws SQLException
@@ -806,7 +896,8 @@ public class RdbmsTargetAdapter
     {
     }
 
-    private record ColumnMeta(String typeName, int size, int scale, boolean nullable, String defaultValue, boolean autoIncrement)
+    private record ColumnMeta(String name, String typeName, int size, int scale, boolean nullable,
+        String defaultValue, boolean autoIncrement)
     {
     }
 
@@ -817,15 +908,12 @@ public class RdbmsTargetAdapter
 
     private String getRdbmsWriteColumns(VwEtlTableWithSource table, DbType dialect)
     {
-        List<EtlColumn> columnList = columnService.getColumns(table.getId());
+        List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(table.getId());
         List<String> columns = new ArrayList<>();
-        for (EtlColumn etlColumn : columnList) {
-            String columnName = etlColumn.getColumnName();
+        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings) {
+            String columnName = mapping.targetColumnName();
             if (columnName == null || columnName.isBlank()) {
                 continue;
-            }
-            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                columnName = columnName.substring(DELETED_PLACEHOLDER_PREFIX.length());
             }
             // ${column} is expanded inside a JSON array, so every entry must be a complete JSON string.
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, columnName)) + '"');
@@ -834,11 +922,27 @@ public class RdbmsTargetAdapter
         // column in the same position for the positional mapping to line up. When the source already has
         // a column with that name the reader does not inject one, so do not repeat it here either.
         String bizDateColumn = normalizeColumn(table.getRdbmsBusinessDateColumn());
-        if (ColumnService.needsInjectedBusinessDate(columnList, bizDateColumn))
+        if (bizDateColumn != null && mappings.stream()
+            .noneMatch(mapping -> bizDateColumn.equalsIgnoreCase(mapping.targetColumnName())))
         {
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }
         return String.join(", ", columns);
+    }
+
+    private List<String> mapPrimaryKeys(List<String> sourceKeys,
+        List<ColumnMappingService.ResolvedColumnMapping> mappings)
+    {
+        List<String> result = new ArrayList<>();
+        for (String sourceKey : sourceKeys)
+        {
+            mappings.stream()
+                .filter(mapping -> sourceKey.equalsIgnoreCase(mapping.sourceColumnName()))
+                .map(ColumnMappingService.ResolvedColumnMapping::targetColumnName)
+                .findFirst()
+                .ifPresent(result::add);
+        }
+        return result;
     }
 
     private void fillConnectionPlaceholders(Map<String, String> values, VwEtlTableWithSource table)

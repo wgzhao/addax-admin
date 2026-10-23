@@ -73,6 +73,25 @@
 
         <v-col cols="12" md="6">
           <div class="field-block">
+            <div class="field-label">目标表结构管理</div>
+            <v-select
+              v-model="table.schemaManagementMode"
+              variant="outlined"
+              density="comfortable"
+              :items="[
+                { title: '平台创建并维护', value: 'MANAGED' },
+                { title: '外部管理，仅校验', value: 'EXTERNAL' },
+              ]"
+              hide-details="auto"
+            />
+            <div v-if="table.schemaManagementMode === 'EXTERNAL'" class="field-hint">
+              平台不会创建或修改表和字段，只校验契约并在写入前阻断不兼容结构。
+            </div>
+          </div>
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <div class="field-block">
             <div class="field-label">调度时间</div>
             <v-text-field
               v-model="table.startAt"
@@ -146,4 +165,11 @@
 
 <style lang="scss" scoped>
   @use './detail-shared' as *;
+
+  .field-hint {
+    margin-top: 6px;
+    color: rgba(var(--v-theme-on-surface), 0.62);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
 </style>

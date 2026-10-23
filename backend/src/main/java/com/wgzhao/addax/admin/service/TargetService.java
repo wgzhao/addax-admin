@@ -49,7 +49,7 @@ public interface TargetService
     /**
      * 执行任务前的目标端准备动作（如分区创建）。
      */
-    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue);
+    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate);
 
     Connection getHiveConnect();
 

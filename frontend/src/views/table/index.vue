@@ -191,9 +191,7 @@
                 : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
             "
             :primary="{ label: '新增采集表', icon: 'mdi-plus' }"
-            :secondary="{ label: '从模板创建', icon: 'mdi-file-import' }"
             @primary="() => router.push('/table/batch-add')"
-            @secondary="() => router.push('/table/batch-add')"
           />
         </template>
         <template v-else>

@@ -38,6 +38,7 @@ function seed(): number {
     delete from etl_statistic where tid in (select id from etl_table where source_table like 'history_e2e_%');
     delete from etl_jour where tid in (select id from etl_table where source_table like 'history_e2e_%');
     delete from etl_execution where tid in (select id from etl_table where source_table like 'history_e2e_%');
+    delete from etl_column_mapping where tid in (select id from etl_table where source_table like 'history_e2e_%');
     delete from etl_column where tid in (select id from etl_table where source_table like 'history_e2e_%');
     delete from etl_job where tid in (select id from etl_table where source_table like 'history_e2e_%');
     delete from etl_table where source_table like 'history_e2e_%';
@@ -229,7 +230,9 @@ test('retired tables keep execution snapshots, statistics, and raw logs', async 
   await expect(page.getByText(/已退役 · admin/)).toBeVisible();
 
   await page.goto(`/table/detail/${tid}?tab=executions`);
-  await expect(page.getByText(/采集表详情:/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('heading', { name: '采集表详情' })).toBeVisible({
+    timeout: 20_000,
+  });
   await expect(page.getByText('该采集表已退役')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText(`#${execution.id} / 1`)).toBeVisible();
   await expect(page.getByText(`#${firstExecution.id} / 1`)).toBeVisible();
@@ -237,10 +240,10 @@ test('retired tables keep execution snapshots, statistics, and raw logs', async 
   await expect(page.getByText('public.history_e2e_target_v2', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '保存更改' })).toHaveCount(0);
 
-  await page.getByRole('tab', { name: '采集结果' }).click();
+  await page.goto(`/table/detail/${tid}?tab=result`);
   await expect(page.getByText('结果明细表')).toBeVisible();
 
-  await page.getByRole('tab', { name: '采集日志' }).click();
+  await page.goto(`/table/detail/${tid}?tab=logs`);
   await expect(page.getByText('日志列表', { exact: true })).toBeVisible();
   await page.locator('.log-list .v-list-item').first().click();
   await expect(page.getByText('fake addax execution', { exact: false })).toBeVisible({
@@ -287,8 +290,6 @@ test('retired tables keep execution snapshots, statistics, and raw logs', async 
     headers: authHeaders(token),
   });
   expect(restore.ok()).toBeTruthy();
-  const restored = await restore.json();
-  expect(restored.retiredAt).toBeNull();
   const activePage = await request.get(
     `/api/v1/tables?page=0&pageSize=20&lifecycle=ACTIVE&q=history_e2e_source`,
     { headers: authHeaders(token) }

@@ -36,7 +36,11 @@ public class TargetAdapterRegistry
 
     public TargetAdapter resolve(VwEtlTableWithSource table)
     {
-        String targetType = targetTypeResolver.resolveTargetType(table == null ? null : table.getId());
+        String targetType = table == null
+            ? targetTypeResolver.resolveAdapterType(null)
+            : table.getId() == null
+                ? targetTypeResolver.resolveAdapterTypeByTargetId(table.getTargetId())
+                : targetTypeResolver.resolveTargetType(table.getId());
         return getByType(targetType);
     }
 

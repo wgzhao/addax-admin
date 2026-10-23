@@ -46,9 +46,9 @@ public class TargetServiceImpl
     }
 
     @Override
-    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue)
+    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate)
     {
-        return targetAdapterRegistry.resolve(table).prepareBeforeRun(taskId, table, bizDateValue);
+        return targetAdapterRegistry.resolve(table).prepareBeforeRun(taskId, table, bizDate);
     }
 
     @Override
