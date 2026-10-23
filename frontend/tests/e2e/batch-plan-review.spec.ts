@@ -238,12 +238,12 @@ test('batch wizard reviews every selected table before the final create action',
   expect(Math.abs(firstSourcePanel!.y - secondSourcePanel!.y)).toBeLessThanOrEqual(1);
   expect(Math.abs(firstSourcePanel!.width - secondSourcePanel!.width)).toBeLessThanOrEqual(2);
 
-  const sourceSelect = page.getByRole('combobox', { name: '采集源系统 *' });
+  const sourceSelect = page.getByRole('combobox', { name: /采集源系统/ });
   await page.locator('.v-select').filter({ hasText: '采集源系统' }).click();
   await page.keyboard.type(sourceCode);
   await page.keyboard.press('Enter');
   await expect(sourceSelect).toHaveValue(new RegExp(sourceCode));
-  const dbSelect = page.getByRole('combobox', { name: '源数据库 *' });
+  const dbSelect = page.getByRole('combobox', { name: /源数据库/ });
   await page.locator('.v-select').filter({ hasText: '源数据库' }).click();
   await page.keyboard.type(dbName);
   await page.keyboard.press('Enter');
@@ -257,10 +257,12 @@ test('batch wizard reviews every selected table before the final create action',
   await expect(page.getByRole('columnheader', { name: '目标库' })).toHaveCount(0);
   await expect(page.getByRole('columnheader', { name: '目标表' })).toHaveCount(0);
 
-  await page.getByRole('textbox', { name: '搜索表名 / 注释' }).fill(runId);
+  await page.getByRole('textbox', { name: '搜索表名或注释' }).fill(runId);
   for (const table of [firstSource, secondSource]) {
     const row = page.getByRole('row', { name: new RegExp(table) });
     await expect(row).toBeVisible();
+    // The wizard header already shows the source database, so rows stay table-name only.
+    await expect(row.getByText('public', { exact: true })).toHaveCount(0);
     await row.getByRole('checkbox').check();
   }
   await page.getByRole('button', { name: '下一步' }).click();
@@ -330,6 +332,48 @@ test('batch wizard reviews every selected table before the final create action',
   await expect(page.getByText('预览与校验').last()).toBeVisible();
   await expect(page.locator('.review-row').filter({ hasText: firstSource })).toBeVisible();
   await expect(page.locator('.review-row').filter({ hasText: secondSource })).toBeVisible();
+  // Wait for the stepper slide transition, otherwise the artifact captures a shifted frame.
+  await expect
+    .poll(() =>
+      page.locator('.review-step').evaluate(el => Math.round(el.getBoundingClientRect().left))
+    )
+    .toBeLessThan(100);
+  await page.screenshot({
+    path: path.join(artifactDir, 'batch-wizard-review-layout.png'),
+    fullPage: true,
+  });
+  // Why: rows used to size themselves from their text, so a long summary shifted all later columns.
+  await page
+    .locator('.review-row')
+    .first()
+    .evaluate(row => {
+      const summary = row.querySelector<HTMLElement>('.row-summary');
+      if (summary) summary.textContent = 'x'.repeat(200);
+    });
+  const rowGeometry = () =>
+    page.locator('.review-row').evaluateAll(rows =>
+      rows.map(row => {
+        const check = row.querySelector<HTMLElement>('.row-check')!.getBoundingClientRect();
+        const main = row.querySelector<HTMLElement>('.review-row__main')!.getBoundingClientRect();
+        return {
+          left: Math.round(main.left),
+          width: Math.round(main.width),
+          gap: Math.round(main.left - check.right),
+        };
+      })
+    );
+  await expect
+    .poll(async () => {
+      const boxes = await rowGeometry();
+      return {
+        lefts: new Set(boxes.map(box => box.left)).size,
+        widths: new Set(boxes.map(box => box.width)).size,
+      };
+    })
+    .toEqual({ lefts: 1, widths: 1 });
+  await expect
+    .poll(async () => Math.max(...(await rowGeometry()).map(box => box.gap)))
+    .toBeLessThanOrEqual(8);
   await expect(page.locator('.v-chip').filter({ hasText: /共 2 张 · 2 张纳入创建/ })).toBeVisible();
   await page.getByRole('button', { name: '确认创建 2 张表' }).click();
 
@@ -731,4 +775,169 @@ test('legacy managed batch initializes target tables after the definition commit
       { timeout: 20_000 }
     )
     .toBe('4');
+});
+
+test('batch wizard blocks duplicate targets and invalid mappings before create', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const sourceCode = `GZ${runId.slice(-6)}`;
+  const targetCode = `GT${runId.slice(-6)}`;
+  const targetName = `Batch Guard Target ${runId}`;
+  const firstSource = `guard_source_a_${runId}`;
+  const secondSource = `guard_source_b_${runId}`;
+  const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
+
+  psql(`
+    drop table if exists public.${firstSource};
+    drop table if exists public.${secondSource};
+    create table public.${firstSource} (
+      id bigint primary key,
+      customer_name text,
+      amount numeric(12,2)
+    );
+    create table public.${secondSource} (
+      id bigint primary key,
+      status text
+    );
+    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_target where code = ${sqlLiteral(targetCode)};
+    insert into etl_source (
+      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+    ) values (
+      ${sqlLiteral(sourceCode)}, 'Batch Guard UI', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
+    );
+    insert into etl_target (
+      code, name, target_type, connect_config, writer_template_key, enabled, is_default, remark
+    ) values (
+      ${sqlLiteral(targetCode)}, ${sqlLiteral(targetName)}, 'POSTGRESQL',
+      ${sqlLiteral(JSON.stringify({ url: jdbcUrl, username: dbUser, password: '' }))},
+      'wR', true, false, 'batch guard ui'
+    );
+  `);
+
+  await page.goto('/table/batch-add');
+
+  const sourceSelect = page.getByRole('combobox', { name: /采集源系统/ });
+  await expect(sourceSelect).toBeEnabled();
+  await page.locator('.v-select').filter({ hasText: '采集源系统' }).click();
+  await page.keyboard.type(sourceCode);
+  await page.keyboard.press('Enter');
+  await expect(sourceSelect).toHaveValue(new RegExp(sourceCode));
+
+  const dbSelect = page.getByRole('combobox', { name: /源数据库/ });
+  await expect(dbSelect).toBeEnabled();
+  await page.locator('.v-select').filter({ hasText: '源数据库' }).click();
+  await page.keyboard.type(dbName);
+  await page.keyboard.press('Enter');
+  await expect(dbSelect).toHaveValue(dbName);
+  await page.getByRole('button', { name: '下一步' }).click();
+
+  await page.getByRole('textbox', { name: '搜索表名或注释' }).fill(runId);
+  for (const table of [firstSource, secondSource]) {
+    const row = page.getByRole('row', { name: new RegExp(table) });
+    await expect(row).toBeVisible();
+    // The wizard header already shows the source database, so rows stay table-name only.
+    await expect(row.getByText('public', { exact: true })).toHaveCount(0);
+    await row.getByRole('checkbox').check();
+  }
+  await page.getByRole('button', { name: '下一步' }).click();
+
+  await expect(page.getByText('Step 3')).toBeVisible();
+  // Pick the lowest-id target that can actually connect to this E2E database.
+  // Other tests may have inserted targets after ours, so do not rely on list order.
+  const usableTargetName = psql(
+    `select name from etl_target where target_type = 'POSTGRESQL' and enabled and (connect_config::jsonb)->>'username' = ${sqlLiteral(
+      dbUser
+    )} order by id limit 1`
+  );
+  const targetSelect = page.getByRole('combobox', { name: '目标端' });
+  await page.locator('.v-select').filter({ hasText: '目标端' }).click();
+  await page.keyboard.type(usableTargetName);
+  await page
+    .locator('.v-overlay-container .v-list-item:visible')
+    .filter({ hasText: usableTargetName })
+    .first()
+    .click();
+  await expect(targetSelect).toHaveValue(new RegExp(usableTargetName));
+  await page.getByLabel(/目标库名/).fill('public');
+
+  const templateField = page.getByLabel(/目标表名模板/);
+  await templateField.fill(`duplicate_guard_${runId}`);
+  await expect(page.getByText('目标表名重复：', { exact: false }).first()).toBeVisible();
+  const previewButton = page.getByRole('button', { name: '生成预览并校验' });
+  await expect(previewButton).toBeDisabled();
+
+  await templateField.fill('${table}');
+  await expect(page.getByText('目标表名重复：', { exact: false })).toHaveCount(0);
+  await expect(previewButton).toBeEnabled();
+  await previewButton.click();
+
+  await expect(page.getByText('Step 4')).toBeVisible();
+  const firstRow = page.locator('.review-row').filter({ hasText: firstSource });
+  await expect(firstRow).toBeVisible();
+  await firstRow.locator('.review-row__main').click();
+  await expect(page.locator('.plan-drawer')).toBeVisible();
+  // Field mappings are the editable source of truth; a separate target-structure table was removed.
+  await expect(page.locator('.plan-drawer').getByText('目标结构')).toHaveCount(0);
+
+  const firstMapping = page
+    .locator('.mapping-row')
+    .first()
+    .getByRole('combobox', { name: 'id 的目标字段' });
+  await firstMapping.fill('');
+  await firstMapping.press('Tab');
+
+  await expect(firstRow.getByText('映射不完整')).toBeVisible();
+  await expect(page.getByText(/有 1 张纳入创建的表映射不完整或重复/)).toBeVisible();
+  const createButton = page.getByRole('button', { name: /确认创建 2 张表/ });
+  await expect(createButton).toBeDisabled();
+
+  await page.screenshot({
+    path: path.join(artifactDir, 'batch-wizard-validation-guard.png'),
+    fullPage: true,
+  });
+
+  const doneButton = page.getByRole('button', { name: '完成' });
+  await expect(doneButton).toBeInViewport();
+  await doneButton.click();
+
+  await page.getByRole('button', { name: '补全缺失映射' }).click();
+  await expect(firstRow.getByText('映射不完整')).toHaveCount(0);
+  await expect(createButton).toBeEnabled();
+
+  await page.getByRole('button', { name: '取消' }).click();
+  await expect(page.getByText('放弃本次新增')).toBeVisible();
+  await page.getByRole('button', { name: '继续配置' }).click();
+
+  fs.mkdirSync(artifactDir, { recursive: true });
+  const artifactPath = path.join(artifactDir, 'batch-wizard-guard.json');
+  fs.writeFileSync(
+    artifactPath,
+    JSON.stringify(
+      {
+        runId,
+        tables: [firstSource, secondSource],
+        checks: [
+          'duplicate target template disables preview',
+          'invalid mapping marks row and disables create',
+          'bulk fill restores validity',
+          'cancel at step 4 asks for confirmation',
+        ],
+      },
+      null,
+      2
+    )
+  );
+  await test.info().attach('batch-wizard-guard', {
+    path: artifactPath,
+    contentType: 'application/json',
+  });
+  await test.info().attach('batch-wizard-validation-guard', {
+    path: path.join(artifactDir, 'batch-wizard-validation-guard.png'),
+    contentType: 'image/png',
+  });
 });

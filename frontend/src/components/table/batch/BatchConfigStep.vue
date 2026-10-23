@@ -2,7 +2,7 @@
   <div class="step-layout step-layout--config">
     <div class="step-hero">
       <div class="step-kicker">Step 3</div>
-      <div class="step-title">配置目标策略</div>
+      <h2 class="step-title">配置目标策略</h2>
       <div class="step-desc">
         先确定目标表由谁维护，再设置目标位置与命名规则。字段和结构校验将在下一步统一展示。
       </div>
@@ -40,9 +40,10 @@
                 { title: '平台创建并维护', value: 'MANAGED' },
                 { title: '目标表已存在，仅校验', value: 'EXTERNAL' },
               ]"
-              label="目标表结构管理 *"
+              label="目标表结构管理"
               density="comfortable"
               variant="outlined"
+              :required="true"
               hide-details="auto"
             />
             <v-select
@@ -51,20 +52,24 @@
               :items="targets"
               item-title="label"
               item-value="value"
-              label="目标端 *"
+              label="目标端"
               density="comfortable"
               variant="outlined"
+              :required="true"
               :rules="[rules.required]"
               hide-details="auto"
             />
             <v-text-field
               v-model="targetDb"
               class="target-field"
-              label="目标库名 *"
+              label="目标库名"
               density="comfortable"
               variant="outlined"
+              :required="true"
               :rules="[rules.required]"
               hide-details="auto"
+              autocomplete="off"
+              spellcheck="false"
             />
             <v-text-field
               v-model="targetTableTemplate"
@@ -75,6 +80,8 @@
               hint="支持 ${table}（源表名）与 ${db}（源库名）占位符"
               persistent-hint
               placeholder="${table}"
+              autocomplete="off"
+              spellcheck="false"
             />
           </div>
           <v-alert
@@ -95,7 +102,7 @@
               <div class="stage-panel__caption">
                 {{
                   family === 'hdfs'
-                    ? '配置 Hive 分区键和文件存储方式。'
+                    ? '支持多个分区键，其中最多一个业务日期分区；其余使用固定值。'
                     : '配置快照字段与目标表主键策略。'
                 }}
               </div>
@@ -105,61 +112,7 @@
             <v-col cols="12">
               <div class="binding-head">
                 <span>分区绑定</span>
-                <v-btn
-                  size="small"
-                  variant="tonal"
-                  color="primary"
-                  prepend-icon="mdi-plus"
-                  @click="addPartitionBinding"
-                >
-                  增加分区键
-                </v-btn>
-              </div>
-              <div v-if="!partitionBindings.length" class="binding-empty">
-                未配置分区键，目标表将按非分区表校验。
-              </div>
-              <v-row v-for="(binding, index) in partitionBindings" :key="index" density="compact">
-                <v-col cols="12" md="3">
-                  <v-text-field
-                    v-model="binding.name"
-                    label="目标分区键"
-                    density="comfortable"
-                    variant="outlined"
-                    hide-details
-                  />
-                </v-col>
-                <v-col cols="12" md="3">
-                  <v-select
-                    v-model="binding.valueType"
-                    :items="[
-                      { title: '业务日期', value: 'BIZ_DATE' },
-                      { title: '固定值', value: 'CONSTANT' },
-                    ]"
-                    label="取值方式"
-                    density="comfortable"
-                    variant="outlined"
-                    hide-details
-                  />
-                </v-col>
-                <v-col cols="12" md="3">
-                  <v-text-field
-                    v-if="binding.valueType === 'BIZ_DATE'"
-                    v-model="binding.format"
-                    label="日期格式"
-                    density="comfortable"
-                    variant="outlined"
-                    hide-details
-                  />
-                  <v-text-field
-                    v-else
-                    v-model="binding.value"
-                    label="固定值"
-                    density="comfortable"
-                    variant="outlined"
-                    hide-details
-                  />
-                </v-col>
-                <v-col cols="12" md="2">
+                <div class="binding-head__actions">
                   <v-select
                     v-model="options.hdfs.partitionCreationMode"
                     :items="[
@@ -167,9 +120,70 @@
                       { title: '外部创建', value: 'EXTERNAL' },
                     ]"
                     label="分区创建"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    class="binding-mode"
+                  />
+                  <v-btn
+                    size="small"
+                    variant="tonal"
+                    color="primary"
+                    prepend-icon="mdi-plus"
+                    @click="addPartitionBinding"
+                  >
+                    增加分区键
+                  </v-btn>
+                </div>
+              </div>
+              <div v-if="!partitionBindings.length" class="binding-empty">
+                未配置分区键，目标表将按非分区表校验。
+              </div>
+              <v-row v-for="(binding, index) in partitionBindings" :key="index" density="compact">
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="binding.name"
+                    label="目标分区键"
+                    density="comfortable"
+                    variant="outlined"
+                    :rules="[rules.required]"
+                    hide-details="auto"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </v-col>
+                <v-col cols="12" md="3">
+                  <v-select
+                    v-model="binding.valueType"
+                    :items="valueTypeItems(index)"
+                    label="取值方式"
                     density="comfortable"
                     variant="outlined"
                     hide-details
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-if="binding.valueType === 'BIZ_DATE'"
+                    v-model="binding.format"
+                    label="日期格式"
+                    density="comfortable"
+                    variant="outlined"
+                    :rules="[rules.required]"
+                    hide-details="auto"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  <v-text-field
+                    v-else
+                    v-model="binding.value"
+                    label="固定值"
+                    density="comfortable"
+                    variant="outlined"
+                    :rules="[rules.required]"
+                    hide-details="auto"
+                    autocomplete="off"
+                    spellcheck="false"
                   />
                 </v-col>
                 <v-col cols="12" md="1">
@@ -248,6 +262,16 @@
             >
           </div>
 
+          <v-alert
+            v-if="targetNameIssue"
+            type="warning"
+            variant="tonal"
+            density="comfortable"
+            class="preview-warning"
+          >
+            {{ targetNameIssue }}。请调整目标表名模板，确保每张源表映射到唯一目标表。
+          </v-alert>
+
           <div class="preview-table-wrap">
             <table class="preview-table">
               <thead>
@@ -258,7 +282,13 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in previewRows" :key="row.sourceTable">
+                <tr
+                  v-for="row in previewRows"
+                  :key="row.sourceTable"
+                  :class="{
+                    'preview-row--duplicate': duplicateSet.has(row.targetTable.toLowerCase()),
+                  }"
+                >
                   <td class="src-col">{{ row.sourceTable }}</td>
                   <td class="arrow-col">→</td>
                   <td class="dst-col">
@@ -267,7 +297,7 @@
                 </tr>
                 <tr v-if="selectedCnt > PREVIEW_LIMIT">
                   <td colspan="3" class="more-row">
-                    …还有 {{ selectedCnt - PREVIEW_LIMIT }} 张表未展开
+                    还有 {{ selectedCnt - PREVIEW_LIMIT }} 张表，将在下一步逐表确认
                   </td>
                 </tr>
                 <tr v-if="selectedCnt === 0">
@@ -291,6 +321,8 @@
     targets: { label: string; value: number; targetType: string }[];
     storageFormats: string[];
     compressFormats: string[];
+    duplicateTargetNames: string[];
+    targetNameIssue: string;
   }>();
 
   const targetId = defineModel<number | null>('targetId');
@@ -303,6 +335,9 @@
   const selectedTables = defineModel<EtlTableView[]>('selected', { required: true });
 
   const selectedCnt = computed(() => selectedTables.value.length);
+  const duplicateSet = computed(
+    () => new Set(props.duplicateTargetNames.map(name => name.toLowerCase()))
+  );
 
   const family = computed(() => {
     const picked = props.targets.find(t => t.value === targetId.value);
@@ -310,6 +345,20 @@
   });
 
   const partitionBindings = computed(() => options.value.hdfs.partitionBindings || []);
+
+  // Why: the target contract rejects more than one BIZ_DATE partition, so prevent building it here.
+  const valueTypeItems = (index: number) => [
+    {
+      title: '业务日期',
+      value: 'BIZ_DATE',
+      props: {
+        disabled: partitionBindings.value.some(
+          (binding, other) => other !== index && binding.valueType === 'BIZ_DATE'
+        ),
+      },
+    },
+    { title: '固定值', value: 'CONSTANT' },
+  ];
 
   const addPartitionBinding = () => {
     if (!options.value.hdfs.partitionBindings) {
@@ -356,6 +405,17 @@
     gap: 12px;
     margin-bottom: 10px;
     font-weight: 600;
+  }
+
+  .binding-head__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .binding-mode {
+    width: 150px;
   }
 
   .binding-empty {
@@ -411,6 +471,14 @@
     gap: 8px;
     flex-wrap: wrap;
     padding: 14px 18px 0;
+  }
+
+  .preview-warning {
+    margin: 12px 18px 0;
+  }
+
+  .preview-row--duplicate .dst-col {
+    color: rgb(var(--v-theme-error));
   }
 
   .preview-table-wrap {

@@ -3,7 +3,7 @@
     <div class="review-hero">
       <div>
         <div class="step-kicker">Step 4</div>
-        <div class="step-title">预览与校验</div>
+        <h2 class="step-title">预览与校验</h2>
         <div class="step-desc">
           批量配置已应用到全部表。逐表确认目标结构、字段映射和阻断项后再创建。
         </div>
@@ -23,7 +23,7 @@
         :class="{ 'summary-card--active': filter === 'READY' }"
         type="button"
         :aria-pressed="filter === 'READY'"
-        @click="filter = 'READY'"
+        @click="toggleFilter('READY')"
       >
         <span class="summary-card__value">{{ readyCount }}</span>
         <span class="summary-card__label">校验通过</span>
@@ -33,7 +33,7 @@
         :class="{ 'summary-card--active': filter === 'WARNING' }"
         type="button"
         :aria-pressed="filter === 'WARNING'"
-        @click="filter = 'WARNING'"
+        @click="toggleFilter('WARNING')"
       >
         <span class="summary-card__value">{{ warningCount }}</span>
         <span class="summary-card__label">需要留意</span>
@@ -43,7 +43,7 @@
         :class="{ 'summary-card--active': filter === 'ERROR' }"
         type="button"
         :aria-pressed="filter === 'ERROR'"
-        @click="filter = 'ERROR'"
+        @click="toggleFilter('ERROR')"
       >
         <span class="summary-card__value">{{ blockedCount }}</span>
         <span class="summary-card__label">阻断项</span>
@@ -54,18 +54,22 @@
       </div>
     </div>
 
+    <v-alert
+      v-if="invalidIncludedCount"
+      type="error"
+      variant="tonal"
+      density="comfortable"
+      class="step-alert"
+    >
+      有 {{ invalidIncludedCount }} 张纳入创建的表映射不完整或重复，修正后底部按钮才可用。
+    </v-alert>
+
     <div class="review-toolbar">
-      <div class="filter-pills">
-        <v-chip
-          v-for="option in filterOptions"
-          :key="option.value"
-          :color="filter === option.value ? 'primary' : undefined"
-          :variant="filter === option.value ? 'flat' : 'outlined'"
-          size="small"
-          @click="filter = option.value"
-        >
-          {{ option.label }} {{ option.count }}
-        </v-chip>
+      <div class="filter-state">
+        <span>当前显示：{{ currentFilterLabel }}</span>
+        <v-btn v-if="filter !== 'ALL'" variant="text" size="small" @click="filter = 'ALL'">
+          显示全部
+        </v-btn>
       </div>
       <div class="toolbar-actions">
         <v-btn
@@ -73,9 +77,9 @@
           size="small"
           prepend-icon="mdi-check-all"
           :disabled="!includedCount"
-          @click="acceptSuggestedMappings"
+          @click="completeMissingMappings"
         >
-          接受建议映射
+          补全缺失映射
         </v-btn>
         <v-btn
           variant="text"
@@ -84,49 +88,49 @@
           :disabled="!includedCount"
           @click="excludeBlocked"
         >
-          排除阻断项
+          排除无效项
         </v-btn>
       </div>
     </div>
 
     <div class="review-list">
-      <button
+      <div
         v-for="row in visibleRows"
         :key="row.table.sourceTable"
-        type="button"
         class="review-row"
         :class="`review-row--${row.plan.status.toLowerCase()}`"
-        @click="openRow(row)"
       >
         <v-checkbox-btn
           :model-value="row.included"
+          :aria-label="`纳入创建 ${row.table.sourceTable}`"
           class="row-check"
-          @click.stop
           @update:model-value="value => (row.included = Boolean(value))"
         />
-        <div class="route">
-          <span class="route-source">{{ row.table.sourceTable }}</span>
-          <v-icon size="16" color="primary">mdi-arrow-right</v-icon>
-          <span class="route-target">{{ row.plan.targetDb }}.{{ row.plan.targetTable }}</span>
-        </div>
-        <div class="metric">
-          <span class="metric-label">字段</span>
-          <strong>{{ mappingProgress(row) }}</strong>
-        </div>
-        <div class="metric metric--action">
-          <span class="metric-label">目标动作</span>
-          <strong>{{ actionLabel(row.plan.action) }}</strong>
-        </div>
-        <v-chip
-          size="small"
-          :color="statusColor(row.plan.status)"
-          :variant="row.plan.status === 'READY' ? 'outlined' : 'tonal'"
-        >
-          {{ statusLabel(row.plan.status) }}
-        </v-chip>
-        <span class="row-summary">{{ row.plan.summary }}</span>
-        <v-icon size="18" class="row-chevron">mdi-chevron-right</v-icon>
-      </button>
+        <button type="button" class="review-row__main" @click="openRow(row)">
+          <div class="route">
+            <span class="route-source" :title="row.table.sourceTable">{{
+              row.table.sourceTable
+            }}</span>
+            <v-icon size="16" color="primary">mdi-arrow-right</v-icon>
+            <span class="route-target" :title="`${row.plan.targetDb}.${row.plan.targetTable}`">
+              {{ row.plan.targetDb }}.{{ row.plan.targetTable }}
+            </span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">字段</span>
+            <strong>{{ mappingProgress(row) }}</strong>
+          </div>
+          <div class="metric metric--action">
+            <span class="metric-label">目标动作</span>
+            <strong>{{ actionLabel(row.plan.action) }}</strong>
+          </div>
+          <v-chip size="small" :color="rowStatusColor(row)" :variant="rowStatusVariant(row)">
+            {{ rowStatusLabel(row) }}
+          </v-chip>
+          <span class="row-summary" :title="row.plan.summary">{{ row.plan.summary }}</span>
+          <v-icon size="18" class="row-chevron">mdi-chevron-right</v-icon>
+        </button>
+      </div>
 
       <div v-if="!visibleRows.length" class="empty-state">
         <v-icon size="42">mdi-filter-off-outline</v-icon>
@@ -135,159 +139,112 @@
       </div>
     </div>
 
-    <v-navigation-drawer
-      v-model="drawerOpen"
-      temporary
-      location="right"
-      width="760"
-      class="plan-drawer"
-    >
-      <template v-if="activeRow">
-        <div class="drawer-head">
-          <div>
-            <div class="drawer-kicker">
-              {{ modeLabel }} · {{ actionLabel(activeRow.plan.action) }}
+    <!-- Why: Vuetify cards set z-index:0, which would trap the fixed drawer below
+         the app footer (hiding and blocking its action bar), so mount it on body. -->
+    <Teleport to="body">
+      <v-navigation-drawer
+        v-model="drawerOpen"
+        temporary
+        location="right"
+        width="760"
+        class="plan-drawer"
+      >
+        <template v-if="activeRow">
+          <div class="drawer-head">
+            <div>
+              <div class="drawer-kicker">
+                {{ modeLabel }} · {{ actionLabel(activeRow.plan.action) }}
+              </div>
+              <div class="drawer-title">
+                {{ activeRow.table.sourceTable }}
+                <v-icon size="18">mdi-arrow-right</v-icon>
+                {{ activeRow.plan.targetDb }}.{{ activeRow.plan.targetTable }}
+              </div>
             </div>
-            <div class="drawer-title">
-              {{ activeRow.table.sourceTable }}
-              <v-icon size="18">mdi-arrow-right</v-icon>
-              {{ activeRow.plan.targetDb }}.{{ activeRow.plan.targetTable }}
-            </div>
+            <v-btn
+              icon="mdi-close"
+              variant="text"
+              aria-label="关闭预览"
+              @click="drawerOpen = false"
+            />
           </div>
-          <v-btn
-            icon="mdi-close"
-            variant="text"
-            aria-label="关闭预览"
-            @click="drawerOpen = false"
-          />
-        </div>
 
-        <div class="drawer-body">
-          <v-alert
-            v-if="activeRow.plan.findings.length"
-            :type="activeRow.plan.status === 'ERROR' ? 'error' : 'warning'"
-            variant="tonal"
-            density="comfortable"
-          >
-            <div v-for="finding in activeRow.plan.findings" :key="finding.code + finding.column">
-              {{ finding.message }}
-            </div>
-          </v-alert>
-          <v-alert v-else type="success" variant="tonal" density="comfortable">
-            目标计划与字段映射检查通过。
-          </v-alert>
+          <div class="drawer-body">
+            <v-alert
+              v-if="activeRow.plan.findings.length"
+              :type="activeRow.plan.status === 'ERROR' ? 'error' : 'warning'"
+              variant="tonal"
+              density="comfortable"
+            >
+              <div v-for="finding in activeRow.plan.findings" :key="finding.code + finding.column">
+                {{ finding.message }}
+              </div>
+            </v-alert>
+            <v-alert v-else type="success" variant="tonal" density="comfortable">
+              目标计划与字段映射检查通过。
+            </v-alert>
+            <v-alert v-if="activeRowIssue" type="error" variant="tonal" density="comfortable">
+              当前映射存在问题：{{ activeRowIssueLabel }}。修正后才能确认创建。
+            </v-alert>
 
-          <section class="drawer-section">
-            <div class="section-heading">
-              <span>字段映射</span>
-              <v-chip size="x-small" variant="tonal"
-                >{{ activeRow.mappings.length }} 个源字段</v-chip
-              >
-            </div>
-            <div class="mapping-table">
-              <div class="mapping-head">
-                <span>源字段</span>
-                <span>源类型</span>
-                <span>目标字段</span>
-                <span>计划类型</span>
+            <section class="drawer-section">
+              <div class="section-heading">
+                <span>字段映射</span>
+                <v-chip size="x-small" variant="tonal"
+                  >{{ activeRow.mappings.length }} 个源字段</v-chip
+                >
               </div>
-              <div
-                v-for="mapping in activeRow.mappings"
-                :key="mapping.sourceColumnName"
-                class="mapping-row"
-              >
-                <span class="mono">{{ mapping.sourceColumnName }}</span>
-                <span class="type-text">{{ sourceTypeOf(mapping.sourceColumnName) }}</span>
-                <v-combobox
-                  v-model="mapping.targetColumnName"
-                  :items="targetColumnNames"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                />
-                <span class="type-text">{{ targetTypeOf(mapping.targetColumnName) }}</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="drawer-section">
-            <div class="section-heading">
-              <span>目标结构</span>
-              <v-chip
-                v-if="activeRow.plan.actualTargetTable.exists"
-                size="x-small"
-                color="warning"
-                variant="tonal"
-              >
-                已存在
-              </v-chip>
-            </div>
-            <div class="schema-table">
-              <div class="schema-head">
-                <span>#</span>
-                <span>目标字段</span>
-                <span>目标类型</span>
-                <span>约束</span>
-              </div>
-              <div v-for="column in displayColumns" :key="column.name" class="schema-row">
-                <span>{{ column.ordinal }}</span>
-                <span class="mono">{{ column.name }}</span>
-                <span class="type-text">{{ column.type }}</span>
-                <span>
-                  <v-chip
-                    v-if="column.primaryKey"
-                    size="x-small"
-                    color="primary"
+              <div class="mapping-table">
+                <div class="mapping-head">
+                  <span>源字段</span>
+                  <span>源类型</span>
+                  <span>目标字段</span>
+                  <span>计划类型</span>
+                </div>
+                <div
+                  v-for="mapping in activeRow.mappings"
+                  :key="mapping.sourceColumnName"
+                  class="mapping-row"
+                >
+                  <span class="mono">{{ mapping.sourceColumnName }}</span>
+                  <span class="type-text">{{ sourceTypeOf(mapping.sourceColumnName) }}</span>
+                  <v-combobox
+                    v-model="mapping.targetColumnName"
+                    :items="targetColumnNames"
+                    :aria-label="`${mapping.sourceColumnName} 的目标字段`"
+                    density="compact"
                     variant="outlined"
-                  >
-                    主键
-                  </v-chip>
-                  <v-chip
-                    v-else-if="column.role === 'BUSINESS_DATE'"
-                    size="x-small"
-                    color="primary"
-                    variant="tonal"
-                  >
-                    业务日期
-                  </v-chip>
-                  <v-chip v-else-if="!column.nullable" size="x-small" variant="outlined"
-                    >必填</v-chip
-                  >
-                  <span v-else class="muted">可空</span>
-                </span>
+                    hide-details
+                  />
+                  <span class="type-text">{{ targetTypeOf(mapping.targetColumnName) }}</span>
+                </div>
               </div>
-            </div>
-            <div v-if="activeRow.plan.plannedPartitions.length" class="partition-note">
-              分区键：
-              {{
-                activeRow.plan.plannedPartitions
-                  .map(partition => `${partition.name} (${partition.type})`)
-                  .join(', ')
-              }}
-            </div>
-          </section>
+            </section>
 
-          <section v-if="activeRow.plan.planDdl" class="drawer-section">
-            <v-expansion-panels variant="accordion">
-              <v-expansion-panel title="查看目标 DDL（只读）">
-                <v-expansion-panel-text>
-                  <pre class="ddl-preview">{{ activeRow.plan.planDdl }}</pre>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </section>
-          <div class="revalidate-note">
-            映射调整后，最终确认会重新读取源表和目标表并执行完整校验。
+            <section v-if="activeRow.plan.planDdl" class="drawer-section">
+              <v-expansion-panels variant="accordion">
+                <v-expansion-panel title="查看目标 DDL（只读）">
+                  <v-expansion-panel-text>
+                    <pre class="ddl-preview">{{ activeRow.plan.planDdl }}</pre>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </section>
           </div>
-        </div>
-      </template>
-    </v-navigation-drawer>
+          <div class="drawer-footer">
+            <span>映射调整即时生效，最终确认时会重新校验。</span>
+            <v-btn color="primary" variant="flat" @click="drawerOpen = false">完成</v-btn>
+          </div>
+        </template>
+      </v-navigation-drawer>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref } from 'vue';
   import type { CollectionPlanReviewRow, PlannedTargetColumn } from '@/types/database';
+  import { reviewRowIssue, reviewRowIssueLabel, reviewRowValid } from '@/utils/collection-plan';
 
   type Filter = 'ALL' | 'READY' | 'WARNING' | 'ERROR';
 
@@ -302,6 +259,9 @@
   );
   const blockedCount = computed(() => rows.value.filter(row => row.plan.status === 'ERROR').length);
   const includedCount = computed(() => rows.value.filter(row => row.included).length);
+  const invalidIncludedCount = computed(
+    () => rows.value.filter(row => row.included && !reviewRowValid(row)).length
+  );
   const mode = computed(() => rows.value[0]?.plan.schemaManagementMode || 'MANAGED');
   const modeLabel = computed(() => (mode.value === 'EXTERNAL' ? '外部管理' : '平台管理'));
   const modeDescription = computed(() =>
@@ -310,27 +270,36 @@
       : '确认后将创建或演进目标表结构'
   );
   const activeRow = computed(() => active.value);
+  const activeRowIssue = computed(() => (active.value ? reviewRowIssue(active.value) : null));
+  const activeRowIssueLabel = computed(() => reviewRowIssueLabel(activeRowIssue.value));
   const displayColumns = computed<PlannedTargetColumn[]>(() => {
     if (!active.value) return [];
-    if (active.value.plan.schemaManagementMode === 'MANAGED') {
-      return active.value.plan.plannedColumns;
+    const plan = active.value.plan;
+    if (plan.schemaManagementMode === 'MANAGED') {
+      return plan.plannedColumns;
     }
-    return active.value.plan.actualTargetTable.columns.map(column => ({
+    const primaryKeys = new Set(plan.actualTargetTable.primaryKeys.map(name => name.toLowerCase()));
+    return plan.actualTargetTable.columns.map(column => ({
       name: column.name,
       type: column.type,
       nullable: column.nullable,
+      primaryKey: primaryKeys.has(column.name.toLowerCase()),
       role: 'EXISTING',
       ordinal: column.ordinal,
     }));
   });
   const targetColumnNames = computed(() => displayColumns.value.map(column => column.name));
 
-  const filterOptions = computed(() => [
-    { label: '全部', value: 'ALL' as const, count: rows.value.length },
-    { label: '通过', value: 'READY' as const, count: readyCount.value },
-    { label: '告警', value: 'WARNING' as const, count: warningCount.value },
-    { label: '阻断', value: 'ERROR' as const, count: blockedCount.value },
-  ]);
+  const currentFilterLabel = computed(() => {
+    if (filter.value === 'READY') return `校验通过 ${readyCount.value}`;
+    if (filter.value === 'WARNING') return `需要留意 ${warningCount.value}`;
+    if (filter.value === 'ERROR') return `阻断项 ${blockedCount.value}`;
+    return `全部 ${rows.value.length}`;
+  });
+
+  const toggleFilter = (next: Filter) => {
+    filter.value = filter.value === next ? 'ALL' : next;
+  };
 
   const visibleRows = computed(() => {
     const filtered =
@@ -347,12 +316,14 @@
     drawerOpen.value = true;
   };
 
-  const acceptSuggestedMappings = () => {
+  const completeMissingMappings = () => {
     rows.value.forEach(row => {
       const suggestions = new Map(
         row.plan.mappings.map(mapping => [mapping.sourceColumnName, mapping.targetColumnName])
       );
       row.mappings.forEach(mapping => {
+        // Why: only fill gaps so bulk help never overwrites a manual mapping.
+        if (mapping.targetColumnName?.trim()) return;
         const suggestion = suggestions.get(mapping.sourceColumnName);
         if (suggestion) mapping.targetColumnName = suggestion;
       });
@@ -400,14 +371,28 @@
 
   const statusColor = (status: string) =>
     status === 'ERROR' ? 'error' : status === 'WARNING' ? 'warning' : 'success';
+
+  // Why: the server plan status cannot see edits made in the drawer; surface them per row.
+  const rowIssue = (row: CollectionPlanReviewRow) => (row.included ? reviewRowIssue(row) : null);
+  const rowStatusLabel = (row: CollectionPlanReviewRow) => {
+    const issue = rowIssue(row);
+    return issue ? reviewRowIssueLabel(issue) : statusLabel(row.plan.status);
+  };
+  const rowStatusColor = (row: CollectionPlanReviewRow) =>
+    rowIssue(row) ? 'error' : statusColor(row.plan.status);
+  const rowStatusVariant = (row: CollectionPlanReviewRow): 'tonal' | 'outlined' =>
+    rowIssue(row) || row.plan.status !== 'READY' ? 'tonal' : 'outlined';
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+  @use './batch-step-shared' as *;
+
   .review-step {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
+    padding: 22px;
   }
 
   .review-hero {
@@ -430,31 +415,6 @@
       rgba(var(--v-theme-primary), 0.24)
     );
     content: '';
-  }
-
-  .step-kicker {
-    color: rgb(var(--v-theme-primary));
-    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .step-title {
-    margin-top: 4px;
-    color: rgb(var(--v-theme-on-surface));
-    font-size: 1.36rem;
-    font-weight: 750;
-    letter-spacing: -0.02em;
-  }
-
-  .step-desc {
-    max-width: 760px;
-    margin-top: 6px;
-    color: var(--ds-text-2);
-    font-size: 0.88rem;
-    line-height: 1.6;
   }
 
   .summary-grid {
@@ -544,12 +504,17 @@
     border-bottom: 1px solid var(--ds-border-subtle);
   }
 
-  .filter-pills,
+  .filter-state,
   .toolbar-actions {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+  }
+
+  .filter-state {
+    color: var(--ds-text-2);
+    font-size: 0.8rem;
   }
 
   .review-list {
@@ -560,12 +525,11 @@
 
   .review-row {
     position: relative;
-    display: grid;
-    grid-template-columns: 36px minmax(240px, 1.5fr) 86px 110px 74px minmax(180px, 1fr) 24px;
+    display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     width: 100%;
-    padding: 10px 12px 10px 6px;
+    padding: 6px 12px 6px 4px;
     overflow: hidden;
     border: 1px solid var(--ds-border-subtle);
     border-radius: 12px;
@@ -575,10 +539,41 @@
     transition: transform 150ms ease, box-shadow 150ms ease;
   }
 
+  // Why: v-selection-control defaults to flex:1 0, which would eat half the row.
+  .review-row .row-check {
+    flex: 0 0 auto;
+  }
+
+  .review-row__main {
+    display: grid;
+    // Why: flex-basis auto sizes each row from its text, so long summaries shift the columns.
+    flex: 1 1 0;
+    grid-template-columns: minmax(200px, 1.5fr) 80px 100px 70px minmax(150px, 1fr) 20px;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 40px;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  // Keep the chip at its natural width so its label stays centered in its grid cell.
+  .review-row__main > .v-chip {
+    align-self: center;
+    justify-self: center;
+  }
+
   .review-row::before {
     position: absolute;
-    inset: 0 auto 0 0;
+    /* Why: a full-height bar is clipped by the row's rounded corners and reads as a brace. */
+    inset: 10px auto 10px 0;
     width: 3px;
+    border-radius: 999px;
     background: rgb(var(--v-theme-success));
     content: '';
   }
@@ -663,6 +658,7 @@
 
   .drawer-head {
     display: flex;
+    flex: 0 0 auto;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
@@ -695,9 +691,18 @@
 
   .drawer-body {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 20px;
+    min-height: 0;
     padding: 18px 22px 34px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  // Why: Vuetify alerts set flex-grow, so spare scroll height would stretch them.
+  .drawer-body > * {
+    flex: 0 0 auto;
   }
 
   .drawer-section {
@@ -715,8 +720,7 @@
     font-weight: 700;
   }
 
-  .mapping-table,
-  .schema-table {
+  .mapping-table {
     overflow: hidden;
     border: 1px solid var(--ds-border-subtle);
     border-radius: 12px;
@@ -731,8 +735,7 @@
     padding: 8px 12px;
   }
 
-  .mapping-head,
-  .schema-head {
+  .mapping-head {
     background: rgba(var(--v-theme-on-surface), 0.035);
     color: var(--ds-text-3);
     font-size: 0.68rem;
@@ -740,29 +743,13 @@
     text-transform: uppercase;
   }
 
-  .mapping-row + .mapping-row,
-  .schema-row + .schema-row {
+  .mapping-row + .mapping-row {
     border-top: 1px solid var(--ds-border-subtle);
   }
 
-  .schema-head,
-  .schema-row {
-    display: grid;
-    grid-template-columns: 38px 1fr 140px 110px;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-  }
-
-  .type-text,
-  .muted {
+  .type-text {
     color: var(--ds-text-2);
     font-size: 0.76rem;
-  }
-
-  .partition-note {
-    color: var(--ds-text-2);
-    font-size: 0.78rem;
   }
 
   .ddl-preview {
@@ -778,9 +765,27 @@
     white-space: pre-wrap;
   }
 
-  .revalidate-note {
+  .drawer-footer {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 22px;
+    border-top: 1px solid var(--ds-border-subtle);
+    background: var(--ds-surface-raised);
+  }
+
+  .drawer-footer span {
     color: var(--ds-text-3);
     font-size: 0.74rem;
+  }
+
+  // Why: only the drawer body should scroll, so the footer stays reachable.
+  .plan-drawer :deep(.v-navigation-drawer__content) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   @media (max-width: 1100px) {
@@ -793,7 +798,18 @@
     }
   }
 
+  @media (max-width: 980px) {
+    .review-row__main {
+      grid-template-columns: minmax(170px, 1.5fr) 70px 90px 64px minmax(110px, 1fr) 18px;
+      gap: 8px;
+    }
+  }
+
   @media (max-width: 760px) {
+    .review-step {
+      padding: 16px;
+    }
+
     .review-hero,
     .review-toolbar {
       flex-direction: column;
@@ -804,14 +820,26 @@
       grid-template-columns: 1fr;
     }
 
-    .review-row {
-      grid-template-columns: 36px 1fr 24px;
+    .review-row__main {
+      grid-template-columns: minmax(0, 1fr) auto 20px;
+      gap: 8px;
     }
 
     .metric,
-    .row-summary,
-    .review-row > .v-chip {
+    .row-summary {
       display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .summary-card,
+    .review-row {
+      transition: none;
+    }
+
+    .summary-card:hover,
+    .review-row:hover {
+      transform: none;
     }
   }
 </style>

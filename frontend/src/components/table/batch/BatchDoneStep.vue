@@ -25,18 +25,32 @@
       </v-chip>
     </div>
     <div v-if="results.length" class="result-list">
-      <div v-for="result in results" :key="result.sourceTable" class="result-row">
+      <div
+        v-for="result in results"
+        :key="result.sourceTable"
+        class="result-row"
+        :class="{ 'result-row--failed': result.status === 'FAILED' }"
+      >
         <v-icon size="18" :color="result.status === 'CREATED' ? 'success' : 'error'">
           {{ result.status === 'CREATED' ? 'mdi-check-circle' : 'mdi-alert-circle' }}
         </v-icon>
-        <span class="result-name">{{ result.sourceTable }}</span>
-        <v-icon size="14" color="primary">mdi-arrow-right</v-icon>
-        <span class="result-target">{{ result.targetTable }}</span>
-        <span class="result-message">{{ result.message }}</span>
+        <span class="result-name" :title="result.sourceTable">{{ result.sourceTable }}</span>
+        <v-icon size="14" color="primary" class="result-arrow">mdi-arrow-right</v-icon>
+        <span class="result-target" :title="result.targetTable">{{ result.targetTable }}</span>
+        <span class="result-message" :title="result.message">{{ result.message }}</span>
       </div>
     </div>
     <div class="success-actions">
       <v-btn variant="text" @click="$emit('back')">返回采集表</v-btn>
+      <v-btn
+        v-if="failedCount"
+        variant="tonal"
+        color="warning"
+        prepend-icon="mdi-refresh"
+        @click="$emit('retry')"
+      >
+        重试失败项
+      </v-btn>
       <v-btn color="primary" variant="flat" @click="$emit('restart')">继续新增</v-btn>
     </div>
   </div>
@@ -50,7 +64,7 @@
     results: CollectionPlanCommitResult[];
     targetDb: string;
   }>();
-  defineEmits(['restart', 'back']);
+  defineEmits(['restart', 'retry', 'back']);
 
   const createdCount = computed(
     () => props.results.filter(result => result.status === 'CREATED').length
@@ -118,10 +132,13 @@
   }
 
   .result-message {
-    overflow: hidden;
     color: var(--ds-text-2);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .result-row--failed .result-message {
+    color: rgb(var(--v-theme-error));
   }
 
   .success-meta,
@@ -131,5 +148,20 @@
     gap: 10px;
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  @media (max-width: 760px) {
+    .result-row {
+      grid-template-columns: 22px minmax(0, 1fr);
+    }
+
+    .result-arrow {
+      display: none;
+    }
+
+    .result-target,
+    .result-message {
+      grid-column: 2;
+    }
   }
 </style>

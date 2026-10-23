@@ -66,10 +66,7 @@
                     label="取值方式"
                     variant="outlined"
                     density="comfortable"
-                    :items="[
-                      { title: '业务日期', value: 'BIZ_DATE' },
-                      { title: '固定值', value: 'CONSTANT' },
-                    ]"
+                    :items="valueTypeItems(index)"
                     hide-details="auto"
                   />
                 </v-col>
@@ -230,6 +227,20 @@
   const compressFormats = HDFS_COMPRESS_FORMATS || [];
   const family = computed(() => targetFamily(props.targetType || table.value.targetType));
   const partitionBindings = computed(() => table.value.targetOptions.hdfs.partitionBindings || []);
+
+  // Why: the target contract rejects more than one BIZ_DATE partition.
+  const valueTypeItems = (index: number) => [
+    {
+      title: '业务日期',
+      value: 'BIZ_DATE',
+      props: {
+        disabled: partitionBindings.value.some(
+          (binding, other) => other !== index && binding.valueType === 'BIZ_DATE'
+        ),
+      },
+    },
+    { title: '固定值', value: 'CONSTANT' },
+  ];
 
   const addPartitionBinding = () => {
     const hdfs = table.value.targetOptions.hdfs;
