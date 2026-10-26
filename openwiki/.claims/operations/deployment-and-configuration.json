@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:511ef22d7efbea83eeaeb17168481c5fda2217073d13f40c314cb2c3e2a1efbb",
+  "claims": [
+    {
+      "id": "claim_2e5fa332ee1246119001624702a5ecfa",
+      "statement": "Dockerfile 采用三阶段构建：Maven 构建后端、Node 构建前端、Temurin 21 JRE Alpine 运行镜像；最终镜像同时包含 app.jar、前端 dist 与 Nginx，暴露 50601 和 80。",
+      "evidence": [
+        {
+          "resource": "repo://Dockerfile#L6-L58",
+          "version": "repo-lines-v1:sha256:1e66837f8de479ca1835b0d43b4d7e3e463108dbbfcfdabd7f4263a97d582374:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxOTRlZTY4ZDg4OTBjMmNmMDFkMGZjMDRmZmZhNWM5MjA0NTg2OGYxODdlZjA1MDE4MmYxYjc3YjA2MTI3MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5M2Y1ODNjODAxY2E3NDgyZDgwZTY5ZDZkYzA4ZDVhYzFiNGZhMmQ2YTRmYjdjOWZhZDVkNmNiMzkzZDlkZGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhiMDJjYWY1ZmVmNWM3NjU5NzUxNmEyNzYwMTE5YzI3NDc0ZGMwZGU1Y2JiZjcwYjY4YmY1MjM3NzRmMDdhZWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4ZDc1OTlhMmY0MzQzMDFlZDZjNjNhZmMwZGY1NDg0ZGViNDA2NTQzMmE2ZTZiM2IyODk0M2Q3ZDI1Y2VhMzkifQ"
+        },
+        {
+          "resource": "repo://Dockerfile#L64-L71",
+          "version": "repo-lines-v1:sha256:05206c28a79f4a99eba526cbeae537dd73898aa5affb2b0972100f8bb138ce74:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDE5NzJlZDY4ZTFlNTMxMDE5NWI1NWZlY2QwYjIxYWU3OWM0ZGNkZDhhZWYyNDJlM2MxZjA0ZmZkMTRiOTM4MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQxNTc2OTBlMTE1MmEwMzA5ODBmODg1MGMzZGIyZjAwMDIyNTZhOTAyNDRmZjE3YmI0MGQ2YWViZjM5NzkzOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjVkMDZiMDk1YWExY2ZmYzA0NTg1YWJlNzdkNjcwNDU3ZDBmZTcyODAwNWE2ZmE0ZGQxNzk3MTNlYzIzYjUwYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWY0YmFkNzQyYTZmOTU0NTczMDFjYTM1NzQ0NmEzYWJiOGQ5YTUxOWVlODZkMDkyMWU1MmY2NzE0MTRlYjg0ZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_9dc2982000c843eda426a5afb71b48ea",
+      "statement": "docker-compose 定义 postgres、redis、app 三个服务，app 依赖数据库和 Redis 健康后启动，首次初始化挂载 schema.sql/data.sql，数据与日志使用命名卷，默认只发布 50080:80 而 50601 仅在容器网络内使用。",
+      "evidence": [
+        {
+          "resource": "repo://docker-compose.yml#L3-L99",
+          "version": "repo-lines-v1:sha256:4248564381f2b403736cc1847415f8c6e0162418f55f75dabdd42b7657ae3881:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwZjhkYzgzYTlkMTA3NzQxZTUzNjRhZTBjZjZmNDg1OTU3MDIyMDkwMzExMjIwYWFmOTAxOGI4NzcwZmUxNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMTg4ZTA1YTcwY2M5MGQ3Y2U4OGYzMGM3ZWFiNDdjZjM4MjFhNTA5Y2ZkNDQ1NDZlN2ZmMjdmOWFiMGE4NWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkMTYwNzFiODgzNDVmN2MzMThkMDEwZjhmZTcxZjhkNjllYzhhYjY2YWYzYTM3NDI3MzgzM2M3YzE3YTQ1ZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMWJkNjEzNDM0ZmQ4MWZiZGE1ODJhMjk4MGIwMjc2ZDIwMjNjMTEyNDkxMGNiNjg4YzI5NDA4NDQ0YWI3NjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_24029d579ca84af4b5c54c968de88a7e",
+      "statement": "前端 Nginx 以 try_files 支持 SPA 路由，把 /api/v1/ 反向代理到 localhost:50601，并为代理设置 60 秒连接/发送/读取超时。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/nginx.conf#L18-L41",
+          "version": "repo-lines-v1:sha256:05533db69d94bd04602851b4532bf5ac36be99b1c02bdc2c1346489980707026:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzZDk0NGQxOGFiMjA1ZmJmZGY3MGVkYWJhMWU1NGJhN2UzYzViZmYyMGEwNWUwYjVjYzI1OWZiMDhhNmI2YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlMTcyOGVlY2ZlNjFmNTE4ODMxMWY2NjFkMDU4YWFjYjg5ZGZjODkwZmQ5ZjBiNDIyNTk3NzlmMTI2MjE5MDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5YzdhNWU5NDdhNDFlOTQxYjVhYjNlZTBiOTAwZWYyMDQ5ODhkOGVlNmVhMTc4OGJjNGVmOTRiMjUyNjFmNWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_07d8d76b1ad14fcda77e14020e18ee66",
+      "statement": "Docker 运行镜像在同一 shell 中同时启动 Java（MaxRAMPercentage=75）和 Nginx；启动命令没有设置 -Dapp.home，而采集执行使用 System.getProperty(\"app.home\") 定位 job 目录，Docker 部署执行采集时需补上该属性。",
+      "evidence": [
+        {
+          "resource": "repo://Dockerfile#L75-L85",
+          "version": "repo-lines-v1:sha256:276d5d9e451a7f70334ad185bf889aab68ab01b351cc13bb1cfeb9032cd77bc7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3YjBhNzE4ZjNlNDQwMmY0NWE2MWI5Yjc1YTBkZDhjMTViYzEyYzBjNmMwMjJmZTk4ZDM5YmEwNWY4NzQ1OWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwOWZiOGNhODI4ZjVmNzhjMzI4ZWNiY2EzYjBlMTEzYzEyMTdlMDMyNzhkYTNkNGI2NjY3ZWEyYTBmODhjNjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFmNGJhZDc0MmE2Zjk1NDU3MzAxY2EzNTc0NDZhM2FiYjhkOWE1MTllZTg2ZDA5MjFlNTJmNjcxNDE0ZWI4NGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmYThhZDIxZGQ2MjEyNzYxODgxN2JmZDg5ZjFkOTgzNmZlZjA1YjA4MDljNDAwNTZlZWZhZmQwNmU5MzRkNzMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1118-L1126",
+          "version": "repo-lines-v1:sha256:d16cb5ceb44a3e7e46fa191ba0b6d0025b0016134f41c31c282fa2e1c2c6ac77:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGZiNDU4YWJhYzE4NTg2NmNiNGU1MDliZDFkNGQ2OTI2MDBlYzMwNmViZDc0MjIzZDA1MzgxOThjMWEwYmQ5NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTg3ZjA4Mjg0MGNkZGRhZjdhNWY4MDkwYTA3NzM2YzU1NWQzYzMwZTFlNDhhZDhiODJmMTgzYTZjYzBiZWYzYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGJmMjc0YTI2ODBlNjdiZDQ3MjhiZWVjMmQyNWJiOTkwZmU5NzcwNjYwOWEwYzA0ODIzY2JjZGNmOTgxNzExYyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a643bdccf01d4c2db19b783ea94b9d6c",
+      "statement": "Addax 必须位于后端容器自身的文件系统内，挂载路径需与系统配置中的“Addax 程序目录”一致（默认 /opt/app/addax）；未安装 Addax 时服务可启动，但提交采集会因找不到 bin/addax.sh 失败。",
+      "evidence": [
+        {
+          "resource": "repo://DOCKER.md#L88-L139",
+          "version": "repo-lines-v1:sha256:5fb10b0f298e2dc34d777139372401a858a10325313a97b0f7f9b0b40600aa17:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyZTE4ZmNkNDdlYWFlZGYxN2U4N2U5YzFkMGQ3NGU4MzZiZTRlOTNmNzM5ODY0MjA0MzRiMWI4N2NjNTBjYTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJkNjUwYThlYzM3ZDk3MTQ5MjhiOGVlOWQ0OTk3NjgyMzFlMjAyZWYyMGFkYzdkNWQzMDNjY2MyN2E5NWJiYmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkMDZkYjU2ZTIyNmVjMWVmZWQ5ZDgxMDlkYmE3OWRkNjEzMDc0ZDcxZTI3Yzc1Zjg3YmI0ODQyNWY3ZmI0ZjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a257d2e68eb24ca3afb9aaff4f7d1811",
+      "statement": "裸机 service.sh 以脚本父目录为 APP_HOME，从 config/env.sh 加载环境变量，PID 与主日志写入 logs/，并通过 -Dapp.home、-Dspring.config.location、-Dlogging.file.path、-Dloader.path 启动 PropertiesLauncher。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/service.sh#L12-L29",
+          "version": "repo-lines-v1:sha256:f08824d60cc9b8e7938190568e2278ee97b9bed982ef29ebd00a920dddbe31c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2MjI3YjJhZDVhNTRkYjczOTRhYmM5NWU0NzJmZjk4MDBkNjVmOTkxNDgzMDQ4MDRhOTJlNWNkMDhkZDRmMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjOGFiYTM0MGFhYTA4ZjE1Yjc0NTA4N2ZkMjE4OGUxNWU5Nzg2MjRmZTAxNzAxY2E3MzcyNTQ3OTE3OWM1Y2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5ZDE3MGRlZGE5NTBmOTJkNGRjZjA1MjU2ZDBhNmMxNWVjYWIwYTRmM2Q4NTY0ZjA4MTFkNTVkMTkzM2JhYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlMjg5Y2RjYWFhZWEwOTZkNmQ2YjQzNmU3OGU3MzFjZWJhM2EwOTIwMDE0ZTkxOWFhMGE0OWMzYzdiZDEyMjIifQ"
+        },
+        {
+          "resource": "repo://scripts/service.sh#L70-L71",
+          "version": "repo-lines-v1:sha256:01a31ab7ece7985e63d9b04ecf440d74095dc1a045640e7ce66462f869b43374:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTAwMmQzMDllMzBkMjEwZDY1MjM3NTk0YzI2ZmMxNjc1NWQ0ZjI1ZTlmM2I5ZDg1NTlkNmRjMzEwYmQyMGE3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjY1YjYxODI2YzE1N2Y5MWY5ZmM1ZTBkNDAyYzZkY2YxMjVjZGYwMjM5YjI0ZGI4YWYzMDc0MmU0YzAyZDhlMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzYyOTM1NzZmYWE4M2E1ODYwMDIwOWMyZWYyNWJkNGYyNzRmNWM5NDI4YzZlNmVlMjgyM2VmZjQwYjZiZTllOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2UwMGRlYTBkNjM5MmU4YjdiMmY5ZGNlMGM2NDY5Mzg5Yjk3OGE0YTAxMGM0MDY1ZjViYzNiMmM3YTBhOTQ2MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_d2821dd3c9734b628539a91ec6d8e9b8",
+      "statement": "service.sh 启动时最多等待 60 秒探测端口，失败则回滚停止；停止时先发 TERM 并等待 30 秒，仍在运行则 KILL -9。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/service.sh#L124-L150",
+          "version": "repo-lines-v1:sha256:340ee922b755104270e6aa9cf53733deab62d8385f464ea9fc7b4259f800d6db:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1M2IyMjI0MTIyZDBlN2VmNTJiNDJhN2ExN2UwZDAyNzA0MzAwNjM3NDMwY2QyODM4YmZmZGI5NTEzNDQ1OTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmOTkyYTZhMzU4YmM1YjE0NzYwNTMwZDVkMDY1Mzg2M2E5YjVhNGIwZWEzZjVmNDQyNjFkM2U2YzdiMWViNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3YjUyZDNlNWJmYzI1MDVkZjk2MTY1ZGE1NzU5ZGM5ZmY3ZGUzNjZkZjJjNTJlNTA2NGNiNmE2NTVlYWJlM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5NzcxNDdhNmZjMjJlZjliZDc4MzA3MWI4NDRmOGNlMDkyYTNiMDc0YTM3YTM5OTNiMGUxZjg4Njc0YjJmMjEifQ"
+        },
+        {
+          "resource": "repo://scripts/service.sh#L72-L89",
+          "version": "repo-lines-v1:sha256:7578f2ff5587d520b4f7c8a468df8edea5b7e4a55733d984cf48ca3a670cdbdf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhZjU4NTZjMjVmZTFiNWViYThlNGVmNDQ4ZGNlNWJkNzVmNGVhYjdhYjgxMmM2M2ViYWVjODM1YjczYjUzNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxMGNiYmNhNTdmNDI4ZGZlMzY4YjVhZjI1YjFiN2MxMDA5ZjIxYzg1NDA1ODc3MGExMzNhYjg4YWJhNTE5YjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyOGE3YTgxOGE4ZjZkYmNjYTNlZGJkYWNhZTMyYzBmYmI2NzUxZjM4NGQyZWJlMzUzOWQ0NTk3YWQ1MWJkYzgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3060be4da5be44719093ccc76f311166",
+      "statement": "systemd 模板固定使用 /opt/addax-admin 路径和 0.0.1-SNAPSHOT jar 名，且 ExecStart 没有 -Dapp.home 与 -Dloader.path，使用前必须替换路径/版本并补齐启动参数。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1122-L1122",
+          "version": "repo-lines-v1:sha256:5e90ab842ba3e3ec451cd3e2ead90dedf0ac930c120e812c41c089eba567feef:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWU5MGFiODQyYmEzZTNlYzQ1MWNkM2UyZWFkOTBkZWRmMGFjOTMwYzEyMGU4MTJjNDFjMDg5ZWJhNTY3ZmVlZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWU5MGFiODQyYmEzZTNlYzQ1MWNkM2UyZWFkOTBkZWRmMGFjOTMwYzEyMGU4MTJjNDFjMDg5ZWJhNTY3ZmVlZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjI3NWExZGI2YmUwNTRhYjYxODg1ZjliNDY2ZDFmZjFiYmYzMjY5NTY3YjI0YjExY2U0MjQwOTg1MjUzYmU0ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmRjNmFiZjUwOTU1NzAwNmQ0MzkxZWRiODdiZDI4N2ZkMDYwNjA4NTdlNzUyMzBhNDEzMWJiMGE0NmI2NGE3MCJ9"
+        },
+        {
+          "resource": "repo://scripts/addax-admin.service#L6-L12",
+          "version": "repo-lines-v1:sha256:71ab590f755b1ca702d5af93c78b69cfa3a861883254e7d15cce83ad4b52b23f:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgyNjUzY2ZmMmEzYTI5ZTMwMTVkMjEyYmVmZTNiOGVmODc3ZGVhNjVjMmRhNTZmYzExYjdiZGRlMmQyZmM2NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWJjY2Q1MDk4N2M5MDViZmFmYzU4Yjk4ZDlkOWE1NzliYjhiMDk0NjdiYTg1YzcwMjE5MDM1OGU5YTI4MWE4NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjU4NzUxNWM1NmEzNGYzMTdkZjEyN2Y3Y2UzYTc3OWM5OTI0OWUwZjMxMjRiNTg0NWE2YjA1NDE4NDE3YWVjZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_36bde4d7d4f742a2bf23bc953f015a1d",
+      "statement": "application.properties 固定 /api/v1 上下文、50601 端口、dev profile、8 小时 JWT、默认 JWT 密钥、Hikari 池 20、WEIGHT 权重、LOG_DIR 日志路径和企业微信告警 key 等基础配置。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/resources/application.properties#L1-L46",
+          "version": "repo-lines-v1:sha256:047fe70d80ddfad6a7489ac8d87d68c1eb4fb194165eca6c775cca91d6370c60:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkYWJjNTljZjM5NjRhZjM4NzgzN2Q4MDg5OThjNGYxNzIyMmFjYWEwMGZhZTZhZDcyZGRlNTYyNTYwMzkwZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5MWY4ZjRmNTVjNTRkMTZjMThiY2M3YmVlZGI4Yjc1MmEzMGE4NTY4NDM5ZTc2NmQ2OGYyZjkzYmQ1MjI1MTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ea96a6d055ce4c5bb9f9d12b65503d07",
+      "statement": ".env.example 提供 Docker 部署的镜像、PostgreSQL、后端数据库、Redis、日志、WEIGHT、企业微信、服务端口和前端端口变量，默认前端端口 50080、后端 50601。",
+      "evidence": [
+        {
+          "resource": "repo://.env.example#L1-L38",
+          "version": "repo-lines-v1:sha256:e5ff12cd937360c2315756cd88e744646178e3c1e254aed67ac6e7b8c103cdb3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NzhlNDA2OGMyMzYwNjFiYjM4ZTA3ZjJmODYwY2VjOGVkOGRkNTkwYzA2NzczODFhYzUyMzM3MGMyYTgwZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4NmU2NzI4ZDc1MDE0NGIxY2E0ZmIwOThlN2Y5MTg4OTkwYTkzNGRkMGNlYzU5NDVkY2U5YjEzMTg2OTRjZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxMmI2MjAzYTk5OTBhODA1MDg1MThlYzRhN2JiZjE3Zjg3NzBjZDZiNTNmZGEyOTBlYjg3OTM5NDI4ZTg2MzMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1654e055276e4016a0b796cadec2ed96",
+      "statement": "backend/config/env.template.sh 中 REDIS_DATABASE 与后端读取的 REDIS_DB 名称不一致，且 WEIGHT 赋值带空格，直接复制使用前需要修正。",
+      "evidence": [
+        {
+          "resource": "repo://backend/config/env.template.sh#L17-L21",
+          "version": "repo-lines-v1:sha256:0530218a3ca3c6ea517e9ecee42ced8deee7ea54d5259df7bbcd52fd8881a9db:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTEyMmVmZjY1NTg5MjEwY2Q2ZmMwYWJkZTM2YmNhNzYwNzQyN2RmMWY1YTRhMGZmZTYzNWUwYzI5OTMxZjZiNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzQzNDU3OTY2N2QxNDY4MDE3NmM2NTJjODNlMWM3MGJlYTk3Y2E3ZDRmYWNlMzRmZGEwOTAyYWI3ZmY4MzllNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2NhMjNiMjIxMTkwYjVlYjg3YWFiYTBhM2Y3YWFjZjlmNTVjYTQwN2JmOGE0NDIyOTBiYmM3YzVlZThjNGE4MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWM2ZmVhMzFmMzc1OGFkZDcxNjM3NzlhMmQ5NTIzMTNhYWQxZDllM2JkMTkyNjNkZDQyZjJlZWM0NTVkZmFkZSJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/resources/application.properties#L36-L39",
+          "version": "repo-lines-v1:sha256:6f44f65c36efed6388df5bee14d664435fec25a3b9ccf5e0911bb4ae9a0f7ee9:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjFmNTM0NDliZDdiZDY5NTM5ODM0NmQ2MjZkMTZhZjQxOTkwMTg4YjIxMDYxN2M3NzE3YjNiNGUwYTljODE5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWFhOWE0OTNjZDVhZDVkMTI0Nzc3YzA0MDU4YzQwMmZiMWIwNTRhMzk0MzQ1M2ZlMjE2YjJiNDAyZDFiODkwZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmRiYWQzNzVjOTJhZGM1OTA0MTM3NjA0MDVjZDU3ZDVjNTliZWEwMjE5OTIyNjczNjkxZmMwOWMxOTM1OTk1ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTg5ZDZlNWZjY2UyMjI1NzBlMmYxZGEzZDg0ODRmOWZiOTEzZGE0M2Y4NGM0NGMzNjYwMDNhNDE5NjRhZWEwYSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_fad99580951d4e929b598fa942fcbdff",
+      "statement": "运行期配置存放在 sys_item 字典：1000 下的 ADDAX、SWITCH_TIME、HDFS_PREFIX、HDFS_STORAGE_FORMAT、HDFS_COMPRESS_FORMAT、CONCURRENT_LIMIT、QUEUE_SIZE，以及 5000/5001 的 job 模板，均可在不重启的情况下修改。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L83-L205",
+          "version": "repo-lines-v1:sha256:7637cdea83f8ba99dd237405f0750ebc1a7f7e69ae0e880fda18cd74f648f0e3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3ZWJhY2Y5ODhhYjBhMjU3YzJmNmRjZTUyNjI5ZmZlZGI0YzlhMDZiZmI0MDUwMWIyNzU0YTY3MzcwNTdhMDVmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmZTU4M2FhMWE4NDA4MTRlZTc2N2U3MjljN2JjMmQ5NGQ2YTJjZGFhNDljMWI2YWY4MjY3ZDcxMWRiMDMxNTJiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1OTNlZDg5MmY4OWEzOWNlNzM2ZmUyZDc0MzhlZmUzNDUzZDQ3N2IxNWFhNGFkMTlmODI5NzkzNmMxYzY0NWM1In0"
+        },
+        {
+          "resource": "repo://scripts/data.sql#L25-L33",
+          "version": "repo-lines-v1:sha256:c68316b9cf0497044762479773903902598d57836d84c38c1fa8f1e9ad149b26:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWVhOTdhNWJiODQ3NGExMzcyYzFhYjViNGY0YjRiOTc3YTQ5OWI4ODQ0ODllMzAyZDRmNTViNzA4MzRlY2VlYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzdiYmFlODgyMzhhYjMwZjBmZjAwM2ZkZDMyYjU5YjZiNWQ3NjJiZGUyYTc4N2NkODE0ODk5N2IwMmYwNzE1NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDM0MjlhMjVkMGIxODUxNGFkOWQ1M2FhMTVjNDE1OWUzZmYxZWMwNmI4MzI3MGY1N2JhN2YyMWQwOWVmNjg3NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGU4MjcwMzc3YmJlZGM2MDNjNjNjMDA4Y2M2YzE3YWIzMzA0M2FlMDIyMjRkYWEyNjM2MzJkM2ExN2EyNWQ5MyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_79806f871e8f4523a4282b265612b637",
+      "statement": "全新安装通过 schema.sql 和 data.sql 初始化；data.sql 创建 admin/admin123 与 user/user123 两个种子账号，生产环境必须修改密码。",
+      "evidence": [
+        {
+          "resource": "repo://docker-compose.yml#L14-L18",
+          "version": "repo-lines-v1:sha256:3f8be35fb58267b5a9b2988e95da23d62d334139b47993a3c8f4233acea035fc:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEzZjRkOTY2MWU5ZDJjM2UxYTI4OWU1ODMyMjk5YmVhMTRjZGI2NGJmODg2NjFkZjcxN2IxMmZhMDJkMDExZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDkwNTc5NDYxM2Q5MTc4MjM3MmJlZTRjZTBjY2I5Nzc0MzIxOTVmMjY0ZjE1MmJlNzFkYjI1ZTBmMDRhNjQ4ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOGEzZGY5ZjQ0NWM0YWZkYjg4NjI1NmIxNzdiMjQyYzRlN2E3NDQzMjcwYmFjNmIwMGNjYTFlNTE0NDIxNzI1OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTRmYzU3M2QwZDU5ZmQ1NTBlZmZjOTYxNTliNThmNTNiZTQ4ZWU2MTQ5NGE1NjZhYTViM2Y1NTFmNGM3YjlhNCJ9"
+        },
+        {
+          "resource": "repo://scripts/data.sql#L1-L10",
+          "version": "repo-lines-v1:sha256:a0d7a8b88817b632e9a49c8247b7528684d6dd6a1a4abaa5b638265132e724f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMzRiMzU0ZDBlZDI2MDAzYWYzZTBmZjhmYjE3MzY3YTZiNjVhYzJjOTU2ZjQzZWRiZGQ5YTQ4MmU1YzY3MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3MmFlYWNlZGNiNTk5N2FiNzYzMGFhZmM5Y2RjNmY1Mzk3OGM0M2JiZTYyOTZjYzVhOTlmMWRkY2M0YzZjZTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8f546b5dd55249cd820e2394267d6aee",
+      "statement": "SchemaInitializer 在 @PostConstruct 中执行升级，使用单个事务和 pg_advisory_xact_lock 防止多实例并发迁移，步骤幂等，失败整体回滚并阻止应用启动。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SchemaInitializer.java#L17-L44",
+          "version": "repo-lines-v1:sha256:a99fe8b54725040e8a33f605804796fe7c3d9ee9929cc3027086ea74ab74e54f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjNWE3OTg4NmVmN2M1ZDkzZDAyZDQ5MTJhOTU2MjdjNWU1YWM5ZmZlY2EwOGFkYzZkY2U2YTQyMjE5MDllZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzNzM3NWYxMWZlM2Y0MWYzM2JmZjkzNDgwZDM1NzA4MzZmZWE2YjJiN2VjYmEyYTRhZDAwNWQ5MTBlZWE0MjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY5YTc2YzAwOTc3NGVhMTNhN2UzMTViNmVkMWYxMjFmMDE0ZmVjZTZhNWZhYzA0OTBkZWQ3OGY2MzQyZTE3ZGQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SchemaInitializer.java#L290-L320",
+          "version": "repo-lines-v1:sha256:913e0938669856c13399108950814de43797ac45d554c5d9589856b6de650bf3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNjRmMGZjYmQ3NDk4ODBkMWZiMDg5OTcxY2MzYzMwMzliYzc2ZTI3OTM2Nzk5YjgzMTE0MDdkODE1ZjE2ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhYzVmOTNkMDc0Y2NkMzRkZTQ2NjU3ZDcyMmQzYmVmZTJmMGUzMWM1YmY1Y2Q5YTRlMTQyNjFlNDg3ODE0MzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0OWFhNzJmMGZmODMzMWViMWE0OGY5MmNhZmEwNzQ2MTYzZDFiZjIzODk2YzhkOTU0Mzk0NWRkNzAzZDQ0NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZmZTc5YTg5MGE1MDVlNTliMDNhYTMxODUxZmMwNzEzNmRkYzcyZDcwMmJiMjJhYmFiZWE5YTQzOTkyZjA3N2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_483d93e5968a43cf8a25fd5d4195e585",
+      "statement": "多节点实例 ID 由主机名和 JVM 进程名组成，无需手工配置；采集执行使用本节点的 app.home/job 目录和本机 ADDAX_HOME 日志目录。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/MasterElectionService.java#L216-L226",
+          "version": "repo-lines-v1:sha256:78ff351ddecc5ac2397a27b05cb8da37a3f7663e6c2e5cb1913f0eede154b1b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxZTg5ZmUyOGM4MTQ3ZDRjOGE3NzQyMWJiMDg5OWNlODMwMWIyY2ZjZjcwNDU5ODIxNDM4MGU0NTEyN2Q1MWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1122-L1135",
+          "version": "repo-lines-v1:sha256:a183771ed0d31a777e24b5d72f517ec65d19d71f95567324d72e05736f580b47:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlOTBhYjg0MmJhM2UzZWM0NTFjZDNlMmVhZDkwZGVkZjBhYzkzMGMxMjBlODEyYzQxYzA4OWViYTU2N2ZlZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwZWE1MDU1ZDlhODZkOWY5Njk3OTk1YzExYTQzODJhNWZiNTVhYTMwNzc0MDcxZDQ4YzFlYmZmOGVlZTI0YzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyNzVhMWRiNmJlMDU0YWI2MTg4NWY5YjQ2NmQxZmYxYmJmMzI2OTU2N2IyNGIxMWNlNDI0MDk4NTI1M2JlNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiM2YyZDIyNWNmOWEyOWQ5ZDZiZTcyMjk5MzA5ZDVmNDVjZTI5ZDIzMTM0OGFmYTAzNzk1OGEwMzJmYTM4MzEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1177-L1177",
+          "version": "repo-lines-v1:sha256:86cfabfb4a1e73e336430131b9d7c4684e545607ef38eff10a3d84e4622ad2f7:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODZjZmFiZmI0YTFlNzNlMzM2NDMwMTMxYjlkN2M0Njg0ZTU0NTYwN2VmMzhlZmYxMGEzZDg0ZTQ2MjJhZDJmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODZjZmFiZmI0YTFlNzNlMzM2NDMwMTMxYjlkN2M0Njg0ZTU0NTYwN2VmMzhlZmYxMGEzZDg0ZTQ2MjJhZDJmNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDE2M2JkYTM4YjUxYmRmM2IxNzJhZmQ5YjA3NTQzODk5ODY2NDJmZDE3ZjFmM2YxYmE3ODMwMzU1ZTAzMGEwYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2M0YjkxY2VhNDE1NjJjMDNmMjU2NTQ5MzdhNDZjMWIyNzQ0MGMxNDBmMzdhNjZmZTE2NGJiZGRjOTk5YjU1YyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_251855e08dca4b29828fa88fd18fd5b0",
+      "statement": "Logback 应用日志按日/1000MB 滚动并 gzip，但没有配置 maxHistory 或 totalSizeCap，归档不会自动清理。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/resources/logback-spring.xml#L15-L30",
+          "version": "repo-lines-v1:sha256:5287fb450157137840ee44a7d8e08a1837be3939d1d04daf86af6916dfd3e9a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmYTE3MDJiNzI3NDhmNzYzNDRmYmIxOGJmZjAxMzkzNjE4MWRhMzhmMmU4Yjk0ZmI0MDY1MTc0MzE1ZGRmNDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMwYTEyZjI0ZjdlNzgyNGNjYTEzMjVkZmQ1ZDdhN2VlN2FmZGM2YTI0MDlkZjQ2MzE3NzM1MzMxZDEzM2QxMDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjY2E5NDBlYTk2ODMzYTM5N2NkYzRjYzgyOGViNzFhYjcxMTNlMzBjM2Y4NDg4MTM0OThlNTdhZWRiMGVhZTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_070c1c6d69a34eb29689dfd217fbb502",
+      "statement": "deploy.sh 是硬编码 etl01/et201 的站点脚本，rsync 源写为 ./target/addax-admin-*.jar，而 Docker 构建阶段从 backend/target 取产物，使用前需按实际构建布局调整。",
+      "evidence": [
+        {
+          "resource": "repo://Dockerfile#L55-L55",
+          "version": "repo-lines-v1:sha256:d0e5a8b4e33407b1c765c7e16909e8b1c24934c86bc52349b4036271def6c766:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDBlNWE4YjRlMzM0MDdiMWM3NjVjN2UxNjkwOWU4YjFjMjQ5MzRjODZiYzUyMzQ5YjQwMzYyNzFkZWY2Yzc2NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDBlNWE4YjRlMzM0MDdiMWM3NjVjN2UxNjkwOWU4YjFjMjQ5MzRjODZiYzUyMzQ5YjQwMzYyNzFkZWY2Yzc2NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDUwMmYxMDRmM2RkZDNjZWVhM2IyOTFmNWMxODc5OWRkOWFjOWVmOWJhMWE5ZjBlYWFjNmZmOTcxYWNiYTJkNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGZmMzNhODdhZDA0YmM3NWFjMzBjMWQyNDZmZTExYjIxMzc2ODliODlmNDU0NTNhZDNhYzZlOGQ2MmEwMDEzOSJ9"
+        },
+        {
+          "resource": "repo://deploy.sh#L1-L14",
+          "version": "repo-lines-v1:sha256:3e8a5a6b0216969b06ba612813bf4cf61e04572fdaeafeb3a59bfdebbfd365a0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4NzVmOTI4NTQ2YWVlNzg1NWNiMWRiOWFmYzhhYjNmMWE4YTM0ZDQzZGU1YmJkNjJmNzA3NmQ3YmE5ZjM5MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmYTkwMjJmNmRmMTUyMjFhZDM3YmY0NjY4MmZiNDYyNDI3Y2IxYzgzMTgxMGNkMjNiMWJmNjE5YjkwYWQ1YzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_411cbb0967d94fa28f9c851e699aade4",
+      "statement": "内置 Nginx 的 60 秒代理读取超时短于前端为批量预览和提交设置的 300/600 秒客户端超时，大批量操作经过该代理时会被提前切断，需要调大 proxy_read_timeout。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/nginx.conf#L38-L41",
+          "version": "repo-lines-v1:sha256:4d713d968373cd8e4cbb9212f83d56189325abf32e2c0c1c332676fa455c8d18:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FhZTQ5YTMxZDY3ODE4Yjg1ZDg2OWFlNmQ5YTE0MWQyMGYyZDI3MGFjZTk3MGQ1YmVjMDFlMWVjYTBlM2EyMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjg3MTc3MTM4ZmE0ZTQyNzU2YWNjYWYzMWEwMTVhZmY2YzM2M2MwMWQ5ODU5M2YxZmUwNDAzOTAxN2JjMDBmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTljN2E1ZTk0N2E0MWU5NDFiNWFiM2VlMGI5MDBlZjIwNDk4OGQ4ZWU2ZWExNzg4YmM0ZWY5NGIyNTI2MWY1ZSJ9"
+        },
+        {
+          "resource": "repo://frontend/src/service/table-service.ts#L79-L146",
+          "version": "repo-lines-v1:sha256:3b15a175b83135f52d1746cc2eae80a7432c65a946490049d514472915ecbd12:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4OWM4YTc3ZTcwNDU4YjQ1OTlmYWE2ODI0ZGI5OTI4OGFiMWJhOTVkNTU5OTQ1NTI4OGQ5MWQxNjQ4Y2RiNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNGUyZGFkNzVlYTU3ZmYwNjg1NDRjYmJiZjAwN2JmNTdmMDcyYjFhMjU3MTc5MDczNDNhZjA3M2E4NTFkYzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdjYmE4ODk0OGM5ZGI1NGMxNzFjMWY0OTc0NmZmOTE1NmI4MWJmYjEwMjBhYzkyZTUxMmY1NGU3ZGE2NmM3MWIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

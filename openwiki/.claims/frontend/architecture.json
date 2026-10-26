@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:465d1a99ddefe0b7fe833e4171659ed3c1f56d2276f6243ac274a15debd298ab",
+  "claims": [
+    {
+      "id": "claim_f627572051264ba995cf39930b42e820",
+      "statement": "前端技术栈为 Vue 3.5、vue-router 5、Pinia 3、Vuetify 4、Vite 8、TypeScript 5.9；脚本提供 dev、build（type-check+build-only）、lint、format、Vitest 和 Playwright E2E。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/package.json#L1-L70",
+          "version": "repo-lines-v1:sha256:0733cfbf12fde33ba037462704947945615db22cc7fa105236bb177ac6145b96:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBhNzlkYzA2MTliMGE5NjBiNTFlZDE5ZmY3Njg0NTc3NjQzMGEwYzIwMDNkNTA5N2Q3YmY0Y2E5YTc2YTQxZGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjZDA3YjhhNjEwMDYxODE5YzRiYjFjYTc1YzhiNzY2Y2RiNmQ2ZjEzOWJkNzY4NjM5YjNmZmQ5MzRhNThlYjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aa468170a8c2419891e9b5a34869c956",
+      "statement": "main.ts 创建应用并注册 Pinia/Vuetify/Router，从 localStorage 恢复认证与主题后挂载；App.vue 根据路由 meta.layout 选择 DefaultLayout 或 LoginLayout 并在最外层渲染全局 Notifier。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/App.vue#L1-L23",
+          "version": "repo-lines-v1:sha256:d03029e45209adada512667b57a584cde3815542b3276e1637c97b5a53bd95f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmNDMzNTYxNDJhMWEyMzRiMWEwMzE5ZmIyNzYzYmU3ZWQxMDhmYjgxYWM5YzNlNmQyNDQ5NmY5MmVhYjk2YWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzYjU5ZWRhOGRjMWNjZGFiODNjMTM3YmQ5NDM4YTAyZDVjNzkxOWQ1NzZmZTc5ODNmYzM3ODZjNWRlYjliNWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/main.ts#L1-L30",
+          "version": "repo-lines-v1:sha256:9b6f988f8b6d6a01e2c141c473cf734039d58a73daa24043f67c67b3c239fe50:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBhMmQzNTIwZmI2MzQ0YjhjMWFmNTFmOWU5NTQ4NWFiNzA2NTdjOGEyMDJkNTQ1ZjhhN2M2YTQwZmEwZjRjMjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/plugins/index.ts#L1-L25",
+          "version": "repo-lines-v1:sha256:421b29c046b17da06094073b70d35f953c28188f29191ea5823f0accefcefc1a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMDRlYTdhOThkYWY2YTMxMjFlYzZhZjVhZmUyYzA1NWJhOTdiMTRlODliODlhNjY4YTIyYzY1MTFiNzk5NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2ZGMyMWQ2NjVhNmQ2YzM2YmJhZDdhZjFhNzZkNjU2ZGQ4ZDcyYjY0MTZmOWVkNmMzNmExYzFiMzk0YzNlODIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_375e3c4099104777bc31198a91f8e69d",
+      "statement": "路由由 unplugin-vue-router 从 src/views 自动生成（排除 components、login、change-password），布局由 vite-plugin-vue-layouts-next 按 meta.layout 选择，默认 Default；login/change-password/help/dict 由 router/index.ts 手工追加。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/router/index.ts#L1-L58",
+          "version": "repo-lines-v1:sha256:a5ac148b0227bb2c5c5964b5d0b4df163d92edc249f305c4ff96e7f4773ae5c8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzMzllZjQ3NzYxMDM0NzllNDUyMTY0ZDMzNjA5ODZlODUwZmQ0YTliOTUwMmE1ZGQxMjVjZWIyMjIzMDlkOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwYmUwZmNjN2ZkNDg5Y2QwYWU1ZTZiMGJmMDhiMGE0MTY3YzYyZjVhNTE5OThlNmViZTRmZWNhYTBlMDcyZWEifQ"
+        },
+        {
+          "resource": "repo://frontend/vite.config.ts#L12-L30",
+          "version": "repo-lines-v1:sha256:bc48ddd7bd5b0cddc21ed92a49a7226656c4a14735567706ff802cdbf4e77cfd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0YmFlY2Y5MjdmYjI4NjA1MjMwZjE1ODQyYjAzN2Y3NjVmYTMwODJlZTg0Y2U3YzgwZWM5MTc1ODAzMTRlODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MDA1ZDU3MTA2YTM2MmViMDAwZGFmM2RhNDY3NGM4MmI1MThmZjVhMmUyZjY3ZWU4ZTc1N2EzMzNjMmFmNjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5Zjk0YmQ4NWFkZmIwNTYwZDQ5NzMzYzM4NjA3Y2I3MDQ5ODE0MjNmZTZlMzhhYWY4ZDM0NmQ0NzhmODJhNDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwNTYzZGY3NDM5NzhjNzgxZTQwMjkwZjg5ZThkYzk2NDQ2MDljMjY2Y2ZhN2JlN2JjNDgxNDM2YTFjNjI1YjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e73897a25a6c4824956c53efa4bf5d6a",
+      "statement": "前端路由守卫只做本地检查：/login 放行，无 token 跳登录，token 解析后过期则清空并跳登录，其余放行；真正的授权由后端完成。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/router/index.ts#L60-L83",
+          "version": "repo-lines-v1:sha256:2e8409aeb24a33be0c760e0fadb91c221899e4ec5e95cbf9ee2c5a86d9655882:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxN2EyMDU4MWFlYzZlYWVkYzUyZmFlMDViYTlkMjczODlmYzAxZjg0NTliMjMxMTkzODM2ZjE0OTEwN2IxYTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMDYxYWQwYTM5OWY4MzViMjZhNzZlODNiMzdjYWVkZjA3NWVkNTc0NTA4ZDM2N2RiMzdkYzM2ZjQ2YmNiMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhOWQ2ODAxZDMzMDUwZWNlYzJhNDNkOWU1NDY4MTkzZmQyZDI1ZGRhMTcyN2UzYTg3NTkzMDEwNzRkMzlkNWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_64aea9da3a424a97beb5f03768fc8521",
+      "statement": "导航树由 buildNavMenu 从路由 meta 的 navGroup/navTitle/navOrder 聚合为源端、目标端、采集、数据、系统管理五组；Topbar 在宽度小于 1000px 时改用 NavDrawer 抽屉导航。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/layouts/default/Topbar.vue#L95-L140",
+          "version": "repo-lines-v1:sha256:8a37adc3c4219519d7a9b4db622ba5dbd6d0ac65ef4960db9042dbc7296e707f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhMjBjZTJjZDQyMGNiYzJkMzgyNmEwYWZjYmQxYWUxZTNiNGFiMTVmOGE2MTdmMDAzNGRmMTU1M2UyYjczNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY4MTI3NGFkNzlmNjFjZGNkYTg5OTMwZDk5NmQzMWJkNzQzNjQ4ZDc1MzM0Y2JkYjVlMjU3NDZhMWE1MDc5ZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljNTc4OTUwNzcyNTc1MmNkMjYwNGI0NmJiNzM1ODY5NGIyZWExNGIwZDVmNTVlODBlNWZlMzAwMTlkODk2MTAifQ"
+        },
+        {
+          "resource": "repo://frontend/src/layouts/default/build-nav.ts#L20-L100",
+          "version": "repo-lines-v1:sha256:a1a2d7a1d3961a32bdea8368a651545b44b09f6a2a5cd2bd4378619a88f52c91:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0NjU3NzY1M2IwYTFlMDI1MzBkYjMzZTRhNGFiNmJjMmIwNWQ4NmViZDFlMWNkYWZmZjZmODhiNzBlOGY0YjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3NGQxODRlNDIxNGUyZTQ0ODkzMzFjOGM3OTg3ZjYxNjJiYmZkMWQ0OTdlODUzZTgzMTcxOWVhZDNkNGNlYTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9bede638bb2e446486cb9b3012908940",
+      "statement": "Pinia store 按职责划分：auth 保存 token/用户名并持久化，theme-store 管主题，dict-store 加载流水/表/任务状态字典，task-center 与 task-polling 跟踪前端任务，notification-center 管站内通知与未读数。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/stores/auth.ts#L1-L56",
+          "version": "repo-lines-v1:sha256:b18b2adf2d19bf8055414d1cadfe9e845db084a95774bfc974bb45a2e25f14dd:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3NjVjZjkwYzQyOTI1ZmMyNjQ3ZGY5NmExNDU5ODRhMDdkZjkwZjBjY2Y2MTcxZjhmZGY5MTU0YTcxOTlkODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/stores/dict-store.ts#L1-L41",
+          "version": "repo-lines-v1:sha256:8a3ddc37e19236868b0adf5a1ac109ca74ac1c9a961ca169b54a38f7109b7340:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3NjVjZjkwYzQyOTI1ZmMyNjQ3ZGY5NmExNDU5ODRhMDdkZjkwZjBjY2Y2MTcxZjhmZGY5MTU0YTcxOTlkODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/stores/notification-center.ts#L1-L50",
+          "version": "repo-lines-v1:sha256:ead1f4968dda96f4437ed571c4c19dabfa8fdabafd09d6f584ed2f95ea4accbe:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjNGRhMTMxMjY4YmI1N2Q1NjY0NTJhYjYyMzhhODUzNTQ4ZDE0M2M1NmI5ZmI0YjljMjM0ZmEwODIxNjU2MjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhMWQxYTYzMzkwMjI5Yzc5ODM0N2U4M2EwNDA1NDQxYzk0MDAwMzUyODRhZDE2OGMxYmY2Y2RmMWQ3MGEzNzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8d2ca99613314dd9b05b6fc8cf72983b",
+      "statement": "task-polling 每 5 秒调用 GET /tasks/status，按本地任务 ID 匹配后端状态并更新任务中心中的进度。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/stores/task-polling.ts#L1-L38",
+          "version": "repo-lines-v1:sha256:af8edc75056c6036534b2e196f269f5d5b47cc8c24a3e2d09e1869146aea3e4a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZDc1ZGViMDk3MmEyMTQyOGEzZGZmYzcwNTU5MmZhOWJhN2YwYmJhNWVjYTIzNzY2OWNhOTA0YmJiY2U1YTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a99cad6a400b45b3ad6c5dd02906e70e",
+      "statement": "service 层按业务域一个类，内部持有 API 前缀并调用统一 Requests 封装；页面只依赖 service 接口与类型，不直接使用 axios。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/service/table-service.ts#L1-L30",
+          "version": "repo-lines-v1:sha256:e8ff8461c14e47eb5a311efc6460b935b8704383330edba441e283e011930694:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiZDU5NTJjZWQxOTg0YjA3NDk4Y2Q4YmQ5MzRlOThmMmQ1MGU5M2FiMTEzMjAzNTA0ZWEwOGIzYzlhMjUyYjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2YzE1ZTBiZjlhM2VhOGI5ZTg5MzBjYjE5YTRlMzExNTU2NGI2MWE3ZWVkYWRmY2ZlYmEwMjI4NjcxYWJmYTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhZDljZThiMDQ2ZmQ0YWQxMWQyZTQ3YjlhOWY3ZDFlZjBjODg0MzFjMGQwMDZhNmNlYjFlODUwMDMwNjNjN2EifQ"
+        },
+        {
+          "resource": "repo://frontend/src/utils/requests.ts#L30-L50",
+          "version": "repo-lines-v1:sha256:199c4d5b8c8459965cdfec79573039f8b0b5d251102133454ea7da69b5d3eac5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5M2EyNjg1N2E1ZTVhMzFmMTUyZjc4ZjU1NTY3ZTk1ZmRmYWZkYmEyYzc4YmYyM2RiNjNkZDBhNjhiN2E1MWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxN2UxMDEyMGIyODUzZThhMGVjNTZkYThmMWE4MWRiZTdkZDhmNTNjNTQzNTY1OGJjYzMxYzNmNWQwODNhMjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmYzY5MzlmZmI4NTFmOGM2MzUyZWZmMzc3NmM3MjdmYmUxMDc1YjMxODgzODg0NTYwYTJiMWJmYzA0YzAzNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxZjA4ZDUzYTRjYTZhYzU3NjMzNzFlNjg0YTk4YzQ1M2UxYjBjYmQxMzQzNTNjYWExOWQ4YmY4ZTdlNDY5MDkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6b31dfec03c04c859d512905a699875d",
+      "statement": "Requests 基于 axios，baseURL 来自 VITE_API_BASE_URL、默认超时 5 秒；请求拦截器注入 Bearer token，响应拦截器直接返回 data，非登录接口 401 清空认证并跳登录，其他错误优先提取后端 message。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/utils/requests.ts#L52-L120",
+          "version": "repo-lines-v1:sha256:1926b8a18ec28ec195cac924621aa502e33cccf4c7431fb9fe220d20dd745375:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2NTRjNGRkMzZhMTBhYTQ1NjRhMTAxOTBiYWJhNTJkZjkwYTQwZDcxN2EzMzM1ZTM3ZTFiY2NlMWQzMjE4NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2N2E5YjUxNjU4OGI4YzI5MGViNDNhMWYxZTgxMzAyZDM4NjZlMDI1NGU4MzI1YzYwZGY5YzM0YmUyN2E1ZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNjAxOGY1ODNlODY4NTY0ODY3Mzg3Y2ZmOTVlODQ0MjBiMDI0MGVkZThkYTQ5OTYyNTc5NjZkYzIwZWI3OWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f2d666fd52e44c1c9dad83b57502df3d",
+      "statement": "Vuetify 固定 zhHans locale、默认 dark 主题、MDI 图标与全局 outlined 文本框；全局 notifier 对错误提示不自动消失，成功提示 3 秒后消失，最多同时显示 4 条。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/plugins/vuetify.ts#L1-L39",
+          "version": "repo-lines-v1:sha256:1643506ad0dbc1c1bad267d617e68b8086beae4da0fbcdc5e46711405b9721c9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxN2QxMjU5OGQ3ZjI2NGJkZWQ2Njc2NzUyNDFjNzBmZTUyODkxNjcyZmY3Yzk0OTk1ZDFjNjk4NTAxYTc4YWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/stores/notifier.ts#L15-L50",
+          "version": "repo-lines-v1:sha256:c038c9ee15c0a83f58fc135e57b6f46bbf916c3ff81a5f7f8a672cef9a48be08:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0YTE5OWYwZmMwNDg3ZDM0YTJjNjBjNzZkMTM0NjdiNzliZDk5MzVkMjc1ZjU2MDM4ZjMwMTBmMTQyNjc3ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1N2I0YzNkMDJjODZlOTUwOTk3OGI0ZDc4ZWJlMGY5MjI3ODRjZjMyMGE3ODQwM2NiNDY4ZjYzZDlmZTllY2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3YzYyYjc1NDkzYjc2YWM1NTcxNjgxOGEwMDI2MWIxYTVhMzFkOTA0YTUzNWM4MjVkM2ZlMzNmMWZiNjA4MzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5MTc0NGE0NmU0ZjRmNTIxNDMwNWQ4OTA4NGM2ZmYyMmJmM2U0MGQwM2YyMWYwZGNjODVhODNlMDcyZTk5MmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c555144ce1ac466591988705c942a4ce",
+      "statement": "开发服务器监听 0.0.0.0:3030，并把 VITE_API_BASE_URL 代理到 VITE_API_HOST；生产环境由 Nginx 托管静态文件并反代 /api/v1/。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/vite.config.ts#L88-L96",
+          "version": "repo-lines-v1:sha256:0f4f8c94690aa6b11880d62ddbe1295c1c6b9fe8f56ab64e68111798b5a75eca:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTgxM2ExMzYzYjdkMTNiZjY3ODQ3ZDM5ZjI2ZDdhMDAxODYwZjAzZmUxYTU1ZTNhYmE2YTY5MTMwY2I0OGM0ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTU5YjBhNWRkYWZhMWU2MTcyNDM3ZTZiMGRhNDA2M2RhMTM5MWIxYmQ5ZTU1OGNhMmQ3YjZjYjdmMTFmYjYxMiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

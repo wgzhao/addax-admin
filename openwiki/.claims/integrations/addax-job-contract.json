@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:38e87395ab8e07e0aa0780acec768278fa2b80c98b2f3d431ad58f0978ae27e4",
+  "claims": [
+    {
+      "id": "claim_e7888ce073b4403da0e3213d2968d8a8",
+      "statement": "Addax job 模板分为主模板（sys_item 5000 的 R2H/R2R）和片段模板（5001 的 rR/wH/wR）；R2H、rR、wH 由 data.sql 初始化，R2R、wR 由启动时的 ensureRdbmsTemplates 幂等写入并提供代码内置回退。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L196-L245",
+          "version": "repo-lines-v1:sha256:ec4555a0e4c55271de8b87c11ae62cf2a8e27ea347e2088b65c75c49f674bb88:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmYmVlNTQ1MTUyMTM1YmEwNmMyNzk2NDA2MTMwZWMxNmM2NDMxYjFiOWE3ODEwOWZjZTQ3MDVlYTkyYjliOGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0MTk0ZTQxMjZhNzhkNzZlZmU4ZTBiYjY3YmQ1ZWE0OGI4NTg5MDI5OGM0ODk3ZWQwN2MxNGU3ZTE5YWIyZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjNDA0MGU2MjY4ZWU3NDQzZmQwNzU2YTRjN2EwMTc1NTlhMTRjODM2Njg5YTExNTliYjBmZWE5YmU3OTdkMWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyNWRjNzUxYjM5YzA3N2U0YjBkMmQwMDk4ZTBjZmVjMzU1ODYxZWYyZDNhMjU1ZGZkMTBhYTViYmJlOTgxOTAifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L250-L280",
+          "version": "repo-lines-v1:sha256:ad933904317a449641f329d9c1f79501808c52a237588f1e7b6bbcb29bb8e57f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2NWE0NjM3MGYyYmVmMDMxMTM5MmU1ODc5Y2JhYmI1NjRhODU0N2UyYTc5NDg5YjAzY2RkNjVmZDBhMmNkMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://scripts/data.sql#L100-L142",
+          "version": "repo-lines-v1:sha256:d14e96113b54d74874e7a9a1d8fa25f16a8597a18b207e6aae30f3d2d6e87cf4:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1ZmNiYTFiOThhOThhYzk0ZThmODNkNDgzOGYxYWM4MzViOTMzZGNjMTU3ZDdkMzBlNzJjYjk2OWU2Y2NmNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5NTk2N2M0NjY0ZWRhNGQ4MjVjMmUzZTdhODBjYmM5ODViYzdhODQyYzQxODAyMmI5MGExNGZmYWQ0OGYwMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjMDhjYjdiODU0OTI2NGYxNWIyNGMyM2EzOTJiOTQ2YjM0ODM1ZTMyMDg1NGUwYWM1YTA1MzNjNTZjOWMzNmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_da3342f41e6448d99e0ce1df8d2df3b1",
+      "statement": "主模板按目标族选择：TargetTypeResolver 解析为 HDFS 时使用 R2H，否则使用 R2R，且该路由与目标适配器注册中心共用。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L144-L152",
+          "version": "repo-lines-v1:sha256:74292e7971e5accc7f4cbf9a51b90ff7fc35e91fefb7afd63274e58685845482:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTM0NDJmZGExNDU0Yjk1YWVjYWI0NTY3N2EwOGE3MWZjNDEyZWNmNzM3NmQwNDgwMWZiMjhjNDI5ZWE0M2Q0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2QwYjk2NzYxODg2ZmVjZmI0ZDU2ZTQ1ZmMzODA5MmIxOTYwY2NmNmFmMjI0YTA4NjEzYTlhOGQwOWYzM2M0MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGYzNjNhZWU4ZGYyMjFjNWFmMmFkZjg4Mjc0ZmU2OWMxMGY4ZDVmYTFlYmFjMGQzNTkwNjBlZjFhNGI3NjllZSJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetTypeResolver.java#L39-L89",
+          "version": "repo-lines-v1:sha256:3801b034d1f10f6671ba9f92923bcd1dd4725155ad35a859c364be03da77ff49:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5YmZhOTA0OWFkMDIwZTZiODE5MzllNGM4MDY0OTQ5NWVhOGFmZTA5NzBlYjZjODgxNThmOGQ5OTk1NmY5NmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4MTI3MmIxYmYyZGNhZmM3ZDEzZGFmNWJmODk1MzAxMjhjNTI2ZTM5MWI0Njk5OTY5NjM0YTUwZDg3ZTI0ZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5NWJiZDUwY2M0Mjc0MGFkMmY4OTNkNDkwN2UxZTY0MWVhZmNiYmZhNmQwYTU1ZmE0MDIwNTE1ZWRmNGUzMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiZmMyMjIwNzQyMWRlYmMxYzJlYzQzNTVlNGRkZTAyNGMwMTQyZDY0MGU5MzdmZmFhODExYWQzODAxMWQ5NmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b85187db177741888c192db706e179e8",
+      "statement": "目标族路由优先使用 etl_target.writer_template_key（wH→HDFS、wR→RDBMS），其次匹配 target_type，未知非空类型原样返回并由注册中心拒绝，最终回退默认 HDFS。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetTypeResolver.java#L39-L89",
+          "version": "repo-lines-v1:sha256:3801b034d1f10f6671ba9f92923bcd1dd4725155ad35a859c364be03da77ff49:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5YmZhOTA0OWFkMDIwZTZiODE5MzllNGM4MDY0OTQ5NWVhOGFmZTA5NzBlYjZjODgxNThmOGQ5OTk1NmY5NmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4MTI3MmIxYmYyZGNhZmM3ZDEzZGFmNWJmODk1MzAxMjhjNTI2ZTM5MWI0Njk5OTY5NjM0YTUwZDg3ZTI0ZTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5NWJiZDUwY2M0Mjc0MGFkMmY4OTNkNDkwN2UxZTY0MWVhZmNiYmZhNmQwYTU1ZmE0MDIwNTE1ZWRmNGUzMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiZmMyMjIwNzQyMWRlYmMxYzJlYzQzNTVlNGRkZTAyNGMwMTQyZDY0MGU5MzdmZmFhODExYWQzODAxMWQ5NmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7002b48b205b4b00b352ce0d891f0816",
+      "statement": "JobContentService.updateJob 依次生成 reader 片段、调用目标适配器生成 writer 片段、替换主模板中的 ${reader}/${writer}、合并插件配置，最后把完整 JSON 持久化到 etl_job。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L115-L160",
+          "version": "repo-lines-v1:sha256:d65b6b399d33666969df75c8b34c4805340bfd106f13dabb13dafb3590d36c59:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwMjczYzAxODEwNzNkZWJlZDM2MjU0MTNjNDAyMmRiYzFjODBkOTBlYWZiYTZhMjQyMWM5MjEyMDhlOGI5MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmOTg1OWFiYmMzNzkzZjU0NjlhYzNkZTJjN2Y3ZTZkYjVlY2IyODc0YzA1ZjQ3NmVhYmQ5ZDYxMDI2NmJmZTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3NDU3NWIwYjk1ZTlkYTA4MzkwY2NiZGVhZDMwMTljZTRhOGE5MTA3YWJhMzEzNjNhN2I5NjllOWFkMTllOTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5569430d9c5b4e4abf4c0b135b737f2f",
+      "statement": "补数使用 getJobContentForDate 按目标日期在内存中重新生成 job，不写回 etl_job；正常运行使用已缓存模板，只有补数日期与系统业务日期不同才重新生成。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L84-L110",
+          "version": "repo-lines-v1:sha256:44c3cfa9bb0f9505212ef09e02e8d0fbae823d497e28b8cfc3c27d308f20e9a8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0YzlkNzg3Zjk2ZmEzY2IxYjViMWJlM2U3N2Y1MDdmNTg0NzhiMzAyZTVlMjdlMzVjNGNkOTJmYmYyZjE4NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczYzM3YTlhNTg3YmFmMmRhOGIyMzAxYmY0NTFhZTU1ZGIwYjVjN2ZmMmJjODYxZTc3NWUyNDgwNWMwZjgwZTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmZWU3NGRkNzhjNzYwODk4ZDRiNTQ3YTFkOWZmMmYyM2I0OTdkMTkwZTc2YTI0ZGVlMzIzMzAwNjZlNjk0MzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc2MWQ4ZGQyODJmYjkwZmYwNTNkNGI3M2E4MzM5OTQzZDA5YWE1MGMwMzg0NTUzNDRlYjNmZGU4OGQ2M2ZmNjcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1070-L1082",
+          "version": "repo-lines-v1:sha256:0d5ad8904c8922488a6cdaed26638658ee6a1e53e3bbc9d650d5033fea8a25fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5YzdlNTk0OTI1NzFiMWMyMjcyNjRkYzAxMjU0YTAxZGMxYWYxMDIyMzI1ZWFiMWZlZDExZjY3MDZlMjY1YzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhY2M1ZDg0M2ExMzc3YjIwYzc1NWI0MDQwN2QzMmQ4NmJmYjg0ZjYyZjlkOWU1MTRhN2E0Mzc0NmE0MTMzODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiMDhmMmRkOTg3OGIxNTg4NjZjNjYwNTM5YjIwZTNiMDFhMDZhMGQxYzQxNjc5NmZkOTI1ZGNjYTI3NzZiMWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bfda19e482c44cc0864770665ee043fe",
+      "statement": "Reader 片段使用字典 5001 rR，填充源连接、fetchSize=20480、autoPk/splitPk、按方言引用的源表名，并在动态表名包含日期占位符时用当前日期变量替换。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L225-L290",
+          "version": "repo-lines-v1:sha256:ae8d425e6463f0258b0347f91595be3d533cecfe4b38abaa377c4392a249d18d:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2Yzk4NDBlNTYxOWI3NmQyOGM5NWZlNTQ2NjM3MDA4YTQzMTU3Y2JmZDg0NjZiNTczNDNhZDU5ZDIyYTdmZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyOGUxMTFhYWEwOWQ3YTNlMTNjYzVkZjI0YzExOThkNmU1MmMwZGJiMWE4NmFhZmY0ODAxMTY2MWYxMTFjN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2OWMwNmY3NDJjMGVlMmM5YjU2YWI5NzQ0ZGU0MjhkOWU1ODUwOTA4ZmIzN2Q3NTE2Mzc0NDU3MmJmYjVjYzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c3b809437a14445a8db06cdcfee0538",
+      "statement": "以 __max__ 开头的过滤规则按目标端最大值增量：正常执行从 etl_statistic 取最近业务日期，补数取目标日期的上一个业务日，取不到最大值时回退 1=1 并记录风险日志。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L235-L260",
+          "version": "repo-lines-v1:sha256:eb542388e9793f992472abce854eb000f0343cf8fa656cd1a5943b090ea6875f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlNzIxZDZmYWIzNjJjYjZhZDdlNjRhNWFhZGQxMTU2M2NhMTZlYjE4ZGVmMDkyYjRiNThhY2ZlZWM2YjdjZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwYWJkNTJhZGYxNmE5ODk0MWRhZjM4ZjgyM2RiNjhiZTk3Yjk3NzliNzVkYzU3ZjBiN2NlM2MzNTMwNWIyMzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwOGEwYmUwMTVkZThlM2RiNmJiOWRiYzUyYTQ1ODc1MDkxNDIyZmU4MTAwMWRkMmM1NGI0YjI2MmYxNTk2MmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhNzkzZTExYzhmOWRjNDhmNGQ1NzQ1NWJiZTQ3OWJhN2VkNDdkNWVmNzFlY2MyOWEyYmQ2MTA1OWMyYjM1YzUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L340-L380",
+          "version": "repo-lines-v1:sha256:1f3441a29adeed5939e1019d3a192ad1dcb1a94dafebf792f6ea613d42bc8853:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwYzdjY2YyMTczZjAyMDY4Y2MwZDE5ODhlMzkxODZkNjRiY2RlODhlMGM2MjM2MTExM2I5MDBmM2E1YzA4ZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhZjQ1YmMyNzJhODBkMTFmYzBhY2Q3NjQ3YmM5NTRkYjk2ZDUyMzMzYjVlYjc3MDA0ZTQ5MzE0NjM5N2MyYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE3YTg5YmUxNDRkNzM0NDRmY2RmOTE5OTc3YTc4YzQxNzhiOGZiMTc5ODUwMGM2NjI5ZGNmM2U0ZGJjZmNkZWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_708756cf1df94366a7df158d9d9d1099",
+      "statement": "Reader 的 column 由字段映射生成：同名直接输出源列，不同名使用 source as target，已删除源字段输出 NULL as target；配置了 RDBMS 业务日期列且映射不含该列时，在末尾追加日期字面量。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L280-L330",
+          "version": "repo-lines-v1:sha256:363562302b1e316bc3dee87209308e40b2a7a9f0a1ffce09517989532d61d436:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1YjllODBkMWQxYTVkMTljOWRiMmUzMjk4ZjVmNGIxNDQxMDliMzU2NzcwNjViNmI3YjZhNGRhOGIxYjIyOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViZTJjNzQzNzI1MjhhZjlmNjk0MjQ5ZDk2YzY0OWY3NDJmMmZlMDIwNDIwNzlkZjJlOTRmYTQ4M2VkMDhmM2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5ZjI1YjkwODExNDI4MGQwN2RmOTcyZTI4YTJhNDVkNTc5YWI3YWFlZTk2NmI1MjdkNTM4N2MwYmZjOGQ0NDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYzEwZTI0YWQwNTQ5ODA2MmQwZWI0MTkwOTgwOTNiMjNkYjNjZWY0MWJlYTRhNGVhYzljNTU5MzdkMzhlNjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2d20908237804ffc8c374e58627b13af",
+      "statement": "TargetAdapter 统一声明建表/演进、目标元数据检查、运行前准备、writer 片段生成、最大值查询和日期维度判断能力，TargetService 门面按表解析适配器，注册中心对未知类型显式失败。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceImpl.java#L25-L84",
+          "version": "repo-lines-v1:sha256:d2e2a0adbc6e6b9675c11ce6b95129108232041ff295d180b8a4d8a6fb8e148f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4NTI4YzZhMzRmNDkwZTRjZDAzNjQ1MmY2ZTUxMjZkYjA5ODliYTFlYzY4ZDMzMmRlMzA3YzAxNGUxYTU5NTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI4MjQ4ZDAyOTQ4NDRmMWYxZDFjNDg3Mzg0NzE0NTk0MTJlMzJmZjc2ZDc2MTIwNzA5OTUyNzdiNDJhZDUzYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetAdapter.java#L12-L63",
+          "version": "repo-lines-v1:sha256:8125e96e27c7f23905773dd563ae0e2aee37891d713bfc329ff300ea0acd6539:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJjNzk4MjJlOWE2ODc3OGY4YWJjMGZiZjI2MjNlZTk0NDMzNGJlZWNjZWRmZjEyMDdiYjZhOTdkMWUyMzM1YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiMjdjYmVlNDIyYThmMmNlOGMwODQyMGE2MWY4NTdkMmM3MDNiZmVhN2I5NTZjNTBlZGU1OWY4NTdhZWJhNDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetAdapterRegistry.java#L30-L71",
+          "version": "repo-lines-v1:sha256:1d43ae99e6116bd14203ac2067a82f438425ab1e4a1d082dca87261538cc938d:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5MjgzODhjNTY4ZGI5NmU2Y2E0ZWM1Yjk2ODc3YmNmMmUzNjAyZWE2NjFhYmJmMjY5ZmRkOTYyMjhiMGQwYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5ZTgwYjVmY2E4MDFhYzJjMDhjMzg0MWFhMmY2YmM5ZmI4MGY3OWJiZTZkMzA2NTI1OTlhYjY5NmFhZmU1ODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9e30601521d948d7acd36574ad195d12",
+      "statement": "Writer 片段优先按 etl_target.writer_template_key 取模板（wH/wR），HDFS 缺失时回退全局 HDFS writer 模板，RDBMS 缺失时回退代码内置 writer 模板，连接占位符来自目标端 connect_config。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L371-L388",
+          "version": "repo-lines-v1:sha256:751a0bf83ad4edbbb3ab40c7c01dea7fec46f1d760f7a411f9f805299309a3aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0YmM4YWE1YjcyYTRkMjM3YTYxNmJlNjgyOGY3YmRlOTdlYWRkNTI0ZDBiMDFjZTZlMmRhYjZhNTcwZjk2MjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3NTRlYTY0ZTM1MjE1YjhhMDJhN2JkZDJlZGNhZDQ4YzEwNWU1MWJkMGMyZGY2YTA1ZTQ3MzQxM2U0NjAyMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwNmNlN2Y2NDM4YjY2MzEzYTE0ZTBkMzU5NWY1MjBlNzg4ZGI2MTc4MTczYzY0ZGZjN2U5NDZlOGViZmQ2NDYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImpl.java#L431-L475",
+          "version": "repo-lines-v1:sha256:03eddffe93b5b32bedff34483b2725efd53c062ccd1c5ea83a7c1edea8d0cbbd:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0YmM4YWE1YjcyYTRkMjM3YTYxNmJlNjgyOGY3YmRlOTdlYWRkNTI0ZDBiMDFjZTZlMmRhYjZhNTcwZjk2MjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwYmMwMzY1MTZmNGQ1MmZmMWIyNGFlZGFlNzY3MzQ1ZTk2Nzc4OGRlZDRkNDg0OTU4ZDNjMTIzMDg2MjA0YTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI2YzQ5MDRmYjc4NjkzNWRiOTk0MzEzZDNlOGQ5YmI2NjgxYmM4NjNmNDVhNjBhNTE3M2FmMzhiMTJmMWQ0YTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmM2UzN2Y2NzljZDY2NzAyYjcxZjNmOThkN2IyYjYyZTAwMGEzM2FkYjQ4OTE1NDdjNjZhOTJkNDEyNGIxNzkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dba658764c004ef9b71cbbe12f24b708",
+      "statement": "HDFS writer 的 fileType/compress 优先取表级配置否则回退全局字典，writeMode 取表配置，path 为 HDFS_PREFIX/目标库/目标表/分区，column 占位符按模板是否写成 [ ${column} ] 选择列名列表或对象数组。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImpl.java#L406-L429",
+          "version": "repo-lines-v1:sha256:410e70637ad9ae957876d39c0bbaa6e524c21a4aa224bf551cb579e9f6d393de:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4YTkxMTk4YjI5YTZkM2JiNzk1M2Q3YmIyNmU1NzYzMDZkNjI2MDg3YTZlODE3NGIwMTk1OWU0ZGJiZjc3N2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2OTQ2ZTEwMWU1ZTc4ZDkwYTUxMGM2OWYyNjZlZjc2NTQwZDMwOWIxYjgyMjY5NWI1MzE3MmVkMmNhYTAyNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY5MmUzZjVjMjkxYWI4YTI2MWE3YmQxNDMwNmFhODNlN2UwYTZlODZkZjg1YWY3ZWVmYjkzYTc3MmIxZmU3ZDQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImpl.java#L806-L814",
+          "version": "repo-lines-v1:sha256:8bcc4c5fe7cd178005d22553f3f323baa30db2f840729014f1543600897f820e:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZThlYzY3NmIzNzA2YmE1ZmZhYjU0YjQwZTk5MzIyNWI3Y2EwYmJlZDJmYmFmYzc4OTU5ZjFiZWU3NzQ4N2I4OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWQ0ZjM4N2M5YjkzZTJlZDJkZTIxMzJkY2QwNTFlMmNjY2JmNzZkZjdjNDRiY2U1ZTY4Njk1Zjg0NTE3YzQ4YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWI5OGE2MzgzN2U1YjVlYzRlYjY1Mjc0YzViZGM4ZWVkZGMwMDU0MTMxY2YyZmM5YzcyYjM5NDkyOWQ5NzQwMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWI4YmRmYWI2YTAwNzJiZDg1MGIxM2ViZGUxNjE5Yzk3ZWFmMTExNDc3YWEwYTFjZDZjZDY4NmNhNjBhODM4MyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ddcbd8fb790843ef9cdccdf4569f8efd",
+      "statement": "HDFS writer 的列对象使用每个源字段的 targetTypeFull 作为目标类型并按映射顺序排列。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImpl.java#L767-L783",
+          "version": "repo-lines-v1:sha256:d5210ca81dd268b81abdf6b7ed6eacf92bc7deee6d0349315ced8c8554af7d84:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjMmRhY2E5Y2VmOTU4YTIyOTUxM2Q0ZjFhNTE3NjUyOGMxMzBjMWE3MzFhYmZjM2I1OTE0ZjNlZTc2Njk0YzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5YjZjYTljNWVmNDhiYmMxYTZlYjhhNjAzMmU1MmI3NGI2YTUzNGIwY2RhYWIyNzc3MDBmZTM5MmVlZWY5YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5NzUxMzYyYjJlYzgzOTYyZjgwZTI3ZjRhYjAzOWEyZjA3NTcxMmEzNmJkZjJiOTYxN2U3NDgyZjc1ODg3OTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ba04d245626642bbbf6ba5e0be642a81",
+      "statement": "RDBMS writer 仅支持 MySQL、PostgreSQL、SQL Server 三种方言，分别映射到 mysqlwriter、postgresqlwriter、sqlserverwriter；其他方言在目标端配置或生成片段时返回 400。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L333-L347",
+          "version": "repo-lines-v1:sha256:e5a29374a1cfac465ba6d8973c17d5f4767e2398f962110e38a103f60ecc946d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljYTVjZmJlNDdiM2ZjYWI4OTY3YzA4MmIyMTA3OTcyMzc4MGI4MmUyMWFhZDllMTZlZWRhZTAyODU4MDlhMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhNDVhODUzODUyYzdhODA5MmYwMjIwYmYwMjcyMjIxYWUxOTNjZTMzN2EwNWQ2OGQ1ODA2YTFjMDhiNGM5MjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2MDU4NTAyYzczY2ZjODE2YTJhMDQxYjk0OTFlNDhiY2IyMzE5N2YxZTEyOGQxZmQyNDM2NDA5YWI3NjVhNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczNTMyNGZkMWI0MmM5Y2IyOTI0MGI4N2JkMTJlODYwYjQxZDA3NGU2OWZhYWI3NDJkYjM4OGI2NzI2ZWM2MTYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/RdbmsWriterPlugins.java#L31-L96",
+          "version": "repo-lines-v1:sha256:d0df8b249753b2d6860b2cc428b48037b7c56fc5d18554ae8dc3c3267eb71963:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBhM2I4NTUxMWE1MmEwNTYyYWY5YzQ5NWM2ZjNmNGZiYTIzMzU4NmU5NDMzZDZhY2Y1NWVkYmUxMDUwYjA5NDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4MDIyNTk3YmE0ZTc2ZDE4YTM2NGYxOTZkMTlhYTMyMDQ2OWE0YjBkYWRiMzExMWI1M2QyMGVmMjRiYjAxZDkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3Y2MzOGUwYjcxMzc2MGFiODhhMWQzOWM0Yzc4NjM3M2YyNTU5ODcwZmU1NmIwNWNmNGEwODViZDQzYmM2MGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlMjUzNmZlOGRhN2FlMTdkYmFhZjcwZDMyODUxNmQ4MDc2OWQyZjNlMWM4YTRlOTEzMzVlZmQwNTI5NTkwOTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e9e29b1d32ac47e4862adb3a60aee240",
+      "statement": "RDBMS 的 writeMode 归一化规则为：空值 insert，overwrite 在 MySQL 映射为 replace、在 PostgreSQL/SQL Server 回退 insert，其他不支持的值也回退 insert。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L408-L426",
+          "version": "repo-lines-v1:sha256:04391a9f0f5456bb7eefc73a6aff425e13146f6f6561713cb0377112ff6e439c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5NzU5Njg3YWVkMTUyYjU3M2RmMmFmNDI1NjdhNGVjYzc5YzY4ODZiZGU1NmZiZjQwNGE1MTI0MmEzMzllZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyZWRlZTJkYTEyNzNjNTdiZDMyYmUxY2FhNDU0NWQ4ZDkxMGM4ODE0NTJlZjIzNzM4MDJmODQ4NjBjNDJkYzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhNTBjM2YyOWJiM2YyM2QwYTc5NGRiOTdjOGFiMmE0NGZiMmViOWJlYmYyMDAwYzZjZWIyMDhlZTI1MWMxMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmNmYxNTA0YTJjZGFkODFiN2JiMDRmYTVkZDYwOWE5YzA3NjczMzUyNTk0MTIwNzJhZDlmMzBiYWFhY2Q5M2UifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_21e88cbb5ac7403d93991ffc9e87500c",
+      "statement": "RDBMS writer 的表名按方言限定（PostgreSQL 只用表名，SQL Server 为 db.[dbo].table，MySQL 为 db.table），写入列按方言引用，并在 reader 注入业务日期列时把它追加到末尾。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L909-L930",
+          "version": "repo-lines-v1:sha256:355b9074f06b8ff9ec0f66838a5923165df9c5b2be03703bf9475e882e539ac5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzMTk2YzAzM2EwN2E5ODg1YTBlZGIwMWNmYmU1NDdiZmE5NmYxMzdhNTlhZWUwNmMyMTMxODQzM2RlZmE0NzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyNDdkNGJkZjI1YWRmMTM2ZmQyYTU1MDU3M2NmZWQxNTdiM2FkNzQ3MzM1YjUzZmNjOWVhNGZkNjk4NjMwNGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiYjk4NzA1MDgzYmM3MGFkMGU2MWRmZTdmMmNkNTkwMTZkOWY2M2ZjOWZjNDY0NDY3NzcwZTcyZTUzMmQyYmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyZDk4NjMzOWYxZGEwOTE3YjM0OTQ3NzIwNTMwNDE3MGFjYjEyNmRiNjg2YTczNzRjOWMxODM5MzdmMDE1MzkifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/utils/RdbmsDdlUtil.java#L92-L110",
+          "version": "repo-lines-v1:sha256:d313cca47d63e4a2f4c6c1b0aa93853506e0914c9c8641efd3288d1180ff2a97:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxNGVkZDgxYmUyZjk1Njc3OThlNjFjYTE0YjMyNDBhMzk4NjNhNjExMWNiYmZhNDhiNzE3MTcxOTVhMGRlNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MzM5ZGI4MDEwZjJiYTZmYzg3MzRkMDY2NWNkYzg1YWZlYTkwN2NlODEzNWM2NDk5NTBhZjNkMDIyZGMyYmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlmNmQzY2I2ZTgwOTcxYjJhODE3NWY4Y2MxYWRmNGE1MzU1NjFhOWNiZDQ3MGVlYmUyNmE2MjEwNGY3NGQwYzcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b101ab1e50ea46a99b6e5c0eca803f23",
+      "statement": "RDBMS 类型解析在同为 MySQL 的源与目标之间复用源端 COLUMN_TYPE 原样类型、NOT NULL 和源主键；跨方言时用 renderType 把 JDBC 类型归一到规范类别再按目标方言渲染。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L622-L700",
+          "version": "repo-lines-v1:sha256:6782f8f1adb712efac7701c09b21bff4ac00ec6b8e65c71bf39ec6bae854c42e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1OWExYmE4OTU0NTJiMzUzNDBkMTY2Yzk0ZGMzNmE3Y2QwODJkNGZjY2FkNzUwYzFjZjk0NGM4NzQ1YmE2NzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZDdiN2ZiMTFiNTFmYzY3ZGUwZjliYzFhOGJhMjBmYWIwNjQ5N2U5NTU3ZDYzYzdlOTFhNmI4NDcxZWFkYmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4MGVhYTY2ZTVlMzFjNjE1ODAyN2Q3NjQwYzdkYTRhMjNjNDhiNDM1NGQ1MWM1ZDk1YzExMDdkNDBhYTU2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkZWQ1N2NkZjYyOGU3YmNmYjdkNzY2MzJhOGQ3MTQ4NzM0YzA0MWJjNjUwMjBkZDg5NmJlZjE4OGE3YTIyMTQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/utils/RdbmsDdlUtil.java#L424-L530",
+          "version": "repo-lines-v1:sha256:79b8545bd95292f1bae60d2fa7d5e2a7f09f72edb6df5496dade87eb6c95e72f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4MTJiMWIzNjE0YmM0NjczZTkxNGYxOWRkNGZkMGQzNTMxOGVkM2NlMGVhMjNjNmQwNjU5NGI0N2I4ODBkYWQyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTMwMmM5M2U1NWVkZTMxNGE1NDM2NTM0NWJmZjRmNzgwMWRkZWRmYjZkZTJlYWY5OGUyMWVlZTUwNjJhMjNiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiMTYxZmM0NTJiZTA5OTE2MTY5N2E0YjI3Y2VhNzYzMzg5YjUxNTYyZmJiYjlhYjEyOTRiZWNkNWJlMjk2YTBiIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_5a7ed5a8c72d43bf94793a06cffb061b",
+      "statement": "RDBMS 目标只有类型族一致且容量变大时才自动修改列；familyOf 归类类型族，isWidening 只在字符串变长、整数/浮点等级提升或 decimal 精度/小数位变大时返回 true。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/utils/RdbmsDdlUtil.java#L224-L315",
+          "version": "repo-lines-v1:sha256:610bc5adf95ad86be92ca23dd26231998c766c1b96c9dc8f1f82bc01b14f245f:eyJzZWxlY3RlZExpbmVDb3VudCI6OTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzYzFhYWQyNjVkNDM0MjVhNmE4NGVkN2U2ZDg5MmE5YjZjZmJjNzRiNzY4YzVlNDgyN2RjNTA0NTRlMWFiNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiNTM1YjMxZWJlM2RjNjVhOGE5Y2I4YmVmNmQ4MTI0YWVhNjdiZWE3NzNjYjlmODJkY2NjZGE0ODA5YjMwODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhN2VlOGI4MjIzYzVjNWY0NjVhYjc1Yzg2MzQ2ZTRiNjYwOGM5ZWZiMmQwODYzN2M2NGJiZGU5MjA1OGYwYTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ae05904bab55483792720c0919d6d748",
+      "statement": "reader_plugin_config 与 writer_plugin_config 在模板替换后合并到 job.content.reader/writer.parameter，自定义 key 覆盖同名模板参数；非对象或结构异常时记录告警并返回未合并的 job。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L154-L208",
+          "version": "repo-lines-v1:sha256:f0f05f8b74e6199859ab9453b57add2209db667dfbedf2eb8cc4f69d7719e88c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzYTIzYmYwZTFkYTE1ODljYzU2Yzg0NGQzZTA4MzA2NzcyOTIzODVhYWQwNDkzZmIwMDRhYmQyOGNlNTk0ZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3NGI0MDYwOGZiNmE2OTBkNDMxN2Y1Y2ZiZTM1NDQwYzY5ZDZiNWEzZmU5Mzk2ZmI3N2ZhYTJhZjJiYzVlZGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmYjVkYWRmZTA4OWJlOTFlNTJkNDgyNDhlOGU3MzY1OWViNDhhYTcwMGJjZjFiM2NlYjYxMWI3Yjk0MTIyNWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_12877bf1fbdb49a597505f8d862a9f6c",
+      "statement": "ADDAX_HOME 来自字典 1000 的 ADDAX 项，默认 /opt/app/addax，平台用它定位 bin/addax.sh、writer 插件目录和日志目录。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L168-L173",
+          "version": "repo-lines-v1:sha256:ebe90e70fb260ad9e66ed2af30cb6df73410f3aebc1d74d950dd06b47cf28c48:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzQxNGViY2Y2NTNhZjcxOTlhOWEzY2FlZGJiZGU1ZDMxOTI1NzdhNDNjZTcyZGY4NjEzNWNlYTk4MzM4ZjFmZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzIyOGYyMGYxMGQ5MDA3YzJjYzg0Yjk0MmI0MWY3MjdiMzIxYzZiNDUwYjUxMDM0Zjc5ZDcwN2VkYjY4NWMyMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmVlYzFhYTZiZmE5MDRhMWJhNTNlY2ZjZGQ1MDM3N2JhMDk2MDRiYWZiM2ZlZjhkZjZiZTQ5ZTIwZTNjNGY5NSJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/RdbmsWriterPlugins.java#L99-L120",
+          "version": "repo-lines-v1:sha256:a605813e15fcda5f1cab69cbd3743acca679c5ffb1e09a36d088d540b8a274ac:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZDk4YTQzZWQ3YmY0YzFlZTFlYjNhNDM5ZjE3ZDFhNmI4ZjllODRhYzlhNDQ4MzgyMDVmYjdiOGQ1NzFlZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2ZDY1OGI5MGVlYTE0NDRhNDBkY2RlODc5YjAyODMwOTNhZTFiYjQ2YzdhMDA2NmM5Mzc5MThiYjJkYmFiNzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkNDc4M2E3ZTFiYzJkODA5OTVhNDQzYzM0MjIyYmQyNzYwY2IzOTA5NDllZWY1ZGVjMmQxMTZmZGE1MWIzYmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlYjFmYjU1OTg5MzZjYmQzYzRmY2Y2MmQ0NWViYWIyYjE3OTQwYzRhMzg3NTI0ZjIxZDhhZGQ1YTBkNmFmMDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d3dc246971b743d69ab6885c5c733b18",
+      "statement": "执行时 job 写入 ${app.home}/job/yyyy-MM-dd/{targetDb}.{targetTable}_{bizDate}.json，以 addax.sh -p -DjobName=tid:executionId -Dlog.file.name=... 启动，结束后读取 ${ADDAX_HOME}/log/<logName> 并写入 addax_log。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1118-L1140",
+          "version": "repo-lines-v1:sha256:8ec064349a0abee162978a508522b74d07c89bc417dbb9c9ea98560a865aebf0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZhNzM0NDk5ZGY3OGI1OGQxZDBiMmMzOGY1YzA2ODI2M2IwYTY1YWE5ODFkZTZlODBiYWM0NThmOGJiZjczYTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4N2YwODI4NDBjZGRkYWY3YTVmODA5MGEwNzczNmM1NTVkM2MzMGUxZTQ4YWQ4YjgyZjE4M2E2Y2MwYmVmM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5Y2FjMjgyMDZiYjAzZDE3MDYxMjZhZDgyN2U5ZGNkMTM2NDU3ODJkMDI2NjM0Njc3ZDkxMjNiNzkyNDNkNTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1177-L1188",
+          "version": "repo-lines-v1:sha256:9eb6947550dafaede70ed3be4fd7bd63173108af5a41661a5194550433b1bd27:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2Y2ZhYmZiNGExZTczZTMzNjQzMDEzMWI5ZDdjNDY4NGU1NDU2MDdlZjM4ZWZmMTBhM2Q4NGU0NjIyYWQyZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5M2UxOWFjODg5MGM4MTcxMWZkNzdiNWRmODdmZDE5ZjNjYjFhZGVhNWNlYWZmNzRjYTJhYjZmYzZlYWM0ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxNjNiZGEzOGI1MWJkZjNiMTcyYWZkOWIwNzU0Mzg5OTg2NjQyZmQxN2YxZjNmMWJhNzgzMDM1NWUwMzBhMGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwYmIwNDYzMTUyMTcxMjk0NTNmMDJkNGIwMzYyZjAwN2FjZWMwYmJlYjkzYTM2ZWZiZjJlMjBiZDA3NGEwNzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_caf5583f03b64d9e966f536c78ae4675",
+      "statement": "手工编辑 job 通过 PUT 原样保存，已退役表返回 409；该内容会在下一次资源刷新或切日重新生成时被覆盖。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L394-L407",
+          "version": "repo-lines-v1:sha256:730d4e6dd626519d3faeefd616935104151ba386a12682ea6e3975bbf2a0c8d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2ZjgwODU4Yzk5ZTAyYjAyNGI1OTIyOWI0NWQzMGE2ZjBhODljMmIzOTBiMjA2NGNkMTAxYjFiNTU1OThiZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:13aeb0220c4a748c24c4cceccf11e5e0c65858af19299bb5f311a4d5a7dad7d7",
+  "claims": [
+    {
+      "id": "claim_c209585a07a04a88a8990b37be6baf2b",
+      "statement": "采集表列表页支持关键字、状态多选、采集源和管理范围四类筛选，管理范围取值为 CURRENT/DORMANT/RETIRED/ALL，筛选与分页状态会同步到 URL query 并在初始化时恢复。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L565-L575",
+          "version": "repo-lines-v1:sha256:687eacc26fcfefb2a0c1a36d35faa38dda2caf2a63682362ee15c3d4f4447f30:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNmVkNWE3ZjFmNmI3MDgxZWFkZDlhZWEzNTBjNWQ0NWFiYmIwMWU0MWY2YTNlODY1MzAxOTI3MGRjOGQ4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmOWI2M2QyOTBkZjJhZjRlOTA1YTMzYmRiMzA2Mzc1YWFmNDNhZjVjM2I2YTUyMDUwMDgxOGI1MTBmYjYyMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyMzcwZmRjMWFjYTllZWNkZmMxMDQzZGRiNGJhYmQzNTFjOTIxOGMwY2EyZDkxNmMyZmY2ZTZmMDc5NzI3YjEifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L663-L697",
+          "version": "repo-lines-v1:sha256:bbd2896761b5e94210f6876192bd4c85c543ee1fab196a6d96ea12fb139ab939:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzNzI4NjA1MDRmNzMzMzQwNWQ2MmYwZDNmNmVjMTQ4MWQwOTBhNGMxYzg3MmY4ZWZmMDJiNzBkM2FlNDRkNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiMGEwNTM4NDhjMDJkZjQ1NWQ5YThlMDkwMWY2YzVhOTg5NjI0MzQ0NWQ4YThiZGE1NTg4NjA1ZDkzYTkzZTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmNjRiNjNiMDNiYTdkMTVhN2U4NTBjMGMzMzBiNjAzYTc4YmU3ZjMwZmQ3NmZjM2U4YThlZTZlOWQ0YWE2YmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyYzUzOWU4M2ZmNDQyMWI1NDEyNzExNmI5ZmY1ODUwODVkMTZjZjRjNTBjM2Y4OGM1MDEyMjEwYTZjZTVkMjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3223ae7ffe604a9396de87a861beb10d",
+      "statement": "列表页使用服务端分页表格，loadItems 把状态、采集源、管理范围和排序参数提交给 GET /tables。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/service/table-service.ts#L21-L43",
+          "version": "repo-lines-v1:sha256:a26623a05d63f0bc242562443a52aea91e5e5d7fdb45ea1a6dd67fbe51ab1ff0:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZjJiMDRiMTJmZjlkYjY5MTkyMDg1Nzc0YmY3NDA1NTk5ODdmM2RiZGRjNDkzZGJkZjk0MWMwMmMyZjYwZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkNjFkNThlMWIxYTJmNmI1YjY0MTg1ZGVmNDdiNzBiNWRjNWE1NDViYjQxYmUwYWQzMTBkNWQ5NDQ5ZGNmYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczMTkwMmNhZDBlYzJjODM4MzgxMjIzY2Y4ODVhMDlhNDFjYzcwMTc3MWM0YmNhYWU2ZTJhZTY1ZjI4N2Y3YmEifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L829-L853",
+          "version": "repo-lines-v1:sha256:c3e882a88bd72238fd5c18a4026733319315734ce0733372598de41a13a431d1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZDE5MGY0MjczOWUxOTFlMTdjYTM2YWY2NjZiNmUzNDU2Zjk3NThiMTEyZjAwZWQzY2RjMTAxNTYzMjMzNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4MzU1MmFiNTcxNDk0YjM5OWIxODE5OTYyMmRiZTNiMzgyNmViNjFmY2QxZjc0Y2ZiMTJhYmNmODhlNGY3MjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiNTI5MjliMjdiNTBjODdlODI4MTg3ZmZmNmRjMDQwY2I4YmIxMWVkYWYxZGUxNWU5MDZhZTc2YmUyMmU4MzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3NzAzZDY0MGFiMDY4M2Y0NjE2ZTM4OWFmZjc5YjAwMDVmMWRiY2VhZTIwOWM5N2RjNDAwMDJmMWI5OWJkMjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fb7e082bc86e48139283144fceca6dab",
+      "statement": "列表批量操作栏只在有选中行且范围不是已退役时显示，提供批量采集、补采、批量修改和批量退役；批量退役由前端 Promise.all 逐表调用删除接口，不是原子操作。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L147-L180",
+          "version": "repo-lines-v1:sha256:dded068c0ecde352328b1cfbe10295f4e7356c551d2d7d1d3608a8ce81da6bab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmYjk1MTM0ZTUwMDJiYzIzZjVkYjczYTY2Mjk0MzM3YjBjMzExY2FkN2JmMDBjODkzMzM0NTdiOTU5OWZiMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczN2RhODVkZDgzYzM1MjcxOTkwMGNkMWFjN2ZmNzA2OWNiZGM0YjBhNmVjNTVmZDNjMTgxMzU3ZTgwZTVlOTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2NGViNzUwZGZmZDYxNDI4Mjc2OTg0MWM0ODNjOWI3ODg4Y2YwNmE4MDE0MjBlOWE3NGU1MmUwMDk2MzcyYjcifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L977-L992",
+          "version": "repo-lines-v1:sha256:8e7b6e38f1939a23b5793799577a34ef1345d7aa9bb07af7e7b318e2d58e6332:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3ZmU1NDBhODgzNjQ3ZGMyYjA3ZTI1MWQzMTgxZDE0M2ExZDUwMDlmNmZkOTI4MDc3MTgxYWJjZjJmMDg4M2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3ZDg2MzJlNTRlOTI5OGFiYjk1ODcyN2UyZDUxNDA4YWJhZjEzNjYwMzUzNzkxMDE0MGFiZjY1YjMwYWI2MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhNDZhMDk4YzY5MjRjNmVjZDZmMjNjNzliN2U2OWIzZWYwZDI3MWYzMTAwNzFhN2U0MmJkZDBjODdiZjk4MWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9d8c7a89b5264106bb8e98045599a894",
+      "statement": "列表状态列对采集中（R）行提供中止入口，对 U/E 行提供按需加载最近错误信息的弹出层。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L280-L325",
+          "version": "repo-lines-v1:sha256:2a5861d368e17c1872e5fefb102de560a04db5c82f47b84f695c2c3d634690ac:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmMjZmM2IwY2JjZjUyZWI0ZWVlOWEyYzk1ZjM1YzM1YTgzZDI1YzRjYjRkM2JlNmYyNWYzY2Q4ZTFmZmJhM2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2ZmMzMzZhMzVhYzE3ZTEwYTZhYWFkY2ZkMTIwOTVmNGExMTcyOThiZjEzOTE3ZTBjMmE2NDE5OTEyMjEyN2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmMTgxNzE1MjIyMzliOTI4NTgxYTBiNGEwZmYyMWRkMTNhOGZhZTA5NTJlNTAzMTNjODQwZWViN2RlYTlkZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhMzRjMDcwMDUwZWM5YThlNmVkOTc5ZDNhOTNhYTM1NTIzZDlkNTliODg4NmFmMDMyZmRhYzY2Nzc0NTU5MjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_708a19961bf04d2297f02da9a10f3cbc",
+      "statement": "列表行级动作随退役状态切换：未退役时提供发起采集、更新表结构、退役和查看详情，已退役时只提供恢复和查看详情。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L347-L416",
+          "version": "repo-lines-v1:sha256:ca0965824975b350a4a55b3b04659fa7d4dd2dc381d7ef71d712683fe920dd3e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmOWY0ZDA2MWM2YTM3ZDM1MjdjYmJhNDhlNGQ2Zjc4NDdhOGVkYTMyNGJhODFmZTQ1MTNmMzc5NWNjYTA4ZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5Y2NkYWY2MDRmNGMyYTAwMmIzMGQ2OWZmMDgyNmVjMDdmYmY5MDNmNDRiMzRlZWQzZmNhYzA3NmNjYjgxN2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAxMTQ5OTVjNGYyOWQ5NzA4ZjdmMzIyNmViYTBhOGQ2MTU5NzVhMTg4NTQwNDg2MzQ5OTRmZmE3ZTJjNDM2MTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8831a8f85e844bd7acbd50c2cf8a05bd",
+      "statement": "列表的列显示设置把隐藏列写入 localStorage 的 ds.table.hiddenColumns，导出按钮只导出当前页数据。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L644-L659",
+          "version": "repo-lines-v1:sha256:96054966e879cd04ba39548efc92ca32926d082b5bf7fe860925d610ba89c89e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyZGY4NmI0NzZiMGQ2ZGJiZDE2ZmExOWZlMTdhOGJlNzc1MWFiZTNlZTgwN2I1MTBmYjVmOGNkZDBkYWQxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0NzZkZjcwM2ZmMTg5NTMzMDZjNDk1ZTY5NGU1Zjc4YzIyZjdmNTU0ZjViZmExNDUzYzlhZGYyYjExMzY1NTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmNjRiNjNiMDNiYTdkMTVhN2U4NTBjMGMzMzBiNjAzYTc4YmU3ZjMwZmQ3NmZjM2U4YThlZTZlOWQ0YWE2YmEifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L699-L718",
+          "version": "repo-lines-v1:sha256:9214edc1a25bf95bdbe28d49b0c0462b68ab28f391d693c02b0517e37c4d141c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyMzc4NzcwYTE2MDUxNTE3NWI4ZmQ5NGQ1ZjkxZjdjYmE4OGM3ZGY3ZGFmZWViY2NlYzFkNjU2ZDgxMGM0MjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5MDU0MmU0ZmViYzU0MDViYjc1YWI5MDIyMGIxMzE5NTVhZGEyNDg0NTJlMjA3ZmQ5MTNmNjIxYjZmYWRlNWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZiNWQ1NDY2MTM1NTQyY2FkYTIxZjMzNGZiNzZiMGRmMDc3M2EwMDY4MjBhOTc3YTM4N2RiYzliOWU2Y2Y3OTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3f9c6c90d41c4cfc8893b2eed1509913",
+      "statement": "采集表详情页提供基本详情、采集日志、采集任务配置、字段比较、采集结果、执行快照和变更历史七个 Tab，当前 Tab 由 ?tab= 同步到 URL，切换前会检查基本信息面板的未保存修改。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/detail.vue#L102-L137",
+          "version": "repo-lines-v1:sha256:be34514571004d9d64583d0030a8cef71e81fa0a59598149c94ccc7f4f11bd8c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1ODFlZTkwMTQ0YTRiYjM0ZmRmNzVmMTQ5OWRmZTRiMDE2NTIyOGMyNzk1Y2EwMTI2NDExNGIwZThiN2MzODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2MTNiNTg1NWE4MWJjMjBlOGJlYWVhMmQxNzBlNjM5NzdkMDRlN2MxNGY3NGM4YWQ3YzhkNTIyMDc1ZGRkYmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4MTcwOWMxMmQwM2JhZmY2ZTc2YmE5ZDM3OWY5YjBjN2UxNDhhM2VhODFhYmZjYmExMjY4OTU2NDQ0NTc0ZDQifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/detail.vue#L47-L72",
+          "version": "repo-lines-v1:sha256:be7ed2cb7bcf44a0865fcde087b3471cf25f13485d18ef4f799b4e69b9ca1ede:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4YTBkZmI5MWM2NGIyYzg0NjE3NTE1YjY0MzAzZTI1ZjE5ZDNmNDJhMzFiOWI0YjdmMjQ3MzMyMzZlZWU0ZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBhZWZkNDgzOTlkZTFjMjY5Zjk2Mjk2OTA3YWQ4MmMxOGQ4OWU0MzRhMDVlMjQ4NTZjNDEzY2U3ODVhY2RlZWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzZTYyYThiNmFhY2I1YTkwMmExMDRhOWI5NDY5MTA4NzI5OGRjN2Y0NTM3ZmE3YzlmNjhlOGRkYjVlNmI2OTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3MGVhMGI2YTE1YWEzMGJlY2UzYjc3Mzg2YjlmOWM1YmJmNGYwZWM3M2Y5MjhkNmIzNzNjMzAzY2Y1ZGNhMDYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4a6da0ff5e724a11ba52600e8d99f4b3",
+      "statement": "详情页按优先级显示已退役、采集源停用、停采（X）三种生命周期提示，且后两种只停止自动调度而不禁止编辑。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/detail.vue#L15-L37",
+          "version": "repo-lines-v1:sha256:f32d1e5aebc82a74347b19c30d41891e3a1c1522aac70a8cabc6a9f47d8fc976:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5YmZlOGQ3MmRkNDIwYjg5YWNmYjMxMjU4MjQwMzQzYjlmZWFhMjgwYjI4NWQ0ODEyZGVlNWViNjlhOGUyNmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmNjBiZWRmYTAyOGJlZjNlOGViMThmZGIzNmJiNGUxOTE2YzM3ZGJiZmFhZTBlMDRiZmNjOTMyZjlmYjZlODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyNWYyNTE4YTA1ZjQyZTViZDIxNWI3ZDlmZjQxNDQ0YmU1ODI3NWZkMDZkMjBkYmRjZDRjZGFlZDU1MDU0ZTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a55492c7cfd64c78a6b3d30681e5de2d",
+      "statement": "基本信息编辑进入时深拷贝当前表作为取消快照，通过表对象与插件文本的签名比较判定 dirty，已退役表禁止编辑，离开路由或关闭窗口时提示未保存修改。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/TableDetail.vue#L100-L140",
+          "version": "repo-lines-v1:sha256:d9af036ef8770eba140c5280c0b4d77922a8b531fbdd535091e54030139497a9:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4OGIwMmM5NTJjZTllYzQzOWQ4MGE3ZGMyOTRhM2IzN2IxOWMwMTg2MjQ1MzFkY2Y4NTljNjM3ZGNiOWU3OGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhM2U0NmY5NDI3NmI2ZjZmNGVkMWYwMmFmNzhiZWY2YTJlZTFjNDM5ZGQ1NTg0Yjk3Mzk0ODMxMzIxNGQyYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmZmQ4MzYwYWIxNzY3YTJjZWY4NGY1MjFkYmI2OWYzOGM5Mjk3YWVjZWVkZmNlZjJhNTM2YTlmYzc4ZjEyMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5MmUyMDRjMDBhNTQ5ZDNlYjJiNWI5ZmVkMTEyMTA5ZjEyZmMwMmRhNzY3OWY3MjM0OTUwZWEzYWNjMTRhNjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_62fe2afb4b9a488ba4b574966d0b8020",
+      "statement": "基本信息保存时按当前目标端族把 target_options 合并回已存储的 jsonb，避免丢失另一族配置；若结构模式为 EXTERNAL，保存后立即调用单表刷新重新校验契约。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/TableDetail.vue#L199-L266",
+          "version": "repo-lines-v1:sha256:77bc6835b4c11ad176cbc50ee9881cca1b929106c096030aae756902bf57e502:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExNDUyMDdlNWEwZDk0NjgzOGU0OGJmZjc4Y2M0NDFhOWRkOGNkZTExNmJkOWVhYzEwOGMwYzgzNjJhMjY5NjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzZWNlMjM4MmIzODA3M2I1MWEzNDY0NTc4MTgyMmFmODJiMGVjYTc1YmFlMzViOWZjZGY3YzhlZDNhNzliZjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhNjNhMzVkN2JkMzNiOTFjZmNhYTNjYmY2NTE3NzQ0NzUwNzk2MGMyMjZkYzRiMjExMGZmZWFhOGUzODI2N2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0M2I2MjgzNmYxNzc5YzUyZjg5OWRkYjliYjE0NThjOTk0YzNmZGEzNGI3MDg1MGU0Y2RhYzMxNzFmYzk4MWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_90964f70edd349ba8c9afae62618e1a3",
+      "statement": "字段映射保存要求每个源字段都有非空目标字段，按当前行序重新编号 ordinalNo 后调用 PUT column-mappings，并在成功后自动重新执行目标契约检查。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/FieldsCompare.vue#L249-L270",
+          "version": "repo-lines-v1:sha256:628cb63ec98fd7a76cef31cacb3800eceb6595c4ad052ac4a6cee4b6affc8503:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2YjFhMWE0ZWZkNzUyN2MxNjkwMDlmMDZhZjIxZmE2MzEzZGUyN2YwN2M3Y2VlOGZlZjhjODRhNjNmZDE4NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxYjlhNjZmNWU0MDliYmVkZDFjY2Q1ZDdjNDA3YzIyNjU5NDNjZjAwNWY2ZDhlZTdhZjdiMTlkMjVmNjc4YWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZTM3MjVkYTAwMmI0NmVkOGI0ZGU4ODAwM2FkOTcxMGRjYWYxOGQ1N2M0NzAxZGMzYmVmZjBiMmM1Y2IxM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4NzI5MjUxMTRmZjQ4M2IxYjBjYjA3OTg5M2I2N2NhYjFjMjAyZDk1MWFjM2E1ZTNhYTM1MDM1NjhkMWRiM2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1994c33fdda14a1da50ffeb993f63c35",
+      "statement": "字段比较页通过 POST target-contract/check 获取 READY/WARNING/ERROR 报告并逐条展示 finding，目标字段不在报告的目标列中时行状态标为“目标字段缺失”。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/FieldsCompare.vue#L206-L247",
+          "version": "repo-lines-v1:sha256:16948f4847145c041baa2f16b4c03b03152b04b444d062474380dfc402dbcd20:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3MTUwOTExNTUxMDZkNzMzMTE1YmJlNjQ5MzBmZTcyZGI4ZjEyOTczMTY0OTQ1NGE3ZjhiMTExOTA5MjZlMzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzOGUwNDAzZTUzNzc2NzQ1MjkxZGY0MzVlZTNlZTZhZDlmMmQxYzJkNDE1MTE3YWVmNTcwNDc0OTRiNzg5ZWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjNTIwOTE3NTcxOTVhOWU3YjlmZDc2MTk4M2YzZWU0ZDYxNmNiZTE5MDU5ZTljNmZiODU0MzQxZjA0ZDk2ODYifQ"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/FieldsCompare.vue#L284-L291",
+          "version": "repo-lines-v1:sha256:fd24f6d010b198504e28fb046f50a94dfc685397cbf326b20de454f77a920a38:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmNjZTE0M2JlOTViMzI3OTA3NmNjYjBmY2Q4YTExZGZiMTljODE2MzFjNWU0NWU5NWVkMDg5NTdhMmU0MzAyMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWU4NjY3YzI5OGJmMGVmNDZmMjgxYjZkNDQ4NmUxNTg1ZmVhMjUyMWQ5MGI1MGE2ODYzNzMxNDVhMzdhOWNmYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzczODk4ZDBiM2EwMDIxNDg4ODY4NGE0Zjc2NzBmMDI0MmEwZDliMTdlMTBhZDQ3ZDAzMjU3OTUyNmYxMWJhZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_5b6b4af6235749f993d03165db731827",
+      "statement": "采集任务配置 Tab 展示格式化 Addax JSON 并支持复制；未退役时可编辑，保存前校验 JSON 语法；生命周期未知或已退役时编辑入口被禁用。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/AddaxJob.vue#L115-L205",
+          "version": "repo-lines-v1:sha256:588ebcbb49d6a8b8b5bebf4d69103a17245d34aa7f5653d2c98a050be50df647:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0YzQ4ZTVkOWY5NzUwY2MxYzE5NjM4YTFhZDNiNzI4MTZiMjcwMjQzNzkxZWM1MWQxYThlZThiZTEyY2JlZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM2MjBjMTg1ZDc3Y2QwZDU1YjQ5N2E0MGQ2MTRlZGE5MWQyODE1MTZlYzMzYzZiYmU5OGVjMDNkODE0ZjM3MGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2NDgyMzRlZjZkNTAwNjEyMTNlMTI1ZDNhYzU3MGFkZWVhNmFjNmI5NTExZmZkZDIwODMwMTYzMjQxYTEwNTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1dab4dd897984f71b8601efe6ea14ef6",
+      "statement": "执行快照 Tab 分页展示不可变执行尝试的 ID、次数、业务日期、源/目标表快照、状态、开始时间和 job 摘要。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/ExecutionHistory.vue#L1-L60",
+          "version": "repo-lines-v1:sha256:5f98fc03d3eeeaeb305197958d53487063d3356a699fce25aa0386bd2444c60e:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkxMTRhMDdiNmQwNWQ3NmFiZmEwM2VkZTE5MjZjMWUyZTc0NzI3MzEyNzlkODU4OGU4YzYzYzU2ODliNTAwNzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3OWE3NDBkMWE2ZTEwOWQxMTM3MmNmZTJkMGM0ODg3ZTU0OWFjMzdlNjgxODNiZTgzMzcwMjE3YzQ5MjE3ZGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_29bb25818ea14cb38414926d05f684e9",
+      "statement": "批量新增是五步向导（采集源、采集表、目标策略、预览校验、创建结果），第二步只展示当前源库中尚未纳入采集的表。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L28-L100",
+          "version": "repo-lines-v1:sha256:9c50de540e8f537090efc309121e86d74c24e99a7550e2e1052981ff8623031b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3ZTVjN2QyNGI0YTFmODJkZjFiM2VmOGE1MzQ2NGFkNWE0ZjIyZDFmNDE4NjRlZmZlYTQwYTUxZDJhZjkwNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2ZTlkZjg4YWE0ZGI3NjkzN2ZmMzkyZDQxMzNlM2FhNTk2YTg4ZjRmNGVjZGIzNWJmMDc0ZGY2MzNkNGIwOTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMGVmNmViNDJmZjZiYjdhNTE5OWMxNzg2YTA4Yjc3YzA2Njc0ZDQzMTkwN2QzNTU4YjE5NDk0M2YwMWNkZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMTc0OWMzNmQ3ODczYWU1ZmU3MjIwZjcwOWMxYWE5NTcxNDBhZTllOTkxNjMyN2I0MmViYmI0NTI1NWM4NDUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/batch/BatchTableStep.vue#L5-L8",
+          "version": "repo-lines-v1:sha256:45e951568c93c502b8fcea23b3c0c7bdb76a57fc591a790d3658e889945101ae:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FkYTYwY2YwYzFhMWVkZTY0OGE3ZTU0NTk3NDFiNzkzZWZhNmU5M2YzZWI1NzhiNTAwNWVkY2NjYTQ1ODJmMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODJmM2NmZDExZGE2MTUwMTk3YWNlZWQwODQwNmFjNjRiMDUwMzQwZGU3YmMwNDEyNGE0Y2I3ZWZhNjcxMzQwYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzQyYzEwNzU3MmEzYzVjZWQxYzQ5MGVkM2JhN2RlOWRhYjEyZDY0M2NiMjg3YjRmOGM5NzhiNjVjNDMyNmIyMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzc3ZTcyM2ExY2EyN2MxOTM2NjgzNzMzOTNjNGU2NjAwYTliNzZhZWM1YWQ0OWQwNTk5MTU2MTE0ZWVhYzQ1MiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_d36025a8fc4b4354875d4b34fe60f3a2",
+      "statement": "批量向导在生成预览前要求每张表都能解析出目标表名且目标表名不重复（大小写不敏感），否则不发起预览请求。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L323-L338",
+          "version": "repo-lines-v1:sha256:cd0e2ddb88bc9ceb4b799d89be35684d2860b6abb59374979fc7fa725cb5c328:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyMWI1YzFhNzliMjRmNjViMWJjZjYwZDkzYjZlOGEzYjdkOTU5ZjZkMjMyYjEzNWY3YWQxYTE4ODI5OGRlZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiYTY2YjNlZTI3MDJlNWZhNjg2YmI5YzVlOWE5ZWRiYTMwODkwZjVhMDQ3OWQ2ODk5M2FjYThmYTFmOTZmNjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyOTZjMTgxMjdiZDYwMTgyYzYyNzFiYmQzMGExMTA1NDA3MzIwNTFlOTAzZWVhYTQ4MzVjYjE5Yjg3ZDU3OGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_23326d3b5e734f818d9e0209a758f7d7",
+      "statement": "批量预览调用 schema-plans/preview，非 ERROR 的表默认纳入创建；提交只发送勾选且映射完整的行，并携带预览返回的目标结构指纹，结果按源表合并以保留重试前的成功项。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L480-L552",
+          "version": "repo-lines-v1:sha256:6324d701481a61748288f1b4c109f6cd65383f29d14e59782e6546fee743ee85:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3OTJmODQ3YmIyMWNiMjkyZGQwOWY3ZmE2ZTdjYWM0YThjMTRkOTdkMzg5NjMzYjNkMTUyMGVhMTRiNWIxZGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmZTA2MzJmNWQ0YzUwNTY1MGQ3OTdhNjlkY2NhNGZhMTI4ZGI1OWIwYWRmNGZhMDVmMTY0YzBjZWVlNjA0NzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyODZlMmIzZTU2MzZiOTJjMWJjNDI5ZTE0NTkyNDRmOTRjZmNkNGY0ZDNiMTA4MGNiMmNjOGNmOGFhMDhjYmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjOTdkMmYwZDBkYzQzZjZjNjdiNjcyOWZmYjNmOGE4MWFhY2UyM2MxNjA0ZWUwOWQxM2FjYzJhYTgwM2ZlNTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b2088c1dbb7d40f596852990d01774b3",
+      "statement": "批量预览的复核步骤按 READY/WARNING/ERROR 统计和过滤，支持补全缺失映射、排除无效项，并在单表抽屉中直接编辑目标字段和查看计划 DDL。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/batch/BatchReviewStep.vue#L140-L240",
+          "version": "repo-lines-v1:sha256:8c800fd0b135636e2a4c7c48957cdf6a0f9919d9dfb74926ca4e8b8ebaf89d80:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlMDU2MzA0YjBlZWFiZDg4YWQ0Y2JkZDYwYmRmNDY2NTFhZDg1N2FkMWUwMTA0ZTQyYWJmZjZiMDQzYWU4ZWEwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyY2VkOGIyM2VjZTFhNWUzZDUxYjAxOGYzYTAyYmEzMThjMTFlOGU5Yjc5NWI3M2QxOTgzOWI1NDYxOTM5NjRmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1OTk1YzYxZDQzOTM5NzBkNDk2N2RhZTE0Y2RmNGZlNjlmMWNjZjc1YTNjMGJiNWEzYjU4ZjQxNDg2MmE4NmNlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMWI5M2ViZDRhMjg4OGVmMmY0MGQ5YzYzMDZkYmE5NDMzOGYzODJjMzA3Yzk5OTI2NGI3YTI5Nzg4Y2U3NTRiIn0"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/batch/BatchReviewStep.vue#L20-L100",
+          "version": "repo-lines-v1:sha256:1548a4e5324fb386590b2b6fff22ea89677ad8a2001fecbd3cb43149ea1a0056:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwYzc5MjNiMGU2ZmE0ZTQyMWZmMjczMzg4OGI0ZGI2NWY3NWRjYWVjYjlkMTc3YTZhZTc1ODcxOTI2ZjljZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlMTRhNmM5YmE5YjA4MWRmYmM1NTljMGE0YmU2MzVjZGZiMmQwNzllNmYzZjI0N2MyNjE2M2M1NWI0NjBmNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4YTVlMmQ4OTM4NWFmOTdhYzQyOTMwYzg2Mzg2MjMyNmUxMmNiZGNlMmE5Y2Q3YzAwZjUxNTZkZjQzMTJmMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5ZDI2MzBhODY5MjlhZWI3OTZjOWUxNzAyYTNmYzEyNjMxYjk2OGExNjk3MzMwNmIwMWQ2NjY4NjE4OWYwZjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_182481ffcfa9445cb9560d8b9a9e3d94",
+      "statement": "补采对话框按选中表数与日期天数计算任务数，总任务数超过 20 时禁止提交，提交结果按表展示入队日期或跳过原因。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/FillbackDialog.vue#L122-L165",
+          "version": "repo-lines-v1:sha256:d988b8cb85d7dda141c12aaef1926acf62b576c90f573a5b4423f6c2dcb11314:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0NjgyZmViZTkxNGIyNTUyODRkYThkODI0MzU4ZWE4YmYyNWExZjE0MjUxZWQ1ZTMyYmJiN2Y4ZTBhZDA0NTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NDc0ZTM4YzYwMzZjNTVlYzk2NGJkOGJiNTllZTM4MmEwNDk0MzkxNjNmOTRiMzY3ODFiZTQ4OTg2MzI1YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIzMzBjMzUxZjUyMTk2NGQ1NDU1M2UzMmMzM2EzYTgxMWU3MjhjYjI2NzRlZTJkNDE0ZTAyMGI3YWQ0MDdkY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU0MGNkNmM1M2Y0ZWE3ZDhhZjczYWJiNmYyOTVhN2E4YTFmZWE3MzNiNmE5Zjk1MTQ5Zjk0ZTFmYmEyYzkzNGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_63ef7ef80f0f405eb9fe13d624ac33f4",
+      "statement": "前端 table-service 把列表、详情、退役恢复、刷新、映射、契约检查、统计、变更、作业 JSON、批量预览提交和外部创建映射到 /tables 资源端点，并对映射保存、契约检查、批量预览和批量提交分别设置 300/120/300/600 秒超时。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/service/table-service.ts#L21-L244",
+          "version": "repo-lines-v1:sha256:dc1bf032acd389d7586282868e171144a707b4cd6077647f6724b36359aa884f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjI0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1OWYyYjA0YjEyZmY5ZGI2OTE5MjA4NTc3NGJmNzQwNTU5OTg3ZjNkYmRkYzQ5M2RiZGY5NDFjMDJjMmY2MGQxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyZDYxZDU4ZTFiMWEyZjZiNWI2NDE4NWRlZjQ3YjcwYjVkYzVhNTQ1YmI0MWJlMGFkMzEwZDVkOTQ0OWRjZmI5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxNDc3YmRiNzE1MGUzMzJmZWVlZTI3OTFmY2I5ZTIyZWI0ZTZmYjVjMTU2NGNjNmUwYzBhYWY5NDcxODcxOTJkIn0"
+        },
+        {
+          "resource": "repo://frontend/src/service/table-service.ts#L79-L146",
+          "version": "repo-lines-v1:sha256:3b15a175b83135f52d1746cc2eae80a7432c65a946490049d514472915ecbd12:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4OWM4YTc3ZTcwNDU4YjQ1OTlmYWE2ODI0ZGI5OTI4OGFiMWJhOTVkNTU5OTQ1NTI4OGQ5MWQxNjQ4Y2RiNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNGUyZGFkNzVlYTU3ZmYwNjg1NDRjYmJiZjAwN2JmNTdmMDcyYjFhMjU3MTc5MDczNDNhZjA3M2E4NTFkYzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdjYmE4ODk0OGM5ZGI1NGMxNzFjMWY0OTc0NmZmOTE1NmI4MWJmYjEwMjBhYzkyZTUxMmY1NGU3ZGE2NmM3MWIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

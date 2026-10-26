@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:a1e059863f24b8b0cf3da50332df14b81311ed54288fb7c23cad4c01bd8ef29a",
+  "claims": [
+    {
+      "id": "claim_88d9105ffb5b4cb7a82c15146822e202",
+      "statement": "前端测试命令包括 yarn type-check、yarn build（并行 type-check + vite build）、yarn test（Vitest）、yarn e2e（Playwright）和 yarn lint。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/package.json#L8-L18",
+          "version": "repo-lines-v1:sha256:33539773c35e41089c226c511f0c26b92f5d6e666f7643296e5d046eca0b466f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0M2Y0OTA0YTNkZjdmMzQ3YmQ2MGI5ODFiMmQxZDZjN2Q2YjUwOWE4YWU3NmEzNTkyMzc3MjhhNDAxYTBhNzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjZGJkN2NhMmQxM2FkMzUxZDIwZDc2MzkyYzQyNzMyNzc3ZmI1NzJlZWZkY2ZiOTU1NWY3MGI0NDQ0OTEyMjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzNThmZDFiNGJhNzU5YmM1NWVkNWM1NjBkZjg5NDFiMzhkZDhlZDgxMjcxNDI5ZDZhZWIyZjU1NmUxMDhkNWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2ZmFjYjViOTY0ZGRjZWJjZDNhOWQwOTViNTJlZTRiN2VjM2M4YTEwNjMwYjUwOTVkMzlhYjRlYzc2Y2I1ODgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4a74abee616d477a86bd8fb8d63b7a97",
+      "statement": "后端只有两个 JUnit 测试：一个验证 Hive 分区列不被误报为 TARGET_EXTRA_COLUMN，另一个验证 DESCRIBE 输出中重复的分区列从普通列中剔除；队列、调度、安全和迁移没有后端集成测试。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/test/java/com/wgzhao/addax/admin/service/TargetContractServiceTest.java#L1-L67",
+          "version": "repo-lines-v1:sha256:1cadcf57050df82b0d6fce468304ba03e00c9034d191fad46e6656cb7d7c27a3:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkZWFmZDk4YjRjN2FlY2RmYzk4ODVkMmQ4YTM1NzhkOTA2Y2I0OWJjODFjMTRlNDgyMzYwYzdjZjM3NWU5MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/test/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImplTest.java#L1-L36",
+          "version": "repo-lines-v1:sha256:cff6e533233287a9d64338f459e58ac1df0d4264f3c3419d95362a765724de38:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYzZTViYTAzNmZkM2Y1ZGJlZjFmMmVmYjUyOGI5YWI4ZDc2MWYwZDZhNWY5YTAzMWM4YjMyM2YyMTFjMjgwODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e5cf04f9bb3047458e909117177b64fa",
+      "statement": "Docker 构建与 deploy.sh 都使用 mvn clean package -DskipTests，因此镜像构建成功并不代表测试通过。",
+      "evidence": [
+        {
+          "resource": "repo://Dockerfile#L21-L21",
+          "version": "repo-lines-v1:sha256:1bbac4b20202a0be508f1df7147c1e582bcea262e32bbf5a46242196febe7516:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWJiYWM0YjIwMjAyYTBiZTUwOGYxZGY3MTQ3YzFlNTgyYmNlYTI2MmUzMmJiZjVhNDYyNDIxOTZmZWJlNzUxNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWJiYWM0YjIwMjAyYTBiZTUwOGYxZGY3MTQ3YzFlNTgyYmNlYTI2MmUzMmJiZjVhNDYyNDIxOTZmZWJlNzUxNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTc0MjcwMmY5YWMxNDcxN2E1ODVmMWJmYjU1NzQ5Yzc5NDlkZGJiYWI2NTU3ZjI0NjA4NGJlMGFmOTVlZDJlMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWIyYTliYmYxMTYwOTEzYmJiMmIwMjhlNTk0OGI2MzIyYmQzNzUwNDk0MjNjMmQ2ZGE2YmMwY2U4ZWVhNjQ3OSJ9"
+        },
+        {
+          "resource": "repo://deploy.sh#L2-L2",
+          "version": "repo-lines-v1:sha256:2d6d1a928e840d7e87845833393e323c6db3df07950134b7e409430c31a6eeb8:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmQ2ZDFhOTI4ZTg0MGQ3ZTg3ODQ1ODMzMzkzZTMyM2M2ZGIzZGYwNzk1MDEzNGI3ZTQwOTQzMGMzMWE2ZWViOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmQ2ZDFhOTI4ZTg0MGQ3ZTg3ODQ1ODMzMzkzZTMyM2M2ZGIzZGYwNzk1MDEzNGI3ZTQwOTQzMGMzMWE2ZWViOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjEsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjg3NWY5Mjg1NDZhZWU3ODU1Y2IxZGI5YWZjOGFiM2YxYThhMzRkNDNkZTViYmQ2MmY3MDc2ZDdiYTlmMzkxNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWM3ODFmMTcxNGQ2ZWI1NWU3YjAxNWUyOTE5MmU1MDlmMDRmYTgzM2U4ODY4ZTFhZmI5Y2RiODRiNzA5MDFlYiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_368e262a86414b48b10b84b5335e347e",
+      "statement": "Vitest 使用独立配置，环境为 jsdom，只包含 tests/unit/**/*.spec.ts，加载 setup.ts，并启用 clearMocks、restoreMocks 及 Vuetify 内联。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/vitest.config.ts#L1-L29",
+          "version": "repo-lines-v1:sha256:28ea732ea5d5e5a12e7111277d7324a365eb14234ec0b09317f5a0e3c5204988:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0YTE5MjExYzNhMDNiOTg3OTQ3ZjI0YjY5YmRjYzQ2OWY0Nzk0ODI5YTVmNWE0YTE4OGVhMmUxODE2NTRiOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a1a37a99878e4bfe854a174071bda9b6",
+      "statement": "Playwright 配置为全并行、30 秒用例超时、8 秒断言超时、CI 重试一次，失败时保留 trace/截图/视频；webServer 复用已运行的 yarn dev，setup project 先登录再由 chromium project 复用 storage state。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/playwright.config.ts#L1-L42",
+          "version": "repo-lines-v1:sha256:5b8f896a95790db9464ac17d3f8d8e1ee16eb028a5feb0e4d154d312dc58ad12:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZiZDFhNTVjNWQyYzBhNDk2YTcxMTU1ZjhlOTUyYmNmNzYxZjA5ZmMyNjk0NDNhNTQwMDUyYzA3OGNhODNhN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1ODBiNzY1MThkYWU5NzlmYWViZDAyMzY3YTI5MjkyYTUwZDk3NjA5MjI1MWEzOGE2Y2UzMDg4MGJhNDI4MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7aa38c7bc29648f09f895fb0f69661d8",
+      "statement": "E2E 登录态通过 POST /api/v1/auth/login 取 token 并写入 localStorage，而不是驱动登录表单；登录表单本身由 auth.spec.ts 单独覆盖。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/auth.setup.ts#L1-L29",
+          "version": "repo-lines-v1:sha256:c6adabd833460889ebdefacd4883c57e3afb071b3a6b9570d2ccf9694240e610:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhOTI4MzM2YThmNWQwMGU3OWEwMzNiNjhjZmY3ZTYzMTc2MmUyYmYwZjY1YTcwMzc3MmQ5MDdjNjU4YTIxMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/tests/e2e/helpers/auth.ts#L1-L24",
+          "version": "repo-lines-v1:sha256:05aecb4db847532a7c658d48d5a6e5a619053f031b0caf537ca64497d304d723:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmODQ3MGVmODc5MGU0MmI4MjdiZjY2NWIzNjFhYTQzMDczNzY3YjFlM2MxMzJlOGE0MWQwMjRkN2UzYTNlMzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_05aae0f9afa047f691e3891f38ba8823",
+      "statement": "E2E 前置条件包括运行中的后端、可由 Playwright 启动或手动运行的前端、默认 admin/admin123 账号，以及本机 psql 客户端；默认使用独立数据库 addax_admin_history_e2e，可通过 E2E_DB_NAME 覆盖。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/README.md#L1-L59",
+          "version": "repo-lines-v1:sha256:425ae23f13c5a7030f2565286f3a045fad286e4fe9bd24b8a3a80d8328ed77e6:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwZmMxNTMzYTNjN2FlYTA1YWZiYzg4OTgzMGNjYmVmZGFjMjUyNDVlOGVmYzY0YWVjNmViYzM2NzBiM2JkZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzYmYxZWE4Y2U3MjFlNmVhNWFhMTRkYzk0MjlmYmI0ZTcwMjBhZWRhYzQ1NmY4YjIyNzQ4ODVhMjllNWYyZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/tests/e2e/collection-state-matrix.spec.ts#L8-L38",
+          "version": "repo-lines-v1:sha256:955940b57db77dcf76365700d45b0d1ef251490d417ba2db98fddca4b4db5dd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5M2JmMzQ1ZTBkNmIxNDY5OTM2Njc0MTllN2E2MWQ0MWNjMTQ5NzU2NTg5ZmEyZmNkZWJiMzEzMzFiMjg5ZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhYTI3OGI5MjYwZjBmNTg0MWUyMTBiMjM3OTFiMzRiMWE0MGUxZmMxNTgxMWVhOTA0YTIyYjc1MWEwNjA4YWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkNjk2ODFiOWVlMzM3NmY2N2NhNzg4NGFlMmFkMzVkNjJhZjcxYTJmZTE0YTg1MWRhZjJiOWMyMTUzMjY1NzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlZWE0MWFjNjFhMzUxYjA2YjVjMzkxMDk4N2UxNjQ1OWQ1NTVlODE4YzJjMGMwNmNkZDc3Zjg4ZTllZGQ3NzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3fac4c9b09144e179156e718368c2051",
+      "statement": "fake-addax 脚本解析 -DjobName 与 -Dlog.file.name，在 fixture 的 log 目录写入固定日志；设置 ADDAX_E2E_REPORT_URL 时还会向 /log/job-report 回报固定统计。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/fixtures/fake-addax/bin/addax.sh#L1-L18",
+          "version": "repo-lines-v1:sha256:788f233653dea1a5f1936f7d9f91993a5d2347a7b60e40b013392f7460e17bcb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4MDc2ZDNkMjhkMjFlMDIwMTJiMjBlYWY3ZGJmNzU0MDlhNjI3NzEzNDQzOTAyNWYyODJlMzY4ZTMzMDVhYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3NjlkMjM3Y2Q0MjBiOWQzOGI5ODFhMGE0ZjY3NzAxOTBhNGE4M2RjYTFmZTU2YzRmNWJhMWUyY2JjMGVmNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c9f62c19cb044c688c35b1ac461d3fc5",
+      "statement": "采集状态矩阵覆盖 2 种源状态 × 7 种表状态 × 2 种生命周期共 28 个组合，检查 CURRENT/DORMANT/RETIRED/ALL 可见性，并用停用源 + X 状态表做列表与详情 UI 冒烟。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/collection-state-matrix.spec.ts#L196-L492",
+          "version": "repo-lines-v1:sha256:ea993ce723d1baeb01cb19ba9593fc5971e3214dac70547272db5f1f479060b5:eyJzZWxlY3RlZExpbmVDb3VudCI6Mjk3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1NzhiYmE5MDgyYjcxNmM0ZWMxMDYxZmJkZGNmZmYwNjdmMTBlNDhjZWQ3OWI1OGY1YzY5NGVhODJkODZiMWMwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNmY1YjQwYjE1ODQ1N2QxNzg2NGYyMTc5MDc4NmRkNWEyZWNkYjY0YjY2YTY1MWY3ODhkNGUyNWNkMzMwM2QyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzMWFjZTg2YTI3NjM3ZDQzZjJiMjU3ZTY3N2M1MzQ3NmNjNzM3YzQxNWYzNjA3NTE5OGQzNWZkZmY2ZTdmYjBkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_55f7dd02ba3244879c6f0cd8ff34b961",
+      "statement": "状态矩阵还验证：活动队列行阻止退役（400）和恢复（409），当前表可编辑/job 可改（200），退役表编辑/job 修改返回 409 且原 job 内容不变，重复退役 200、对当前表恢复 400。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/collection-state-matrix.spec.ts#L280-L390",
+          "version": "repo-lines-v1:sha256:b0f612f35e290b73632dd70fe1855c88aae7145eb7594ca32529537197c76fc5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTExLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkMzJmZGJiNjE2ZTZiMWYzMjU3YTVmNDdiNjRmMDNhNGUyMTY4YTc5MDRmNmY1MDYwZDY3ZmIyYmY2OWI5YWJlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmZWY2OTAwN2E3ZTc1Y2NkYjJjMTllZmE5ZDk1YzQzYmY3ODdmMzNhMmI5YzgyNjVjNGE1Y2U2NDJmZTZkYmVhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3ZjZiZTNkM2VjZjAzNzM1ZjkyOGFhMWIwNTE1OTAyMTZhZGJiMjI4ZDI5OTZjYWVmMWM2NjY1OWVjZmJmODg3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlNjI2ZjcwZWYwOGEzZjcyNThjMGZkMjdmOTJkMjFlZGRkOWU1MjFmYmFmZWQ2NjQ0NGVlMDUzNmYxNmNhYWZlIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_99cdea3354be48a9923533713702bc55",
+      "statement": "状态矩阵执行后写出 collection-state-matrix.json，包含数据库名、维度、组合数、失败列表、全部 contractChecks 和每行最终状态，并作为 Playwright 附件。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/collection-state-matrix.spec.ts#L470-L490",
+          "version": "repo-lines-v1:sha256:68c1570afa7a2f17445d4692679d2715d4d73fff9e5bfc3e01456947681f8064:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3NDA1ODI1ZmUzN2NjMGY1YmM5ZjQ3ZjBjMzRhYWFjMjAyZGJkZjZiZmFkYTU1NDJjMjhkYzQ0YzFjZjIxZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1MDYyMTc1YTM3ZDMxM2FjYjZhMjhjMWFhYWZkYjlmOWEwYjAxMDQxYTdhN2QyMTBkYTAwYjQ0ZDczYjVlYTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRiZjUxYzJkOGZiNTk2Mjk4NzQ5ZDI2NDExMjg4NGFiN2Q5NTlmZDQ2NjVlOGMwMzRmYmU0YjM0ZWNlZjFlOTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6d83b32e49d842d2855d478cea103b6a",
+      "statement": "history-snapshot E2E 验证执行快照不可变、配置快照不含源/目标密码、统计与日志按 execution 关联、退役后历史可查，以及原始日志清理不影响 etl_execution 和 etl_statistic。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/history-snapshot.spec.ts#L112-L318",
+          "version": "repo-lines-v1:sha256:1889bc5018865c8b834e622c8b3a56d3d2292091b491685bf36dffc81699c4b5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjA3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJlMGYxMmMxY2M3YTYzNWNiZmNjODgzOWE0YjZhZWNlNmFiNDdjZmE1ZTE5Y2MwZDU2ZGU1NjQ2OTdkY2RhZjkyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNmY1YjQwYjE1ODQ1N2QxNzg2NGYyMTc5MDc4NmRkNWEyZWNkYjY0YjY2YTY1MWY3ODhkNGUyNWNkMzMwM2QyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxYzRjYzA0NmExZWU1OThhZTkwOGMyOThkNWUxYzNmMjkwNThhNDExMjRmZGU4NDMwMzg5ZWU2MmU4NzBlZTQ1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_03eebd5b2f84473184e497eb26f4dfb8",
+      "statement": "external-schema-mapping E2E 验证 EXTERNAL 预览与改名映射、reader/writer 列一致、目标列被外部重命名后契约变为 ERROR 且执行被阻断、表状态置 U、恢复列名后回到 WARNING，并回归 MANAGED 路径。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/external-schema-mapping.spec.ts#L49-L410",
+          "version": "repo-lines-v1:sha256:3c2808b154716c8641d2bf43133230ba17f9da8be9a222fedd3d464c18392ca9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzMzFiNzM2NDUwZDZkMjQ4YmFmNDA3ZmUyZmU4NDE3MzQyMjJhZWVlYzAwOGU0NDIwNjcxMTU3NTQ2NTRkMDQzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmNmY1YjQwYjE1ODQ1N2QxNzg2NGYyMTc5MDc4NmRkNWEyZWNkYjY0YjY2YTY1MWY3ODhkNGUyNWNkMzMwM2QyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0MGVhODRlMzI5NTBhNWM3MzIzZTY2NWZmMzRmMTUzODhhMzM1MzQ5NjI0Y2YxOTE2NzBhYmUyZmViMjE4YTQyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_7e57d3ba995b420ca0cb184be4cc27ae",
+      "statement": "batch-plan-review E2E 验证 MANAGED 计划生成（含业务日期列和主键）与 EXTERNAL 目标表缺失时被阻断，并覆盖批量向导逐表复核、重复目标/缺失映射拦截和 legacy 批量初始化。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/batch-plan-review.spec.ts#L164-L412",
+          "version": "repo-lines-v1:sha256:aa3ba3ea00d02207ce00ed9dc747d51093e2b9c97f312cbb18776a19de1caf15:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQ5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwZGY2NDNjMDY2NTRkYjg0ZDZiM2ZjYzFhNzdmMTQzMzQ2NzlhOGExZjE1OGMxMzUwY2E4MDkxYmNiOGI4MWQyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzODU1ODUxM2IzYTg4ZGRmMzE5YmI1NjlmYzc4MDE3YmU4YWFjMDZhZTAyNjk0ZWY1YjNmZGU4NTViY2JhNTdlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiNzc5ZDExOGQ2ZTNjYmY0NTA1Mzk3NDhkZWU3YTQzMDdhY2JlNjQ0NmNiYTI5N2YyNzYwZmE1ZDBiYmExYmMyIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4Y2U4MzU1ZTk5MTkzZjA0ZTRkNGZiY2ZlM2U4MzNiN2JiMzdjOTljYTMxNzg2NGNiMWUyNTMxMjA2M2Y2YTIyIn0"
+        },
+        {
+          "resource": "repo://frontend/tests/e2e/batch-plan-review.spec.ts#L22-L160",
+          "version": "repo-lines-v1:sha256:9daa19953da2529a0f92df62b154f82408226a08f4653abd787fd87633407d4c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwYzFmOTcxNGQ4YmI3ZDdmMmRiZmQwNTQ0YTE4NDEzYmI2NjMyZjlmOGFmOTliY2JmM2JjOTk5ZTMwYWYxZTM3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMmMwNDA3ZDFiNzUxMjhkMWU3MDFhOGRjMWY4MzcxMTlkZmZlNTljMjA4OGY2Y2I5MmQ0ZjM4MzIxN2FjOWQzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzM2VlMTA5YzIxYTI5ZTMwNjM0MmY2ZDk5NTQ5MjZmMGZlNmI5ZjQ3NDg4YWNjMGIzNTgyYzcwODk0MjY1NTNlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiNzc5ZDExOGQ2ZTNjYmY0NTA1Mzk3NDhkZWU3YTQzMDdhY2JlNjQ0NmNiYTI5N2YyNzYwZmE1ZDBiYmExYmMyIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_4a3d6bdf354947a28a5c950178cc4b0f",
+      "statement": "dashboard-charts E2E 验证四个 Tab 的图表进入 ready/empty、ready 图表画布尺寸有效、10 个 dashboard API 返回 200，并生成 dashboard-api.json 与各 Tab 截图。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/dashboard-charts.spec.ts#L59-L125",
+          "version": "repo-lines-v1:sha256:8b5b0d89e9bc5daafa942cc438d5eebb3245d786734b4dbc6ad2029ca5b72531:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZjQ5ODNjODcxYTM2ZTcxZGQwZmRlYjNhZmU3MWU1Y2RmN2M2ZjdiNWVjZDhhNGEzMjg1ODAwMzUzODRjZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMmM4YjBjZTAzZDI4NzVmNmNmMTI3NWQzMDExNTE3MmZmNWZjZDg2N2FhNzA0YWUzY2M2OGE0NzhiZmFmYjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiNTgwZTk2NGY4M2E0NzNmNDNkNDQzODQ2Mjk0OWQ2OGI1NjAwZmRhNzg3ZjE2Mzc0NWQwMGRlODljYmYzNmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM5ZTE3YTlhNDM0YmIzN2EzMGFjNGU0ZmRlNjQ4NmM1MGRlZmU3MmJhZDY1MmZiNWE5Mjg1NGU1NDlmZThjMWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fe0134886951416a94a9387662cef095",
+      "statement": "table-detail-editing 与 fields-mapping-edit-mode E2E 验证详情默认只读、显式编辑后才可保存、退役表只读、job 编辑按生命周期开关、加载/失败态不暴露空表单，以及字段映射默认只读。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/fields-mapping-edit-mode.spec.ts#L18-L60",
+          "version": "repo-lines-v1:sha256:8ce6ccdd229b79270b83dc61a49b350df2335adfa4a6a7701e5ccfcdfb7ac83c:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyMjRiNjA4ZDQ4Y2JlNDlmNDAwMWMyY2ViNjRhZDEzMDVhNGY0MDNjNGZmNzdhZjg2NjAwMzAyNzk2Njk3Y2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzZWUxMDljMjFhMjllMzA2MzQyZjZkOTk1NDkyNmYwZmU2YjlmNDc0ODhhY2MwYjM1ODJjNzA4OTQyNjU1M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxZDY2OGVlNGVlNDM1YzgwNDcwZTE1YmM4YTRiODk2YTk5ZWQ5NDE1YmI2NjIzYzZkNTQ5MWNhN2EzZjFmOTAifQ"
+        },
+        {
+          "resource": "repo://frontend/tests/e2e/table-detail-editing.spec.ts#L185-L380",
+          "version": "repo-lines-v1:sha256:f80514eb1f53462d05935079dc23ccda3f1dfde6fb7059e282fb09e1ce8b9ee5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTk2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2YTliZDMwNTYzZTNmZDIyYTRiZTMyOTI4Mjc1YTFmYzk4OGFiMzhhYTUyZDNmMjRjZDZmYjYzMTRjYjI5ZTg3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiZDBmMmQzYTNhYWRhMjc1ODY0NTc4ZDBhNDM5MTU2MzhkNTQzZmVjYTJjOTQ4NThkYjk0MTIxMWU4NmNlZjJiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1Y2Y4MTEwZjliYTkxZjMzYzY4OGY4MWIyNzlkYjNmYjJlYjVhMTI2M2MxNzIwNGEzYWEzMmExNWZkM2IwMzQ2In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_e7a6e99a46f84a28a50c428fb9461592",
+      "statement": "审计 E2E 覆盖失败登录、普通用户越权写操作和读取审计接口被 403 拒绝、管理员创建用户与采集源的归因、request id 传递以及密码字段脱敏。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/tests/e2e/audit-log.spec.ts#L50-L180",
+          "version": "repo-lines-v1:sha256:f15b34a87f22b7f6744bf2c9e1b1185f699d59ffc3f4e2e2b57530fe20abce47:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3ODc2ZjYyMzExYjBjZDZmYjY3MmM3ZGEyMTU5NzZjYjI2MDE4MTRkNTIzNWIwMzViYTBlY2Q1NTdmOTVmNjQ2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJjMzgyMWQ0YTNkNDg3NGMxNTE2NzMyODE5YTYyYTI5OGI0Yzk1NTdiYjY0MzU0MWI0MTczYzg1MTU1ZGVmOWJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0MDkzNDRmNWUwNDk4Nzc3MWVkNzU2N2RlNTc4OTg2NzE3MDMyM2YwMTk4NjBkNDQ2ZjVmOTkyZDMzNzA2NWM5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4ZWI3MTA1MjFlMTFjOTg0ZjA3NTc1MzhjZWFlNThmNjViMmM4ZDNkZGIxN2U3YmNjYjE5OTVkY2M1ZGI5YjVmIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_f31926043483470a8b402aea18266cee",
+      "statement": "calendar-scheduling、override-rollover、trade-calendar-refresh 三个 shell E2E 驱动真实服务、真实 cron、真实队列和真实数据库且不伪造时钟，通过把当天日期写入或移出日历字典构造业务日/非业务日，产物写入 scripts/e2e/artifacts 的 JSONL 或 Markdown。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/e2e/calendar-scheduling-e2e.sh#L1-L40",
+          "version": "repo-lines-v1:sha256:a534c6a8255b76d96d1f5f2142fd7db7ca1f0395b9b1f17265d5e060a601e768:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkOTVmYzA0YTgwYzk1MmY0OWNlNDE4ODYyN2M1M2IwZmJlOGM0NDA0MWI5NTJkNTkyYWNkMWRlOTk4NjE0NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjYmUyYWUyYTk5OTI2MmI3OGY5NjdlYTc2MmEwY2E0ZjQ4ZTZiNDcwNzdjMTA2NDIxODJiMTE0NTZmMWFkMGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OWI1MWJkNzZhMTZjZjc4OTBjYjg5MjJhYjAwNTZhM2E5MjU3ZDQ1Y2JlY2YwYWU1YjIwNTM2MDdkOWY4ZWIifQ"
+        },
+        {
+          "resource": "repo://scripts/e2e/override-rollover-e2e.sh#L1-L20",
+          "version": "repo-lines-v1:sha256:e3a434747119e1cdc19628d11204692f9cefa55b0b12a8c02b6d5c5910dd6799:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkOTVmYzA0YTgwYzk1MmY0OWNlNDE4ODYyN2M1M2IwZmJlOGM0NDA0MWI5NTJkNTkyYWNkMWRlOTk4NjE0NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlYTMyYmFiMjJjOGI3NjNhMjU0MmZlNGMzNGM5MTY0YTYwNWIyMTU2MzMwODE1YWQzYTBmMWExNTFmNDE1Y2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViMGE2ODllZDU2NGFkM2I3ZTY1MTQxZjFlOWM3MzBmYzUwNmI2NjdiNmQ5YjdhOGFhNGJhNzYwMGYyN2I5YjMifQ"
+        },
+        {
+          "resource": "repo://scripts/e2e/trade-calendar-refresh-e2e.sh#L1-L30",
+          "version": "repo-lines-v1:sha256:058ba64ffc2ca0a068c4cf5005f500c16383bff403509a750d802a620e35b9a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkOTVmYzA0YTgwYzk1MmY0OWNlNDE4ODYyN2M1M2IwZmJlOGM0NDA0MWI5NTJkNTkyYWNkMWRlOTk4NjE0NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyZDVkZTI3MWU1ODNjNjVkNzcxYzk3MTZkYjJjOWY2YjdjNmY5NjNhMDU0MTQwOGRmMjJjMTQ1Y2Q5ODA2ZTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2YzQ2MDVkOWRmMTczYTA3ZDgxZDc3NTk0NDJkMWI3OTRmM2VjOGNhMzFlZjMxODk0MDFjZjllYTAxYzc0MWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_88acf0700b034024a25f8d166fefe1ad",
+      "statement": "现有 GitHub Actions 只有发布 Docker 镜像和 OpenWiki 更新两个工作流，没有执行 mvn test、yarn test 或 Playwright 的测试工作流；Vitest 配置也没有覆盖率阈值。",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/openwiki-update.yml#L1-L88",
+          "version": "repo-lines-v1:sha256:c31005f16763845e6dcd826d671cf11890a4c8e12498fd2b59428be80e3b585a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2MDI3ODdhZjZkY2MwODM0ZGUxMjFjYmIxY2I5NWY5NDU5YjcyMWVhYjAzNDlmMTA1MDFiOTk2YzFjNzdmZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NzE4ZjA2N2I1ZTVjMWYwOTkxYTZlNzQ3MjZmZTJhMjNkMjY0MzQ1ZTA4ZTRlYWQwNGZhZjczYzI3ZWQ0NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://.github/workflows/release-docker.yml#L1-L70",
+          "version": "repo-lines-v1:sha256:8828fc480acdfebfc9805799cdb21dda340bce063abfd784d645406256cf5ec8:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5NThmMWI4MDZiOTlkYzE2YmEwYjQ2NTljYzI5MWY0OGQ0Zjc4MTE3MjY2MDg4MDZkNjIyZjU5NWQ1NzlhN2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4MTg5YzFkNTcyMDQ1NWZkNGE1MGU4Mjk4MmU5NWYyNmU2MGYwN2I2NTI5ZmJmOGExNTNiMDE2Mjg3M2FmZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU4ZjQ2NmU4YjcwMTI4YTRiNmJiZGUzODFlYjU0NDQ0YmE0OWIxNTVjYzNjODQzN2YzMTY4OWExODA2M2YyN2IifQ"
+        },
+        {
+          "resource": "repo://frontend/vitest.config.ts#L1-L29",
+          "version": "repo-lines-v1:sha256:28ea732ea5d5e5a12e7111277d7324a365eb14234ec0b09317f5a0e3c5204988:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0YTE5MjExYzNhMDNiOTg3OTQ3ZjI0YjY5YmRjYzQ2OWY0Nzk0ODI5YTVmNWE0YTE4OGVhMmUxODE2NTRiOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

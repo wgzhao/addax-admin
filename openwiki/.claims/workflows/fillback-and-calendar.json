@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:488c50a2ae6eeefbc5ea81caacca7937ad830ca95263c47e045d86f5031b9059",
+  "claims": [
+    {
+      "id": "claim_a68dfc24484843b9af388d3d51dfca4c",
+      "statement": "采集日历是源级可空枚举：空值表示自然日且不依赖字典，WORK_DAY 使用字典 1022，TRADE_DAY 使用字典 1021；字典行以 yyyyMMdd 作为 item_key，行集合本身就是日历日期集合，没有额外的业务日属性列。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/common/CalendarType.java#L10-L19",
+          "version": "repo-lines-v1:sha256:1a577424db7fb762bc3b6c815964cd7b77f897965420bf094ceae857eb293015:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllY2RjMTQ3NTIxMDk1ZjE2YTkzYzRmNjY5Y2QxMGNiNmU0M2JiYmZjZDYyNzUyNzJjODA4OTE2OThiYmUwYjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwZmQ1NjNkODlmMWJhZjdjNGM5OGI0OTgwYzI0ZjE0NDUwNzA0MGJmMDUxOGNmODFkODI4ODgyZDI1MzhiNzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2ZWI0ZmE1YWY3MTEzMzg3YWRhODllN2RjYTRiMjJlMWNlZjFiODMyYmZjZjkyZDYzZmM4YjE3ZTMxYjYyYjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlMzhhZDljNWEyOGY4ZDI2NmQ5YjM2NTg1MjIzY2M4NjgzM2ZjMTRlYzVhNGEwOGNmMjllMmUzZTJjZjE2N2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0dc94c42c0d491f9df3bd77fcb42518",
+      "statement": "创建或更新采集源时，空白日历归一化存为 null，未知日历名直接返回 400，避免拼写错误退化成自然日。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/SourceController.java#L315-L325",
+          "version": "repo-lines-v1:sha256:1bef72fc8845137a5a4ea456c7cdc26c4b720f928e4888c419b8d7634cc56aca:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d9eb2b9e24f445bdbc402a56d320b3d5",
+      "statement": "运行时遇到数据库中已有的非法日历值，解析会回退为 NATURAL_DAY 并告警，而不是让调度器失败。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/common/CalendarType.java#L57-L65",
+          "version": "repo-lines-v1:sha256:df42319a57f52fdfd83411c50789543838c0b05aca1350254249decf46f6e37a:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzljYmJjNjU0NjlkYjFjYTI4NDJlZmQ5N2RmN2VlMmNlNmNjMTU3MTQ4MmQwMWExOGI3OTBhMTBjN2M1MTBmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmE0YTU0NjJjOGRiZDA1NmE4MjUzOTY5NmMxNjQzOThjODc5MWFiYmQyNmQwMmM3MGU5Yzc4MjlhOTIxNjMxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTliMjE2NjFmNDVhOGI0MmQ2NmJhYmM2NzhjNTllMzFmYTk0NGIxYzU2ZGIyNTI3MDY5NzljYTM0OTc2ZTQxZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_85dd8edf0c4d4928875623de261e6241",
+      "statement": "源的采集时间或采集日历变更会通过 Redis 广播到其他节点，触发重新注册定时任务。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/SourceService.java#L124-L143",
+          "version": "repo-lines-v1:sha256:80529d9c77c2d5f9918345e5b53e827d6a8d031d46d8821f74b61eaa7221c72b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyMTkzYTVjNDFiYWVhMmZhODYzOWU3NTI0NzUwMWQ4NGY3MTg0ODllMGNiMzdkZmU0ZjZlNDcxMzFiNWViNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3ZTdlZjQzMTY1MTZhNDZiZmE4MDUxMzJmMDQwYmViM2FmNTk1MGI3ZGI4YzEzZThjNDhmMzhhYTEyZWQ0Y2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlOTMyODgwNWEyYWMwOTI0YmVlMTQyYjQwOWM2YjU4NmUxYzhhNjVlZjNkYmZmZTkzMzRiZTljZTZlM2YyZGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4bd056b869754e6fa2dce299bd661505",
+      "statement": "采集源 cron 每天触发，但触发时重新读取数据库中的当前源日历，并按 businessPeriodDate 判断；非业务日只记录拒绝原因并跳过，不执行该源的表。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/CollectionScheduler.java#L70-L95",
+          "version": "repo-lines-v1:sha256:e144d6e8f3de5d89931395731ddf2a6331a505d65a646e7bc650f48f376b0933:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4MjI1NGJlNTM0ODI0ZDk2NDkzNzlkMDNjOWFhM2M2ZDU3ZmNiMDljZjUyYzc0MjIyYTlhZmE1MDBhYjNiZGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwODE3MWRhZDI4YjRiMzE1Y2Q1ZDZhNWUzNDFiYjYyODI0YWU2MGE2MjRkMWIyMzc2M2VkODNkZTgzYjU5MmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5OGE4N2QwOTY3ZmIyYmFhOWFlNDc0MTJhNjZmMDc5M2ViZmY1ZmE2MDU3MzBkM2Y4OTkwZGRjOTVlM2JlZjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiMmIxY2YxM2M4MzlhZTJlYTE2ZDJlMDBiZjllYjFlNGY5ODBkM2ExNDE2NWEyMjkyOWU4OTgxYTcyYWVkZjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ddfbc32933c94da687e76981d2cd5ede",
+      "statement": "businessPeriodDate 在切日时间之前返回昨天、之后返回今天；切日时间取自字典 1000 的 SWITCH_TIME，种子值为 16:20，字典缺失时代码兜底 16:30。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/common/Constants.java#L19-L19",
+          "version": "repo-lines-v1:sha256:b4db3dacb999e51003f58b77a584b96fb1ebab7ae577b4c10d47368b6ad4c76b:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjRkYjNkYWNiOTk5ZTUxMDAzZjU4Yjc3YTU4NGI5NmZiMWViYWI3YWU1NzdiNGMxMGQ0NzM2OGI2YWQ0Yzc2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjRkYjNkYWNiOTk5ZTUxMDAzZjU4Yjc3YTU4NGI5NmZiMWViYWI3YWU1NzdiNGMxMGQ0NzM2OGI2YWQ0Yzc2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjc4M2FhYTMwZmUyNTM1Mzg5NGVjMzhlYjVkZGY3ZTJkMzQ5YzkxMmM2MTEwY2MzODk4OWE1ZDRmZjk1Mjg0MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTI4YTJkNDY1M2QxYmVlNjFiZDRjZjI2OTdlYWQ1NDRhZjM1MjFmZTZmNjIxMTFjYjM1NWNlNTk3ZTVkZWNiYiJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L97-L118",
+          "version": "repo-lines-v1:sha256:b098f44ca3cf1e5a4a6699bd36b293b1d9d8110a9f83196b324f743121b9c584:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1MGFhYmUyMjkwYTlkZDA5YTA0ZDI5NmRhZTBiMGRmOTQ4ODk1NjNjYzk4OTZjZjgxYWNmNjE5M2FhMjFmYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4MWE0OTI0ZmEzNjQ5YzYzMzI3MWYwMGI3ZjdhN2Q4NzUzMmViZjlmNTk0NWIxNDE2OWViZDNjNmUxNDdhZjUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L82-L100",
+          "version": "repo-lines-v1:sha256:2cc410ea223246e4fb28213ab1bf584f9a0d8dcad1fe545be0bc338709d6e78e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkMWUxZTI2MGJkYTc3MmZhYTk4MTU1ZDM4MDhmMDk1YzhiZDJhN2U5YTUzNmNiNzdiOWE0N2M3MTQ0NjE2NzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkZDY2MmI1NDBhYjcxMjE1YTk4OTcwMDBjNTk5M2UzZmMxMTMzY2U3ZDI3NTllOTY5ZmY5ZGQ5YzU1Y2I2ZGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwYzM3NzNlNDI1NmYyMTA3YTkzYTg3ZWI4YWU0MTMxYzY3MzI4OGExYjQ0ODA0YWMyNDQ5MWFmNThlMDJmY2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://scripts/data.sql#L31-L31",
+          "version": "repo-lines-v1:sha256:3aa18abd40964faf53a644e600e09f8e1319e58afec6e4073c232577d5112f01:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FhMThhYmQ0MDk2NGZhZjUzYTY0NGU2MDBlMDlmOGUxMzE5ZTU4YWZlYzZlNDA3M2MyMzI1NzdkNTExMmYwMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FhMThhYmQ0MDk2NGZhZjUzYTY0NGU2MDBlMDlmOGUxMzE5ZTU4YWZlYzZlNDA3M2MyMzI1NzdkNTExMmYwMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzlkZGJkYzYyNGYzODEwMzY4Y2EyMjlkN2Q5N2VjMjZkMzc1NWIyZGRlM2YwYzU2ZGEwZTcyNDZmMzcxNTM4NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjEzNTEzZDMxNzdkZTU3MDE3MWNmMTdhNWUyMDVmMzgyYTVkNmI2MzgyMTk0YTE1ZmViODk3NmViMzk3NDE3MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ee17ba855ab04ed7ba4b4959e1a53838",
+      "statement": "正常调度任务的 biz_date 由每张表所属源日历的 businessDate 推导：切日之后游标指向明天，然后取该日历中游标之前最近的业务日；全局 BIZ_DATE 仍以交易日历为锚，两者可能不同。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L120-L150",
+          "version": "repo-lines-v1:sha256:a04e0e0a77fac23e0453abd20840baf97b0ede6100fde502f0e6c01559862226:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5YmYxOTQzNmQwMzkyMGRhYzg5OWVlY2RlNWViZGZiM2FlOWNjZjM4ZGI5MWY4NTAwNjgzYjNkMWJjYWFlMjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxMTUyNGI0MDI2ZjRkZjk0YzkzNTFkMDhiN2Y5YTQ5NzM2ZWZjZTQ3MzJmOWVjZmYwNzNiM2Y5YTViZmY2OWIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L116-L136",
+          "version": "repo-lines-v1:sha256:58d02c2c333a110ac4bf408c5af4e029647fe3f3c9ecf70d896791e3b62f4c09:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjNzIxYmNiNzI5ZWZiNDRhNzdlNzVkODI1ZDhiMDc3NmVhYjY0NjIzMjdhZWYxZjE5MTgxNjExZDc5NThlNmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhOWNmOTNmYzI0Zjk4MmU5MjY1NGM4NTU1NjVkMTAxZTlkOTlhZTRmNzk5NTdhYzg1N2IyYzYxYWE1MmI0MjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4Y2FlMWIzYzMxOWY0NzM2Yzk5NDdjYjRjNDIwNjFiZDIwMGU1MTFlNmJlOWMyYmY5NjM5YTQzZTY0M2MwOGQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1272-L1281",
+          "version": "repo-lines-v1:sha256:f25416a2511ea0910eb15a9237c1afa5c3962e4310a0263c42cf22b62ca9ce8e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzMTA2YTQxZGY2MDFiNjM4YjAxN2U5ZDJmYWEyMmFkMDdiYWJmYzA1ODYzYTU1MDE1MWU2YjVmYjc3MWNlNzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NDRmZWQxNzBlNjU2ZWZiMzZlNTI0NTMxODljOGMzNjVlNTcyOTZiNjc0Y2RmZjg3OGE2YTEzZmIyN2M0ZGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_950a91b8a53240d1a12764b6117e43a7",
+      "statement": "表级 start_at 覆盖调度由 master 每分钟扫描 [now-2min, now]，窗口跨午夜时拆成两段；切日边界会裁剪扫描起点，避免同一分钟在新旧 biz_date 下重复入队，且每张表仍按所属源日历门禁。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/TableOverrideScheduler.java#L48-L48",
+          "version": "repo-lines-v1:sha256:61e8df77e2667eabdf7c85ccaa3e928275c2ba869204f95e51a14eb4d4103a27:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjFlOGRmNzdlMjY2N2VhYmRmN2M4NWNjYWEzZTkyODI3NWMyYmE4NjkyMDRmOTVlNTFhMTRlYjRkNDEwM2EyNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjFlOGRmNzdlMjY2N2VhYmRmN2M4NWNjYWEzZTkyODI3NWMyYmE4NjkyMDRmOTVlNTFhMTRlYjRkNDEwM2EyNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDg2N2I4YTBjZGNjODE2ZDAzMDVhODU3NDExOWZjMmVhYTAwZTZiNmM1NTAxMmQzNWZiYTBiN2M4MjZhZjVjYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzU2OTcxNTNmMzI5YTk2YjBmMzQ4YTFiNzY1MTViN2NlMzZkYTMzNDAxYjA1NDBhMjU5NGU1ODgxNzM4NTVkYSJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/TableOverrideScheduler.java#L82-L148",
+          "version": "repo-lines-v1:sha256:d0fec01f98633261f3fff027265c562fda49f3f43e2766d10ea82bc6d19938f4:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjM2ZmN2JiOGIzNDg4OTU4YTU3MGM0NDliYTIxNzAwMGQ2ZTMxNTY1ZTIwMjhkMGI5MjMwNjM5MTkyNzAxOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyZGM2Mjg4MGZlMmM0NjRlNmY1YWNiY2Q4YjIyMDRjZDA4NGNhM2RhYjM1OWZjNTg4ZWFlZjI2NzFhZjk2YWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkMjVjYjllYjY0ZjhkNDgwMjFlMWRhM2YzYjgzZDY2NzRmMzgxMmMwZTc4YWYyNmZjNzA5MzczYzdiZDNhZmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a6183e1a82444e82931bd05394d52d2a",
+      "statement": "evaluate 对自然日总是放行；字典日历中不存在的日期返回 NOT_BUSINESS_DAY；日期超过最后覆盖日（包括日历为空或读取失败）返回 CALENDAR_EXPIRED 并拒绝采集。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L222-L240",
+          "version": "repo-lines-v1:sha256:e9f76466358c7ee79a4880fd62f655d1226f0c95932eb5ac7bb1173be299e22c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhYjVhYTg5ODY2ZjY5MmM2MjZmMjgyZGRjZDRkYzgzOGJmYmJhZjczZmU4YjY3N2UzMzMyYzczMmVlMjkyZGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyY2MwZDQ0ZGRlMzkxMDE4YTQ1OWMwNmIwOTBlZWVjOGRmNTA0MTg4Mjk3MzIwMmQwYTc2NWZjOTM1NjRjYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIyYmM4YzYwNWIxYzExYTMzYzQ0OTAzNWJkY2FiN2MwZjAyYzg5ZDVjY2MxOWViYzAxMDYyZTJiNGQxYmM0NzAifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L64-L82",
+          "version": "repo-lines-v1:sha256:41841f79ba000b314a70f2efa4232c2b3fc7579e33ec7dcdd3a2cc828f58fa89:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2MjkxODMyZTY1YjM3YjQ2YjNlNzFjNjA5MDVlZmNkZTdkY2E2NzIxNjFmNDQ5NDg1OTE0MTM2OGJmM2NjMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1YTk1NTY4NDQxODdjZmNlMDA5ZDNiNDk5ZDJhOTkwZWYwZDBiNTVmMzY1ODU0YjIwMGVhNjk5MjlhN2MzOTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_04cf80b771fd4bfdbd67ead7649666fa",
+      "statement": "日历耗尽时，每个日历每天最多发送一次企业微信告警，去重键为 etl:calendar:expired:{calendar}:{yyyyMMdd}，TTL 2 天；Redis 标记写入失败时仍发送本次告警。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L185-L201",
+          "version": "repo-lines-v1:sha256:6057edf24f852515f242756aa6b0038aaa1c60139156984950df9fad6b672e06:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0NzIyNjU0YzQ4YjJjYWYwZWYzODZjNWU2MWQyNGU5ZmE0YTBiZWNiZmI3MTNiZWMwNDc1YWFkNGY3MGFkOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3MzlkOWNiM2JhZGU4Yjc3MDIxYWUzMzliZmZiZDViNWIzYzkyMDIzMWJkZDYwM2NiYmZjNWRlMGMwMGUwYmEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L274-L289",
+          "version": "repo-lines-v1:sha256:649d233c35a32992e8805d58e24f09dd44ae645e64ecbe97848fbad383d39da8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkOGYwNzE5YWQ3OWVkY2EzZTUxYTk2MGE0YTdiNDE3YjNmNzM3ZjNmM2RjMWU5NjUzMzdjMzFlNzRjMjZjYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNkN2YxZjI3YzAzZmE2YTAxMjU5MDJkMTlkMWVlYTI2MjhkN2M2MTFhMGEyYjk1MjQwMzdkZDUxNDkyNGI1ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhZDgzNmU4OTNkYWRmM2ZlMTJjOWEzNTgzMDJlODY0Yjc5NWI3NDExYjljMGZjZmM0NjE0MWZjNDliMDgzNmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4e75e88094744493b98312b1bb3acd19",
+      "statement": "GET /calendar-coverage 返回每个字典日历的最后覆盖日期和 30 天内的到期/过期提示，字典页会加载并展示这些 warning。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/ParamController.java#L49-L71",
+          "version": "repo-lines-v1:sha256:77ee10dfebde55f6bef7a78fb0f54cece35a5d20c9e11b66e6b7080fba0b7c58:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyNDUxY2M3NmM4MTZlZjU2ZGNmYWE2YzAxMmYwMWU1OWU5N2MxZDQ2YWI5MTk3ZjZiOWFlNzE1NjkxNDU1NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhYTRmYTBmM2M1OTk1Y2U5NTk0MjU3ZDQyMDE5N2ZhZDM4ZDBlZDQ4Yjk4ODAxZWVlNTA0ZTEyZmQxZjRkOGUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L204-L219",
+          "version": "repo-lines-v1:sha256:4a63611bb83524d4c85743e8efd2b16d51e02128608e46557b6dbac4c285aef9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3NGYxY2FhMTRjM2I1NzAyMzU2YThiZmU2MjhlNTMzYzJjMzVjZTliZmEzODI2MjdlOTliNzg0NTA0ZGViNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5YzEzNTkwNjY1NjMyM2QxYzVlYTQxNjU0ZWU2NmFmYjU4NWFjZGNmYWVhY2ExMjFkNWUzMGJmMTkzZWVkZDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyMTI5NDkyNzA4ZjkzYTU1NWI2MzRkMTMyMTI3OWY1YmM0MzNlZWNjNGQ1ZjllYWZiYzRhYzhjZjAzMDNhMGEifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/dict.vue#L657-L668",
+          "version": "repo-lines-v1:sha256:89c69a8c7913fb94a9df2b10367741406091ad1105e8756433fb9d25085c9e7a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1NjgzNDgxZjg5ZmE3ZTQ0MzcxNmJiZTYzYjg0NjZkMGFlZWUwZDVkYmFmZTMyMTUxM2JiMjZjNzc2YjVjMDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyYTJjYjI1YTEyMmI0NDIyMWE2MjM0ZWM2NjBhN2I1ZmI3ZjliZGU3YjNiOWUyYjNjNTU5YTBkOTZmYWM3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlN2FhZTYyNjBkMGU4MGNmMmU3MjVmOTljMjVjMzVjZmRjMTM4MDM4NTlhZGYzNjUyZDkxOTU3NTc4OTMwZTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwMzFmMzdlYjBkNjQ5YThhMTY5ZmRlZWJjMjNlNzZjMjcwZGUxMWNjOTk4ZGZlMjVmNzQyNzI0MjJmZjgwNWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c5505cb316fe4e51a2b97f95a8a09ded",
+      "statement": "日历查询结果缓存 1 分钟，因此修改日历后最多约 1 分钟生效，不需要重启。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L28-L30",
+          "version": "repo-lines-v1:sha256:318d6fa28f0231e6c7ea349ec5281372ad3bc082e8e6130a2df9902945ed0ddb:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGZhZTUyMDdlNWRmNzEyMmRjNGM5YWNkNGM2NzM2MjJiZDJhNGE2NTBhZjkyY2I0MDQ2MTI5YmFmZDFkYjM1ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWYzMmMyNDU4ODkxNzVmZjJlMGJmOWUwNzcxYmIxNTQ3NzY0YmQ2OGM3YWMxM2Y3Y2M2MjM4NDI1YWQ0NzkzMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2QwYzRhM2Q3ZmE0NTMwZGNjODgxMTM5Yjc5MzAwNGQ3MzhhMTNkNTQ3ZGJmMWMzNTU4ZmU1NjRiNjZmZTA4MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTMxMjA3ZWYxMmIyYmZkYTVjZWM0ZmE2M2Y3YmQyY2U3NmQ0YjhlZWZiNDY3YmNjZjQ3Zjg0NmRmMmRlN2JlNCJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L313-L323",
+          "version": "repo-lines-v1:sha256:cb116b7cbe13af0023b1bdf1cd0e3e2577b87e587e9566b0f18a228656f1a10c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExMzM1ODRkYTU5YjdlMmI1ODM3NWVkMWY0ZmQ0NzBjNDQ4Y2YxNTIwYjc4NWZkMjEyNDQzM2ZhMDcyZmEyZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L39-L39",
+          "version": "repo-lines-v1:sha256:6cb2d59dfcef6bd599401306315bcf22250366381594933fb33bde774a82cb65:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNmNiMmQ1OWRmY2VmNmJkNTk5NDAxMzA2MzE1YmNmMjIyNTAzNjYzODE1OTQ5MzNmYjMzYmRlNzc0YTgyY2I2NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmNiMmQ1OWRmY2VmNmJkNTk5NDAxMzA2MzE1YmNmMjIyNTAzNjYzODE1OTQ5MzNmYjMzYmRlNzc0YTgyY2I2NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTgzOTc1ZTQ0N2Q3NWU3ODY0MTVhNDU4MDAwYTViNWU0ZWI1YjBhZjU2NTk2YzJkMWE5NTU2MWZkN2Y1ZTlmNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGM5YzBmYjZiMjRkMTQyMGUxNDc4MzZiNGQwYjRmN2IzMjY2NzMyMzFhMWJiZjdiZmE4OTlkMjQwN2U2ZWM2YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_c69358285a4a4393b6e52eab32f01982",
+      "statement": "previousBusinessDay 在日历耗尽或读取失败时退化为自然日减一天并记录告警；这与 evaluate 对耗尽日历拒绝采集的方向相反。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L138-L150",
+          "version": "repo-lines-v1:sha256:08c3b0c2199aca333d56da9045a0ee2f5fd8033c1bf0626f578eb2517e181323:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2NTAxNjk3MjI3NTA5NGY4NDk4NDgyMDZkMDFlZTc1NjI1OTVhMjdkMmUwNzU0MDU4NTM5ZjgwMmFmYzFjZGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxNzJjNGYzMGRmNmQ3NGJhNjA5YjQzNjBlMWQwMDg4NGQ3NjFkNDA3ZWM2ZDkxYWMxYjRlOGM0YWZlMzEzOGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYxMTUyNGI0MDI2ZjRkZjk0YzkzNTFkMDhiN2Y5YTQ5NzM2ZWZjZTQ3MzJmOWVjZmYwNzNiM2Y5YTViZmY2OWIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L64-L82",
+          "version": "repo-lines-v1:sha256:41841f79ba000b314a70f2efa4232c2b3fc7579e33ec7dcdd3a2cc828f58fa89:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2MjkxODMyZTY1YjM3YjQ2YjNlNzFjNjA5MDVlZmNkZTdkY2E2NzIxNjFmNDQ5NDg1OTE0MTM2OGJmM2NjMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1YTk1NTY4NDQxODdjZmNlMDA5ZDNiNDk5ZDJhOTkwZWYwZDBiNTVmMzY1ODU0YjIwMGVhNjk5MjlhN2MzOTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_02c44d5c690a4679acdb8e6978683685",
+      "statement": "缺数监控按每张表所属日历生成期望日期集合（businessDatesInWindow），而不是按自然日，因此工作日/交易日源在休息日不会被报缺失。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CalendarService.java#L164-L183",
+          "version": "repo-lines-v1:sha256:8953ee733d92c822826eb0b92b01c7e79cb5aa665a5274043d5fcca841f9275f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwZjJhNzgwNGQ2MTFhNTVmMGY4ZDhhOGJkOGQ2MTY5MGI5ZDBiYTc0YmFhNWU5M2MyYjNjZGU1ZGNkNzhhMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzNWU3ODhhNWYzNjZiNzk3MDllYmQyMmE5ZTZiYjZkMTAwM2EzZDkyNTE2ODczMDgwZGFjMDUyYWM4MzFjMzgifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/StatService.java#L505-L527",
+          "version": "repo-lines-v1:sha256:dc976cdf2ea44e545ca12d7f540a25a8bf19fc2e1b76876af62ff24bf4641d85:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzOTI4ZDg5OTc4NDEwY2RmYWRjNjVkMjlkMjYyMjJjZWRmODQ5NDQ0ZTllZmVlMDljNzU0N2QwZmI1YzllYjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc0NzRhYTQyNzhlZmVkMzcwNTM5MDViMDZmZmIxMTEzYjAxYTlkMWQ4ZDRhMTJkYjdiNmU2NmMyNjI4YzU5OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyMWYzZjBlYzFlZmJkNTQ3NzQwOTQ2ZWFiOTE1ZGJkMmE0MzNlYzYzN2FkN2ZlMDc3NDcyMDY5NzNlODUxYTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a6442775cfdd41048379040e00f22f7b",
+      "statement": "切日重置和刷新后的状态重置只在对应日历当天为业务日时把表置为待采集；非业务日保留上一次状态，避免周末显示未采集。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L452-L469",
+          "version": "repo-lines-v1:sha256:9bfaa6d8398b592c0a39c824f9fb28aec471a469a6c54fe20ecb6025f748bf5d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIwNTNlMjYyOGRlOTY2NGVlZDZhMDY3MDY2ZTE1NzNhNDU1MzU0NGEyNzhmZDFmNDhhYmU3MWRkMmUzODZhMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4ZmQ2ZWEyNmJjNWRkYzMxMjdlNjhjYmQxZTA5OWYzMWE0YmJkOWRkYTA4NTY4ZmY3MTc1MzcwNmQ2NjdhZDQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L562-L587",
+          "version": "repo-lines-v1:sha256:efaf2868099943dc0a874e2e5c46ec744896dee8ce5da30fea5747bf9c304cac:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmYWFkYmRkMDdkNTVjYTc5ZjVkOWM1ZmJhMjBlNGE3OTgxZGExODQ4MGVjMzlhZDgxZjBmZjY5ODJjNjY2ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI4NzhhYWEyYTM3ZmRjNDhhYThiMmQyOTk1MTYwZTM2NDBjYTdkOTY0MDZiZjI5MWRmZDczYzZhYTMwMzZmZTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1d01ca40a5b84b3f9407a266c4819b19",
+      "statement": "工作日历批量生成以周一至周五为起点，不覆盖已存在的日期，从而保留人工维护的法定节假日和调休安排。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/ParamController.java#L284-L303",
+          "version": "repo-lines-v1:sha256:59cf30b13852891b4527d521b80bbe87af82cf028b5870a3b49dd340355a4661:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2NmMwMzg1MmNkZTIyZDc3ZjdkMzQ3ZTY4MjFhZjMwYjBmMmEyOTdmYWIxYmYxOGQ4MDYwNTc1N2JkNzdiYTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyYzc1ZTZjMjc3OTE0MjkwODIzNzE1NWZmNTZlYzUyMTNjYzNlODZkZTA3ZmRiNTEwZDYwNTA2NWE2MjY0YjIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DictService.java#L597-L632",
+          "version": "repo-lines-v1:sha256:9ccf76b56a447274f11165871e84d041e8bfc7dab974694b11ee50527b7c263f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2YzI1YjUxNDhjNDg3OWQzMzhiZDk5NTE3ZDk0NDc4MmU0NTZkZTkwNTUwMGNmZDQyZDUwMjZlNDk3YjM0YTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyNDU5OTljNjQyOWFiYTEwNDhjOWVlNzUwOWFmNzI0ZGVkYTE2NjNkMDgzOTAzODllNTZlMDljYzc2MWIzMjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fb608ebda9cf49deb011a186e68fb068",
+      "statement": "交易日历年度补全优先使用 SSE 官方数据：成功时权威增删该年日期；接口失败或 SSE 休市日少于 5 条时回退固定规则，且回退数据只增不删。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TradeCalendarService.java#L100-L155",
+          "version": "repo-lines-v1:sha256:1dc97c4e9391a28dd44a01f9a64a90306f3da766b4e59f949e0d0d22fcf3cac4:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxMGI3MzkyY2JkZWMzZDA0ODA3NWIzYjIxZmVmYTFmOTc2ZTAwNTY0NzM1NGY1YTNmZDBlYzVkM2RjOWY1N2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzNjlkOWQ5MDg2M2Y0ZmY3ZGJiNzY3ZGRmMjA0YjM4OTA5ZGNlZjBiMGU3MGRhNWQyYTY1ZjJlY2JkNWMyNzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNmNjM3OGJjMmNkMjI1ZmJkZmFiNmRhNGE1N2EyMGQyNjgyMzg5OTVmZGVkZDVhMGRhNzhhZjVjNGEyYTU1MmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TradeCalendarService.java#L269-L308",
+          "version": "repo-lines-v1:sha256:765b485f85d460de826237ec7c732ce9a70b6d191823f39c87a58d6dcf85cfb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhODZiMTdlNTkzNTNkZDJhYmM3MmQ3MDJlM2ZlZGJlY2NhYmE5NTlmZDdjZGM1NWE2YTMyZjIxNTRiYmZkYzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxOTgwNDA4M2I1Nzg5MjRmNjlmZjNiMTViMzk3YzAyMWU3YWUzNzMzNjk2NjkwOGUzNDY4NWZkNWFkZGQyYWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyMzYxZmY1OTc0MDg3YjQ0N2NiM2RjZTJhYTFjNmUxY2ZkOTUxM2ExZWUwN2RkNTNiYzZjOGJhYWQ3NGM4MWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4OTkyMjUxZDlmNmJjYjU5M2NkMmJjZjMxYmQ2OTQ2NDE4Njc3YjIxOTcyN2Q1ZmNmZTc0Y2E1MzEwODUyYzAifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TradeCalendarService.java#L43-L55",
+          "version": "repo-lines-v1:sha256:7d16dbeaa64d00934190375fcac6015269188cf27408e73d816862f15c0c5d03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0NjgzNzQ0MjMyNDRlODRmMDIwODQzN2RkNzE0OThmNTdiMzRkNjFhZWI3NmMxYmY3ODMzNmRhZmFlYzAzYzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU5YTMxYWU4NmExZTFhYmI3NzIzZDBjYWUyNjYzZmE5ZjgzZTY5ZTJjODk1MDVhN2U2ZGRiMzY1NzljZWQxYzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5ODQ4YTJjZTI4ZDdiNDIwYTFlMjJjNzgzNzdjM2Q1NzlkYjQwYWYwYjE3YzMwMmIzY2MxYzJhMzA2OGQ3MDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzMTIwN2VmMTJiMmJmZGE1Y2VjNGZhNjNmN2JkMmNlNzZkNGI4ZWVmYjQ2N2JjY2Y0N2Y4NDZkZjJkZTdiZTQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TradeCalendarService.java#L69-L73",
+          "version": "repo-lines-v1:sha256:33b91c259fec5b92286012107db9e4b99f553dd33520edbbfa3bf29ee4897446:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzljYmJjNjU0NjlkYjFjYTI4NDJlZmQ5N2RmN2VlMmNlNmNjMTU3MTQ4MmQwMWExOGI3OTBhMTBjN2M1MTBmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWI4YWY3ZmQ5NzA5Yjg1NDU1MTNhOWY0MmNkZmQyZDVhM2I0MzU3OWYzY2Y5NzQ3ODE0MTk1MzYzZTc0MjQ5ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNmFkZWZiMDc2NTNmNDRlMTk2YjUyM2E1N2U0ZDg5Y2ZkZTBlNzEwZjBkZGFjMzI2YzVhZGJiNmU4NDE3NzlmOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGUyOTFiZTk4ZDg4ZGFkZWIwYWIyMzQzNjQ1OTc1MmE0MzhhOGI5MTdhNWVjMDhkZjAwN2QwMzgxMTk3ZDk5MiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_11accf3ba8484d25afa9901622b4dd51",
+      "statement": "日历生成与交易日历补全分别写 CALENDAR_GENERATED 和 TRADE_CALENDAR_REFRESHED 审计。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/ParamController.java#L298-L301",
+          "version": "repo-lines-v1:sha256:090faa3f7b410fd45fa1b6d167e51387c8ac777ae438c478dfa6587c69ccb96a:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWYwYTAwMjNlOTNiZjRhZDcyNjE4NjZmZjRlMzc3YTA5MTc5ZGJmOWYxMmVlMDAwNzJjY2U2YzdjZWM0NDY4YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWViNzY5YWM0ZGIwZmQyZjhjZWMwMDRkNTg2NjQxYTM5MjZmODg0MWE4ZTZhYTdjNWY4ZjEyZWNjOTE4NmYyOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWVlOTAxOWRkMWI1OGRmNzk2M2VmMGIyZjEyYWUwYTIxMzNlYWNiZDY0ZmY5YzhjNmQ3ODFkNTVkMDU2N2FiNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDdhMDE1NWNhMTVkY2I1YTBlZDU3ZTUwMDQzNDBhMTE2ZWM3ODA1ODUzOTgyM2M5OGEwNDM2YTc0ZDcxMTlmNyJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/ParamController.java#L323-L326",
+          "version": "repo-lines-v1:sha256:9889fe336be4bb56133cabf902b7922f9a2858b05f9c29d9e5d6c5c33e5f5623:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTg1N2ZjOTkxZWY5MzEwMTQ0ZDExNDU4YjkyODE1OGZkMzQ1Yzc4YmMyNTYxZTllNTZiNWFjYmQ5NjA5YmJhZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWM0MzMxMjBhMmY1Nzk4MDliNjE5ZGU3MWYyMjI3MTlhYmFiYTc2ZjMzMmUzNWZlMDFjNDU2MDU2NzQ4ZGJiOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTFlMzg2ZGNkMzg3NDI3MWVhNjc4MjQ3MDIyNjlkZTI3NTNkMzUyYjU4ZGJmMzRhNDFhODE1ZjEzMTllZWY2ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWNjM2RjNTc2ZGMzZjk1YzA5M2Q1NTExZTA2NmFiMzZiNjFkOGJjMDgzMjAwOTRmOTI1ZDhmNjM5MWMwYTIwNyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_4de4ffca75ad45868a35e77f4c8f4b03",
+      "statement": "补数入口在采集表批量操作栏，RETIRED 范围不显示；对话框按选中表数 × 包含端点的天数实时计算任务数，超过 20 时禁用提交。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/FillbackDialog.vue#L122-L122",
+          "version": "repo-lines-v1:sha256:94682febe914b255284da8d824358ea8bf25a1f14251ed5e32bbb7f8e0ad0453:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQ2ODJmZWJlOTE0YjI1NTI4NGRhOGQ4MjQzNThlYThiZjI1YTFmMTQyNTFlZDVlMzJiYmI3ZjhlMGFkMDQ1MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTQ2ODJmZWJlOTE0YjI1NTI4NGRhOGQ4MjQzNThlYThiZjI1YTFmMTQyNTFlZDVlMzJiYmI3ZjhlMGFkMDQ1MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjMzMGMzNTFmNTIxOTY0ZDU0NTUzZTMyYzMzYTNhODExZTcyOGNiMjY3NGVlMmQ0MTRlMDIwYjdhZDQwN2RjYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmE1MDdiNGFlMDE4ZWU2MmMxNDE5M2YxNzU0NGRiZDZhODlhM2Q0OGUyYWQ4ZDg5MjRiNDUwNjBiNmQ1NDgwNCJ9"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/FillbackDialog.vue#L140-L153",
+          "version": "repo-lines-v1:sha256:6751be441a7f52343b74cee78e7e2e763aacf9a75f5b0c3db437671eee3f4027:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkODFmNTMzYjNhMzEyMzZhYjIzOGU3NmE2N2FhOGE3ODAxNjIwZmYzMzQwM2VmYmQ4NGNiMTAyMDA1YmQ4MDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1ZWYwMWJjMDhkYmMzYjYzZTRlNzVlYTNkMjZhNWI5NDE4OTE4NzdlMjdhZDg5MTMyOWM4NDExZDdkOGRjNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkMDk1MmNmNGEwZTI5ODkyYWIzNzljNmM0NzY5ZjAwMTdlMWIyNjFkODQ2N2U5MzEyZDI3NTU5MjE2MjNlMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2ZTc0MTc3MGEwNjI4ZjdkOWJiMDlkZGRjN2Y5YWFjZTUyYzE4ODc0ZTU5ZmRkNDQ5ZjMyNTcyMzYzMDdhZWIifQ"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/FillbackDialog.vue#L48-L64",
+          "version": "repo-lines-v1:sha256:62883ac903b97a247a914a7a8f560330e1f4a017c6e56c89bc834b6fd19364fd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwMGQ5Y2Q2MjQxZGI3MGEyYzg5MWE1ZmY1ODVjMGE4MDZmOGIxNjhlMzI2MTUyZGI0OGY5MDJhMjQ5ZjVkYjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwNTYzMDRiMGVlYWJkODhhZDRjYmRkNjBiZGY0NjY1MWFkODU3YWQxZTAxMDRlNDJhYmZmNmIwNDNhZThlYTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMGVmNmViNDJmZjZiYjdhNTE5OWMxNzg2YTA4Yjc3YzA2Njc0ZDQzMTkwN2QzNTU4YjE5NDk0M2YwMWNkZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0NDdlNmQxYzhlYTg4OTNmOWUzYjdiMjBlOTZlYWM5NjU5NTI2YzQ4MjA1YWU2YzYyYmQxMmVmNjMyOTQ2YzEifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L145-L160",
+          "version": "repo-lines-v1:sha256:4565103e1bd6d9bda8496f834bffd0bb2543bf43ee28e5f4ef5086dea285c413:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMjE1ZmQwM2NmYzJiZWViZjgwNGExN2FjNWU5NDc5NTFmN2NkMmRjMDU2MDUyMjQ5OWM2MDZmZGJjZDcxODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkZWU0NDk4NzNjNDJkNzRhNzBhYjk0OTcxZjY0MDA0YjA2ZTczMmYzMDVjMjgzMGQzMDFiZDk0MTdhMmZiMzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg1YTNhM2Q2YzQ0NzU4MGIyYzc5M2UzYWQwNDY5ZjE0ZjRjZWQxM2Q2NjMwNDc5MDc0NmNiNGY4NTJmMmRmNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhMzAyZTkwODQzMTM4MWFiYjFiMzA2MmQ3MDMwNmJjYzg4MzEwZWQwNmQ1NTQ5N2U2MGQyOWYwYTc5NjE4YmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_98d21c8e2b3a406fb7995e5ebf1f2fba",
+      "statement": "POST /tasks/fillback 按表 × 日期范围内每个自然日（含端点）逐项入队，不按采集日历过滤；表数 × 天数超过 20 返回 400，队列刷新中返回 409。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TaskController.java#L254-L279",
+          "version": "repo-lines-v1:sha256:d5fc49033cccb464fa47f6b20da86c8c25a2fe9bb630d8cad50b6e33926f2235:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMDUzMWI0ZjVlYjU3NjA1ZjhmODkzODk0YjQzMzljMjhmMTRhMjAzODc2OTY5Y2RjNTJiYTQwYzcwZTBhNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliNzA3NmYyZTNlN2Q3ZjdkYzk0ZjA1NmI2YmM2YzVmNTc0YWIxZTk1YTRlNzUxYmM1OThjYmU1YjhhODk1MzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L347-L369",
+          "version": "repo-lines-v1:sha256:17f09cac766e303e27b774259f4c003f6b3c26cefb729291b9b47d4da38c7d73:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhYWU1OWI3ZGE4MWVlZmRjZjY3NjA0NWU5NDM2NDM5OTFlNzEyOTA3YjQzY2U5MDJhZDQ3NzhhMGJhMjUxNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhMjBjMzNjYjM2YTMxODFjZTIxYTVkMGFjYWE2ZTU1MTU4MTYwOTNmYTBhOGI3NThmMDU5MTIzOWFlOTI5YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4ZDU5OWYwY2UxNmRlNzczZTY2NDBkYmEwOWEzOTgyY2JlMTAzZjU3OWM2NmFmZmE2NDc0ODFjYWJhNjJlZDcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L406-L417",
+          "version": "repo-lines-v1:sha256:2083f7f6f6471a8b9709a1ec4d6d108060863e0b3f6a52a43b53fa9e3c86d4fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMTc2OTg0OTI1NjVkMzkxYjM5ZjJjYTlmNjk1ZDdmOWM0OWJjZTVjNTA3ZWJlZDEzN2M1ZTUwNDAxZTBjYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwZDk0NmI2YWE3OWY4Njk1MmQxODMyYmEwYjNkYmMyZmM5MDZjOTQ4OGNlOTE0MDlmNzM1NzhiMWFhMjZhZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4ZTE1YWU1NjI4Y2IwOWE4YzFkZjdiYzE3MTg5ZWIwM2I4MmFhMGUzODZhYmEyODM5ZThiY2MzYTc0ZDBjMmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_eac909decf1e4f78b709ac74ee188e75",
+      "statement": "补数跳过表不存在、已退役、表视图不存在和无日期维度的表；只有无日期维度会额外写 risk_log WARN。日期维度由目标适配器判断，HDFS 分区或 RDBMS 业务日期列都算。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L376-L404",
+          "version": "repo-lines-v1:sha256:5962873c18747ab85aae67fcfa7f4d556cc8b363104e3f797ab2fd1747ddedaa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjYTgwNTE5MWIzYjQ3NjZkM2Y4OTA4OTg2ZGZhZDllMWMzZWQxNzZiNDkyNjA5OTk5ZTUyNzA4MGU1YWVjNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1YmQ0NGJiOTBjZTQ3NjUwMTAyOTQ0M2M2Y2FjZGZkN2FiMzgyMzI1NjAzNjFhZmFmNGNiYTNkMzA2NzJkOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiMTliZDYyZjg2NWQ0N2E0YjQzN2E0NGU0NjkzZDQ3YTg0M2M4ZDFmODFmYWQwODQ4YzllODQwNGMzNjBkMTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_65d7b680f4bc4c32a272cea055175e90",
+      "statement": "队列活跃唯一约束是 (tid, biz_date) 且只覆盖 pending/running，因此同表不同日期可以同时存在活跃行，同表同日重复入队被抑制并计入 skipped；补数不查询 etl_statistic 是否已有该日数据。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlJobQueueService.java#L66-L79",
+          "version": "repo-lines-v1:sha256:fc36991350f60c1cd6b48a6febb757d849c983b2f212680d4a6abed478e79f2f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiOTRmNDc5NzQwMTVlYjA1MzMyYWZlYTU3ZjI4ZmEwNjY0OTcwMzA0ZjkxYjhjZjJjZTkyM2JhZGEzZTE3YjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmNTA2MTUwY2U1ZWMyOGQzNzVjODQ2NGZmYmM5ZTYyNWY2Mjk2MjJiMDk2NTVkNWZhMjY1NGY3MzBlYzdiNGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmNjM3OGJjMmNkMjI1ZmJkZmFiNmRhNGE1N2EyMGQyNjgyMzg5OTVmZGVkZDVhMGRhNzhhZjVjNGEyYTU1MmUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L406-L416",
+          "version": "repo-lines-v1:sha256:b7bfc9193e4021af072919a3f05d7f669f028c015fc7097ad28e020ef4cc4305:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMTc2OTg0OTI1NjVkMzkxYjM5ZjJjYTlmNjk1ZDdmOWM0OWJjZTVjNTA3ZWJlZDEzN2M1ZTUwNDAxZTBjYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwZDk0NmI2YWE3OWY4Njk1MmQxODMyYmEwYjNkYmMyZmM5MDZjOTQ4OGNlOTE0MDlmNzM1NzhiMWFhMjZhZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkNTA2ZDgxODMyMjljM2Q3NDIyMjYxMGM3ODVhNzJkNDc3M2QzODk0YzI1ZjNiM2JiMWFmYWFlYzAwMGY5MzkifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L355-L359",
+          "version": "repo-lines-v1:sha256:83244190314d7428cc23f8d40e2a92755c6f61636ff4211fb51b0830b67b26a5:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWU3NWE0ZDFhYmYxMzQzOTgzOWJkMmI4ZGU3YjA1ZjViMDc1NTc5MjJlNTBkZDllYTc1MGJiMmU1NzRiOGNhNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWEwMWYwZDI1ZDg4NDJhM2Y2OGM0ZWMwYTI0OWQwYjg1YmIzMWFjZDdhNWZmMWMzODdmYTYwY2RhYzU4ODcxYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOThjNTIxODJjYjE0NTQyMjZkZWY5OGRhNWU4YmNhNzYyZTQwM2IwMGMzY2QzNWRiYjAwY2NkMmY3NjA2YjQ1YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODYzZmE2ZWI0ZTE4ZDA5ZTA4MTE2ZmU3M2U3NWY3NGI0ZGYzNTUxZGIyOGZlOGI0ZjQ1YzE5YTY0ZDQyOTk4MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_c99aad85296e46e9a8648142f6e39a82",
+      "statement": "补数任务 payload 包含 submitter、action=fillback、fillback_date；每张表写 FILLBACK 操作流水，接口写 CRITICAL 审计 COLLECTION_FILLBACK_SUBMITTED。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TaskController.java#L271-L278",
+          "version": "repo-lines-v1:sha256:43257a71d9978966176672f750b8ac8721db8d91d75a86de6e8cdfa47f87622b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjk5ZTkzYjIxYjk2MGY4NThkYTFlOWIwYTE0NTQ0MzU2ZjE2YmM4MDAzNTNlZWY3MDgyZGY1MmUwYzVmNDU1NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQ1MjNjOGRjOWJkMzVlODkyNDA5NzkwZGRiNjY0Mzg2ZmRiYzQ3ODQ2YTUyM2M5NDFjNjU2YWE5ODA4ZTFjOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTZmZjcwZDBiNmZjZTQ5ZWFiYmUzMzcxYTJlZDBhMjI5ZjE4YWViOGMzZjg0YWFiY2M5MWIzODQ4ODY5ZTQ2YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWU2Mzc5ODg5YzU1MmFmM2EwNjM5ODI3ZDIxMDYxODVlNTM4YTNlOTdkN2QxZmM2ODBhZWMwZjBiMDU4YTA2OCJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L419-L439",
+          "version": "repo-lines-v1:sha256:ace6d74c81edcba6f6137db10e15b1743f772f121ae73ea7872001f0f9f96133:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNzRiMzhjNDE1NjU1NjM0MDQ1OTI0OTQ4OTI1MTkwYjUzMmE2NjlhYTJjZDU2MjAzMDRlODcxYTQwYjVmMmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkZGU2OTE4YzlhODZkNTc3MzQ3MGIyMGY2OTVjMzgxMTdjMTZkNTJmMmViZDM4MjI0ZjliYjIzODcxNzIwYzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3NjFiZjRiZTFiMWZjOTM5NDEyZDdiNjhhY2VkZmUyNjNjMWNiYzIyMjMxMjEyZGYzOTA5YzcyMjljZDE2ZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlNjY1MDM5OGI4ODAzZGMyOGM3NjEwMWM4NzQ1NTY4NDg2NDg4ZTlmN2FmMDZhNTY3YmExMDZlY2NiOTkyYzgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7715372383ac4e94a5006219da700e45",
+      "statement": "执行补数时，只有 overrideBizDate 与当前全局 systemBizDate 不同才调用 getJobContentForDate 在内存中重建 job；结果不写回 etl_job，相同则复用缓存模板；若 job 为空，执行快照直接记为失败，不启动 Addax。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L74-L105",
+          "version": "repo-lines-v1:sha256:bae5dfbdc971677b3d312f4656fed5be29ec11e90e18c9f804325510010d36b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmNGVhMTk2ZDY5YTVlMzgyMTU2ZjY0YmUwMWMzZmE4YjUxODQwMmY2OThiNTQxZWNjN2M4ZDEwMjQ4MGIxNGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxZWE4MGVhYmQ5MDc2OTE2ODllNjIyNGU4OWVlYTIwMDdkNDEyZGFhZWUzYWZlMzBiOTY0ZmJlNTFjYjZmMWIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1070-L1089",
+          "version": "repo-lines-v1:sha256:a45a9e25137c60331aeaee30c46d94763f1cf59f140b52ae82626f2ce455e0c7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5YzdlNTk0OTI1NzFiMWMyMjcyNjRkYzAxMjU0YTAxZGMxYWYxMDIyMzI1ZWFiMWZlZDExZjY3MDZlMjY1YzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzMzk5MjViMmYyYTliNDg5MDA1MmNmZmFjZWE0N2RhODVmNTA1N2I0ZGM0YjIzZjM3MGJjYjI4YjRjMTI3MzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhY2M1ZDg0M2ExMzc3YjIwYzc1NWI0MDQwN2QzMmQ4NmJmYjg0ZjYyZjlkOWU1MTRhN2E0Mzc0NmE0MTMzODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQwZGY1ZmJlYWUwNjM0YTg5NDFlMTlkYWUxNjczNDRhMDM2YWY5NmFmZGQ5YmEzMmU2NmYyOWU1NzU3YTU5NWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2389522b1f704d02ab02ba77d51467cb",
+      "statement": "补数 job 的 biz_* 变量按目标日期计算、curr_* 使用真实当前时间；增量 reader 的上一次采集日使用目标日期在同一日历上的上一个业务日，writer 也按目标日期生成。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L92-L104",
+          "version": "repo-lines-v1:sha256:0422b7e299eab002c60cbf2ea484724192301e0bae02c0fe070818c07f008b92:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmNTdlNmNkY2RjYjNlODU4YmViNTZiZDgyNmI0YjBmZmMyZmM4Y2M5YmZmYjE0ZjRmYjRjY2U2N2U4NmFkYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxNWIzZWEzNmEyZWIxNDk0NjBiYmVkYWQ4OTcwZTBkYTFlY2RkZDczYWEwMmQxYjI1YmRmNDY0N2VhMTA2MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ1Y2I0YWFlNjlmYmVjNjY4MDNiZDJjYjViYjYxNTM1ZDNlZGU5N2RmODI2ZGFkNTI2M2U2Y2FiMjg5ZDMwMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/SystemConfigService.java#L338-L374",
+          "version": "repo-lines-v1:sha256:c1000ceb2c6db8f3da9c95097f1c2b3b8ef089f656454773ea3a3c0fbc0b8220:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlYWE0NzBhNGFjMTI1YjVmY2I3MDUzMzc0NDM0NDFhNGY2Mzg1NTQyYzI3NjMzNmJkZTg4NjAxMDkwNmQ3NTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2f087542784d4ce9b42036924ab33cbf",
+      "statement": "补数执行快照记录 overrideBizDate 作为 executionBizDate；作业文件名包含 bizDate，避免同表并发补数互相覆盖。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1083-L1083",
+          "version": "repo-lines-v1:sha256:7945d968d7141a6d31e19823dd5c3159415ba96a952a75273a34a9779476079f:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzk0NWQ5NjhkNzE0MWE2ZDMxZTE5ODIzZGQ1YzMxNTk0MTViYTk2YTk1MmE3NTI3M2EzNGE5Nzc5NDc2MDc5ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzk0NWQ5NjhkNzE0MWE2ZDMxZTE5ODIzZGQ1YzMxNTk0MTViYTk2YTk1MmE3NTI3M2EzNGE5Nzc5NDc2MDc5ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjkwNTE1YWZjOTA2ZTdjMjFiMTRjZTI5M2UwODk2OGJlM2JlOWU3M2JiZDFjNWUzMDZjZjAyNTU1Njc2OGRjNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjNmODRiMzc3OGM1YmU4ZTNkMjdhODYwZTU2NmQ3N2UyNzEyZDlkOTQxNjc5Y2QyNDIzNDczMjkwM2NmMTNjOCJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1118-L1127",
+          "version": "repo-lines-v1:sha256:4b3dbc7a6b39b1a085249d56b0a79999507da965438a6153b0bf2b475434d66b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI3OGIwMDQ5OTcyNTg5YTkzYTA3OTUzZTk3NGRjNzE1NGI4ZWI5MTI5YmY2ZjdhNjk1ZDkzMjFlYWNkMmFkYzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4N2YwODI4NDBjZGRkYWY3YTVmODA5MGEwNzczNmM1NTVkM2MzMGUxZTQ4YWQ4YjgyZjE4M2E2Y2MwYmVmM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2YzgzYzBhMzU1ODVhNTJlNmRiOWVhNWEyZjcwOGY3NzFhY2ZkODE4YjhiNGY4NGViNjM2YjM0MDBmNGY3NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_14503a6044574261a908573af8eef3c5",
+      "statement": "日历门禁只存在于调度触发路径；补数直接调用 addFillbackTaskToQueue 入队，不经过日历判定，因此可以补非业务日和历史日期。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/CollectionScheduler.java#L88-L95",
+          "version": "repo-lines-v1:sha256:b3c2ba22bceb238e8efa0506f98dd337dcb5ce2586d1d01757ea3af7c21d1c91:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjEyYzA1ODExYWNiNTlkYzg5YjA3ZTJmZjdkZGIyMDFlNTc0OGU4ZWEzN2FhOWUxYzc0YjY0NmFjOWQwOWRmYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZDA4MTcxZGFkMjhiNGIzMTVjZDVkNmE1ZTM0MWJiNjI4MjRhZTYwYTYyNGQxYjIzNzYzZWQ4M2RlODNiNTkyZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzMyNWNjYWNlNDZmYzUxNWY2ZTBlMTUwYjVmYTI4ODczY2RkOTM3OTRmYzlhMGMyZGQ3NjU0NzhlM2FiYTVkMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2IyYjFjZjEzYzgzOWFlMmVhMTZkMmUwMGJmOWViMWU0Zjk4MGQzYTE0MTY1YTIyOTI5ZTg5ODFhNzJhZWRmMiJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L406-L416",
+          "version": "repo-lines-v1:sha256:b7bfc9193e4021af072919a3f05d7f669f028c015fc7097ad28e020ef4cc4305:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiMTc2OTg0OTI1NjVkMzkxYjM5ZjJjYTlmNjk1ZDdmOWM0OWJjZTVjNTA3ZWJlZDEzN2M1ZTUwNDAxZTBjYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwZDk0NmI2YWE3OWY4Njk1MmQxODMyYmEwYjNkYmMyZmM5MDZjOTQ4OGNlOTE0MDlmNzM1NzhiMWFhMjZhZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkNTA2ZDgxODMyMjljM2Q3NDIyMjYxMGM3ODVhNzJkNDc3M2QzODk0YzI1ZjNiM2JiMWFmYWFlYzAwMGY5MzkifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1302-L1311",
+          "version": "repo-lines-v1:sha256:6771bee2ce3db000a3dfbde83864ce849e067b37b511a905cf177f7561baf7c7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiMzYzMmZiZWZkYTRjODc5YjIxMmYyMmQ3ZjliNjY1Njg0NDRkMGI1YmZiNzQxYmQ4ZDQxYjY4YTdkMjEzMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhYTM2OTRlYTdkMTZjNWY1MGRmMDAwMTRiYjdmMDNjZjA3NGI4NzQ3ZGMzMTE1ODM0MWQ5OTU4YzUxMWVmMzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkOWJlYmJmMTc4OGYxODZlMDQ4MDc2YjZjNjBlMzNmODllYTQ3ZWEyZTkxZjliOWRjOTRhNWZjZWYzNmU0ZmEifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

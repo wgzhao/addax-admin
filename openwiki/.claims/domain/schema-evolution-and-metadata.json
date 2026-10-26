@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:4a431c783d513bb848e7cc21ff335c4a34dd04abe7447a0fdc41c5431d6ed348",
+  "claims": [
+    {
+      "id": "claim_9e440ee10cb14bdaab40550fad07c0c6",
+      "statement": "资源刷新统一由 TableService.refreshTableResources 执行：先解析动态表名，再更新字段，然后按 MANAGED/EXTERNAL 分支处理目标结构，最后重新生成 job 模板并根据结果更新采集表状态。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L66-L155",
+          "version": "repo-lines-v1:sha256:c5579375674ce86cab99a864b7d56657e436e9ebe92145fdabbadbbfcd65aa0a:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzZDgxNGM2YzJmZDkwYzEyODhjZmE2ZDA0NjE3ZDI5OWRjOWJiYTE0MjRjYTUyY2JhM2ZjYzBlMzY0OGFhY2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY1MzBiNmM2N2NlNDYxZTExZmNhNGQwZTU0OTIxZTE5MGE2N2EwNDY2OGEzZmY5ZjAyMjQxY2RiNzEyOWRmZjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_223627bc07d748c3a460342c1ff3705e",
+      "statement": "源字段通过 JDBC DatabaseMetaData.getColumns 发现；HDFS/未指定目标端时按字典 2011 映射为 Hive 类型并保留 decimal(p,s)，RDBMS 目标端直接使用源类型。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ColumnService.java#L362-L421",
+          "version": "repo-lines-v1:sha256:7f885480d44331e84a1d12793e6b7a17eac335d7cf8f50be63c20ebd925058ae:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljMjViNjE0MWQ1ZTFjOTcyYzdmNGZkZTM2MzFkOTdhNmU2NDc3OGYyMDM4ZWFhOTM0MzY0ZjcwN2M1MjYxM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwNjg3ZDBjMjU5ZTgxOGY0YmY4MTRlZmFjY2FjNzJlYTJjNzI5Mzc5YmMzMGIyYzBlNWUwMjBlM2QzMWU0ODYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlZjA4MmU3YmJjYmMyYWUzNTI3MDZjZjZkOTk4ZDUxYTU3OWM2MmUxY2VhYWRmNDY2MzdjMjY2MTg2MzAyYjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzZWJlNGM0MTRiNzZjMDdhZWNhNWY4ZDc5ODM4NTI4YjdkNWJiOWJlOTgzZWFjMzlkODFmNzhiMWJmZWE3M2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_62353e3698ee427d8320640e459e95b4",
+      "statement": "源连接失败、元数据查询失败或返回空字段列表时，刷新会发送企业微信告警、标记流水失败并返回 -1，而不会把空列表当成“所有字段被删除”。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ColumnService.java#L246-L258",
+          "version": "repo-lines-v1:sha256:4325a618748705f1b9182952170177927683e109443c1186d9104276e6acb64d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmOWFlYjMzMDQ3ZTBhNmU5ZmExYmQ5ODkzNThkY2IyZDY5OGY1OWQ3MTI5NzZhMzAwMDZjNDUxYmRlZWJhZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZjN2E2MDIzMzVjZjE0NjViYzA2ZDk5OTg2MzlhMjVmZTJkNTU4ZDcxYTA5MDIzNGM2Y2ExZDljZTNkMjBlMDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViYjlkYjNiNmViMGM2NjI2YjFkZWUwYjgyNzM1OWMwMjI0ZTg2Y2M3NTg3M2Y2YWY3NDI4YzAyNzJhNGEzOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1MTY2YzIyNzc1NjM4Mzg0MzI4NmZhMDA0YTgxYWM0YWQ1NzUzYmViYWU4MDJiZmRhNDMyMTYwMjFiNmIzMDIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ColumnService.java#L353-L360",
+          "version": "repo-lines-v1:sha256:6e3885b6e07a641aab0172731b41250bd37250efd9f357dc153737acf511e0a3:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTEzOGFjNmQ2ODcwYTY2ZjBjNzdlYjFhZjk3ZWExYmM1ZGQxOWJiNGMzZDc3NzE4MTBjYTNiNjgxMTBhYzZhOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWUzYjZiMTNhOWNhYmRiMTE0YTFlZTFiNGNlYWI4MzA0MjY3YjkzYzUzMDk1MmMxNjFjZjZlMDAwNDg1YmYyMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjE0ZThhNjU1Yjg5ZjU3YzM3MjM5YzA4MWYwYTJjMTQwNDNkNTA2Njc5ZDZjZDZmOTdiMjAzNzMwY2UzZDU2MCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0bbc0c7b0fbf49858a36de4f483c163d",
+      "statement": "字段变更检测按名称而非位置对齐：源中缺失的列加删除占位前缀，类型/长度/精度变化则更新目标类型，新列追加到末尾；完成后 reconcile 字段映射，已有映射保留，新字段生成同名 identity 映射。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ColumnService.java#L222-L351",
+          "version": "repo-lines-v1:sha256:b5fd7fe9bfd9a13ace19375f78a5e8ce08fe4fdca9d6296bf5ffd31c21ebf3d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4MzY2YjE3YWZmY2YwYmI1YjBjNGU0MmE5ZjVhZWYwNTI0NDRhMDFjNzEyNmY4ZTY1YWZmYmVjNzNhYzQ3ZTE1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyOGUzZDIxNGMwNjM4MTg2YWM5NzZhOTAwNTM4OGU0Y2M0NmNiOGUxMDcyOGU3YjljYWJlNmYzOTcyYmU1OWE4IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiMTE2NDJmNTYxZWRlNzdhM2E4M2VlM2JjZDA3MzljYjkzMTY0OGVhZjdmNGNmNGY2N2NkYTA1NWIyZDhjMGEzIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3MjBlNjdlNjRhOGNiZWE3MTA2MmU0MTY3MjE2ZmQ0OWJiODI3ODE4YzAzY2RjNjFjOTY5YjRiY2EyNjNhZGY5In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_6d86c25335d44952b5846b1957e358f5",
+      "statement": "字段变更以 ADD、DELETE、TYPE_CHANGE 三类写入 schema_change_log，包含变更前后的类型、长度、精度、比例和注释。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/SchemaChangeLogService.java#L16-L75",
+          "version": "repo-lines-v1:sha256:1fdd6c0ef556e2c9580157b982c7b04050923ceebca021f4cb4b6bd26e65d8e0:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4NTYxMTA1MDgyZDg3ZjhhMzZkMzU2Nzk3YjJhODJlMmQ4NGI1NGI0NTRlYmY2YTAwY2I0YWNmODQ1ZmM2MTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5ZDI3YjFkNjUyNDgyMWVjZGZhZjRjNTY5ZmM3OWQzYzNiZDQyOWE3YTc3YTNkNmI0OTNkZjZlOGZhOTc5YzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlkZmNhYzc3ZWYzN2E5MGNiNWMxZGMzYTVkMWU5NDkwZGIzNmIyMjhmMTQxY2YzYjE3MWYzYTA2YzU4YjcwNjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzOGU5Y2MyNmJkNTc1MTg1YTNhYWRkY2Y0YTMzOTFjOGMzOTBhNDBiYTMzZjk2MDc1ZjU2OTFlZmEzNTBmOWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_354e35312991489d88d2cd670f47b2fa",
+      "statement": "Hive 目标先 create database/table if not exists（分区键来自 partitionBindings），新表跳过 ALTER；已存在表用 DESCRIBE 比对，只在当前 Hive 类型不能覆盖期望类型时 CHANGE COLUMN，单条 ALTER 失败会写流水与风险日志并继续。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TargetServiceWithHiveImpl.java#L489-L620",
+          "version": "repo-lines-v1:sha256:3ae1340e24feebcf5bdc90e163049d263bf150e67e99561c0de46a44f4e9f42f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxMDFjYWYzNzlmODk2M2MyNjFmMTZjMjFjNGJiZjk0MjJiZDQ3ZDlmNjI3ZDIxZDI4N2I0NzA5ZDk0OTVlN2Y2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhOTRiMzVhNDdlNjk5OWUxMzQ1YmJjY2ExZGQ3YTQyYzljMjU2OTgzODU5MmJjY2Q0ODc0MzYyNDIzNWZkZjYzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNjc4ZDhlZWU5NmEyYjk5MzM3ZmIzNTM3ODU1MmYzYWIzYWFhNTRhMWM5ZjU5N2E3NTljYTY1Y2FhNDRkZmFjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyYjIwNTc1NTFhYmMzMjVmMDFiMjA1NTAzOWMwYTUyM2U5YjA0N2Y5Zjg3ZTU0NmEzOTRiMjExY2M3YTQ0M2VkIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_61b80b57a06b41a2b4d7a44ad22b74f0",
+      "statement": "RDBMS 目标建表使用 CREATE TABLE IF NOT EXISTS；已存在时补加缺失列，已有列只在类型族变化或容量变大时 MODIFY/ALTER，主键列类型变化会跳过并记录风险，窄化类型不会自动执行。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L131-L276",
+          "version": "repo-lines-v1:sha256:73301ab96b13a9c00257ac16ce22d4d5815981926d6d777c1db0e2218a4c6480:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxMDFjYWYzNzlmODk2M2MyNjFmMTZjMjFjNGJiZjk0MjJiZDQ3ZDlmNjI3ZDIxZDI4N2I0NzA5ZDk0OTVlN2Y2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzNjk0NmUxMDFlNWU3OGQ5MGE1MTBjNjlmMjY2ZWY3NjU0MGQzMDliMWI4MjI2OTViNTMxNzJlZDJjYWEwMjU5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyY2M5OGRiMjNjYTc5NWMwY2MxYzRmMGVmMjg3ZGNlMDhjNGE4NzAxMGFkYWY2NDBiNGFjYzg3ZGM4NWNjNWU2In0"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/RdbmsTargetAdapter.java#L429-L490",
+          "version": "repo-lines-v1:sha256:a4633fee4cf806dd277cafaaf3999483fe60eec432c19b500bde6792f9ec98ea:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyOGIzM2U1NGNhMWVmOGQ3MTg1MGU5OGY1ODczZGNhNWMxN2Y2N2VkNTExMTQzZmMyNmE3Njg1MzBkZWM5NGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwOTFmZWQwY2I5NGU0NDcwOWY3NDkyZjYyMTc0NTRhY2U2NjA5ZjZkOThhNzU0NzZlNzNmMzNhMmE3MDJjYjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliYmI2MWJlOGU0MDY1NGMzYTA0N2Q2YzY3YTA5MmUzNWQ2MmE4MjhjODBiNjcxNjhjMjk4NjJkMjFmNTllY2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZmVmNmI2YjFhMmNiNGY4ZDdjOTI5YWJmNDdlNzJhNjFlZGMwMWJjZDFiM2QwZjFmNjIwODNjOTA2NWM4MTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_846b349092ee40c099afa1a1aa0ee2ec",
+      "statement": "RdbmsDdlUtil 用 familyOf 将类型归为 string/number/temporal/binary/json 等族，isWidening 只在容量变大时返回 true；renderType 按 MySQL/PostgreSQL/SQL Server 渲染，enum/set 退化为字符串。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/utils/RdbmsDdlUtil.java#L224-L320",
+          "version": "repo-lines-v1:sha256:62e9a100ade73540bba609c5ea2969a371f10e7c2221e4c239dca01cdfd7c66e:eyJzZWxlY3RlZExpbmVDb3VudCI6OTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzYzFhYWQyNjVkNDM0MjVhNmE4NGVkN2U2ZDg5MmE5YjZjZmJjNzRiNzY4YzVlNDgyN2RjNTA0NTRlMWFiNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzMDllODVhNzgxMzlmYTYwZGUyMDcyOTJlYmYzMzMyYmEwZWYzZTc0MmViNGJlNWZjYTdiNjM3NTViYzg2MzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiNTM1YjMxZWJlM2RjNjVhOGE5Y2I4YmVmNmQ4MTI0YWVhNjdiZWE3NzNjYjlmODJkY2NjZGE0ODA5YjMwODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg4NjVjNjA3NmJiNjk2ODk3Njk5OWQ0NjNkOWJkMjZhZjgxZGZkNzYzZjExYmYzNTY4NDJiMDMyMmNhY2FiMDgifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/utils/RdbmsDdlUtil.java#L424-L540",
+          "version": "repo-lines-v1:sha256:165005f8f93c7d650a70bc9415d1b48107bbf4a03956992dbe83e4ce35037e44:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4MTJiMWIzNjE0YmM0NjczZTkxNGYxOWRkNGZkMGQzNTMxOGVkM2NlMGVhMjNjNmQwNjU5NGI0N2I4ODBkYWQyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNDJiNzYxYTYxMTM1OGQ2Mjc4ZGVmN2I3MTNjMTJkYTdmNDA1MzAxMWJlNzJjNDJjYmQyMTJhMDk2YmRlNjU2In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_d7e6dd82bf6d46d5aa8fddc5944616e5",
+      "statement": "EXTERNAL 目标刷新不执行 DDL，只调用 TargetContractService.check；被阻断时把采集表状态置为 U 并返回失败，通过时保存目标结构指纹。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L103-L133",
+          "version": "repo-lines-v1:sha256:8078cf516f993d1fc3adb5855f5aee90c50f2d548534e13423972ef42de0def2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxZjRkMDhlNWJmN2YzMGI5MTNlZDdiODQwNTdlZWZiMzdlZjcxMTk2YzNlNjAwMDhjYjdhYzU2OGFlOGE1OTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1NGY1OTY4MGZiZjhkMDJhMmUzYWI1NmQ4YTIyOWYyYzM3YTI5NWE2NGE1ZWQ3OTdmYTE2Njg3YTRjYzc3NGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhOTlhODkwMmQ4MWM1MzlmZTIyYmNiN2UwZWYyYWQ1YmVjYWZjZTNlN2I3Nzg2Y2JhYjFjMzAxMzdmOGZhODUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TargetContractService.java#L45-L60",
+          "version": "repo-lines-v1:sha256:b78ff816b8582ffb78b4fb5cd6c0715160e39d4dbedf8d2e1582b2ce8976f30c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxY2JlYjM3MTg1ZWFiODQyNDRjYTMxNjYwMjYxMDMwYTkzOGQ4YmQ2NWJiNmEzMzUxMWQzZThhOGM3YThiMjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZGYyNGM5Nzc1YmE2ZDdhMGYyNmNlYzUwYTU3ZTgyMWNmMjJmOTQ0ODFkNzUyNzJiYjIyMzRjYjY0MzgxYzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5MzUxMzg1M2MxOGU3MDZhODk0ZDMyZTRhMGZmMzc3ODVkNGEzMjE2Mjg3ZDRkOTQxODU3NWM4ZWM0YjRhOTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZjE4N2I3ZTI4YWUyODRjYjA0YWQ3YTBhYTY5MDcyZGJjNWVhMTJmNzg5NTZjYjRmZjY5ZGVmMTNlNmNkMjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ed319a1148c14beda4488aaafdc7ae0d",
+      "statement": "动态表名占位符在刷新元数据前用当前业务日期变量替换，在生成 reader job 时用同一组日期变量替换；补数时改用目标日期变量重新生成模板。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L255-L268",
+          "version": "repo-lines-v1:sha256:4fa1900cefca23f9d3718108728ec656af0b04a2dc4b4d0b0a1be3a3bce6e03c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5YzJhZTJhY2ZjZDUyMDEwMjI4MmFhNjNkMGNkMDg5ODFmMjNkMDgxNDhhMDMzM2VlNmM0OTk0NzA3MGM5YTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4NGQ2NjAxNThjMzY4ZWM5NzYyNTljZTM2MzQxNjJkY2Q0MjExODA2NWY2MGIxNzM0NmU1ODVjZTAxYTFhYTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0ZjQ0YTE0YzNmYTMxMzg1MmJiY2FhNDY0ZjAyYzY5ODYxZDJhYjEyMDk0ZjE3MTQ2MzQyODFlZTNlOWFhNzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkZWNhOTFmNjY3NDYzZGY5MGY4YzczNGQ1MzBjNzg4N2ZmNTFkMDE5Njg4YzZjOTFjNjcyNDg5M2M5ODFkMzkifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L84-L95",
+          "version": "repo-lines-v1:sha256:93523387fe2604fac69e7a244540dc05f008e93ce7b107199dbccde4b61c7c25:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5YmUxNzVlMjY3MjI0M2FhMDY1NGU1MTJkMTc2ZTk0ZjAxOGM4ZDcxYTQ1MjQ1NTc1NTBmNmE5ZTg1MmUzZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZTJjNjg1MjA4NGVjYTdlODlhMGU2NjRhNGM3NjE0MDY5OWE3NzY1Nzg2ZGQzNDViZjJlNjQ2MjU1MDhmYmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1ZTA2ODM5YmEzYzQ5MGE5MTdiZTAzNmQyMzZhZmM4NzZkZTEyMTc2ZDA2ZmU1NDU3M2M4YmZhMGRmMGM2MjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyOTE3MmFlNTRiOTM1ZWIwZWZkNzQyN2E1MWI0ODEwOTRkMDQ1OWJlOGQ0NmJmYjlmYTZiMTEzMGViNGY4YWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_11c50963c7cd4e1aa9100433e6256375",
+      "statement": "RiskLogService.recordRisk 按“消息 + tid”去重后写入 risk_log；风险日志用于记录无法自动处理的演进（主键类型变化、默认值丢失、分区/业务日期列问题、Hive ALTER 失败、不支持方言等）。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/RiskLogService.java#L24-L37",
+          "version": "repo-lines-v1:sha256:5900a1d98632a8ce2a79abcad63db4d03a361d8c3b0f1f003f1aab04fa2084a1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZWVkYjIwZWU0NTdlNGZmOTQyYmJlNGM3NWI5OGYzNGE5YzZkYzFmNWExYWZjMmM1NjY3ZmY5MzlhNTEzZTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmY2YwOTkyYTRkYWM0YzEzZmJlZWM1MmI1ZjY0NTQxZjk5NmYzYzE5YjBkNTYyYTM0YTEzNzllMzc1MGFiNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY5Yjc5OTg1OWU2MDMyNTFiMTJjNWFjZTcyOWIxMGI5YjUwNzhhMTM4ZjAyNDA1OTM5YTkyYWE1NGRlMGEzY2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3YmVkYzE5YTAzOGNmMDA0ZTBmN2FiM2NhZTNkZjkxNzI3YTQ0YWE3NTNiMmRkNWQ3YTA5NWU4NDlkNGIwODAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_82787d4b54954b04a79a71ac8c9016a1",
+      "statement": "刷新失败时：源字段获取失败置 E，目标 DDL 失败或 EXTERNAL 契约阻断置 U，job 模板生成失败置 E；全部成功且业务日到期时置 N，否则保留上一次采集状态。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L459-L475",
+          "version": "repo-lines-v1:sha256:ce0bc6d6c48400f047f3b1c56e760560ae87db940c8677ba00f3b121db2ce717:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiMGM5MTFkNzZjZTE3NTY3OTRjMDIxNjAyOWY1Y2QxNGI1Y2VlZjhjNmRiMjljNTZiN2RjMmE1ZDRjNjQ4NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlZGU2YjVjZDczZDBlYWZmOWQ0YTViYWI5YzM0NDdkM2Q0NGM1MDQzMDFjYmIwNzFkZTNhMjdlMzllYWU2NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmZWMyODRiNDQ3ZDdmMzI0NDc1ZWQzNGIxZDZlN2Q3ZTJmZGY2MDA3OTNiNzgxYWEzNjM4MDQ3NjFjMTg2ZWMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L96-L155",
+          "version": "repo-lines-v1:sha256:5b806ef70d275a50382fa31dd166d1c41db9d21e510736d56e616aadb8b20696:eyJzZWxlY3RlZExpbmVDb3VudCI6NjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2E4YTBhNzQ5M2JhYThhYzBjZThhNTA2OGY0N2EwYWY4ZjY1ZDg0ZjBlNzcyNGZkNDIxZGY3Mjg1NTZlMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY1MzBiNmM2N2NlNDYxZTExZmNhNGQwZTU0OTIxZTE5MGE2N2EwNDY2OGEzZmY5ZjAyMjQxY2RiNzEyOWRmZjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_54348452457a4ba695e0ee26498445b0",
+      "statement": "RDBMS 目标端只端到端支持 MySQL、PostgreSQL、SQL Server；Oracle/DB2/Sybase/ClickHouse/SQLite 会在保存目标端或测试连接时报错；SQL Server 不落地列注释，跨方言 enum/set 退化为字符串，建表时不复制源端 DEFAULT。",
+      "evidence": [
+        {
+          "resource": "repo://README.md#L97-L102",
+          "version": "repo-lines-v1:sha256:b27b8828bd35e2a60771edb33dd0e408e12d7a671944922850fb04a36a190679:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTVlZjM5NzMwNzY4ZGVmNDFiMTc3NTZhODg3NDBhMjk5ZmE3NWM4NjgzMmQ5NDMxNDk4OGJhMmNiODkzYjcyNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODAwMDk5MzZjOGI1YjAyYjBjMTNkODYyOTE0MDUyMTk4YmU4NjM1NDZhNDI3NDM1ZDcyMzkwMmIyMzBiMDA3NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTgxZWRmOTczZTViODY1MWFlZDNiOGFlYmRlNGYxMDg3YTllYTRjMDY4YWIxOGMwZDhlN2YzNWM2YTExZjBiZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjBkYjE2MjBmYjQ2ZTNkYWQ0ZmJhNzA5YWE0ODdiZTJkOWUwODAxMjkxMzUyYzQzNTA4YmQwODExMGY0MmExNCJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

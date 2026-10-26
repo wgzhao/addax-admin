@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:de54586705dc1a4ededa66ec949adfd913d45ace31de027372eaddc088ca22f5",
+  "claims": [
+    {
+      "id": "claim_de2f56eaa16b42c98853d43d4483fbc8",
+      "statement": "CollectionScheduler 仅为启用采集源在 Master 节点注册每日 cron（按 source.start_at），触发时重新读取源日历并以 businessPeriodDate 做业务日门禁，然后只把 start_at 为空的表入队。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/repository/EtlTableRepo.java#L110-L126",
+          "version": "repo-lines-v1:sha256:30ec62eee69eb1948ae75ff33e332b12d73738f74707e9f6922fc63952f9da04:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExOTFhOGNhMzdlOTgxYWY0ZThkNzk4NzYzYzRiOTcwY2NkNjIxMTYyMWMwYWVkZmMyOGNhOGFmM2Y4MzZiMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZjJlOWM4NTRjNzBiYWQ2NDA2ZTM5MzY3OWVlZmM1ZGJlMDE0MWQ4YTM1NWQxZDY4OThlM2I1OWZiNTI1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImViNWZlOThiNDcwYmFiNTMwNGFmMmVjZDBjY2VlMDk4YjY2ZjA2YWE5Y2ZmYmIzOGYxZTJkNjMwZDUxNWFjMWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4NDMyMGRmZmUyZTcwNTc2MWRhY2I1N2ZkNjc3NGFmMDgwM2RlZWFkZTIxMjM2YjAxOTUzMDYwOTViNzAzNzMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/CollectionScheduler.java#L30-L106",
+          "version": "repo-lines-v1:sha256:3beaf91c9355d68cb20d447b1d2397184b6566a7fdb4af733781b3a909b76e4f:eyJzZWxlY3RlZExpbmVDb3VudCI6NzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNjRmMGZjYmQ3NDk4ODBkMWZiMDg5OTcxY2MzYzMwMzliYzc2ZTI3OTM2Nzk5YjgzMTE0MDdkODE1ZjE2ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTg4MDdhZTdmYjVhZmZlN2I1OTFjYzczNzIwMGMxOWIyZTJiYjM3OTY0OWVkZDY2ZWE0NDllYWQwMzFmYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5YmUzYmMzZjA0OTIwNDViN2M1YTMxMTg2N2U0YzJlMDNlNWQ1MDYwNGFjM2EwM2YwNDBlN2Y2MDgxOGVjZDYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L510-L514",
+          "version": "repo-lines-v1:sha256:00984e295bc66ea30a77fc3cc8cd5e99bc896899cb66cbb9dd2d16b51c1be2bc:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzFmMDE5Yzg0ZDg5NGM3ODVjYWFjYjUyNWM3ZDhhMzZlYTgzOWQzYmE3Zjc3NzEyNGE2MGNjZTRlNjFkMjc3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODFjYTk5MTlmNWU2NDNhMTA1ZWUzNTJkNTE3N2IwZDA5ZmRkNTQzZDIxZjFiMGI3ODZmYWNkNjE0MDViZDc3MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNGMyNDljNjgwMmEwMDNkMjRmYzMyZWJkZDc3NzdiNDI1N2FhZGExY2M4NmMzYmY2MWM5MGQ4NjJhMmNiMzU2MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_5171e299b5464657bf59e4ca50428d06",
+      "statement": "TableOverrideScheduler 在 Master 上每分钟扫描一个 2 分钟补偿窗口，跨午夜时拆成两段分别归属前/后业务周期，逐表通过源日历门禁后再入队；候选表限定 start_at 非空、status=N 且 retryCnt>0。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/repository/EtlTableRepo.java#L128-L156",
+          "version": "repo-lines-v1:sha256:f392b57d5048969006b4ad7bae5c4c71e1b405316ffaee5a0335c98b3c5ff46a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4Mzg5NjE0NTY1NmY4YWU5NGIyNjY3Yzk3M2RkMTRmMGNlMjMzNmEzNTM1ZWY4N2QyMzBhZjRiMzMwYmZiNTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNkMWUxZTI2MGJkYTc3MmZhYTk4MTU1ZDM4MDhmMDk1YzhiZDJhN2U5YTUzNmNiNzdiOWE0N2M3MTQ0NjE2NzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwN2M0ZTNjODU4YTQ2ZjYxMmNjNjg2OGJlNDVjNmQ3NWY3Yjg5NDE5NmFjMDQ4MTgwMTAyOWRhYzVkMjY2MTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkNmE1NmQ4OTRjZDZlNTA1NDQyZDBkYjVkNzU5NzQ2ZGIyMGM3NDc3NjlkOGYwYjRiMzU5Y2NhZDM1MTA4OTcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/TableOverrideScheduler.java#L70-L167",
+          "version": "repo-lines-v1:sha256:606d7b5cab9fc6558c77e1effd2a11f32403c4826fcf44040fcef29cc7cdbb56:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyMTJiZGY2OTQ2MTNkZGJmZDk3ZTJkMjc0Y2JlMjUwMjIxNGViYmJiYzljMzkzNWUxODY3OGM4YjRiMjVkMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxN2I1ZmY0YWNhZGFlNWFhZTkxOGZhMTU4MWMzZDUwYzZjNjBkM2M4MmI2NzUyOTdjYzQ2ZDk2ZTc5OWExNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a10847716e63498599d33cd330e131b6",
+      "statement": "SchemaRefreshScheduler 在 Master 上按 SWITCH_TIME 注册每日切日刷新，刷新失败最多安排一次 5 分钟后重试；新 Master 上任时若已过切日时间且无当天完成标记，会立即补跑一次刷新。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/SchemaRefreshScheduler.java#L102-L168",
+          "version": "repo-lines-v1:sha256:a07818a59fbb88d173377aaf3c0c2bb5e0d3ed88225b313bf5005cdc4d7fe367:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiYjgyMzE5YTdiODQ5NGIwNjk1YjFiNTgwZDQ1ZjgwM2JjZjMxMzNlYzRlMWVlMjA2MGRkNzhlZDgzYmI0OTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQyYzA2ZDM5MDBiNDU4YmEwOTM4MTZiM2IxYmNlNWVhN2MyZWEzN2UyOTE4Mjc4MDM3OGJhMjhjMzIxYzRlNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/SchemaRefreshScheduler.java#L47-L100",
+          "version": "repo-lines-v1:sha256:7cc5fe4514906392cab25f8c306dd75a411cb0e63e6e76582ad9a75af011e33a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZWEyZjBjMjdlM2Q1ZDZlZGRlNGIxNzg0OTVlNzFlMzFjYWE3ZDNkMThjNjQ1OTcwNDIwODAyNTIzYjA3ODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4YjdiMjcyMmJjZjc3ZTJlY2NkMzdhZGQyNTE4NzhjZDkxMjAwNWU1M2U3MWJmNmM4ZGFjZWFjYjIwZmY4N2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1YWI3NGJkYWRmYjVlYjE2OTUxMzFlYzY0NGYxZmM3NDExYmVlZGQzMWVjOGE4MTFhY2QxMzU5NDNiNmZmODYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjZTA2NTQyYjY3NTQ0OWFkYmYwNjBiZTdiMDNiZTA5MTZmZTFiMDlmZDc0OWQ4NTM4ZDQ5NDczYzE4ZjdlMDUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_872efc08e6a84731926a9960fb5f1ee7",
+      "statement": "etl_job_queue 用部分唯一索引 uq_etl_job_queue_active_tid_biz_date 约束同一 (tid,biz_date) 只能有一条 pending/running 行；入队通过 ON CONFLICT DO NOTHING 去重，priority 默认为 100，max_attempts 来自采集表的 retryCnt。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlJobQueueService.java#L60-L80",
+          "version": "repo-lines-v1:sha256:3dd228930a6f492f0a6d5428ac38627d854e3516dd06eb72c85a80c28ecbfea4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmZTllZjgyZjhjY2IxNzE3MzdkYjBhNWY5YWY1NzlhZGJhMGFkZmY1MGRkNDU2NzNjOTZlZTU4ZGM2NTg5NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI2YjkzYmU5YzEyOTkzMzJhYWM5YjA4ZjUzODMyNTU2ZGQ5MTU1MWY1MzFiNDVhNmM3Y2RjNGU1MzhmNzMwNjMifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L334-L361",
+          "version": "repo-lines-v1:sha256:72da892254ba8aea80e8c4d60e585ed325025e884900cc985b3c2e6ff0001b4e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljMWQ2MWU2NWI2OTJhZGI5Y2M1YzMyNWE1ODIwZjQyMDUzYzhmZTEzMzA5ODU5MTNjMjAxOGE4ZDRhNWMzYzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3ZTQ0OTEzZGFhYzcyYmY3ODk1YTMxZWUwZGM4NzkzOGNmNDgyOTJiZWJiOWVjOWFiYzdiZTc3ZDI0YTI5MjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjYTFiNGQ0MWUwMTY0YmVmOWJlYWJjZWQxZjJiNjk0NWVhYWRkMGM2ZTA3YjAxODYxMTQ0NDY0ZTUwMzFkZTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_546bec5aa6e74c66a4fd11799b089eaa",
+      "statement": "Master 选举使用 Redis SET NX 竞争 addax:master:lock（TTL 30 秒），每 10 秒用校验 token 的 Lua 脚本续租；续租失败或 Redis 异常时主动降级为 Worker 以避免脑裂。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/MasterElectionService.java#L150-L180",
+          "version": "repo-lines-v1:sha256:8d50ae1a007770ea536563ecd7d5b9eae975bf438e6b65b23bd8188cc89b7120:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzYjA1OTc4OTYyMWM0YjJhYTk2NTk3ZGJkNTQ0MWY1MjEwNmU0OWY1YmZiN2FiZjVlNzdjODlhNDQ0M2VjMDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjZmQ3ODAwMWM0MjEwMzQzYzEyYTYzMzQyNjlkM2RjNGFlYTQzMjJkNTE4NmE4YjU2MGVjZTc3YzFhOTY5YWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1ZjlmNzdiOWNiMDkyYzQ0NDU0NGE3OWJlZTFmNmMyMGVlNWFkZWE1ZmU0ZjVmOTQ0M2ZmZjRkMTE5NTQwOGUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/MasterElectionService.java#L23-L31",
+          "version": "repo-lines-v1:sha256:2ece934e83cb2eb6a365b25c64a74a8b983291ae16c27cc6206f712b6b3012e8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWUzODZlMjZmOWExYzIwOTlmMTVlODlkMGVjMmNjMmM5ZjA3MjZkNmI1ZjhkNzQ2YmMyNjZiYzE5NWZiZmFiYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFhOGMxMTYwZWIwYTk1MWQ5ZDFjOTNiZTFiYzQ1NGJiMzRmZjk1Mzk2M2QxM2UxN2RmYTg4YzU0MzBkMGEwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTg4ZTkxYWI4MjM0YTlmODJlOTNkODhhZmMzYWY0YTkxYmIwYzdlM2QzYjg4NzlhMzZiNjM1YjQwNjc3MTU4MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWQ5ZDYxNWE5YTRiN2Q3ZWZiMjdlZTM1NWUyMjI1ZWRkY2Q5ZWQ2OWViM2M0MGM1MzY0MjdhZDZkMmViMDQ2ZCJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/MasterElectionService.java#L59-L97",
+          "version": "repo-lines-v1:sha256:9eaf4b83ae59e011aa4f7d5a47c0f16f0a5f4d79ea021fa0317a56546267a99d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiMzcyOGNlZjZiYzJhZDBlZmE1MzRhMTRlZTRkYTA4ZWRlMWMyYTA2YzEwNjI3ZTI0MjJjOWEzYTMwYzFmNTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2YTRiZDJjNmE0ZDdjYzAwMDkzODc4NTJkZjFhODlkZWQ4MzU4OTdlN2QxZDA2MmI2MzViZjEyZGNlYTllNmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f416163f36344d48b43251265023b4e3",
+      "statement": "每个节点每 15 秒向 addax:worker:{instanceId} 写入 TTL 45 秒的心跳，内容包含运行数、并发上限、节点权重和按源运行计数；Master 扫描心跳时排除 lastSeen 超过 30 秒的节点。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/WorkerHeartbeatService.java#L23-L31",
+          "version": "repo-lines-v1:sha256:7e4aad985f2e33dfc1c7b049a25efe7637323c31cc3c336ba12b5745992932b6:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGQ3NjZjYTM4NGNlMTQ1NWU2NzM2YmExZjdlMzIwMzA4YzIyZGYzYzkxZDE5YWQ4ZGNjOWEzZmVhNDk2NjQ1MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzM3Mzc5NWZmMGQ1NGQzZDNkN2Y0OTk3MmRiYjRkZTQzNTAzOTMwMjg2MDFlMjIwMTVhZGIyZTllMjkxOWZmOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWY5NmI5NTkzZjA1NDNmODJkZTQ0YzliY2ExYWVhZGVjY2YwYmNiOGJjMjk1ZWFlMjJjZTE0YzcyZTNiYTIyMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjYxZjYzNzYwYWY0ODhhMTRjYzFiZDAyY2I3MTk4NWFkZGI0ZDk2ZGRhNDM1YjhjNzA3N2NjMDljNTY5YWZhZSJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/WorkerHeartbeatService.java#L75-L190",
+          "version": "repo-lines-v1:sha256:706a05811f9e434f26ebdf0d38d232bf019652c44d9134504c66248ff6423ffe:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1ZTgyN2MxZmNkMjMzZjE1YzgzZjY3MmNiMTAwY2M2YjdkYzMwNDBkMjNjMDc1Yzg4ZDQyZjgyZTJjOTExN2FiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlZGFkMmY5MTU5NmU0NjE4ZjUwYzc2YjI2YTEzOTUxMDE4ZmU1YTQ4ZGQzNDBlMmQyYTBjY2YzMDg5M2ZjOGIwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L242-L248",
+          "version": "repo-lines-v1:sha256:cb0d20f1b0ae1816a6dd4ea16748fea6b79b18914e4b757b9a8a5bd32b4aa6f6:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjRlYzkzZGZhNTkwNWMyZGQ1OGNmZWM3MDE2NmM5Mjg1YWNkMjIxMWRmNWQ0YWNhZTZlMjUwODA5NjQ1OTM3MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2I4N2I1NmRmMmYyMzU5MjQ5NWM2NWE0OTk0MmZhZmJhZjVhZmJjN2JhNDljYjNkZjYwNGQ0YzkwN2M0MDY4YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_65394c411fd449658ab1902fffe11887",
+      "statement": "Master 使用 Smooth Weighted Round Robin 按心跳权重选择 Worker，并通过心跳中的分源运行数加本周期预占计算集群级源并发，从而把 source.maxConcurrency 作为跨所有节点的上限而不是单节点上限。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L442-L568",
+          "version": "repo-lines-v1:sha256:006497d83234a7c59b61f248fd600c8f93584a0f4447a6c0720a0c055903c48b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2Yzc1YzAwN2RjOGJmZmM4NDdiMmU3YThjMWRlMjJmOTJlODYyZjI4Y2QyYzhmYTQ4N2Y4OTUzOGIwMjNhOGQ1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkN2U0Y2E1MjdmOTY3ZmMwNzA4OTUwMzdmYWE2OGFmNzFhMjg4ZDNiZmZhMGQ1ZmY5ODAwZmY2YTZhNTQ2NjBhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1ZTJiOWUyMWZkYzg2ZmMyYzJlZTQ0NzIxODVkNjc2NDY3YmRkMWNiZjJlMjRiNGRjNjQ0YWIxYWJiMzMyNTQ3In0"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L608-L678",
+          "version": "repo-lines-v1:sha256:304ce859c5889bd2b10abb15dd8747a2f731f20eba85a0c368199fcf862852f3:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3NzUzZWE1NTI0ZTQ1MDFiZjQzZmM5MzNhYjAwMTQyODE2Y2JlN2Q4Njc2NjY0ZWJhYTUzOWFmMGI4YjNmYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5Yzc4NDYzYTIzYmVlM2E3YjIxMWM0ZmM0MmVmNmIyZTk5OGExNTY0NmM5MWM2MTI4MjA4NTk4YTNmNWNiMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5MzI2MDA0OTMyY2ZlZmJmZjAxNWMzNTUwZDE1ODMyMDM1ODVkOWQ4NGY5MDA3MWVjMTE3NmZjZGZiNDg3N2EifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L736-L819",
+          "version": "repo-lines-v1:sha256:ca91cacfb89cc9afc740869d33d4b7c8d6cb7755bf18053da6cc34075c42ef33:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0ZDY4Zjg0NGY5MDYyZDBhMjdmYmU0MWY2MzZkMWM3YmI5NDA5MzQ3NjdjZGEzNjU2MzA1Y2Q1ZTAzZmVhYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3MGFhMjU3ZDRkYTVhZWZjMWU2OTQxOTIxODNmY2JmYTJmYmYwOTI2YTIwYjA1NDZiYTU1M2NiMWQxMjZlYzIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_faa8bea0774d4946b94a13c39cc45bf8",
+      "statement": "Master 以 180 秒临时租约认领任务并通过 addax:task:assign:{instanceId} 推送；推送无订阅者时立即释放认领；Worker 在开始执行时续租到 7300 秒并按 max(30, lease/3) 间隔继续续租。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L105-L116",
+          "version": "repo-lines-v1:sha256:34c27e7bb107c120bb7fdf63d6bc85715d071780c9f6750fad827b4e421fa233:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4MmM3NmNlYjljMGIxZDQ5MjMwZTZjY2MwOWNkNjVhOWZmMjlkMDQ3ZTE4ZjgwMDJhYjc5YTgyZDFiYjdiOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1NTdkOWU5YzlkOGMzMmMzNzIxNDk1ZmExMzM1OTdkNmY2NmMyNTY4Mjc3NzU0ODlhMTg1ZTIzNDU3M2Q3MTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3Y2IxMjZlZjc0Njc0OTAzNzkzNjZhMmRiZDk1NTdhOWQzODhkMDM0MTliODQyMDE4OWYzNjAyZjNkNTI4MjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhNDRlNTkzN2Y3ZTI2OGEyZGI0OWQ5MTc5NjJmOTZlYTI1OWViNDJiNjRiMWNiYjIzYWUzMmUzNDY0N2RmMTkifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L531-L568",
+          "version": "repo-lines-v1:sha256:8c8e663bbdf829bd4e5577439840bc1e9e2618da05d8d700e2cb93695f775ccd:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4YjNjZTg5MDRiZmEwZWZjYWE3ODk3MDYwOTIxZWIwYTg3ZjUyZTI2MGJlMjZjYjljODg2ZTZhZmE2MDEwMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEwZDk0NmI2YWE3OWY4Njk1MmQxODMyYmEwYjNkYmMyZmM5MDZjOTQ4OGNlOTE0MDlmNzM1NzhiMWFhMjZhZDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L869-L911",
+          "version": "repo-lines-v1:sha256:9309cadcbcb696597af57bd129e8f65e9c7bcae0e72df815e3abb41256b23009:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4NzhhMDdmNWU3MGFhMjU1NTZlYTAwYWVkZmVhNGRmOWVmOTllZTg2ZDI3NDI3NWUwM2I3ZTk3YjRmY2FkNDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyMzUwMTQwM2QzMjcyNGQ0NzNlNzkxZWNhYjcyZGUzYjljYzgyNmIwN2RkNjgwMWU3Mzk2MDI0MjEyYjU3N2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYxYTdlOTAzZGRlNjMwMDBjZmUwZDk2N2JiZThhZWViMDA2YmFjZjk3MTFkMWU5MmE1MTA4ODE0NTViOGYzZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1MWJjOTgyZGQzNzkwNjNmOTJkNjY4YzJiZjkyMmFlMmM1Y2RiNTFiMWYyMjdlZDU2MWY2YzJkYWY1MDYwMmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c10dccb6355c48d29f4108f5a4dc845d",
+      "statement": "分派由 3 秒轮询、PostgreSQL LISTEN etl_jobs 通知和任务完成事件共同触发；所有 masterDispatch 调用由 dispatchLock 串行化，异步触发用 dispatchScheduled 合并。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L157-L165",
+          "version": "repo-lines-v1:sha256:00b0d5bcb2764ee343bff83dfcf993585017a8223613dbad7bfcac77d7f707a9:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDNhNzQxMmI5MTgwMWRjNjkxZTY3MGMxMDI3Y2UwN2U1N2M0YzY5YTU0NTI2MDE0YWJhYmJiMTgwMjk3ZDkxZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzczYTRmODY3ZTBmOGU2YjFlZGEzZGQ0OWMyZjhlN2I3MTc5OWFkZjZkZjQ4ZWFkYzMxYjY4ZjQwODA3ZTdiOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGRmZGFkZWYyODViNmY1YWY3Y2IxNDA1ZDcwOTNkZTBhMzAyNTQ1YzVjMzdlMTgwNzhlNjY5ZDAxZGIxMDYyMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzJlNTI5MWM4NjkwMTczM2Q4MWZjNmU4ZmYwMmI3MDRiODFjNTcyYmFkMDY1NzBlOThmY2ZjNzY5YmYzZWI3NCJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L242-L248",
+          "version": "repo-lines-v1:sha256:cb0d20f1b0ae1816a6dd4ea16748fea6b79b18914e4b757b9a8a5bd32b4aa6f6:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjRlYzkzZGZhNTkwNWMyZGQ1OGNmZWM3MDE2NmM5Mjg1YWNkMjIxMWRmNWQ0YWNhZTZlMjUwODA5NjQ1OTM3MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2I4N2I1NmRmMmYyMzU5MjQ5NWM2NWE0OTk0MmZhZmJhZjVhZmJjN2JhNDljYjNkZjYwNGQ0YzkwN2M0MDY4YSJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L371-L405",
+          "version": "repo-lines-v1:sha256:2b522cc0ebb1297fb37bb134ac4844ca96cb8b030c8c52ab1789250ec1d23be8:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlOTUxMWIyOGExNTUzZjNiNjU4YjIzZDNjYWI3NTc1YjFiMTNkZjgyMzQ3MWM5MWJjZjlhMjJlODAwMDBlZjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0MWNjNmI3MDVhMDBiYzg5OWE5MDY4ZmYyOTNkZTFmMDk3YWZhYjhkYTM5OTk1YzMyOWYxNDZmMjljMzI1OTcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L834-L853",
+          "version": "repo-lines-v1:sha256:4730288264e86e0db8400d070b3dcc080f01f608a286ab20a426e02c5df275f2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxNzRiNGZjMmVjYzllMzZmOGY2M2U1MWRkYzg2MTA2MjA3MWQyZjY0YmZkNjNiZTQzYmMzMjRmZGI3ODhhYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2MjkxODMyZTY1YjM3YjQ2YjNlNzFjNjA5MDVlZmNkZTdkY2E2NzIxNjFmNDQ5NDg1OTE0MTM2OGJmM2NjMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzYmFiNjZiODI2ODFkOWYzNzgxMDY3ZTc0ZDY4YWY4YzUzMGZiMGY1YTQwNzVlOTk2ZjJjMmM5YTFiM2I4ZjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_af85b3e47723416e9e343a3769b7361f",
+      "statement": "租约恢复包含三条路径：Master 每 30 秒回收过期租约；Worker 心跳消失超过 60 秒后释放其 running 行；新 Master 上任等待 2 个心跳周期后释放不在存活列表的实例认领的任务。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlJobQueueService.java#L214-L223",
+          "version": "repo-lines-v1:sha256:d3b6f3cc7297857d042284d55d49403e1bc40d5e009a58008a45e22dd5984e11:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkZGEwYjZiOGM4OGJmYmRmMzhjMDhlZjNhMDc5NzA1OTMxODVhNTZiOThhZjYzMmVlNDM2ODVjMmVlOTgwNGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiY2E4YmFhNGFlYWNhOTFlODRlYmE5MWNkODMyNDAzZGZiN2I1YjY3MDhhMDQwZDNiNTcyYzNjZmVhNDRjYTAifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlJobQueueService.java#L307-L338",
+          "version": "repo-lines-v1:sha256:a4738654bf0b043f4bc6dd7ee37fa9ef2bd48f0287b52626c19ca6818d7eca79:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1MDE5YzU3OWRlOTIxMGUwNDI2ZWNiZGQxYjNmYjdjNjE0ZmYyYjJlMDAxMGNhZDIwYmViNTNmMWQwZWYzZmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1215-L1229",
+          "version": "repo-lines-v1:sha256:1be907d505e48afdcf5bd7a5b838f53cd1310a2c459a1555d411e83869c04526:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlNGRhYmZiMTUzN2U0MTJmODYxNDRlZGM4Nzc3ZjUyYThlNjJkNjVlZWI5YzJlODkyOTM3OTIyNGNkMWU1OTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQyY2JmN2U0YWY4NDMyMjJlMmViZTY2MTIwYjBhYWE5MDA4ZWJjMGZiOTMyNzg2NDJmZDg4ODFkYjE5OGU0MzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4NTJiM2FmOWRkYTI5ZTZlMWNhMzM0ZTk2NmFkM2E0OGU0YTMyODQ3MTAwODE4MzY2Y2UyNDc5MTg5YWE3OWYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L261-L309",
+          "version": "repo-lines-v1:sha256:ca6c408b7793e03327038e1c379db909ce950520b1cdfd0d0a0e7dffedc3787b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmOTljZTBmYWVmMDEyYzA1MGFjMjU1ODcyYTk5ZjMxY2QyZGY2ZWY1OGI0MjU3Y2Q5NGRjYzA2MGEzMjNjYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcxNDhmNDBiNDMyYTA4YzhkNzM0NzQ4NzllNzg0N2UxYTEzNDI4ZmJiODk0ZWNkOTUwYjU1M2Q0OTQ5YzcyN2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2ZWU2MmQ2MGYyNTMwZWUxMzdhY2U5MDZjNzMxZDZhYjlkYjVhZjE2NGU0ZmRiMzY5YWNiOTUwY2NiNDdiMTQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L450-L490",
+          "version": "repo-lines-v1:sha256:5c448cbe52fc58e1f8d558b0e9fdbd1ae3e49daaccd80ecaaa9e00778221e8fc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxZDdmMDJmMDBmNmI3ZTFhOTdlYzFhZTlkMThlYzU0YmY4Y2NkYjUwN2M2ZWMyNDU3YTRiN2U2OTZjMjZlMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwYzY3NDIxMTk2MzQ0MjM4NjI2NGM0ZDA0NjQ5MmI2NmIwYzBlZTNlNTMxNTc2MjI4YmZkNzBhMGI5MzI3NGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYzMzhmZDI4MWYxMDY0NzIxODQzZDM0ZjA3OGNjYzJjNGNjNjk4M2U1YzgyYmQ4MmJlZjk5MjYxZWQwNmNmMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiNjYxNWRiMTEwOTZmY2I1OWNkZTc0YTkxYjFlYzMxYzVkMDRiMjljNmE3MDQ4NzFlYjQ1NTNhYjE2ZTQ0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5bd10681a8fb42f3859c351b5a3a9008",
+      "statement": "切日刷新仅在 Master 上执行并先获取 Redis 锁 schema:refresh:lock；它停止队列监控、只重置业务日到期的日历对应表、刷新全部表资源、删除刷新开始前创建的非 running 队列行但保留带 payload 的 pending 行，最后重启监控并 flush 延迟入队。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlJobQueueService.java#L269-L283",
+          "version": "repo-lines-v1:sha256:c7b10c136b2b7ac9793ea5daf9b931b3d5faff2c5dffc91f21f45b643043f0d7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU1ZTBlMjU5ZDE3MzFlOGQ2ZGJlN2VmNzc1YTc4NzZkZjQ2ZTJjMmUzOTM0MGQzOTU4MjUyMDA2NTA5YTgwOTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNiNzUyNGQ3OTg4Y2I0ZWQ5NTVmODBlM2ZlYThhZGUwOTUyNDA5ZjQzMDVjMjJhYTM5YzgwYjFjNTZlMWQ5NjMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L570-L590",
+          "version": "repo-lines-v1:sha256:12c187e2ddc64bcc7b659798ee99f0655d48686cadc10cfa61b010fbbe00471e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MDdlM2UwYzBlZTk5MWI2ODVlNjlkMTQ3YjIyOTc0ZTdlNGMzZDJjZmZmNzk2YzU3YzU1NWVmMGE1OThlODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZTBhYmNlNGE2NGE0YmI3NzhlYzRlYTJjYmMyMWRkNzc3ZDhkY2M5YWJiNmE0YWY4ZTQxYmZkMmUxMjMwMjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyN2VkMGRhY2M0YTg5M2M3Yjc0MTU3NWMyM2QzYzUyNmFiYzhhN2MxNWY2N2U4MWI0M2U4YmQ0ZWZjMmRmZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmMTc3ZjlkYTYxMDM3NTUwOWQxOWNlODExMzhhN2FkOTZhZjdkMGU3NzMwNDE2ODVhY2E0ZTM0YWM3ZDA5NjAifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L80-L160",
+          "version": "repo-lines-v1:sha256:f786e44cdec3fb54ae7f08364d1c04755dbfc7f3445ea626144507663d20d1c7:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhYmNjMjRhNmQxNGM5NzBhMjZiYTUyZTQzZjc4NzFmODM2MzkzZTgyNmYxZTBjNGZiMDg1YjBjNTIxOTlhZGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5ZmY2OTI2NjBiZTZlMDU1MDI5OGFjY2YyZDk1YmY3NThkZmY0ODUyOGExNDUxZDJhMWE4ZWFiY2ZhNTVkMWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiZDE1NzE4M2EyYzUwYWI5NTdhMTBkNTgxMjA1ZGU1MWY5YWRhM2M4MzJiYWE1N2M1ZTY2NjdjOGNmOTIzNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdhZDU1Njg4OWI0MzA5M2Q0MzFjYTNmMzhhNTFlYTZmMDJkMzAwMmIyY2QwNjkyZDY5Zjg5YjFhZThhYTc2MDEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1250-L1342",
+          "version": "repo-lines-v1:sha256:12cba8f8ac19d78cc3c26087d058c113a76d8e3af1258e7d92320d7c1ad7aff0:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyZTU5ODE4ZDNiZWVjYjE3Njk1OWViNDNlMGYyYjQ3ZWU0YjUwNTU0M2NlMTc0NGYwNjljNjM2MmUyMzdiYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0YmNlOGI2MTQxMTJhNTBlYThmNzg5NzU2ZGI5ZmY0NTQxZjMxOTFkZjljNmM0ODc1MTg3YTdkMjZkNmQ2NjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8742e1e787a44f67bea0ed62948b9543",
+      "statement": "采集源调度变更通过 Redis 频道 etl:source:updated 广播，所有节点收到后重新注册本地定时器；定时器只在 Master 上触发实际入队。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/SourceService.java#L150-L195",
+          "version": "repo-lines-v1:sha256:7ae3494d258162c8481afefc39a1a6d775c6c887d5677bc68f1cb19b61c60997:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmOWI5Y2NmZmU3NTg0MjYzNDRhNTExYWIzNjI3Njk0MjQwMzUwODczYTkzNjNmZTlhZTJlYzc2OTk3YmY4MTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4NDRmYzRmOTdkOGNmZmNjMjhkODQyNzZkZTg5OWJjZjA5MmI2NWRjNjY3NmU4NzM3MGVmMDE2YWM1ZDAzOWQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/SourceUpdateSubscriber.java#L20-L80",
+          "version": "repo-lines-v1:sha256:f01a47ad62d61969f5815a5812e6db8465bbc9873083995dd683ac6db84bb905:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZDE2ZWUzNTc2YmFmZWUzNDc3ZDMxYTQwZWU5OGViNmUzYzQ3NWYzNTdkMmI5N2U5ZGJmYmFhOTdiYjJlNDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwNWUyZTNhYjM3NWE1OTdjYTU1NDQ3ZWI1ZDNiN2ZjNGZkN2JiNzIwNDE4NmUyOTA2ZTJiMjVhOGQxYTE5YjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5MDQxNzZmMjhkYmRkNGMzZDllNjEyNzkwMzMwYzRkOGE5YzA3ZTY1NGVmMjkxMjNjZjRkNTliY2IyMWM5OWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxNTZkODNmMWQ0OWU1M2Q0YWRkYTkzMjI3M2Y2OWNmYjE0NjdhZWMwNjExMzhkZWU3YTMyMDZmYjE5YmRlNTkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4b4e3d7b0dd145bea514c288b307988e",
+      "statement": "scanAndEnqueueEtlTasks 只在手动重置队列路径被调用：清空 pending 后重新扫描可运行表，而不是由周期性调度器调用。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L250-L258",
+          "version": "repo-lines-v1:sha256:f656aa20061aee498d5e192f0f39120a3218d878cf6124b09eb01198ae7c3001:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzljYmJjNjU0NjlkYjFjYTI4NDJlZmQ5N2RmN2VlMmNlNmNjMTU3MTQ4MmQwMWExOGI3OTBhMTBjN2M1MTBmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTZiNGI2YjdmYWZlNGQwZWJiYTA2MjNiNzkzZGUzNGU0YTQwMjBmNjAxZDdkYTgzZDdlMWUxZjkxNmQyODFjMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWYwZmM1ZDkwZjViMDZiY2E3ZGMyMjlhN2UwZmIzNjUyZmZhNWYzY2VlNWE2NzFmNzRmY2RjYjYwNjI1YjZkYyJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L339-L369",
+          "version": "repo-lines-v1:sha256:50667b848d2c38477bf2d647498a77945ae811a18e84caab5ac14f1b413862e2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5ODA2OTQyZjAzMGVkMWJmMzQyZGRiYjQ1ZDJmMmM0NjY3MmU5MTI1MDNmMDg0YWMxOTEzM2YzNjcwMGU1MTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI1OTE5ZDFlZTBjZGExN2NiNDAyN2Q0NzVjNjgxOGJkYmY2MTc1YmZmZmI0ODNlMzI1MWUyNzY3MTc0MTg5NWUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

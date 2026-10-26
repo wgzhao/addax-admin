@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:84f2ea49cd361d59898eff914fd5ac02aba378fcfed319305f758a2d0d2cbb74",
+  "claims": [
+    {
+      "id": "claim_d3dbf80112c54eedbab4ae61eb1350c7",
+      "statement": "首页仪表盘包含总览、今日运行、运行健康、数据质量、耗时与 SLA 五个 Tab。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/index.vue#L11-L20",
+          "version": "repo-lines-v1:sha256:1cbc60605dbaa158a6ed4524946f77d397ad13d33b6d4c8dbe4a0dd9fdd44c56:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQyZjNjY2EwZGYyNWIwMmMyZTMyZDhjMGFiZWExZTA5MWVlZmQ1NTJhNmY4MTg1NWYzZTY3ZTllMGE3ZWU0YjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNTFiMGE3OGI1ZjZjYWNmMzZhMzIxNGY5OTI0NjU5MjJiOTkxM2ZjOGEyNWJlMjdmOWQyNDMzMGU5YTI0ZmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNjMzM2MzMxNzAzY2EzMzg1OWQ3NzU2OGI2MGZlNWIyNDYzYjQ4ZGNlMmFkZmUwMGFhNzZkYTI3YTdhMjFhZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjMzY3ZGVmNzk0NjI3YjJiMjg2YTllZWE4YmMwNGNjMjJhMzFhNzQ2NTI3ZWE0M2NmMDE1YTAwMzhlYzQwYWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_931bad03af9b432bb7ba60b7be82934b",
+      "statement": "GET /dashboard/summary 一次返回各采集源完成率、源数量、采集表数/全部表数和数据量/天数/耗时等汇总指标。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/IndexController.java#L125-L137",
+          "version": "repo-lines-v1:sha256:67fdbbe9ecd5dd74ccabc0a0653897173423362df387555beffc5a807bf4fec7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA1MDE4NjY2ZjJjYThmMDA0NzE4YWMwYTY5ZDZhNzRlOGFjN2Y1NjAxYjA5MGNhNmM5MjJmMjQ2YTY3ZmQ0ZWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2ZmUzZGM0NzMyYmQwMjZhMWVkYWI3NTAzOTUxMjYzMDAwMDVkYzYzYzhmMWUwYmJkMDhiZmE5MzYwZjg0MGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEyYTA1MTlkMWUzOTg4ZDEzOTc1Njc3NDZmYjc2MzYwOGUxMjFmMzVmNGY3YjQzZDMzOWI4OTZlZjA2YTVhYTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dfc8bad20207477684e75fbe06c82739",
+      "statement": "仪表盘统计区分两种时间口径：基于 etl_statistic 的查询以业务日期 biz_date 为锚点，基于 etl_jour 的查询以自然日 current_date 为窗口。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DashboardStatService.java#L9-L25",
+          "version": "repo-lines-v1:sha256:9da47ba0d3853b8a8494486d4d4b9b3c2c60e926e1bf692030f1324365c7fda3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNTQ0YzYyZWM5MmQyOTNhNzY1ODExZmNkMmIwZDE2NTJmMThmYjFkMTgxNjI4OWNhYzYyNmZiZWYxZDdjYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5ZmQxZDBlNTIxNWFlOTA0MGYxZTdiZmMyYzljMDA3ZGU5MjU1ZDdkZjI3YzgzMDlmOWQ0OTg3OTAzZTA2MzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzMDgxOGY3Nzk3MWMyNjczZDU3YTVlMmRiYzc1NDkxYWRmNjNlOTRhZTZlOTU4MjYyZTI4Y2EzZDUzMDNkOTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c3a2eff165447ee81bf1989803298d3",
+      "statement": "采集表状态分布只统计未退役表；采集源完成率排除状态 X、源停用和已退役表。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DashboardStatService.java#L34-L47",
+          "version": "repo-lines-v1:sha256:9b24b49e0720e603c8543f685bf802fe2c48d536d766f891f037f2d2f3eda4fb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiN2YyM2Q0MWRhZTQ4OTFmMTdhZWEwZDZmYmJiMzhlMjU3ODcwNWQ5YjU0MzQ2YWMyMTYyZGQzMjZjN2M4ZWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljNGNiNWNhZTJiNzY4MjQzYmJmOTA1YmZiMzlhNjBiOTk1ZDEzNTIwN2YxYmVmMjZhNGU4ODQwYTdkMjE2ODYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc3OGY2Zjc1MDExNWY3NGFiYTQ4NTZkMjg3NmJlOWM0ZDFhZjgyZjgyMzY5NjAzOGM1Nzk4NjU0Y2M0ZTFiMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM3ZTI5ZjVkNWYxNmNkZGY0ZGM5ZjE1NjJhN2U0ZDJjY2NmZTE3NDQ0ODJhY2NmODdmMzZhMmQ1YzVjMTc3YmUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/StatService.java#L75-L105",
+          "version": "repo-lines-v1:sha256:031cf6b7640ac6daec7ee4802891a0defaeb97917210f7b526eb59bda6414a95:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5ODI1NDkzNDE0MDQ1ZmMyZjkzODQ2MzUwZmQ4YTQ3ZDZjZDBmOTM4YmY2Zjk3OWNiNzE1MWNkMjNhZGIxNmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4N2ZhNDkyYjFiNDc5ODY0M2EzYTg0YmMzN2UyNDNlNjdiYWI0ZTA3M2EzMThiODU3MThhNDFiYTk4Zjc1YjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE3NzA5MmZiOTEyZmNhOTYwOGNmOWNhOWE5NDQ1ZTBmM2JiNzEyMWUwMWVjN2JlNGEzNGU1NDJhMmNjM2MyY2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU2M2ZkZmVjYWY5MDhlYjY1YjFjOTBjOWQxZmRjYjI3NWRiZjAwMDRmMjI4NTZiNWFlNDk1ZTI3ODA2NzljNjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_da8888c048af443eba8a6869d1516747",
+      "statement": "失败趋势取 etl_jour.status=false 的近 14 天记录并按 kind 分组；错误行占比取近 30 个业务日的 total_errors/total_recs；失败排行和慢表排行都按近 N 天聚合。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DashboardStatService.java#L273-L310",
+          "version": "repo-lines-v1:sha256:60f020fb9b8e57233bd237ef68614f1521b1c6f5b30a597f6d629b5c7ccc7023:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxOWU1MDJlNzVkNTdlMWM3OGZkNTljNjY1NTk0YmYyZDI5ZGM3YjExMGJkODUyMGJhYzg2OTgzN2I4OGUxNWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkMDBlM2E3YmNkYmIzYTc0MDRjMzJjMGUxMGU2ZjBlMjFjN2Q5YzhhZDhmYTQyNDBhNjMyZGI4OTZmODFiZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhNDMxOTE0NWJhNWZkMDQ2MTZlZWRhOTgxOWFiYWYzNzIyNjkxZDgyNTRhMTg0NmJmNTVmZTA0ZjlkYzE1OTQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DashboardStatService.java#L51-L130",
+          "version": "repo-lines-v1:sha256:fb7bde2a1891db782981c7c338578673d4af857479ca9a3148bf7e6420bc3316:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxNmQzMWI3MzBmZDk3ZjE4YjNkZWMxZjU3YTc4NTA1NmRhMGEwYTFlNTIxZTdkZmU2MDE4MTdjNmFlNmMwYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkMzRhOWRmNzc5Yjk1NjZiMDRhZDJiOWU2Y2RkZTNiMWQ1ZTZjMWE4YzhiOTdhYjdjMjhhN2IxM2EzM2JkNmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3ZTI5ZjVkNWYxNmNkZGY0ZGM5ZjE1NjJhN2U0ZDJjY2NmZTE3NDQ0ODJhY2NmODdmMzZhMmQ1YzVjMTc3YmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0ZGJkYjgxYTU2ODg5YTBiMDE0ZGE3N2VjODc4Nzg2YWQyOTIwMTA1NmE3ODdkZTU3ZDMwNTVmOWVlOThlNWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8510d05633ed44618df1f8f99384db28",
+      "statement": "采集缺失日历的应采集合只包含未退役、源启用、状态不为 X 且创建日期不晚于当天的表，实际采集按 tid 去重，缺失数为 max(应采-实采, 0)。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DashboardStatService.java#L152-L195",
+          "version": "repo-lines-v1:sha256:c0e0a467441999f6166902c41892221dc638819fcc696d2962aae6c46dd92d01:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzOTRhYjk2MWQ1Njg1NjU0YzIxOGU2OTg1MTVhYTkxNmFmN2FiNjc1ZWI4Njk0YmRkOWZhMDMzNmRlOWRkZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlMjA2NWM2NGZlMGFjMjE5YjZlYTA2MmZiMmZiYmFjZWEwMDgyZTkyOTA5ZTJiMzcyODRiNmJkYmIxYjZiMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMjM1Yzg2YzczYzU2MjM0MmYzZWE1OTFhMTMxNDRmNmE3YmZkY2VlODA1OTU5OTQwNWI3ZTY4N2RmNTlkY2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5cd5d52bc1943bab1a6abcdeaa05f70",
+      "statement": "耗时直方图使用 9 个固定区间并返回 P50、P95、最大值和总数。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/DashboardStatService.java#L312-L360",
+          "version": "repo-lines-v1:sha256:6f4686cf178a2e992f17b10350ac40bf3c770b83fd6b553ad24b24e5ac56ec50:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzZmY3NThmOWZhZjMxZDgxZDFlZTIzNzM4MTgwYjU4MmU1OTg5MDBkMWMzOTM4MDMzZmFiOTUzZGM5ZmQ2ZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkYTFjOGQxYWQxMGNkYzE0ODhkN2Y0NWIzOGM5YTk4MTVjYmNlZGU4YmVmYjFhMmRhNTI3ODIzMzYzZjUyZWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI4YjRkZDZiNDM1NTYyOTM3M2UwYTMxYjNhMzNkY2M2ZmIzYmVlYTQzOTNmMDgwMzdkMDhjN2Q1MjliNDczZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwYzgwYTA2NjlhNzdlMGMwMjZkOTIyYjZlYjBkYjkwMGViNGFmNmE0ZWQ3ZWM3ZGJkMzkwZDY2MTdiNDQzMmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_53d5325e422247d589d29ffee19958ba",
+      "statement": "监控页加载采集源完成情况、特殊任务、拒绝行任务、系统风险和字段变更五类数据，另加载旧 notification 表的短信记录；字段变更使用服务端分页。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/service/monitor-service.ts#L6-L60",
+          "version": "repo-lines-v1:sha256:769ea6a1912face9bfcec23bd3c54aa1ca6b7e49baa1b6ba28200ffd2a71fadc:eyJzZWxlY3RlZExpbmVDb3VudCI6NTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlMDAyZDhhYzc1MzNlYjZhZmMwNTZjYjI2NTRiMGZlYWE2Y2I0NjYwMjI3OGMxMTBmOTE4Mzg5YTgwNGRmMTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwYzFlYjVmZTczNzJhMTczZjg5NzlkNTVhYmEzZTZiNjAwODU2MTlhZTZlMDY2N2NjZjZkMWE5M2M3MzE1MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3OWFhYjVmMzI3MjYwOTBiNWE0ZTQyOTNlMzhjYWYxNWY2NTJiNmYxOWMxN2RiNDIwMjcyMGFmNTA4NzU5NGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhMDlmMTE2NDQwNDI2ZmY5OWVhMmIwMWFiZGJhMzBlZDM3OTQ4NjllMTMwOTdiMWE5ZTZkOGEwNzI5ZjQ3OTkifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/monitor.vue#L330-L350",
+          "version": "repo-lines-v1:sha256:5999d6f11bb7b0a978c6e6623c18d2754ccee391879f04d6ac35e67eaf01c7af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkNjM0NGFlYjIzODg5OGJlYzI2ZjZjMDA0NjIwMDY5Y2UzNjI2M2MxMzdiM2VjNzI1M2IyYzU0NmMzMDcwZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjNjE4ODIzZTY1NWFiNjJkNTNjM2JiODIyOGI5ZThlNjM1ZTNkOGNiYjFmZDcwMjg5YTVlNjk3YTM4M2I0MjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzMWI2ZmJjYzQ4ZGM0NzcxZWIwYTU2ZmViNjBkYWFkMjkyNjlkYzNjYmQ2YWM4NzhmNmI4MzE5ZTlkNTRkOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxZTM3MjVkYTAwMmI0NmVkOGI0ZGU4ODAwM2FkOTcxMGRjYWYxOGQ1N2M0NzAxZGMzYmVmZjBiMmM1Y2IxM2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_05fafd335f5d4fbe9b610cbcdac7539b",
+      "statement": "特殊任务条件是 status='E' 或 duration>=1200 或 retryCnt<3，并排除状态 X 和已退役表，按耗时倒序返回。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/repository/EtlTableRepo.java#L39-L47",
+          "version": "repo-lines-v1:sha256:dd9da5fc4440308f6d547019ea2af26a9355f86fd4b8e1d6195812300f269be7:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGQ3NzZiZWQyYjU4ZTRhY2U5ZWViMzNkMWFhMzRmYjkxNTgzZjE0ZTFkZmM0MWExOThkZWVhZGYyMzJhZDNjMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjQ4MmY0YjlkOTFjYjk3ZTc5ODdhMWRmMTU0ZWIwZjRhM2ZhMGRkYjk2ZGVlMjJjY2MxNWZkZTE1MGI4MWU5NyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWMyNzQ4M2Y1ZjAzNWM0MjU4OTRjNGY2OWVkYTkzNDM2ZjBjZmVmYWQ5OWE0ZGYwZTJkNzhjZDkwNjZmMzQxNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzA5OGYxODI0MGJlYWI5YzcwNDI4Y2VhZTFhZGYzOTNhYTczMDZiNmQ4NDFiNDVlNDUzN2I3NTczNGQ5YjZiMyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_f5bd233016b44c50998222a2ad9d9e2f",
+      "statement": "拒绝行任务只返回每张表最新业务日期且 totalErrors>0 的统计记录。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/repository/EtlStatisticRepo.java#L15-L27",
+          "version": "repo-lines-v1:sha256:6dd9037e50a1345da10fa2205faffec04754f497406fd064dfaeac9f96de881f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkZTcxYjAwMjlmMDIwZTIyNDQxZTI2ZTE2NTU1MzI4YzIyMmI0ZWVhMjZhYzY0NDIxYmY1YTkwZDg0YzE3ZDgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5MjA1NmMzMGU3NmI0YTAxODFhYWY1MDY1NDJkYzA4NjdiZDhlODQ5MjAxMWVmZWQ1ZmZiZDY5OWJlZjg2NWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkMTg2MGNmZTIzZDgzNzdlZGE4NTQ1MjI0ZWM1MjFjYjA2MjQyNjBkYTdiM2MyODQ2MjE5ZTNjOTJkODBjMmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_352c1a350ce5495ba4896fc317ddd7fd",
+      "statement": "risk_log 按“消息+tid”去重，监控页面查询最近 7 天内最新的 10 条风险。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/MonitorController.java#L70-L78",
+          "version": "repo-lines-v1:sha256:34ebfc7862fa98fa9b0293cd2ecc388c1d69ae5218c34998f06cdfc441ef3e68:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjljYTg5MWJmZjdhYzFmN2NlYWFlNDBlZjA1MTA2NmJlOWVmZTQ3YjRlNDI4MWU4NmMzMTliZTJjNTVlYmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2QxZTFlMjYwYmRhNzcyZmFhOTgxNTVkMzgwOGYwOTVjOGJkMmE3ZTlhNTM2Y2I3N2I5YTQ3YzcxNDQ2MTY3OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWJmMjc5Y2I1NTUzMjkwYTE0YmYzZjg4MWZmYjUxZTg1ZWE3Yjg0NTU4MDZlYjRlOWQ3Y2VjMmY0NjUwZGYyMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTdmNzkzZWVhNzdkODYxNGJjNjM2NTA4NDBlMjJhZGNlY2VkYWEyZjU3YjY5YzM2MzA3OWU5YzgwOWM2YzJiMiJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/RiskLogService.java#L20-L45",
+          "version": "repo-lines-v1:sha256:bc645390fb050b2729c9ac024490168dc37879adf2339ddf91c6f7c36d164885:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxM2ZkN2FlZDFjZTgzZjE2YjRkYmFhNzk0N2QwOTlmNGI5Y2YyMzI5ZmU2NTE3YzBmOGIxMDlhMTJjODZiMWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjlhMjZkYjI0OTIzYzczMjRmMDI5OWRjMmVhOGI0YmRjZmQ5ZTA1NjZjMjc2MjI4NzBkMGRlYjZlZTAwZTEzYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7d8a067a942b4325b0098195b8fc0435",
+      "statement": "MonitorController 还提供 /insight/no-change、low-change、high-change、time-change、missing-collect 接口，monitor-service 也封装了它们，但 /monitor 页面目前只调用完成情况/特殊任务/拒绝任务/风险/字段变更/短信六类数据。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/MonitorController.java#L110-L165",
+          "version": "repo-lines-v1:sha256:845abcc63efb914971f2d946dc89586243d077d3ace3c056438d7aa1c1491087:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhY2JiMmYwM2U1N2YwNTA1YTM2NjU4NDNkM2U4MGU3YjZkODIwZDU3MGRmMzUwYWM4NjlhYzVjODM0ZjIwOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlZDZlODY3MmExNzVkYjk1MDFkNzdjODM0MjQ1YjQ5NGE2N2IzMjdlODFlMGJiYmU2MTViYTYxYWE0MmM1NDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/service/monitor-service.ts#L60-L104",
+          "version": "repo-lines-v1:sha256:12d3d9b270caf9b8dcc3e9ded356b203faabfde46caec213cdf14c2f34df38de:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwYzFlYjVmZTczNzJhMTczZjg5NzlkNTVhYmEzZTZiNjAwODU2MTlhZTZlMDY2N2NjZjZkMWE5M2M3MzE1MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0ZDY3ODRiNjA1YzQzOTNmZDI3ZjE4ZDgyZTZhNDdhNmYzM2Y0NDIwNzM3NTc4ZDc2ZGNhNTA2OWI0YjFkNjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxOTY4OWRmZDJmZWQ2OGQ0ZGZkYzhmZWNjOTAyNWJmNjc3OTM5N2NmNDEzNzE3YTM5ZDU2OTQxZjFiNzVmZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/monitor.vue#L330-L350",
+          "version": "repo-lines-v1:sha256:5999d6f11bb7b0a978c6e6623c18d2754ccee391879f04d6ac35e67eaf01c7af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkNjM0NGFlYjIzODg5OGJlYzI2ZjZjMDA0NjIwMDY5Y2UzNjI2M2MxMzdiM2VjNzI1M2IyYzU0NmMzMDcwZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjNjE4ODIzZTY1NWFiNjJkNTNjM2JiODIyOGI5ZThlNjM1ZTNkOGNiYjFmZDcwMjg5YTVlNjk3YTM4M2I0MjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzMWI2ZmJjYzQ4ZGM0NzcxZWIwYTU2ZmViNjBkYWFkMjkyNjlkYzNjYmQ2YWM4NzhmNmI4MzE5ZTlkNTRkOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxZTM3MjVkYTAwMmI0NmVkOGI0ZGU4ODAwM2FkOTcxMGRjYWYxOGQ1N2M0NzAxZGMzYmVmZjBiMmM1Y2IxM2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_be2a4fe9645b46dd9daa89a524fc09c7",
+      "statement": "原始 Addax 日志默认保留 180 天，每日 03:15 自动清理；管理员也可通过 POST /log/addax/cleanup 手动清理，该操作写入 CRITICAL 审计事件。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/LogController.java#L70-L85",
+          "version": "repo-lines-v1:sha256:1f2cf24282980a6bccc410d28befe628a6d29274eb1974f763542566d0106899:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlOGI2OTYwZGRlYzQ2M2VhYTZhZjQyYmI4OTNlMjdhYjBjMTY4OTZjNGIyM2UzMjQwODE1ZWZmMWVlNTUxOWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwNjE5OGI3OTg1NzY2MjJlOWFiNGQ0ZTM2YjMzNzViNTg1OTg3ZmI0YTIzNTkxMzIzNjYxOTdkYmNhMTc3Y2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwNTRhYzAwNTMxOGI2NGQ5N2NiZjdmM2I2MTNiOWNhODlmMThjMDNlYzkzMzUzOWIxMzljYWFjMTk2YWNiZjMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AddaxLogService.java#L55-L81",
+          "version": "repo-lines-v1:sha256:316c2520a1d0d17e1bedded2b2a4c1e019d488ac27708bc477bdc6a881be8b4b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlZmU0MTdiZTMzMGM1ODU1MTNlZGQyNmE1NWVhMTc0OGU2YTQ3MDk2YzM0MDFjNDkxZDBhMmM2MDMzYmE3YzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhMzJlYzRkNDQ0Yjc4NGNkY2RkNmQ4OTY4MmI1YjhjYTNkMDczZjIwN2MyNzA3Nzg5ZTVmZDdiYmZlODAzZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_486382dcf2ea4ddb99ac9c477cae1de7",
+      "statement": "采集告警只在最后一次尝试失败时发送，告警状态存 Redis addax:alert:state:{tid} 并设置 7 天 TTL；中间重试失败不告警。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AlertService.java#L30-L115",
+          "version": "repo-lines-v1:sha256:4023df2f5c09fd0025117f7f5e26e761f42e5ba566064fee6a98081463d60c0f:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEwYWU5YTk4NmVlZTkyYjgyN2ViYjVlY2NhNDZlM2IxY2M5NWZlMmZkYTIyMWU2YWU3MzE0Y2Y0NzZjNGE4YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlODA2MmQ0ZmEwNjRlMzBiMWFkZjRhNWQ3MDIwNzcyMjUzZDFmOGQ4NDA0NzE1MGRmNWVjNjliNDRjMGIzN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMxODlmN2RlMDY1ODRhMWM0OTQ1ODk3ZjhlYWM0NTIwYTg4M2JhYjhhMDAzZDJlODI3M2RkMmQzNzY2M2MxN2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMTRmNjM1NmE2NWQ0ZWU1OTdjZTU0NGFmMTNmMjkzYmY2MWQzN2M0OGRmMTE3YTQzOTg4MzJlZDNkMzUwNmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_582cac4a130244bf81b804bf3bd74965",
+      "statement": "恢复通知先发送成功再删除告警状态；发送前用 addax:alert:recovery:{tid} 的 60 秒标记防止多节点重复发送，发送失败则保留状态以便下次成功重试。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AlertService.java#L105-L165",
+          "version": "repo-lines-v1:sha256:9865fd7ffa8c69c398165afd343a802fe7c2a72f2f79e8d3ae7a6163e222fec0:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjMDZiYjlhZTJjYTNlM2IzNTAwYmJiYmQ5OTNhOWQ0MDdiMzNlZjgxODQ5ZjM0NGQ1Mzg5MTkyNTAzODQ3NTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZGJhNjgzNzliOGY3OTQ3NmE1ZTM5OWVlOGVkM2Q3MTlmN2IzMDU5MTRlNmFlZjA3YTQ5NGI0OTMyMTA2ZGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiZjJkNzI3Y2RkZTk2NDg0MTkxNGJlYzZmNGNkYTA4MWE2MDc4ZjllMWRkOTY2NjY4MmUzNWNlOTA0NzgyMTMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b2efd62b45dc4eae9ec3ac120afb5d44",
+      "statement": "WECOM_ROBOT_KEY 为空时告警只写日志不发送；企业微信返回 45009 限流时异步最多重试 3 次并从 2 秒开始指数退避；恢复通知使用连接 3 秒/读取 5 秒的独立同步客户端。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AlertService.java#L230-L300",
+          "version": "repo-lines-v1:sha256:3d6d8854a6828b1f522cd6494df3de1952fe218a0c1d42e8ebb8dc8b20f23fb1:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhmYWU0YmRjMDkwYzEyYzNhNDcwNzcwNjUxYmM4YTE4ZmJhMDI4NWViOTJjY2Q5YmFiMzZkNDNmMzlmMWVkOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg0MTM4MmIzNzM1ZGRiZDVhMzVlMDI0YWRlOTMwZTEzOWE4YWJlZDczNDM4MDZmNDkzZGY1OGM1MTgwODkxYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRkOWMxODY0NGVlYjZhMzI0ZjM2ZThkZDFlYjFjZTgzNTk5Zjk3MzY2MzY2MDAxZDI5N2Y5MDI0N2ZmMTA4NTAifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AlertService.java#L60-L75",
+          "version": "repo-lines-v1:sha256:c8917808e1be0942fa7dac5f024a7640afe28efe769e572640abebc2da8df1a7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwN2ZlYWVjYWE4NGQ5MjkwMzJmYjdiZjc4MjE1Yzg2MzMzMTQ1ZjEyZTBhOTA4MGM2MWIxMDI0MDQxZmRjNzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NWJmMGE0Zjc0ZTkyNGQ1NDRkMGVmOWYwYWMyNDQ4ODM0NTYxODhhMGRjMzkwZTkyZmFiNGFlMzM2MTI4MTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2Mjk5MjhkYjU2MDg1Zjk0NGIxOTE2MTU0MTMyMTI4NzE3YjMyZGNiMTA0ZGI4YjAyZDJmNGI1ODExODg1OGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b34d1e836e5e4fd0900746bb4e3263b6",
+      "statement": "audit_event 由数据库触发器拒绝常规 UPDATE/DELETE，只有事务内设置 addax.audit_purge=on 时才允许删除；写入前对密码、Token、私钥、访问密钥和 URL 用户信息递归脱敏。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/audit/AuditSanitizer.java#L22-L45",
+          "version": "repo-lines-v1:sha256:fae2a93487bac44dd27f9939d0bbec9476c3651f727316806b5a2195db4f7d9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmM2Y3M2VmMmE0NDNhMWExYjRmMWViODg5ZTNkMGEwODE3MDdkNTVjZjAyNGQ5ZGVhMzNhMThmNmYzYjkwY2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5Y2E4OTFiZmY3YWMxZjdjZWFhZTQwZWYwNTEwNjZiZTllZmU0N2I0ZTQyODFlODZjMzE5YmUyYzU1ZWJjZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzZDQ0ODBjOTIzMzk1MDJhMDkzNWQ1ZWEzMDFmNzU3N2Y1MzFlZjhiYmY0Zjk0ZmZiNDk0MGU2ODk0MTIxZWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3OGY2MWUzMmYxMmQyOTQ2N2QzMWNjNmYzZjFjMGNmYjlkYmUwYzFjNTE4ZjZiMmI0MWM1YTdjNmMxMTRmOTQifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2262-L2276",
+          "version": "repo-lines-v1:sha256:40aa4877f6a355cd25b4c743fffd0cda5c57dfd92aec27d7be88f1da2978e774:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMDc5YTQwM2JlMmEwOWE5ODdlMDIyNTlmYjM4Mjc3M2IzOTU2YTZiZTVhNzkwNDU4YjlkMDQ3MTA1M2NjYzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQyYjVhNDZkNjUyNTA1YTY5NzQzNmNkZTc5OWMzMzVkMTg5OTg3NWJmYjlmNTJiMzlhZmNjMzkyZmRmNGRkMmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5MjFhYTk5MTA1MTIyMjUzNDhhMTU5NWVmOTdkNjBhMjZmN2QwZGUxMzgwNjQwNDJjYTlmMzk2OTg5NzgxZjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c6b7606ea7c240e7a01341b4d1a8ef4f",
+      "statement": "审计查询接口仅 admin 可访问，默认查最近 7 天且单次范围不超过 366 天，页大小上限 100，CSV 最多导出 10000 条；查询、详情和导出本身都会写审计。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/audit/AuditController.java#L20-L130",
+          "version": "repo-lines-v1:sha256:d6d8534fe7fa2089e9c6bae1ad0185e7411ebc72034715075ae29720d7ff2058:eyJzZWxlY3RlZExpbmVDb3VudCI6MTExLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxZTc1YzcwZDk0NjM2MjVlMTA3OWZkOGZjOGVlNjJhZDJlOTJjNDJiZWFhYmZkODViNzhkOGUwYTQ5NzliOTRhIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmYzA0ZDgzNjIzODg0MjY2MWQwYmNjNjJkOTVlZjAzZWZkMjUyNDE4NzNiODRmNzM3NzE4YjhkYjIzYmFlOTRmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlMTM4ZWJiNGMwNmM4YTRjYzU0NGY3OWE0YTEwM2Y2ZDdiZTcxYmJjYzA5OGUyNWU5NTI5YzZlOTE2YzVhMjJlIn0"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SecurityConfiguration.java#L49-L49",
+          "version": "repo-lines-v1:sha256:34bdf67c111d72d21df744de70c0281c2194a71be4d35dc0e6f4fcde103463eb:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzRiZGY2N2MxMTFkNzJkMjFkZjc0NGRlNzBjMDI4MWMyMTk0YTcxYmU0ZDM1ZGMwZTZmNGZjZGUxMDM0NjNlYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzRiZGY2N2MxMTFkNzJkMjFkZjc0NGRlNzBjMDI4MWMyMTk0YTcxYmU0ZDM1ZGMwZTZmNGZjZGUxMDM0NjNlYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTNjYWQzMmQ3Yzc0NmJiMDAwMmZjYjFhOGZjOWQ0MTM0MWFiNWY2YjVjODA1YzRlMjcyYTRmMmJiMzFiNDNkNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDYzZTdhNTdjMjMzODkxNjVhNDQ4ZTk2YTU4NTYyZWFkYzVlZTA1MDgwOWYzMjM0NTlkZjAzNTU1OGEwZTJkMSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0ef4ce44f6eb45209b3c5ae0a2156a23",
+      "statement": "审计事件默认保留 365 天，低于 30 天拒绝清理，每日 02:30 按批删除 5000 条；安全告警每 5 分钟扫描，同一账号+IP 在 10 分钟内失败登录达到 5 次或出现 CRITICAL 事件时发送，并用 Redis 去重 30 分钟。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/audit/AuditAlertScheduler.java#L15-L85",
+          "version": "repo-lines-v1:sha256:a90cfc476c46e03505f065555d5d25b758dfa01b78750ba23b3bb419e2aa709b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiMzM2YzQyYjJmNTIwN2I3NzVlNTBhOGRhY2UyZDZkMTViMjZmNjFlOGNkYTJjYTRkNDNmY2U0YWU0ODQ0ZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0YmQyNTQ4MDQ2ZmZlODk0ZDJjNTExZDI5NDgzN2U4NWNhMzNlMTRjMDc4YjJiZjQ3YjUzNWQzODdlZDFkNGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/audit/AuditMaintenanceService.java#L20-L45",
+          "version": "repo-lines-v1:sha256:d7af9b72908b2953d33b3b17f55d5eb4b0e51480cfd29bb51d9d3fda8107f804:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkNmYwYzE5MDEwNzE2YjNkYmIzOTljOGQyYTQ2MTI1NDRmODc0MzE1YzM3M2NiZWNkNjZkNDRiZjYwNmZmZTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhYjgzYzAxMjI0OGEzZWNmMmRhZjE4MDU4YTNhNTUxNDhmZWJiZjdmMjg2MWI4MDdiNGY5Y2ZmNGQ0NDlkNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7ef66d34e8954b6d810695e6f4df76b1",
+      "statement": "GET /cluster/nodes 返回存活 worker 的主机、角色、并发使用、可用 slot、权重、各源并发和最近心跳；超过 30 秒未心跳的节点不在列表中，前端 /cluster 需要手动刷新。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/ClusterController.java#L20-L65",
+          "version": "repo-lines-v1:sha256:4ed2f5cf9af85374bf2df3f2c2f2ad23f224af34f6981f190d7f1143d3c34ee0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyZmRjYzhiMzYwYWJjNTY3NTBhNzBlMDY4ZjY4ZjY2NmMxNTY0YTU0MDU1OWExZTgwYWIwNTFmOTNlMDQxNTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNWM3NmYwYTBkMGYzY2U4NzNhMDlhMzcxMTEyY2MzNjAyMDE3Y2RjNzc2ZDhiYzM2MmNlNWRkMTY4ZDE4NGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjOWM3MTYzOTBhNjkwZDUwYzUxYjBhODM1YzAzNjI4MzhkODk0NDFkZmFkYmI1YmNhMDlhMTg4MjI0ZDAwNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzY2QwMWVmN2FlYmJlNTI0NTE3ZDEyMjYwYzA2YzdmYWJkNDZhYjM4ZDY3YzNiMjZkODMxNmU0NzI0ZTJhNjEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/WorkerHeartbeatService.java#L38-L39",
+          "version": "repo-lines-v1:sha256:e1a732ee913975185a7db12870c962901837633a37452223ee69104ad3023bb3:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzIwMWYwNjA3Y2NmMzMyZjlmYjI4OWFmMWFhN2RlYTE3YjlmMGViMzExZDUyYjNlNzI3ZGIxOWJkN2Q4NzVhNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmIyMDkzN2E0OTNkYzU1M2U1YTM5NjYxOTNhZmEwYTEyMTg3MzhiZmI5ODJhYjMzYzJlYzUzMmM5MjU0ZTlmYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjJkMDYyM2FiMTEyN2ZlYTIzYWNlYjg1OWRjMjAyOTIwZTM1OTE1ZDdkYjE5YzZiZTJiOTYzN2QzYmUyNzBlNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmRhMTIyM2JkMDdlZGZkODcwMDkwYTg1NmY4NTk0ZGM5MTIxNjFjNWMzYThkOWQzZjI0MmJiNGI1ZjZlNzg5MyJ9"
+        },
+        {
+          "resource": "repo://frontend/src/views/cluster.vue#L1-L130",
+          "version": "repo-lines-v1:sha256:294367e905f152f589da2dc67bac10bb2aa7e834961166e7a809d1720d4220e5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5MTE0YTA3YjZkMDVkNzZhYmZhMDNlZGUxOTI2YzFlMmU3NDcyNzMxMjc5ZDg1ODhlOGM2M2M1Njg5YjUwMDc3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiOGJmYTNkNzUwYzBmMzM4NDdiYTc1NTBjNTE1YzMzYjNlNmE3YzcwNjg1ZDhhNDVkNzFkYjQzNDdhZGI0YWU4IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3NTlhYWFiMTI3NTgzZTgxNTJjYTI1MDNjZTJjZDhiNDQ4NmQyNDA4NDFjODcxYTVkMmY5ZDE4MTI0Y2E1ODQ4In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_605471be6cda4e89aec01a057e9c7aaf",
+      "statement": "GET /tasks/queue 返回 pendingInDatabase、runningTasks、isMaster、masterInstanceId，并补充数据库中的待处理/运行中数量；PATCH 可启停队列监控，重置队列写 CRITICAL 审计。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TaskController.java#L77-L123",
+          "version": "repo-lines-v1:sha256:a7027cada7c1c51c6600889cdf8786f5a96c737bb6cf5d2d4ea19e201f162172:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2YTNlYTAyZDcxZjU3ODc3OGRjMjZjNWQ1NjRkNDA3MmZlZDM2NzM2ZDEzM2U1YTYxMDRjZWYxNzYzNjQ4MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhZGU2YWVkNWIzMDU0OGUxNTNlNDRjZWNmZTk3MzA2MmJhZTE4NWE2MTc1Y2JmNjM5YjdmNzllOGJhN2RmMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAzNjczYWNmMmM5OGIwYmRkZjdkYjE2MDRiNDMxYzZiYmE3MDc5ODM1MTM5ZTNjNWRiM2Q1OTQ2NGQ2YWI5MDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3Y2M0MWE1OTMzNzRhNTlhZjY4NzFiM2Q0YTNiYTcxNmQ3ODhkNTFkNGQ2ZDRiNThlZDUyOWRkYTllOWFhZjUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TaskService.java#L210-L229",
+          "version": "repo-lines-v1:sha256:45ad31b285e36cc36e4d53beee419f627cc26e3227f632e3966b3b73a2d41b98:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlMmQyYmIxNmVmNjEwYzEyM2Y4ODcxMTUzMjNmZTA1Y2RhMjc5MTIzZmJhNTlmNWIwMmEzYjQ5YjA1NTM0ZGYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmOTMxNzFiZDRmNjEwMWQxZjFhYzhjZTEyOGI2MjIzNWYwMzY1NzZiNDhiYzdlMTcwODYzZWFhMzgzYzc0YTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExMjRhNGNiM2I2MGUwYmUyYjAxMjA0N2EwYWVhOGYxYjc4ZTBjMGNjMzNjZWRjNDhmNjNiNDljZGEwM2YwNzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1364-L1372",
+          "version": "repo-lines-v1:sha256:6321a422c62d66d6a8fecd4565b88f41b7dfe58702a8fa19ba2711639632fe22:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTc4ZTBhZDQyNTFlNmY1N2VjNDRlNzhiZDRjM2M2MDgzMDdjODk1MGQxNzdjNmFkZjc2N2I4ZjQ3NmY5ZGFmOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzY5NDZlMTAxZTVlNzhkOTBhNTEwYzY5ZjI2NmVmNzY1NDBkMzA5YjFiODIyNjk1YjUzMTcyZWQyY2FhMDI1OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTcyM2NhYTVhMTU3OTI0YjVjOTJmMjdiYTAyMTY1Y2ZhOWJlMmEzOGFjMTI0MjNlMTEyM2Q1NDA0ZDlkMWFhNSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

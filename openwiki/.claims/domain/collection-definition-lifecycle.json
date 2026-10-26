@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:78e0517c9dbaac0805130540f8f4287ab79300a0f1e73c5009379f62b6c7a4f8",
+  "claims": [
+    {
+      "id": "claim_95bfb8ecf1ff44d49ca908909e0b1afb",
+      "statement": "领域关系为 etl_source 1-N etl_table、etl_target 1-N etl_table，etl_table 1-N etl_column/etl_column_mapping/etl_execution；采集执行通过 tid 关联定义，并保存独立配置快照。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L158-L180",
+          "version": "repo-lines-v1:sha256:265e37bcda2da430026aeb69d942fc774692c13eaa4a802ed92bc9e251ed137e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMDM3OWZmMWI2MmEyMjkyYTRiNWM5Y2FiNDIxMTMwZmIzZGM4YTc1Mzg5ZmI0OGQ1MDA0ZjQzY2RhMTE0OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhZDdjYTg4ZGMwODM4OGY0NTIzMGVhMTllZjYxMzNiMjJiNjBiNDJjN2UwOTI0NmZlZGU0MTRiYmNkZTU5NWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhYzFlZDVhMjQyYjFhYjI0MDI1M2VmYzFiMWU5ZDg5MTI5OGE4MDkyZGZkZTcwYjE3OGIzMzdkMzRkODc1OTIifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L446-L463",
+          "version": "repo-lines-v1:sha256:fc62c0c2c211efe030f4f8240d3b897e48bb415c93c2d4ef87110f76566bc960:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMjkwYWJlMDhmYWI0YTY2YzQ5Mjg5NDY4YjI4NzU3YTE1YzNiOTM4MjkxZjVkMDU0NGM3ODA1YTU2Y2ExMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhOTg3ZGU3NDMwNzg3NWI1NmJlODMzNzJiNzBkNzMzMTRkYTVjMmYwNTEyN2I5M2IxOGU1NmJjMjU0MGZlNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmZGZkNzdlMmExM2EzMTUyMTM4MzU2MTRhMGRmODliMmI2NTk4ZWFmZmQ1MzU1ZWZlZGI5MGY5ZGNhMzM4MzEifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L741-L770",
+          "version": "repo-lines-v1:sha256:56cb5fe3f0dfc71c876cac35aa926fc070dd1ab08426809c3b41d7320db72160:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3OGIzMmYwMzgwZDFlMWNjOGY2YmQyNjZmNDhmYzg2YzY1Njk4ZWZlN2QwZDJiNjViNDJjMjZhZjc4MGQzOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlYzg0Nzg3MjZmMDI1M2RhOWU4NWIzNGMzNThjZTYxZjA0YjNkYjJjYTEzZjY4ODlhZGE3ZjJlMWVhNTUxMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZTEyZGVlMzgzYjgyMTlkZTlkZTI5OTRhN2ExYmMwYmIxYWY3MmEyMzA5ZWI4MDFlNzA0ZTExMDI2NzBmMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4YzUyMTgyY2IxNDU0MjI2ZGVmOThkYTVlOGJjYTc2MmU0MDNiMDBjM2NkMzVkYmIwMGNjZDJmNzYwNmI0NWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b56809fb05124f91b977da75148e1ef6",
+      "statement": "采集表状态为单字符：N 未采集、W 等待采集、R 采集中、Y 采集完成、E 采集失败、U 等待更新表结构、X 停采。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/common/TableStatus.java#L1-L20",
+          "version": "repo-lines-v1:sha256:56962f747b1dfee17339d92bfa3fdc5a2d0e9989d03d179687bce371fbade3ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MWRjMDAxNzNjMDJmOTllYmE0NDgxMjExOGM2Y2ZjYTE0ZWM4YWUyNzI0NDZiOGMzY2FlMzZhZjllMjJlMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3YjBjMjUwMjVlZjA5ZjFjMDBkNDM4Zjc4YWNiYzZmOTE4YzEyOGFmNmY3YzY2OGY0YWUwNmJhYTMzMzI3YzkifQ"
+        },
+        {
+          "resource": "repo://docs/testing/collection-state-matrix.md#L1-L28",
+          "version": "repo-lines-v1:sha256:05e04e2c3a0329e4e2af7513dc5f7cc425845734b7ccae362c103d2713a474b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwNGUzZTJjNGJhNjIzMWMzOWUzNTVjMTI3MGQ3MmQ4MThlOWExMzQ0Y2NjYmQ5MDA0OWE0YWM0MWU1YWQzYTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2MWE5MzdlZmM0NmZmYzI0NGYzNTQ5MmE4MzU2ZDhlNmNmNjVkMGZlZTBkMmFkMzUxZTIzMjU3NmIxYmJlNmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkODc1ZmIwZDFiYTQ5Mzk3ZDNlZWE1MDE2MjgwYTViMWVhY2JmN2NmNzc2ZGE2MDcyZDc1MWFiMWU2NDk5NTYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d91d6f4998514d569417e3e692ce071d",
+      "statement": "退役（retired_at 非空）、停采（status=X）和源停用（etl_source.enabled=false）是三个独立维度：停采和源停用都不等于退役，恢复也不会自动启用表或源。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/model/EtlSource.java#L68-L88",
+          "version": "repo-lines-v1:sha256:19c2efdcf1f16b054ace8afa1b9c3b3c0debf1c28e9f65875c80bcc788ee1708:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljNTQ2NTFiMDFkYmM4ZTVlMzgzMTBkMWE1ZjQ1N2I0YzYxZTkwNTUzM2NkZDQyZTg0YjVjMzliMTcwMGVjYTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg3MzU5OWE5Mjc5YzhkNDAxYzc1YTUyZTIwMzBhMDAyOGI3NDQ5ZmI0YjFjNjAwZTI1Y2RhZWUwNDllOWQ3N2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRmMzIzZmM4MTdiZGM3OWE5ZjE1MjViYmRlNWYyMDcwZTRmMzU4NTc2NWJmY2RhZWRjYTlmNDc1MGU5ZTdmNmQifQ"
+        },
+        {
+          "resource": "repo://docs/adr/0001-retire-collection-definitions-with-execution-snapshots.md#L1-L12",
+          "version": "repo-lines-v1:sha256:85de5246d79269868349b6bae4bc0576f43a00df3a1a16b92c8228044a9fd9f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYjRjODc4ZTMwZjVhYWQzNGRiYzM4ODRhMmJmMGQ5OGM3MjhmZGI4Y2M5N2NhYzk1MjI2YjQ3MzIyYzQzZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyODc0MGI5N2FjODYzYWJiZjAxZTU1MzM0MDY1NGYwNjJkOGQyMGI0OWNhODMyZjk2NWI4MGZlNjk5NmI0YzMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5936a0016904c4591a897c44687c64d",
+      "statement": "列表 scope 语义：CURRENT 为所有未退役定义（含 X 和源停用表）；DORMANT 为未退役且源停用或 status=X；RETIRED 为 retired_at 非空；ALL 不过滤；旧参数 lifecycle=ACTIVE 兼容为 CURRENT。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L112-L150",
+          "version": "repo-lines-v1:sha256:f507d33ed466248f0a1777cdeaebbf4d64a949839ef05b4639621ec132df67e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkMTNiZTBiZWQyYmEzMDBjYWJlOTdjOGQwNDY3ZTNlZTI0ODhhNzMwZTkzMWMyNDFmMmQ2N2M0NzE1NzAzZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxMzA1ZmRmOTYzOWJlYTI1NTgxZjg4ODdhMzg4MDg0OGQ3OWI3MDUzYjRkZTkyNGRlY2Q0YWMyNzMxNGEwZjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5ZGRhODE5ZjkwZTNmZTc1MzFkZjk1N2UxNDVlMDk4NDBkNDFmNGM2MWQ1OGFlZmJhOWVkZWUyYjJjNGRiYTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3ZTFiMWQ5Y2VjZTYzOTExZDQyNTExNDAzZmVmYTY2MmVjMWQxMWVlZmI1YTY2ZjdkMTI0ZDAyODJiZDlhZjUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L294-L325",
+          "version": "repo-lines-v1:sha256:13f212fa106b1297482cbe41ef3f4715f1ef0fba9a06d4ceaa6a370e9048c400:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyZGM5ODM4M2Y5ZjY5OTYzMGUxNGQ1NTQxZWM2OTExODhkOGUxNzJlOTVhZGE1OGFmZmE2MTQ3OTBmNTdmMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwYWJmODE0NTMxNjc1ZmM2YzZmMDQ0MzMxNTNkMTEyYTFjMWI2NDFlMmQ1N2MwNzZhYTJhMDgzZDFjN2YzNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3NDIzZmRjMjNmZDc1NzYwMjY3ZmRmNGVmNjU4NWEyZjY4MTY5ZWIzOTIyYmYyMGQ5MmZkN2RhNjE1NDE3MGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2fc124d5f959485bb341fd65c5046e43",
+      "statement": "DELETE /tables/{id} 实际执行退役：存在 pending/running 队列行时返回 400，否则设置 retired_at/retired_by；重复退役幂等；不删除任何历史事实。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L186-L197",
+          "version": "repo-lines-v1:sha256:0d531c41de9bb027eabf0febeaa26edf6927dbf3527af2feeb45f7562881ff9f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5YzRmODNhZmRhOGEzMjc0YWI5MzE0NjZiMDQ0NWI5ZGFkYjJiZTMzNmVkNDIwMmM4NzMxNDE5MzNkZWQ5MjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjZWU4ZDM2YzU1NTcxNjQ5ZTk2ZWQ3NWUyZTI3MmZiZmQ3N2M3Yzk0MjcyM2Q2YTlhNzA3MDIxNjFlYjIyZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmY2ZkMmFmNTU5ODQ2ZmNiMzM5YTZmZWI5NDQ4NGRmZjUwNDc1Yzc3ZTFkZTgyNjI4MWI5ZjgyZWE4MzU0MmUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L610-L628",
+          "version": "repo-lines-v1:sha256:f0974635aa6cfbb6795e1c8f992fe27aa125d3c2ed52406cf6b6a925375723eb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0NzIyNjU0YzQ4YjJjYWYwZWYzODZjNWU2MWQyNGU5ZmE0YTBiZWNiZmI3MTNiZWMwNDc1YWFkNGY3MGFkOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwNTRmNDliOTU4ODI5YjQ0MTRjZGNiNWNmZmUyNTAwMTI0NTI4NTk0Zjc4MjIzNjkyMGJhYTQyY2FmMzdjMjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_70ded662a9e74180a6a46ea85d82a6ff",
+      "statement": "恢复只清除 retired_at/retired_by；当前未退役时返回 400，存在活动队列行时返回 409；恢复不改变表状态也不启用采集源。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L630-L645",
+          "version": "repo-lines-v1:sha256:39bd7b6680aefc80115872b7a8d6d5a50cc9e9c142a3f8f904fb99775e1ca52c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxNWE3NzRkOWNjNTMxMmMzZTNkZDc1NmQzODdmNGZmYTI4NzI3YzY1YTQyNWQ2Y2RkZGM2OGQ2ZmJjMzUzNDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_439a030df4da4109a4d8947f7d7890af",
+      "statement": "已退役采集定义拒绝修改配置、字段映射、任务模板和资源刷新（均返回 409），但详情、执行历史、统计、流水和日志仍可查询。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L228-L245",
+          "version": "repo-lines-v1:sha256:be59af17c1689ab6d9cbe61c916ad63a62f5dc38c0e8d4de5e88689658504cb2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MTRhMWM2ZDdhODIwMzA1Yzc4NWM0N2I5NWE1MjQ0YTc5ZWM2NjMyMjhmODI3Mzk3YjY2MzYxNzIwOWRiMWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4MjZlYWYxZjZkMTJlZDY2NmE4NWE1MjFkMWJlMTkyZDYyZGUzMDgwOTQxM2Y1MzkyZTFiNWQ4MzM2YjFmYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1YWM0N2ViM2ViMWZmYjkxMjFlN2Q0Y2MxNmFjZjEwMDQ1YTJiZjZkMWIzMzZkNGM1MTk4YzI1ZDVjNDI2NDMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L290-L310",
+          "version": "repo-lines-v1:sha256:a166684bbed5ced186125239fadd8d470b1adeacf10cf0e81300d9a08701e118:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZWI1YmI4N2RlOTc5MTljNzhjZWE4MGMxMTI0NDBhNTQzNjA2MTliNjEzNTQxMzhjY2U1NGIxZjIzNGY1NTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1NjNjMGZiNTRiMjBhMmU0MzUzMzAyYWViZTJhN2JkMTYzNzZmMDNhNzgwODYyMzFlODFlMDUwYjZiZWJjODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwMzQyNjg5NTU1MWIzODBmZDA4OWYwODY5OTZiNGQ3ZTljMTBjYTFkNGU3OGMwNDVkMGI1MWNkOWZmNmQ2Y2IifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L462-L472",
+          "version": "repo-lines-v1:sha256:ddafe441c1af82abc0372a1626dd209d2a5df318fbfdc5fd22d8aacd0f29e2dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMDYxMmEwODBlNjcwYzdlMzQyNDM5ODk5ZjdlMWFjMTdiNGEzYzU0N2RlN2Q0MWFkN2MzZjc2YWU4M2M5NTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhYjlmYzZiMjMwMjE1ZTMzNjY0ZDk5ZmU0NWQ3OGZiNDIyYWZjYWExZjVlNjQ4OGZmYzU1NDJmY2Y3NmY5OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmZmFkYzczZGYyYTgyYzI0MDdlNzcwZDU3NWQzYmQwMWFmMmU3YjUwZDk0NGZmNDhmYjhmNjY0YTI4ODQxYmYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L394-L407",
+          "version": "repo-lines-v1:sha256:730d4e6dd626519d3faeefd616935104151ba386a12682ea6e3975bbf2a0c8d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2ZjgwODU4Yzk5ZTAyYjAyNGI1OTIyOWI0NWQzMGE2ZjBhODljMmIzOTBiMjA2NGNkMTAxYjFiNTU1OThiZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1b023b969f134edcad496128326b6814",
+      "statement": "自动调度的可运行条件为：未退役、源启用、status NOT IN ('Y','X','U')、retryCnt>0；表级覆盖调度额外要求 status='N' 且 start_at 非空。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/repository/EtlTableRepo.java#L94-L145",
+          "version": "repo-lines-v1:sha256:81b488de22e74acaeec01331df3774d239d9e8f450ae4d12671d7526affd8e44:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExOTFhOGNhMzdlOTgxYWY0ZThkNzk4NzYzYzRiOTcwY2NkNjIxMTYyMWMwYWVkZmMyOGNhOGFmM2Y4MzZiMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4NjkzMjgzMTU1YjEwZTQ5MTFmZjFhZTU0ZjE5ZTEwOTIwMWQxNjY2ZDQ3ZmJkYmFlZDlkNjNkOTYwOTAzNTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3YjA5YzYyNjI5ZjkzOWE2ZTk2ZmE5YjhiYWM5MmE1YTRiNzZkMjY1NTExYjVlMDAyYTViMDhjNjcyNTc0ZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiNDFiNjk2ZThhNTlmN2ZhOTE2NTNlMzlmZmU1NWRkYTM1MzM4ODA0OTkyOGI2YTM0OWNiYjQ0MTJhMTJhYmIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1e54e54de38a4e768a6bf59183151891",
+      "statement": "源停用后其下未退役采集表仍可查看和编辑，但不参与自动调度；删除采集源时若仍有关联采集表，返回 400。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/SourceController.java#L175-L194",
+          "version": "repo-lines-v1:sha256:faa256674c9cf43c6db0d692dac31c94e1d29a16f9a6d63efafae21e20f17f7a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiMDhiODljNzRiMWZjZDZmOTM4NDRkMDQ4NzhkMTcwMDk1Zjc2MGZkNDdiZjE3MWJmYTRlYzdkN2JkNWQyODgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxYzJiOWJlNThjNGUxZmE1MzUwMmIyYmRhZDQzNzNlMzI3YjgwYWIxODVhOGNhYzJkY2NhOWJkOGE2MzE5MzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3ZmZiYjRlNTNhZjEzMjgzZWQ4YzgzODc4MTQ3NjM4ZDg0N2I1ZDA5NmY5NTJlMmQ0NmFlMTA4ZWEyOGIyMjIifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/detail.vue#L19-L27",
+          "version": "repo-lines-v1:sha256:61a60714fbecbe120b333cf4145a8f33a3dcfc1650fcb73437aa52235e8c6bb7:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDZjN2IxZjdjNDc4MTljODkzOWFkYTY5OTc5MTljMGMwMWQ0OTA0NDlkMzY0NGUxNmJhMzA4YmU2OTIxZmExOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTJjOTE2OTY1NGRlNWI4M2JlZDY1ZTRkNTY1ZjY4MzQwMjIxNTRlYzVjMzE5Y2U2Y2RlNzUyZDNjZGMyMTE1YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTk0MTE5ZTI3NWQ5YjZhMDIwZjI2ZWVhYTYwZGQ1NzFjZjI4ODU3NDc2MGI5NDc2YWEwOTgzNjY4Y2FiMmYyMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTIzZDNkMzRlMDE1NGVlMDhlYzgzYjVlZjY5MWQ2MWI1YmVhZmYxMDhjNWUwMTI3Zjg5YzAzYWNiNjBjZWNmMSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_0469155124124d4e8cab67ff414fed63",
+      "statement": "状态转换：执行开始写 R；成功写 Y 并重置 retryCnt=3；失败写 E 并递减 retryCnt；契约阻断/刷新失败写 U；切日 resetAllFlags 只重置今天确实是业务日的日历对应表。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L400-L475",
+          "version": "repo-lines-v1:sha256:6401556bd6fc09a8c29a2d0a78cb1850211f98bb973c84a1f39cf87debd07545:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlNWU1ZWJhYjQ5OWFlMWVjZjY1NmZjNDQwYzQ3YTE3NjlhMmJkZTkyYTRmZDJkZjZiMjMzOTg3MDBlMjZiZTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhY2JmZmYwMzBjY2IwZjMxZDA3YmE3ZGQxZDYzYzJkNzc2N2RjYmU5OGIxN2UxNzQ5NDMxYTk2OWNlMTlhOGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmZWMyODRiNDQ3ZDdmMzI0NDc1ZWQzNGIxZDZlN2Q3ZTJmZGY2MDA3OTNiNzgxYWEzNjM4MDQ3NjFjMTg2ZWMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L570-L590",
+          "version": "repo-lines-v1:sha256:12c187e2ddc64bcc7b659798ee99f0655d48686cadc10cfa61b010fbbe00471e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0MDdlM2UwYzBlZTk5MWI2ODVlNjlkMTQ3YjIyOTc0ZTdlNGMzZDJjZmZmNzk2YzU3YzU1NWVmMGE1OThlODYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZTBhYmNlNGE2NGE0YmI3NzhlYzRlYTJjYmMyMWRkNzc3ZDhkY2M5YWJiNmE0YWY4ZTQxYmZkMmUxMjMwMjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUyN2VkMGRhY2M0YTg5M2M3Yjc0MTU3NWMyM2QzYzUyNmFiYzhhN2MxNWY2N2U4MWI0M2U4YmQ0ZWZjMmRmZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdmMTc3ZjlkYTYxMDM3NTUwOWQxOWNlODExMzhhN2FkOTZhZjdkMGU3NzMwNDE2ODVhY2E0ZTM0YWM3ZDA5NjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_57ce650c915c4e98b7a8b4a09382ef4b",
+      "statement": "历史可见性依赖执行快照：etl_execution 保存执行时的源/目标名称、配置快照和字段映射；etl_execution.tid、etl_jour.tid、etl_job.tid 外键阻止物理删除有历史的采集定义。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlExecutionService.java#L94-L155",
+          "version": "repo-lines-v1:sha256:f486aa5a413098b40e2a00adc0e75c2489e99bf90aa139fe1c84d84e2c341a7f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4NDMxZDRlNzliNDdhZTNmYzM5YjNkNmE1NTdkYWI1ZWQ5NTNmOTgxMDBkYzcyNjYyNDY4ZjFhZTA4ZjZiNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1NzVhZjQ2ZmUzZDdjMmRkNDU2ZmMyYWI0YjQ3NzU4OGMzOWE5N2UyYTNjODQ2NmIwZmIwZjY4OTNkOTEzNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxODdkMWUzNTdhYWIxOTM2OTM2Y2IzNDdjNTczYmY1ZDNkNTgwOWEzN2U2MGU3MmUzMWU4ZjRlNmJmMDIyYTQifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2118-L2157",
+          "version": "repo-lines-v1:sha256:c0b27c733bfe9d9e12b2fa84358a4ef8f2d8147a0db51d5ed525e2cedfdbeacf:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjODFjYmRkZDlkZGE2ZDlhY2JmY2E2ZGRhYWNkMDY1NGY2YWU0ZWNmY2M4ZjAzMDEyZTlhYjgwZjI5NTRjOTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg4NjA4NzYzM2I0ZDI3N2ZmMWVmMzhjZTQwNDQxMzE2OTM1OWZhZGQ0MzNhOGU1MDM1N2FkZjQ2Njg5NDJkZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2M2ZhNmViNGUxOGQwOWUwODExNmZlNzNlNzVmNzRiNGRmMzU1MWRiMjhmZThiNGY0NWMxOWE2NGQ0Mjk5ODEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0fee8fa5550c4de298c926521c9d5bf6",
+      "statement": "W 状态在字典与 TableStatus 中定义，但当前代码只有 setWaiting 定义、没有调用点，现存 W 通常为历史遗留数据；前端仍将其视为当前定义。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L440-L444",
+          "version": "repo-lines-v1:sha256:0704f93d04befc77813c6710141225f73580a429a3c7456ed659290a2a832cb3:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjRjMmQ0NDkxN2Q2M2YxYjhhNmMwYmU3YmVkODI4N2QwZmMyMDZkMjY2MmMxYjZmODc4MTM4MjJkNzVjYzEyNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2U2YjNiMjVlMDAxMTI1OGIxMDMyNWEyYTEyYWFmNDYwZDI4NzFmOGEyMjgwNDljNDI4NTFiODhhZDRhNjc5NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYjYzM2FjOGNiOTQwNDFjYWI3NWU1MGU4NGM2MGI1YzA4ZDE4YTYyZDI2MmM5ZDAzZjNiNGQ1YmU4NWRmMGU5YyJ9"
+        },
+        {
+          "resource": "repo://scripts/data.sql#L42-L51",
+          "version": "repo-lines-v1:sha256:3684d6797c2b5cb409dfdea04b6df55a9cb7ef2b8a9128ff554f382330baf08a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkODYwNWEwMzRiMDExNjI5NDIxMTcwZWVmYjVhODMxNmNmODNkNzNjNTJhMThkZmIwZTk1YjJiY2EzYjEyMjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMDU2YmUzMTI5NGUyOTQwMTY3MDkyYjJmYjA0MDM0M2M1NzM0OTg5YmYwYzZmNDAyOWU3OGQxZWU1NDk2MmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkMjI5NDYxYjMyZTQ1ZDkxYWJmZmIxMTIyMWY3NTU0MGFjYmZkMTQ1ZDU4NDA0MTkyMjYzYjIxYTdmYjg1ZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMzODIxN2UyNDUxZmRkNDBlNjY3ZmNlNWNkZjU5N2FkZmFlZTNiYWNhZmU5YTEyYjczYTZmNWNhYWM1YzdhYzAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0077109a9a5741388242a790650809de",
+      "statement": "前端采集表列表默认 scope=CURRENT，并提供当前定义/暂停中/已退役/全部四档；详情页对已退役、源停用、停采分别显示不同的只读/警告提示。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/views/table/detail.vue#L15-L36",
+          "version": "repo-lines-v1:sha256:df3ce6cc256a9651775c28b9fc9316625088553f8d5f6292832b5d20aac109bc:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5YmZlOGQ3MmRkNDIwYjg5YWNmYjMxMjU4MjQwMzQzYjlmZWFhMjgwYjI4NWQ0ODEyZGVlNWViNjlhOGUyNmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyYzkxNjk2NTRkZTViODNiZWQ2NWU0ZDU2NWY2ODM0MDIyMTU0ZWM1YzMxOWNlNmNkZTc1MmQzY2RjMjExNWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmNjBiZWRmYTAyOGJlZjNlOGViMThmZGIzNmJiNGUxOTE2YzM3ZGJiZmFhZTBlMDRiZmNjOTMyZjlmYjZlODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE0OGE1NDI4M2NmNzg3MGFiMDYyY2I4ZjZkNGFhNGQxMGYwZjlmZDQ0ODM3MjVmMTYzMjc4OWRiMmU5NzRhYWYifQ"
+        },
+        {
+          "resource": "repo://frontend/src/views/table/index.vue#L560-L575",
+          "version": "repo-lines-v1:sha256:f9c1e8ea5bf64756b4d684f3ac6d52b079e480a38f94a49d48aeef2e61a34f44:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4OTQwMjEyMTIxZTVhZjBmZWYzODI5OTU5M2E1MmU5YmM0YWVlOWJiNWIzZTA3ZGNmNjA4YTU0MDkwMWQ0MWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4MTA3NWE4OTMyZmE0NjBlZDQ0NjI2ZTBlYjI1MzA5MTVjYjFhYTE2NzNlZTlhYmNmNGI4NDliNjg0YWMyYWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyMzcwZmRjMWFjYTllZWNkZmMxMDQzZGRiNGJhYmQzNTFjOTIxOGMwY2EyZDkxNmMyZmY2ZTZmMDc5NzI3YjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ffe469cc49b5418db7924eb265842a18",
+      "statement": "docs/testing/collection-state-matrix.md 是采集表管理 E2E 的公开行为契约，覆盖 2 种源状态 × 7 种表状态 × 2 种生命周期的可见性、编辑、退役与恢复规则。",
+      "evidence": [
+        {
+          "resource": "repo://docs/testing/collection-state-matrix.md#L1-L28",
+          "version": "repo-lines-v1:sha256:05e04e2c3a0329e4e2af7513dc5f7cc425845734b7ccae362c103d2713a474b3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwNGUzZTJjNGJhNjIzMWMzOWUzNTVjMTI3MGQ3MmQ4MThlOWExMzQ0Y2NjYmQ5MDA0OWE0YWM0MWU1YWQzYTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2MWE5MzdlZmM0NmZmYzI0NGYzNTQ5MmE4MzU2ZDhlNmNmNjVkMGZlZTBkMmFkMzUxZTIzMjU3NmIxYmJlNmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkODc1ZmIwZDFiYTQ5Mzk3ZDNlZWE1MDE2MjgwYTViMWVhY2JmN2NmNzc2ZGE2MDcyZDc1MWFiMWU2NDk5NTYifQ"
+        },
+        {
+          "resource": "repo://frontend/tests/e2e/collection-state-matrix.spec.ts",
+          "version": "repo-file-v1:sha256:24f3e8e773a8a37c8bf879516d03ab286747fb0e25ff2a96b7fa5ebb64d928ba"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:2fbdeb63897f76e63c5ecf242d4a57c31066b7058379cf37e597ce5aa52438f1",
+  "claims": [
+    {
+      "id": "claim_997d1a66dc754a0ba65cdc480e80119e",
+      "statement": "授权顺序为：OPTIONS 与 /auth/login、/addax/**、/log/job-report 公开；GET /audit-events 仅 admin；其余 GET 已认证即可；其余 POST/PUT/PATCH/DELETE 仅 admin。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SecurityConfiguration.java#L34-L70",
+          "version": "repo-lines-v1:sha256:667d18314483394828b7a0b9125b6f2d87785e19d1abff10575dc23f4ed42b7a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1ZTU5MDY5YzNmMzg3NzE5ZWZlZDI1NmM2YzRiZjIxOWNjYzRmNmU0YjQxYWJmZDQ0NzYxZDQ1NDkyMTRkMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNjZiNjc4ODQ1MmZkZTNhZTY0ZDQzZmVhZDljYTM3NjE1YmZhMTg4NWQyODZlOGU0OWZmZTM2NDUyN2RhYmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE0MTNkMTUyOTJjYTZkNDBiYjY2MGMwZWEzNzQyYTI3MzczMGJhMTNlNjFiZWUwZmQ5ZTBlMzhkMTU5OTEzZWQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_669f28f6983e450c865a7a5910261e16",
+      "statement": "JwtFilter 从 Authorization: Bearer 解析 token；过期时直接返回 401 并写 TOKEN_EXPIRED 审计，非法时写审计后放行未认证请求，有效时把用户名与小写化的 authorities 写入 SecurityContext，并把 jti 写入请求属性。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/JwtFilter.java#L37-L99",
+          "version": "repo-lines-v1:sha256:9e6614e5e293eca4567b346449223660f59869e6a62a6e3f20eb0bd2cfd55a41:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2ZTUwY2FkZWMwZjdiOTc2MWQ4ODQyZTY5ODhhMTk5OWRhYjdiY2I0YjEzZmNiMmYzOTUxMWFjY2JkMzEzYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_56a521c04da44c83a7f8b3c9aafc668e",
+      "statement": "登录使用 AuthenticationManager/JdbcUserDetailsManager 校验 users/authorities，成功时生成包含 authorities claim、jti、subject 和过期时间的 JWT 并以 ApiResponse.success 返回；失败返回 401“账号或密码不正确”并写 AUTH_LOGIN_FAILED 审计。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/AuthController.java#L61-L107",
+          "version": "repo-lines-v1:sha256:19c8536b526c326344ad4895cab5a2a025ae7ab74a91cb5088ff50dec3b2eae7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIxMDdmZWQwYzE3ODUxYzY3Mjc3MzlkMWMzYTQ2NGVhYzRiNDRjMGMwMjdjMTRmNzRhMTIyM2EzM2I5ODAyN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlZTMxN2U3NmU3MjVmM2I4MDc0Yjg0M2RlMTAwYjAyODg2N2RkNmI5Y2RmYzA5M2ZhOGE5ZWU0MTc3OGYyN2YiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmMTY0MjU4YTVmN2RkZjQ4OTBkNDg0ZjFmMjYyZWFiMTFmYmJiMGMxODJhZjhiNzkyMWUwNWU3OGVjNjM5NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFmY2QzZDk1MGZlZDdkZWY0MTgyYTQ0MGJiZTY1YjZjMzRjNDQ5NDRiM2Y2NWQzYzA1ZjJkOTY3NTJiNzBiYTEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JwtService.java#L85-L112",
+          "version": "repo-lines-v1:sha256:f63b8b51ed024b7b29df6e13957fb9b707992327017299269519d2fdb77846ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlMTJkNWM1ZjNlOGJkOGQzMmU2M2I0YzVmNGI3MmVmMzEyYzgwZTM5ZWNlYzA0MzBhMWJmNzg2NTI0NzViY2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxNGUwYmUxNzA4OTRmNWY5NmRjMDZmNGFmYzhhYzc4MmQ1N2JhMWVhZjY4ZGUwY2Y1NTM2ZTk2YjE5MmYyNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzMGFjZDlhNTNkOWQyYzZkNWNhMjBjZTIwZjIxMjUwMDM1M2JlZjVmODI4NzQ5NmUwNGFhY2Y4ZjY0ZTNjMDMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_10024bc3d4b24ca69b03f1d02ae417f8",
+      "statement": "JWT 有效期由 jwt.expiration 控制（默认 8 小时），HMAC 密钥来自 jwt.secret，生产应通过 JWT_SECRET 环境变量覆盖默认值。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JwtService.java#L35-L47",
+          "version": "repo-lines-v1:sha256:d2f624ac82259dea1418ba26c1b51bf9973484f8cce3b7157219b7f8a9ce32a9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYwZTQzM2M3N2Q4YTA2M2EzNTQyM2NmMWY2YzAyMjkyNTA1NzQ5Nzg1ZTc5NDgwOTM5OWYyMWQyZDIzMjk5YjYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxZTRkOTMzYjFkYTI2Mzg3MDVmMDdlOWRlODliZDg0MTczOWJlM2Q2YTM1OGY4YTg2NDlhOGE5NjQ4MDk2ZDEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/resources/application.properties#L8-L10",
+          "version": "repo-lines-v1:sha256:447bac81228ad9c5df25d2842b5740951cbc7a8ee2016842d8a61b2f5e989472:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmE0ZmUxZjE5MmQwOTU5ZTMyYjU0NDM0MzRjNGIyOTQ2Y2I5YmUxOTkzOTljYTdjNDUyMDM3NGQwMjZiYmVjOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWVkMWE2MDA4MjI1NDA3NjUwZTQwZmI0NGJiNWQxZWI4OWEyOWZkMThlYThjZGU2YTczNDhjNTNiNDEwYTUwZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzM4ZWYwMDliMzMyNzIxZmRkMmMyNjk1NTQyMzM5MzhhZjcwYmZjNTQxMWYzYjA0N2VmYzZjZmNiNDlhOTUwZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_6ad288c6c2954c7d830e2a6c8e1cea14",
+      "statement": "修改密码接口要求已登录，先重新校验当前密码，要求新密码至少 6 位，通过 JdbcUserDetailsManager 写入 BCrypt 哈希，成功后清空 SecurityContext。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/AuthController.java#L109-L167",
+          "version": "repo-lines-v1:sha256:d9e775a88671f2f09e05866410c0e9d03fd06c8db360ae3efa1fd69e31f359df:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiOGQzMmVhYzEwMzY2M2Q1ZWUzNDgxY2Q4YmY2N2I1YmJiMzE3NTU4M2U3NWMzM2Q5ZGJjNWEyNWUwNGEwZmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4NTYzMTczYzkzYzYwMzRiYjE4OGYwM2FkMzMyMjExYWZiZDU2OGJhZTBlZjkyZWJmMTQ4YzE4NGQzNTliOTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRjMDExMWQ4YmY1NjkwMWQwMDcxOThiNGNmYzhjYmVmN2JhNjE3NDQ5OTU5NzY4M2YwOWM1M2ZiODAwNWVhYjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d831b80bddf249dbad5b1866b6550149",
+      "statement": "登录时 authority 会被规范化为 admin 或 user：role_ 前缀被剥离，除 admin 外的值统一归为 user。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/AuthController.java#L169-L180",
+          "version": "repo-lines-v1:sha256:3f9fdbc60f74782b628ebc38e0d0f27392765dde7aafadc21b487e87e97b304c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVmOWY2YTYyMzUwYmNhYWFmNzgyMDQ2YjI2Y2FjMmU2NzM5M2UxMzljZjFiMWUyZTczNjA4ZWIyMTU4Y2UyMzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1e3be8e2c98145d283deb711ac79a70a",
+      "statement": "未认证与越权分别返回 401/403 的 ApiResponse JSON；两者只在非 GET 请求或 /audit-events 路径上写审计，避免 GET 请求产生高频噪音。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/CustomAccessDeniedHandler.java#L26-L42",
+          "version": "repo-lines-v1:sha256:46b5efafdf1acb6fa3bc6b7bb3fc250403a9c6439ffee55fd560d80582f439a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5NDNlNmZiZGM0NjZlNmFkODUzMDQ3MzQ5MjZlNTYwOGZjZWNjOGJjZmM2N2QyMmE1NzQxYzJhNmNjZDk3MmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzOGRlNzRiZTk3YmYzYWJhNzg3MmE2MWJhMGU0MjA4NDAwOGM4MWU4YTIwMmE2MTIxMzRjNzU1YWFmN2ZhMDYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/CustomAuthenticationEntryPoint.java#L27-L46",
+          "version": "repo-lines-v1:sha256:c66ff5dda420b1c3079ec8e5970174248702646f192a420c19ce9711dde5dab3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5NDNlNmZiZGM0NjZlNmFkODUzMDQ3MzQ5MjZlNTYwOGZjZWNjOGJjZmM2N2QyMmE1NzQxYzJhNmNjZDk3MmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_87477837c09c4632acd292d1717cf726",
+      "statement": "GlobalExceptionHandler 把 ApiException 的 400/403/404/409 映射为同状态码，其他 code 映射 500；Bean Validation 与请求体不可读返回 400，未捕获异常返回 500 且不暴露异常细节。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/exception/GlobalExceptionHandler.java#L22-L75",
+          "version": "repo-lines-v1:sha256:fbe0edf0233db2e09ca385f2ee939a1ce72bd0c3a5c6b8f7b9a343af661f0236:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0MTE5OTE0ODAyN2QxZmMxN2I4ZjZhMjcwOTkwOWFhZTZhZGY4NjViZWExYWVjOGY1MWM3MWMxOGIyYmZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5N2E3MTQ2NjA2Y2Y5ZDAyMzNkNWM1N2Y1OTEwMWQ3M2JkZjRhNGIyNDU5MGJmMzViYjcwMjc0ZTcxM2FjYTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3fcfb3236b2d4df49be41ff955d9374f",
+      "statement": "AuditRequestFilter 为每个请求生成 requestId、解析客户端 IP、在响应写 X-Request-Id；只有 audit.trust-forwarded-headers=true 时才信任 X-Forwarded-For/X-Real-IP，否则使用 remoteAddr。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/audit/AuditRequestFilter.java#L26-L65",
+          "version": "repo-lines-v1:sha256:cd4cb84fab7fb316793b892e0486126a7a3f1117f27aaeb6fcc5f0b7a82aeaea:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhNTQwYzdkZTIxMTNmOTEyYWY4MDk1ZDRlNGEzYzM5ZGE4MzdkODJjYzRjNjIwMWZlOTY3YTEwZjUxNjQyOTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0bb4bcaf84e64b90a34f067da262d3a3",
+      "statement": "CORS 允许来源由 cors.allowed-origins 控制（默认 *），允许方法为 GET/POST/PUT/DELETE/OPTIONS，不包含 PATCH，而 /tasks/queue 存在 PATCH 接口。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SecurityConfiguration.java#L91-L105",
+          "version": "repo-lines-v1:sha256:75f6d89e7937016d38e5c74db2bd9de09f8b3f23bed189afd59ad17ddf4932c1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1ZTU5MDY5YzNmMzg3NzE5ZWZlZDI1NmM2YzRiZjIxOWNjYzRmNmU0YjQxYWJmZDQ0NzYxZDQ1NDkyMTRkMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5NDU2NmYxZDVhM2NiNDhiYzZlZGZmMTcxNTZhN2U5NWFiNzNkOWQ2NjBhYzlkNDU5NTlhNGQ2MTAxYzQwYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_31b801be22cc4b58a55bedd47321e93d",
+      "statement": "账号数据存于 users 与 authorities 两张表；默认安装数据创建 admin/admin123（BCrypt 哈希）并授予 admin authority。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/data.sql#L1-L10",
+          "version": "repo-lines-v1:sha256:a0d7a8b88817b632e9a49c8247b7528684d6dd6a1a4abaa5b638265132e724f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMzRiMzU0ZDBlZDI2MDAzYWYzZTBmZjhmYjE3MzY3YTZiNjVhYzJjOTU2ZjQzZWRiZGQ5YTQ4MmU1YzY3MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3MmFlYWNlZGNiNTk5N2FiNzYzMGFhZmM5Y2RjNmY1Mzk3OGM0M2JiZTYyOTZjYzVhOTlmMWRkY2M0YzZjZTUifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L104-L110",
+          "version": "repo-lines-v1:sha256:8aad9e4be37040d13e5f08ce8f3ca95f0838a0eb499577526cc3f39dd5dbf3a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGFlNjYyYjEwMmUyZTA3YjNhODA4ZWM3MDUwODdkMmMyZmFhYTViYmZkN2I5NTIzNzc4ZjRmNjEyNDBlM2M1NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzQyYWFhZWFkYTcxZWFkNGIwZmNmOWRkOGRhMDEzOTVmMDFiNzJjOTEwN2Q3NzdlOTdkZjg0Nzc1M2U1MDI3NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTE3N2EyN2ZkNzBiZDZjZmQ1ZDkwZjA5MWQwNGIyZTgzNTFiZjBiZmQ0NzU5Y2NjZWMxODI5MDI5MWE5MTljOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTU4MzExYjBiMDA5MmJiNjhlYjI2ZjFhNmJjOWU0MTA4YTNlMDExODk1N2Q4OGYxNDRmNzA4MzkzZjY1NmQ0MCJ9"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L1657-L1662",
+          "version": "repo-lines-v1:sha256:8398986df250531ed5f06b6e397c96db542af03adac82e7ca09e1e71d636e027:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGNhZWRhODhkODc1ZmZiNDZlMGI4YjZmNDY5MDYxZDI1M2RjMWRmODU5MzZlNDkwYjY2NzJhYWJlNmU5NmM0MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODM1NzdiOTQ5NmRjMDNkODRmZTI0YWE0ZDFiNTA0NTQ5NmQ2MDRjZGU3N2QyZjY0YzNhNmViNDViNWQyZTM2YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTZlNGZlNDEwYzA3ZGI2MmRjYWVlN2QyOTE2ODE1YzhhMjIwNDVhM2E4NzM5MjhmZGU1NTk2ODk3YmEzNjFkZCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a16021fa5d474a9899bffc7204823c61",
+      "statement": "前端 axios 拦截器自动注入 JWT，对非登录接口的 401 清空认证并跳转登录；前端路由守卫只检查 token 存在性与过期时间，不负责真正的授权。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/router/index.ts#L60-L83",
+          "version": "repo-lines-v1:sha256:2e8409aeb24a33be0c760e0fadb91c221899e4ec5e95cbf9ee2c5a86d9655882:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxN2EyMDU4MWFlYzZlYWVkYzUyZmFlMDViYTlkMjczODlmYzAxZjg0NTliMjMxMTkzODM2ZjE0OTEwN2IxYTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2ZjViNDBiMTU4NDU3ZDE3ODY0ZjIxNzkwNzg2ZGQ1YTJlY2RiNjRiNjZhNjUxZjc4OGQ0ZTI1Y2QzMzAzZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMDYxYWQwYTM5OWY4MzViMjZhNzZlODNiMzdjYWVkZjA3NWVkNTc0NTA4ZDM2N2RiMzdkYzM2ZjQ2YmNiMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFhOWQ2ODAxZDMzMDUwZWNlYzJhNDNkOWU1NDY4MTkzZmQyZDI1ZGRhMTcyN2UzYTg3NTkzMDEwNzRkMzlkNWMifQ"
+        },
+        {
+          "resource": "repo://frontend/src/utils/requests.ts#L52-L120",
+          "version": "repo-lines-v1:sha256:1926b8a18ec28ec195cac924621aa502e33cccf4c7431fb9fe220d20dd745375:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2NTRjNGRkMzZhMTBhYTQ1NjRhMTAxOTBiYWJhNTJkZjkwYTQwZDcxN2EzMzM1ZTM3ZTFiY2NlMWQzMjE4NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2N2E5YjUxNjU4OGI4YzI5MGViNDNhMWYxZTgxMzAyZDM4NjZlMDI1NGU4MzI1YzYwZGY5YzM0YmUyN2E1ZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNjAxOGY1ODNlODY4NTY0ODY3Mzg3Y2ZmOTVlODQ0MjBiMDI0MGVkZThkYTQ5OTYyNTc5NjZkYzIwZWI3OWIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

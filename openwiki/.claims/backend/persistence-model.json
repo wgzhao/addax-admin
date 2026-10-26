@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:5159ecf587d5affbbb1af13e581280606ce52406e52ecc3cb9a05050facb5d18",
+  "claims": [
+    {
+      "id": "claim_bb2b66378d4e4ee5b3e810ca12f49167",
+      "statement": "持久化层按生命周期分为配置域（etl_source/etl_target/etl_table/etl_column/etl_column_mapping/etl_job）、运行时队列（etl_job_queue/system_flag）、执行事实（etl_execution/etl_statistic/etl_jour/addax_log）、变更与风险、字典与通知、账号以及只追加的安全审计。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L158-L180",
+          "version": "repo-lines-v1:sha256:265e37bcda2da430026aeb69d942fc774692c13eaa4a802ed92bc9e251ed137e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMDM3OWZmMWI2MmEyMjkyYTRiNWM5Y2FiNDIxMTMwZmIzZGM4YTc1Mzg5ZmI0OGQ1MDA0ZjQzY2RhMTE0OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhZDdjYTg4ZGMwODM4OGY0NTIzMGVhMTllZjYxMzNiMjJiNjBiNDJjN2UwOTI0NmZlZGU0MTRiYmNkZTU5NWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhYzFlZDVhMjQyYjFhYjI0MDI1M2VmYzFiMWU5ZDg5MTI5OGE4MDkyZGZkZTcwYjE3OGIzMzdkMzRkODc1OTIifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2214-L2236",
+          "version": "repo-lines-v1:sha256:82668c7cf60dda4d721c27e96dc59f0e7827d3e89f227074bea15fea61fc4fd1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjc3YzVjZDZhZTAwOWFjNTYyMmJmOTdlOWExY2FmOTk1ZGJkYjY0OWFjNTNjNjY4MGMyZTE3OTM1NDZhNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1NjE1YzdkYmI3OWRlOTYyNDRiNDM3ZWIyOGUyYjUxMzU3MGVhYTIxNTQzMGI5ODM4MDZjOTIyMzNkYTcwM2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE2YjQyZDgzNmQ2YmQzZGE2ZmE1OWU1ODc2YjgyYTJiNjMyYmZjODVlNGFjYjViZjk1MDRjOTQ2YzgxOTUxY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4OWUwNDBhNTZkNzIxYTM0M2VhMWM2OGQzZTUyYWRlNWU3OTBjNmZjY2U2OTBlNjA2MDQ2OTFkMTVhODc0YTkifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L446-L463",
+          "version": "repo-lines-v1:sha256:fc62c0c2c211efe030f4f8240d3b897e48bb415c93c2d4ef87110f76566bc960:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMjkwYWJlMDhmYWI0YTY2YzQ5Mjg5NDY4YjI4NzU3YTE1YzNiOTM4MjkxZjVkMDU0NGM3ODA1YTU2Y2ExMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhOTg3ZGU3NDMwNzg3NWI1NmJlODMzNzJiNzBkNzMzMTRkYTVjMmYwNTEyN2I5M2IxOGU1NmJjMjU0MGZlNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmZGZkNzdlMmExM2EzMTUyMTM4MzU2MTRhMGRmODliMmI2NTk4ZWFmZmQ1MzU1ZWZlZGI5MGY5ZGNhMzM4MzEifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L741-L770",
+          "version": "repo-lines-v1:sha256:56cb5fe3f0dfc71c876cac35aa926fc070dd1ab08426809c3b41d7320db72160:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3OGIzMmYwMzgwZDFlMWNjOGY2YmQyNjZmNDhmYzg2YzY1Njk4ZWZlN2QwZDJiNjViNDJjMjZhZjc4MGQzOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlYzg0Nzg3MjZmMDI1M2RhOWU4NWIzNGMzNThjZTYxZjA0YjNkYjJjYTEzZjY4ODlhZGE3ZjJlMWVhNTUxMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZTEyZGVlMzgzYjgyMTlkZTlkZTI5OTRhN2ExYmMwYmIxYWY3MmEyMzA5ZWI4MDFlNzA0ZTExMDI2NzBmMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4YzUyMTgyY2IxNDU0MjI2ZGVmOThkYTVlOGJjYTc2MmU0MDNiMDBjM2NkMzVkYmIwMGNjZDJmNzYwNmI0NWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_689326d37e2c4441af3ce848fd71a8c0",
+      "statement": "etl_source 保存连接、源级 start_at、calendar、enabled、max_concurrency 和 db_type；enabled=false 表示源停用，其下未退役的采集定义仍保留但不参与自动调度。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L446-L463",
+          "version": "repo-lines-v1:sha256:fc62c0c2c211efe030f4f8240d3b897e48bb415c93c2d4ef87110f76566bc960:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMjkwYWJlMDhmYWI0YTY2YzQ5Mjg5NDY4YjI4NzU3YTE1YzNiOTM4MjkxZjVkMDU0NGM3ODA1YTU2Y2ExMjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZhOTg3ZGU3NDMwNzg3NWI1NmJlODMzNzJiNzBkNzMzMTRkYTVjMmYwNTEyN2I5M2IxOGU1NmJjMjU0MGZlNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmZGZkNzdlMmExM2EzMTUyMTM4MzU2MTRhMGRmODliMmI2NTk4ZWFmZmQ1MzU1ZWZlZGI5MGY5ZGNhMzM4MzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_310dd463c02c4381b92303b9b962560e",
+      "statement": "etl_target 保存 target_type、connect_config、writer_template_key、enabled 与 is_default；writer_template_key 是主路由键（wH→HDFS，wR→RDBMS），code 有唯一索引。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetTypeResolver.java#L20-L70",
+          "version": "repo-lines-v1:sha256:9ab40185bc005a7d301f88bf591ef41b07e72cbbecd0b19355f82fae267066b8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYThjMTE2MGViMGE5NTFkOWQxYzkzYmUxYmM0NTRiYjM0ZmY5NTM5NjNkMTNlMTdkZmE4OGM1NDMwZDBhMDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMmUxMDM2NzYwN2JhZjFkZWVkMWY3NDJmOWQxNjJhZDUzOTY0ODMzZmQ3M2RkNWUwZTM3NGU3MWVlYWRkNDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwYjJlNDk0ZmZlNmZjNTI5ZGI2OTYxOWQ2NDdiZDI2MGJkMTAxNWM5NDJiMzBmZmFkZTM2MmM0NmVjY2ZlNTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4ODFkOTc5Y2M0Y2E1ZDAyN2ZlOTkyMjY1ZDhkYTFlZDA4NjljZWVlY2M2NTY5ZDg4Y2ZkNTgwYjE4ZWVjOTUifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L1012-L1021",
+          "version": "repo-lines-v1:sha256:fc8254cb1e21c2fdaa8b27e62532d899bbcc337a3a11ccea43b49ae606141d0f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmNjIwYTU3MWY2MmQwMzA2NTVkYTUyOGM0ODdhM2M4YWE1ZmFlZGI1OGU3NTk4YzkwNDY4MTMzZDI3YTQ0YjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlYmU5NDg0ZTRhODMwNjI1NWYxYzE5NWMzZmExOWNjNDEyMDk0OGM5YjExNGVkOWU2M2ZhOTVjMjJhNWIxMjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2MDUxNDVjMTJmNWYzYTFkMDJlZjk5Yzk5NzZlN2VlZWU2MTM1MmFjZDczNjdkNWViYjE5MjM4YzA3MTVhZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4YzUyMTgyY2IxNDU0MjI2ZGVmOThkYTVlOGJjYTc2MmU0MDNiMDBjM2NkMzVkYmIwMGNjZDJmNzYwNmI0NWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_26aa33f4803e4637b5af35b5541cfd44",
+      "statement": "etl_table 集中保存源/目标定位、target_options（jsonb）、schema_management_mode、target_schema_fingerprint、filter、retry_cnt、max_runtime、write_mode、start_at、插件配置以及 retired_at/retired_by 生命周期字段。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L741-L770",
+          "version": "repo-lines-v1:sha256:56cb5fe3f0dfc71c876cac35aa926fc070dd1ab08426809c3b41d7320db72160:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM3OGIzMmYwMzgwZDFlMWNjOGY2YmQyNjZmNDhmYzg2YzY1Njk4ZWZlN2QwZDJiNjViNDJjMjZhZjc4MGQzOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlYzg0Nzg3MjZmMDI1M2RhOWU4NWIzNGMzNThjZTYxZjA0YjNkYjJjYTEzZjY4ODlhZGE3ZjJlMWVhNTUxMzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZTEyZGVlMzgzYjgyMTlkZTlkZTI5OTRhN2ExYmMwYmIxYWY3MmEyMzA5ZWI4MDFlNzA0ZTExMDI2NzBmMzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4YzUyMTgyY2IxNDU0MjI2ZGVmOThkYTVlOGJjYTc2MmU0MDNiMDBjM2NkMzVkYmIwMGNjZDJmNzYwNmI0NWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e80da09b53ae44ada9587f12b3e4541a",
+      "statement": "etl_column_mapping 保存稳定的 source→target 字段契约与 ordinal_no；uk_column_mapping_tid_source/target 用 lower() 保证大小写不敏感的一对一映射，外键对 etl_table 使用 ON DELETE RESTRICT。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L114-L155",
+          "version": "repo-lines-v1:sha256:5ee624a8389dac90ae8381c1b391089d3f9df64caa7e82876cc979cb7d8f57ef:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwY2I0OTk5OTM3NTliYmZlOTNhYTEyMzlhM2I1ZWMyMDMxMmIxZTdlMjc0MmZhOWJkNWUzNDQ4YjA1YWM0NmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyMGQ3NTM0NzlhY2I1NmEwNTJmMTY1OGIzY2UyOTFiYjY5YmFkNzlhMTZiMzBkOTkyNDE0MGM2MDM1NTQ0ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1ODMxMWIwYjAwOTJiYjY4ZWIyNmYxYTZiYzllNDEwOGEzZTAxMTg5NTdkODhmMTQ0ZjcwODM5M2Y2NTZkNDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzZTQ2Mjc0NWQyYTRjYzFhMjhkOTM3NWFjOWIyZDcyMDY0Y2NiMjFhOTMzOTJiNzhhNzdiZjAzY2M3N2Y2MzcifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2085-L2100",
+          "version": "repo-lines-v1:sha256:4940a3048802226cd733b5945d1feac5fed5d42b359b983109fb88542472e1f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0MmFhYWVhZGE3MWVhZDRiMGZjZjlkZDhkYTAxMzk1ZjAxYjcyYzkxMDdkNzc3ZTk3ZGY4NDc3NTNlNTAyNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzN2MxYjAzODE0ZmU1MDUxMzA1MDhkMzUzZWRjNjY0YjZlOWY1ODk5ZTE2MmMwMzIyMjI4MjAyOTVkNWNlMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkZTZjYTVmNzE4YzBiZGI3ZWIyZDcxMTljY2Q4NmRmMjM5YzdhZTNmZTFhZDUxZjZhMGJhNDQ2MDk0NDI0NzUifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2113-L2118",
+          "version": "repo-lines-v1:sha256:3f3ac5d0853897f078d765dd028bfbac688c2e4a26de43b354c80947db5ddabe:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWY3ZjhhYzI4MWUyZTUyYWVkNmE3OTYzZDVhZDg0M2Q5OTJiYjZkOTE3YzJiMjE3N2MwMGI3YTc3ZTQ2MmM1NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODYzZmE2ZWI0ZTE4ZDA5ZTA4MTE2ZmU3M2U3NWY3NGI0ZGYzNTUxZGIyOGZlOGI0ZjQ1YzE5YTY0ZDQyOTk4MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDBhNjRiNzgxOTMxMjlhNmQ1OTczNmVmMWNlYTZmMjNiMmJjMzc5NDBjYWI1NjhlZDBjMjM5OWI2NzQxNjI1MyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_15455221575b47f0af70b5b7924730d4",
+      "statement": "etl_job 每个采集定义最多一行，tid 是主键，job 列保存完整 Addax job JSON 文本。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L1905-L1907",
+          "version": "repo-lines-v1:sha256:93d141f6b184a32c63bd755caf5088de867cdf7d1b2190ffc93a9beefe73ed14:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNlM2MzMTZkZDcyMmVlM2ZmNzllODFmZWQ0MzA0ODk4ZWI2ZTdiZTNjNmM0OTUyMmEwMjFmZTFmMTIxMWRmZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMGNhYzUwNmViNGM5MmMzZGY0ZGI2ZjI5MjVjZDQzZGMwYWM4MzI1YjVjNmY4ZGU5NjQ4NTZiNzE3MzBjMjZiYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTc3NTBhNDZjOTE5NGVhYmRjMmFkZThiNmQyMzRiZWI4ZTM2YmIzZTI0YTE0NTQwOWMzOWM5NzExNzhjOTIzNSJ9"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L303-L306",
+          "version": "repo-lines-v1:sha256:eeec6cbc22188fbbb963430aab4e949c2f4d85ba90f9360431f8818a497f4fe9:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDg2N2I3YmM5N2E3NzYxM2U0OWM3NzIwMTgwN2RjMzkxOGM2ZWE5NzQ1MDY2YTI3MDU4NmRhZTU1Y2ViZTdiMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDk5NjdlYzFlZDM4MzZmOGViMTdhZmYxNzJiNWJmZWY3ZGU2MDQ4NWE0MzljNmNhMTFjNTkxZTE3NTU3MzlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTA0ODk1N2U5ZTkzNzE2NDhlNDA0OTZlYjZhYmIyZTRmNmJmYmViZmIzNjRlYjVhNTJjMmE3YmJiYmI4NDE4ZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODYzZmE2ZWI0ZTE4ZDA5ZTA4MTE2ZmU3M2U3NWY3NGI0ZGYzNTUxZGIyOGZlOGI0ZjQ1YzE5YTY0ZDQyOTk4MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_eef1e28aa813486897f5319b470cca2e",
+      "statement": "etl_job_queue 用 CHECK 约束限定 pending/running/completed/failed/cancelled 五种状态，部分唯一索引只约束 pending/running 的 (tid,biz_date)，且队列行没有指向 etl_table 的外键。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L1961-L1984",
+          "version": "repo-lines-v1:sha256:60e22c169ff83205cc87325f52b931674b81088ae1c8ff0f4e93e642175fe31f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4MjcyMTg2NzBiYzU2YTFkMGQ4NzY5N2FlNTZiZmY2NDFmYmYyNzJmZDRiYzdhYjA1YWY0ZmZlZDQ5NjgxYTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkZTAzNjU5NjlhMzc3ZTNmZjE0MWMwZDU2ODA2OGIzZGIzODUyOTg4NTY5OGQ0MDZmOTZmOGFhZDM3ZDk4M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2YmNlOGZlMzQ5MWM3YTQ3OTgwMWNlMmQzMGU3MWQxMjE3MjMzMTViMjBhZTg1OWNhNWEzNGY3MWEyMTIzNmUifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L334-L361",
+          "version": "repo-lines-v1:sha256:72da892254ba8aea80e8c4d60e585ed325025e884900cc985b3c2e6ff0001b4e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljMWQ2MWU2NWI2OTJhZGI5Y2M1YzMyNWE1ODIwZjQyMDUzYzhmZTEzMzA5ODU5MTNjMjAxOGE4ZDRhNWMzYzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM3ZTQ0OTEzZGFhYzcyYmY3ODk1YTMxZWUwZGM4NzkzOGNmNDgyOTJiZWJiOWVjOWFiYzdiZTc3ZDI0YTI5MjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjYTFiNGQ0MWUwMTY0YmVmOWJlYWJjZWQxZjJiNjk0NWVhYWRkMGM2ZTA3YjAxODYxMTQ0NDY0ZTUwMzFkZTYifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L357-L360",
+          "version": "repo-lines-v1:sha256:b41a6dcfb7afd86901067a0c10bce886747a299d474ba3db68b559321391f2e8:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjI2YWMyZmI3M2I0OThlZWE5OWE0ZTZiZGY2ZWViYzIzZGUyZWFlZDBlZjFjYmIyNmFkNDRjMjgyNWU0ZGJhOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk5MDE1ZDI5YTNkYjQ3M2M3MjVkMTM4YWUyMzZkOGE0YTc0MDljY2I4ZTNkZmY4Y2QzNGY4ODQ3YmVlOTE5NiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGIxM2RiODY4NTdiYThmOTYzZmQ1NjI1OGZiN2I3MDAxMmM0OTA0MjQ0MzM5YzNjN2YzNTgyMzM2MDE0MTFkYyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_bf04f2c4fae840b0a26ad704c3cf6ac7",
+      "statement": "etl_execution 每次尝试一行，config_snapshot 为不可变 jsonb 快照；外键 tid 使用 ON DELETE RESTRICT，应用层 finish 只更新状态、结束时间和错误信息。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlExecutionService.java#L76-L86",
+          "version": "repo-lines-v1:sha256:b5f95639e272feee475c20c63918fc9c1e54ee85c2cdff4cce4533879c57181d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjYzMzA5MjNkNGUwYjVlZWYyNTkyMTEzMTJhY2U0ZWIxYjk5MDE3OGIyNjFhODVlOWViZDRhMWFlYjA5NjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhOGQwMzljYTUyMGJmYWU5YzkwMDczYjlhOTA2MzM1NTBlNTJmNjAwNzNjNDhlZmY2YjdjMTQ3NGZlNGYzMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5OTA4ZDM5NDJkMjY2MWNkYzdiOWZlNmE3YjA4ZDg0ZTcxYjU3ZDJkMjE3Nzc5MThkMTFiODA1YTAyNjZjNmUifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L158-L180",
+          "version": "repo-lines-v1:sha256:265e37bcda2da430026aeb69d942fc774692c13eaa4a802ed92bc9e251ed137e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyMDM3OWZmMWI2MmEyMjkyYTRiNWM5Y2FiNDIxMTMwZmIzZGM4YTc1Mzg5ZmI0OGQ1MDA0ZjQzY2RhMTE0OTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhZDdjYTg4ZGMwODM4OGY0NTIzMGVhMTllZjYxMzNiMjJiNjBiNDJjN2UwOTI0NmZlZGU0MTRiYmNkZTU5NWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhhYzFlZDVhMjQyYjFhYjI0MDI1M2VmYzFiMWU5ZDg5MTI5OGE4MDkyZGZkZTcwYjE3OGIzMzdkMzRkODc1OTIifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2120-L2126",
+          "version": "repo-lines-v1:sha256:8febf0264e434c38ca87814560390ceb2fb4f58a3795443164264b80f1fe766d:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzQyYWFhZWFkYTcxZWFkNGIwZmNmOWRkOGRhMDEzOTVmMDFiNzJjOTEwN2Q3NzdlOTdkZjg0Nzc1M2U1MDI3NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjU4ZjQxMTQ4OWMwYzZhOWU5OGU1MGQyZDg4YzMzNTNiNTkyZDg0OGYyZTBiNzM0YjdmYzdlYzFiNDUzYzBjYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmI0ODJkZjY2NWQ2ZjA0NzZiMTExOWQxMTAzOTFlYmQ0MTgwNjFiN2JkYzE3MThjOTQyYTMzZGRhYzIyZTZjMyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ce299634a0a74e1b9cb830c4aaa4e704",
+      "statement": "etl_statistic 保存 Addax 回报的耗时、字节/记录速度、读取行数和错误行数；etl_jour 保存操作类型、命令、耗时和状态；两者都通过 execution_id 关联 etl_execution。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/LogController.java#L110-L140",
+          "version": "repo-lines-v1:sha256:13a30e5195daa4c1ffa10e640cbe3e9ef1123613acfa26fd1367e410e48e48ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1MjliN2ZhZGRmNDYwNWM3ZGJmN2NiOWVhMGY4YzQ1NzhhMmM5N2VlYzliZmRmOTZiM2RkMjlhODdkZTIwOWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwNjIxNTU4Y2Y2N2EyMWNhMGY2NDlkNmM3OGNkNzI4MjdiZDMzYmFiNDk0YTdlYjA4YzNiZmRjNmM3MGE0MDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA3NmE3OWIyOGM1MmVlOTcxNTNmNDAzODA4OWI5ZGVmZmU5MzNiZGJlMWVmNzM2ODM2ZmJmYjk2ZmJhNjdjOTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5OWU2MDdiMDlhNTdhOTRkMThiNGVmMjVkZWIwNzYzMWU0MzhiOTU2OTIyZWNmN2NiMDViOThhZWRlMjUwOWMifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L397-L409",
+          "version": "repo-lines-v1:sha256:998525019ebfb22fe83dafe8f7a753f0fb11ee6d9f9436e8c44a182856022ccc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3ZjU4ZGM5ZDJiYTlkMDcyOTJlZDdiZjg1ODFiZDg2YmI1NjZmYWZlNzBlYzNiYWExM2M2ODk2OTZiZDJkMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkNzk5Y2UyOWQ4YjlkZTA0ODlhNjlkNGQ1ZTYzN2M1YzliNzA5ZmEyYzdlZDY4N2MzZmQzZDA3YzE1ZGU5MzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0ZmY5NjBhZDM5MzY2NzlkODRiMTFkZmY1NmIxODQyNDcxYzI1MTcxZmIzOGNjYWY3MGYyNTNjMWZhMzllYTkifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L599-L613",
+          "version": "repo-lines-v1:sha256:0bda311499205786947640eba731399f5274c764f19cde482e16b76d8fa8d729:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4YTM1MTIxZjM1ZDNhZGIyYjcwMzcyNGU1YWQ5YzhlMDdjYjgyM2NkYjU3ZjAxOTc2ZjEwZjk4NzFmMTFmZTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0ODgyNmMyY2ZjYjRiZmU1NTlkYjc3M2QzMmViOTFkODlkYmJiMDFiZmM0OWVjZTRiMDc1NGMwNzI3NjNmYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwMjMxZWYxY2U2ZWZiYmUzZmU3YjliYjFlZWE2NWRlMDNkMjY0MjExNGJlNThmY2M5MThlZjM3YjU0NGI1YjYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2f4aacc2dd994a0596f4846e41df80f2",
+      "statement": "addax_log 保存完整 Addax 原始日志，按 tid/execution_id 关联；默认保留 180 天（ADDAX_LOG_RETENTION_DAYS），每日 03:15 清理，执行快照与统计不受影响。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AddaxLogService.java#L26-L45",
+          "version": "repo-lines-v1:sha256:74b85effb783f97ce9369bb79e015cf19a29942b3b86fc46e2b8e80b490a28ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwZDIyODZjMDU3NmVmZmMxOGY5NzRiMGM3MGRjOTczZjdhZjYwNmViNzY1YjQ2Yjg2YzViZGE3YjRkMTUxNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwNGU3MGFhNzEzNjBjZTI1ZmEyYTM1ZmZhMjBlMjU5MmUxOWQzNzdjNDJlZDk3YjhhNGQ4MzhjYWQyNWZiZTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzNDcxMWE3Mzg5YzlkNjAzYTJmZGRiY2NlNzdjZmRjNDRiZjc5NWMwYmY0YTVjNzZlZGI2MmJmMjMxYjRhZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkMjc0MThjNmQwZjczZjIxNDBhYmRkMjhhZDUxYTRmM2ZhYTU4ZmNmYWRjYWE0MTk5MGIzYjMxOGRmNjJjZGUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/AddaxLogService.java#L72-L81",
+          "version": "repo-lines-v1:sha256:e9f5b05dcf7aa6a3655c8d9ada74dd21822787a6f9d051b802bb3a3d7f480c86:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiYzYyZWU4ODEzMGJlNTZkZjg4YTE1N2M0YjA1MGQwMzY4N2E1YmNlZmRjMDA5YTZjMzVmZDYwNWVmZTVkM2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L59-L66",
+          "version": "repo-lines-v1:sha256:81c8f86f47b95f5da65262f0051aaa4ad1670df7d71ef733a6924cd1c88c9fe9:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ3ZDBjMTBlZTA0ZGQzMWFmYmRjY2FmZGY4M2E1YTIxZjg5NzJhM2U3Y2RmYzA5ZjRmZjlkODQ4NjJlYmFhMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDk5NjdlYzFlZDM4MzZmOGViMTdhZmYxNzJiNWJmZWY3ZGU2MDQ4NWE0MzljNmNhMTFjNTkxZTE3NTU3MzlhZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWFmZjExMmNhOGUzZmIyNzhhZTE3ZjU0NzUwYzE4YTIzZWE2ZGI0ZGU2YzYyZjg4YjkzMDM2MzYwMWI3YjU4OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODYzZmE2ZWI0ZTE4ZDA5ZTA4MTE2ZmU3M2U3NWY3NGI0ZGYzNTUxZGIyOGZlOGI0ZjQ1YzE5YTY0ZDQyOTk4MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a00c5f12b34647d5be2b20a07c7bcd3d",
+      "statement": "触发器 trg_etl_table_record_change 在 etl_table UPDATE 后自动写 etl_table_change_log；它忽略 status/duration/retry_cnt/start_time/end_time/created_at/updated_at/max_runtime/kind 等运行态字段，只记录配置差异，changed_by 读取事务局部设置 addax.changed_by。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L2101-L2101",
+          "version": "repo-lines-v1:sha256:c5a3dcc5d5ef5dfe5d4704970d5ffbaa4586b4cf917f66623208e7ead10c889a:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzVhM2RjYzVkNWVmNWRmZTVkNDcwNDk3MGQ1ZmZiYWE0NTg2YjRjZjkxN2Y2NjYyMzIwOGU3ZWFkMTBjODg5YSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzVhM2RjYzVkNWVmNWRmZTVkNDcwNDk3MGQ1ZmZiYWE0NTg2YjRjZjkxN2Y2NjYyMzIwOGU3ZWFkMTBjODg5YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDc1YmQ4OTdkYzJlNWFkMmQzOGI5YmM0ZWNmNTliYmUzMTI4MGZlYTQ5OWI3MzFkNzA3ODNkNzBmZTM0M2U2YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODYzZmE2ZWI0ZTE4ZDA5ZTA4MTE2ZmU3M2U3NWY3NGI0ZGYzNTUxZGIyOGZlOGI0ZjQ1YzE5YTY0ZDQyOTk4MSJ9"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L25-L27",
+          "version": "repo-lines-v1:sha256:63aa0c66b67fa541226f42e603dd8da2bc574cc797e71cf9365d9a167c7560ce:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGFmMmJmZDhiZGFlZThkYWZkNjY2NzA2YjRkNGYxNzZkMTNlMmNjYjZhY2I3ZmJmYWM1MTQ1Y2I2ZDJhNjFhNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWM2ODk5NmUwZDcwZWJiYWY5MmU2NDE3YmUzYjkxMDBmZDBlYzMzNWM0MTE3YThjM2MzNjgyNmM0YzdhMTJjNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDFjM2Q2NjhhNWI3ODk1MWFkNGM5NTI0M2Q2MTYwZjY4MjA5YTQyZjU1ZWZhNjk2MTk5ZTg4N2ZkOGIxOGUzYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODYzZmE2ZWI0ZTE4ZDA5ZTA4MTE2ZmU3M2U3NWY3NGI0ZGYzNTUxZGIyOGZlOGI0ZjQ1YzE5YTY0ZDQyOTk4MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_fcaf7f15460648a781c0a977dd7dc507",
+      "statement": "audit_event 由触发器拒绝常规 UPDATE/DELETE，只有事务内设置 addax.audit_purge=on 才允许删除；保留默认 365 天，低于 30 天拒绝清理，每次批删 5000 条。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/audit/AuditMaintenanceService.java#L23-L45",
+          "version": "repo-lines-v1:sha256:8cc6620664d5fc8e85ccb00ca93e447cfbb418148e707e1fc16d0d4816b48211:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkODA0ZTNjZDNjYTk3OTAwYzM0MDMwOTc1MmZhYTRlMTQxZTYwODdhNjhiZGJjMzViYzE0Yjk2MzM5ODFkNjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1NzY4Zjg4OTkwMmNlOTI0ZDZiNWIwMTI5M2NlZDY2ZDgzYTAyY2E2YTE1ZTI4Y2RlNDIxZjIxZjMzOTQ5MmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2214-L2282",
+          "version": "repo-lines-v1:sha256:09e272280bf15d7784a3c4133c90be1dd531223fc9b40159551b582acb9556c3:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjc3YzVjZDZhZTAwOWFjNTYyMmJmOTdlOWExY2FmOTk1ZGJkYjY0OWFjNTNjNjY4MGMyZTE3OTM1NDZhNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY1NzA0MzY3MzJmMWExYjBlYTUzOTQxNDI5YjhmNTJiOGY3MjIzYmM4MzYwOGRlNTA4MDI0NTI1OWRiZWZjN2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE2YjQyZDgzNmQ2YmQzZGE2ZmE1OWU1ODc2YjgyYTJiNjMyYmZjODVlNGFjYjViZjk1MDRjOTQ2YzgxOTUxY2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5708e66bd1de46ceaf3f021b87d52e72",
+      "statement": "vw_etl_table_with_source 把 etl_table 左连接 etl_source 与 etl_target；其 DDL 的 SHA-256 指纹作为视图注释，SchemaInitializer 启动时比较注释，不一致才重建视图。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/EtlTableView.java#L20-L75",
+          "version": "repo-lines-v1:sha256:ade5c872db481b9a039f393bdbaff876c81e1d0d7046a957dab36e84f03d8b75:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5Y2JiYzY1NDY5ZGIxY2EyODQyZWZkOTdkZjdlZTJjZTZjYzE1NzE0ODJkMDFhMThiNzkwYTEwYzdjNTEwZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NDE3YjYxOWJhMmVhNjIyNzZmMjM0ZTA1YTVjNzY3MDk0NjNiMGJlYmRkYmYyNjM4MGE3NGU3MzJlNzQyODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJkYzc5OGJhODM1NGE0ZDBlNTJmNzY2Yjk4YjA2NmU0MGIzYTM4NjlmZDM1N2YxYzhhMGU5MTMwMDkzNGI0ZGYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SchemaInitializer.java#L380-L440",
+          "version": "repo-lines-v1:sha256:02109327f2eb8794752c7b18ab7f701f8ffbc0d2b81714c3a1491acb46d7b9d6:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkY2Y3MzQ5OGI5YTM3NzZlZWRiNjBjNmExOTAxNjFjOTkyNGJlOGQ3ODkwZjczYzM3Yzc4OTNlYzkxMzcyODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRlYmM3ZTc4YTA5YmFjMTY0Y2YxNmRlZDZhZDcwODE0MWM1ZjRkNGM2ODYzYWQ1Y2RiYjZjN2JhMzFiMWNhOWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4785185111b347c0b82e0fd0f40e3c64",
+      "statement": "全新安装使用 scripts/schema.sql 与 scripts/data.sql；已有数据库由 SchemaInitializer 在 @PostConstruct 中用单事务和 pg_advisory_xact_lock 幂等升级，失败则回滚并阻止启动。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SchemaInitializer.java#L290-L360",
+          "version": "repo-lines-v1:sha256:45ff2038fb714832ebb93f499ad36617bb539d0604f4b52ed68358ad03be179f:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNjRmMGZjYmQ3NDk4ODBkMWZiMDg5OTcxY2MzYzMwMzliYzc2ZTI3OTM2Nzk5YjgzMTE0MDdkODE1ZjE2ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5M2ZjOTc4OTQxNDA2MjMwOTZjYTlkYjcxNTQ0MjJkNDA0NGNkZGJmYzk1YWQ0MGRhYTc4NWY5YjkzNDJjZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0OWFhNzJmMGZmODMzMWViMWE0OGY5MmNhZmEwNzQ2MTYzZDFiZjIzODk2YzhkOTU0Mzk0NWRkNzAzZDQ0NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMDZlODU0OWI2NjJjZmU3NGQ1YTNjOTAxYjFmN2YwODgxODQzY2NhYTYzYzg1MDE4MDgzODI5YmYzZDRkYzYifQ"
+        },
+        {
+          "resource": "repo://scripts/data.sql#L1-L10",
+          "version": "repo-lines-v1:sha256:a0d7a8b88817b632e9a49c8247b7528684d6dd6a1a4abaa5b638265132e724f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlMzRiMzU0ZDBlZDI2MDAzYWYzZTBmZjhmYjE3MzY3YTZiNjVhYzJjOTU2ZjQzZWRiZGQ5YTQ4MmU1YzY3MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3MmFlYWNlZGNiNTk5N2FiNzYzMGFhZmM5Y2RjNmY1Mzk3OGM0M2JiZTYyOTZjYzVhOTlmMWRkY2M0YzZjZTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_553a01fe3ff84bcab2f025edac5fb941",
+      "statement": "leader_election 表仍是创建脚本中的遗留结构，但当前 Java 代码没有读写它；Master 选举完全由 Redis 实现。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L1199-L1215",
+          "version": "repo-lines-v1:sha256:b0aaf8e9bed78156c69a1807656a3097622116a4e1e0f9539ce3f6aa4db164b5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiMDZiNDFhMGE4MDdjNzRmN2Y1MmQ4OGYzZjgyMDgxNWMxYzNlOWY0NmJjOTk4OTExYjg0YjI0ZTk1MjZhZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2M2ZhNmViNGUxOGQwOWUwODExNmZlNzNlNzVmNzRiNGRmMzU1MWRiMjhmZThiNGY0NWMxOWE2NGQ0Mjk5ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU1ZmIwMGVlZjY0NTk1MjVhMTJiN2Y5ZjgwYTZkMGJkOTFjYmUzYjlhOGQ2M2FmNDNjNzEwODUyYWMxZmQ5OTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c1b7b838e27b405db13c939be39e7c3f",
+      "statement": "etl_table.target_id 没有指向 etl_target 的外键，删除目标端不会受数据库引用约束保护，路由层在找不到目标时会回退默认目标类型。",
+      "evidence": [
+        {
+          "resource": "repo://scripts/schema.sql#L2085-L2160",
+          "version": "repo-lines-v1:sha256:8beb5037a5207dcda66b6b82be6ffeef2ae71ba9eb64c3958afddd5a6beb1332:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0MmFhYWVhZGE3MWVhZDRiMGZjZjlkZDhkYTAxMzk1ZjAxYjcyYzkxMDdkNzc3ZTk3ZGY4NDc3NTNlNTAyNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0MmFhYWVhZGE3MWVhZDRiMGZjZjlkZDhkYTAxMzk1ZjAxYjcyYzkxMDdkNzc3ZTk3ZGY4NDc3NTNlNTAyNzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzN2MxYjAzODE0ZmU1MDUxMzA1MDhkMzUzZWRjNjY0YjZlOWY1ODk5ZTE2MmMwMzIyMjI4MjAyOTVkNWNlMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhYTAxZmE5MjkyMGI3ZDcxMDUwNWIyY2VkNjRlYTJiNTEwZDYzNmJlZWIyZWVhZWIwNDA0NDlhODdkODJiYTMifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

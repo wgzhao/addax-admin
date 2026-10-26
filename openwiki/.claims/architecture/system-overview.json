@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:402642f9528869fd153f243f22157ae21ae5ba6034f32da8a1da32a84cdf1562",
+  "claims": [
+    {
+      "id": "claim_102f7c329d414343ba3715cdacfc2f66",
+      "statement": "后端基于 Spring Boot 3.5.6 / Java 21，统一在 /api/v1 上下文路径和 50601 端口提供服务；前端开发服务器监听 3030，并把 VITE_API_BASE_URL 代理到 VITE_API_HOST。",
+      "evidence": [
+        {
+          "resource": "repo://backend/pom.xml#L26-L38",
+          "version": "repo-lines-v1:sha256:23431a465591dcae979e3e19bbbb87147e2f311996a011d93488bb1aab6868f9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1YjdhYTI1MjA0OTEwOGVlYzAwOTVjYzJmNjNlMzIxMTliZTRmMjA2YjllMWNkYWIxZDY3OTQxZDc5ZDRhODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzYjQ5ZjczNTcxZWEzMDY5NWYxMmJjYTViN2EzZTA5YjNkYzFkZGNmZmJhZWM2ZjQ2NTE1NzVkZWIzOTcxOWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzY2RkZWRkMTViMTNjMjI1OTlhN2JjOWI3OTZkMTFlMjg0MWNkY2RiYTAzYThmZWNhOWUzMGYyNzgzZDcxNTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk2ZmU5MzY3NmM1OGE2NzViMjAxYTAxNTdhYjBlOGE3MWYzMjU4MWM1NTRkYzY0MzExOTE2N2RmOGZhNDFkZDMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/resources/application.properties#L1-L3",
+          "version": "repo-lines-v1:sha256:5361b089c90d6110f9293428dc824a05e4438a27ccc6c5d64db438b3ed20b7be:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGRhYmM1OWNmMzk2NGFmMzg3ODM3ZDgwODk5OGM0ZjE3MjIyYWNhYTAwZmFlNmFkNzJkZGU1NjI1NjAzOTBlNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGVjYTlhMWYxODdjZjg0ZTBmZmE3YWIxMmVjODQ5NzZiZDc3MDIzZDMwN2EyYjNkYWM5NmE5ZTc3YTBlYzQ0MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzg0ODA5MDk2ODJmN2Y2ZDY2NjMzYjZmZDY0ZjI1NDM0YWIwOGM0MDM3MDk5Y2E2MDFlMzBlYjAzYjdlMDMxOSJ9"
+        },
+        {
+          "resource": "repo://frontend/vite.config.ts#L88-L96",
+          "version": "repo-lines-v1:sha256:0f4f8c94690aa6b11880d62ddbe1295c1c6b9fe8f56ab64e68111798b5a75eca:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWYwY2RiOTcyYTdiZmI3ZWQyNDZmOWZmNjcyMzg1ZTU1ZjQ5NjhmYzExMDQzZGM1YjY4NGQ1MWRmYTMxZGJjYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTgxM2ExMzYzYjdkMTNiZjY3ODQ3ZDM5ZjI2ZDdhMDAxODYwZjAzZmUxYTU1ZTNhYmE2YTY5MTMwY2I0OGM0ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTU5YjBhNWRkYWZhMWU2MTcyNDM3ZTZiMGRhNDA2M2RhMTM5MWIxYmQ5ZTU1OGNhMmQ3YjZjYjdmMTFmYjYxMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_612cc54f8d5749a1a10a0f1a8381e65b",
+      "statement": "生产镜像把后端 jar 与前端静态文件打进同一容器，由 Nginx 监听 80 并把 /api/v1/ 反代到 localhost:50601；镜像暴露 80 与 50601，Compose 默认把容器 80 映射到宿主机 50080。",
+      "evidence": [
+        {
+          "resource": "repo://Dockerfile#L47-L86",
+          "version": "repo-lines-v1:sha256:0a079db95393dac54b463f1654004e5d16816440c577b9b0ff1596608a1eb951:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmYThhZDIxZGQ2MjEyNzYxODgxN2JmZDg5ZjFkOTgzNmZlZjA1YjA4MDljNDAwNTZlZWZhZmQwNmU5MzRkNzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlNWU0Y2VkY2Y5MWJmMGQ4YzU5Y2JiMjhiY2EzMDMyMTdhYzdlMThlMmVlNmY5ODhiMjA1NzFiMWMyYjhmYzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://docker-compose.yml#L80-L90",
+          "version": "repo-lines-v1:sha256:ff09832fdc2985982276ead762c716f56eacf4b791d908a57c3e8d8f0d9b692a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYxYzQwNzczYjBjMDE3OTIyNTVhMmNmYjJiZTg3OWFjZTRmYTY1NGUxOGY1Njg0M2I5YTkzZWYwMzQ2ZWM5YWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg2NWEwNDQ2MDQ4MzFiYmUwMTAwZGRjOWI0OTgzZGI4N2RiOGNlZThkMGIxYWZlNGM3NTA0NmZjYjU1ZjUzYzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjliMDQ3MjY2MjBlNTBkYWNiMDkwNzM4MjA2NTk4NmQyMWRiZGJlNjBmYTIzNDg2N2Y1Y2M1ODQ5NzIzZDc3YzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwM2E4OWZkYzdkMTRkNzdmMTFjNGJiM2Y0ZDliY2UyOTIxNmFjNjAxZjllNGMyNzJhZDkwYzY2OGE4YzU2ZmUifQ"
+        },
+        {
+          "resource": "repo://frontend/nginx.conf#L1-L35",
+          "version": "repo-lines-v1:sha256:235d5f1a6beb9e39d33e4ed069ba23cde3c224db5ad13f010e62991092dfb98a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiYmRjZDBlNTU2ZTE1NGRmMTIxY2ZlYjBmMWVlMmNkOTQyMWU3ZDM2OGJjYjJiYWZjMGUwZDFiYzEwYTcwYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5Yjc5ZDE4Y2I5OTlhMTRhNTE5N2Y3MzdmOTY2MGFjMjNkOWMyZWYwMTQyZmQ5ZjQwNjVmYTY3YjZiOWZhMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzMjA3NGRmODA2ZTgxZmQzZmNhYzk3OGZhZTZhY2E4MGVmMzhkNDIwZjBiMGQ3OGYyYjI5NGEwZTk2ZjJhNjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_98ad312791c1435284203094665f38b6",
+      "statement": "所有节点都可能是 Master 且同时是 Worker：Master 通过 Redis 选举产生，独占注册定时器和从 DB 队列分派任务，Worker 订阅自己的分派频道并执行；所有节点共享同一个 PostgreSQL 与 Redis。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/redis/MasterElectionService.java#L23-L31",
+          "version": "repo-lines-v1:sha256:2ece934e83cb2eb6a365b25c64a74a8b983291ae16c27cc6206f712b6b3012e8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWUzODZlMjZmOWExYzIwOTlmMTVlODlkMGVjMmNjMmM5ZjA3MjZkNmI1ZjhkNzQ2YmMyNjZiYzE5NWZiZmFiYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFhOGMxMTYwZWIwYTk1MWQ5ZDFjOTNiZTFiYzQ1NGJiMzRmZjk1Mzk2M2QxM2UxN2RmYTg4YzU0MzBkMGEwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTg4ZTkxYWI4MjM0YTlmODJlOTNkODhhZmMzYWY0YTkxYmIwYzdlM2QzYjg4NzlhMzZiNjM1YjQwNjc3MTU4MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWQ5ZDYxNWE5YTRiN2Q3ZWZiMjdlZTM1NWUyMjI1ZWRkY2Q5ZWQ2OWViM2M0MGM1MzY0MjdhZDZkMmViMDQ2ZCJ9"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/scheduler/CollectionScheduler.java#L30-L45",
+          "version": "repo-lines-v1:sha256:3bad35a649a34d2b4a0773bb1bd1d9284602ba5b298639cee32132c7d4807bd6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNjRmMGZjYmQ3NDk4ODBkMWZiMDg5OTcxY2MzYzMwMzliYzc2ZTI3OTM2Nzk5YjgzMTE0MDdkODE1ZjE2ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OTg4MDdhZTdmYjVhZmZlN2I1OTFjYzczNzIwMGMxOWIyZTJiYjM3OTY0OWVkZDY2ZWE0NDllYWQwMzFmYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwZWM3NGM5ZTNhZjlkZWIzNmE3N2YyZGQ2OWVlMWVkYjhlNWRhOWJhZTBlYjMwZjU2NDRjOTEwMjVkZDk3YmIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L87-L92",
+          "version": "repo-lines-v1:sha256:1ddf8a02577187825e8b3c84e8a94176ff13af70805c17e4cdfc1e84b024dc13:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjI0ZWFjYTdkNzA4ODk5ZDM0YTcwNDU1MjA3ZmIxZjQ3MGRlMzBmN2FjOGE3YWIyZDg2ZDc0MDgzMDJjNTgwMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTcyYTQyOTM4MmIyZTE0NzE4ZTBlMzdiMDU3MGE4YTE3MDI5OTFmY2Q4NDk4Y2Q4NDA2MGE4YmY0ZjA1MDE3YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjc5MGQxZTY1OGEyNzI3NWI2YzRlM2Q3NDdlOGU4MWMzNGZjOWVlMTM0NmVhNDEyODlkNzgzZTJmMzQ4YTQyZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGJhMjJiM2NiMzI0N2U4ZDk4YzYyMGJhMWZkZWVkNjM0MWRmMzk2N2RkYmU3YzY0MDAzNjEwMThkZDkwODU3MyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_c87db2f519a24ea38f0b74e55bd2574e",
+      "statement": "Addax 不包含在应用镜像内，必须安装在后端同一文件系统（默认 /opt/app/addax），执行时以 <ADDAX_HOME>/bin/addax.sh 子进程方式调用，不能拆到另一个容器。",
+      "evidence": [
+        {
+          "resource": "repo://DOCKER.md#L86-L98",
+          "version": "repo-lines-v1:sha256:e82d322ae1fcc0b1832981e6d78cf1fbbf6cfa5eb28dba685831b1bb5f970303:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkZTJmNTMyOGVlNmU4MDUwZThhYWZkOGRjODY5YTA2OWNkOTU4NGVkYWFmNTRmZTU4OWQ3M2MzYjdkY2Q3OTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY4MTkxOWM2YWQxZWU1OGIwMjJiZTcwNjBiYWExMjQ0NzE5MWMxNmQ4YTMzYTE4MmExYzQyNTMwZDgxN2NjM2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkYzhkMTFlYTE5Njk0YTYwNGJjMGYxNzc2Mzc2MDg3ZWNjNTA0OGFiYzAyZGJhZjI0NjdjODEzZTE0YzA2M2IifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1134-L1141",
+          "version": "repo-lines-v1:sha256:066efc6d5b684bc14b66246b149cbfc0fab2e426731e2d099abc88e93e09ba68:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQzOGVjZDVlMzkzZGUzOTc1YzdkM2M2OGQ3ZDg2ZGE4Y2NmMWIxMDdmMThkODc1Mjk3MzY2YWQwY2I4ODUwZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODIwODVhNThhOWNmNGRhNjcyYjI1YTQ5ZjgwOTg4YTg3YzM4OWRmZGI5YTQ3ZjNjNjcxNDIwNjNmN2UzY2JjNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTRlZDM2MDQwY2IzMmJjMzliZGVjM2RiZjBiYzUxODI5OGJiMDVmYzQ5Y2E0NjM5MDRlZTc3YWY1ZGQ0MzZiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmU2ZDI4ZjVkM2VjYjQ5NWNhMzNlMDQzZTRhODIzY2VkN2QwNDdkZjM1YjJlZGFhMTkxYzE2ZmU0NGM5NWRmOSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_370f701982bc4896a6828dd583a835c9",
+      "statement": "系统将数据分为可变配置（etl_table 等）、执行开始时冻结的执行事实（etl_execution/etl_statistic/etl_jour）和只追加的安全审计（audit_event）三层，历史不依赖当前配置解释。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlExecutionService.java#L94-L155",
+          "version": "repo-lines-v1:sha256:f486aa5a413098b40e2a00adc0e75c2489e99bf90aa139fe1c84d84e2c341a7f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4NDMxZDRlNzliNDdhZTNmYzM5YjNkNmE1NTdkYWI1ZWQ5NTNmOTgxMDBkYzcyNjYyNDY4ZjFhZTA4ZjZiNzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1NzVhZjQ2ZmUzZDdjMmRkNDU2ZmMyYWI0YjQ3NzU4OGMzOWE5N2UyYTNjODQ2NmIwZmIwZjY4OTNkOTEzNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgxODdkMWUzNTdhYWIxOTM2OTM2Y2IzNDdjNTczYmY1ZDNkNTgwOWEzN2U2MGU3MmUzMWU4ZjRlNmJmMDIyYTQifQ"
+        },
+        {
+          "resource": "repo://docs/adr/0001-retire-collection-definitions-with-execution-snapshots.md#L1-L12",
+          "version": "repo-lines-v1:sha256:85de5246d79269868349b6bae4bc0576f43a00df3a1a16b92c8228044a9fd9f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkYjRjODc4ZTMwZjVhYWQzNGRiYzM4ODRhMmJmMGQ5OGM3MjhmZGI4Y2M5N2NhYzk1MjI2YjQ3MzIyYzQzZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyODc0MGI5N2FjODYzYWJiZjAxZTU1MzM0MDY1NGYwNjJkOGQyMGI0OWNhODMyZjk2NWI4MGZlNjk5NmI0YzMifQ"
+        },
+        {
+          "resource": "repo://docs/security-audit.md#L1-L12",
+          "version": "repo-lines-v1:sha256:be6008d282e584ab9b14a8efdc88aaf35bfa061a647dd08a09551a16ba46221c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhM2I1NDA0MDBjNmVlMWQ1NzFjZmRkMjgyZTA5NGI0ZmI4NjAyN2NkYTdmYzcyNGMwNWZiNTZmMDFhMmUxNjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2YWI1M2Q1NDEwNDAxMzZmMDBiYmI2NjNjZmNlYWVlZWE0NTQ3ZWU1NWU4NDcxY2E2ZjFlNWRjNTg1NWEwZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkMmZkMjU2YTE2N2UzMmVjNmI2NjUxYjdkYTM3M2E1ZDI2YjE0NjliNWY5YTdiN2EyZjU5ZjA3MTQyZDY2NmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_773f0d8817104ea59313cdb838fd04b0",
+      "statement": "项目没有独立迁移框架；已有数据库由 @PostConstruct 下的 SchemaInitializer 在单事务与 PostgreSQL advisory lock 中幂等升级，最后按 EtlTableView 的 DDL 指纹决定是否重建 vw_etl_table_with_source。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/EtlTableView.java#L12-L40",
+          "version": "repo-lines-v1:sha256:9efe13c648ddb37c3c6e0c7cb7d5302e92f3929e28ae38d75e222741d6d3d7ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3ZGE0ODAwN2Y1ZjcxOWZjYzgyNGE1ZGFiMTIwMDc4OTRkYmVkNGMyMzk1YTY2MzI2ZjVlZDk5YTJhYTFhZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmNzc3OGNlMzQ4YTUwM2IxM2MzNjEzMmU0ZDY3ZDc0ZTI1ZDU4YzNlYTQyYTBhYjMyZjgyNWE4ZjA4OGVhNmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2OWY2Mzc5ZGYzODU4ZmE5M2Q1MjllOWRjNjllYmRkZmQ4OThiZjg1NDMxMTVhYTkwOWU4MDkzYTEyZDc2M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0NTk3MTk1OGM4NDBlZmMxYWJkN2UzZjA1NWE4NGUzN2Q4NzE3NDk1YWI5MjhkY2VlY2FmMjQ1NGEwMzFmNTIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SchemaInitializer.java#L290-L360",
+          "version": "repo-lines-v1:sha256:45ff2038fb714832ebb93f499ad36617bb539d0604f4b52ed68358ad03be179f:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNjRmMGZjYmQ3NDk4ODBkMWZiMDg5OTcxY2MzYzMwMzliYzc2ZTI3OTM2Nzk5YjgzMTE0MDdkODE1ZjE2ODciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5M2ZjOTc4OTQxNDA2MjMwOTZjYTlkYjcxNTQ0MjJkNDA0NGNkZGJmYzk1YWQ0MGRhYTc4NWY5YjkzNDJjZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0OWFhNzJmMGZmODMzMWViMWE0OGY5MmNhZmEwNzQ2MTYzZDFiZjIzODk2YzhkOTU0Mzk0NWRkNzAzZDQ0NzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMDZlODU0OWI2NjJjZmU3NGQ1YTNjOTAxYjFmN2YwODgxODQzY2NhYTYzYzg1MDE4MDgzODI5YmYzZDRkYzYifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/config/SchemaInitializer.java#L34-L60",
+          "version": "repo-lines-v1:sha256:6e2a7c3e0e4ad153ecd13dde1bc966d56b4420426160a248adcadb8e7c783f77:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1NGYwZmRiOWJhZmExNWU2YTRmN2FhODgyYTAwMDBhNGI1NGIzOGYxOGNmMzQzZDc4MjYyNmYxYWNjZTFjOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwNmM2NTljYmE0NjVkODBiZGVkOWI3M2FmM2I2ZTcxN2ZhMzUxNjQ2MDczNDM5ZjQzYjMwZDA0ZTFmNjE1NWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjllOWFmZTVjNTY0YTBkZmRmMWIwMmRhMjhkMDAxNjI0OTdkYjczODI3MzY2ZDc3OGY5MzM5MWQ1OGYzYWNiNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY0YTE1MzEzYjFlMTVhYTUyZmIyMGExNDdmOWE1MjU2MzllODUyODlkNTBjNGYyOGE4MTkwYjg0ODlmNjExOGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c61fec07a6754288a82da95f42609173",
+      "statement": "目标端扩展接缝是 TargetAdapter 接口与 TargetAdapterRegistry：按 etl_target.writer_template_key（wH/wR）优先路由到 HDFS 或 RDBMS 适配器，未知类型显式报错而不是静默降级。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetAdapterRegistry.java#L15-L71",
+          "version": "repo-lines-v1:sha256:805a6f49250a0d111821e7526e9815693960dfc6b68ea98de11b74481784a9be:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlNjVmMjY5ZjE4OWMyOWU2MjZkNDhkMGU3MmJjM2FiN2JkY2Q0NjBlM2NkM2FmNWJjY2Q4ZWUyZjZiZGY4NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/target/TargetTypeResolver.java#L18-L80",
+          "version": "repo-lines-v1:sha256:9cbd8880a2cbaf4fc84d3b73d410ba0bbd69872c9398e88ccdf45bb7ddad2bb4:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmExZTlmNDQ5NDlmYTg5YTNiNDJiMDQ5MmRkYmRmZmEyZWI3NjQ4NDhkMzU3NzhjOWZiNTNjMjA3ZWJkYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4M2FjY2M0MjI5MGFmY2QwNzdkMDI0NWVmZDA3MzJjMTlmNmYwMjZmYjMyYWMzNjNlNzkwMzNmZmQyMmMwMTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhNDE4M2MxNDI4NGQxOWRkMDdiZGY5NDI3NjQ0Zjk5NTc2ZTUzNzQ2YjQxYjdiMTQxYjk1YzAyNTRmMTg5ZDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlOWY5ZTRhYzFhMWRmZDExZWY0NTk3YTBmOWVmYzE2MDUzNmExMjQ2NTNhOWQ5MTUzMGVlNDJmMjVmNGMxMjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_636d115d272a46dfbd55f35e0d53e949",
+      "statement": "前端路由由 unplugin-vue-router 从 src/views 自动生成，布局插件按路由 meta 选择布局，导航树由 navGroup/navTitle/navOrder 等路由 meta 聚合为源端、目标端、采集、数据、系统管理五组。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/layouts/default/build-nav.ts#L20-L100",
+          "version": "repo-lines-v1:sha256:a1a2d7a1d3961a32bdea8368a651545b44b09f6a2a5cd2bd4378619a88f52c91:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0NjU3NzY1M2IwYTFlMDI1MzBkYjMzZTRhNGFiNmJjMmIwNWQ4NmViZDFlMWNkYWZmZjZmODhiNzBlOGY0YjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY3NGQxODRlNDIxNGUyZTQ0ODkzMzFjOGM3OTg3ZjYxNjJiYmZkMWQ0OTdlODUzZTgzMTcxOWVhZDNkNGNlYTMifQ"
+        },
+        {
+          "resource": "repo://frontend/src/router/index.ts#L1-L40",
+          "version": "repo-lines-v1:sha256:e0154191055e0438d933a652f1ebecf966bb836216360c69fc1d4e455f0b1495:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzMzllZjQ3NzYxMDM0NzllNDUyMTY0ZDMzNjA5ODZlODUwZmQ0YTliOTUwMmE1ZGQxMjVjZWIyMjIzMDlkOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZWJkMmE0MjdlMzhiZWIyYjhlYmM0MTY2OTA4YmJmMTVlNmFiZGU0YjBlOTY3NjZkMTFhNjJlMDYzMGI5MzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhkYTE1NGE2YjE2MTEyZjcwMjc5MTkzNWFjZDM2MGNkMmVlMWU0YTJlYzY0YjVmMjBmNjNhODFkZWVmMDIxOTAifQ"
+        },
+        {
+          "resource": "repo://frontend/vite.config.ts#L12-L30",
+          "version": "repo-lines-v1:sha256:bc48ddd7bd5b0cddc21ed92a49a7226656c4a14735567706ff802cdbf4e77cfd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0YmFlY2Y5MjdmYjI4NjA1MjMwZjE1ODQyYjAzN2Y3NjVmYTMwODJlZTg0Y2U3YzgwZWM5MTc1ODAzMTRlODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MDA1ZDU3MTA2YTM2MmViMDAwZGFmM2RhNDY3NGM4MmI1MThmZjVhMmUyZjY3ZWU4ZTc1N2EzMzNjMmFmNjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU5Zjk0YmQ4NWFkZmIwNTYwZDQ5NzMzYzM4NjA3Y2I3MDQ5ODE0MjNmZTZlMzhhYWY4ZDM0NmQ0NzhmODJhNDkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwNTYzZGY3NDM5NzhjNzgxZTQwMjkwZjg5ZThkYzk2NDQ2MDljMjY2Y2ZhN2JlN2JjNDgxNDM2YTFjNjI1YjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0a1c9faeab9b499e942ff83c953e7c23",
+      "statement": "前端 axios 封装在请求拦截器注入 JWT，在响应拦截器对非登录接口的 401 清空认证并跳转登录页，其余错误统一提取后端 message 后抛给调用方。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/utils/requests.ts#L52-L120",
+          "version": "repo-lines-v1:sha256:1926b8a18ec28ec195cac924621aa502e33cccf4c7431fb9fe220d20dd745375:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2NTRjNGRkMzZhMTBhYTQ1NjRhMTAxOTBiYWJhNTJkZjkwYTQwZDcxN2EzMzM1ZTM3ZTFiY2NlMWQzMjE4NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2N2E5YjUxNjU4OGI4YzI5MGViNDNhMWYxZTgxMzAyZDM4NjZlMDI1NGU4MzI1YzYwZGY5YzM0YmUyN2E1ZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzNjAxOGY1ODNlODY4NTY0ODY3Mzg3Y2ZmOTVlODQ0MjBiMDI0MGVkZThkYTQ5OTYyNTc5NjZkYzIwZWI3OWIifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

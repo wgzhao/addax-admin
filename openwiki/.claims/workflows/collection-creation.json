@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:4ee9677ebb2f182e58d2d327c1eb59900186e04de979d3208d4662c514fd444d",
+  "claims": [
+    {
+      "id": "claim_0b27bf9a808f423fb25b12a15280c38b",
+      "statement": "批量新增向导由选择采集源、选择采集表、配置目标策略、预览与校验、创建结果五步组成。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L28-L100",
+          "version": "repo-lines-v1:sha256:9c50de540e8f537090efc309121e86d74c24e99a7550e2e1052981ff8623031b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3ZTVjN2QyNGI0YTFmODJkZjFiM2VmOGE1MzQ2NGFkNWE0ZjIyZDFmNDE4NjRlZmZlYTQwYTUxZDJhZjkwNmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2ZTlkZjg4YWE0ZGI3NjkzN2ZmMzkyZDQxMzNlM2FhNTk2YTg4ZjRmNGVjZGIzNWJmMDc0ZGY2MzNkNGIwOTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyMGVmNmViNDJmZjZiYjdhNTE5OWMxNzg2YTA4Yjc3YzA2Njc0ZDQzMTkwN2QzNTU4YjE5NDk0M2YwMWNkZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMTc0OWMzNmQ3ODczYWU1ZmU3MjIwZjcwOWMxYWE5NTcxNDBhZTllOTkxNjMyN2I0MmViYmI0NTI1NWM4NDUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_99b94f2677fa4a7887c074dfaad530db",
+      "statement": "第 1 步只加载启用中的采集源，选择源后加载其数据库列表并把默认目标库设为 ods+源code小写；第 2 步只加载当前源库中尚未纳入采集的表，切换源/库会清空已选表。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L350-L455",
+          "version": "repo-lines-v1:sha256:12c96dd7147402eb8618bd1d56fcf91bce82f08bcd200a642c943b38082fc925:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1NjdjNGYzZTI1ZjgwOWZhYzRmNzA4MWU0ZjU1MjMxZjRmZDlkNDYzNTY3YzFlMzNmMzg3ZDlkODQ0NDI0OTYxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MmEyY2IyNWExMjJiNDQyMjFhNjIzNGVjNjYwYTdiNWZiN2Y5YmRlN2IzYjllMmIzYzU1OWEwZDk2ZmFjNzM5IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkMzNjMGRlMmExN2Y4Nzg4M2Y0MzBlMmVjN2JkZTA5OTgwM2MxN2ZlMzIzZTFlMzI1YTM0NjBkZDMxNTU1NjVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhNzE1ZmI4OGI3ZjgwNDk4ZDJmMGQ4MjRiNjdhNWRhMWEwZmU2ZDUzNjkxN2VkOGRmYjFiMTE0NGI1NWY2NDljIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_22f27afdc20d4517889db93e8e9c5e73",
+      "statement": "目标结构管理支持 MANAGED（平台创建维护）与 EXTERNAL（目标表已存在仅校验），目标表名模板支持 ${table}/${db}，进入预览前要求目标端/目标库已选、每张表能解析出非空目标表名且目标表名大小写不敏感地不重复。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L314-L338",
+          "version": "repo-lines-v1:sha256:8b36e413fb2747c2753d07bda9c7c54de09170aac8f8e224a85314118af92c08:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNGIxYzEwM2Y1YjkzYWY0N2Y0MWZjMDQ4MjhiZDc1YzIwNmE4ZTM5NGJjMjZiYjRkNWIzOGJkZjFiZGY4MTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2NjFiMjRjNzA3ZTVkZDIzNjU1MTY0MmFkYzFlZDc4MGFkMjFiOTBmN2U0Zjg0ZGQ4MWY2Yjk0OTI2MmNiYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyOTZjMTgxMjdiZDYwMTgyYzYyNzFiYmQzMGExMTA1NDA3MzIwNTFlOTAzZWVhYTQ4MzVjYjE5Yjg3ZDU3OGQifQ"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/batch/BatchConfigStep.vue#L29-L100",
+          "version": "repo-lines-v1:sha256:b5bd57cd9a6b53f70757f1e349611f245071d5d15d5ed664f6e46f0e9a8f13fc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzOGEzMmE2MTVkM2RlMzA0MThmZWM5YTM3ZjZlMzA2YmY2ZWQ5MDlhZTJjZDE5MzBkZmJhNTZkMDE2NmQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmZGViNDUwOWQzNWNjM2I3MjY2YWM4MTgyODVjYzFjY2IxOWMwYjNjOGUyYzVjODgxOWY3ODA4Y2ViMGQ0MzAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5NDI0OTA4OGEyZDQ4OGE3ZjJhMmI5NDU2N2JlM2YyYjhhNWY1Y2IwNDYzOTM4MDE0NWQzZmFlM2RhMjMwMWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxZDRhOTkzZWNkNWZlNzFmZjI2ZDBlMDYyNDhjOWEwNjQxOTVkOTI4ZmNhYzBkZmFjY2JmOGE0MjgxMTRiOGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_35552ab1e9eb446db88447752f093e67",
+      "statement": "POST /tables/schema-plans/preview 对每张表单独预览，单表异常被捕获为该表 ERROR/BLOCKED（PLAN_PREVIEW_FAILED），不影响同一批次的其他表。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanPreviewService.java#L47-L79",
+          "version": "repo-lines-v1:sha256:ee797685c557b43400fe4f0406fb315b7682a5fb690f3e3f36ef151716d0599a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxOGM5MTUyMzhmNmM1NjJmNGUwNzIzODZkZTgwZWIyM2UyMjQxMmIyYTY3ZjMyNTkyYTY3NGVjYTYxZTFjZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzZjFhZDBkMTVmMjFjYTg3N2Q0MzUxZWU1M2FjNWU0MzBlOGI0N2I3ODQ3NTE3YTgyNmQ4Y2UyMDc2NWRkMTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY1M2IzYjEwNjY3ZTYzNTQ2MjJlNTc5MjUxZjBmMmJiMDY5MjJmMWI2N2FhNGU5NWYwMjAyZjI0NDc2MmRhNDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_11c8fceb0a9f4ea4a4d5c86f5cfe7b60",
+      "statement": "MANAGED 预览读取源端实时字段和目标现状，生成 plannedColumns、分区、身份映射、计划 DDL 和 CREATE_TABLE/UPDATE_TABLE 动作；RDBMS 下按源主键标记主键，配置业务日期列时追加 varchar(8) 的 BUSINESS_DATE 列。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanPreviewService.java#L101-L127",
+          "version": "repo-lines-v1:sha256:2bdf020214533a1192e842601a1947c824ca3b84d659b19e71b427e78c93eb70:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMmU2MGRmMWJjOGY2MWM3MGI3MTczNDc5ZTM0Y2QzYzQyMTc5NTBhNTQ1NmVjMTcwMjc0ODcyNzE5OGYyNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlNDgyY2NlNzE5YWZjMDUxN2ExMTJmNmQxZWQzNzljOTI0YjAxMmVhMDJhYmVhMjQ0N2U5NWE0OWNlYTM1ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkOGM2NzQ5NDE3ZWUwZjkyYjlmMTkyMmYyODk0NGJhY2EwYTg5OWI1OTIzMzBjMmM2NzUxNGM5MzVmNGIwNDkifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanPreviewService.java#L222-L258",
+          "version": "repo-lines-v1:sha256:7c1405656f3c2b7ab6b0f2c3fe3decd8aa6bbd86095f220817f9a712284db103:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwOGYzMmU0MjFkZWI5NWE3YzVjNDY5YWNkNzM1ZjBhNjQxYTI1MTFiN2ZiODcyMGUwMzIwZjM0ZDJiNTI4MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0NzIyNjU0YzQ4YjJjYWYwZWYzODZjNWU2MWQyNGU5ZmE0YTBiZWNiZmI3MTNiZWMwNDc1YWFkNGY3MGFkOWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmMGRlM2E2YWRkZjg1YTIxNmU5NmU1ZmE2YzAwZDE2YzcwN2JlODFhZWQ0YjY4YjNmZmE4YzE3ZjRmNjcyZGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_915fe85444d740cdb798c02f6b764bc6",
+      "statement": "MANAGED 目标表不存在时为 READY/CREATE_TABLE；目标已存在时追加 MANAGED_TARGET_EXISTS 告警并变为 WARNING/UPDATE_TABLE，预览本身不执行 DDL。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanPreviewService.java#L101-L127",
+          "version": "repo-lines-v1:sha256:2bdf020214533a1192e842601a1947c824ca3b84d659b19e71b427e78c93eb70:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzMmU2MGRmMWJjOGY2MWM3MGI3MTczNDc5ZTM0Y2QzYzQyMTc5NTBhNTQ1NmVjMTcwMjc0ODcyNzE5OGYyNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhlNDgyY2NlNzE5YWZjMDUxN2ExMTJmNmQxZWQzNzljOTI0YjAxMmVhMDJhYmVhMjQ0N2U5NWE0OWNlYTM1ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkOGM2NzQ5NDE3ZWUwZjkyYjlmMTkyMmYyODk0NGJhY2EwYTg5OWI1OTIzMzBjMmM2NzUxNGM5MzVmNGIwNDkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_021302c2d2e4456fb0d32a4230689a54",
+      "statement": "EXTERNAL 预览读取目标实时元数据，目标缺失产生 TARGET_TABLE_MISSING ERROR；同名字段自动建议映射，未匹配源字段产生 TARGET_COLUMN_MISSING，必填未映射目标字段产生 TARGET_REQUIRED_COLUMN_UNMAPPED，其余未映射目标字段为 TARGET_EXTRA_COLUMN 告警，并返回目标结构指纹。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionSchemaPreviewService.java#L52-L180",
+          "version": "repo-lines-v1:sha256:dc42ff6998da215158709c20679409d677df5494bfb1efbb4dc478d14629a567:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5ZGQwY2U2YmI1NjgyZjc1Yjk5NmQ2YTQ5MmY4MTRmNjljZDA1NGFiMmVjZjhmYmEzZjg5YTI5N2ZjN2NmNzlmIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIyNWU2NzBlZDY3ZTVlZmRmZGJlN2JkYzRjYzI0OTdkZGE2M2UzMTlmNWU0MzAwMDcxYmIyOTY4NTZlMDI4NzYwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmMjA1MzBjMDAyYWIyZDg1ODNiZjA1NjY3MTBlMDQ3MmUzMjI4YzRlMTMzYWNmN2FhOTEyM2JlZGY4YzFlYzJlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1MTljMWFkODcyMzVjZDJlMDAwMzZhM2NkZmRhOTlkOTBhYjczYTMxOTM2ZDhmODc2YTJiZTVlZDM4YzFkOTg4In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_5d69a0c384634bc4ab0abc7db9080140",
+      "statement": "复核页按 READY/WARNING/ERROR 统计与过滤，支持补全缺失映射和排除无效项；前端以空目标字段、重复目标字段、EXTERNAL 目标字段不存在三种问题阻止确认按钮。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/batch/BatchReviewStep.vue#L20-L100",
+          "version": "repo-lines-v1:sha256:1548a4e5324fb386590b2b6fff22ea89677ad8a2001fecbd3cb43149ea1a0056:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwYzc5MjNiMGU2ZmE0ZTQyMWZmMjczMzg4OGI0ZGI2NWY3NWRjYWVjYjlkMTc3YTZhZTc1ODcxOTI2ZjljZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlMTRhNmM5YmE5YjA4MWRmYmM1NTljMGE0YmU2MzVjZGZiMmQwNzllNmYzZjI0N2MyNjE2M2M1NWI0NjBmNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4YTVlMmQ4OTM4NWFmOTdhYzQyOTMwYzg2Mzg2MjMyNmUxMmNiZGNlMmE5Y2Q3YzAwZjUxNTZkZjQzMTJmMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI5ZDI2MzBhODY5MjlhZWI3OTZjOWUxNzAyYTNmYzEyNjMxYjk2OGExNjk3MzMwNmIwMWQ2NjY4NjE4OWYwZjAifQ"
+        },
+        {
+          "resource": "repo://frontend/src/utils/collection-plan.ts#L1-L25",
+          "version": "repo-lines-v1:sha256:528095be1c2dd3c3db460b2aa0aa797a1f6666cc5d940a23e8825b1503366e3a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlZWQ1NmYzMzMwN2Q4ZTA4MWQyNDk1YWFmY2Y1NGUyODU3ODk0YTk1MmM5ZTMwYWEwMDRhYjIyNTFhN2Q5MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2YjFhMDBkZGRkNmE5YWE2YzhkOGI5YmFmYzFlYmI3MjU5NTVkMjQ0NWMwMDExZDgzODRmOTZjZWE2Y2NlY2QifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aa899553354d4a499862d8ed95051977",
+      "statement": "提交时先做批次级目标表去重（大小写不敏感），重复目标的行直接 FAILED；其余行逐表执行并捕获单表异常，不影响其他表。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanCommitService.java#L36-L70",
+          "version": "repo-lines-v1:sha256:d89bcfa0ca38749e974208fb2a6bcc1e76fb2a7c986c47a44e59a9e096c4c050:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MjNlOTFlMzZlYzg1ZmQ1YzgzM2FhZmJjNGRjMGNkZmM3ZWZlMzMwZGE3NDQwMzc3YjNkMjY2ZmI1MjY1MzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3MzUyZjM1Y2JjMWI1YTA2MDBiMDc1YTlhNjkyYWNlYWE2Mjk1ZmEwYjViMzk0MDdkNTAyMjY3NzAwMDEyMDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzMmFjYTQwMmVjMGFjYzBhY2E0MTkyNGZmMDI4MDkxODdmYTcxOTQyMTNmOTcyN2I5MmIyMTZkMThmZjUxNWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiMDBmMTE2M2EzZjAyNmU5YjVlNmM1OTczZmM2ZmVjN2JjMTdhNTM5NzJjNGU1OTEwZDE4OWYzYmRlZGQ2NjUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_131b3ea2628b4f21be6c06e5c6387206",
+      "statement": "MANAGED 提交顺序为保存状态 U 的定义、读取源字段、校验每个源字段必须映射且源/目标不重复、替换映射、刷新资源；刷新失败返回 FAILED，但定义和已写入的列/映射仍可能保留。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanCommitService.java#L79-L153",
+          "version": "repo-lines-v1:sha256:e1cc734ab465386429dd744d3f30ae10cfb5aeb5d2731223a51485ec6e684998:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxNDcxOGE0MjhhZmI1N2I5YTM3OTMzYTY3OGUwMzdkZGM1NGQxOTUwMzlkODFkYzJjNDJjM2FlZjNlNTY3YzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5Y2M0NzFkNGE0ZWU2OTlhYWM2Y2ExMjc3MThkNTZmYjE2NmE5NWY2YzA1NTQwNTI4OWI1NzM4YTJkYWNmMWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0YjIxNTM1MTQ0NzMyODE0OGVlZDc2NWVlZWFiYjQ0OGJjZDk2NjRhZGU1OGY2ZTFmZTA4OWM1ZjQxZTUwNzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_94d795e227c34b92ba02be6a05799b11",
+      "statement": "EXTERNAL 提交会重新预检目标表存在、无 ERROR、请求指纹与当前指纹一致、每个源字段都已映射且目标字段存在、必填目标字段已映射或由业务日期列提供；刷新失败返回 409“定义已创建但契约校验失败”。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ExternalCollectionService.java#L37-L105",
+          "version": "repo-lines-v1:sha256:5ba0f9dcc96d73fa79fc0d0feb3b018507fb18b43c86cffbff14a4629db399fe:eyJzZWxlY3RlZExpbmVDb3VudCI6NjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBkODgxYzBhNzJiNjY3YjFmZTcyNDZlMDE0ODEzYmFlOGMwOWRhOGM2YzAwZjA3N2IyMWRlNDQ2OGYzNzYwNWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5OWU0ZTY5NmM4ZjFhOWQwNmI3ZGNlNTkxMWU1MTdhMTcyNTFhMjI4NjNmYTZkZGE3NTAxN2QwM2FlMjk4MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhNGI1ZWRkZGMwMjhhZWMwMzVmYjRlY2ZmZGExZjljZTUwOGE5ZWVhNGJhYzljYzNjZjYzM2ExMzMwNWM5YzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyZmUxMzNjZWYyNmE2NWRhMmI2MWVjNWM1YmJmNWMyMjY4NDMwODU2MTVlN2UzY2QyODhlZmI0ZmZjYzE5OGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b54bf6b888ef49caafda27f33358435a",
+      "statement": "创建后的刷新只在当前业务日按采集源日历应采时把状态置 N，否则保留原状态（通常 U）直到下一个业务日重置。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TableService.java#L459-L469",
+          "version": "repo-lines-v1:sha256:a335c51497a9ad542255fcd7a422d8c5369e15371d7a89a6b05c9e83f9991ec8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiMGM5MTFkNzZjZTE3NTY3OTRjMDIxNjAyOWY1Y2QxNGI1Y2VlZjhjNmRiMjljNTZiN2RjMmE1ZDRjNjQ4NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFlZGU2YjVjZDczZDBlYWZmOWQ0YTViYWI5YzM0NDdkM2Q0NGM1MDQzMDFjYmIwNzFkZTNhMjdlMzllYWU2NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4ZmQ2ZWEyNmJjNWRkYzMxMjdlNjhjYmQxZTA5OWYzMWE0YmJkOWRkYTA4NTY4ZmY3MTc1MzcwNmQ2NjdhZDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2cd42676bb7f438c9d3d7474d50d9201",
+      "statement": "结果页按源表合并 CREATED/FAILED 结果，重试失败项只重新勾选 FAILED 行并回到复核步骤，成功行不会再次提交。",
+      "evidence": [
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L529-L575",
+          "version": "repo-lines-v1:sha256:c15faefe2dfa4de9f28c6c3d152d4102c76e3ca1e9d9a8c2b74af386825aef9b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ZjJlY2Y3Y2ZhMDBiNjRjODI3MzllM2VkMjQwYzNkYjcxYTkzMTgxZmI2YzU4MDdhNjgxMjdlNDkzYjMwNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4MGZiMWE0OGZlNmI0NWY4OGFkYzIxYmIxODU0NzRiOTEwYWExMTdkNmFlYjkzNzBkNGRlYWJiYjY4MzNhZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZTM3MjVkYTAwMmI0NmVkOGI0ZGU4ODAwM2FkOTcxMGRjYWYxOGQ1N2M0NzAxZGMzYmVmZjBiMmM1Y2IxM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwOWYzMmJiNDM2YzE1YTEwMzQxMWNkMTA5NmIxNzAxZDY4ZmVhNjJkMjU2MGRkMDE3YzZlODc2ZDU3OWEwYTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f8ed680a37da4c7abefd2677d842e29a",
+      "statement": "POST /tables/external 仍保留为单表 EXTERNAL 直接创建接口，但批量向导统一通过 schema-plans/commit 提交，由后端按结构模式分派到 MANAGED 或 EXTERNAL。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L341-L373",
+          "version": "repo-lines-v1:sha256:195edfb5037b60e5c9cd0d64ea67d16ffd6c884af1871fcd49710abd4c03e95d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNzE4MWE0NWIzMmE1ZDNiZjcwYWUzNTU3OWNhMTRmMmE5MWQwNDEyOGZjNWMwZmI4ZWM2NDdiMjU3OTE3MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzYjVlNDQ4ZmViMGEwZDBiMDAwNzU5OGVmMGUwMTUyODM1ZWMwZTFkMDdiNDBiYTQ5ZDI0NWQwMmEzZWQ0ZTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjMTVlYTNhYjcyM2M4MmFlMmNiZGFmOTY2NDMzNGUxMjhhODcyOWFjNWEzNWI0MzUzMmVhZDYwNzZjZDM2MzcifQ"
+        },
+        {
+          "resource": "repo://frontend/src/components/table/BatchAdd.vue#L529-L552",
+          "version": "repo-lines-v1:sha256:e65a3f94c187cbf48a33d982b6fd77063e2501e43a283ed4065caca346630794:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE5ZjJlY2Y3Y2ZhMDBiNjRjODI3MzllM2VkMjQwYzNkYjcxYTkzMTgxZmI2YzU4MDdhNjgxMjdlNDkzYjMwNDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmZTA2MzJmNWQ0YzUwNTY1MGQ3OTdhNjlkY2NhNGZhMTI4ZGI1OWIwYWRmNGZhMDVmMTY0YzBjZWVlNjA0NzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxZTM3MjVkYTAwMmI0NmVkOGI0ZGU4ODAwM2FkOTcxMGRjYWYxOGQ1N2M0NzAxZGMzYmVmZjBiMmM1Y2IxM2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjOTdkMmYwZDBkYzQzZjZjNjdiNjcyOWZmYjNmOGE4MWFhY2UyM2MxNjA0ZWUwOWQxM2FjYzJhYTgwM2ZlNTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_13fcbf4b37704ad3a5e2068f36b2e06b",
+      "statement": "批量提交控制器对每个结果写审计：CREATED 写 COLLECTION_PLAN_CREATED，FAILED 写 COLLECTION_PLAN_CREATE_FAILED，并记录源表/目标表与失败原因。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L341-L363",
+          "version": "repo-lines-v1:sha256:ac57e272bf7b50225d3c2169e058b628e9b6da018538a6cf08ded5aebbc13ed5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNzE4MWE0NWIzMmE1ZDNiZjcwYWUzNTU3OWNhMTRmMmE5MWQwNDEyOGZjNWMwZmI4ZWM2NDdiMjU3OTE3MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzYjVlNDQ4ZmViMGEwZDBiMDAwNzU5OGVmMGUwMTUyODM1ZWMwZTFkMDdiNDBiYTQ5ZDI0NWQwMmEzZWQ0ZTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQyOWQyMDIzMjZkY2YxY2QyZDUyZDNiMzRiNjgyNGJhYzU0OGZjYTEyZGJiMTVkY2E3Y2MxNzZiYzQ3ZjdlNzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_380080ff6c664531bb46bf0ec850d158",
+      "statement": "POST /tables/schema-preview 是单表 EXTERNAL 预览的底层接口，批量向导使用的是 POST /tables/schema-plans/preview 与 /schema-plans/commit。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/controller/TableController.java#L327-L343",
+          "version": "repo-lines-v1:sha256:7611f2c6ed590a9104fda2ca3add096c790087b76ed65dfe0eb57383e77504b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZGYwNTQxODcxMjU5ZWI0NDZjNDhkY2U0MTgxNzk4YzQ3ZDc3NjBjMzZjZGVjOWE1ZGJlZTIxOTI0ZGViYzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4Y2M0YThmYmVmM2VhYzMyM2JlNDRmNDdlZDlmNDMyNDMxODMwOTMzOGUxOTRiZTMxZjIzMDVmZDRhNTNmMTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljMGRhOTM4MWY5OWJhZGIwMjU3YjA1YjE0ZWQ0NzE4NzgxNmUzODJhZWViM2VhYWJmZTMxMjNjMjYzYmI3MmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFiYzg2YTg3ZWNhNzQ3MTBmNzM1ZDZhMTY3YmQ5OGVmYmFiY2YzNGM1M2Y1ZThmYzEwNTk1YjAzY2M4MmQwMDMifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}

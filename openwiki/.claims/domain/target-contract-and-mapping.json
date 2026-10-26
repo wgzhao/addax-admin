@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:ee9297a03fd8b9a0a799f17b1c20a220ee606213f88a7713852fa29bd078f93f",
+  "claims": [
+    {
+      "id": "claim_055f7c879b9440adafaf91b8b56862f8",
+      "statement": "目标结构模式只有 MANAGED（默认，平台可创建与演进目标表）和 EXTERNAL（目标表必须已存在，平台只读取元数据并校验契约，不执行 DDL）。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/common/SchemaManagementMode.java#L6-L24",
+          "version": "repo-lines-v1:sha256:30b06669ac809bd579eb6989308e2b42a04d106db617174d2a9389e565df2046:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlYmIxMTRjNWVhNThkNWRjMzg0OTVkZGU0OTM5NjNkMWY0NTY4MzU2MzFkOTg4MjNiMDBjMjcyZTkyN2NhY2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5M2ZjOTc4OTQxNDA2MjMwOTZjYTlkYjcxNTQ0MjJkNDA0NGNkZGJmYzk1YWQ0MGRhYTc4NWY5YjkzNDJjZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxN2M5MWEyMzc0NmViYWEyNWQ1ZTVmZTdmODI1OTUwOWRhMTZlNjIzNDE5ZjEzYWJkMzRkYTJiYjJmODllNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3NGZhZjhlYjZjNWViOWQwNWM5YzY4MTk5NDk0MGI3MzM3YmI4OTYzZWZjMjA0YmIwNzY4YTliNDE2YTI4MjIifQ"
+        },
+        {
+          "resource": "repo://docs/adr/0002-external-target-contract-and-column-mapping.md#L1-L7",
+          "version": "repo-lines-v1:sha256:1fa9ac11d6fc4dfe1f91ac76dda210188e51b2789d4e440581a9fe96967d2ddd:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWI2MzMwNDM5ODNlMzBmMWQ1NWEzNjA3ZjIwZmY0YzgzN2U3NWVkMjI2ODcwM2UyZDE5YWNiYjFmMWI1YzkwOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmZkMWFmZjg0ODcwYjFmZDMxNDRkMTgxZjZhMzNkNmVhN2E1NDkxNWIyODRlZDc1Nzg2OTExZWEyYzA3ZTlhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2FlNTAyN2RmZjYwMDI5ZGJkZGUyMmI1OTIyODE1ZGQ5ZWI2OTg0YjcxYTMwZWFlNzk4NTE2ZTI3ZGQxYmFkMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_9db84da5671448f4bfb028506cf95e6d",
+      "statement": "etl_column_mapping 保存 (tid, source_column_name, target_column_name, ordinal_no) 的稳定契约；没有显式映射时回退为 identity 映射，reconcile 只追加新源字段映射，replace 拒绝重复 source/target；数据库用 lower() 唯一索引保证大小写不敏感的一对一。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ColumnMappingService.java#L23-L170",
+          "version": "repo-lines-v1:sha256:9ebed234a9783debf49c4d87b228495f9ce0c9c55169bbab9a17fd2f25286495:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3YmEzOTA1MjdhODM2MDBhNDk2OGIxMWEwYzdiY2UwYTc1MGFmY2UzMDEyMDE0MTc0MWJmNWVmYzY3MjA3YTZlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4N2QwYzdiY2NhMTZlYjlkNDBhYzRkMTM2OTg3MzU2NjFmZmFjMTZlMjUzZTFmMzg1MjUwYjI3MTBlMjI5ZGJmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5NDIzZmJiNTJmNjZjYzJlZDI3ZWQ5YmVkYjJlNDllZjA5ZjY5MGViOGE0NDdhM2I4MDU3MTJkOWU1ZWE0ZGI5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4NWZmZGI1MTk2NTE4YTMxZjc4NDEzMGVhMTYzZTBjMmVjNGI1ZjA4NzgwZTAwZjMzZWMxNjZkYWJjNzRmZTA5In0"
+        },
+        {
+          "resource": "repo://scripts/schema.sql#L2085-L2100",
+          "version": "repo-lines-v1:sha256:4940a3048802226cd733b5945d1feac5fed5d42b359b983109fb88542472e1f3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0MmFhYWVhZGE3MWVhZDRiMGZjZjlkZDhkYTAxMzk1ZjAxYjcyYzkxMDdkNzc3ZTk3ZGY4NDc3NTNlNTAyNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzN2MxYjAzODE0ZmU1MDUxMzA1MDhkMzUzZWRjNjY0YjZlOWY1ODk5ZTE2MmMwMzIyMjI4MjAyOTVkNWNlMTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkZTZjYTVmNzE4YzBiZGI3ZWIyZDcxMTljY2Q4NmRmMjM5YzdhZTNmZTFhZDUxZjZhMGJhNDQ2MDk0NDI0NzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5c98c56ca0794b13888b15cc068a4e88",
+      "statement": "同一份字段映射被 Reader 输出别名、Writer 目标列、目标 DDL、执行快照和契约校验共同使用；源字段删除时映射保留但 sourceActive=false，Reader 输出 NULL as target。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/EtlExecutionService.java#L123-L142",
+          "version": "repo-lines-v1:sha256:5ee1ea180c2914bf1813d18c286782ff477f5a8c489b1e4a019d9c1a720be912:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhZGZmNDVjOGQ5MjM3ZmE4YzdjNjM0NzQ5M2YwZmFlZTFkMDc4NzNmNmYzMjUwZGM5MzYzMDY0N2QyNjI4MTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjNmQxZmQyNWY4ZjQ1MTg3ZjA1MzRlMDYwOGYwNjM4Y2Y3MjhmNzc5NjFmNGNmOGFkYTU2YjQwZmE5NDFlNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhNmMzMmU2ODY1YTNlNTUxMDk1YTRkMTVmNThjNDVmMjQ2N2IzOWVjNmM5NDY1YjVkOWUzNjJjZWI5NTE5NzIifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/JobContentService.java#L270-L300",
+          "version": "repo-lines-v1:sha256:3c5c7ca29f30114d8454641fd440d50321703a4c7213dd9f55190fd6775b7a1d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwZDc3MGNiYjk2YzZlZTdhMTM0MDkzY2Y0Y2MzNWZiYjcwNjYxMjk2MjkzYTFjODRjOWRkNjFiNDI4ODcxZjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4OTM3ZDMxZGFiZTBlZDk3NDM1Nzc1ZGVhOTRjNzQzNDJkODJkMGIyNzVhNjQyMGVlOTMxOTE1NjMyMTg4YjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3N2I2NjhhZjU4MTNhMjU0M2JiNjM4NmVhOWIxZmVkMTI5ZGQwMzQ2MGQ2MmViOWY5NDU3MjQzYTFhMzI4ZjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bc65db0c2cc04489be7a00d24bd099a5",
+      "statement": "TargetContractService 校验目标表存在性、映射目标列存在性、源列缺失（告警）、类型兼容性、RDBMS 快照日期列、未映射必填字段、额外字段（告警）、Hive 分区键与列顺序，并生成 READY/WARNING/ERROR 报告。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TargetContractService.java#L45-L189",
+          "version": "repo-lines-v1:sha256:96be8d236f1a824addd858f2b7085812ea77d6d2ed6d1e96bb454073a6efc06b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI0MWNiZWIzNzE4NWVhYjg0MjQ0Y2EzMTY2MDI2MTAzMGE5MzhkOGJkNjViYjZhMzM1MTFkM2U4YThjN2E4YjI1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTM1MTM4NTNjMThlNzA2YTg5NGQzMmU0YTBmZjM3Nzg1ZDRhMzIxNjI4N2Q0ZDk0MTg1NzVjOGVjNGI0YTkxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0ZWNlOWUyYjUzYmQyZGI5NDM3Nzc0ZGVkMWU0NTQ4YjA0NjAyYmFkNTNhYWUyNmRjNzc1YWZkNjdmNTYwYjg3In0"
+        },
+        {
+          "resource": "repo://docs/adr/0002-external-target-contract-and-column-mapping.md#L1-L7",
+          "version": "repo-lines-v1:sha256:1fa9ac11d6fc4dfe1f91ac76dda210188e51b2789d4e440581a9fe96967d2ddd:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWI2MzMwNDM5ODNlMzBmMWQ1NWEzNjA3ZjIwZmY0YzgzN2U3NWVkMjI2ODcwM2UyZDE5YWNiYjFmMWI1YzkwOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmZkMWFmZjg0ODcwYjFmZDMxNDRkMTgxZjZhMzNkNmVhN2E1NDkxNWIyODRlZDc1Nzg2OTExZWEyYzA3ZTlhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2FlNTAyN2RmZjYwMDI5ZGJkZGUyMmI1OTIyODE1ZGQ5ZWI2OTg0YjcxYTMwZWFlNzk4NTE2ZTI3ZGQxYmFkMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3ea57e98e29a45968600e335f84b229f",
+      "statement": "report.blocked() 等价于 status=ERROR；所有 finding 都会写入 risk_log（按消息+tid 去重），WARNING 只提示，ERROR 在创建、提交和执行前阻断。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/dto/TargetContractReport.java#L1-L30",
+          "version": "repo-lines-v1:sha256:1c5cf8845ce52c9ece89d24d0a308345f2b2b4d8cba8d6a1c4e2e8d7d7545306:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkNDk2ZTc3Yzg5NWUwNDQ4ODg3ODQxODE2YTY1NTA0MzFhODk0MmUxMjhlZDQ2MzA5MDU3MzY2YTU4NzdkMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ODM0NjVhOTZhN2YwNDUzOGI0YWVjM2FjN2ExNDIwNjdkNDk5N2VjMGI4MTQ4NTczZTA5NjA4MDk2MWRhYzkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4ZTlhMmRmMTgzNWJkYjc4NGVjOGQzMGJmNmY5ZDIzNmRlZDgyZjMzNjNkODdhMWVjNjJhMzZmMDhiZjNjZGEifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TargetContractService.java#L177-L188",
+          "version": "repo-lines-v1:sha256:d48103c972824fc3f44b6ff764cb78f0cf01b216ecf5e365d1c4087561956c33:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhMGVkMzA4MjdlNmIzYzU3ZGUwNDE5Y2VkYWMxOWY1NGMyNTZkMjQwODQ4ZGFhZTI2YzA3NzBlOGE0N2VmYWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjMjNiNTJiYjE1MWIwYTk2ZjRlZDhlNjg0MGMxNzZlYWNmZTRjNjNlYTM3MTI4ZmRiNTlhOGFhMDQwYTUwNzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhOWY4NmQyOGU3ODRmOWZkMzFmYjcyZDE1ZjYwY2JjZWFhZmRkNjY5Y2JkNWI2ZGE3ODg4YTAyMzMyMWViYjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwNmFkM2U1ZWQ2MWM3YjVkMjg0YjUwY2JkZDhmNDZmNTgyNDI0YTMzZTYyMzdkMTc0YjhmMzMwYzFiMmZkM2IifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1697304e6af64560961fc448f81229b3",
+      "statement": "目标指纹把存在标记、按 ordinal 排序的非分区列、分区、主键和唯一键规范化后计算 SHA-256；保存 EXTERNAL 定义时若请求指纹与当前目标指纹不一致，返回 409 要求重新预览。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ExternalCollectionService.java#L52-L62",
+          "version": "repo-lines-v1:sha256:205c1f6dc7f25f99d6cd75eb2a4faa813c5d1f14a56398bad3700d6774ebe400:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MzcxN2Q4NDlkZDgyMTFjMjc2YTNiYjJiNDcxMjhkOWRjMGZmOGJmMGU4MjY3NjNkMzk4NjlhMjZjNDk2ZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmMzU1ZGI2OTMxNTJmOTVlODY5NTdmNjkwYzFjOTY2MTcxNTdkMjdjODljNWU4MDNmZDQwNjczYWVmYWZkZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhMGMzNjY5N2RlNzJhYjg0NDFlNzM3ZWE4NzY3OGU4MGU4YjllZTYwMDdkYWQ5MzJiNjVlYjg0Yzg3N2JmMjgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkZjcxNzRlY2I5OWQ1ZDIzNjY5Mjk2ZGIzYjBiNGU3MGI3ZDc0NTQ4NjI5MmRkMWRmYzJmYzY2ZmY5ZDYwNDQifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/TargetContractService.java#L191-L207",
+          "version": "repo-lines-v1:sha256:69dd37ea4eb00b1ddd8a77f87e3ecfd56d16c169f481fafe209ea55f14a7a935:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyZjY1OGFjOWM1ZTFlMWIyZDY2MmQzMDgzNWY3OWJiZjJhMDEzMGNjNmU4NTFjZjcwNGYxZWIzYzEwZDE0MTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVhZGIzNzhmZjFjM2MwYWYyNWI5MWU1MjU0YjMzMjY3N2Y5MDJjYmJkMTQzNzU3YjhhMTgwZDk4NGM4OWM3ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3Mjk3M2IzZWZmNTk2ZTZiYzFmMGZjZTc0MmVkMTU1NTM2Y2RmNjg5Y2IxNGFlZDE4NDZlZDk2ZTJmNWI3MzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_309ce8f7e8dd441a95044545095ca717",
+      "statement": "target_options 是按目标端族分组的 jsonb：hdfs 保存 partitionBindings（最多一个 BIZ_DATE）、partitionCreationMode、storageFormat、compressFormat；rdbms 保存 businessDateColumn 和 createPrimaryKey（缺省 true）。缺失值返回 null，由适配器决定默认值。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/common/TargetOptions.java#L12-L181",
+          "version": "repo-lines-v1:sha256:ffe07df0ab32ed54b7017e0169d967dfab72158d57254f87d920e85edda06ccb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwYjBjMTMzMDdhYjAxOTQ2OTdhYjc4ZDBhZjlmZWIyZThjYjg1MDc0MmE0MjQxMWM4NTkyMTk5ZmFhODM5OGMwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiMDZkMWVkZTRhOWMyYzdhMDNmY2QwMTEyZGUyODFmNjFjZDM4MmYzODYxOWJmNTU5M2ZmOTlkY2E0ODBmODQxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_caa227a26db2462babead2da0629ddce",
+      "statement": "EXTERNAL 创建前重新读取目标元数据，要求目标表存在、无阻断项、指纹未变、每个源字段都映射且目标必填字段（除平台业务日期列）都已映射；保存后执行资源刷新，失败时定义保留但处于待处理状态。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/ExternalCollectionService.java#L30-L118",
+          "version": "repo-lines-v1:sha256:38848b02037f4d8251786adf86cc9e4e04eb0af56fcb74696ab93e078463a383:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIwZWY0ZDE1ODU3OTc0MDc4Y2YzYTBhNDY4M2M4N2Y1ZDMzZjc5YmMyYThjYWViZjk4NTg4NTM1NDJiMmJkNTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzZTg3ZTgzY2QxZThiYWI3NmNiNWI5YmJkZjk4YzY1ZGMwM2M3Mzc1NTdmMmY1NzM2NTdhMTZiNjVjMGZkY2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJhYjBmMzE0MzJjMDI4YzkzZTQxZmUyYWNmN2Y4MGQwYTg5NGM2MWI2M2NhY2FiYWQ1ZjJlOGUxYjMwNThlN2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9c7e2c4f19c844dfacd5aa193be6ea35",
+      "statement": "MANAGED 批量预览展示计划目标列、DDL、分区计划和映射；EXTERNAL 预览展示目标表真实结构、同名字段建议、未匹配字段和阻断项；提交逐表隔离失败，并拒绝同一批次映射到相同目标表的多个源表。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanCommitService.java#L30-L100",
+          "version": "repo-lines-v1:sha256:3a1900a9c2e374bc62a94b3d305d729d18721effba493f5a2f4153216ca83034:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlY2NkMTJlNmJkZmE4NzJmZWI1ZTRkMWNiMTFkOTQwYTMzOWZhODc1OWZlZTQzMjYyN2VlN2JiMzAzMWRkZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3MzFjYWNlMTBiNmZiNGJmZjQ0NTdlODk3NmEyM2NiOWU1NmNhNDQ4MzBjMmUzODg3MGQ4NjFiOGU2ZGFlMzMifQ"
+        },
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/CollectionPlanPreviewService.java#L70-L130",
+          "version": "repo-lines-v1:sha256:da1143c102572dc4f3f55382000af1d6a1fa90b32efac4b10599a90c674b9795:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4ZjEyMTY4ZTQ2NmE5MzNiZDhhMzlmZTk1NGMzMzlmNWFlZGM0ZTg5ODI1Zjk0NWY1MjU1NDBjODUwODJjNmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxZTNiODE4MTJmNTQ3ZWUzODE5YTQyZmFhMDdlZDc0MzkwMDA1ODQ4M2VjMWVhMjM0MzVjZTljOGFmOTY0Y2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyMTc2ODdkMzlmN2NiZGI0MjE0NDUzMDhmOGE0MjEwZjdjNTI2YjU0NjEwZTE2MWQwMzY2MmM1NWVmNDY0MGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec4ae0308a6f4020bb62211e8943c3c3",
+      "statement": "EXTERNAL 定义在执行前再次运行契约检查；被阻断时本次执行失败、抛出 TargetContractViolationException、采集表置 U，并按队列失败/重试语义处理。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/service/impl/TaskQueueManagerV2Impl.java#L1091-L1101",
+          "version": "repo-lines-v1:sha256:612e7a0ee1e33203aab4d28b9be94ca315f3736f585e0037914a66156e1c8cfc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjNjk3ZDQyMTI0Mjg2MzM4N2E4ODAwMjZhNDBmNzZjZTJjYWIyZGQ2ZGI4Y2FkMmE3MTBiNWZiMmVmNjFiYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhYWFmOWFlNDcyODQ1N2JiN2M3MGJmMGI3MjRkZjcwOGZlYTdjZTFjOWZjOTIyYzI5MTNlMmU1ZWI3ZjNhODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MWQ2YjM0MTI3NDc0ZDUyMWIzZjRhNzkzYjljYjMxNzgxNDRkYzY2YjQ3NDEzNTkxMmE0MDFhNzQzNjYxOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1NTY3MDQwNTVmMDgyNzAzYjkxZTgwNjgzMzNlZTE5NTBkZjdlNmRiNGQ0YWQ0NTE0MmU1Yjg4OGM3MjM5YjkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_34bf9665afee406ba394515b857ab340",
+      "statement": "字段映射只允许 sourceColumnName/targetColumnName/ordinalNo 三要素，不开放 SQL 表达式；目标仍按 ODS 贴源层处理，避免在平台内引入额外转换。",
+      "evidence": [
+        {
+          "resource": "repo://backend/src/main/java/com/wgzhao/addax/admin/dto/ColumnMappingInput.java#L3-L7",
+          "version": "repo-lines-v1:sha256:afd5f77988d2803072391fdadbda4d37f68873dca090e7ecb4f8e2d299ab5f28:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzhmMjI1YWJmNmI4Nzg4ZDMxMzEwMzU2ZGUwYTgwOTY5OGIxMGE5ZjE0ZTUzNTg1MGUyZGY5Yjk0MjJjMWE1YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmFmYmEwNTI3YzM5NTNjNGI2ZTBlNWI1NzM5YmE4MzYxMmY4MDUzYmNkYzk0NjY3MzAxOTNjZDFkNTkwYjQwOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjIsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGU1NTBjMWNhY2VlODA1YjNhMjBiZDJmYjU3ZjY3ZWRmNzc5YmQwZjZmMjIwZTA5YWIyNWUyOWM2YjdlMjdlOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjIsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDkxNDE3NmZkNTBiZDdmNTY1NzAwMDA2YTMxYWE5N2I3OWQzYWQxN2NlZTIwYzhlNWZmMjA2MWQ1Y2I3NDgxNyJ9"
+        },
+        {
+          "resource": "repo://docs/adr/0002-external-target-contract-and-column-mapping.md#L5-L7",
+          "version": "repo-lines-v1:sha256:15946e65526b6c410a25df3252ae839ed0ec1c5e6d05e4fe828662240883da4b:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODYxMDViNDE3ZjE5NTg5NGJmNTE5YmRlZDdmY2M0NzgyOGJkZDZkN2IyNzMxNDI5NzJkNjRkMDAzMjg2NDRiNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmZkMWFmZjg0ODcwYjFmZDMxNDRkMTgxZjZhMzNkNmVhN2E1NDkxNWIyODRlZDc1Nzg2OTExZWEyYzA3ZTlhMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWQ5ZDZlOGZmY2JmNTA5ZGQyN2E5YzQzNzJmNzE1MzRjOTJkMmE1MmMxMGRiZTQzMGM5OWIxOGM1MTViYjhhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2FlNTAyN2RmZjYwMDI5ZGJkZGUyMmI1OTIyODE1ZGQ5ZWI2OTg0YjcxYTMwZWFlNzk4NTE2ZTI3ZGQxYmFkMiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.7.2",
+    "at": "2026-10-26T07:51:00.698Z"
+  }
+}
