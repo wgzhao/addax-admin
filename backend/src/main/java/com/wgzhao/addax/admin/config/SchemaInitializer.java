@@ -149,18 +149,31 @@ public class SchemaInitializer
         )
         """;
 
+    /**
+     * A source column that was dropped and later re-added leaves both foo and __deleted__foo behind.
+     * Legacy rows can also differ only by whitespace or case. The mapping contract is case-insensitive
+     * and one-to-one, so collapse those rows before the unique indexes are created: prefer the live
+     * column, then the lowest column_id, both deterministic.
+     */
     private static final String BACKFILL_COLUMN_MAPPING_SQL = """
         insert into public.etl_column_mapping (
             tid, source_column_name, target_column_name, ordinal_no
         )
-        select c.tid,
-               regexp_replace(c.column_name, '^__deleted__', ''),
-               regexp_replace(c.column_name, '^__deleted__', ''),
-               c.column_id
+        select distinct on (c.tid, lower(btrim(regexp_replace(c.column_name, '^__deleted__', ''))))
+               c.tid,
+               btrim(regexp_replace(c.column_name, '^__deleted__', '')),
+               btrim(regexp_replace(c.column_name, '^__deleted__', '')),
+               coalesce(c.column_id, 0)
           from public.etl_column c
-         where not exists (
-             select 1 from public.etl_column_mapping m where m.tid = c.tid
-         )
+         where btrim(regexp_replace(c.column_name, '^__deleted__', '')) <> ''
+           and not exists (
+               select 1 from public.etl_column_mapping m where m.tid = c.tid
+           )
+         order by c.tid,
+                  lower(btrim(regexp_replace(c.column_name, '^__deleted__', ''))),
+                  (left(c.column_name, 11) = '__deleted__'),
+                  c.column_id nulls last,
+                  c.column_name
         """;
 
     private static final String CREATE_COLUMN_MAPPING_INDEXES_SQL = """
@@ -342,7 +355,11 @@ public class SchemaInitializer
             if (exists(connection, "tables", "etl_column", null))
             {
                 statement.execute(CREATE_COLUMN_MAPPING_SQL);
-                statement.execute(BACKFILL_COLUMN_MAPPING_SQL);
+                int mappings = statement.executeUpdate(BACKFILL_COLUMN_MAPPING_SQL);
+                if (mappings > 0)
+                {
+                    log.info("Backfilled {} column mapping(s) from etl_column", mappings);
+                }
                 statement.execute(CREATE_COLUMN_MAPPING_INDEXES_SQL);
             }
             statement.execute(CREATE_EXECUTION_TABLE_SQL);
