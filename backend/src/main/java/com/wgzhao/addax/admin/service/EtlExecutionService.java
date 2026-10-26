@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlExecution;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
-import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.repository.EtlExecutionRepo;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -30,20 +30,28 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EtlExecutionService
 {
-    public static final int SNAPSHOT_VERSION = 1;
+    public static final int SNAPSHOT_VERSION = 2;
     public static final String RUNNING = "running";
     public static final String SUCCEEDED = "succeeded";
     public static final String FAILED = "failed";
 
     private final EtlExecutionRepo executionRepo;
-    private final EtlColumnRepo columnRepo;
+    private final ColumnMappingService columnMappingService;
     private final ObjectMapper objectMapper;
 
     @Transactional
     public EtlExecution start(VwEtlTableWithSource table, String job,
         LocalDate bizDate, Long queueId, int attemptNo)
     {
-        List<EtlColumn> columns = columnRepo.findAllByTidOrderByColumnId(table.getId());
+        return start(table, job, bizDate, queueId, attemptNo, null);
+    }
+
+    @Transactional
+    public EtlExecution start(VwEtlTableWithSource table, String job,
+        LocalDate bizDate, Long queueId, int attemptNo, TargetContractReport contractReport)
+    {
+        List<ColumnMappingService.ResolvedColumnMapping> mappings =
+            columnMappingService.resolve(table.getId());
         EtlExecution execution = new EtlExecution();
         execution.setTid(table.getId());
         execution.setJobQueueId(queueId);
@@ -61,7 +69,7 @@ public class EtlExecutionService
         execution.setStartedAt(LocalDateTime.now());
         execution.setSnapshotVersion(SNAPSHOT_VERSION);
         execution.setJobDigest(job == null ? null : sha256(job));
-        execution.setConfigSnapshot(buildSnapshot(table, columns, job, bizDate));
+        execution.setConfigSnapshot(buildSnapshot(table, mappings, job, bizDate, contractReport));
         return executionRepo.save(execution);
     }
 
@@ -83,8 +91,9 @@ public class EtlExecutionService
             tid, PageRequest.of(Math.max(page, 0), Math.max(pageSize, 1)));
     }
 
-    private JsonNode buildSnapshot(VwEtlTableWithSource table, List<EtlColumn> columns, String job,
-        LocalDate bizDate)
+    private JsonNode buildSnapshot(VwEtlTableWithSource table,
+        List<ColumnMappingService.ResolvedColumnMapping> mappings, String job,
+        LocalDate bizDate, TargetContractReport contractReport)
     {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("snapshotVersion", SNAPSHOT_VERSION);
@@ -104,14 +113,25 @@ public class EtlExecutionService
         tableNode.put("writeMode", table.getWriteMode());
         tableNode.put("calendar", table.getCalendar());
         tableNode.put("startAt", table.getStartAt());
+        tableNode.put("schemaManagementMode",
+            table.getSchemaManagementMode() == null ? "MANAGED" : table.getSchemaManagementMode().name());
+        tableNode.put("targetSchemaFingerprint", table.getTargetSchemaFingerprint());
         if (table.getTargetOptions() != null) {
             tableNode.set("targetOptions", table.getTargetOptions());
         }
 
         ArrayNode columnNodes = root.putArray("columns");
-        for (EtlColumn column : columns) {
+        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings) {
+            EtlColumn column = mapping.sourceColumn();
+            if (column == null) {
+                continue;
+            }
             ObjectNode node = columnNodes.addObject();
             node.put("name", column.getColumnName());
+            node.put("sourceName", mapping.sourceColumnName());
+            node.put("targetName", mapping.targetColumnName());
+            node.put("ordinal", mapping.ordinalNo());
+            node.put("sourceActive", mapping.sourceActive());
             node.put("sourceType", column.getSourceType());
             node.put("targetType", column.getTargetType());
             node.put("targetTypeFull", column.getTargetTypeFull());
@@ -119,6 +139,10 @@ public class EtlExecutionService
             node.put("dataPrecision", column.getDataPrecision());
             node.put("dataScale", column.getDataScale());
             node.put("comment", column.getColComment());
+        }
+        if (contractReport != null)
+        {
+            root.set("schemaValidation", objectMapper.valueToTree(contractReport));
         }
 
         ObjectNode executionNode = root.putObject("execution");

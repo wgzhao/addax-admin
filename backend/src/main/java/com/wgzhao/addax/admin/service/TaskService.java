@@ -2,8 +2,10 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
+import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -48,6 +50,7 @@ public class TaskService
     private static final int FILLBACK_MAX_TASKS = 20;
 
     private final TaskQueueManager queueManager;
+    private final TargetContractService targetContractService;
     private final TableService tableService;
     private final JdbcTemplate jdbcTemplate;
     private final EtlJourService jourService;
@@ -265,6 +268,11 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId)
     {
+        TaskResultDto contractFailure = checkExternalContract(tableId);
+        if (contractFailure != null)
+        {
+            return contractFailure;
+        }
         if (queueManager.isRefreshing()) {
             log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
             return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
@@ -279,6 +287,11 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId, String username)
     {
+        TaskResultDto contractFailure = checkExternalContract(tableId);
+        if (contractFailure != null)
+        {
+            return contractFailure;
+        }
         if (queueManager.isRefreshing()) {
             log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
             return TaskResultDto.failure("正在刷新表结构，暂时无法提交任务", 0);
@@ -301,6 +314,21 @@ public class TaskService
         else {
             return TaskResultDto.failure("任务提交失败，可能是队列已满或任务已存在", 0);
         }
+    }
+
+    private TaskResultDto checkExternalContract(long tableId)
+    {
+        VwEtlTableWithSource table = tableService.getTableView(tableId);
+        if (table == null || table.getSchemaManagementMode() != SchemaManagementMode.EXTERNAL)
+        {
+            return null;
+        }
+        TargetContractReport report = targetContractService.check(table);
+        if (!report.blocked())
+        {
+            return null;
+        }
+        return TaskResultDto.failure("目标表契约校验失败，任务未提交: " + report.summary(), 0);
     }
 
     /**

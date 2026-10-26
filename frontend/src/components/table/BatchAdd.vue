@@ -2,19 +2,23 @@
   <v-card flat class="batch-add-shell">
     <div class="workflow-head">
       <div class="context-row">
-        <span class="context-chip">
+        <span class="context-chip" :title="selectedSourceLabel">
           <v-icon size="14">mdi-database</v-icon>
           {{ selectedSourceLabel }}
         </span>
-        <span class="context-chip">
+        <span class="context-chip" :title="selectedDb || '未选择源库'">
           <v-icon size="14">mdi-database-search-outline</v-icon>
           {{ selectedDb || '未选择源库' }}
         </span>
-        <span class="context-chip" :class="{ 'context-chip--strong': selectedCnt > 0 }">
+        <span
+          class="context-chip"
+          :class="{ 'context-chip--strong': selectedCnt > 0 }"
+          :title="`已选 ${selectedCnt} / ${tables.length}`"
+        >
           <v-icon size="14">mdi-table-check</v-icon>
           已选 {{ selectedCnt }} / {{ tables.length }}
         </span>
-        <span class="context-chip">
+        <span class="context-chip" :title="targetDb || '目标库待配置'">
           <v-icon size="14">mdi-database-arrow-right-outline</v-icon>
           {{ targetDb || '目标库待配置' }}
         </span>
@@ -27,9 +31,16 @@
         <v-divider />
         <v-stepper-item title="选择采集表" :value="2" :complete="currentStep > 2" color="primary" />
         <v-divider />
-        <v-stepper-item title="配置并提交" :value="3" :complete="currentStep > 3" color="primary" />
+        <v-stepper-item
+          title="配置目标策略"
+          :value="3"
+          :complete="currentStep > 3"
+          color="primary"
+        />
         <v-divider />
-        <v-stepper-item title="完成" :value="4" color="primary" />
+        <v-stepper-item title="预览与校验" :value="4" :complete="currentStep > 4" color="primary" />
+        <v-divider />
+        <v-stepper-item title="创建结果" :value="5" color="primary" />
       </v-stepper-header>
 
       <v-stepper-window class="stepper-window">
@@ -40,6 +51,9 @@
             :source-system-list="sourceSystemList"
             :source-dbs="sourceDbs"
             :loading-dbs="loadingDbs"
+            :loading-sources="loadingSources"
+            :source-load-error="sourceLoadError"
+            @retry="fetchSourceData"
           />
         </v-stepper-window-item>
 
@@ -50,7 +64,8 @@
             :tables="tables"
             :loading="loadingTables"
             :load-error="tableLoadError"
-            :selected-cnt="selectedCnt"
+            @retry="getTables"
+            @back="currentStep = 1"
           />
         </v-stepper-window-item>
 
@@ -59,19 +74,27 @@
             v-model:target-id="targetId"
             v-model:target-db="targetDb"
             v-model:target-table-template="targetTableTemplate"
+            v-model:schema-management-mode="schemaManagementMode"
             v-model:options="tableOptions"
             v-model:selected="selectedTables"
             :targets="targetEndpoints"
             :storage-formats="storageFormats"
             :compress-formats="compressFormats"
+            :duplicate-target-names="duplicateTargetNames"
+            :target-name-issue="targetNameIssue"
           />
         </v-stepper-window-item>
 
         <v-stepper-window-item :value="4">
+          <BatchReviewStep v-model:rows="reviewRows" />
+        </v-stepper-window-item>
+
+        <v-stepper-window-item :value="5">
           <BatchDoneStep
-            :saved-count="savedCount"
+            :results="commitResults"
             :target-db="targetDb"
             @restart="resetFlow"
+            @retry="retryFailed"
             @back="router.push({ path: '/table', query: { refresh: Date.now() } })"
           />
         </v-stepper-window-item>
@@ -79,9 +102,9 @@
     </v-stepper>
 
     <v-divider />
-    <v-card-actions class="step-actions">
+    <v-card-actions v-if="currentStep < 5" class="step-actions">
       <v-btn
-        v-if="currentStep > 1 && currentStep < 4"
+        v-if="currentStep > 1 && currentStep < 5"
         variant="text"
         prepend-icon="mdi-chevron-left"
         @click="prevStep"
@@ -106,10 +129,20 @@
         color="primary"
         variant="flat"
         :loading="loadingSave"
-        :disabled="!targetDb || !targetId"
-        prepend-icon="mdi-check"
-        @click="saveItems"
-        >提交</v-btn
+        :disabled="!targetDb || !targetId || !!targetNameIssue"
+        append-icon="mdi-shield-search"
+        @click="preparePlans"
+        >生成预览并校验</v-btn
+      >
+      <v-btn
+        v-if="currentStep === 4"
+        color="primary"
+        variant="flat"
+        :loading="loadingSave"
+        :disabled="includedCount === 0 || invalidIncludedCount > 0"
+        prepend-icon="mdi-database-check-outline"
+        @click="commitPlans"
+        >确认创建 {{ includedCount }} 张表</v-btn
       >
     </v-card-actions>
 
@@ -119,15 +152,16 @@
       message="已选择的采集表与配置不会保存，确定离开？"
       confirm-text="放弃并离开"
       cancel-text="继续配置"
-      @confirm="router.push('/table')"
+      @confirm="confirmLeave"
     />
   </v-card>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, computed, watch } from 'vue';
-  import { useRouter } from 'vue-router';
+  import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+  import { onBeforeRouteLeave, useRouter } from 'vue-router';
   import { notify } from '@/stores/notifier';
+  import { reviewRowIssue, reviewRowIssueLabel, reviewRowValid } from '@/utils/collection-plan';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import tableService from '@/service/table-service';
   import sourceService from '@/service/source-service';
@@ -142,11 +176,14 @@
     TableMeta,
     EtlTarget,
     EtlTargetOptions,
+    CollectionPlanReviewRow,
+    CollectionPlanCommitResult,
   } from '@/types/database';
   import BatchSourceStep from './batch/BatchSourceStep.vue';
   import BatchTableStep from './batch/BatchTableStep.vue';
   import BatchConfigStep from './batch/BatchConfigStep.vue';
   import BatchDoneStep from './batch/BatchDoneStep.vue';
+  import BatchReviewStep from './batch/BatchReviewStep.vue';
 
   defineProps({
     tid: { type: String, required: false },
@@ -157,7 +194,6 @@
   const router = useRouter();
 
   const currentStep = ref(1);
-  const savedCount = ref(0);
 
   const canProceedToNext = computed(() => {
     if (currentStep.value === 1) return !!selectedSourceId.value && !!selectedDb.value;
@@ -168,19 +204,55 @@
   const actionHint = computed(() => {
     if (currentStep.value === 1 && !canProceedToNext.value) return '请选择采集源与源数据库';
     if (currentStep.value === 2 && !canProceedToNext.value) return '请至少选择一张采集表';
-    if (currentStep.value === 3 && (!targetId.value || !targetDb.value)) {
-      return '请选择目标端并确认目标库';
+    if (currentStep.value === 3) {
+      if (!targetId.value || !targetDb.value) return '请选择目标端并确认目标库';
+      if (targetNameIssue.value) return targetNameIssue.value;
+    }
+    if (currentStep.value === 4) {
+      if (invalidIncludedCount.value > 0) {
+        const issue = firstInvalidIssueLabel.value;
+        return issue
+          ? `有 ${invalidIncludedCount.value} 张表存在「${issue}」，修正后才能创建`
+          : `有 ${invalidIncludedCount.value} 张表存在映射问题，修正后才能创建`;
+      }
+      if (includedCount.value === 0) return '请至少纳入一张表';
     }
     return '';
   });
 
   const cancelOpen = ref(false);
+  const pendingRoute = ref('/table');
+  const allowLeave = ref(false);
+  // Why: only prompt when the user has built up state that would be expensive to lose.
+  const hasPendingWork = () =>
+    currentStep.value < 5 && (currentStep.value > 1 || selectedTables.value.length > 0);
+
   const requestCancel = () => {
-    if (currentStep.value >= 4 || (!selectedSourceId.value && selectedCnt.value === 0)) {
+    if (!hasPendingWork()) {
+      allowLeave.value = true;
       router.push('/table');
       return;
     }
+    pendingRoute.value = '/table';
     cancelOpen.value = true;
+  };
+
+  const confirmLeave = () => {
+    allowLeave.value = true;
+    router.push(pendingRoute.value);
+  };
+
+  onBeforeRouteLeave(to => {
+    if (allowLeave.value || !hasPendingWork()) return true;
+    pendingRoute.value = to.fullPath;
+    cancelOpen.value = true;
+    return false;
+  });
+
+  const onBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (!hasPendingWork()) return;
+    event.preventDefault();
+    event.returnValue = '';
   };
 
   const nextStep = async () => {
@@ -210,7 +282,9 @@
   const compressFormats = ref(HDFS_COMPRESS_FORMATS);
   const targetEndpoints = ref<{ label: string; value: number; targetType: string }[]>([]);
   const targetId = ref<number | null>(null);
-
+  const schemaManagementMode = ref<'MANAGED' | 'EXTERNAL'>('MANAGED');
+  const reviewRows = ref<CollectionPlanReviewRow[]>([]);
+  const commitResults = ref<CollectionPlanCommitResult[]>([]);
   const selectedSourceId = ref<EtlSource | null>(null);
   const selectedDb = ref<string | null>(null);
   const tables = ref<EtlTableView[]>([]);
@@ -219,6 +293,15 @@
   const sourceDbs = ref<string[]>([]);
 
   const selectedCnt = computed(() => selectedTables.value.length);
+  const includedCount = computed(() => reviewRows.value.filter(row => row.included).length);
+  const invalidIncludedCount = computed(
+    () => reviewRows.value.filter(row => row.included && !reviewRowValid(row)).length
+  );
+  const firstInvalidIssueLabel = computed(() => {
+    const invalid = reviewRows.value.find(row => row.included && !reviewRowValid(row));
+    return invalid ? reviewRowIssueLabel(reviewRowIssue(invalid)) : '';
+  });
+
   const selectedTargetType = computed(
     () => targetEndpoints.value.find(t => t.value === targetId.value)?.targetType
   );
@@ -227,6 +310,34 @@
       ? `${selectedSourceId.value.code} · ${selectedSourceId.value.name}`
       : '未选择'
   );
+
+  const resolveTargetTable = (item: EtlTableView) => {
+    const tpl = targetTableTemplate.value || '${table}';
+    return tpl
+      .replace(/\$\{table\}/g, item.sourceTable)
+      .replace(/\$\{db\}/g, item.sourceDb)
+      .trim();
+  };
+
+  // Why: a template without ${table} silently maps several sources onto one target table.
+  const duplicateTargetNames = computed(() => {
+    const counts = new Map<string, number>();
+    selectedTables.value.forEach(item => {
+      const name = resolveTargetTable(item).toLowerCase();
+      if (!name) return;
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    });
+    return [...counts.entries()].filter(([, count]) => count > 1).map(([name]) => name);
+  });
+
+  const targetNameIssue = computed(() => {
+    if (!selectedTables.value.length) return '';
+    if (selectedTables.value.some(item => !resolveTargetTable(item))) return '目标表名不能为空';
+    if (duplicateTargetNames.value.length) {
+      return `目标表名重复：${duplicateTargetNames.value.join('、')}`;
+    }
+    return '';
+  });
 
   const defaultItem: EtlTable = {
     id: null,
@@ -250,6 +361,7 @@
     tables.value = [];
     selectedTables.value = [];
     sourceDbs.value = [];
+    search.value = '';
 
     targetDb.value = val?.code ? 'ods' + val.code.toLowerCase() : '';
 
@@ -259,6 +371,7 @@
   watch(selectedDb, () => {
     tables.value = [];
     selectedTables.value = [];
+    search.value = '';
   });
 
   watch(targetId, val => {
@@ -284,13 +397,20 @@
     }
   };
 
-  const fetchSourceData = () => {
-    sourceService
-      .listActiveSources()
-      .then(res => {
-        sourceSystemList.value = res;
-      })
-      .catch(error => notify(`获取源系统列表失败: ${error}`, 'error'));
+  const loadingSources = ref(false);
+  const sourceLoadError = ref('');
+
+  const fetchSourceData = async () => {
+    loadingSources.value = true;
+    sourceLoadError.value = '';
+    try {
+      sourceSystemList.value = await sourceService.listActiveSources();
+    } catch (error) {
+      sourceSystemList.value = [];
+      sourceLoadError.value = `获取源系统列表失败：${(error as Error)?.message || error}`;
+    } finally {
+      loadingSources.value = false;
+    }
   };
 
   const getTables = async () => {
@@ -301,8 +421,12 @@
 
     loadingTables.value = true;
     tableLoadError.value = '';
+    // Why: a reload can return different rows; keeping the old object refs would leave
+    // invisible selections that still count towards the next step.
     tables.value = [];
     tableRows.value = [];
+    selectedTables.value = [];
+    search.value = '';
     try {
       const res = await sourceService.fetchUncollectedTables(
         selectedSourceId.value.id,
@@ -322,11 +446,9 @@
           tables.value.push({ ...newItem, approxRowCount: element.approxRowCount });
           tableRows.value.push(element.approxRowCount);
         });
-      } else {
-        tableLoadError.value = '未找到任何待采集的表';
       }
     } catch (error) {
-      tableLoadError.value = '获取表失败: ' + (error || '未知错误');
+      tableLoadError.value = `获取表失败：${(error as Error)?.message || error || '未知错误'}`;
     } finally {
       loadingTables.value = false;
     }
@@ -334,16 +456,13 @@
 
   const applyTargetTableTemplate = () => {
     if (!selectedTables.value.length) return;
-    const tpl = targetTableTemplate.value || '${table}';
     selectedTables.value.forEach(item => {
       item.targetDb = targetDb.value;
-      item.targetTable = tpl
-        .replace(/\$\{table\}/g, item.sourceTable)
-        .replace(/\$\{db\}/g, item.sourceDb);
+      item.targetTable = resolveTargetTable(item);
     });
   };
 
-  const saveItems = async () => {
+  const preparePlans = async () => {
     if (!selectedCnt.value) {
       notify('请选择至少一个表', 'warning');
       return;
@@ -356,6 +475,10 @@
       notify('请选择目标端', 'warning');
       return;
     }
+    if (targetNameIssue.value) {
+      notify(targetNameIssue.value, 'warning');
+      return;
+    }
 
     applyTargetTableTemplate();
 
@@ -365,29 +488,101 @@
       s.targetDb = targetDb.value;
       s.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
       s.targetId = targetId.value;
+      s.schemaManagementMode = schemaManagementMode.value;
       if (!s.targetTable) s.targetTable = s.sourceTable;
       return s;
     });
     try {
-      const response = await tableService.batchSave(itemsToSave);
-      const saved = Number(response) || itemsToSave.length;
-      savedCount.value = saved;
+      const plans = await tableService.previewCollectionPlans(
+        itemsToSave.map(item => ({
+          sourceId: item.sid as number,
+          sourceDb: item.sourceDb,
+          sourceTable: item.sourceTable,
+          targetId: item.targetId as number,
+          targetDb: item.targetDb,
+          targetTable: item.targetTable,
+          schemaManagementMode: schemaManagementMode.value,
+          targetOptions: item.targetOptions || {},
+        }))
+      );
+      reviewRows.value = itemsToSave.map((table, index) => {
+        const plan = plans[index];
+        return {
+          table,
+          plan,
+          mappings: plan.mappings.map((mapping, mappingIndex) => ({
+            sourceColumnName: mapping.sourceColumnName,
+            targetColumnName: mapping.targetColumnName,
+            ordinalNo: mappingIndex + 1,
+          })),
+          included: plan.status !== 'ERROR',
+        };
+      });
       currentStep.value = 4;
     } catch (error) {
-      notify('保存失败: ' + (error || '未知错误'), 'error');
+      notify('生成预览失败：' + ((error as Error)?.message || error || '未知错误'), 'error');
     } finally {
       loadingSave.value = false;
     }
   };
 
+  const commitPlans = async () => {
+    const selected = reviewRows.value.filter(row => row.included);
+    if (!selected.length || invalidIncludedCount.value > 0) {
+      notify('请先处理本次纳入创建的阻断项', 'warning');
+      return;
+    }
+    loadingSave.value = true;
+    try {
+      const results = await tableService.commitCollectionPlans(
+        selected.map(row => ({
+          table: row.table as EtlTable,
+          mappings: row.mappings.map((mapping, index) => ({
+            sourceColumnName: mapping.sourceColumnName,
+            targetColumnName: mapping.targetColumnName!,
+            ordinalNo: index + 1,
+          })),
+          targetSchemaFingerprint: row.plan.targetSchemaFingerprint,
+        }))
+      );
+      // Why: a retry only commits failed rows; merge so the result screen keeps the earlier successes.
+      const byTable = new Map(commitResults.value.map(result => [result.sourceTable, result]));
+      results.forEach(result => byTable.set(result.sourceTable, result));
+      commitResults.value = [...byTable.values()];
+      currentStep.value = 5;
+    } catch (error) {
+      notify(`创建失败: ${(error as Error)?.message || String(error)}`, 'error');
+    } finally {
+      loadingSave.value = false;
+    }
+  };
+
+  const retryFailed = () => {
+    const failed = new Set(
+      commitResults.value
+        .filter(result => result.status === 'FAILED')
+        .map(result => result.sourceTable)
+    );
+    if (!failed.size) return;
+    // Why: keep the successful rows out of the retry so a second commit cannot duplicate them.
+    reviewRows.value.forEach(row => {
+      row.included = failed.has(row.table.sourceTable);
+    });
+    currentStep.value = 4;
+  };
+
   const resetFlow = () => {
     selectedTables.value = [];
-    savedCount.value = 0;
+    reviewRows.value = [];
+    commitResults.value = [];
+    tables.value = [];
+    tableLoadError.value = '';
     currentStep.value = 1;
     search.value = '';
   };
 
   onMounted(() => {
+    window.addEventListener('beforeunload', onBeforeUnload);
     fetchSourceData();
     targetService
       .list(true)
@@ -403,10 +598,19 @@
       })
       .catch(error => notify(`获取目标端列表失败: ${error}`, 'error'));
 
-    dictService.getHdfsStorageDefaults().then(res => {
-      tableOptions.value.hdfs.storageFormat = res.storageFormat;
-      tableOptions.value.hdfs.compressFormat = res.compressFormat;
-    });
+    dictService
+      .getHdfsStorageDefaults()
+      .then(res => {
+        tableOptions.value.hdfs.storageFormat = res.storageFormat;
+        tableOptions.value.hdfs.compressFormat = res.compressFormat;
+      })
+      .catch(() => {
+        // Why: storage defaults are optional; the form still works with the built-in values.
+      });
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', onBeforeUnload);
   });
 </script>
 
@@ -479,8 +683,9 @@
 
   .step-actions {
     position: sticky;
-    bottom: 0;
-    z-index: 2;
+    /* Why: the app footer is fixed at the bottom; stick above it instead of underneath it. */
+    bottom: var(--v-layout-bottom, 0px);
+    z-index: 3;
     padding: 12px 18px;
     border-top: 1px solid var(--ds-border-subtle);
     background: var(--ds-surface-raised);

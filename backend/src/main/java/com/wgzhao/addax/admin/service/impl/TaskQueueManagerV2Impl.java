@@ -4,7 +4,10 @@ import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.dto.TargetContractReport;
+import com.wgzhao.addax.admin.exception.TargetContractViolationException;
 import com.wgzhao.addax.admin.model.EtlExecution;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -23,6 +26,7 @@ import com.wgzhao.addax.admin.service.ExecutionManager;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
+import com.wgzhao.addax.admin.service.TargetContractService;
 import com.wgzhao.addax.admin.service.TargetService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.UserNotificationService;
@@ -122,6 +126,7 @@ public class TaskQueueManagerV2Impl
     private final SystemConfigService configService;
     private final JobContentService jobContentService;
     private final TargetService targetService;
+    private final TargetContractService targetContractService;
     private final EtlJobQueueService jobQueueService;
     private final JdbcTemplate jdbcTemplate;
     private final ExecutionManager executionManager;
@@ -1025,6 +1030,13 @@ public class TaskQueueManagerV2Impl
         }
         catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000;
+            if (e instanceof TargetContractViolationException contractViolation)
+            {
+                task.setDuration(duration);
+                tableService.setUpdateSchema(task);
+                return TaskResultDto.failure(
+                    "Target contract blocked: " + contractViolation.getReport().summary(), duration);
+            }
             log.error("Task {}.{}({}) failed, elapsed={}s", task.getSourceDb(), task.getSourceTable(), tid, duration, e);
             task.setDuration(duration);
             tableService.setFailed(task);
@@ -1068,16 +1080,26 @@ public class TaskQueueManagerV2Impl
         } else {
             job = jobContentService.getJobContent(taskId);
         }
+        LocalDate executionBizDate = overrideBizDate != null ? overrideBizDate : systemBizDate;
         if (job == null || job.isEmpty()) {
             log.warn("Job template not generated, taskId={}", taskId);
             EtlExecution execution = executionService.start(
-                tableView, null, overrideBizDate != null ? overrideBizDate : systemBizDate, queueId, attemptNo);
+                tableView, null, executionBizDate, queueId, attemptNo);
             executionService.finish(execution, false, "Job template not generated");
             return false;
         }
-        LocalDate executionBizDate = overrideBizDate != null ? overrideBizDate : systemBizDate;
+        TargetContractReport contractReport = null;
+        if (tableView.getSchemaManagementMode() == SchemaManagementMode.EXTERNAL)
+        {
+            contractReport = targetContractService.check(tableView);
+        }
         EtlExecution execution = executionService.start(
-            tableView, job, executionBizDate, queueId, attemptNo);
+            tableView, job, executionBizDate, queueId, attemptNo, contractReport);
+        if (contractReport != null && contractReport.blocked())
+        {
+            executionService.finish(execution, false, contractReport.summary());
+            throw new TargetContractViolationException(contractReport);
+        }
         String partFormat = task.getPartFormat();
         String bizDateStr = configService.getBizDate();
         DateTimeFormatter dtf = shortSdf;
@@ -1088,7 +1110,7 @@ public class TaskQueueManagerV2Impl
             bizDateStr = overrideBizDate.format(dtf);
         }
         try {
-            boolean prepareResult = targetService.prepareBeforeRun(taskId, tableView, bizDateStr);
+            boolean prepareResult = targetService.prepareBeforeRun(taskId, tableView, executionBizDate);
             if (!prepareResult) {
                 executionService.finish(execution, false, "Target preparation failed");
                 return false;

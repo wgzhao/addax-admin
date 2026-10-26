@@ -2,9 +2,19 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.audit.AuditSanitizer;
+import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
+import com.wgzhao.addax.admin.dto.CollectionSchemaPreview;
+import com.wgzhao.addax.admin.dto.CollectionSchemaPreviewRequest;
+import com.wgzhao.addax.admin.dto.CollectionPlanPreview;
+import com.wgzhao.addax.admin.dto.CollectionPlanCommitItem;
+import com.wgzhao.addax.admin.dto.CollectionPlanCommitResult;
+import com.wgzhao.addax.admin.dto.ColumnMappingDto;
+import com.wgzhao.addax.admin.dto.ColumnMappingInput;
+import com.wgzhao.addax.admin.dto.ExternalCollectionCreateRequest;
 import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlExecution;
@@ -14,11 +24,18 @@ import com.wgzhao.addax.admin.model.EtlTableChangeLog;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.ColumnMappingService;
+import com.wgzhao.addax.admin.service.CollectionSchemaPreviewService;
+import com.wgzhao.addax.admin.service.CollectionPlanPreviewService;
+import com.wgzhao.addax.admin.service.CollectionPlanCommitService;
+import com.wgzhao.addax.admin.service.EtlJobQueueService;
 import com.wgzhao.addax.admin.service.EtlTableChangeLogService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
+import com.wgzhao.addax.admin.service.ExternalCollectionService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.TableService;
+import com.wgzhao.addax.admin.service.TargetContractService;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -65,6 +82,13 @@ public class TableController
      * 列服务
      */
     private final ColumnService columnService;
+    private final ColumnMappingService columnMappingService;
+    private final CollectionSchemaPreviewService schemaPreviewService;
+    private final CollectionPlanPreviewService collectionPlanPreviewService;
+    private final CollectionPlanCommitService collectionPlanCommitService;
+    private final ExternalCollectionService externalCollectionService;
+    private final TargetContractService targetContractService;
+    private final EtlJobQueueService jobQueueService;
     /**
      * 作业内容服务
      */
@@ -252,6 +276,101 @@ public class TableController
         return ResponseEntity.ok(columnService.getColumns(tableId));
     }
 
+    @GetMapping("/{tableId}/column-mappings")
+    public ResponseEntity<List<ColumnMappingDto>> getColumnMappings(@PathVariable("tableId") long tableId)
+    {
+        if (!etlTableRepo.existsById(tableId))
+        {
+            throw new ApiException(404, "Table not found");
+        }
+        columnMappingService.reconcile(tableId);
+        return ResponseEntity.ok(columnMappingService.list(tableId));
+    }
+
+    @PutMapping("/{tableId}/column-mappings")
+    public ResponseEntity<List<ColumnMappingDto>> replaceColumnMappings(
+        @PathVariable("tableId") long tableId,
+        @RequestBody List<ColumnMappingInput> mappings)
+    {
+        EtlTable table = etlTableRepo.findById(tableId)
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        if (table.getRetiredAt() != null)
+        {
+            throw new ApiException(409, "采集表已退役，恢复后才能修改字段映射");
+        }
+        if (!jobQueueService.findActiveByTid(tableId).isEmpty())
+        {
+            throw new ApiException(409, "Table has an active queued or running job");
+        }
+        List<ColumnMappingDto> saved = columnMappingService.replace(tableId, mappings);
+        TaskResultDto refresh = tableService.refreshTableResources(tableId);
+        if (!refresh.success())
+        {
+            throw new ApiException(409, refresh.message());
+        }
+        auditRecorder.success("TABLE_COLUMN_MAPPINGS_UPDATED", "COLLECTION_DEFINITION", "WARNING",
+            "ETL_TABLE", tableId, table.getSourceTable(), null, saved);
+        return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/{tableId}/target-contract/check")
+    public ResponseEntity<TargetContractReport> checkTargetContract(@PathVariable long tableId)
+    {
+        VwEtlTableWithSource table = tableService.getTableView(tableId);
+        if (table == null)
+        {
+            throw new ApiException(404, "Table not found");
+        }
+        return ResponseEntity.ok(targetContractService.check(table));
+    }
+
+    @PostMapping("/schema-preview")
+    public ResponseEntity<CollectionSchemaPreview> previewExternalSchema(
+        @RequestBody CollectionSchemaPreviewRequest request)
+    {
+        return ResponseEntity.ok(schemaPreviewService.preview(request));
+    }
+
+    @PostMapping("/schema-plans/preview")
+    public ResponseEntity<List<CollectionPlanPreview>> previewCollectionPlans(
+        @RequestBody List<CollectionSchemaPreviewRequest> requests)
+    {
+        return ResponseEntity.ok(collectionPlanPreviewService.preview(requests));
+    }
+
+    @PostMapping("/schema-plans/commit")
+    public ResponseEntity<List<CollectionPlanCommitResult>> commitCollectionPlans(
+        @RequestBody List<CollectionPlanCommitItem> items)
+    {
+        List<CollectionPlanCommitResult> results = collectionPlanCommitService.commit(items);
+        for (CollectionPlanCommitResult result : results)
+        {
+            String resourceName = result.sourceTable() + " -> " + result.targetTable();
+            if ("CREATED".equals(result.status()))
+            {
+                auditRecorder.success("COLLECTION_PLAN_CREATED", "COLLECTION_DEFINITION",
+                    "WARNING", "ETL_TABLE", result.tableId(), resourceName, null, result);
+            }
+            else
+            {
+                auditRecorder.failed("COLLECTION_PLAN_CREATE_FAILED", "COLLECTION_DEFINITION",
+                    "WARNING", "ETL_TABLE", result.tableId(), resourceName, "CREATE_FAILED",
+                    result.message(), Map.of("sourceTable", result.sourceTable(),
+                        "targetTable", result.targetTable()));
+            }
+        }
+        return ResponseEntity.ok(results);
+    }
+
+    @PostMapping("/external")
+    public ResponseEntity<EtlTable> createExternalTable(@RequestBody ExternalCollectionCreateRequest request)
+    {
+        EtlTable saved = externalCollectionService.create(request);
+        auditRecorder.success("EXTERNAL_TABLE_CREATED", "COLLECTION_DEFINITION", "WARNING",
+            "ETL_TABLE", saved.getId(), saved.getSourceTable(), null, saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
     /**
      * 查询表采集统计
      *
@@ -271,9 +390,13 @@ public class TableController
      * @return 保存的采集表数量
      */
     @PostMapping("/batch")
-    @Transactional
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
+        if (etls.stream().anyMatch(table ->
+            table.getSchemaManagementMode() == SchemaManagementMode.EXTERNAL))
+        {
+            throw new ApiException(400, "External tables require schema preview and confirmed mappings");
+        }
         List<EtlTable> saveTables = tableService.batchCreateTable(etls);
         // 异步刷新资源并通知
         tableService.refreshTablesResourcesAsync(saveTables, getCurrentUsername());
@@ -294,6 +417,10 @@ public class TableController
     @Transactional
     public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
     {
+        if (etl.getSchemaManagementMode() == SchemaManagementMode.EXTERNAL)
+        {
+            throw new ApiException(400, "External tables require schema preview and confirmed mappings");
+        }
         EtlTable saved = tableService.createTable(etl);
         auditRecorder.success("TABLE_CREATED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
             saved.getId(), saved.getSourceTable(), null, saved);

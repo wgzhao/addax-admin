@@ -9,6 +9,14 @@ const DEFAULT_HDFS_OPTIONS = {
   partFormat: 'yyyyMMdd',
   storageFormat: 'orc',
   compressFormat: 'snappy',
+  partitionCreationMode: 'PLATFORM' as const,
+  partitionBindings: [
+    {
+      name: 'logdate',
+      valueType: 'BIZ_DATE' as const,
+      format: 'yyyyMMdd',
+    },
+  ],
 };
 
 const DEFAULT_RDBMS_OPTIONS = {
@@ -34,8 +42,18 @@ export function targetFamily(targetType?: string | null): TargetFamily {
 export function normalizeTargetOptions(
   options?: Partial<EtlTargetOptions> | null
 ): EtlTargetOptions {
+  const hdfs = { ...DEFAULT_HDFS_OPTIONS, ...(options?.hdfs || {}) };
+  if (!hdfs.partitionBindings?.length && hdfs.partName) {
+    hdfs.partitionBindings = [
+      {
+        name: hdfs.partName,
+        valueType: 'BIZ_DATE',
+        format: hdfs.partFormat || 'yyyyMMdd',
+      },
+    ];
+  }
   return {
-    hdfs: { ...DEFAULT_HDFS_OPTIONS, ...(options?.hdfs || {}) },
+    hdfs,
     rdbms: { ...DEFAULT_RDBMS_OPTIONS, ...(options?.rdbms || {}) },
   };
 }

@@ -201,6 +201,15 @@ export interface HdfsTargetOptions {
   partFormat?: string; // date format of the partition value
   storageFormat?: string; // target storage format; falls back to the HDFS_STORAGE_FORMAT setting
   compressFormat?: string; // target compression; falls back to the HDFS_COMPRESS_FORMAT setting
+  partitionCreationMode?: 'PLATFORM' | 'EXTERNAL';
+  partitionBindings?: HdfsPartitionBinding[];
+}
+
+export interface HdfsPartitionBinding {
+  name: string;
+  valueType: 'BIZ_DATE' | 'CONSTANT';
+  value?: string | null;
+  format?: string | null;
 }
 
 export interface RdbmsTargetOptions {
@@ -238,6 +247,8 @@ export interface EtlTable {
   tblComment?: string; // 目标表的注释
   writeMode: string; // 写入模式: overwrite|append|nonConflict
   targetId?: number | null; // 目标端ID，关联 etl_target
+  schemaManagementMode?: 'MANAGED' | 'EXTERNAL';
+  targetSchemaFingerprint?: string | null;
   readerPluginConfig?: Record<string, unknown> | string | null; // reader.parameter 的自定义配置(JSON对象)
   writerPluginConfig?: Record<string, unknown> | string | null; // writer.parameter 的自定义配置(JSON对象)
   createdAt?: Date; // 创建时间
@@ -338,6 +349,136 @@ export interface EtlColumn {
   targetType: string; // 目标表对应的类型
   targetTypeFull?: string; // 目标表字段的完整类型，比如decimal(10,3)
   updateAt?: Date; // 更新时间
+}
+
+export interface ColumnMapping {
+  id?: number | null;
+  sourceColumnName: string;
+  targetColumnName: string;
+  ordinalNo: number;
+  sourceActive: boolean;
+  sourceType?: string | null;
+  targetType?: string | null;
+  targetTypeFull?: string | null;
+  comment?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface TargetTableColumn {
+  name: string;
+  type: string;
+  size: number;
+  scale: number;
+  nullable: boolean;
+  defaultValue?: string | null;
+  autoIncrement: boolean;
+  ordinal: number;
+}
+
+export interface TargetTableMetadata {
+  exists: boolean;
+  columns: TargetTableColumn[];
+  partitions: Array<{ name: string; type: string }>;
+  primaryKeys: string[];
+  uniqueKeys: string[];
+}
+
+export interface TargetContractFinding {
+  severity: 'ERROR' | 'WARNING';
+  code: string;
+  column?: string | null;
+  expected?: string | null;
+  actual?: string | null;
+  message: string;
+}
+
+export interface TargetContractReport {
+  status: 'READY' | 'WARNING' | 'ERROR';
+  checkedAt: string;
+  fingerprint: string;
+  target: TargetTableMetadata;
+  findings: TargetContractFinding[];
+}
+
+export interface SourceColumnMetadata {
+  name: string;
+  type: string;
+  size: number;
+  precision?: number | null;
+  scale?: number | null;
+  comment?: string | null;
+  nullable?: boolean;
+  primaryKey?: boolean;
+}
+
+export interface SchemaPreviewSuggestion {
+  sourceColumnName: string;
+  targetColumnName?: string | null;
+  confirmed: boolean;
+  sourceType: string;
+  targetType?: string | null;
+  finding?: TargetContractFinding | null;
+}
+
+export interface CollectionSchemaPreview {
+  sourceColumns: SourceColumnMetadata[];
+  targetTable: TargetTableMetadata;
+  suggestions: SchemaPreviewSuggestion[];
+  unmatchedSourceColumns: string[];
+  unmatchedTargetColumns: string[];
+  targetSchemaFingerprint?: string | null;
+  targetOptions?: Partial<EtlTargetOptions> | null;
+  findings: TargetContractFinding[];
+}
+
+export interface PlannedTargetColumn {
+  name: string;
+  sourceColumnName?: string | null;
+  type: string;
+  nullable: boolean;
+  primaryKey?: boolean;
+  comment?: string | null;
+  role: 'SOURCE' | 'BUSINESS_DATE' | 'EXISTING' | string;
+  ordinal: number;
+}
+
+export interface CollectionPlanPreview {
+  sourceDb: string;
+  sourceTable: string;
+  targetDb: string;
+  targetTable: string;
+  schemaManagementMode: 'MANAGED' | 'EXTERNAL';
+  status: 'READY' | 'WARNING' | 'ERROR';
+  action: 'CREATE_TABLE' | 'UPDATE_TABLE' | 'VALIDATE_EXTERNAL' | 'BLOCKED' | string;
+  summary: string;
+  sourceColumns: SourceColumnMetadata[];
+  actualTargetTable: TargetTableMetadata;
+  plannedColumns: PlannedTargetColumn[];
+  plannedPartitions: Array<{ name: string; type: string }>;
+  mappings: SchemaPreviewSuggestion[];
+  targetSchemaFingerprint?: string | null;
+  targetOptions?: Partial<EtlTargetOptions> | null;
+  planDdl?: string | null;
+  findings: TargetContractFinding[];
+}
+
+export interface CollectionPlanCommitResult {
+  tableId?: number | null;
+  sourceTable: string;
+  targetTable: string;
+  status: 'CREATED' | 'FAILED';
+  message: string;
+}
+
+export interface CollectionPlanReviewRow {
+  table: EtlTableView;
+  plan: CollectionPlanPreview;
+  mappings: Array<{
+    sourceColumnName: string;
+    targetColumnName?: string | null;
+    ordinalNo: number;
+  }>;
+  included: boolean;
 }
 
 // 采集任务模板 etl_job

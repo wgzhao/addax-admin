@@ -3,9 +3,12 @@ package com.wgzhao.addax.admin.model;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.common.TargetOptions;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -54,6 +57,13 @@ public class EtlTable
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "target_options", columnDefinition = "jsonb")
     private JsonNode targetOptions;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "schema_management_mode", nullable = false, length = 16)
+    private SchemaManagementMode schemaManagementMode = SchemaManagementMode.MANAGED;
+
+    @Column(name = "target_schema_fingerprint", length = 64)
+    private String targetSchemaFingerprint;
 
     @Column(name = "filter", length = 2000, nullable = false)
     private String filter;
@@ -156,6 +166,12 @@ public class EtlTable
     public String getCompressFormat()
     {
         return TargetOptions.hdfsCompressFormat(targetOptions);
+    }
+
+    @JsonIgnore
+    public String getPartitionCreationMode()
+    {
+        return TargetOptions.hdfsPartitionCreationMode(targetOptions);
     }
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

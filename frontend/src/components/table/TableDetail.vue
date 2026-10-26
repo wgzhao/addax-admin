@@ -245,6 +245,8 @@
       writeMode: table.value.writeMode || 'overwrite',
       startAt: table.value.startAt || null,
       targetId: table.value.targetId ?? null,
+      schemaManagementMode: table.value.schemaManagementMode || 'MANAGED',
+      targetSchemaFingerprint: table.value.targetSchemaFingerprint ?? null,
       readerPluginConfig,
       writerPluginConfig,
       createdAt: table.value.createdAt,
@@ -254,6 +256,9 @@
     saving.value = true;
     try {
       const updatedRecord = await tableService.save(etlTableData as EtlTable);
+      if ((updatedRecord.schemaManagementMode || 'MANAGED') === 'EXTERNAL') {
+        await tableService.updateSingleTable(updatedRecord.id);
+      }
       notify('保存成功', 'success');
       syncTableData({ ...table.value, ...updatedRecord } as VEtlWithSource);
       originalTable.value = cloneTable(table.value);

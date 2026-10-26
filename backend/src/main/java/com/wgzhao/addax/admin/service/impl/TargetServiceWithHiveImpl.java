@@ -4,12 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.common.TargetOptions;
 import com.wgzhao.addax.admin.dto.HiveConnectDto;
+import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
 import com.wgzhao.addax.admin.service.ColumnService;
+import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
@@ -47,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.time.format.DateTimeFormatter;
 import java.util.logging.Logger;
 
@@ -65,6 +69,7 @@ public class TargetServiceWithHiveImpl
 
     private final DictService dictService;
     private final ColumnService columnService;
+    private final ColumnMappingService columnMappingService;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
     private final RiskLogService riskLogService;
@@ -86,7 +91,8 @@ public class TargetServiceWithHiveImpl
     @Override
     public boolean hasDateDimension(VwEtlTableWithSource table)
     {
-        return table != null && table.getPartName() != null && !table.getPartName().isBlank();
+        return table != null && TargetOptions.hdfsPartitionBindings(table.getTargetOptions()).stream()
+            .anyMatch(binding -> "BIZ_DATE".equalsIgnoreCase(binding.valueType()));
     }
 
     private static String normalizeComment(String v)
@@ -264,13 +270,130 @@ public class TargetServiceWithHiveImpl
         }
     }
 
+    private List<PartitionValue> resolvePartitionValues(VwEtlTableWithSource table, LocalDate targetDate)
+    {
+        List<PartitionValue> values = new ArrayList<>();
+        for (TargetOptions.HdfsPartitionBinding binding :
+            TargetOptions.hdfsPartitionBindings(table.getTargetOptions()))
+        {
+            String value;
+            if ("BIZ_DATE".equalsIgnoreCase(binding.valueType()))
+            {
+                String format = StringUtils.defaultIfBlank(binding.format(), DEFAULT_PART_FORMAT);
+                value = targetDate.format(DateTimeFormatter.ofPattern(format));
+            }
+            else if ("CONSTANT".equalsIgnoreCase(binding.valueType()))
+            {
+                value = StringUtils.defaultString(binding.value());
+            }
+            else
+            {
+                throw new IllegalArgumentException("Unsupported partition valueType: " + binding.valueType());
+            }
+            values.add(new PartitionValue(binding.name(), value));
+        }
+        return values;
+    }
+
+    private boolean addPartitions(long taskId, VwEtlTableWithSource table, List<PartitionValue> partitions)
+    {
+        String spec = partitions.stream()
+            .map(partition -> "`" + partition.name().replace("`", "``") + "`='"
+                + partition.value().replace("'", "''") + "'")
+            .collect(java.util.stream.Collectors.joining(", "));
+        String sql = String.format("ALTER TABLE `%s`.`%s` ADD IF NOT EXISTS PARTITION (%s)",
+            table.getTargetDb(), table.getTargetTable(), spec);
+        EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
+        try (Connection connection = getHiveConnect();
+            Statement statement = connection.createStatement())
+        {
+            statement.execute(sql);
+            jourService.successJour(etlJour);
+            return true;
+        }
+        catch (SQLException e)
+        {
+            jourService.failJour(etlJour, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean partitionExists(long taskId, VwEtlTableWithSource table, List<PartitionValue> partitions)
+    {
+        String expected = partitions.stream()
+            .map(partition -> partition.name() + "=" + partition.value())
+            .collect(java.util.stream.Collectors.joining("/"));
+        String sql = String.format("SHOW PARTITIONS `%s`.`%s`", table.getTargetDb(), table.getTargetTable());
+        EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
+        try (Connection connection = getHiveConnect();
+            Statement statement = connection.createStatement();
+            var rs = statement.executeQuery(sql))
+        {
+            while (rs.next())
+            {
+                if (expected.equalsIgnoreCase(rs.getString(1))) {
+                    jourService.successJour(etlJour);
+                    return true;
+                }
+            }
+            jourService.failJour(etlJour, "分区不存在: " + expected);
+            return false;
+        }
+        catch (SQLException e)
+        {
+            jourService.failJour(etlJour, e.getMessage());
+            return false;
+        }
+    }
+
     @Override
-    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, String bizDateValue)
+    public TargetTableMetadata inspectTable(VwEtlTableWithSource etlTable)
+    {
+        if (etlTable == null || etlTable.getTargetDb() == null || etlTable.getTargetDb().isBlank()
+            || etlTable.getTargetTable() == null || etlTable.getTargetTable().isBlank())
+        {
+            throw new IllegalArgumentException("targetDb and targetTable are required");
+        }
+        try (Connection connection = getHiveConnect();
+            Statement statement = connection.createStatement())
+        {
+            if (!hiveTableExists(statement, etlTable.getTargetDb(), etlTable.getTargetTable()))
+            {
+                return TargetTableMetadata.missing();
+            }
+            HiveDescription description = describeHiveTable(
+                statement, etlTable.getTargetDb(), etlTable.getTargetTable());
+            List<TargetTableMetadata.TargetColumn> columns = new ArrayList<>();
+            int ordinal = 0;
+            for (HiveCol column : description.columns().values())
+            {
+                columns.add(new TargetTableMetadata.TargetColumn(
+                    column.name, column.type, 0, 0, true, null, false, ++ordinal));
+            }
+            return new TargetTableMetadata(true, columns, description.partitions(), Set.of(), Set.of());
+        }
+        catch (SQLException e)
+        {
+            throw new RuntimeException("读取 Hive 目标表元数据失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate)
     {
         if (table == null) {
             return false;
         }
-        return addPartition(taskId, table.getTargetDb(), table.getTargetTable(), table.getPartName(), bizDateValue);
+        List<PartitionValue> partitions = resolvePartitionValues(table, bizDate);
+        if (partitions.isEmpty())
+        {
+            return true;
+        }
+        if ("EXTERNAL".equalsIgnoreCase(table.getPartitionCreationMode()))
+        {
+            return partitionExists(taskId, table, partitions);
+        }
+        return addPartitions(taskId, table, partitions);
     }
 
     @Override
@@ -296,16 +419,9 @@ public class TargetServiceWithHiveImpl
         values.putAll(configService.getBizDateValuesForDate(targetDate));
 
         Path hdfsPath = Paths.get(configService.getHdfsPrefix(), table.getTargetDb(), table.getTargetTable());
-        String partName = table.getPartName();
-        if (partName != null && !partName.isBlank()) {
-            String partFormat = table.getPartFormat();
-            String partValue;
-            if (partFormat != null && !partFormat.isBlank() && !DEFAULT_PART_FORMAT.equals(partFormat)) {
-                partValue = targetDate.format(DateTimeFormatter.ofPattern(partFormat));
-            } else {
-                partValue = targetDate.format(DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT));
-            }
-            hdfsPath = hdfsPath.resolve(partName + "=" + partValue);
+        for (PartitionValue partition : resolvePartitionValues(table, targetDate))
+        {
+            hdfsPath = hdfsPath.resolve(partition.name() + "=" + partition.value());
         }
         values.put("path", hdfsPath.toString());
 
@@ -377,8 +493,12 @@ public class TargetServiceWithHiveImpl
         String createDbSql = MessageFormat.format("create database if not exists `{0}` location ''{1}/{0}''",
             etlTable.getTargetDb(), dictService.getHdfsPrefix());
 
-        // 检查是否为分区表
-        boolean isPartitioned = etlTable.getPartName() != null && !etlTable.getPartName().trim().isEmpty();
+        List<TargetOptions.HdfsPartitionBinding> bindings =
+            TargetOptions.hdfsPartitionBindings(etlTable.getTargetOptions());
+        boolean isPartitioned = !bindings.isEmpty();
+        String partitionDdl = bindings.stream()
+            .map(binding -> "`" + binding.name().replace("`", "``") + "` string")
+            .collect(java.util.stream.Collectors.joining(", "));
 
         String createTableSql;
         if (isPartitioned) {
@@ -387,13 +507,13 @@ public class TargetServiceWithHiveImpl
                     create external table if not exists `{0}`.`{1}` (
                     {2}
                     ) comment ''{3}''
-                    partitioned by ( `{4}` string )
+                    partitioned by ( {4} )
                      stored as {5}
                      location ''{6}/{0}/{1}''
                      tblproperties (''external.table.purge''=''true'', ''discover.partitions''=''true'', ''orc.compress''=''{7}'', ''snappy.compress''=''{7}'')
                     """,
                 etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
-                etlTable.getPartName(), dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+                partitionDdl, dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
         }
         else {
             // 非分区表
@@ -427,13 +547,12 @@ public class TargetServiceWithHiveImpl
             }
 
             // 2) ALTER mode: fetch current hive columns and apply diffs
-            List<EtlColumn> desiredCols = columnService.getColumns(etlTable.getId());
             // build desired active map name -> EtlColumn (skip deleted placeholders)
             LinkedHashMap<String, EtlColumn> desiredActive = new LinkedHashMap<>();
-            for (EtlColumn c : desiredCols) {
-                String name = c.getColumnName();
-                if (name != null && !name.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                    desiredActive.put(name, c);
+            for (ColumnMappingService.ResolvedColumnMapping mapping : columnMappingService.resolve(etlTable.getId())) {
+                String name = mapping.targetColumnName();
+                if (name != null && !name.isBlank() && mapping.sourceColumn() != null) {
+                    desiredActive.put(name, mapping.sourceColumn());
                 }
             }
             // fetch current hive columns via DESCRIBE
@@ -503,35 +622,65 @@ public class TargetServiceWithHiveImpl
     private LinkedHashMap<String, HiveCol> describeHiveColumns(Statement stmt, String db, String table)
         throws SQLException
     {
-        LinkedHashMap<String, HiveCol> cols = new LinkedHashMap<>();
+        return describeHiveTable(stmt, db, table).columns();
+    }
+
+    private HiveDescription describeHiveTable(Statement stmt, String db, String table)
+        throws SQLException
+    {
+        List<HiveDescriptionRow> rows = new ArrayList<>();
         String sql = String.format("DESCRIBE `%s`.`%s`", db, table);
         try (var rs = stmt.executeQuery(sql)) {
-            boolean inCols = true;
             while (rs.next()) {
-                String col = rs.getString(1);
-                String type = rs.getString(2);
-                String comment = rs.getString(3);
-                if (col == null) {
-                    continue;
-                }
-                col = col.trim();
-                if (col.isEmpty()) {
-                    // blank line separates columns from partition columns in DESCRIBE
-                    inCols = false;
-                    continue;
-                }
-                if (!inCols) {
-                    // skip partition section
-                    continue;
-                }
-                // skip headers like # col_name
-                if (col.startsWith("#")) {
-                    continue;
-                }
-                cols.put(col, new HiveCol(col, type == null ? "" : type.trim(), comment == null ? "" : comment.trim()));
+                rows.add(new HiveDescriptionRow(
+                    rs.getString(1), rs.getString(2), rs.getString(3)));
             }
         }
-        return cols;
+        return parseHiveDescription(rows);
+    }
+
+    static HiveDescription parseHiveDescription(List<HiveDescriptionRow> rows)
+    {
+        LinkedHashMap<String, HiveCol> cols = new LinkedHashMap<>();
+        List<TargetTableMetadata.TargetPartition> partitions = new ArrayList<>();
+        boolean inCols = true;
+        for (HiveDescriptionRow row : rows) {
+            String col = row.name();
+            String type = row.type();
+            if (col == null) {
+                // Some drivers use a null row for the section separator instead of an empty string.
+                if (inCols && type == null && row.comment() == null) {
+                    inCols = false;
+                }
+                continue;
+            }
+            col = col.trim();
+            if (col.isEmpty() || col.equalsIgnoreCase("# Partition Information")) {
+                // A blank row separates ordinary columns from partition columns in DESCRIBE.
+                inCols = false;
+                continue;
+            }
+            if (!inCols) {
+                if (!col.startsWith("#") && type != null && !type.isBlank()) {
+                    partitions.add(new TargetTableMetadata.TargetPartition(
+                        col, type.trim().toLowerCase()));
+                }
+                continue;
+            }
+            // Skip headers like # col_name.
+            if (col.startsWith("#")) {
+                continue;
+            }
+            cols.put(col, new HiveCol(
+                col, type == null ? "" : type.trim(),
+                row.comment() == null ? "" : row.comment().trim()));
+        }
+        Set<String> partitionNames = new java.util.HashSet<>();
+        partitions.forEach(partition ->
+            partitionNames.add(partition.name().toLowerCase(java.util.Locale.ROOT)));
+        cols.entrySet().removeIf(entry ->
+            partitionNames.contains(entry.getKey().toLowerCase(java.util.Locale.ROOT)));
+        return new HiveDescription(cols, partitions);
     }
 
     /**
@@ -551,11 +700,17 @@ public class TargetServiceWithHiveImpl
 
     public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
-        if (StringUtils.isEmpty(table.getPartName())) {
+        String datePartition = TargetOptions.hdfsPartitionBindings(table.getTargetOptions()).stream()
+            .filter(binding -> "BIZ_DATE".equalsIgnoreCase(binding.valueType()))
+            .map(TargetOptions.HdfsPartitionBinding::name)
+            .findFirst()
+            .orElse(null);
+        if (StringUtils.isEmpty(datePartition)) {
             return null;
         }
         String tableName = String.format("`%s`.`%s`", table.getTargetDb(), table.getTargetTable());
-        String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'", columnName, tableName, table.getPartName(), partValue);
+        String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'",
+            columnName, tableName, datePartition, partValue);
         log.info("getMaxValue sql: {}", sql);
 
         String redisKey = "target:max:" + table.getId() + ":" + columnName;
@@ -611,18 +766,15 @@ public class TargetServiceWithHiveImpl
 
     private String getHdfsWriteColumns(VwEtlTableWithSource table)
     {
-        List<EtlColumn> columnList = columnService.getColumns(table.getId());
         List<Map<String, String>> columns = new ArrayList<>();
-        for (EtlColumn etlColumn : columnList) {
-            String columnName = etlColumn.getColumnName();
+        for (ColumnMappingService.ResolvedColumnMapping mapping : columnMappingService.resolve(table.getId())) {
+            EtlColumn sourceColumn = mapping.sourceColumn();
+            if (sourceColumn == null || mapping.targetColumnName() == null) {
+                continue;
+            }
             Map<String, String> targetColumn = new HashMap<>();
-            targetColumn.put("type", etlColumn.getTargetTypeFull());
-            if (columnName != null && columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                targetColumn.put("name", columnName.substring(DELETED_PLACEHOLDER_PREFIX.length()));
-            }
-            else {
-                targetColumn.put("name", columnName);
-            }
+            targetColumn.put("type", sourceColumn.getTargetTypeFull());
+            targetColumn.put("name", mapping.targetColumnName());
             columns.add(targetColumn);
         }
         try {
@@ -635,15 +787,11 @@ public class TargetServiceWithHiveImpl
 
     private String getRdbmsWriteColumns(VwEtlTableWithSource table)
     {
-        List<EtlColumn> columnList = columnService.getColumns(table.getId());
         List<String> columns = new ArrayList<>();
-        for (EtlColumn etlColumn : columnList) {
-            String columnName = etlColumn.getColumnName();
+        for (ColumnMappingService.ResolvedColumnMapping mapping : columnMappingService.resolve(table.getId())) {
+            String columnName = mapping.targetColumnName();
             if (columnName == null || columnName.isBlank()) {
                 continue;
-            }
-            if (columnName.startsWith(DELETED_PLACEHOLDER_PREFIX)) {
-                columnName = columnName.substring(DELETED_PLACEHOLDER_PREFIX.length());
             }
             columns.add("\"" + columnName + "\"");
         }
@@ -676,6 +824,21 @@ public class TargetServiceWithHiveImpl
             this.type = t;
             this.comment = c;
         }
+    }
+
+    static record HiveDescription(
+        LinkedHashMap<String, HiveCol> columns,
+        List<TargetTableMetadata.TargetPartition> partitions
+    )
+    {
+    }
+
+    static record HiveDescriptionRow(String name, String type, String comment)
+    {
+    }
+
+    private record PartitionValue(String name, String value)
+    {
     }
 
     // Driver shim to wrap a driver loaded from a custom classloader so DriverManager can use it

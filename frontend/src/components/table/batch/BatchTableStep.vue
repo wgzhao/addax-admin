@@ -2,7 +2,10 @@
   <div class="step-layout">
     <div class="step-hero">
       <div class="step-kicker">Step 2</div>
-      <div class="step-title">筛选并选择待采集表</div>
+      <h2 class="step-title">选择采集表</h2>
+      <div class="step-desc">
+        只展示当前源库中尚未纳入采集的表。目标位置和结构策略将在下一步统一配置。
+      </div>
     </div>
 
     <div v-if="loading" class="panel-state">
@@ -12,7 +15,10 @@
     </div>
 
     <v-alert v-else-if="loadError" type="error" variant="tonal" class="step-alert">
-      {{ loadError }}
+      <div class="alert-action">
+        <span>{{ loadError }}</span>
+        <v-btn size="small" variant="text" color="error" @click="$emit('retry')">重试</v-btn>
+      </div>
     </v-alert>
 
     <div v-else-if="tables.length > 0" class="table-stage">
@@ -20,7 +26,8 @@
         <div class="table-stage__toolbar-left">
           <v-text-field
             v-model="search"
-            placeholder="搜索表名 / 注释"
+            aria-label="搜索表名或注释"
+            placeholder="搜索表名 / 注释…"
             prepend-inner-icon="mdi-magnify"
             single-line
             hide-details
@@ -30,16 +37,14 @@
             class="search-field"
           />
         </div>
-        <div class="table-stage__toolbar-right">
-          <v-chip color="primary" variant="tonal">已选 {{ selectedCnt }}</v-chip>
-        </div>
       </div>
 
       <v-data-table
         v-model="selected"
+        v-model:items-per-page="pageSize"
         :items="tables"
         :headers="headers"
-        :items-per-page="15"
+        :items-per-page-options="[15, 30, 50, 100]"
         density="comfortable"
         show-select
         :search="search"
@@ -48,18 +53,17 @@
         class="step2-table"
       >
         <template #item.sourceTable="{ item }">
-          <div class="table-name-cell">
-            <div class="table-name">{{ item.sourceTable }}</div>
-            <div class="table-meta">{{ item.sourceDb }}</div>
-          </div>
+          <div class="table-name">{{ item.sourceTable }}</div>
         </template>
 
         <template #item.tblComment="{ item }">
-          <div class="comment-cell">{{ item.tblComment || '无表注释' }}</div>
+          <div class="comment-cell" :title="item.tblComment || undefined">
+            {{ item.tblComment || '无表注释' }}
+          </div>
         </template>
 
         <template #item.approxRowCount="{ item }">
-          <span class="mono-data">{{ item.approxRowCount ?? '-' }}</span>
+          <span class="mono-data">{{ formatRowCount(item.approxRowCount) }}</span>
         </template>
       </v-data-table>
     </div>
@@ -70,11 +74,15 @@
       <div class="panel-state__desc">
         可以返回上一步重新选择采集源，或确认当前数据库是否已经全部纳入采集。
       </div>
+      <v-btn variant="text" color="primary" prepend-icon="mdi-chevron-left" @click="$emit('back')">
+        返回上一步
+      </v-btn>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+  import { ref } from 'vue';
   import type { DataTableHeader } from 'vuetify';
   import type { EtlTableView } from '@/types/database';
 
@@ -82,21 +90,22 @@
     tables: EtlTableView[];
     loading: boolean;
     loadError: string;
-    selectedCnt: number;
   }>();
+
+  defineEmits(['retry', 'back']);
 
   const selected = defineModel<EtlTableView[]>('selected', { required: true });
   const search = defineModel<string>('search');
+  const pageSize = ref(15);
+  const rowCountFormatter = new Intl.NumberFormat('zh-CN');
+
+  const formatRowCount = (value?: number | null) =>
+    value == null ? '-' : rowCountFormatter.format(value);
 
   const headers: DataTableHeader[] = [
-    { title: '源系统', key: 'sid' },
-    { title: '源筛选', key: 'filter' },
-    { title: '源用户', key: 'sourceDb' },
-    { title: '源表名', key: 'sourceTable' },
+    { title: '源表名', key: 'sourceTable', width: '48%' },
     { title: '表注释', key: 'tblComment' },
-    { title: '近似行数', key: 'approxRowCount' },
-    { title: '目标库', key: 'targetDb' },
-    { title: '目标表', key: 'targetTable' },
+    { title: '近似行数', key: 'approxRowCount', align: 'end', width: 140 },
   ];
 </script>
 
@@ -120,31 +129,20 @@
     min-width: 0;
   }
 
-  .table-stage__toolbar-right {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .toolbar-tip {
-    font-size: 0.82rem;
-    color: rgba(var(--v-theme-on-surface), 0.58);
-    white-space: nowrap;
-  }
-
   .search-field {
     max-width: 360px;
   }
 
   .step2-table :deep(.v-table__wrapper) {
     max-height: 62vh;
+    overflow: auto;
   }
 
-  .table-name-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  .step2-table :deep(thead th) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgb(var(--v-theme-surface));
   }
 
   .table-name {
@@ -152,7 +150,6 @@
     color: rgb(var(--v-theme-on-surface));
   }
 
-  .table-meta,
   .comment-cell {
     color: rgba(var(--v-theme-on-surface), 0.62);
   }
@@ -167,6 +164,7 @@
   .mono-data {
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
       monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   @media (max-width: 760px) {
@@ -174,10 +172,6 @@
     .table-stage__toolbar-left {
       flex-direction: column;
       align-items: stretch;
-    }
-
-    .toolbar-tip {
-      white-space: normal;
     }
 
     .search-field {

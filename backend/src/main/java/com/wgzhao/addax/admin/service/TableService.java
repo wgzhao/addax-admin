@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.TableStatus;
+import com.wgzhao.addax.admin.common.SchemaManagementMode;
+import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -52,6 +54,7 @@ public class TableService
     private final EntityManager entityManager;
     private final EtlJobQueueService jobQueueService;
     private final CalendarService calendarService;
+    private final TargetContractService targetContractService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -99,36 +102,37 @@ public class TableService
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
 
-        if (retCode == 0) {
-            // 检查表结构是否已经更新
-            if (Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA)) {
-                if (Thread.currentThread().isInterrupted()) {
-                    log.info("refreshTableResources interrupted before creating/updating hive table for {}", table.getId());
-                    return TaskResultDto.failure("Refresh interrupted", 0);
-                }
-                if (!targetService.createOrUpdateHiveTable(vwTable)) {
-                    setFailed(table);
-                    log.warn("Failed to create or update Hive table for tid {}", table.getId());
-                    return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
-                }
+        columnsUpdated = retCode != 0;
+        boolean targetSchemaChanged = columnsUpdated
+            || Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA);
+        SchemaManagementMode schemaMode = table.getSchemaManagementMode() == null
+            ? SchemaManagementMode.MANAGED : table.getSchemaManagementMode();
+        if (schemaMode == SchemaManagementMode.EXTERNAL)
+        {
+            TargetContractReport report = targetContractService.check(vwTable);
+            if (report.blocked())
+            {
+                setUpdateSchema(table);
+                return TaskResultDto.failure("目标表契约校验失败: " + report.summary(), 0);
             }
-            setNotCollectIfDue(table);
-            //return TaskResultDto.success("No columns updated for table id " + table.getId(), 0);
+            table.setTargetSchemaFingerprint(report.fingerprint());
+            etlTableRepo.save(table);
         }
-        else {
-            columnsUpdated = true;
-        }
-
-        if (columnsUpdated) {
+        else if (targetSchemaChanged)
+        {
             if (Thread.currentThread().isInterrupted()) {
-                log.info("refreshTableResources interrupted before creating/updating hive table for {}", table.getId());
+                log.info("refreshTableResources interrupted before creating/updating target table for {}", table.getId());
                 return TaskResultDto.failure("Refresh interrupted", 0);
             }
             if (!targetService.createOrUpdateHiveTable(vwTable)) {
                 setUpdateSchema(table);
-                log.warn("Failed to create or update Hive table for tid {}", table.getId());
-                return TaskResultDto.failure("Failed to create or update Hive table for tid " + table.getId(), 0);
+                log.warn("Failed to create or update target table for tid {}", table.getId());
+                return TaskResultDto.failure("Failed to create or update target table for tid " + table.getId(), 0);
             }
+        }
+        if (!columnsUpdated && !targetSchemaChanged)
+        {
+            setNotCollectIfDue(table);
         }
 
         // 2. 更新任务文件
