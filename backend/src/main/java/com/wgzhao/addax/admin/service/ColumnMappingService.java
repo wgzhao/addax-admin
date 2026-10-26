@@ -45,7 +45,19 @@ public class ColumnMappingService
         Map<String, EtlColumn> bySource = new HashMap<>();
         for (EtlColumn column : sourceColumns)
         {
-            bySource.put(key(activeName(column.getColumnName())), column);
+            String sourceName = activeName(column.getColumnName());
+            if (sourceName == null || sourceName.isBlank())
+            {
+                continue;
+            }
+            // A dropped column and its re-added twin share one active name. The live row must win,
+            // otherwise the mapping is reported inactive and the reader emits NULL for a real column.
+            String mapKey = key(sourceName);
+            EtlColumn existing = bySource.get(mapKey);
+            if (existing == null || (isDeleted(existing.getColumnName()) && !isDeleted(column.getColumnName())))
+            {
+                bySource.put(mapKey, column);
+            }
         }
 
         List<ResolvedColumnMapping> resolved = new ArrayList<>();
@@ -169,8 +181,9 @@ public class ColumnMappingService
 
     private List<EtlColumnMapping> identityMappings(long tid, List<EtlColumn> sourceColumns)
     {
-        List<EtlColumnMapping> result = new ArrayList<>();
-        int ordinal = 0;
+        // Legacy tables can carry foo and __deleted__foo at once. Keep one identity mapping per
+        // active name and prefer the live row, matching the startup backfill.
+        Map<String, EtlColumn> columnsByName = new LinkedHashMap<>();
         for (EtlColumn column : sourceColumns)
         {
             String sourceName = activeName(column.getColumnName());
@@ -178,6 +191,19 @@ public class ColumnMappingService
             {
                 continue;
             }
+            String mapKey = key(sourceName);
+            EtlColumn existing = columnsByName.get(mapKey);
+            if (existing == null || (isDeleted(existing.getColumnName()) && !isDeleted(column.getColumnName())))
+            {
+                columnsByName.put(mapKey, column);
+            }
+        }
+
+        List<EtlColumnMapping> result = new ArrayList<>();
+        int ordinal = 0;
+        for (EtlColumn column : columnsByName.values())
+        {
+            String sourceName = activeName(column.getColumnName()).trim();
             EtlColumnMapping mapping = new EtlColumnMapping();
             mapping.setTid(tid);
             mapping.setSourceColumnName(sourceName);
