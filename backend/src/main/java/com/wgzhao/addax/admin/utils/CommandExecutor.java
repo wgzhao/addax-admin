@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -48,7 +49,23 @@ public class CommandExecutor
      */
     public static TaskResultDto waitForProcessWithResult(Process process, long timeoutSeconds, String command)
     {
+        return waitForProcessWithResult(process, timeoutSeconds, command, null);
+    }
+
+    /**
+     * Wait for an already started process, checking {@code fenceReason} while it runs.
+     *
+     * <p>A non-null reason means this instance no longer owns the queue row (or can no longer prove
+     * it does). The process tree is then destroyed before returning: a process that lost ownership
+     * must never keep writing to the target while a successor runs the same table.</p>
+     */
+    public static TaskResultDto waitForProcessWithResult(Process process, long timeoutSeconds, String command,
+        Supplier<String> fenceReason)
+    {
         long startAt = System.currentTimeMillis();
+        // Poll both the process and the ownership fence; 2s bounds how long a fenced process can
+        // keep writing after ownership loss while staying cheap when nothing changes.
+        final long pollMillis = 2000;
         try {
             long pid;
             try {
@@ -71,18 +88,31 @@ public class CommandExecutor
             collector.start();
 
             boolean finished;
-            if (timeoutSeconds > 0) {
-                finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
-                if (!finished) {
-                    log.warn("Process pid={} timed out after {} seconds, destroying...", pid, timeoutSeconds);
-                    process.destroyForcibly();
-                    process.onExit().join();
+            while (true) {
+                String fenced = fenceReason == null ? null : fenceReason.get();
+                if (fenced != null) {
+                    log.warn("Process pid={} lost queue ownership ({}), destroying its tree", pid, fenced);
+                    ProcessGuard.destroyTree(process);
                     long duration = (System.currentTimeMillis() - startAt) / 1000;
-                    return TaskResultDto.failure("Process timed out after " + timeoutSeconds + " seconds", duration);
+                    return TaskResultDto.failure("Ownership lost: " + fenced, duration);
                 }
-            }
-            else {
-                process.waitFor();
+
+                if (timeoutSeconds > 0) {
+                    long remaining = timeoutSeconds * 1000 - (System.currentTimeMillis() - startAt);
+                    if (remaining <= 0) {
+                        log.warn("Process pid={} timed out after {} seconds, destroying tree...", pid, timeoutSeconds);
+                        ProcessGuard.destroyTree(process);
+                        long duration = (System.currentTimeMillis() - startAt) / 1000;
+                        return TaskResultDto.failure("Process timed out after " + timeoutSeconds + " seconds", duration);
+                    }
+                    finished = process.waitFor(Math.min(pollMillis, remaining), TimeUnit.MILLISECONDS);
+                }
+                else {
+                    finished = process.waitFor(pollMillis, TimeUnit.MILLISECONDS);
+                }
+                if (finished) {
+                    break;
+                }
             }
 
             try {
@@ -105,10 +135,14 @@ public class CommandExecutor
         }
         catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            // Shutdown/stop must not leave the addax tree behind: the wrapper's parent-death
+            // watchdog covers a crash, but a graceful stop has to be prompt.
+            ProcessGuard.destroyTree(process);
             long duration = (System.currentTimeMillis() - startAt) / 1000;
             return TaskResultDto.failure("Interrupted", duration);
         }
         catch (Exception e) {
+            ProcessGuard.destroyTree(process);
             long duration = (System.currentTimeMillis() - startAt) / 1000;
             log.error("execute command failed: {}", command, e);
             return TaskResultDto.failure(e.getMessage(), duration);
