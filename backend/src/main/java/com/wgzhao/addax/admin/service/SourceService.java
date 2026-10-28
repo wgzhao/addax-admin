@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -202,28 +203,48 @@ public class SourceService
      */
     public List<TableMetaDto> getUncollectedTables(EtlSource source, String dbName, Set<String> existsSet)
     {
-        List<TableMetaDto> result = new ArrayList<>();
         try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
-            // 按元数据读取所有表
-            ResultSet tables = connection.getMetaData().getTables(dbName, null, "%", new String[] {"TABLE", "SYSTEM VIEW"});
+            List<TableMetaDto> all = DbUtil.getTableMetas(connection, dbName);
+            if (all != null) {
+                List<TableMetaDto> result = new ArrayList<>(all.size());
+                for (TableMetaDto meta : all) {
+                    if (!isCollected(existsSet, meta.name())) {
+                        result.add(meta);
+                    }
+                }
+                return result;
+            }
+            return getUncollectedTablesPerTable(connection, dbName, existsSet);
+        }
+        catch (SQLException e) {
+            log.warn("Failed to get uncollected tables for source {}: {}", source.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    private static boolean isCollected(Set<String> existsSet, String tableName)
+    {
+        return existsSet.contains(tableName) || existsSet.contains(tableName.toLowerCase(Locale.ROOT));
+    }
+
+    private List<TableMetaDto> getUncollectedTablesPerTable(Connection connection, String dbName, Set<String> existsSet)
+        throws SQLException
+    {
+        List<TableMetaDto> result = new ArrayList<>();
+        try (ResultSet tables = connection.getMetaData().getTables(dbName, null, "%", new String[] {"TABLE", "SYSTEM VIEW"})) {
             while (tables.next()) {
                 String tblName = tables.getString("TABLE_NAME");
-                // 已采集表跳过
-                if (existsSet.contains(tblName) || existsSet.contains(tblName.toLowerCase())) {
+                if (isCollected(existsSet, tblName)) {
                     continue;
                 }
                 String remarks = Optional.ofNullable(tables.getString("REMARKS")).orElse("");
-                // 优先使用元数据中的注释，否则回退到 commentFallback
+                // 优先使用元数据中的注释，否则回退到逐表查询
                 if (remarks.isEmpty()) {
                     remarks = DbUtil.getTableComment(connection, dbName, tblName);
                 }
                 Long rows = DbUtil.getTableRowCount(connection, dbName, tblName);
                 result.add(new TableMetaDto(tblName, remarks, rows));
             }
-        }
-        catch (SQLException e) {
-            log.warn("Failed to get uncollected tables for source {}: {}", source.getId(), e.getMessage());
-            return null;
         }
         return result;
     }
