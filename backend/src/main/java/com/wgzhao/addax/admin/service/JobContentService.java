@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
 import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
+import static com.wgzhao.addax.admin.utils.DbUtil.sourceTableRef;
 
 /**
  * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
@@ -261,12 +262,7 @@ public class JobContentService
             StringSubstitutor stringSubstitutor = new StringSubstitutor(dateValues);
             sourceTable = stringSubstitutor.replace(sourceTable);
         }
-        if (dbType == DbType.POSTGRESQL) {
-            values.put("table", quoteIfNeeded(sourceTable, dbType));
-        }
-        else {
-            values.put("table", quoteIfNeeded(vTable.getSourceDb(), dbType) + "." + quoteIfNeeded(sourceTable, dbType));
-        }
+        values.put("table", sourceTableRef(dbType, vTable.getSourceDb(), sourceTable));
 
         // A mapping row is the source of truth for both the source expression and the record field name
         // consumed by either writer shape.

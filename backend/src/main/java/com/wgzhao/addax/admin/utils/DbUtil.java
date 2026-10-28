@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.utils;
 
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.QuoteChars;
+import com.wgzhao.addax.admin.dto.TableMetaDto;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -9,6 +10,9 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -118,6 +122,83 @@ public class DbUtil
             return "";
         }
         return "";
+    }
+
+    /**
+     * Read all table names and comments in one query instead of one round trip per table.
+     *
+     * @param conn database connection
+     * @param dbName database name
+     * @return the batch result, or {@code null} when the dialect has no bulk metadata query and
+     *         the caller must fall back to per-table lookups
+     * @throws SQLException when the bulk query fails
+     */
+    public static List<TableMetaDto> getTableMetas(Connection conn, String dbName) throws SQLException
+    {
+        String dbType = conn.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
+        if (dbType.contains("mysql") || dbType.contains("mariadb")) {
+            return queryTableMetas(conn,
+                "SELECT TABLE_NAME, TABLE_COMMENT, TABLE_ROWS FROM information_schema.TABLES " +
+                    "WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE' ORDER BY TABLE_NAME",
+                dbName);
+        }
+        if (dbType.contains("microsoft sql server") || dbType.contains("sql server")) {
+            // The source URL may point at master; the tables belong to the database selected in the UI.
+            useDatabase(conn, dbName);
+            return querySqlServerTableMetas(conn);
+        }
+        return null;
+    }
+
+    private static List<TableMetaDto> queryTableMetas(Connection conn, String sql, String dbName) throws SQLException
+    {
+        List<TableMetaDto> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dbName);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString(1);
+                    String comment = Optional.ofNullable(rs.getString(2)).orElse("");
+                    long rows = rs.getLong(3);
+                    Long approxRows = rs.wasNull() ? null : rows;
+                    result.add(new TableMetaDto(name, comment, approxRows));
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<TableMetaDto> querySqlServerTableMetas(Connection conn) throws SQLException
+    {
+        // Row counts come from sys.partitions/sys.dm_db_partition_stats, whose per-partition
+        // ALUCOUNT lookup costs ~10s for 40k tables. The per-table path returned null row counts
+        // on SQL Server anyway (it passed the database name where a schema name was expected),
+        // so leave them null until the UI actually needs a cheap row-count source.
+        List<TableMetaDto> result = new ArrayList<>();
+        try (Statement st = conn.createStatement();
+            ResultSet rs = st.executeQuery(
+                "SELECT t.name, CAST(ep.value AS NVARCHAR(4000)) AS table_comment " +
+                    "FROM sys.tables t " +
+                    "LEFT JOIN sys.extended_properties ep ON ep.major_id = t.object_id " +
+                    "AND ep.minor_id = 0 AND ep.class = 1 AND ep.name = 'MS_Description' " +
+                    "ORDER BY t.name")) {
+            while (rs.next()) {
+                result.add(new TableMetaDto(rs.getString(1),
+                    Optional.ofNullable(rs.getString(2)).orElse(""), null));
+            }
+        }
+        return result;
+    }
+
+    private static void useDatabase(Connection conn, String dbName) throws SQLException
+    {
+        if (dbName == null || dbName.isEmpty()) {
+            return;
+        }
+        String quoted = "[" + dbName.replace("]", "]]") + "]";
+        try (Statement st = conn.createStatement()) {
+            st.execute("USE " + quoted);
+        }
     }
 
     /**
@@ -392,6 +473,29 @@ public class DbUtil
             case SQLSERVER -> new QuoteChars("[", "]");
             default -> new QuoteChars("`", "`");
         };
+    }
+
+    /**
+     * Build the table reference the reader uses in its SELECT.
+     * <p>
+     * SQL Server treats a two-part name as schema.table, not database.table. Its JDBC URL already
+     * selects the database (databaseName=...), so qualifying with sourceDb (the database) makes the
+     * reader look for a schema named after the database. PostgreSQL resolves through the connection's
+     * current schema and must not be qualified at all.
+     */
+    public static String sourceTableRef(DbType dbType, String dbName, String tableName)
+    {
+        if (dbType == DbType.POSTGRESQL) {
+            return quoteIfNeeded(tableName, dbType);
+        }
+        if (dbType == DbType.SQLSERVER) {
+            // The rest of the SQL Server metadata code also assumes the dbo schema.
+            return "dbo." + quoteIfNeeded(tableName, dbType);
+        }
+        if (dbName == null || dbName.isBlank()) {
+            return quoteIfNeeded(tableName, dbType);
+        }
+        return quoteIfNeeded(dbName, dbType) + "." + quoteIfNeeded(tableName, dbType);
     }
 
     // 新增：按数据库类型决定引号（默认 MySQL）
