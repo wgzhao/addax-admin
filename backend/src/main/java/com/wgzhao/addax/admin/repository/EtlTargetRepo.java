@@ -14,6 +14,8 @@ public interface EtlTargetRepo
 {
     Optional<EtlTarget> findByCode(String code);
 
+    Optional<EtlTarget> findFirstByIsDefaultTrueOrderByIdAsc();
+
     List<EtlTarget> findByEnabledTrueOrderByIsDefaultDescIdAsc();
 
     List<EtlTarget> findAllByOrderByIsDefaultDescIdAsc();

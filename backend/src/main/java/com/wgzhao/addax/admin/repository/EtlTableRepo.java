@@ -12,6 +12,8 @@ import java.util.List;
 public interface EtlTableRepo
     extends JpaRepository<EtlTable, Long>
 {
+    List<EtlTable> findBySid(int sid);
+
     @Query(value = """
         select count(t.id) from VwEtlTableWithSource t
         where t.status not in ( 'X' ,'U')

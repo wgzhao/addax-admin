@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -684,16 +685,49 @@ public class TargetServiceWithHiveImpl
     }
 
     /**
-     * Check whether hive table exists by SHOW TABLES IN db LIKE 'table'
+     * Check whether a Hive table exists. The metastore stores names in lower case, so a definition
+     * written with mixed case must be looked up case-insensitively; otherwise the preview says the
+     * target is missing while the write path already points at the same table.
      */
     private boolean hiveTableExists(Statement stmt, String db, String table)
     {
-        String sql = String.format("SHOW TABLES IN `%s` LIKE '%s'", db, table);
-        try (var rs = stmt.executeQuery(sql)) {
+        if (hiveTableExistsLike(stmt, db, table))
+        {
+            return true;
+        }
+        String lower = table.toLowerCase(Locale.ROOT);
+        if (!lower.equals(table) && hiveTableExistsLike(stmt, db, lower))
+        {
+            return true;
+        }
+        // Fallback for a metastore that preserved a mixed-case name: compare the actual listing.
+        try (var rs = stmt.executeQuery(String.format("SHOW TABLES IN `%s`", db)))
+        {
+            while (rs.next())
+            {
+                if (table.equalsIgnoreCase(rs.getString(1)))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (SQLException e)
+        {
+            log.error("Failed to check hive table existence for {}.{} ", db, table, e);
+        }
+        return false;
+    }
+
+    private boolean hiveTableExistsLike(Statement stmt, String db, String table)
+    {
+        String escaped = table.replace("'", "''");
+        try (var rs = stmt.executeQuery(String.format("SHOW TABLES IN `%s` LIKE '%s'", db, escaped)))
+        {
             return rs.next();
         }
-        catch (SQLException e) {
-            log.error("Failed to check hive table existence for {}.{} ", db, table, e);
+        catch (SQLException e)
+        {
+            log.debug("Failed to check hive table existence for {}.{}: {}", db, table, e.getMessage());
             return false;
         }
     }

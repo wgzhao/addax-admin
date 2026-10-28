@@ -1,6 +1,6 @@
 // 数据源管理接口
 import Requests from '@/utils/requests';
-import type { EtlSource, TableMeta } from '@/types/database';
+import type { CollectableTable, EtlSource, TableMeta } from '@/types/database';
 
 class SourceService {
   prefix: string = '/sources';
@@ -61,6 +61,20 @@ class SourceService {
       undefined,
       { timeout: 300000 }
     ) as unknown as Promise<TableMeta[]>;
+  }
+
+  // 查询指定采集路由下可新增或可恢复的源表
+  fetchCollectableTables(
+    sourceId: number,
+    dbName: string,
+    targetId: number,
+    targetDb: string
+  ): Promise<CollectableTable[]> {
+    return Requests.get(
+      `${this.prefix}/${sourceId}/databases/${dbName}/tables/collectable`,
+      { targetId, targetDb },
+      { timeout: 300000 }
+    ) as unknown as Promise<CollectableTable[]>;
   }
 }
 

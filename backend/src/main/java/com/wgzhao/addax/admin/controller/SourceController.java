@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.dto.CollectableTableDto;
 import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -10,6 +11,7 @@ import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +50,7 @@ public class SourceController
     private final TableService tableService;
     private final SystemConfigService configService;
     private final AuditRecorder auditRecorder;
+    private final CollectionScopeService collectionScopeService;
 
     /**
      * 查询所有数据源
@@ -264,6 +267,32 @@ public class SourceController
             throw new ApiException(500, e.getMessage());
         }
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 查询指定采集路由下可新增的表（含表注释）。
+     *
+     * <p>目标端与目标库属于采集身份的一部分：同一张源表在 A 目标库采集后，仍应出现在 B 目标库
+     * 的可新增列表中。已退役的定义不提供“新建”，而是返回 RETIRED 状态供前端恢复。</p>
+     *
+     * @param sourceId 数据源ID（路径参数）
+     * @param dbName 源数据库名（路径参数）
+     * @param targetId 目标端ID（查询参数）
+     * @param targetDb 目标库名（查询参数，可选；不传时只按目标端过滤）
+     * @return 可新增/可恢复的源表列表
+     */
+    @GetMapping("/{sourceId}/databases/{dbName}/tables/collectable")
+    public ResponseEntity<List<CollectableTableDto>> listCollectableTables(
+        @PathVariable int sourceId,
+        @PathVariable String dbName,
+        @RequestParam Long targetId,
+        @RequestParam(required = false) String targetDb)
+    {
+        EtlSource source = sourceService.getSource(sourceId);
+        if (source == null) {
+            throw new ApiException(400, "sourceId 对应的采集源不存在");
+        }
+        return ResponseEntity.ok(collectionScopeService.collectable(source, dbName, targetId, targetDb));
     }
 
     /**

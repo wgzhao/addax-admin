@@ -27,7 +27,12 @@
 
     <v-stepper v-model="currentStep" flat class="batch-stepper">
       <v-stepper-header class="stepper-header">
-        <v-stepper-item title="选择采集源" :value="1" :complete="currentStep > 1" color="primary" />
+        <v-stepper-item
+          title="选择采集路由"
+          :value="1"
+          :complete="currentStep > 1"
+          color="primary"
+        />
         <v-divider />
         <v-stepper-item title="选择采集表" :value="2" :complete="currentStep > 2" color="primary" />
         <v-divider />
@@ -48,11 +53,15 @@
           <BatchSourceStep
             v-model:selected-source-id="selectedSourceId"
             v-model:selected-db="selectedDb"
+            v-model:target-id="targetId"
+            v-model:target-db="targetDb"
             :source-system-list="sourceSystemList"
             :source-dbs="sourceDbs"
             :loading-dbs="loadingDbs"
             :loading-sources="loadingSources"
             :source-load-error="sourceLoadError"
+            :targets="targetEndpoints"
+            :loading-targets="loadingTargets"
             @retry="fetchSourceData"
           />
         </v-stepper-window-item>
@@ -62,22 +71,25 @@
             v-model:selected="selectedTables"
             v-model:search="search"
             :tables="tables"
+            :retired-tables="retiredTables"
+            :restoring-id="restoringId"
             :loading="loadingTables"
             :load-error="tableLoadError"
             @retry="getTables"
             @back="currentStep = 1"
+            @restore="restoreRetired"
           />
         </v-stepper-window-item>
 
         <v-stepper-window-item :value="3">
           <BatchConfigStep
-            v-model:target-id="targetId"
-            v-model:target-db="targetDb"
             v-model:target-table-template="targetTableTemplate"
             v-model:schema-management-mode="schemaManagementMode"
             v-model:options="tableOptions"
             v-model:selected="selectedTables"
             :targets="targetEndpoints"
+            :target-id="targetId"
+            :target-db="targetDb"
             :storage-formats="storageFormats"
             :compress-formats="compressFormats"
             :duplicate-target-names="duplicateTargetNames"
@@ -170,10 +182,10 @@
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils';
   import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
   import {
+    CollectableTable,
     EtlSource,
     EtlTable,
     EtlTableView,
-    TableMeta,
     EtlTarget,
     EtlTargetOptions,
     CollectionPlanReviewRow,
@@ -196,16 +208,24 @@
   const currentStep = ref(1);
 
   const canProceedToNext = computed(() => {
-    if (currentStep.value === 1) return !!selectedSourceId.value && !!selectedDb.value;
+    if (currentStep.value === 1) {
+      return (
+        !!selectedSourceId.value &&
+        !!selectedDb.value &&
+        !!targetId.value &&
+        !!targetDb.value.trim()
+      );
+    }
     if (currentStep.value === 2) return selectedCnt.value > 0;
     return false;
   });
 
   const actionHint = computed(() => {
-    if (currentStep.value === 1 && !canProceedToNext.value) return '请选择采集源与源数据库';
+    if (currentStep.value === 1 && !canProceedToNext.value) {
+      return '请选择采集源、源数据库、目标端和目标库';
+    }
     if (currentStep.value === 2 && !canProceedToNext.value) return '请至少选择一张采集表';
     if (currentStep.value === 3) {
-      if (!targetId.value || !targetDb.value) return '请选择目标端并确认目标库';
       if (targetNameIssue.value) return targetNameIssue.value;
     }
     if (currentStep.value === 4) {
@@ -271,6 +291,7 @@
   const loadingTables = ref(false);
   const loadingDbs = ref(false);
   const loadingSave = ref(false);
+  const loadingTargets = ref(false);
   const tableLoadError = ref('');
   const search = ref('');
 
@@ -288,6 +309,8 @@
   const selectedSourceId = ref<EtlSource | null>(null);
   const selectedDb = ref<string | null>(null);
   const tables = ref<EtlTableView[]>([]);
+  const retiredTables = ref<CollectableTable[]>([]);
+  const restoringId = ref<number | null>(null);
   const tableRows = ref<number[]>([]);
   const sourceSystemList = ref<EtlSource[]>([]);
   const sourceDbs = ref<string[]>([]);
@@ -319,11 +342,17 @@
       .trim();
   };
 
+  // Hive folds table names to lower case; an RDBMS target keeps them case-sensitive.
+  const targetNameKey = (name: string) => {
+    const type = (selectedTargetType.value || '').toUpperCase();
+    return type === '' || type === 'HDFS' || type === 'HIVE' ? name.toLowerCase() : name;
+  };
+
   // Why: a template without ${table} silently maps several sources onto one target table.
   const duplicateTargetNames = computed(() => {
     const counts = new Map<string, number>();
     selectedTables.value.forEach(item => {
-      const name = resolveTargetTable(item).toLowerCase();
+      const name = targetNameKey(resolveTargetTable(item));
       if (!name) return;
       counts.set(name, (counts.get(name) ?? 0) + 1);
     });
@@ -359,6 +388,7 @@
   watch(selectedSourceId, val => {
     selectedDb.value = null;
     tables.value = [];
+    retiredTables.value = [];
     selectedTables.value = [];
     sourceDbs.value = [];
     search.value = '';
@@ -370,17 +400,28 @@
 
   watch(selectedDb, () => {
     tables.value = [];
+    retiredTables.value = [];
     selectedTables.value = [];
     search.value = '';
   });
 
-  watch(targetId, val => {
-    tables.value.forEach(item => {
-      item.targetId = val;
-    });
-    selectedTables.value.forEach(item => {
-      item.targetId = val;
-    });
+  // Target endpoint and target database are part of the collection route: changing either one makes
+  // the previous list and selection meaningless.
+  watch([targetId, targetDb], async ([newTarget, newDb], [oldTarget, oldDb]) => {
+    if (newTarget === oldTarget && newDb === oldDb) return;
+    tables.value = [];
+    retiredTables.value = [];
+    selectedTables.value = [];
+    search.value = '';
+    if (
+      currentStep.value === 2 &&
+      selectedSourceId.value?.id &&
+      selectedDb.value &&
+      newTarget &&
+      newDb?.trim()
+    ) {
+      await getTables();
+    }
   });
 
   const getDbsBySourceId = async () => {
@@ -414,39 +455,53 @@
   };
 
   const getTables = async () => {
-    if (!selectedSourceId.value?.id || !selectedDb.value) {
-      tableLoadError.value = '请选择源系统和数据库';
+    if (
+      !selectedSourceId.value?.id ||
+      !selectedDb.value ||
+      !targetId.value ||
+      !targetDb.value.trim()
+    ) {
+      tableLoadError.value = '请选择采集源、源数据库、目标端和目标库';
       return;
     }
+
+    const sourceId = selectedSourceId.value.id;
+    const dbName = selectedDb.value;
+    const routeTargetId = targetId.value;
+    const routeTargetDb = targetDb.value.trim();
 
     loadingTables.value = true;
     tableLoadError.value = '';
     // Why: a reload can return different rows; keeping the old object refs would leave
     // invisible selections that still count towards the next step.
     tables.value = [];
+    retiredTables.value = [];
     tableRows.value = [];
     selectedTables.value = [];
     search.value = '';
     try {
-      const res = await sourceService.fetchUncollectedTables(
-        selectedSourceId.value.id,
-        selectedDb.value
+      const res = await sourceService.fetchCollectableTables(
+        sourceId,
+        dbName,
+        routeTargetId,
+        routeTargetDb
       );
-      if (res?.length) {
-        res.forEach((element: TableMeta) => {
+      retiredTables.value = (res || []).filter(item => item.state === 'RETIRED');
+      (res || [])
+        .filter(item => item.state === 'AVAILABLE')
+        .forEach((element: CollectableTable) => {
           const newItem: EtlTable = { ...defaultItem };
-          newItem.sid = selectedSourceId.value!.id;
-          newItem.sourceDb = selectedDb.value!;
+          newItem.sid = sourceId;
+          newItem.sourceDb = dbName;
           newItem.sourceTable = element.name;
-          newItem.targetDb = targetDb.value;
+          newItem.targetDb = routeTargetDb;
           newItem.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
-          newItem.targetId = targetId.value;
+          newItem.targetId = routeTargetId;
           newItem.targetTable = element.name;
-          newItem.tblComment = element.comment;
-          tables.value.push({ ...newItem, approxRowCount: element.approxRowCount });
-          tableRows.value.push(element.approxRowCount);
+          newItem.tblComment = element.comment || '';
+          tables.value.push({ ...newItem, approxRowCount: element.approxRowCount ?? 0 });
+          tableRows.value.push(element.approxRowCount ?? 0);
         });
-      }
     } catch (error) {
       tableLoadError.value = `获取表失败：${(error as Error)?.message || error || '未知错误'}`;
     } finally {
@@ -454,10 +509,24 @@
     }
   };
 
+  const restoreRetired = async (item: CollectableTable) => {
+    if (!item.definitionId) return;
+    restoringId.value = item.definitionId;
+    try {
+      await tableService.restore(item.definitionId);
+      notify(`已恢复采集表 ${item.name}，可在采集表列表中查看或编辑`, 'success');
+      await getTables();
+    } catch (error) {
+      notify(`恢复失败：${(error as Error)?.message || error || '未知错误'}`, 'error');
+    } finally {
+      restoringId.value = null;
+    }
+  };
+
   const applyTargetTableTemplate = () => {
     if (!selectedTables.value.length) return;
     selectedTables.value.forEach(item => {
-      item.targetDb = targetDb.value;
+      item.targetDb = targetDb.value.trim();
       item.targetTable = resolveTargetTable(item);
     });
   };
@@ -467,7 +536,7 @@
       notify('请选择至少一个表', 'warning');
       return;
     }
-    if (!targetDb.value) {
+    if (!targetDb.value.trim()) {
       notify('请设置目标库名', 'warning');
       return;
     }
@@ -485,7 +554,7 @@
     loadingSave.value = true;
     const itemsToSave = selectedTables.value.map(item => {
       const s = { ...item };
-      s.targetDb = targetDb.value;
+      s.targetDb = targetDb.value.trim();
       s.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
       s.targetId = targetId.value;
       s.schemaManagementMode = schemaManagementMode.value;
@@ -573,6 +642,7 @@
 
   const resetFlow = () => {
     selectedTables.value = [];
+    retiredTables.value = [];
     reviewRows.value = [];
     commitResults.value = [];
     tables.value = [];
@@ -584,6 +654,7 @@
   onMounted(() => {
     window.addEventListener('beforeunload', onBeforeUnload);
     fetchSourceData();
+    loadingTargets.value = true;
     targetService
       .list(true)
       .then(res => {
@@ -596,7 +667,10 @@
           }));
         if (targetEndpoints.value.length > 0) targetId.value = targetEndpoints.value[0].value;
       })
-      .catch(error => notify(`获取目标端列表失败: ${error}`, 'error'));
+      .catch(error => notify(`获取目标端列表失败: ${error}`, 'error'))
+      .finally(() => {
+        loadingTargets.value = false;
+      });
 
     dictService
       .getHdfsStorageDefaults()

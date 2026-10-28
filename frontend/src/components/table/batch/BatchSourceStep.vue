@@ -2,9 +2,9 @@
   <div class="step-layout">
     <div class="step-hero">
       <div class="step-kicker">Step 1</div>
-      <h2 class="step-title">选择采集源</h2>
+      <h2 class="step-title">选择采集路由</h2>
       <div class="step-desc">
-        先选源系统，再选对应数据库。完成后再进入表选择，避免第二步信息过载。
+        采集路由由源系统、源库、目标端和目标库共同确定。先确定这四项，下一步才能只列出该路由下可新增的表。
       </div>
     </div>
 
@@ -66,6 +66,53 @@
         />
       </section>
     </div>
+
+    <div class="stage-grid stage-grid--2">
+      <section class="stage-panel">
+        <div class="stage-panel__header">
+          <div>
+            <div class="stage-panel__title">目标端</div>
+            <div class="stage-panel__caption">目标端决定 writer 与目标表命名空间。</div>
+          </div>
+        </div>
+        <v-select
+          v-model="targetId"
+          :items="targets"
+          item-title="label"
+          item-value="value"
+          label="目标端"
+          density="comfortable"
+          variant="outlined"
+          :required="true"
+          :loading="loadingTargets"
+          :disabled="loadingTargets"
+          hide-details="auto"
+          prepend-inner-icon="mdi-database-arrow-right-outline"
+          no-data-text="暂无启用的目标端"
+        />
+      </section>
+
+      <section class="stage-panel">
+        <div class="stage-panel__header">
+          <div>
+            <div class="stage-panel__title">目标库</div>
+            <div class="stage-panel__caption">同一源表可以在同一目标端的不同目标库各采集一份。</div>
+          </div>
+        </div>
+        <v-text-field
+          v-model="targetDb"
+          label="目标库名"
+          density="comfortable"
+          variant="outlined"
+          :required="true"
+          hide-details="auto"
+          autocomplete="off"
+          spellcheck="false"
+          prepend-inner-icon="mdi-database-arrow-right"
+          placeholder="例如 ods_oa"
+        />
+      </section>
+    </div>
   </div>
 </template>
 
@@ -78,12 +125,16 @@
     loadingDbs: boolean;
     loadingSources: boolean;
     sourceLoadError: string;
+    targets: { label: string; value: number; targetType: string }[];
+    loadingTargets: boolean;
   }>();
 
   defineEmits(['retry']);
 
   const selectedSourceId = defineModel<EtlSource | null>('selectedSourceId');
   const selectedDb = defineModel<string | null>('selectedDb');
+  const targetId = defineModel<number | null>('targetId');
+  const targetDb = defineModel<string | null>('targetDb');
 </script>
 
 <style lang="scss" scoped>

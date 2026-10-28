@@ -11,6 +11,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import jakarta.persistence.EntityManager;
 import lombok.AllArgsConstructor;
@@ -55,6 +56,7 @@ public class TableService
     private final EtlJobQueueService jobQueueService;
     private final CalendarService calendarService;
     private final TargetContractService targetContractService;
+    private final CollectionScopeService collectionScopeService;
 
     /**
      * 刷新指定采集表的资源（如字段、模板等）
@@ -639,6 +641,8 @@ public class TableService
         if (!active.isEmpty()) {
             throw new ApiException(409, "Table has an active queued or running job");
         }
+        // Restore reuses this row; reject if a legacy duplicate already occupies the route.
+        collectionScopeService.assertRestorable(table);
         table.setRetiredAt(null);
         table.setRetiredBy(null);
         etlTableRepo.save(table);
@@ -650,16 +654,40 @@ public class TableService
      * @param etl 采集表对象
      * @return 创建的采集表对象
      */
+    @Transactional
     public EtlTable createTable(EtlTable etl)
     {
+        collectionScopeService.assertCreatable(etl);
         return etlTableRepo.save(etl);
     }
 
     @Transactional
     public EtlTable updateTable(EtlTable etl, String username)
     {
+        EtlTable existing = etlTableRepo.findById(etl.getId())
+            .orElseThrow(() -> new ApiException(404, "Table not found"));
+        // Keep omitted route fields from silently moving the definition to the default target.
+        if (etl.getSid() == null) {
+            etl.setSid(existing.getSid());
+        }
+        if (etl.getTargetId() == null) {
+            etl.setTargetId(existing.getTargetId());
+        }
+        if (routeChanged(existing, etl)) {
+            collectionScopeService.assertRouteUnique(etl, etl.getId());
+        }
         setChangedBy(username);
         return etlTableRepo.save(etl);
+    }
+
+    private boolean routeChanged(EtlTable before, EtlTable after)
+    {
+        return !Objects.equals(before.getSid(), after.getSid())
+            || !Objects.equals(before.getSourceDb(), after.getSourceDb())
+            || !Objects.equals(before.getSourceTable(), after.getSourceTable())
+            || !Objects.equals(before.getTargetId(), after.getTargetId())
+            || !Objects.equals(before.getTargetDb(), after.getTargetDb())
+            || !Objects.equals(before.getTargetTable(), after.getTargetTable());
     }
 
     private void setChangedBy(String username)
@@ -677,8 +705,12 @@ public class TableService
      * @param tables 采集表对象列表
      * @return 创建的采集表对象列表
      */
+    @Transactional
     public List<EtlTable> batchCreateTable(List<EtlTable> tables)
     {
+        for (EtlTable table : tables) {
+            collectionScopeService.assertCreatable(table);
+        }
         return etlTableRepo.saveAll(tables);
     }
 

@@ -179,8 +179,10 @@ public class DbUtil
             ResultSet rs = st.executeQuery(
                 "SELECT t.name, CAST(ep.value AS NVARCHAR(4000)) AS table_comment " +
                     "FROM sys.tables t " +
+                    "JOIN sys.schemas s ON s.schema_id = t.schema_id " +
                     "LEFT JOIN sys.extended_properties ep ON ep.major_id = t.object_id " +
                     "AND ep.minor_id = 0 AND ep.class = 1 AND ep.name = 'MS_Description' " +
+                    "WHERE s.name = 'dbo' " +
                     "ORDER BY t.name")) {
             while (rs.next()) {
                 result.add(new TableMetaDto(rs.getString(1),
@@ -190,7 +192,7 @@ public class DbUtil
         return result;
     }
 
-    private static void useDatabase(Connection conn, String dbName) throws SQLException
+    public static void useDatabase(Connection conn, String dbName) throws SQLException
     {
         if (dbName == null || dbName.isEmpty()) {
             return;
@@ -199,6 +201,33 @@ public class DbUtil
         try (Statement st = conn.createStatement()) {
             st.execute("USE " + quoted);
         }
+    }
+
+    /**
+     * Read table metadata for every dialect: the bulk path when the dialect has one, otherwise the
+     * per-table metadata calls. Callers that only need names and comments can use this without
+     * knowing which dialect they are connected to.
+     */
+    public static List<TableMetaDto> getAllTableMetas(Connection conn, String dbName) throws SQLException
+    {
+        List<TableMetaDto> bulk = getTableMetas(conn, dbName);
+        if (bulk != null) {
+            return bulk;
+        }
+        List<TableMetaDto> result = new ArrayList<>();
+        try (ResultSet tables = conn.getMetaData().getTables(dbName, null, "%",
+            new String[] {"TABLE", "SYSTEM VIEW"})) {
+            while (tables.next()) {
+                String tableName = tables.getString("TABLE_NAME");
+                String remarks = Optional.ofNullable(tables.getString("REMARKS")).orElse("");
+                if (remarks.isEmpty()) {
+                    remarks = getTableComment(conn, dbName, tableName);
+                }
+                Long rows = getTableRowCount(conn, dbName, tableName);
+                result.add(new TableMetaDto(tableName, remarks, rows));
+            }
+        }
+        return result;
     }
 
     /**
