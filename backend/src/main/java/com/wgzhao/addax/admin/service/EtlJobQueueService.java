@@ -10,8 +10,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -150,13 +148,25 @@ public class EtlJobQueueService
     }
 
     @Transactional
-    public void releaseClaim(long jobId, int delaySeconds, String instanceId)
+    public void releaseClaim(long jobId, int delaySeconds, String instanceId, int stillProvisionalSeconds)
     {
-        // Only compensate a claim this master still owns: a message delivered-but-timed-out may
-        // already have started execution on the worker, which must keep the row.
-        String sql = "UPDATE public.etl_job_queue SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL, available_at=now() + ?::interval WHERE id=? AND status='running' AND claimed_by=?";
-        String interval = delaySeconds + " seconds";
-        jdbcTemplate.update(sql, interval, jobId, instanceId);
+        // Only compensate a claim this master still owns. The lease check distinguishes an
+        // undelivered claim (short provisional lease) from one the worker already confirmed (full
+        // lease): a publish may time out after the message was delivered, and stripping ownership
+        // from a run that is about to start is how a duplicate execution begins. The attempt is
+        // rolled back because an undelivered claim never executed; otherwise master failover and
+        // dead-heartbeat assignments would silently consume the table's retry budget.
+        String sql = """
+                UPDATE public.etl_job_queue
+                SET status='pending', claimed_by=NULL, claimed_at=NULL, lease_until=NULL,
+                    available_at=now() + ?::interval,
+                    attempts = case when attempts > 0 then attempts - 1 else 0 end
+                WHERE id=? AND status='running' AND claimed_by=?
+                  AND lease_until < now() + ?::interval
+            """;
+        String delayInterval = delaySeconds + " seconds";
+        String provisionalInterval = stillProvisionalSeconds + " seconds";
+        jdbcTemplate.update(sql, delayInterval, jobId, instanceId, provisionalInterval);
     }
 
     @Transactional
@@ -304,36 +314,4 @@ public class EtlJobQueueService
         return jdbcTemplate.update(sql, "Cancelled by user request", tid);
     }
 
-    @Transactional
-    public int releaseClaimedByInstance(String instanceId)
-    {
-        String sql = """
-                UPDATE public.etl_job_queue
-                SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL
-                WHERE status='running' AND claimed_by=?
-            """;
-        return jdbcTemplate.update(sql, instanceId);
-    }
-
-    /**
-     * Release running tasks whose claimed_by is not in the provided alive worker set.
-     * Called once on master startup (after waiting for workers to re-register) to recover
-     * tasks that were claimed by nodes that never came back.
-     * If aliveInstanceIds is empty, ALL running tasks are released (entire cluster was restarted).
-     */
-    @Transactional
-    public int releaseOrphanedJobs(Set<String> aliveInstanceIds)
-    {
-        if (aliveInstanceIds.isEmpty()) {
-            String sql = """
-                    UPDATE public.etl_job_queue
-                    SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL
-                    WHERE status='running'
-                """;
-            return jdbcTemplate.update(sql);
-        }
-        String placeholders = aliveInstanceIds.stream().map(id -> "?").collect(Collectors.joining(", "));
-        String sql = "UPDATE public.etl_job_queue SET status='pending', available_at=now(), lease_until=NULL, claimed_by=NULL, claimed_at=NULL WHERE status='running' AND claimed_by NOT IN (" + placeholders + ")";
-        return jdbcTemplate.update(sql, aliveInstanceIds.toArray());
-    }
 }

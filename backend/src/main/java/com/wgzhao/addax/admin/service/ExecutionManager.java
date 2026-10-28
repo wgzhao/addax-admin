@@ -1,17 +1,16 @@
 package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wgzhao.addax.admin.utils.ProcessGuard;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +31,10 @@ public class ExecutionManager
     implements MessageListener
 {
     private static final String KILL_CHANNEL = "etl:kill";
-    // in-memory registry of collecting table(s) on this instance
-    private final ConcurrentHashMap<Long, ProcessHolder> running = new ConcurrentHashMap<>();
+    // In-memory registry of collecting tables on this instance. Keyed by tid, then execution id:
+    // a normal run and a fillback of the same table can overlap, and a single tid -> holder map
+    // silently dropped whichever registered first, so a kill could miss a live process.
+    private final ConcurrentHashMap<Long, ConcurrentHashMap<Long, ProcessHolder>> running = new ConcurrentHashMap<>();
     // Tracks tasks explicitly killed by user so worker can avoid rescheduling them as normal failures.
     private final ConcurrentHashMap<Long, Instant> killRequested = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -59,18 +60,26 @@ public class ExecutionManager
         }
     }
 
-    public void register(long tid, Process process, long pid, String instanceId)
+    public void register(long tid, long executionId, Process process, long pid, String instanceId)
     {
         ProcessHolder h = new ProcessHolder(process, pid, instanceId, Instant.now());
-        running.put(tid, h);
-        log.info("Registered collecting table {} pid={} on instance={}", tid, pid, instanceId);
+        running.computeIfAbsent(tid, k -> new ConcurrentHashMap<>()).put(executionId, h);
+        log.info("Registered collecting table {} execution={} pid={} on instance={}", tid, executionId, pid, instanceId);
     }
 
-    public void unregister(long tid)
+    public void unregister(long tid, long executionId)
     {
-        ProcessHolder removed = running.remove(tid);
+        ConcurrentHashMap<Long, ProcessHolder> holders = running.get(tid);
+        if (holders == null) {
+            return;
+        }
+        ProcessHolder removed = holders.remove(executionId);
         if (removed != null) {
-            log.info("Unregistered collecting table {} pid={} instance={}", tid, removed.pid(), removed.instanceId());
+            log.info("Unregistered collecting table {} execution={} pid={} instance={}",
+                tid, executionId, removed.pid(), removed.instanceId());
+        }
+        if (holders.isEmpty()) {
+            running.remove(tid, holders);
         }
     }
 
@@ -79,69 +88,50 @@ public class ExecutionManager
      */
     public Optional<String> findInstanceId(long tid)
     {
-        ProcessHolder holder = running.get(tid);
-        if (holder == null || holder.instanceId() == null || holder.instanceId().isBlank()) {
+        ConcurrentHashMap<Long, ProcessHolder> holders = running.get(tid);
+        if (holders == null) {
             return Optional.empty();
         }
-        return Optional.of(holder.instanceId());
+        return holders.values().stream()
+            .map(ProcessHolder::instanceId)
+            .filter(id -> id != null && !id.isBlank())
+            .findFirst();
     }
 
     /**
      * Kill the registered process tree of a task, if present. Returns true if kill attempted
      * (process existed), false if not found locally.
      *
-     * Scope note: only the tree registered under the tid is killed. The previous machine-wide scan
-     * over "-DjobName={tid}" command lines was removed — it force-killed legitimate concurrent
-     * copies of the same table (e.g. a normal run plus a fillback for another date share the tid
-     * but register as separate trees) and it could stall the caller for 1.2s per unrelated process.
+     * Scope note: every run registered under the tid is killed. A normal run and a fillback for the
+     * same table can overlap, so the registry keeps one holder per execution id. The previous
+     * machine-wide scan over "-DjobName={tid}" command lines was removed — it force-killed legitimate
+     * concurrent copies of the same table and could stall the caller for 1.2s per unrelated process.
      */
     public boolean killLocal(long tid)
     {
-        ProcessHolder holder = running.get(tid);
-        if (holder == null) {
+        ConcurrentHashMap<Long, ProcessHolder> holders = running.get(tid);
+        if (holders == null || holders.isEmpty()) {
             return false;
         }
-        try {
-            killRequested.put(tid, Instant.now());
-            Process p = holder.process();
-            log.warn("Killing local collecting table {} , pid={} requested", tid, holder.pid());
-
-            ProcessHandle root = p.toHandle();
-            List<ProcessHandle> descendants = new ArrayList<>(root.descendants().toList());
-            descendants.sort(Comparator.comparingLong(this::depth).reversed());
-
-            int gracefulStopped = 0;
-            for (ProcessHandle handle : descendants) {
-                if (tryStopHandle(handle, false)) {
-                    gracefulStopped++;
-                }
+        killRequested.put(tid, Instant.now());
+        int killed = 0;
+        for (Map.Entry<Long, ProcessHolder> entry : List.copyOf(holders.entrySet())) {
+            ProcessHolder holder = entry.getValue();
+            log.warn("Killing local collecting table {} execution={} pid={} requested",
+                tid, entry.getKey(), holder.pid());
+            try {
+                ProcessGuard.destroyTree(holder.process());
+                holders.remove(entry.getKey(), holder);
+                killed++;
             }
-            if (tryStopHandle(root, false)) {
-                gracefulStopped++;
+            catch (Exception e) {
+                log.error("Failed to kill local collecting table {} execution={}", tid, entry.getKey(), e);
             }
-
-            int forcedStopped = 0;
-            for (ProcessHandle handle : descendants) {
-                if (tryStopHandle(handle, true)) {
-                    forcedStopped++;
-                }
-            }
-            if (tryStopHandle(root, true)) {
-                forcedStopped++;
-            }
-
-            // Deregister immediately: the executor's finally block unregisters again (idempotent),
-            // and a later killLocal for this tid should report 'not found'.
-            running.remove(tid, holder);
-
-            log.warn("Kill requested tid={} rootPid={} descendants={} gracefulStopped={} forcedStopped={}",
-                tid, root.pid(), descendants.size(), gracefulStopped, forcedStopped);
-            return true;
         }
-        catch (Exception e) {
-            log.error("Failed to kill local collecting table {} ", tid, e);
-            return false;
+        if (holders.isEmpty()) {
+            running.remove(tid, holders);
         }
+        return killed > 0;
     }
 
     /**
@@ -164,47 +154,6 @@ public class ExecutionManager
         }
         killRequested.remove(tid);
         return true;
-    }
-
-    private long depth(ProcessHandle handle)
-    {
-        long d = 0;
-        Optional<ProcessHandle> p = handle.parent();
-        while (p.isPresent()) {
-            d++;
-            p = p.get().parent();
-        }
-        return d;
-    }
-
-    private boolean tryStopHandle(ProcessHandle handle, boolean force)
-    {
-        if (handle == null || !handle.isAlive()) {
-            return false;
-        }
-        try {
-            if (force) {
-                handle.destroyForcibly();
-            }
-            else {
-                handle.destroy();
-            }
-            waitExit(handle, 1200);
-            return true;
-        }
-        catch (Exception e) {
-            log.debug("Failed to stop pid={} force={}", handle.pid(), force, e);
-            return false;
-        }
-    }
-
-    private void waitExit(ProcessHandle handle, long millis)
-    {
-        try {
-            handle.onExit().get(millis, TimeUnit.MILLISECONDS);
-        }
-        catch (Exception ignored) {
-        }
     }
 
     @Override
@@ -246,6 +195,19 @@ public class ExecutionManager
     @PreDestroy
     public void shutdown()
     {
+        // A graceful stop must not leave addax processes behind: a restarted admin would otherwise
+        // re-dispatch the same queue row while the old process is still writing to the target.
+        for (ConcurrentHashMap<Long, ProcessHolder> holders : running.values()) {
+            for (ProcessHolder holder : holders.values()) {
+                try {
+                    ProcessGuard.destroyTree(holder.process());
+                }
+                catch (Exception e) {
+                    log.warn("Failed to terminate pid={} on shutdown", holder.pid(), e);
+                }
+            }
+        }
+        running.clear();
         killExecutor.shutdownNow();
     }
 

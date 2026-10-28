@@ -31,6 +31,7 @@ import com.wgzhao.addax.admin.service.TargetService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.UserNotificationService;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
+import com.wgzhao.addax.admin.utils.ProcessGuard;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.io.File;
@@ -63,6 +64,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import lombok.NonNull;
@@ -103,16 +105,23 @@ public class TaskQueueManagerV2Impl
     private static final int BACKOFF_FACTOR = 2;
     // Polling interval & lease
     private static final int DEFAULT_POLL_INTERVAL_SECONDS = 3;
-    private static final int DEFAULT_LEASE_SECONDS = 7300;
+    // The lease is the ownership fence: a running row may only be re-dispatched after its lease
+    // expires, and the owner renews it every RENEW_INTERVAL_SECONDS. Keeping the lease short bounds
+    // crash recovery; keeping it longer than the renewal interval tolerates brief DB/GC stalls.
+    private static final int DEFAULT_LEASE_SECONDS = 120;
     // Provisional lease granted at claim time, before delivery is confirmed. A job whose assignment
     // message is lost (master crash between claim and publish, dead subscription, reconnect gap) is
-    // recovered by the 30s lease sweep within a few minutes instead of stranding for the full 7300s.
-    // The worker extends it to DEFAULT_LEASE_SECONDS at execution start (claim confirmation).
-    private static final int CLAIM_LEASE_SECONDS = 180;
+    // recovered by the lease sweep instead of stranding. The worker extends it to DEFAULT_LEASE_SECONDS
+    // at execution start; the gap between the two values is what lets releaseClaim() distinguish an
+    // undelivered claim from one the worker already confirmed.
+    private static final int CLAIM_LEASE_SECONDS = 60;
+    private static final int RENEW_INTERVAL_SECONDS = 20;
+    // Conservative fencing: if ownership cannot be confirmed for three consecutive renewals
+    // (database down, network partition), kill the local addax process. This happens well before
+    // the lease expires, so no successor can start while the old process is still writing.
+    private static final int RENEW_FAILURE_TOLERANCE = 3;
+    private static final int LEASE_SWEEP_INTERVAL_SECONDS = 10;
     private static final int HEARTBEAT_INTERVAL_SECONDS = 15;
-    // A worker missing from heartbeats for this long is considered dead. Must exceed the heartbeat
-    // key TTL (45s) so a transient Redis blip/GC pause never releases claims of a live executor.
-    private static final int WORKER_RECOVERY_GRACE_SECONDS = 60;
     private static final int PENDING_JOB_PEEK_LIMIT = 200;
     // Redis channel for task assignment: master → worker
     private static final String TASK_ASSIGN_CHANNEL_PREFIX = "addax:task:assign:";
@@ -174,23 +183,24 @@ public class TaskQueueManagerV2Impl
     private final ConcurrentHashMap<String, Double> swrrCurrentWeight = new ConcurrentHashMap<>();
     // Master-side worker capacity ledger between heartbeat snapshots
     private final ConcurrentHashMap<String, WorkerLedger> workerLedgers = new ConcurrentHashMap<>();
-    // Tracks alive workers seen in the previous dispatch cycle for dead-worker detection.
-    // Read/written from the dispatch thread (serialized by dispatchLock) but also cleared by
-    // election callbacks on other threads, so it must tolerate concurrent mutation.
-    private final Set<String> knownWorkerIds = ConcurrentHashMap.newKeySet();
-    // First dispatch cycle at which a currently-missing worker was observed gone (dead-worker grace)
-    private final ConcurrentHashMap<String, Instant> workerGoneSince = new ConcurrentHashMap<>();
+    // Lease renewals run on their own pool: a busy dispatch pool must never delay a renew past the
+    // lease TTL, which would fence a healthy run and let another worker duplicate it.
+    private final ScheduledExecutorService leaseScheduler = Executors.newScheduledThreadPool(2, r -> {
+        Thread t = new Thread(r, "etl-lease");
+        t.setDaemon(true);
+        return t;
+    });
 
     private volatile Future<?> listenFuture;
     private volatile ScheduledFuture<?> pollFuture;
     private volatile ScheduledFuture<?> recoverFuture;
     private volatile ScheduledFuture<?> heartbeatFuture;
-    private volatile ScheduledFuture<?> orphanRecoverFuture;
     private volatile ScheduledFuture<?> subscriptionRetryFuture;
 
     @PostConstruct
     public void init()
     {
+        validateLeaseTimings();
         configService.loadConfig();
         int originalConcurrentLimit = configService.getConcurrentLimit();
         this.concurrencyWeight = configService.getNodeConcurrencyWeight();
@@ -218,12 +228,50 @@ public class TaskQueueManagerV2Impl
         // Register master election callbacks
         electionService.onBecameMaster(this::onBecameMaster);
         electionService.onLostMaster(this::onLostMaster);
+        // The election thread starts before this bean is initialized (initial delay 0), so a tick
+        // can win master before the callback is registered. Recovery itself is lease-based and does
+        // not depend on the callback, but the in-memory dispatch bookkeeping still must be reset.
+        if (electionService.isMaster()) {
+            onBecameMaster();
+        }
+
+        // Heartbeat files from a previous JVM can only belong to wrappers whose child must die.
+        ProcessGuard.cleanupLeaseFiles();
 
         running = true;
         submitScheduledTasks();
 
         log.info("Task queue manager started (master-worker mode). originalConcurrentLimit={} weight={} effectiveConcurrentLimit={} enqueueCapacity={} instanceId={}",
             originalConcurrentLimit, concurrencyWeight, concurrentLimit, enqueueCapacity, instanceId);
+    }
+
+    /**
+     * The duplicate-prevention guarantee depends on these relations. They live in two classes
+     * (the scheduler and the wrapper), so a tuning change must fail at startup instead of silently
+     * opening a window where a successor can claim a row before the old process is dead.
+     */
+    private static void validateLeaseTimings()
+    {
+        int releaseGuard = DEFAULT_LEASE_SECONDS - 30;
+        if (CLAIM_LEASE_SECONDS >= DEFAULT_LEASE_SECONDS || releaseGuard <= CLAIM_LEASE_SECONDS) {
+            throw new IllegalStateException("Invalid lease policy: a provisional claim must be "
+                + "distinguishable from a confirmed one (claim=" + CLAIM_LEASE_SECONDS
+                + "s, confirmed=" + DEFAULT_LEASE_SECONDS + "s, releaseGuard=" + releaseGuard + "s)");
+        }
+        if (RENEW_INTERVAL_SECONDS * RENEW_FAILURE_TOLERANCE >= ProcessGuard.LEASE_FRESHNESS_SECONDS) {
+            throw new IllegalStateException("Invalid lease policy: Java fence ("
+                + (RENEW_INTERVAL_SECONDS * RENEW_FAILURE_TOLERANCE) + "s) must fire before the wrapper "
+                + "kills a stale run (" + ProcessGuard.LEASE_FRESHNESS_SECONDS + "s)");
+        }
+        if (ProcessGuard.LEASE_FRESHNESS_SECONDS >= DEFAULT_LEASE_SECONDS) {
+            throw new IllegalStateException("Invalid lease policy: the wrapper stale threshold ("
+                + ProcessGuard.LEASE_FRESHNESS_SECONDS + "s) must be below the lease ("
+                + DEFAULT_LEASE_SECONDS + "s)");
+        }
+        log.info("Lease policy: claim={}s confirmed={}s renew={}s fenceAfter={}s wrapperStale={}s sweep={}s",
+            CLAIM_LEASE_SECONDS, DEFAULT_LEASE_SECONDS, RENEW_INTERVAL_SECONDS,
+            RENEW_INTERVAL_SECONDS * RENEW_FAILURE_TOLERANCE, ProcessGuard.LEASE_FRESHNESS_SECONDS,
+            LEASE_SWEEP_INTERVAL_SECONDS);
     }
 
     private boolean subscribeToAssignmentChannel()
@@ -243,7 +291,8 @@ public class TaskQueueManagerV2Impl
     {
         listenFuture = scheduler.submit(this::listenLoop);
         pollFuture = scheduler.scheduleWithFixedDelay(this::pollAndDispatch, 1, DEFAULT_POLL_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        recoverFuture = scheduler.scheduleWithFixedDelay(this::recoverLeases, 30, 30, TimeUnit.SECONDS);
+        recoverFuture = scheduler.scheduleWithFixedDelay(this::recoverLeases,
+            LEASE_SWEEP_INTERVAL_SECONDS, LEASE_SWEEP_INTERVAL_SECONDS, TimeUnit.SECONDS);
         heartbeatFuture = scheduler.scheduleWithFixedDelay(heartbeatService::publishHeartbeat, 2, HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -262,12 +311,10 @@ public class TaskQueueManagerV2Impl
     {
         log.info("Became master — starting dispatch loop");
         workerLedgers.clear();
-        knownWorkerIds.clear();
-        workerGoneSince.clear();
-        // Wait 2× heartbeat interval for workers to re-register, then release orphaned tasks
-        if (orphanRecoverFuture != null) orphanRecoverFuture.cancel(false);
-        orphanRecoverFuture = scheduler.schedule(this::recoverOrphanedJobs,
-            2L * HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        swrrCurrentWeight.clear();
+        // No orphan sweep here. A row is released only when its lease expires (see recoverLeases):
+        // heartbeat/startup based release cannot distinguish a dead worker from a partitioned one,
+        // and releasing a live claim is exactly how the same table used to run twice.
     }
 
     private void onLostMaster()
@@ -275,37 +322,6 @@ public class TaskQueueManagerV2Impl
         log.info("Lost master role — pausing dispatch (workers continue executing current tasks)");
         swrrCurrentWeight.clear();
         workerLedgers.clear();
-        knownWorkerIds.clear();
-        workerGoneSince.clear();
-        if (orphanRecoverFuture != null) {
-            orphanRecoverFuture.cancel(false);
-            orphanRecoverFuture = null;
-        }
-    }
-
-    /**
-     * One-shot task scheduled 2× HEARTBEAT_INTERVAL_SECONDS after becoming master.
-     * Releases tasks claimed by instances that did not re-register as alive workers.
-     */
-    private void recoverOrphanedJobs()
-    {
-        if (!electionService.isMaster()) return;
-        try {
-            Set<String> aliveIds = heartbeatService.getAliveWorkers().stream()
-                .map(WorkerHeartbeatService.WorkerInfo::instanceId)
-                .collect(Collectors.toSet());
-            int recovered = jobQueueService.releaseOrphanedJobs(aliveIds);
-            if (recovered > 0) {
-                log.info("Orphan recovery: released {} tasks claimed by disappeared workers (alive={})", recovered, aliveIds);
-                triggerDispatchAsync();
-            }
-            else {
-                log.debug("Orphan recovery: no orphaned tasks found (alive={})", aliveIds);
-            }
-        }
-        catch (Exception e) {
-            log.error("Orphan recovery failed", e);
-        }
     }
 
     // ---- Worker: receive task assignment via Redis pub/sub ----
@@ -447,40 +463,14 @@ public class TaskQueueManagerV2Impl
             return;
         }
 
-        // Detect workers that disappeared since last dispatch cycle and proactively recover their tasks,
-        // avoiding waiting for DEFAULT_LEASE_SECONDS (7300s) expiry. A worker must stay absent for
-        // WORKER_RECOVERY_GRACE_SECONDS before its claims are released: a heartbeat key can expire on a
-        // transient Redis blip while the worker (and its addax processes) are still running, and releasing
-        // early would dispatch the same (tid, biz_date) to a second worker.
+        // Ownership is never released from heartbeat absence. A heartbeat can disappear during a
+        // Redis blip while the worker's addax processes keep writing; releasing that claim would
+        // dispatch the same (tid, biz_date) to a second worker. Claims are recovered only when
+        // their database lease expires (recoverLeases), and the lease renewer fences the old
+        // process before that can happen.
         Set<String> currentWorkerIds = workers.stream()
             .map(WorkerHeartbeatService.WorkerInfo::instanceId)
             .collect(Collectors.toSet());
-        Instant now = Instant.now();
-        if (!knownWorkerIds.isEmpty()) {
-            for (String id : new HashSet<>(knownWorkerIds)) {
-                if (currentWorkerIds.contains(id)) {
-                    workerGoneSince.remove(id);
-                    continue;
-                }
-                Instant goneAt = workerGoneSince.computeIfAbsent(id, k -> now);
-                if (goneAt.plusSeconds(WORKER_RECOVERY_GRACE_SECONDS).isAfter(now)) {
-                    continue;
-                }
-                workerGoneSince.remove(id);
-                log.warn("Worker {} absent for {}s — recovering its claimed tasks", id, WORKER_RECOVERY_GRACE_SECONDS);
-                try {
-                    int recovered = jobQueueService.releaseClaimedByInstance(id);
-                    if (recovered > 0) {
-                        log.info("Released {} tasks from dead worker {}", recovered, id);
-                    }
-                }
-                catch (Exception e) {
-                    log.error("Failed to release tasks from dead worker {}", id, e);
-                }
-            }
-        }
-        knownWorkerIds.clear();
-        knownWorkerIds.addAll(currentWorkerIds);
 
         // Clean up SWRR state for workers that are no longer alive
         swrrCurrentWeight.keySet().retainAll(currentWorkerIds);
@@ -544,7 +534,8 @@ public class TaskQueueManagerV2Impl
                     // subscription failure or reconnect gap). Its claim is released and the short
                     // provisional lease lets the 30s sweep recover it even if this release races.
                     log.error("No listener on channel {} for job {} (worker deaf) — releasing claim", channel, job.getId());
-                    jobQueueService.releaseClaim(job.getId(), 2, selected.instanceId());
+                    jobQueueService.releaseClaim(job.getId(), 2, selected.instanceId(),
+                        DEFAULT_LEASE_SECONDS - 30);
                     selected.slots = 0; // do not keep claiming jobs for a worker that cannot hear us this cycle
                     continue;
                 }
@@ -563,7 +554,8 @@ public class TaskQueueManagerV2Impl
             catch (Exception e) {
                 log.error("Failed to publish task assignment for jobId={} to worker={}", job.getId(), selected.instanceId(), e);
                 consumedJobIds.add(job.getId());
-                try { jobQueueService.releaseClaim(job.getId(), 5, selected.instanceId()); } catch (Exception ignored) {}
+                try { jobQueueService.releaseClaim(job.getId(), 5, selected.instanceId(),
+                    DEFAULT_LEASE_SECONDS - 30); } catch (Exception ignored) {}
             }
         }
     }
@@ -858,7 +850,7 @@ public class TaskQueueManagerV2Impl
     {
         long start = System.currentTimeMillis();
         TaskResultDto taskResultDto = null;
-        ScheduledFuture<?> renewer = null;
+        RunLease lease = null;
         // 声明在 try 外,异常分支(notifyFinalFailure)也需要引用
         EtlTable task = null;
         // Source whose running counter was reserved at start; drives the finally decrement so a
@@ -869,7 +861,7 @@ public class TaskQueueManagerV2Impl
         try {
             // Claim confirmation: only execute while this instance still owns the row. The row may
             // have been released/reclaimed between dispatch and receipt (publish timeout, master
-            // crash, orphan recovery), in which case executing would duplicate a successor run.
+            // crash, lease expiry), in which case executing would duplicate a successor run.
             if (!jobQueueService.renewLease(job.getId(), instanceId, DEFAULT_LEASE_SECONDS)) {
                 log.warn("Job {} no longer owned by instance {}, skipping execution", job.getId(), instanceId);
                 return;
@@ -897,21 +889,24 @@ public class TaskQueueManagerV2Impl
                 countedSourceSid = task.getSid();
             }
 
-            int renewInterval = Math.max(30, DEFAULT_LEASE_SECONDS / 3);
-            renewer = scheduler.scheduleAtFixedRate(() -> {
-                try {
-                    boolean dbRenewed = jobQueueService.renewLease(job.getId(), instanceId, DEFAULT_LEASE_SECONDS);
-                    if (!dbRenewed) {
-                        log.warn("DB lease renewal failed jobId={}", job.getId());
-                    }
-                }
-                catch (Exception e) {
-                    log.warn("Lease renewal exception for jobId={}", jobId, e);
-                }
-            }, renewInterval, renewInterval, TimeUnit.SECONDS);
+            // Tie the local addax process to this row's lease. The renewer keeps the database lease
+            // alive and refreshes the wrapper's heartbeat file; when ownership cannot be confirmed
+            // it fences, and CommandExecutor kills the process tree before a successor can start.
+            lease = new RunLease(job.getId());
+            lease.start();
 
             taskResultDto = executeEtlTaskWithConcurrencyControl(
-                task, job.getBizDate(), job.getId(), job.getAttempts());
+                task, job.getBizDate(), job.getId(), job.getAttempts(), lease);
+
+            String fenceReason = lease.fenceReason();
+            if (fenceReason != null) {
+                log.warn("Job {} (tid={}) is fenced ({}); not writing table state, the row is left to lease recovery",
+                    job.getId(), job.getTid(), fenceReason);
+                return;
+            }
+            // Stop renewing before the terminal queue write: a renewal racing completeSuccess would
+            // see a non-running row and fence an otherwise successful run.
+            lease.finish();
             // A kill recorded before this run's claim belongs to a previous execution of the same
             // tid and must not misclassify a genuine failure as a user cancel.
             boolean killedByUser = executionManager.consumeKillRequested(job.getTid(),
@@ -931,6 +926,15 @@ public class TaskQueueManagerV2Impl
             }
         }
         catch (Exception e) {
+            String fenceReason = lease == null ? null : lease.fenceReason();
+            if (fenceReason != null) {
+                log.warn("Job {} (tid={}) failed after its queue lease was fenced ({}); not rescheduling",
+                    job.getId(), job.getTid(), fenceReason);
+                return;
+            }
+            if (lease != null) {
+                lease.finish();
+            }
             log.error("Task execution failed jobId={} tid={}", job.getId(), job.getTid(), e);
             boolean killedByUser = executionManager.consumeKillRequested(job.getTid(),
                 job.getClaimedAt() != null ? job.getClaimedAt() : Instant.EPOCH);
@@ -949,8 +953,8 @@ public class TaskQueueManagerV2Impl
             }
         }
         finally {
-            if (renewer != null) {
-                try { renewer.cancel(false); } catch (Exception ignored) {}
+            if (lease != null) {
+                lease.stop();
             }
 
             int afterGlobal = runningTaskCount.decrementAndGet();
@@ -970,10 +974,139 @@ public class TaskQueueManagerV2Impl
                     job.getId(), (System.currentTimeMillis() - start) / 1000, afterGlobal, jobQueueService.countPending());
             }
 
-            try { notifyJobCompletion(job, taskResultDto); } catch (Exception ignored) {}
+            // A fenced run no longer owns the row; its successor owns the outcome and the
+            // notification. Alerting here would report a second, misleading result for one table.
+            if (lease == null || lease.fenceReason() == null) {
+                try { notifyJobCompletion(job, taskResultDto); } catch (Exception ignored) {}
+            }
 
             // Trigger next dispatch cycle on master
             triggerDispatchAsync();
+        }
+    }
+
+    /**
+     * Ownership heartbeat for one queue row.
+     *
+     * <p>Renewal is what keeps the row ours. When it fails definitively (the row was released and
+     * possibly reclaimed) or repeatedly (the database is unreachable), the run is fenced: it never
+     * writes table state, and its addax process is destroyed before the lease can expire, so the
+     * next owner of the row cannot overlap with it.</p>
+     */
+    private final class RunLease
+    {
+        private final long jobId;
+        private final Path leaseFile;
+        private final AtomicReference<String> fenceReason = new AtomicReference<>();
+        private final AtomicInteger consecutiveFailures = new AtomicInteger();
+        private volatile ScheduledFuture<?> renewer;
+        // Set once the process has exited and we are about to write the terminal queue state.
+        // A renewal that races that write must not fence a run that just finished successfully.
+        private volatile boolean done;
+
+        RunLease(long jobId) throws IOException
+        {
+            this.jobId = jobId;
+            this.leaseFile = ProcessGuard.newLeaseFile(jobId);
+            // The wrapper must see a fresh heartbeat before it starts the child.
+            ProcessGuard.touchLease(leaseFile);
+        }
+
+        void start()
+        {
+            renewer = leaseScheduler.scheduleAtFixedRate(this::renew,
+                RENEW_INTERVAL_SECONDS, RENEW_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        }
+
+        String fenceReason()
+        {
+            return fenceReason.get();
+        }
+
+        Path leaseFile()
+        {
+            return leaseFile;
+        }
+
+        private void renew()
+        {
+            if (done || fenceReason.get() != null) {
+                return;
+            }
+            try {
+                if (!jobQueueService.renewLease(jobId, instanceId, DEFAULT_LEASE_SECONDS)) {
+                    if (!done) {
+                        fence("queue row is no longer owned by " + instanceId);
+                    }
+                    return;
+                }
+                if (done) {
+                    return;
+                }
+                ProcessGuard.touchLease(leaseFile);
+                consecutiveFailures.set(0);
+            }
+            catch (Exception e) {
+                if (done) {
+                    return;
+                }
+                int failures = consecutiveFailures.incrementAndGet();
+                if (failures >= RENEW_FAILURE_TOLERANCE) {
+                    fence("lease renewal failed " + failures + " times: " + e.getMessage());
+                }
+                else {
+                    log.warn("Lease renewal {}/{} failed for jobId={}: {}",
+                        failures, RENEW_FAILURE_TOLERANCE, jobId, e.getMessage());
+                }
+            }
+        }
+
+        /**
+         * Final ownership check before table state is written. Successful renewal also means the
+         * wrapper's heartbeat file stays fresh while the process is finishing.
+         */
+        boolean stillOwned()
+        {
+            if (fenceReason.get() != null) {
+                return false;
+            }
+            try {
+                if (!jobQueueService.renewLease(jobId, instanceId, DEFAULT_LEASE_SECONDS)) {
+                    fence("queue row is no longer owned by " + instanceId);
+                    return false;
+                }
+                ProcessGuard.touchLease(leaseFile);
+                return true;
+            }
+            catch (Exception e) {
+                fence("ownership check failed: " + e.getMessage());
+                return false;
+            }
+        }
+
+        /** The process finished; stop renewing while the terminal queue update is written. */
+        void finish()
+        {
+            done = true;
+            if (renewer != null) {
+                renewer.cancel(false);
+            }
+        }
+
+        void stop()
+        {
+            done = true;
+            if (renewer != null) {
+                renewer.cancel(false);
+            }
+            ProcessGuard.deleteLease(leaseFile);
+        }
+
+        private void fence(String reason)
+        {
+            if (fenceReason.compareAndSet(null, reason)) {
+                log.warn("Fencing run of jobId={}: {}", jobId, reason);
+            }
         }
     }
 
@@ -1011,14 +1144,30 @@ public class TaskQueueManagerV2Impl
     private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
         Long queueId, int attemptNo)
     {
+        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, queueId, attemptNo, null);
+    }
+
+    private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
+        Long queueId, int attemptNo, RunLease lease)
+    {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
+        if (lease != null && lease.fenceReason() != null) {
+            return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), 0);
+        }
         try {
             tableService.setRunning(task);
-            boolean result = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo);
+            boolean result = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo, lease);
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
             log.info("Task {}.{}({}) completed, elapsed={}s, result={}", task.getSourceDb(), task.getSourceTable(), tid, duration, result);
             task.setDuration(duration);
+            // A run that no longer owns its queue row must not write a table state that belongs to
+            // the successor run. stillOwned() also renews the lease, closing the expiry race.
+            if (lease != null && !lease.stillOwned()) {
+                log.warn("Task {}.{}({}) lost queue ownership before status update: {}",
+                    task.getSourceDb(), task.getSourceTable(), tid, lease.fenceReason());
+                return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), duration);
+            }
             if (result) {
                 tableService.setFinished(task);
                 return TaskResultDto.success("Success", duration);
@@ -1030,6 +1179,11 @@ public class TaskQueueManagerV2Impl
         }
         catch (Exception e) {
             long duration = (System.currentTimeMillis() - startTime) / 1000;
+            if (lease != null && !lease.stillOwned()) {
+                log.warn("Task {}.{}({}) lost queue ownership during failure handling: {}",
+                    task.getSourceDb(), task.getSourceTable(), tid, lease.fenceReason());
+                return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), duration);
+            }
             if (e instanceof TargetContractViolationException contractViolation)
             {
                 task.setDuration(duration);
@@ -1053,13 +1207,19 @@ public class TaskQueueManagerV2Impl
 
     public boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate)
     {
-        return executeEtlTaskLogic(task, overrideBizDate, null, 1);
+        return executeEtlTaskLogic(task, overrideBizDate, null, 1, null);
     }
 
-    private boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo)
+    private boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo,
+        RunLease lease)
     {
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
+
+        if (lease != null && lease.fenceReason() != null) {
+            log.warn("Not executing tid={}: {}", taskId, lease.fenceReason());
+            return false;
+        }
 
         VwEtlTableWithSource tableView = tableService.getTableView(taskId);
         if (tableView == null) {
@@ -1119,7 +1279,10 @@ public class TaskQueueManagerV2Impl
             File tempFile;
             try {
                 String curDate = DateUtil.date().toDateStr();
-                String jobsDir = Path.of(System.getProperty("app.home")).resolve("job").resolve(curDate) + "/";
+                // app.home falls back to the working directory so container deployments that only
+                // set the working directory still get a writable job/lease home.
+                String appHome = System.getProperty("app.home", System.getProperty("user.dir"));
+                String jobsDir = Path.of(appHome).resolve("job").resolve(curDate) + "/";
                 Files.createDirectories(Path.of(jobsDir));
                 // Include bizDateStr in the file name to prevent concurrent fillback tasks
                 // for the same table from overwriting each other's job files.
@@ -1138,7 +1301,7 @@ public class TaskQueueManagerV2Impl
             List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
             String cmd = toCommandString(cmdArgs);
             boolean retCode = executeAddax(cmdArgs, cmd, taskId, execution.getId(), logName,
-                task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime());
+                task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime(), lease);
             executionService.finish(execution, retCode, retCode ? null : "Addax exited with a non-zero code");
             log.debug("Task {} log written to: {}", taskId, logName);
             return retCode;
@@ -1150,29 +1313,40 @@ public class TaskQueueManagerV2Impl
     }
 
     private boolean executeAddax(List<String> commandArgs, String commandForLog, long tid, long executionId,
-        String logName, long maxRuntimeSeconds)
+        String logName, long maxRuntimeSeconds, RunLease lease)
     {
         EtlJour etlJour = jourService.addJour(tid, executionId, JourKind.COLLECT, commandForLog);
-        Process process;
+        Process process = null;
         TaskResultDto taskResult;
         long pid = -1;
         try {
-            process = CommandExecutor.startProcess(commandArgs);
-            try { pid = process.pid(); } catch (UnsupportedOperationException ignored) {}
-            try {
-                executionManager.register(tid, process, pid, instanceId);
+            if (lease != null && lease.fenceReason() != null) {
+                log.warn("Not starting addax for tid={}: {}", tid, lease.fenceReason());
+                taskResult = TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), 0);
             }
-            catch (Exception e) {
-                log.warn("Failed to register process in ExecutionManager tid={} pid={}", tid, pid, e);
+            else {
+                // The wrapper ties addax to this JVM and to the lease heartbeat file, so a crash
+                // or a hung/fenced owner cannot leave a second writer behind.
+                process = ProcessGuard.start(commandArgs, lease == null ? null : lease.leaseFile());
+                try { pid = process.pid(); } catch (UnsupportedOperationException ignored) {}
+                try {
+                    executionManager.register(tid, executionId, process, pid, instanceId);
+                }
+                catch (Exception e) {
+                    log.warn("Failed to register process in ExecutionManager tid={} pid={}", tid, pid, e);
+                }
+                taskResult = CommandExecutor.waitForProcessWithResult(process, maxRuntimeSeconds, commandForLog,
+                    lease == null ? null : lease::fenceReason);
             }
-            taskResult = CommandExecutor.waitForProcessWithResult(process, maxRuntimeSeconds, commandForLog);
         }
         catch (IOException ioe) {
             log.error("Failed to start process for command: {}", commandForLog, ioe);
             taskResult = TaskResultDto.failure(ioe.getMessage(), 0);
         }
         finally {
-            try { executionManager.unregister(tid); } catch (Exception ignored) {}
+            if (process != null) {
+                try { executionManager.unregister(tid, executionId); } catch (Exception ignored) {}
+            }
         }
         Path path = Path.of(dictService.getAddaxHome() + "/log/" + logName);
         String logContent = null;
@@ -1235,6 +1409,7 @@ public class TaskQueueManagerV2Impl
         heartbeatService.removeHeartbeat();
         scheduler.shutdownNow();
         workerPool.shutdownNow();
+        leaseScheduler.shutdownNow();
         log.info("Task queue manager stopped");
     }
 
