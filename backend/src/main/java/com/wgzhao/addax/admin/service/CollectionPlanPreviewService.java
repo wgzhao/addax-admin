@@ -14,6 +14,7 @@ import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -43,6 +44,7 @@ public class CollectionPlanPreviewService
     private final EtlTargetRepo targetRepo;
     private final DictService dictService;
     private final ObjectMapper objectMapper;
+    private final CollectionScopeService collectionScopeService;
 
     public List<CollectionPlanPreview> preview(List<CollectionSchemaPreviewRequest> requests)
     {
@@ -82,6 +84,11 @@ public class CollectionPlanPreviewService
     {
         CollectionSchemaPreview preview = schemaPreviewService.preview(request);
         List<TargetContractReport.Finding> findings = new ArrayList<>(preview.findings());
+        TargetContractReport.Finding existing = existingDefinitionFinding(request);
+        if (existing != null)
+        {
+            findings.add(0, existing);
+        }
         preview.suggestions().stream()
             .map(CollectionSchemaPreview.MappingSuggestion::finding)
             .filter(java.util.Objects::nonNull)
@@ -106,6 +113,11 @@ public class CollectionPlanPreviewService
         TargetAdapter adapter = targetAdapterRegistry.resolve(table);
         TargetTableMetadata actual = adapter.inspectTable(table);
         List<TargetContractReport.Finding> findings = new ArrayList<>();
+        TargetContractReport.Finding existing = existingDefinitionFinding(request);
+        if (existing != null)
+        {
+            findings.add(existing);
+        }
         List<CollectionPlanPreview.PlannedTargetColumn> planned = planColumns(request, adapter, sourceColumns);
         List<CollectionSchemaPreview.MappingSuggestion> mappings = planned.stream()
             .filter(column -> column.sourceColumnName() != null)
@@ -124,6 +136,29 @@ public class CollectionPlanPreviewService
         String status = status(findings);
         return build(request, status, action, summary(status, findings), sourceColumns, actual, planned,
             plannedPartitions(request, adapter), mappings, null, ddl, findings);
+    }
+
+    /**
+     * A target table that exists is not the same thing as a collection definition for this route.
+     * Report the definition explicitly so the wizard does not tell the user "already collected" based
+     * on target metadata alone.
+     */
+    private TargetContractReport.Finding existingDefinitionFinding(CollectionSchemaPreviewRequest request)
+    {
+        CollectionScopeService.Definition existing = collectionScopeService.findDefinition(
+            request.sourceId(), request.sourceDb(), request.sourceTable(),
+            request.targetId(), request.targetDb());
+        if (existing == null)
+        {
+            return null;
+        }
+        if (existing.active())
+        {
+            return TargetContractReport.Finding.error("SOURCE_ALREADY_COLLECTED", null, "collection", null,
+                "该源表已在目标端采集（采集表 ID " + existing.id() + "），不能重复创建");
+        }
+        return TargetContractReport.Finding.error("SOURCE_DEFINITION_RETIRED", null, "collection", null,
+            "该源表存在已退役定义（采集表 ID " + existing.id() + "），请先恢复");
     }
 
     private CollectionPlanPreview build(

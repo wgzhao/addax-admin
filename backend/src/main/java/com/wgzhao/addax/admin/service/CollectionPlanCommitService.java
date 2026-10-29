@@ -10,6 +10,7 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +33,7 @@ public class CollectionPlanCommitService
     private final ColumnService columnService;
     private final ColumnMappingService mappingService;
     private final ExternalCollectionService externalCollectionService;
+    private final CollectionScopeService collectionScopeService;
 
     public List<CollectionPlanCommitResult> commit(List<CollectionPlanCommitItem> items)
     {
@@ -44,8 +46,17 @@ public class CollectionPlanCommitService
         for (CollectionPlanCommitItem item : items)
         {
             EtlTable table = item.table();
-            String targetKey = (table.getTargetDb() + "." + table.getTargetTable())
-                .toLowerCase(Locale.ROOT);
+            String targetKey;
+            try
+            {
+                targetKey = collectionScopeService.targetKey(table);
+            }
+            catch (RuntimeException e)
+            {
+                results.add(CollectionPlanCommitResult.failed(null, table.getSourceTable(),
+                    table.getTargetTable(), e.getMessage()));
+                continue;
+            }
             if (!targets.add(targetKey))
             {
                 results.add(CollectionPlanCommitResult.failed(null, table.getSourceTable(),

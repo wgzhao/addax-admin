@@ -306,6 +306,17 @@ export interface TableMeta {
   approxRowCount?: number; // 近似行数
 }
 
+// 指定采集路由下可新增或可恢复的源表
+export interface CollectableTable {
+  name: string;
+  comment?: string | null;
+  approxRowCount?: number | null;
+  state: 'AVAILABLE' | 'RETIRED';
+  definitionId?: number | null;
+  retiredAt?: string | null;
+  retiredBy?: string | null;
+}
+
 export interface VEtlWithSource extends EtlTable {
   targetOptions: EtlTargetOptions;
   code: string; // 采集编号，一般以两个大写字母作为标志

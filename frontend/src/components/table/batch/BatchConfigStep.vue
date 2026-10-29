@@ -46,30 +46,23 @@
               :required="true"
               hide-details="auto"
             />
-            <v-select
-              v-model="targetId"
+            <v-text-field
+              :model-value="selectedTargetLabel"
               class="target-field"
-              :items="targets"
-              item-title="label"
-              item-value="value"
               label="目标端"
               density="comfortable"
               variant="outlined"
-              :required="true"
-              :rules="[rules.required]"
+              readonly
               hide-details="auto"
             />
             <v-text-field
-              v-model="targetDb"
+              :model-value="targetDb"
               class="target-field"
               label="目标库名"
               density="comfortable"
               variant="outlined"
-              :required="true"
-              :rules="[rules.required]"
+              readonly
               hide-details="auto"
-              autocomplete="off"
-              spellcheck="false"
             />
             <v-text-field
               v-model="targetTableTemplate"
@@ -286,7 +279,7 @@
                   v-for="row in previewRows"
                   :key="row.sourceTable"
                   :class="{
-                    'preview-row--duplicate': duplicateSet.has(row.targetTable.toLowerCase()),
+                    'preview-row--duplicate': duplicateSet.has(targetNameKey(row.targetTable)),
                   }"
                 >
                   <td class="src-col">{{ row.sourceTable }}</td>
@@ -319,14 +312,14 @@
 
   const props = defineProps<{
     targets: { label: string; value: number; targetType: string }[];
+    targetId: number | null;
+    targetDb: string;
     storageFormats: string[];
     compressFormats: string[];
     duplicateTargetNames: string[];
     targetNameIssue: string;
   }>();
 
-  const targetId = defineModel<number | null>('targetId');
-  const targetDb = defineModel<string>('targetDb');
   const targetTableTemplate = defineModel<string>('targetTableTemplate');
   const schemaManagementMode = defineModel<'MANAGED' | 'EXTERNAL'>('schemaManagementMode', {
     required: true,
@@ -335,14 +328,18 @@
   const selectedTables = defineModel<EtlTableView[]>('selected', { required: true });
 
   const selectedCnt = computed(() => selectedTables.value.length);
-  const duplicateSet = computed(
-    () => new Set(props.duplicateTargetNames.map(name => name.toLowerCase()))
+
+  const selectedTargetLabel = computed(
+    () => props.targets.find(t => t.value === props.targetId)?.label || '未选择目标端'
   );
 
   const family = computed(() => {
-    const picked = props.targets.find(t => t.value === targetId.value);
+    const picked = props.targets.find(t => t.value === props.targetId);
     return targetFamily(picked?.targetType);
   });
+
+  const targetNameKey = (name: string) => (family.value === 'hdfs' ? name.toLowerCase() : name);
+  const duplicateSet = computed(() => new Set(props.duplicateTargetNames.map(targetNameKey)));
 
   const partitionBindings = computed(() => options.value.hdfs.partitionBindings || []);
 
@@ -389,7 +386,7 @@
   const previewRows = computed(() =>
     selectedTables.value.slice(0, PREVIEW_LIMIT).map(item => ({
       sourceTable: item.sourceTable,
-      targetDb: targetDb.value || item.targetDb,
+      targetDb: props.targetDb || item.targetDb,
       targetTable: resolveTargetTable(item),
     }))
   );

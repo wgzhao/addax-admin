@@ -332,6 +332,10 @@
 
   const excludeBlocked = () => {
     rows.value.forEach(row => {
+      if (row.plan.status === 'ERROR') {
+        row.included = false;
+        return;
+      }
       const mappingReady = row.mappings.every(mapping => mapping.targetColumnName?.trim());
       const targetReady =
         row.plan.schemaManagementMode === 'MANAGED' ||

@@ -2039,6 +2039,20 @@ CREATE INDEX idx_etl_table_status_id_sid ON public.etl_table USING btree (status
 
 
 --
+-- Name: idx_etl_table_sid_target; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_etl_table_sid_target ON public.etl_table USING btree (sid, target_id);
+
+
+--
+-- Name: idx_etl_table_target_db; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_etl_table_target_db ON public.etl_table USING btree (target_id, target_db);
+
+
+--
 -- Name: idx_tid_run_date; Type: INDEX; Schema: public; Owner: -
 --
 
