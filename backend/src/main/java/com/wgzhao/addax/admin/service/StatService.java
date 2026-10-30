@@ -261,8 +261,8 @@ public class StatService
         LocalDate bizDate = configService.getBizDateAsDate();
         String sql = """
             select
-                round(coalesce(sum(total_bytes) filter (where biz_date = ?), 0) / 1024.0 / 1024 / 1024, 2) as "lastDataGb",
-                round(coalesce(sum(total_bytes), 0) / 1024.0 / 1024 / 1024, 2) as "totalDataGb",
+                coalesce(sum(total_bytes) filter (where biz_date = ?), 0) as "lastDataBytes",
+                coalesce(sum(total_bytes), 0) as "totalDataBytes",
                 coalesce(sum(take_secs) filter (where biz_date = ?), 0) as "totalTimeSecs",
                 count(distinct biz_date) as "totalDays"
             from etl_statistic

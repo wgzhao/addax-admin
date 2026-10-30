@@ -8,6 +8,7 @@
   import request from '@/utils/requests';
   import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
   import { useTheme } from 'vuetify';
+  import { capacityScale } from '@/utils/format';
 
   const Line = defineAsyncComponent(async () => {
     const [{ Line }, chart] = await Promise.all([import('vue-chartjs'), import('chart.js')]);
@@ -60,6 +61,12 @@
   const last12MonthsEtlData = ref([]);
   const chartReady = ref(false);
 
+  // Why: monthly volume outgrows GiB, so the axis picks TiB/PiB on its own
+  const scale = computed(() => {
+    const peak = Math.max(0, ...last12MonthsEtlData.value.map(item => Number(item.total_gb) || 0));
+    return capacityScale(peak);
+  });
+
   const areaData = computed(() => {
     const primary = getColor('primary', '#0B6BCB');
     const areaAlpha = isDark.value ? 0.2 : 0.12;
@@ -68,7 +75,7 @@
       labels: last12MonthsEtlData.value.map(item => item.month),
       datasets: [
         {
-          label: 'Data Collection (GiB)',
+          label: '采集量',
           backgroundColor: hexToRgba(primary, areaAlpha),
           borderColor: primary,
           tension: 0.35,
@@ -82,7 +89,9 @@
           pointHitRadius: 10,
           pointBorderWidth: 2,
           fill: true,
-          data: last12MonthsEtlData.value.map(item => item.total_gb),
+          data: last12MonthsEtlData.value.map(
+            item => Number(item.total_gb || 0) / scale.value.divisor
+          ),
         },
       ],
     };
@@ -120,7 +129,7 @@
           },
           title: {
             display: true,
-            text: 'Data (GiB)',
+            text: `采集量 (${scale.value.unit})`,
             color: onSurface,
           },
         },
@@ -134,6 +143,10 @@
         },
         tooltip: {
           intersect: false,
+          callbacks: {
+            label: (ctx: { parsed: { y: number } }) =>
+              `采集量: ${ctx.parsed.y.toFixed(2)} ${scale.value.unit}`,
+          },
           backgroundColor: hexToRgba(surface, isDark.value ? 0.95 : 0.98),
           borderColor: hexToRgba(onSurface, 0.2),
           borderWidth: 1,

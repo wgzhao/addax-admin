@@ -53,18 +53,22 @@
             <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
               <v-card class="stat-card pa-4" elevation="0" rounded="lg">
                 <v-icon class="stat-icon" size="36">mdi-database-plus</v-icon>
-                <v-card-title class="stat-title">昨日数据采集 (GiB)</v-card-title>
+                <v-card-title class="stat-title">昨日数据采集</v-card-title>
                 <v-card-text class="text-center">
-                  <span class="stat-value">{{ lastEtlData }}</span>
+                  <span class="stat-value">
+                    {{ lastData.value }}<span class="stat-unit">{{ lastData.unit }}</span>
+                  </span>
                 </v-card-text>
               </v-card>
             </v-col>
             <v-col cols="12" md="4" xl="2" lg="2" class="mb-4">
               <v-card class="stat-card pa-4" elevation="0" rounded="lg">
                 <v-icon class="stat-icon" size="36">mdi-database-check</v-icon>
-                <v-card-title class="stat-title">累计数据采集 (GiB)</v-card-title>
+                <v-card-title class="stat-title">累计数据采集</v-card-title>
                 <v-card-text class="text-center">
-                  <span class="stat-value">{{ totalEtlData || 0 }}</span>
+                  <span class="stat-value">
+                    {{ totalData.value }}<span class="stat-unit">{{ totalData.unit }}</span>
+                  </span>
                 </v-card-text>
               </v-card>
             </v-col>
@@ -74,7 +78,9 @@
                 <v-icon class="stat-icon" size="36">mdi-timer-outline</v-icon>
                 <v-card-title class="stat-title">最近采集总耗时</v-card-title>
                 <v-card-text class="text-center">
-                  <span class="stat-value">{{ lastCollectTime }}</span>
+                  <span class="stat-value">
+                    {{ lastTime.value }}<span class="stat-unit">{{ lastTime.unit }}</span>
+                  </span>
                 </v-card-text>
               </v-card>
             </v-col>
@@ -130,7 +136,7 @@
               </v-card>
 
               <v-card class="chart-card section-card pa-6" elevation="0" rounded="lg">
-                <v-card-title class="chart-title">最近12个月累计数据采集量 (GiB)</v-card-title>
+                <v-card-title class="chart-title">最近12个月累计数据采集量</v-card-title>
                 <v-card-text>
                   <div class="chart-container">
                     <LineChart />
@@ -270,6 +276,7 @@
   import SourceRatioList from '@/components/dashboard/SourceRatioList.vue';
   import TakeSecsHistogram from '@/components/dashboard/TakeSecsHistogram.vue';
   import { useTheme } from 'vuetify'; // Vuetify 主题钩子
+  import { formatBytes, formatDuration } from '@/utils/format';
 
   const vuetifyTheme = useTheme();
   const isDark = computed(() => vuetifyTheme.current.value.dark);
@@ -286,13 +293,17 @@
   };
 
   const ratios = ref<SourceRatio[]>([]);
-  const lastEtlData = ref(0.0);
+  const lastDataBytes = ref(0);
   const tableCount = ref(0);
   const allTableCount = ref(0);
   const allDbSourceCount = ref(0);
-  const totalEtlData = ref(0.0);
+  const totalDataBytes = ref(0);
   const totalCollectDays = ref(0);
-  const lastCollectTime = ref('');
+  const lastCollectSecs = ref(0);
+
+  const lastData = computed(() => formatBytes(lastDataBytes.value));
+  const totalData = computed(() => formatBytes(totalDataBytes.value));
+  const lastTime = computed(() => formatDuration(lastCollectSecs.value));
 
   // Why: the overview keeps the worst sources visible without letting 37 rows
   // stretch the card past the chart column next to it
@@ -319,14 +330,6 @@
     ratioDialog.value = true;
   };
 
-  // Format total seconds of the last collect cycle into a readable duration
-  function formatDuration(totalSecs: number): string {
-    if (!totalSecs || totalSecs <= 0) return '0 分钟';
-    if (totalSecs < 3600) return `${Math.round(totalSecs / 60)} 分钟`;
-    if (totalSecs < 86400) return `${(totalSecs / 3600).toFixed(1)} 小时`;
-    return `${(totalSecs / 86400).toFixed(1)} 天`;
-  }
-
   function fetchRatio() {
     try {
       // Fetch all dashboard stat cards in one request to reduce round trips
@@ -335,10 +338,10 @@
         allDbSourceCount.value = res.allDbSourceCount;
         tableCount.value = res.tableCount;
         allTableCount.value = res.allTableCount;
-        lastEtlData.value = res.lastDataGb;
-        totalEtlData.value = res.totalDataGb;
+        lastDataBytes.value = res.lastDataBytes;
+        totalDataBytes.value = res.totalDataBytes;
         totalCollectDays.value = res.totalDays;
-        lastCollectTime.value = formatDuration(res.totalTimeSecs);
+        lastCollectSecs.value = res.totalTimeSecs;
       });
     } catch (error) {
       console.error('Error fetching dashboard summary:', error);
@@ -450,6 +453,17 @@
     font-weight: 700;
     line-height: 1.24;
     color: rgb(var(--v-theme-on-surface));
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Why: the unit carries the 1024x magnitude, so it stays legible instead of
+     fading into the background; hierarchy comes from size and weight only */
+  .stat-unit {
+    margin-left: 0.18em;
+    font-size: 0.55em;
+    font-weight: 600;
+    color: rgba(var(--v-theme-on-surface), 0.8);
   }
 
   .stat-primary {
