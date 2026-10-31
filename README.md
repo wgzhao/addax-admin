@@ -69,7 +69,7 @@ addax-admin/
 
 - [安装与使用手册](docs/manual/README.md)
 - [Docker 部署](docs/manual/install/01-docker.md)
-- [源码构建与本地开发](docs/manual/install/02-source.md)
+- [主机模式与本地开发](docs/manual/install/02-source.md)
 - [快速上手](docs/manual/usage/01-quick-start.md)
 - [目标表结构与字段映射](docs/manual/usage/05-target-contract.md)
 - [目标端能力与表属性](docs/manual/usage/06-target-engines.md)
@@ -79,14 +79,23 @@ addax-admin/
 
 ---
 
-## 🚀 快速开始（5 分钟部署）
+## 🚀 快速开始
 
-### 前置条件
+Addax Admin 支持两种部署模式：
+
+- **Docker 模式**：适合快速体验和标准化部署，前后端、PostgreSQL、Redis 由 Docker Compose 管理。
+- **主机模式**：适合已有 Java、PostgreSQL、Redis、Nginx 基础设施的环境，使用编译产物分别部署后端和前端。
+
+两种模式都需要单独准备 **Addax 采集引擎**。Addax Admin 只负责管理和调度，不执行实际采集。
+
+### Docker 模式（推荐）
+
+#### 前置条件
 
 - Docker 20.10+、Docker Compose 2.0+
-- Addax 采集引擎。Addax Admin 只负责管理和调度，不执行实际采集；需要把 Addax 安装到应用容器或后端进程可访问的目录。
+- Addax 采集引擎，安装到应用容器可访问的目录
 
-### 方式一：拉取预构建镜像（推荐）
+#### 方式一：拉取预构建镜像
 
 ```bash
 # 1. 创建部署目录
@@ -115,7 +124,7 @@ docker compose -f docker-compose.yml pull
 docker compose -f docker-compose.yml up -d
 ```
 
-### 方式二：克隆源码本地构建
+#### 方式二：克隆源码本地构建
 
 ```bash
 git clone https://github.com/wgzhao/addax-admin.git
@@ -123,9 +132,34 @@ cd addax-admin
 docker compose up -d --build
 ```
 
-### 访问应用
+#### 访问应用
 
 运行成功后访问 <http://localhost:50080>，默认账号 `admin`，密码 `admin123`。首次登录后请立即修改密码。
+
+### 主机模式（编译产物）
+
+适用于不使用 Docker、已有 Java 21、Maven、Node.js、Yarn、PostgreSQL、Redis 和 Nginx 的环境。
+
+```bash
+# 1. 创建数据库和用户，然后初始化
+psql -U postgres -c "CREATE USER addax_admin WITH PASSWORD 'addax_admin@123';"
+psql -U postgres -c "CREATE DATABASE addax_admin OWNER addax_admin;"
+psql -U addax_admin -d addax_admin -f scripts/schema.sql
+psql -U addax_admin -d addax_admin -f scripts/data.sql
+
+# 2. 构建后端与前端
+cd backend && mvn clean package -DskipTests && cd ..
+cd frontend && yarn install && yarn build && cd ..
+
+# 3. 部署后端：lib/addax-admin-<version>.jar
+#    bin/service.sh、config/、drivers/、job/、logs/
+#    默认服务端口 50601
+
+# 4. 部署前端：将 frontend/dist 交给 Nginx
+#    并将 /api/v1 反向代理到 50601
+```
+
+后端目录布局、`config/env.sh`、systemd、Nginx 配置和升级步骤见 [主机模式与本地开发](docs/manual/install/02-source.md#主机模式部署)。
 
 完整的 Addax 引擎安装、环境变量、源码构建、本地开发、升级迁移、备份恢复和故障排查见 [安装与使用手册](docs/manual/README.md)。
 

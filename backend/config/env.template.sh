@@ -14,11 +14,12 @@ export DB_DRIVER="org.postgresql.Driver"                       # JDBC 驱动类�
 export REDIS_HOST="localhost"                                  # Redis 主机
 export REDIS_PORT="6379"                                       # Redis 端口
 export REDIS_PASSWORD=""                                       # Redis 密码（如有）
-export REDIS_DATABASE="0"                                      # Redis 数据库索引
+export REDIS_DB="0"                                            # Redis 数据库索引
 
-export WEIGHT = 0.5                                            # 调度权重, (0-1]
+export WEIGHT=0.5                                              # 调度权重, (0-1]
 
-export LOG_DIR="./logs"                                   # 日志目录
+export LOG_DIR="./logs"                                        # 日志目录
+# export JWT_SECRET="替换为随机密钥"                              # 生产环境必须设置
 # 企业微信通知
 export WECOM_ROBOT_KEY=""                                # 企业微信机器人 Key（如有）
 # 其他可选环境变量

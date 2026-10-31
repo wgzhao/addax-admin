@@ -5,7 +5,8 @@
 ## 手册
 
 - [安装与使用手册](manual/README.md)
-  - [安装部署](manual/install/01-docker.md)
+  - [Docker 部署](manual/install/01-docker.md)
+  - [主机模式部署](manual/install/02-source.md#主机模式部署)
   - [使用指南](manual/usage/01-quick-start.md)
   - [运维排障](manual/operations/01-monitoring.md)
 

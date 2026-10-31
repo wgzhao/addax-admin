@@ -2,6 +2,8 @@
 
 本项目提供前后端合一的 Docker 镜像，推荐用 Docker Compose 同时启动 Addax Admin、PostgreSQL 和 Redis。
 
+如果已有 Java、PostgreSQL、Redis 和 Nginx 基础设施，也可以使用 [主机模式部署](02-source.md#主机模式部署)，直接部署编译产物。
+
 ## 前提条件
 
 - Docker 20.10 或更高版本
