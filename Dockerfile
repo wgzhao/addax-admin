@@ -27,7 +27,9 @@ FROM node:22-alpine AS frontend-builder
 ARG VERSION
 ENV VITE_APP_VERSION=${VERSION}
 
-WORKDIR /build
+# Why: keep frontend/ and docs/ as siblings so the in-app help can import
+# docs/manual at build time with the same relative path used in local dev.
+WORKDIR /build/frontend
 
 # Copy root-level package.json / lockfile for frontend (the Docker build context is repo root)
 COPY frontend/package.json frontend/yarn.lock ./
@@ -37,6 +39,9 @@ RUN yarn install
 
 # Copy frontend source code
 COPY frontend/ ./
+
+# Copy the manual so the help center can render the same Markdown as GitHub
+COPY docs/manual/ /build/docs/manual/
 
 # Build production assets
 RUN yarn build-only
@@ -55,7 +60,7 @@ RUN apk add --no-cache nginx busybox-extras
 COPY --from=backend-builder /build/backend/target/*.jar /app/app.jar
 
 # Copy frontend static files into nginx html root
-COPY --from=frontend-builder /build/dist /usr/share/nginx/html
+COPY --from=frontend-builder /build/frontend/dist /usr/share/nginx/html
 
 # Copy nginx configuration from frontend module
 COPY frontend/nginx.conf /etc/nginx/http.d/default.conf

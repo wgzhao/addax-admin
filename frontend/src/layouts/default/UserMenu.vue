@@ -45,7 +45,7 @@
         slim
         @click="goHelp"
       >
-        <v-list-item-title>帮助文档</v-list-item-title>
+        <v-list-item-title>帮助中心</v-list-item-title>
       </v-list-item>
       <v-list-item
         class="top-nav-menu-item"
