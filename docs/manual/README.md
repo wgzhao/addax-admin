@@ -11,10 +11,16 @@
 
 ### 第一次部署
 
-1. [Docker 部署](install/01-docker.md)
-2. [安装 Addax 引擎](install/01-docker.md#安装-addax采集引擎必需)
-3. [系统配置](install/03-config.md)
-4. [快速上手](usage/01-quick-start.md)
+选择一种部署模式：
+
+- [Docker 部署](install/01-docker.md)
+- [主机模式部署](install/02-source.md#主机模式部署)
+
+然后继续：
+
+1. [安装 Addax 引擎](install/01-docker.md#安装-addax采集引擎必需)
+2. [系统配置](install/03-config.md)
+3. [快速上手](usage/01-quick-start.md)
 
 ### 第一次配置采集
 
@@ -37,7 +43,7 @@
 | 章节                                       | 内容                                           |
 | ------------------------------------------ | ---------------------------------------------- |
 | [Docker 部署](install/01-docker.md)        | 预构建镜像、源码构建、Addax 引擎安装、备份恢复 |
-| [源码构建与本地开发](install/02-source.md) | 依赖准备、数据库初始化、前后端启动、生产构建   |
+| [主机模式与本地开发](install/02-source.md) | 编译产物部署、systemd、Nginx、本地开发         |
 | [系统配置](install/03-config.md)           | 环境变量、运行参数、HiveServer2、作业模板      |
 | [升级与迁移](install/04-upgrade.md)        | 版本升级、v4.2.0 `target_options` 迁移、回滚   |
 
