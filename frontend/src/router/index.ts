@@ -31,7 +31,7 @@ routes.push({
   component: () => import('@/views/help.vue'),
   meta: {
     layout: 'default',
-    title: '帮助文档',
+    title: '帮助中心',
     icon: 'mdi-book-open-variant',
     navHidden: true,
   },
