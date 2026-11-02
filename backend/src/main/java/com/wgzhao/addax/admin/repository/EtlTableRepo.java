@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -76,6 +77,9 @@ public interface EtlTableRepo
      * written by another (duplicate) executor is never downgraded to failed. duration is written
      * here for the same reason as {@link #markFinished}.
      */
+    // The daily refresh calls this outside any service transaction, so the repository method must
+    // open its own; otherwise Hibernate rejects the bulk update with TransactionRequiredException.
+    @Transactional
     @Modifying
     @Query("""
             UPDATE EtlTable t SET t.status='E', t.endTime=:endTime,

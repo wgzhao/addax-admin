@@ -98,13 +98,20 @@ public class TableService
         }
         int retCode = columnService.updateTableColumnsV2(vwTable);
 
-        if (retCode == -1) {
+        if (retCode == ColumnService.UPDATE_SOURCE_UNAVAILABLE) {
+            // A transient source outage must not mark the table as a collection failure: the previous
+            // job template can still run, and the next refresh will try the source again.
+            log.warn("Source database unavailable for table {}, skip this refresh round", table.getId());
+            return TaskResultDto.failure("Source database unavailable for table id " + table.getId(), 0);
+        }
+
+        if (retCode == ColumnService.UPDATE_FAILED) {
             setFailed(table);
             log.warn("Failed to update columns for table id {}", table.getId());
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
 
-        columnsUpdated = retCode != 0;
+        columnsUpdated = retCode != ColumnService.UPDATE_NO_CHANGE;
         boolean targetSchemaChanged = columnsUpdated
             || Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA);
         SchemaManagementMode schemaMode = table.getSchemaManagementMode() == null
