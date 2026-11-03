@@ -49,7 +49,7 @@
                   placeholder="两位大写字母"
                   autocomplete="off"
                   :disabled="mode === 'edit'"
-                  :rules="[rules.required, rules.codeExistsRule]"
+                  :rules="[requiredRule, codeExistsRule]"
                   variant="outlined"
                   density="compact"
                   hide-details="auto"
@@ -67,7 +67,7 @@
                   id="src-name"
                   v-model="sourceItem.name"
                   placeholder="例如：巨源资讯"
-                  :rules="[rules.required]"
+                  :rules="[requiredRule]"
                   variant="outlined"
                   density="compact"
                   hide-details="auto"
@@ -175,7 +175,7 @@
                   id="src-url"
                   v-model="sourceItem.url"
                   placeholder="jdbc:hive2://host:port"
-                  :rules="[rules.required]"
+                  :rules="[requiredRule]"
                   variant="outlined"
                   density="compact"
                   hide-details="auto"
@@ -416,20 +416,18 @@
     return value;
   };
 
-  const rules = {
-    required: (value: string) => !!value || '必填项',
-    codeExistsRule: async (value: string) => {
-      if (props.mode !== 'add' || !value) {
-        return true;
-      }
-      try {
-        const exists = await sourceService.checkCode(value);
-        return !exists || '编号已存在';
-      } catch (error) {
-        notify('检查编号失败: ' + ((error as Error).message || error), 'error');
-        return '编号校验失败，请稍后重试';
-      }
-    },
+  const requiredRule = (value: string) => !!value || '必填项';
+  const codeExistsRule = async (value: string) => {
+    if (props.mode !== 'add' || !value) {
+      return true;
+    }
+    try {
+      const exists = await sourceService.checkCode(value);
+      return !exists || '编号已存在';
+    } catch (error) {
+      notify('检查编号失败: ' + ((error as Error).message || error), 'error');
+      return '编号校验失败，请稍后重试';
+    }
   };
 
   const save = async () => {
