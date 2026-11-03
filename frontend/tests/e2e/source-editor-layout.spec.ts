@@ -113,6 +113,15 @@ test('source edit dialog keeps a clear hierarchy and actionable state across bre
   await expect(saveButton).toBeDisabled();
   await expect(dialog.locator('.ds-dialog-actions__state')).toContainText('修改后保存立即生效');
 
+  // Why: the shared rule constants must still block a required field that is cleared
+  const urlInput = dialog.locator('#src-url');
+  await urlInput.fill('');
+  await saveButton.click();
+  await expect(dialog.getByText('必填项').first()).toBeVisible();
+  expect(saves).toHaveLength(0);
+  await urlInput.fill(source.url);
+  await expect(dialog.getByText('必填项')).toHaveCount(0);
+
   const nameInput = dialog.locator('#src-name');
   await nameInput.fill('维格数仓（测试）');
   await expect(dialog.locator('.ds-dialog-actions__state')).toContainText('有未保存的修改');
