@@ -5,6 +5,10 @@ import com.wgzhao.addax.admin.common.QuoteChars;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -28,6 +32,15 @@ import static com.wgzhao.addax.admin.common.Constants.SQL_RESERVED_KEYWORDS;
 @Slf4j
 public class DbUtil
 {
+    // The daily schema refresh opens one connection per table. A stalled handshake must not consume
+    // the whole refresh budget, so every source connection gets an explicit TCP connect timeout.
+    // Connector/J gives an explicit URL property precedence over the JVM-wide DriverManager login
+    // timeout (Hikari sets it to 30s because the admin pool uses connection-timeout=30000).
+    private static final int CONNECT_TIMEOUT_MS = Integer.getInteger("addax.source.connectTimeoutMs", 10_000);
+    private static final int SOCKET_TIMEOUT_MS = Integer.getInteger("addax.source.socketTimeoutMs", 120_000);
+    private static final int CONNECT_RETRIES = Integer.getInteger("addax.source.connectRetries", 3);
+    private static final long CONNECT_RETRY_BACKOFF_MS = Long.getLong("addax.source.connectRetryBackoffMs", 1_000L);
+
     // test jdbc is connected or not
     public static boolean testConnection(String url, String username, String password)
     {
@@ -50,12 +63,117 @@ public class DbUtil
     public static Connection getConnection(String url, String username, String password)
     {
         try {
-            return DriverManager.getConnection(url, username, password);
+            return DriverManager.getConnection(withJdbcTimeouts(url), username, password);
         }
         catch (SQLException e) {
             log.error("Failed to connect database, url={}", url, e);
             return null;
         }
+    }
+
+    /**
+     * Connect for the daily schema refresh with a bounded timeout and a few retries.
+     * <p>
+     * Transient failures (refused, timeout, too many connections) are retried; credential and
+     * configuration errors are not. The caller sees the last {@link SQLException} so the alert can
+     * show the real cause instead of a generic "cannot connect".
+     */
+    public static Connection getConnectionWithRetry(String url, String username, String password) throws SQLException
+    {
+        SQLException last = null;
+        int attempts = 0;
+        for (int attempt = 1; attempt <= CONNECT_RETRIES; attempt++) {
+            attempts = attempt;
+            try {
+                return DriverManager.getConnection(withJdbcTimeouts(url), username, password);
+            }
+            catch (SQLException e) {
+                last = e;
+                if (attempt >= CONNECT_RETRIES || !isTransientConnectFailure(e)) {
+                    break;
+                }
+                long backoff = CONNECT_RETRY_BACKOFF_MS * attempt;
+                log.warn("Source connection failed (attempt {}/{}), retrying in {} ms, url={}, reason={}",
+                    attempt, CONNECT_RETRIES, backoff, url, describeError(e));
+                try {
+                    Thread.sleep(backoff);
+                }
+                catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        log.error("Failed to connect database after {} attempt(s), url={}", attempts, url, last);
+        if (last == null) {
+            throw new SQLException("Failed to connect database: no connection attempt was made");
+        }
+        throw last;
+    }
+
+    /**
+     * Append driver-level timeouts to MySQL URLs. Existing user-supplied values are left untouched.
+     */
+    private static String withJdbcTimeouts(String url)
+    {
+        if (url == null || !url.startsWith("jdbc:mysql://")) {
+            return url;
+        }
+        StringBuilder result = new StringBuilder(url);
+        char separator = url.indexOf('?') >= 0 ? '&' : '?';
+        if (!url.contains("connectTimeout=")) {
+            result.append(separator).append("connectTimeout=").append(CONNECT_TIMEOUT_MS);
+            separator = '&';
+        }
+        if (!url.contains("socketTimeout=")) {
+            result.append(separator).append("socketTimeout=").append(SOCKET_TIMEOUT_MS);
+        }
+        return result.toString();
+    }
+
+    /**
+     * Retry only failures that can plausibly disappear on another attempt. Credential and
+     * configuration errors ("Access denied", "Unknown database") just delay the alert.
+     */
+    private static boolean isTransientConnectFailure(SQLException error)
+    {
+        String message = describeError(error).toLowerCase(Locale.ROOT);
+        if (message.contains("access denied") || message.contains("unknown database")
+            || message.contains("no suitable driver") || message.contains("url cannot be null")) {
+            return false;
+        }
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SocketTimeoutException || cause instanceof ConnectException
+                || cause instanceof NoRouteToHostException || cause instanceof UnknownHostException) {
+                return true;
+            }
+        }
+        String sqlState = error.getSQLState();
+        return sqlState != null && sqlState.startsWith("08");
+    }
+
+    /**
+     * Flatten the cause chain for an alert. Connector/J wraps the useful detail
+     * (e.g. "Connect timed out") one or two levels below the top-level exception.
+     */
+    public static String describeError(Throwable error)
+    {
+        if (error == null) {
+            return "";
+        }
+        List<String> details = new ArrayList<>();
+        for (Throwable current = error; current != null && details.size() < 4; current = current.getCause()) {
+            String detail = current.getMessage();
+            if (detail == null) {
+                continue;
+            }
+            detail = detail.replaceAll("\\s+", " ").trim();
+            if (!detail.isEmpty() && !details.contains(detail)) {
+                details.add(detail);
+            }
+        }
+        String message = details.isEmpty() ? error.getClass().getSimpleName() : String.join(": ", details);
+        return message.length() > 500 ? message.substring(0, 500) + "..." : message;
     }
 
     public static DbType getDbType(String jdbcUrl)

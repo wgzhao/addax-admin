@@ -38,6 +38,12 @@ public class ColumnService
     private final SchemaChangeLogService schemaChangeLogService;
     private final AlertService alertService;
 
+    // Shared with TableService: a transient source outage must not be handled like a schema failure.
+    public static final int UPDATE_NO_CHANGE = 0;
+    public static final int UPDATE_CHANGED = 1;
+    public static final int UPDATE_FAILED = -1;
+    public static final int UPDATE_SOURCE_UNAVAILABLE = -2;
+
     private static boolean isDeletedPlaceholder(String name)
     {
         return name != null && name.startsWith(DELETED_PLACEHOLDER_PREFIX);
@@ -216,32 +222,29 @@ public class ColumnService
      * 保持目标表中旧列的相对顺序不变；新增列总是追加到末尾。
      *
      * @param etlTable 采集表视图对象
-     * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败
+     * @return 0 表示无需更新, 1 表示字段有更新, -1 表示更新失败,
+     *         -2 表示源库暂时不可达（可重试，不应标记为采集失败）
      */
     @Transactional
     public int updateTableColumnsV2(VwEtlTableWithSource etlTable)
     {
         if (etlTable == null) {
-            return 0;
+            return UPDATE_NO_CHANGE;
         }
         List<EtlColumn> existingColumns = etlColumnRepo.findAllByTidOrderByColumnId(etlTable.getId());
         if (existingColumns == null || existingColumns.isEmpty()) {
             // 第一次创建，直接全量写入
             log.info("[V2] no existing columns for tid {}, creating all", etlTable.getId());
-            return createTableColumns(etlTable) ? 1 : -1;
+            return createTableColumnsInternal(etlTable);
         }
         log.info("[V2] updating table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
 
         boolean changed = false;
+        boolean connected = false;
 
-        try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
-            if (connection == null) {
-                // connection failure (bad network, wrong credentials, etc.):
-                // alert and skip this update instead of NPE'ing downstream
-                alertAndSkipFetch(etlTable, etlJour, "更新", "无法连接源数据库");
-                return -1;
-            }
+        try (Connection connection = DbUtil.getConnectionWithRetry(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
+            connected = true;
             // 注意，这里的获取到的表字段类型是已经通过 hive 字段映射过后的，而不是原始字段类型
             // 比如原始类型是 varchar(255)，但映射后是 string
             List<EtlColumn> sourceCols = getEtlColumnV2(connection, etlTable);
@@ -251,7 +254,7 @@ public class ColumnService
                 // empty list must not be treated as "all columns deleted",
                 // which would placeholder-delete every existing target column.
                 alertAndSkipFetch(etlTable, etlJour, "更新", "获取源表字段失败或源表无字段");
-                return -1;
+                return UPDATE_FAILED;
             }
             // name -> source column
             HashMap<String, EtlColumn> srcByName = new HashMap<>(Math.max(16, sourceCols.size() * 2));
@@ -335,15 +338,20 @@ public class ColumnService
             }
         }
         catch (SQLException e) {
-            alertAndSkipFetch(etlTable, etlJour, "更新", e.getMessage());
+            if (!connected) {
+                alertAndSkipFetch(etlTable, etlJour, "更新", "无法连接源数据库: " + DbUtil.describeError(e));
+                log.error("[V2] failed to connect source for tid {}", etlTable.getId(), e);
+                return UPDATE_SOURCE_UNAVAILABLE;
+            }
+            alertAndSkipFetch(etlTable, etlJour, "更新", DbUtil.describeError(e));
             log.error("[V2] failed to update table columns for tid {}", etlTable.getId(), e);
-            return -1;
+            return UPDATE_FAILED;
         }
 
         log.info("[V2] table columns updated for tid {}, changed={}", etlTable.getId(), changed);
         columnMappingService.reconcile(etlTable.getId());
         jourService.successJour(etlJour);
-        return changed ? 1 : 0;
+        return changed ? UPDATE_CHANGED : UPDATE_NO_CHANGE;
     }
 
     /**
@@ -359,7 +367,7 @@ public class ColumnService
         log.error("[V2] skip {} table columns for {}, reason: {}", action, desc, reason);
     }
 
-    private List<EtlColumn> getEtlColumnV2(Connection connection, VwEtlTableWithSource etlTable)
+    private List<EtlColumn> getEtlColumnV2(Connection connection, VwEtlTableWithSource etlTable) throws SQLException
     {
         List<EtlColumn> sourceCols = new ArrayList<>();
         Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
@@ -369,49 +377,43 @@ public class ColumnService
         boolean useHiveTypeMapping = etlTable.getTargetType() == null
             || etlTable.getTargetType().isBlank()
             || "HDFS".equalsIgnoreCase(etlTable.getTargetType());
-        try {
-            String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
-            String schema = connection.getSchema();
-            if (etlTable.getUrl().startsWith("jdbc:mysql://")) {
-                // force switch to catalog for MySQL
-                catalog = etlTable.getSourceDb();
-                schema = null;
-            }
-            ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
-            int idx = 1;
-            while (rs.next()) {
-                EtlColumn etlColumn = new EtlColumn();
-                etlColumn.setTid(etlTable.getId());
-                etlColumn.setColumnId(idx);
-                etlColumn.setColumnName(rs.getString("COLUMN_NAME"));
-                String sourceType = rs.getString("TYPE_NAME").toLowerCase();
-                etlColumn.setSourceType(sourceType);
-                etlColumn.setDataLength(rs.getInt("COLUMN_SIZE"));
-                etlColumn.setDataPrecision(rs.getInt("COLUMN_SIZE"));
-                etlColumn.setDataScale(rs.getInt("DECIMAL_DIGITS"));
-                etlColumn.setColComment(rs.getString("REMARKS"));
-                if (useHiveTypeMapping) {
-                    String hiveType = hiveTypeMapping.getOrDefault(sourceType, "string");
-                    etlColumn.setTargetType(hiveType);
-                    if (Objects.equals(hiveType, "decimal")) {
-                        hiveType = String.format("decimal(%d,%d)", rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"));
-                    }
-                    etlColumn.setTargetTypeFull(hiveType);
-                }
-                else {
-                    // RDBMS 目标端暂不做类型映射转换
-                    etlColumn.setTargetType(sourceType);
-                    etlColumn.setTargetTypeFull(sourceType);
-                }
-                sourceCols.add(etlColumn);
-                idx++;
-            }
-            return sourceCols;
+        String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
+        String schema = connection.getSchema();
+        if (etlTable.getUrl().startsWith("jdbc:mysql://")) {
+            // force switch to catalog for MySQL
+            catalog = etlTable.getSourceDb();
+            schema = null;
         }
-        catch (SQLException e) {
-            log.error("Failed to get table metadata for {}.{}: {}", etlTable.getSourceDb(), etlTable.getSourceTable(), e.getMessage());
-            return null;
+        ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
+        int idx = 1;
+        while (rs.next()) {
+            EtlColumn etlColumn = new EtlColumn();
+            etlColumn.setTid(etlTable.getId());
+            etlColumn.setColumnId(idx);
+            etlColumn.setColumnName(rs.getString("COLUMN_NAME"));
+            String sourceType = rs.getString("TYPE_NAME").toLowerCase();
+            etlColumn.setSourceType(sourceType);
+            etlColumn.setDataLength(rs.getInt("COLUMN_SIZE"));
+            etlColumn.setDataPrecision(rs.getInt("COLUMN_SIZE"));
+            etlColumn.setDataScale(rs.getInt("DECIMAL_DIGITS"));
+            etlColumn.setColComment(rs.getString("REMARKS"));
+            if (useHiveTypeMapping) {
+                String hiveType = hiveTypeMapping.getOrDefault(sourceType, "string");
+                etlColumn.setTargetType(hiveType);
+                if (Objects.equals(hiveType, "decimal")) {
+                    hiveType = String.format("decimal(%d,%d)", rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"));
+                }
+                etlColumn.setTargetTypeFull(hiveType);
+            }
+            else {
+                // RDBMS 目标端暂不做类型映射转换
+                etlColumn.setTargetType(sourceType);
+                etlColumn.setTargetTypeFull(sourceType);
+            }
+            sourceCols.add(etlColumn);
+            idx++;
         }
+        return sourceCols;
     }
 
     /**
@@ -423,34 +425,42 @@ public class ColumnService
     @Transactional
     public boolean createTableColumns(VwEtlTableWithSource etlTable)
     {
+        return createTableColumnsInternal(etlTable) == UPDATE_CHANGED;
+    }
+
+    private int createTableColumnsInternal(VwEtlTableWithSource etlTable)
+    {
         if (etlTable == null) {
-            return false;
+            return UPDATE_FAILED;
         }
         log.info("first add table columns for tid {}.{} ({})", etlTable.getSourceDb(), etlTable.getSourceTable(), etlTable.getId());
 
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
 
-        try (Connection connection = DbUtil.getConnection(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
-            if (connection == null) {
-                alertAndSkipFetch(etlTable, etlJour, "创建", "无法连接源数据库");
-                return false;
-            }
+        boolean connected = false;
+        try (Connection connection = DbUtil.getConnectionWithRetry(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
+            connected = true;
             List<EtlColumn> etlColumns = getEtlColumnV2(connection, etlTable);
             if (etlColumns == null || etlColumns.isEmpty()) {
                 alertAndSkipFetch(etlTable, etlJour, "创建", "获取源表字段失败或源表无字段");
-                return false;
+                return UPDATE_FAILED;
             }
             etlColumnRepo.saveAll(etlColumns);
             columnMappingService.reconcile(etlTable.getId());
 
             log.info("table columns created for tid {}, total {} columns", etlTable.getId(), etlColumns.size());
             jourService.successJour(etlJour);
-            return true;
+            return UPDATE_CHANGED;
         }
         catch (SQLException e) {
-            alertAndSkipFetch(etlTable, etlJour, "创建", e.getMessage());
+            if (!connected) {
+                alertAndSkipFetch(etlTable, etlJour, "创建", "无法连接源数据库: " + DbUtil.describeError(e));
+                log.error("failed to connect source for tid {}", etlTable.getId(), e);
+                return UPDATE_SOURCE_UNAVAILABLE;
+            }
+            alertAndSkipFetch(etlTable, etlJour, "创建", DbUtil.describeError(e));
             log.error("failed to create table columns for tid {}", etlTable.getId(), e);
-            return false;
+            return UPDATE_FAILED;
         }
     }
 
