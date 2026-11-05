@@ -447,7 +447,7 @@ CREATE TABLE public.etl_source (
     id integer NOT NULL,
     code character varying(50) NOT NULL,
     name character varying(200) NOT NULL,
-    url character varying(500) NOT NULL,
+    url character varying(1000) NOT NULL,
     username character varying(64),
     pass character varying(64),
     start_at time without time zone,
@@ -457,7 +457,8 @@ CREATE TABLE public.etl_source (
     enabled boolean DEFAULT true,
     max_concurrency integer DEFAULT 5 NOT NULL,
     db_type character varying(20),
-    calendar character varying(32)
+    calendar character varying(32),
+    connect_config jsonb
 );
 
 
@@ -493,7 +494,7 @@ COMMENT ON COLUMN public.etl_source.name IS '采集源名称';
 -- Name: COLUMN etl_source.url; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.etl_source.url IS '采集源 JDBC 连接串';
+COMMENT ON COLUMN public.etl_source.url IS '采集源连接串：JDBC URL 或 MongoDB URI（不含凭据）';
 
 
 --
@@ -556,7 +557,8 @@ COMMENT ON COLUMN public.etl_source.max_concurrency IS '采集源允许的最大
 -- Name: COLUMN etl_source.db_type; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.etl_source.db_type IS '数据库类型';
+COMMENT ON COLUMN public.etl_source.db_type IS '数据源类型，如 mysql/postgresql/mongodb';
+COMMENT ON COLUMN public.etl_source.connect_config IS '非 JDBC 数据源的结构化连接配置（JSON，不含密码）';
 
 
 --
@@ -740,8 +742,8 @@ CREATE SEQUENCE public.tb_imp_etl_tid_seq
 
 CREATE TABLE public.etl_table (
     id bigint DEFAULT nextval('public.tb_imp_etl_tid_seq'::regclass) NOT NULL,
-    source_db character varying(32) NOT NULL,
-    source_table character varying(64) NOT NULL,
+    source_db character varying(64) NOT NULL,
+    source_table character varying(255) NOT NULL,
     target_db character varying(50) NOT NULL,
     target_table character varying(200) NOT NULL,
     target_options jsonb,
@@ -932,8 +934,8 @@ COMMENT ON COLUMN public.etl_table.writer_plugin_config IS '写入插件自定�
 CREATE TABLE public.etl_table_change_log (
     id bigint NOT NULL,
     tid bigint NOT NULL,
-    source_db character varying(32),
-    source_table character varying(64),
+    source_db character varying(64),
+    source_table character varying(255),
     target_db character varying(50),
     target_table character varying(200),
     changed_fields jsonb NOT NULL,
@@ -1445,7 +1447,7 @@ CREATE TABLE public.schema_change_log (
     id bigint NOT NULL,
     tid bigint NOT NULL,
     source_db character varying(64),
-    source_table character varying(128),
+    source_table character varying(255),
     column_name character varying(255),
     change_type character varying(32),
     old_source_type character varying(128),
@@ -1707,6 +1709,7 @@ CREATE VIEW public.vw_etl_table_with_source AS
     s.enabled,
     s.max_concurrency,
     s.db_type,
+    s.connect_config,
     tt.target_type,
     tt.code AS target_code,
     tt.name AS target_name,
@@ -2091,7 +2094,7 @@ CREATE UNIQUE INDEX uk_tid_column_name ON public.etl_column USING btree (tid, co
 -- Name: uk_column_mapping_tid_source; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uk_column_mapping_tid_source ON public.etl_column_mapping USING btree (tid, lower((source_column_name)::text));
+CREATE UNIQUE INDEX uk_column_mapping_tid_source ON public.etl_column_mapping USING btree (tid, source_column_name);
 
 
 --

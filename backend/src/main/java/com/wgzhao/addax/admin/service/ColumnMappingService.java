@@ -5,8 +5,12 @@ import com.wgzhao.addax.admin.dto.ColumnMappingInput;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlColumnMapping;
+import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlColumnMappingRepo;
 import com.wgzhao.addax.admin.repository.EtlColumnRepo;
+import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import com.wgzhao.addax.admin.service.collection.IdentifierPolicy;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,8 @@ public class ColumnMappingService
 {
     private final EtlColumnMappingRepo mappingRepo;
     private final EtlColumnRepo columnRepo;
+    private final VwEtlTableWithSourceRepo viewRepo;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     public List<ResolvedColumnMapping> resolve(long tid)
     {
@@ -41,6 +47,7 @@ public class ColumnMappingService
         {
             mappings = identityMappings(tid, sourceColumns);
         }
+        IdentifierPolicy sourcePolicy = sourcePolicy(tid);
 
         Map<String, EtlColumn> bySource = new HashMap<>();
         for (EtlColumn column : sourceColumns)
@@ -52,7 +59,7 @@ public class ColumnMappingService
             }
             // A dropped column and its re-added twin share one active name. The live row must win,
             // otherwise the mapping is reported inactive and the reader emits NULL for a real column.
-            String mapKey = key(sourceName);
+            String mapKey = sourcePolicy.key(sourceName);
             EtlColumn existing = bySource.get(mapKey);
             if (existing == null || (isDeleted(existing.getColumnName()) && !isDeleted(column.getColumnName())))
             {
@@ -63,7 +70,7 @@ public class ColumnMappingService
         List<ResolvedColumnMapping> resolved = new ArrayList<>();
         for (EtlColumnMapping mapping : mappings)
         {
-            EtlColumn column = bySource.get(key(mapping.getSourceColumnName()));
+            EtlColumn column = bySource.get(sourcePolicy.key(mapping.getSourceColumnName()));
             resolved.add(new ResolvedColumnMapping(
                 mapping.getId(),
                 mapping.getSourceColumnName(),
@@ -88,10 +95,13 @@ public class ColumnMappingService
     {
         List<EtlColumn> sourceColumns = columnRepo.findAllByTidOrderByColumnId(tid);
         List<EtlColumnMapping> mappings = mappingRepo.findAllByTidOrderByOrdinalNoAscIdAsc(tid);
+        IdentifierPolicy sourcePolicy = sourcePolicy(tid);
         Map<String, EtlColumnMapping> existing = new LinkedHashMap<>();
+        Set<String> usedTargets = new HashSet<>();
         for (EtlColumnMapping mapping : mappings)
         {
-            existing.put(key(mapping.getSourceColumnName()), mapping);
+            existing.put(sourcePolicy.key(mapping.getSourceColumnName()), mapping);
+            usedTargets.add(key(mapping.getTargetColumnName()));
         }
 
         int nextOrdinal = mappings.stream()
@@ -107,7 +117,7 @@ public class ColumnMappingService
             {
                 continue;
             }
-            String mapKey = key(sourceName);
+            String mapKey = sourcePolicy.key(sourceName);
             if (existing.containsKey(mapKey))
             {
                 continue;
@@ -115,7 +125,7 @@ public class ColumnMappingService
             EtlColumnMapping mapping = new EtlColumnMapping();
             mapping.setTid(tid);
             mapping.setSourceColumnName(sourceName);
-            mapping.setTargetColumnName(sourceName);
+            mapping.setTargetColumnName(suggestedTargetName(sourcePolicy, sourceName, usedTargets));
             mapping.setOrdinalNo(nextOrdinal++);
             created.add(mapping);
         }
@@ -134,6 +144,7 @@ public class ColumnMappingService
             throw new ApiException(400, "At least one column mapping is required");
         }
 
+        IdentifierPolicy sourcePolicy = sourcePolicy(tid);
         List<EtlColumnMapping> replacements = new ArrayList<>();
         Set<String> sources = new HashSet<>();
         Set<String> targets = new HashSet<>();
@@ -146,7 +157,7 @@ public class ColumnMappingService
             {
                 throw new ApiException(400, "Source and target column names are required");
             }
-            if (!sources.add(key(source)))
+            if (!sources.add(sourcePolicy.key(source)))
             {
                 throw new ApiException(409, "Duplicate source column mapping: " + source);
             }
@@ -183,6 +194,7 @@ public class ColumnMappingService
     {
         // Legacy tables can carry foo and __deleted__foo at once. Keep one identity mapping per
         // active name and prefer the live row, matching the startup backfill.
+        IdentifierPolicy sourcePolicy = sourcePolicy(tid);
         Map<String, EtlColumn> columnsByName = new LinkedHashMap<>();
         for (EtlColumn column : sourceColumns)
         {
@@ -191,7 +203,7 @@ public class ColumnMappingService
             {
                 continue;
             }
-            String mapKey = key(sourceName);
+            String mapKey = sourcePolicy.key(sourceName);
             EtlColumn existing = columnsByName.get(mapKey);
             if (existing == null || (isDeleted(existing.getColumnName()) && !isDeleted(column.getColumnName())))
             {
@@ -200,6 +212,7 @@ public class ColumnMappingService
         }
 
         List<EtlColumnMapping> result = new ArrayList<>();
+        Set<String> usedTargets = new HashSet<>();
         int ordinal = 0;
         for (EtlColumn column : columnsByName.values())
         {
@@ -207,7 +220,7 @@ public class ColumnMappingService
             EtlColumnMapping mapping = new EtlColumnMapping();
             mapping.setTid(tid);
             mapping.setSourceColumnName(sourceName);
-            mapping.setTargetColumnName(sourceName);
+            mapping.setTargetColumnName(suggestedTargetName(sourcePolicy, sourceName, usedTargets));
             mapping.setOrdinalNo(++ordinal);
             result.add(mapping);
         }
@@ -228,6 +241,88 @@ public class ColumnMappingService
             source == null ? null : source.getTargetTypeFull(),
             source == null ? null : source.getColComment(),
             mapping.updatedAt());
+    }
+
+    /**
+     * Source-name comparison rule for a table. MongoDB fields are case-sensitive, RDBMS names keep the
+     * historical insensitive behavior.
+     */
+    public IdentifierPolicy sourcePolicy(long tid)
+    {
+        VwEtlTableWithSource view = viewRepo.findById(tid).orElse(null);
+        if (view == null)
+        {
+            return IdentifierPolicy.INSENSITIVE;
+        }
+        try
+        {
+            return sourceAdapterRegistry.resolve(view).capabilities().caseSensitiveIdentifiers()
+                ? IdentifierPolicy.EXACT : IdentifierPolicy.INSENSITIVE;
+        }
+        catch (RuntimeException e)
+        {
+            return IdentifierPolicy.INSENSITIVE;
+        }
+    }
+
+    public String sourceKey(long tid, String value)
+    {
+        return sourcePolicy(tid).key(value);
+    }
+
+    @Transactional
+    public void setTargetName(long tid, String sourceName, String targetName)
+    {
+        if (targetName == null || targetName.isBlank())
+        {
+            return;
+        }
+        IdentifierPolicy policy = sourcePolicy(tid);
+        List<EtlColumnMapping> mappings = mappingRepo.findAllByTidOrderByOrdinalNoAscIdAsc(tid);
+        String targetKey = key(targetName);
+        for (EtlColumnMapping mapping : mappings)
+        {
+            if (policy.key(mapping.getSourceColumnName()).equals(policy.key(sourceName)))
+            {
+                for (EtlColumnMapping other : mappings)
+                {
+                    if (!other.getId().equals(mapping.getId()) && key(other.getTargetColumnName()).equals(targetKey))
+                    {
+                        throw new ApiException(409, "目标字段已存在: " + targetName);
+                    }
+                }
+                mapping.setTargetColumnName(targetName.trim());
+                mappingRepo.save(mapping);
+                return;
+            }
+        }
+    }
+
+    private static String suggestedTargetName(IdentifierPolicy policy, String sourceName,
+        Set<String> usedTargets)
+    {
+        String base = policy == IdentifierPolicy.EXACT ? sanitizeTargetName(sourceName) : sourceName;
+        String candidate = base;
+        int suffix = 2;
+        while (!usedTargets.add(key(candidate)))
+        {
+            candidate = base + "_" + suffix++;
+        }
+        return candidate;
+    }
+
+    /**
+     * A MongoDB dotted path cannot be an RDBMS column name. Keep the path readable and avoid
+     * characters the target dialect would reject; the user can still rename it in the review step.
+     */
+    private static String sanitizeTargetName(String sourceName)
+    {
+        String name = sourceName.replace(".", "__").replaceAll("[^A-Za-z0-9_$]", "_");
+        if (name.isEmpty() || (!Character.isLetter(name.charAt(0)) && name.charAt(0) != '_'))
+        {
+            name = "_" + name;
+        }
+        return name.length() > 120 ? name.substring(0, 120) : name;
     }
 
     private static String key(String value)

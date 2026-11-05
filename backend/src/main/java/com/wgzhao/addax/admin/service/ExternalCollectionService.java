@@ -9,8 +9,12 @@ import com.wgzhao.addax.admin.dto.SourceColumnMetadata;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.service.collection.IdentifierPolicy;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +37,8 @@ public class ExternalCollectionService
     private final ColumnService columnService;
     private final ColumnMappingService mappingService;
     private final TargetContractService contractService;
+    private final EtlSourceRepo sourceRepo;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     public EtlTable create(ExternalCollectionCreateRequest request)
     {
@@ -76,7 +82,7 @@ public class ExternalCollectionService
         {
             throw new ApiException(409, "目标表结构在预览后发生变化，请重新预览并确认映射");
         }
-        validateMappings(preview, request.mappings());
+        validateMappings(table, preview, request.mappings());
 
         EtlTable saved = tableService.createTable(table);
         VwEtlTableWithSource view = tableService.getTableView(saved.getId());
@@ -97,10 +103,19 @@ public class ExternalCollectionService
         return saved;
     }
 
-    private void validateMappings(CollectionSchemaPreview preview, List<ColumnMappingInput> mappings)
+    private void validateMappings(EtlTable table, CollectionSchemaPreview preview,
+        List<ColumnMappingInput> mappings)
     {
+        IdentifierPolicy sourcePolicy = IdentifierPolicy.INSENSITIVE;
+        EtlSource sourceEntity = sourceRepo.findById(table.getSid()).orElse(null);
+        if (sourceEntity != null
+            && sourceAdapterRegistry.resolve(sourceEntity).capabilities().caseSensitiveIdentifiers())
+        {
+            sourcePolicy = IdentifierPolicy.EXACT;
+        }
+        IdentifierPolicy finalPolicy = sourcePolicy;
         Map<String, SourceColumnMetadata> sources = new HashMap<>();
-        preview.sourceColumns().forEach(column -> sources.put(key(column.name()), column));
+        preview.sourceColumns().forEach(column -> sources.put(finalPolicy.key(column.name()), column));
         Map<String, TargetTableMetadata.TargetColumn> targets = new HashMap<>();
         preview.targetTable().columns().forEach(column -> targets.put(key(column.name()), column));
 
@@ -108,7 +123,7 @@ public class ExternalCollectionService
         Set<String> mappedTargets = new HashSet<>();
         for (ColumnMappingInput mapping : mappings)
         {
-            String source = key(mapping.sourceColumnName());
+            String source = finalPolicy.key(mapping.sourceColumnName());
             String target = key(mapping.targetColumnName());
             if (!sources.containsKey(source))
             {

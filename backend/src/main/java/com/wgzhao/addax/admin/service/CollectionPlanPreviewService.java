@@ -11,10 +11,18 @@ import com.wgzhao.addax.admin.dto.CollectionSchemaPreviewRequest;
 import com.wgzhao.addax.admin.dto.SourceColumnMetadata;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
+import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
 import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
+import com.wgzhao.addax.admin.service.source.ColumnTypeMapping;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceField;
+import com.wgzhao.addax.admin.service.source.TargetFamily;
+import com.wgzhao.addax.admin.service.source.TypePurpose;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -42,6 +50,8 @@ public class CollectionPlanPreviewService
     private final CollectionSchemaPreviewService schemaPreviewService;
     private final TargetAdapterRegistry targetAdapterRegistry;
     private final EtlTargetRepo targetRepo;
+    private final EtlSourceRepo sourceRepo;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
     private final DictService dictService;
     private final ObjectMapper objectMapper;
     private final CollectionScopeService collectionScopeService;
@@ -204,8 +214,10 @@ public class CollectionPlanPreviewService
         {
             boolean primaryKey = "RDBMS".equalsIgnoreCase(adapter.getType())
                 && createPrimaryKey(request.targetOptions()) && source.primaryKey();
+            String targetName = source.suggestedTargetName() == null || source.suggestedTargetName().isBlank()
+                ? source.name() : source.suggestedTargetName();
             columns.add(new CollectionPlanPreview.PlannedTargetColumn(
-                source.name(), source.name(), targetType(request, adapter, source),
+                targetName, source.name(), targetType(request, adapter, source),
                 source.nullable(), primaryKey, source.comment(), "SOURCE", ++ordinal));
         }
         if ("RDBMS".equalsIgnoreCase(adapter.getType()))
@@ -225,6 +237,26 @@ public class CollectionPlanPreviewService
     private String targetType(CollectionSchemaPreviewRequest request, TargetAdapter adapter,
         SourceColumnMetadata source)
     {
+        SourceAdapter sourceAdapter = null;
+        if (request.sourceId() != null)
+        {
+            EtlSource etlSource = sourceRepo.findById(request.sourceId()).orElse(null);
+            if (etlSource != null)
+            {
+                sourceAdapter = sourceAdapterRegistry.resolve(etlSource);
+            }
+        }
+        if (sourceAdapter != null && !SourceAdapterRegistry.RDBMS_TYPE.equals(sourceAdapter.getType()))
+        {
+            TargetFamily family = "HDFS".equalsIgnoreCase(adapter.getType())
+                ? TargetFamily.HDFS : TargetFamily.RDBMS;
+            SourceField field = new SourceField(source.name(), source.type(), source.type(),
+                source.size(), source.precision(), source.scale(), source.comment(),
+                source.nullable(), source.primaryKey(), source.suggestedTargetName());
+            ColumnTypeMapping mapping = sourceAdapter.mapColumnType(field, family,
+                targetDialect(request.targetId()), TypePurpose.PLANNED_DDL);
+            return mapping.targetTypeFull();
+        }
         if (!"HDFS".equalsIgnoreCase(adapter.getType()))
         {
             return RdbmsDdlUtil.renderType(targetDialect(request.targetId()), source.type(),

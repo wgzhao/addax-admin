@@ -16,6 +16,10 @@ import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.RiskLogService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceRef;
+import com.wgzhao.addax.admin.service.source.SourceTableHints;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -60,6 +64,7 @@ public class RdbmsTargetAdapter
     private final EtlJourService jourService;
     private final RiskLogService riskLogService;
     private final RdbmsWriterPlugins rdbmsWriterPlugins;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     @Override
     public String getType()
@@ -159,6 +164,8 @@ public class RdbmsTargetAdapter
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(etlTable.getId());
         SourceMeta sourceMeta = loadSourceMeta(etlTable, dialect);
+        boolean useColumnTargetType = !SourceAdapterRegistry.RDBMS_TYPE.equals(
+            sourceAdapterRegistry.resolve(etlTable).getType());
         Map<String, String> desiredTypes = new LinkedHashMap<>();
         String bizDateColumn = normalizeColumn(etlTable.getRdbmsBusinessDateColumn());
         boolean createPrimaryKey = etlTable.isRdbmsCreatePrimaryKey();
@@ -173,7 +180,7 @@ public class RdbmsTargetAdapter
             }
             String name = mapping.targetColumnName();
             String key = name.toLowerCase(Locale.ROOT);
-            String typeExpr = resolveColumnType(dialect, c, sourceMeta.columnTypes());
+            String typeExpr = resolveColumnType(dialect, c, sourceMeta.columnTypes(), useColumnTargetType);
             desiredTypes.put(key, typeExpr);
             colDefs.add(RdbmsDdlUtil.columnDefinition(dialect, name, typeExpr,
                 sourceMeta.notNull().contains(activeName(c).toLowerCase(Locale.ROOT)), c.getColComment()));
@@ -397,7 +404,14 @@ public class RdbmsTargetAdapter
         {
             return getDbType(conn.url());
         }
-        return getDbType(table.getUrl());
+        String sourceUrl = table.getUrl();
+        if (sourceUrl == null || !sourceUrl.startsWith("jdbc:"))
+        {
+            // A Mongo/HTTP source URL is not a JDBC dialect. Falling back to it used to silently
+            // produce RDBMS quoting/DDL for a non-JDBC source.
+            throw new ApiException(400, "RDBMS 目标端缺少 JDBC 连接地址，无法从非 JDBC 采集源推断方言");
+        }
+        return getDbType(sourceUrl);
     }
 
     /**
@@ -619,8 +633,16 @@ public class RdbmsTargetAdapter
         return true;
     }
 
-    private String resolveColumnType(DbType dialect, EtlColumn column, Map<String, String> verbatim)
+    private String resolveColumnType(DbType dialect, EtlColumn column, Map<String, String> verbatim,
+        boolean useColumnTargetType)
     {
+        if (useColumnTargetType && column.getTargetTypeFull() != null
+            && !column.getTargetTypeFull().isBlank())
+        {
+            // A non-JDBC source already mapped its logical type to the target spelling
+            // (e.g. MongoDB date -> datetime(3)); rendering the portable name again would lose it.
+            return column.getTargetTypeFull();
+        }
         String name = activeName(column);
         if (name != null)
         {
@@ -643,6 +665,15 @@ public class RdbmsTargetAdapter
      */
     private SourceMeta loadSourceMeta(VwEtlTableWithSource etlTable, DbType targetDialect)
     {
+        SourceAdapter sourceAdapter = sourceAdapterRegistry.resolve(etlTable);
+        if (!SourceAdapterRegistry.RDBMS_TYPE.equals(sourceAdapter.getType()))
+        {
+            // Never open a JDBC connection for a mongodb:// URL. The adapter owns the source metadata;
+            // only the portable type/PK hints cross the boundary.
+            SourceTableHints hints = sourceAdapter.tableHints(SourceRef.of(etlTable),
+                etlTable.getSourceDb(), etlTable.getSourceTable());
+            return new SourceMeta(Map.of(), hints.notNull(), hints.primaryKeys());
+        }
         if (etlTable.getUrl() == null || etlTable.getSourceTable() == null
             || etlTable.getSourceTable().contains("${"))
         {

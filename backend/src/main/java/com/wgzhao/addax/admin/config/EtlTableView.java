@@ -61,6 +61,7 @@ public final class EtlTableView
             s.enabled,
             s.max_concurrency,
             s.db_type,
+            s.connect_config,
             tt.target_type,
             tt.code as target_code,
             tt.name as target_name,

@@ -142,12 +142,12 @@ public class CollectionPlanCommitService
             String name = ColumnMappingService.activeName(column.getColumnName());
             if (name != null && !name.isBlank() && !ColumnMappingService.isDeleted(column.getColumnName()))
             {
-                sources.add(key(name));
+                sources.add(mappingService.sourceKey(tableId, name));
             }
         }
         for (ColumnMappingInput mapping : mappings)
         {
-            String source = key(mapping.sourceColumnName());
+            String source = mappingService.sourceKey(tableId, mapping.sourceColumnName());
             String target = key(mapping.targetColumnName());
             if (!sources.contains(source))
             {

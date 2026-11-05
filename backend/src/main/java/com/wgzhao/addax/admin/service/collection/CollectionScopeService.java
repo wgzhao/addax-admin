@@ -9,6 +9,10 @@ import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
+import com.wgzhao.addax.admin.service.source.SourceAccessException;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +48,7 @@ public class CollectionScopeService
     private final EtlTableRepo tableRepo;
     private final EtlSourceRepo sourceRepo;
     private final EtlTargetRepo targetRepo;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
     private final Map<String, CachedPolicy> policyCache = new ConcurrentHashMap<>();
 
     private record CachedPolicy(IdentifierPolicy policy, long expiresAt)
@@ -76,13 +81,14 @@ public class CollectionScopeService
         EtlTarget target = resolveTarget(targetId, true);
         IdentifierPolicy targetPolicy = IdentifierPolicy.forTarget(target);
         String targetDbKey = isBlank(targetDb) ? null : targetPolicy.key(targetDb.trim());
-        try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(),
-            source.getPass() == null ? "" : source.getPass()))
+        try
         {
-            IdentifierPolicy sourcePolicy = IdentifierPolicy.forSource(connection, dbName);
+            SourceAdapter adapter = sourceAdapterRegistry.resolve(source);
+            SourceRef ref = SourceRef.of(source);
+            IdentifierPolicy sourcePolicy = adapter.identifierPolicy(ref, dbName);
             Map<String, Definition> definitions = definitions(
                 source.getId(), target.getId(), targetDbKey, sourcePolicy, targetPolicy);
-            List<TableMetaDto> all = DbUtil.getAllTableMetas(connection, dbName);
+            List<TableMetaDto> all = adapter.listTables(ref, dbName);
             List<CollectableTableDto> result = new ArrayList<>(all.size());
             for (TableMetaDto meta : all)
             {
@@ -101,7 +107,7 @@ public class CollectionScopeService
             }
             return result;
         }
-        catch (SQLException e)
+        catch (SourceAccessException e)
         {
             log.warn("Failed to list collectable tables for source {}: {}", source.getId(), e.getMessage());
             throw new ApiException(500, "获取可采集表失败: " + e.getMessage());
@@ -338,12 +344,12 @@ public class CollectionScopeService
             return cached.policy();
         }
         IdentifierPolicy policy;
-        try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(),
-            source.getPass() == null ? "" : source.getPass()))
+        try
         {
-            policy = IdentifierPolicy.forSource(connection, dbName);
+            policy = sourceAdapterRegistry.resolve(source)
+                .identifierPolicy(SourceRef.of(source), dbName);
         }
-        catch (SQLException e)
+        catch (RuntimeException e)
         {
             log.warn("Failed to resolve identifier policy for source {}: {}", source.getId(), e.getMessage());
             policy = IdentifierPolicy.EXACT;

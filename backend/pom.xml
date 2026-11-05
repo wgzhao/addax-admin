@@ -70,6 +70,14 @@
       <version>42.7.2</version>
     </dependency>
 
+    <!-- Source metadata and connection tests for MongoDB. The Addax engine ships its own
+         copy; keeping the same 3.x line avoids protocol surprises on older servers. -->
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongo-java-driver</artifactId>
+      <version>3.12.14</version>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-json</artifactId>

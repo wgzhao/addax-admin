@@ -8,7 +8,8 @@ public record SourceColumnMetadata(
     Integer scale,
     String comment,
     boolean nullable,
-    boolean primaryKey
+    boolean primaryKey,
+    String suggestedTargetName
 )
 {
 }
