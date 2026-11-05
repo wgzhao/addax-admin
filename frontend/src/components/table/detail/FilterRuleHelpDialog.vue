@@ -6,7 +6,7 @@
     icon="mdi-filter-cog-outline"
     :max-width="820"
   >
-    <div class="empty-rule-note">
+    <div v-if="!mongo" class="empty-rule-note">
       <span class="empty-rule-note__icon">
         <v-icon size="20">mdi-check-circle-outline</v-icon>
       </span>
@@ -15,6 +15,68 @@
         <p>系统会自动按 <code>1=1</code> 处理，不会附加任何过滤条件。</p>
       </div>
     </div>
+
+    <section v-if="mongo" class="recipe-section">
+      <div class="section-heading">
+        <h3>MongoDB 过滤</h3>
+        <span>查询文档使用 extended JSON，不是 SQL</span>
+      </div>
+      <div class="recipe-grid">
+        <article class="recipe-card">
+          <div class="recipe-card__head">
+            <span class="recipe-icon recipe-icon--neutral">
+              <v-icon size="18">mdi-filter-outline</v-icon>
+            </span>
+            <div>
+              <h4>全量读取</h4>
+              <p>留空或填写空文档，读取整个集合。</p>
+            </div>
+          </div>
+          <div class="recipe-code"><code>{}</code></div>
+        </article>
+        <article class="recipe-card">
+          <div class="recipe-card__head">
+            <span class="recipe-icon recipe-icon--neutral">
+              <v-icon size="18">mdi-filter-variant</v-icon>
+            </span>
+            <div>
+              <h4>等值过滤</h4>
+              <p>只读取 status 为 paid 的文档。</p>
+            </div>
+          </div>
+          <div class="recipe-code"><code>{"status":"paid"}</code></div>
+        </article>
+        <article class="recipe-card">
+          <div class="recipe-card__head">
+            <span class="recipe-icon recipe-icon--neutral">
+              <v-icon size="18">mdi-clock-outline</v-icon>
+            </span>
+            <div>
+              <h4>日期范围</h4>
+              <p>日期必须使用 extended JSON，不能写 new Date()。</p>
+            </div>
+          </div>
+          <div class="recipe-code">
+            <code>{"created_at":{"$gte":{"$date":"2026-11-01T00:00:00+08:00"}}}</code>
+          </div>
+        </article>
+        <article class="recipe-card">
+          <div class="recipe-card__head">
+            <span class="recipe-icon recipe-icon--neutral">
+              <v-icon size="18">mdi-auto-fix</v-icon>
+            </span>
+            <div>
+              <h4>按目标最大值增量</h4>
+              <p>读取目标表中该字段最大值之后的新文档。</p>
+            </div>
+          </div>
+          <div class="recipe-code"><code>__max__seq</code></div>
+        </article>
+      </div>
+      <p class="mongo-note">
+        不支持 <code>$where</code>、<code>$function</code>、<code>$accumulator</code>；增量字段建议建索引。
+      </p>
+    </section>
 
     <section class="recipe-section">
       <div class="section-heading">
@@ -144,6 +206,7 @@
   import HelpDialogShell from './HelpDialogShell.vue';
 
   const open = defineModel<boolean>({ default: false });
+  defineProps<{ mongo?: boolean }>();
   const businessDateFilter = "dt='${biz_date_dash}'";
 
   const copyExample = async (value: string) => {

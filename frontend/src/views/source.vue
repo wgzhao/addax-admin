@@ -55,6 +55,10 @@
             density="comfortable"
             items-per-page="20"
           >
+            <template #item.dbType="{ item }">
+              <v-chip size="small" color="primary" variant="tonal">{{ typeLabel(item.dbType) }}</v-chip>
+            </template>
+
             <template #item.url="{ item }">
               <span class="ds-cell-primary ds-mono-text ds-white-space-normal table-url">{{
                 item.url || '-'
@@ -185,6 +189,7 @@
     { title: 'ID', key: 'id', width: '2%' },
     { title: '编号', key: 'code', width: '5%' },
     { title: '采集源', key: 'name', minWidth: '5%' },
+    { title: '类型', key: 'dbType', width: '6%' },
     { title: '连接串', key: 'url', minWidth: '15%' },
     { title: '状态', key: 'enabled', width: '3%' },
     { title: '表数量', key: 'tableCount', width: '5%' },
@@ -193,6 +198,12 @@
     { title: '采集日历', key: 'calendar', width: '8%' },
     { title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' },
   ];
+
+  const typeLabel = (dbType?: string) => {
+    if (!dbType) return 'JDBC';
+    if (dbType === 'mongodb') return 'MongoDB';
+    return dbType.toUpperCase();
+  };
 
   // 空值即自然日，不显示成空白以免看起来像没配置
   const calendarLabel = (calendar?: string) => {

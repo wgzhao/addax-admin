@@ -21,6 +21,15 @@
         </div>
         <div class="panel-actions">
           <v-btn
+            v-if="isMongoSource"
+            variant="tonal"
+            color="primary"
+            prepend-icon="mdi-plus"
+            @click="manualDialog = true"
+          >
+            添加源字段
+          </v-btn>
+          <v-btn
             variant="tonal"
             color="primary"
             prepend-icon="mdi-shield-search"
@@ -158,6 +167,45 @@
         <div class="panel-state__desc">请先刷新源表字段，或切换到外部管理后预检目标表。</div>
       </div>
     </v-card-text>
+
+    <v-dialog v-model="manualDialog" max-width="520">
+      <v-card>
+        <v-card-title>添加源字段</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="manualForm.sourceName"
+            label="源字段路径"
+            placeholder="nested.extra"
+            variant="outlined"
+            density="compact"
+          />
+          <v-select
+            v-model="manualForm.sourceType"
+            :items="manualTypes"
+            label="类型"
+            variant="outlined"
+            density="compact"
+          />
+          <v-text-field
+            v-model="manualForm.targetName"
+            label="目标字段（可选）"
+            variant="outlined"
+            density="compact"
+          />
+          <v-text-field
+            v-model="manualForm.comment"
+            label="备注（可选）"
+            variant="outlined"
+            density="compact"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" :disabled="manualSaving" @click="manualDialog = false">取消</v-btn>
+          <v-btn color="primary" :loading="manualSaving" @click="addManualColumn">添加</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -167,7 +215,12 @@
   import type { DataTableHeader } from 'vuetify';
   import { notify } from '@/stores/notifier';
   import tableService from '@/service/table-service';
-  import type { ColumnMapping, TargetContractReport, TargetTableColumn } from '@/types/database';
+  import type {
+    ColumnMapping,
+    TargetContractReport,
+    TargetTableColumn,
+    VEtlWithSource,
+  } from '@/types/database';
 
   const route = useRoute();
   const tid = Number((route.params as Record<string, string>).tid);
@@ -181,6 +234,12 @@
   const baselineMappings = ref<ColumnMapping[]>([]);
   const baselineSignature = ref('');
   const error = ref('');
+  const tableDetail = ref<VEtlWithSource | null>(null);
+  const manualDialog = ref(false);
+  const manualSaving = ref(false);
+  const manualTypes = ['string', 'int', 'bigint', 'double', 'decimal', 'boolean', 'timestamp', 'text', 'binary'];
+  const manualForm = ref({ sourceName: '', sourceType: 'string', targetName: '', comment: '' });
+  const isMongoSource = computed(() => tableDetail.value?.dbType === 'mongodb');
 
   const cloneMappings = (value: ColumnMapping[]): ColumnMapping[] =>
     JSON.parse(JSON.stringify(value)) as ColumnMapping[];
@@ -293,6 +352,31 @@
     mappings.value = mappings.value.filter(item => item !== mapping);
   };
 
+  const addManualColumn = async () => {
+    if (!manualForm.value.sourceName.trim()) {
+      notify('请填写源字段路径', 'warning');
+      return;
+    }
+    manualSaving.value = true;
+    try {
+      await tableService.addManualColumn(tid, {
+        sourceName: manualForm.value.sourceName.trim(),
+        sourceType: manualForm.value.sourceType,
+        targetName: manualForm.value.targetName.trim() || undefined,
+        comment: manualForm.value.comment.trim() || undefined,
+      });
+      manualDialog.value = false;
+      manualForm.value = { sourceName: '', sourceType: 'string', targetName: '', comment: '' };
+      await loadMappings();
+      await checkContract();
+      notify('源字段已添加，请刷新任务后重新运行', 'success');
+    } catch (err) {
+      notify(`添加源字段失败: ${(err as Error).message || String(err)}`, 'error');
+    } finally {
+      manualSaving.value = false;
+    }
+  };
+
   const headers: DataTableHeader[] = [
     { title: '顺序', key: 'ordinalNo', width: '7%' },
     { title: '源字段', key: 'sourceColumnName', width: '27%' },
@@ -306,6 +390,12 @@
     loading.value = true;
     error.value = '';
     try {
+      tableService
+        .fetchTableDetail(tid)
+        .then(detail => {
+          tableDetail.value = detail;
+        })
+        .catch(() => undefined);
       await loadMappings();
       await checkContract();
     } catch (err) {

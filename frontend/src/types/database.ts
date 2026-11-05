@@ -192,6 +192,36 @@ export interface EtlSource {
   remark?: string; // 系统备注信息
   enabled?: boolean; // 是否有效
   maxConcurrency?: number; // 最大并发数
+  dbType?: string; // mysql/postgresql/.../mongodb，后端写入
+  connectConfig?: MongoConnectConfig | null; // 非 JDBC 源的结构化连接配置（不含密码）
+}
+
+export interface MongoConnectConfig {
+  address: string[];
+  database: string;
+  authDb?: string;
+  options?: Record<string, string>;
+}
+
+export interface SourceTypeDescriptor {
+  type: string;
+  label: string;
+  description?: string;
+  connectionMode: 'JDBC_URL' | 'MONGODB' | string;
+  fields: string[];
+  capabilities: {
+    filterFormat: 'SQL' | 'MONGO_QUERY' | 'ES_DSL' | string;
+    splitPk: boolean;
+    autoPk: boolean;
+    nullLiteralColumns: boolean;
+    constantColumns: boolean;
+    autoDeleteMissingColumns: boolean;
+    caseSensitiveIdentifiers: boolean;
+    samplingInference: boolean;
+    readerPlugin?: string | null;
+  };
+  defaultFilter: string;
+  readerPluginInstalled?: boolean | null;
 }
 
 // Target-specific table attributes, grouped per target family (etl_table.target_options).
@@ -226,6 +256,8 @@ export interface EtlTargetOptions {
 export interface EtlTable {
   id: number; // 表ID，主键
   startAt?: string | null; // 表级调度时间点(HH:mm[:ss])，为空表示继承 etl_source.start_at
+  dbType?: string | null; // 采集源类型（视图返回）
+  connectConfig?: MongoConnectConfig | null;
   sourceDb: string; // 采集源库名或schema名称或owner名称
   sourceTable: string; // 采集源表名
   targetDb: string; // 目标库名，即提供给hive的库名
@@ -420,6 +452,7 @@ export interface SourceColumnMetadata {
   comment?: string | null;
   nullable?: boolean;
   primaryKey?: boolean;
+  suggestedTargetName?: string | null;
 }
 
 export interface SchemaPreviewSuggestion {

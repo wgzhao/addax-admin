@@ -43,7 +43,7 @@
     </template>
 
     <DynamicNameHelpDialog v-model="showPlaceholderInfo" />
-    <FilterRuleHelpDialog v-model="showFilterRuleInfo" />
+    <FilterRuleHelpDialog v-model="showFilterRuleInfo" :mongo="table.dbType === 'mongodb'" />
   </v-form>
 </template>
 
