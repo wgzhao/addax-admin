@@ -131,7 +131,10 @@
           </template>
 
           <template #item.sourceType="{ item }">
-            <span class="type-pill type-pill--source">{{ item.sourceType || '-' }}</span>
+            <div class="d-flex align-center">
+              <span class="type-pill type-pill--source">{{ item.sourceType || '-' }}</span>
+              <SourceFieldMetaTooltip :meta="item.sourceMeta" />
+            </div>
           </template>
 
           <template #item.targetType="{ item }">
@@ -215,6 +218,7 @@
   import type { DataTableHeader } from 'vuetify';
   import { notify } from '@/stores/notifier';
   import tableService from '@/service/table-service';
+  import SourceFieldMetaTooltip from './SourceFieldMetaTooltip.vue';
   import type {
     ColumnMapping,
     TargetContractReport,

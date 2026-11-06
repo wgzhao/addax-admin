@@ -50,4 +50,17 @@ test.describe('MongoDB collection source', () => {
     await page.getByRole('button', { name: '规则说明' }).first().click();
     await expect(page.getByText('MongoDB 过滤')).toBeVisible();
   });
+
+  test('MongoDB table detail exposes sampled source types without polluting target comments', async ({
+    page,
+  }) => {
+    test.skip(!detailTableId, 'requires E2E_MONGO_TABLE_ID for a Mongo-backed table');
+    await page.goto(`/table/detail/${detailTableId}?tab=fields`);
+    await expect(page.getByText('字段映射与目标契约')).toBeVisible();
+
+    const info = page.getByLabel('字段采样信息').first();
+    await expect(info).toBeVisible();
+    await info.hover();
+    await expect(page.locator('.v-overlay--active .source-meta-tooltip')).toBeVisible();
+  });
 });

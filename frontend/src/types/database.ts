@@ -389,9 +389,18 @@ export interface EtlColumn {
   dataScale?: number; // 小数位
   tblComment?: string; // 表注释
   colComment?: string; // 字段注释
+  sourceMeta?: SourceFieldMeta | null; // MongoDB 字段采样证据
   targetType: string; // 目标表对应的类型
   targetTypeFull?: string; // 目标表字段的完整类型，比如decimal(10,3)
   updateAt?: Date; // 更新时间
+}
+
+export interface SourceFieldMeta {
+  sampleSize: number;
+  present: number;
+  missing: number;
+  nullCount: number;
+  types: Record<string, number>;
 }
 
 export interface ColumnMapping {
@@ -404,6 +413,7 @@ export interface ColumnMapping {
   targetType?: string | null;
   targetTypeFull?: string | null;
   comment?: string | null;
+  sourceMeta?: SourceFieldMeta | null;
   updatedAt?: string | null;
 }
 
@@ -453,6 +463,7 @@ export interface SourceColumnMetadata {
   nullable?: boolean;
   primaryKey?: boolean;
   suggestedTargetName?: string | null;
+  sourceMeta?: SourceFieldMeta | null;
 }
 
 export interface SchemaPreviewSuggestion {
