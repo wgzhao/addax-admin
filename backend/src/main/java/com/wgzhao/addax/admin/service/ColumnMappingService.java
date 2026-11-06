@@ -240,6 +240,7 @@ public class ColumnMappingService
             source == null ? null : source.getTargetType(),
             source == null ? null : source.getTargetTypeFull(),
             source == null ? null : source.getColComment(),
+            source == null ? null : source.getSourceMeta(),
             mapping.updatedAt());
     }
 

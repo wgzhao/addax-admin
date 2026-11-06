@@ -1,11 +1,14 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.dto.ManualSourceColumnRequest;
+import com.wgzhao.addax.admin.dto.SourceFieldMeta;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.repository.EtlColumnRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
@@ -50,6 +53,7 @@ public class ColumnService
     private final VwEtlTableWithSourceRepo viewRepo;
     private final SchemaChangeLogService schemaChangeLogService;
     private final AlertService alertService;
+    private final ObjectMapper objectMapper;
 
     // Shared with TableService: a transient source outage must not be handled like a schema failure.
     public static final int UPDATE_NO_CHANGE = 0;
@@ -299,7 +303,9 @@ public class ColumnService
                     else {
                         typeChanged = precisionChanged;
                     }
-                    // boolean commentChanged = !Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
+                    boolean commentChanged = !Objects.equals(
+                        nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
+                    boolean sourceMetaChanged = !Objects.equals(oc.getSourceMeta(), sc.getSourceMeta());
                     if (typeChanged) {
                         // 记录类型变化
                         schemaChangeLogService.recordTypeChange(
@@ -309,16 +315,36 @@ public class ColumnService
                             oc.getDataPrecision(), sc.getDataPrecision(),
                             oc.getDataScale(), sc.getDataScale(),
                             oc.getColComment(), sc.getColComment());
-                        // 同步更新字段信息（源类型、长度/精度/比例、注释、目标类型）
+                        // 同步更新字段信息（源类型、长度/精度/比例、注释、目标类型、采样证据）
                         oc.setSourceType(sc.getSourceType());
                         oc.setDataLength(sc.getDataLength());
                         oc.setDataPrecision(sc.getDataPrecision());
                         oc.setDataScale(sc.getDataScale());
                         oc.setColComment(sc.getColComment());
+                        oc.setSourceMeta(sc.getSourceMeta());
                         oc.setTargetType(sc.getTargetType());
                         oc.setTargetTypeFull(sc.getTargetTypeFull());
                         etlColumnRepo.save(oc);
                         changed = true;
+                    }
+                    else {
+                        // Sampling evidence changes on every refresh; persist it even when the target
+                        // type does not move, but only mark the table changed when the COMMENT does.
+                        boolean saved = false;
+                        if (commentChanged) {
+                            oc.setColComment(sc.getColComment());
+                            saved = true;
+                        }
+                        if (sourceMetaChanged) {
+                            oc.setSourceMeta(sc.getSourceMeta());
+                            saved = true;
+                        }
+                        if (saved) {
+                            etlColumnRepo.save(oc);
+                        }
+                        if (commentChanged) {
+                            changed = true;
+                        }
                     }
                 }
                 else {
@@ -439,7 +465,7 @@ public class ColumnService
             || "HDFS".equalsIgnoreCase(view.getTargetType()) ? TargetFamily.HDFS : TargetFamily.RDBMS;
         DbType targetDialect = DbType.fromValue(view.getTargetType()).orElse(null);
         SourceField field = new SourceField(sourceName, sourceType, sourceType, length, precision, scale,
-            request.comment(), true, false, request.targetName());
+            request.comment(), true, false, request.targetName(), null);
         ColumnTypeMapping mapping = adapter.mapColumnType(field, family, targetDialect, TypePurpose.ETL_COLUMN);
 
         int nextId = existing.stream().map(EtlColumn::getColumnId)
@@ -485,6 +511,7 @@ public class ColumnService
             etlColumn.setDataPrecision(field.dataPrecision());
             etlColumn.setDataScale(field.dataScale());
             etlColumn.setColComment(field.comment());
+            etlColumn.setSourceMeta(toJson(field.sourceMeta()));
             ColumnTypeMapping mapping = adapter.mapColumnType(field, family, targetDialect, TypePurpose.ETL_COLUMN);
             etlColumn.setTargetType(mapping.targetType());
             etlColumn.setTargetTypeFull(mapping.targetTypeFull());
@@ -492,6 +519,11 @@ public class ColumnService
             idx++;
         }
         return sourceCols;
+    }
+
+    private JsonNode toJson(SourceFieldMeta meta)
+    {
+        return meta == null ? null : objectMapper.valueToTree(meta);
     }
 
     /**

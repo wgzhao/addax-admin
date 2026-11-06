@@ -252,7 +252,8 @@ public class RdbmsSourceAdapter implements SourceAdapter
                     rs.getString("REMARKS"),
                     rs.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls,
                     primaryKeys.contains(name.toLowerCase(Locale.ROOT)),
-                    name));
+                    name,
+                    null));
             }
         }
         return fields;

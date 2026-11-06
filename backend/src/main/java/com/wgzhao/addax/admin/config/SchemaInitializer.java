@@ -189,6 +189,13 @@ public class SchemaInitializer
         """;
 
     /**
+     * Structured sampling evidence used by schema-on-read sources. It is deliberately separate from
+     * etl_column.col_comment so target comments remain short and stable.
+     */
+    private static final String ADD_COLUMN_SOURCE_META_SQL =
+        "alter table public.etl_column add column if not exists source_meta jsonb";
+
+    /**
      * Rows created before target routing existed have no target id. They behaved as the default target,
      * so bind them to it once instead of making every route filter treat them as uncollected. Retired
      * rows are included: a retired definition still owns its route.
@@ -466,6 +473,7 @@ public class SchemaInitializer
             }
             if (exists(connection, "tables", "etl_column", null))
             {
+                statement.execute(ADD_COLUMN_SOURCE_META_SQL);
                 statement.execute(CREATE_COLUMN_MAPPING_SQL);
                 int mappings = statement.executeUpdate(BACKFILL_COLUMN_MAPPING_SQL);
                 if (mappings > 0)

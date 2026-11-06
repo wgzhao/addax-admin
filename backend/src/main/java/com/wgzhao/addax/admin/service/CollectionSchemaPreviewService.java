@@ -213,7 +213,8 @@ public class CollectionSchemaPreviewService
                     field.comment(),
                     field.nullable(),
                     field.primaryKey(),
-                    field.suggestedTargetName()));
+                    field.suggestedTargetName(),
+                    field.sourceMeta()));
             }
             return columns;
         }

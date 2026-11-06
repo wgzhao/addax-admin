@@ -120,6 +120,7 @@ CREATE TABLE public.etl_column (
     data_precision integer,
     data_scale integer,
     col_comment character varying(4000),
+    source_meta jsonb,
     target_type character varying(50) NOT NULL,
     target_type_full character varying(100),
     update_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP

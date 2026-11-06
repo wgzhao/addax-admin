@@ -9,7 +9,8 @@ public record SourceColumnMetadata(
     String comment,
     boolean nullable,
     boolean primaryKey,
-    String suggestedTargetName
+    String suggestedTargetName,
+    SourceFieldMeta sourceMeta
 )
 {
 }

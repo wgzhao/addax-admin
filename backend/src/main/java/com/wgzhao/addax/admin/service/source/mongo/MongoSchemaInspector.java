@@ -3,7 +3,9 @@ package com.wgzhao.addax.admin.service.source.mongo;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.Sorts;
+import com.wgzhao.addax.admin.dto.SourceFieldMeta;
 import com.wgzhao.addax.admin.service.source.SchemaMode;
 import com.wgzhao.addax.admin.service.source.SourceAccessException;
 import com.wgzhao.addax.admin.service.source.SourceField;
@@ -33,8 +35,9 @@ import java.util.Set;
  * Infers a MongoDB collection's shape by reading a bounded, deterministic sample.
  *
  * <p>{@code $sample} is deliberately not used: it returns a different set of documents on every
- * refresh, which makes the target schema churn. Reading the first and last N/2 documents by
- * {@code _id} is stable and still covers both old and new documents.</p>
+ * refresh, which makes the target schema churn. Reading the first, middle and last thirds by
+ * {@code _id} is stable and still covers shapes that only occur in the middle of the collection —
+ * the first/last-only sample missed an entire document variant in practice.</p>
  */
 @Component
 @RequiredArgsConstructor
@@ -139,22 +142,18 @@ public class MongoSchemaInspector
             coll.find().into(samples);
             return samples;
         }
-        int half = Math.max(1, limit / 2);
-        coll.find().sort(Sorts.ascending("_id")).limit(half).into(samples);
+
+        // A deterministic head/middle/tail sample. The middle chunk is what catches document shapes
+        // that a collection only gained (or lost) after the first page; skipping is acceptable here
+        // because schema inspection is not on the job hot path.
+        int chunk = Math.max(1, limit / 3);
         Set<Object> seen = new LinkedHashSet<>();
-        for (Document doc : samples)
-        {
-            seen.add(doc.get("_id"));
-        }
-        List<Document> tail = new ArrayList<>();
-        coll.find().sort(Sorts.descending("_id")).limit(half).into(tail);
-        for (Document doc : tail)
-        {
-            if (seen.add(doc.get("_id")))
-            {
-                samples.add(doc);
-            }
-        }
+        collect(coll.find().sort(Sorts.ascending("_id")).limit(chunk), samples, seen);
+        long offset = Math.max(0, count / 2 - (long) chunk / 2);
+        collect(coll.find().sort(Sorts.ascending("_id"))
+            .skip((int) Math.min(Integer.MAX_VALUE, offset)).limit(chunk), samples, seen);
+        collect(coll.find().sort(Sorts.descending("_id")).limit(chunk), samples, seen);
+
         if (samples.isEmpty() && count == 0)
         {
             // The estimate can be zero on a collection the user just filled; a bounded scan still
@@ -164,6 +163,17 @@ public class MongoSchemaInspector
         return samples;
     }
 
+    private void collect(MongoIterable<Document> query, List<Document> samples, Set<Object> seen)
+    {
+        for (Document doc : query)
+        {
+            if (seen.add(doc.get("_id")))
+            {
+                samples.add(doc);
+            }
+        }
+    }
+
     private SourceSchema infer(List<Document> samples, long count)
     {
         List<String> warnings = new ArrayList<>();
@@ -171,7 +181,7 @@ public class MongoSchemaInspector
         {
             warnings.add("集合为空，仅推断出 _id；请手工添加字段或等待数据写入后重新采样");
             SourceField id = new SourceField("_id", "string", "objectId", 24, 24, 0,
-                "MongoDB 集合为空，未采样到字段", false, true, "_id");
+                "MongoDB objectId", false, true, "_id", null);
             return new SourceSchema(List.of(id), warnings, 0, false);
         }
 
@@ -212,14 +222,16 @@ public class MongoSchemaInspector
         {
             Kind idKind = resolveKind(idInfo);
             int idLength = lengthFor(idKind, idInfo);
-            fields.add(new SourceField("_id", sourceType(idKind), nativeType(idInfo, samples.size()),
+            String idNative = nativeLabel(idInfo);
+            fields.add(new SourceField("_id", sourceType(idKind), idNative,
                 idLength, idKind == Kind.DECIMAL ? 38 : idLength, idKind == Kind.DECIMAL ? 10 : 0,
-                nativeType(idInfo, samples.size()), false, true, "_id"));
+                commentFor(idNative), false, true, "_id",
+                meta(idInfo, samples.size())));
         }
         else
         {
             fields.add(new SourceField("_id", "string", "objectId", 24, 24, 0,
-                "MongoDB 自动生成的主键", false, true, "_id"));
+                "MongoDB objectId", false, true, "_id", null));
         }
         usedTargetNames.add("_id");
 
@@ -257,17 +269,18 @@ public class MongoSchemaInspector
             {
                 depthTruncated = true;
             }
-            String nativeType = nativeType(info, samples.size());
+            String nativeType = nativeLabel(info);
             int length = lengthFor(kind, info);
             String sourceType = sourceType(kind);
             String targetName = uniqueTargetName(sanitize(path), usedTargetNames);
             fields.add(new SourceField(path, sourceType, nativeType, length,
                 kind == Kind.DECIMAL ? 38 : length,
                 kind == Kind.DECIMAL ? 10 : 0,
-                nativeType,
+                commentFor(nativeType),
                 !"_id".equals(path),
                 "_id".equals(path),
-                targetName));
+                targetName,
+                meta(info, samples.size())));
         }
 
         if (truncated)
@@ -442,22 +455,52 @@ public class MongoSchemaInspector
         return 0;
     }
 
-    private static String nativeType(PathInfo info, int sampleCount)
+    /**
+     * Short native label for display: a single BSON type keeps its name; several types collapse to
+     * {@code mixed}; a missing-only field is {@code null}. Counts are kept in {@link SourceFieldMeta}.
+     */
+    private static String nativeLabel(PathInfo info)
     {
-        StringBuilder summary = new StringBuilder("MongoDB ");
-        boolean first = true;
+        Set<String> labels = new LinkedHashSet<>();
+        for (Kind kind : info.counts.keySet())
+        {
+            if (kind != Kind.NULL)
+            {
+                labels.add(kind.label);
+            }
+        }
+        if (labels.size() == 1)
+        {
+            return labels.iterator().next();
+        }
+        if (labels.isEmpty())
+        {
+            return info.counts.containsKey(Kind.NULL) ? "null" : "unknown";
+        }
+        return "mixed";
+    }
+
+    private static String commentFor(String nativeType)
+    {
+        return "MongoDB " + nativeType;
+    }
+
+    private static SourceFieldMeta meta(PathInfo info, int sampleSize)
+    {
+        Map<String, Integer> types = new LinkedHashMap<>();
+        int nullCount = info.counts.getOrDefault(Kind.NULL, 0);
+        int present = nullCount;
         for (Map.Entry<Kind, Integer> entry : info.counts.entrySet())
         {
-            if (!first)
+            if (entry.getKey() == Kind.NULL)
             {
-                summary.append(", ");
+                continue;
             }
-            int percent = (int) Math.round(entry.getValue() * 100.0 / Math.max(1, sampleCount));
-            summary.append(entry.getKey().label).append(' ').append(percent).append('%');
-            first = false;
+            types.merge(entry.getKey().label, entry.getValue(), Integer::sum);
+            present += entry.getValue();
         }
-        summary.append(" (sample ").append(sampleCount).append(')');
-        return summary.toString();
+        int missing = Math.max(0, sampleSize - present);
+        return new SourceFieldMeta(sampleSize, present, missing, nullCount, types);
     }
 
     private static boolean isAddressable(String path)

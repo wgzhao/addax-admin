@@ -1,12 +1,15 @@
 package com.wgzhao.addax.admin.model;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -46,6 +49,14 @@ public class EtlColumn
 
     @Column(name = "col_comment", length = 4000)
     private String colComment;
+
+    /**
+     * Structured sampling evidence (sample size, present/missing/null counts, BSON type counts).
+     * Kept out of {@code col_comment} so Hive DDL comments stay short and stable.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "source_meta", columnDefinition = "jsonb")
+    private JsonNode sourceMeta;
 
     @Column(name = "target_type", length = 50, nullable = false)
     private String targetType;

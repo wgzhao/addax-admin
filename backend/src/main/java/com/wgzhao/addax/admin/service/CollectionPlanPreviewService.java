@@ -252,7 +252,8 @@ public class CollectionPlanPreviewService
                 ? TargetFamily.HDFS : TargetFamily.RDBMS;
             SourceField field = new SourceField(source.name(), source.type(), source.type(),
                 source.size(), source.precision(), source.scale(), source.comment(),
-                source.nullable(), source.primaryKey(), source.suggestedTargetName());
+                source.nullable(), source.primaryKey(), source.suggestedTargetName(),
+                source.sourceMeta());
             ColumnTypeMapping mapping = sourceAdapter.mapColumnType(field, family,
                 targetDialect(request.targetId()), TypePurpose.PLANNED_DDL);
             return mapping.targetTypeFull();

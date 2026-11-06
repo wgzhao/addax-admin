@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.time.LocalDateTime;
 
 public record ColumnMappingDto(
@@ -12,6 +14,7 @@ public record ColumnMappingDto(
     String targetType,
     String targetTypeFull,
     String comment,
+    JsonNode sourceMeta,
     LocalDateTime updatedAt
 )
 {
