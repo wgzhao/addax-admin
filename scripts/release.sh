@@ -20,4 +20,13 @@ git add pom.xml backend/pom.xml package.json frontend/package.json
 git commit -m "chore(repo): release v$VERSION"
 git tag "v$VERSION"
 
-echo "✅ Released v$VERSION — remember to: git push && git push --tags"
+# Move master to the next development version (why: a released version must never stay on the dev branch)
+IFS='.' read -r major minor patch <<< "$VERSION"
+NEXT_VERSION="$major.$minor.$((patch + 1))-SNAPSHOT"
+mvn -q versions:set -DnewVersion="$NEXT_VERSION" -DgenerateBackupPoms=false
+npm pkg set version="$NEXT_VERSION"
+npm pkg set version="$NEXT_VERSION" --prefix frontend
+git add pom.xml backend/pom.xml package.json frontend/package.json
+git commit -m "chore(repo): bump dev version to $NEXT_VERSION"
+
+echo "✅ Released v$VERSION, now on $NEXT_VERSION — remember to: git push && git push --tags"
