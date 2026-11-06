@@ -70,12 +70,30 @@
       <version>42.7.2</version>
     </dependency>
 
-    <!-- Source metadata and connection tests for MongoDB. The Addax engine ships its own
-         copy; keeping the same 3.x line avoids protocol surprises on older servers. -->
+    <!-- Source metadata and connection tests for MongoDB. Addax has its own copy for the data
+         path; this one only needs the broadest server overlap. 4.11 still covers MongoDB 3.6/4.0
+         and adds 7.0, while 5.x drops the pre-4.2 servers. The explicit transitive versions defeat
+         Spring Boot's mongodb-driver-bom (5.5.1), which would otherwise mix 5.x core jars with a
+         4.11 sync driver. -->
     <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-      <version>3.12.14</version>
+      <artifactId>mongodb-driver-sync</artifactId>
+      <version>4.11.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>mongodb-driver-core</artifactId>
+      <version>4.11.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>bson</artifactId>
+      <version>4.11.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mongodb</groupId>
+      <artifactId>bson-record-codec</artifactId>
+      <version>4.11.5</version>
     </dependency>
 
     <dependency>
