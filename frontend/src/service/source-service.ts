@@ -2,6 +2,7 @@
 import Requests from '@/utils/requests';
 import type {
   CollectableTable,
+  EsConnectConfig,
   EtlSource,
   MongoConnectConfig,
   SourceTypeDescriptor,
@@ -47,7 +48,7 @@ class SourceService {
     password?: string;
     sourceId?: number;
     dbType?: string;
-    connectConfig?: MongoConnectConfig | null;
+    connectConfig?: MongoConnectConfig | EsConnectConfig | null;
   }): Promise<boolean> {
     return Requests.post(`${this.prefix}/test-connect`, params) as unknown as Promise<boolean>;
   }

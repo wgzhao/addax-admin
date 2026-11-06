@@ -161,7 +161,7 @@
                 prepend-icon="mdi-lan-connect"
                 :loading="testingConnection"
                 :aria-busy="testingConnection"
-                :disabled="mode === 'detail' || (!isMongo && !sourceItem.url)"
+                :disabled="mode === 'detail' || (isJdbc && !sourceItem.url)"
                 @click="testConnect"
               >
                 测试连接
@@ -184,7 +184,7 @@
                 />
               </div>
 
-              <div v-if="!isMongo" class="field span-2">
+              <div v-if="isJdbc" class="field span-2">
                 <label class="field-label" for="src-url">JDBC 连接地址</label>
                 <v-text-field
                   id="src-url"
@@ -197,7 +197,7 @@
                 />
               </div>
 
-              <template v-else>
+              <template v-else-if="isMongo">
                 <div class="field span-2">
                   <label class="field-label" for="src-mongo-address">MongoDB 地址</label>
                   <v-text-field
@@ -246,16 +246,51 @@
                     hide-details="auto"
                   />
                 </div>
-                <v-alert
-                  v-if="mongoPluginMissing"
-                  type="warning"
-                  variant="tonal"
-                  density="compact"
-                  class="span-2"
-                >
-                  Addax 未安装 mongodbreader 插件，任务运行会失败；请先把插件放入 Addax 的 plugin/reader 目录。
-                </v-alert>
               </template>
+
+              <template v-else>
+                <div class="field span-2">
+                  <label class="field-label" for="src-es-endpoints">Elasticsearch 地址</label>
+                  <v-text-field
+                    id="src-es-endpoints"
+                    v-model="esEndpoints"
+                    placeholder="http://es1:9200,http://es2:9200"
+                    :rules="[requiredRule]"
+                    variant="outlined"
+                    density="compact"
+                    hide-details="auto"
+                  />
+                  <p class="field-hint">
+                    一个或多个 http(s)://host:port，逗号分隔；采集任务使用第一个地址
+                  </p>
+                </div>
+                <div class="field span-2">
+                  <label class="field-label" for="src-es-options">高级选项 (JSON)</label>
+                  <v-textarea
+                    id="src-es-options"
+                    v-model="esOptions"
+                    placeholder='{"insecureSkipVerify":"true"}'
+                    variant="outlined"
+                    density="compact"
+                    rows="2"
+                    hide-details="auto"
+                  />
+                  <p class="field-hint">
+                    支持 insecureSkipVerify、connectTimeoutMs、readTimeoutMs、scroll、batchSize、searchType、multiThread、compression、discovery
+                  </p>
+                </div>
+              </template>
+
+              <v-alert
+                v-if="readerPluginMissing"
+                type="warning"
+                variant="tonal"
+                density="compact"
+                class="span-2"
+              >
+                Addax 未安装 {{ readerPluginMissing }} 插件，任务运行会失败；请先把插件放入 Addax 的
+                plugin/reader 目录。
+              </v-alert>
 
               <div class="field">
                 <label class="field-label" for="src-user">用户名</label>
@@ -361,7 +396,12 @@
   import { ref, computed, watch, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
   import sourceService from '@/service/source-service';
-  import { EtlSource, MongoConnectConfig, SourceTypeDescriptor } from '@/types/database';
+  import {
+    EsConnectConfig,
+    EtlSource,
+    MongoConnectConfig,
+    SourceTypeDescriptor,
+  } from '@/types/database';
 
   const props = defineProps({
     sid: Number,
@@ -375,34 +415,50 @@
   const connectionState = ref<{ ok: boolean; text: string } | null>(null);
   const dirty = ref(false);
 
-  const connectType = ref<'RDBMS' | 'MONGODB'>('RDBMS');
+  const connectType = ref<'RDBMS' | 'MONGODB' | 'ELASTICSEARCH'>('RDBMS');
   const connectTypeOptions = [
     { label: '关系型数据库 (JDBC)', value: 'RDBMS' },
     { label: 'MongoDB', value: 'MONGODB' },
+    { label: 'Elasticsearch', value: 'ELASTICSEARCH' },
   ];
   const mongoAddress = ref('');
   const mongoDatabase = ref('');
   const mongoAuthDb = ref('admin');
   const mongoOptions = ref('{}');
+  const esEndpoints = ref('');
+  const esOptions = ref('{}');
   const sourceTypes = ref<SourceTypeDescriptor[]>([]);
   const isMongo = computed(() => connectType.value === 'MONGODB');
-  const mongoPluginMissing = computed(
-    () =>
-      isMongo.value &&
-      sourceTypes.value.find(type => type.type === 'MONGODB')?.readerPluginInstalled === false
-  );
+  const isEs = computed(() => connectType.value === 'ELASTICSEARCH');
+  const isJdbc = computed(() => !isMongo.value && !isEs.value);
+  const readerPluginMissing = computed(() => {
+    if (isJdbc.value) return null;
+    const descriptor = sourceTypes.value.find(type => type.type === connectType.value);
+    if (descriptor?.readerPluginInstalled !== false) return null;
+    return (
+      descriptor?.capabilities?.readerPlugin ||
+      (isMongo.value ? 'mongodbreader' : 'elasticsearchreader')
+    );
+  });
 
-  const syncMongoForm = () => {
+  const syncConnectForm = () => {
     if (sourceItem.value.dbType === 'mongodb') {
       connectType.value = 'MONGODB';
-      const config = sourceItem.value.connectConfig;
+      const config = sourceItem.value.connectConfig as MongoConnectConfig | null | undefined;
       mongoAddress.value = (config?.address ?? []).join(',');
       mongoDatabase.value = config?.database ?? '';
       mongoAuthDb.value = config?.authDb ?? 'admin';
       mongoOptions.value = JSON.stringify(config?.options ?? {}, null, 2);
-    } else {
-      connectType.value = 'RDBMS';
+      return;
     }
+    if (sourceItem.value.dbType === 'elasticsearch') {
+      connectType.value = 'ELASTICSEARCH';
+      const config = sourceItem.value.connectConfig as EsConnectConfig | null | undefined;
+      esEndpoints.value = (config?.endpoints ?? []).join(',');
+      esOptions.value = JSON.stringify(config?.options ?? {}, null, 2);
+      return;
+    }
+    connectType.value = 'RDBMS';
   };
 
   const buildMongoConfig = (): MongoConnectConfig => {
@@ -426,6 +482,21 @@
     };
   };
 
+  const buildEsConfig = (): EsConnectConfig => {
+    const endpoints = esEndpoints.value
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean);
+    if (endpoints.length === 0) throw new Error('请填写 Elasticsearch 地址');
+    let options: Record<string, string> = {};
+    try {
+      options = JSON.parse(esOptions.value || '{}');
+    } catch {
+      throw new Error('Elasticsearch 高级选项不是合法 JSON');
+    }
+    return { endpoints, options };
+  };
+
   const applyConnectConfig = () => {
     if (isMongo.value) {
       const config = buildMongoConfig();
@@ -433,11 +504,19 @@
       sourceItem.value.connectConfig = config;
       // Credential-free display URL; the backend canonicalizes it on save.
       sourceItem.value.url = `mongodb://${config.address.join(',')}/${config.database}`;
-    } else {
-      // Let the backend infer the concrete JDBC dialect from the URL.
-      sourceItem.value.dbType = undefined;
-      sourceItem.value.connectConfig = null;
+      return;
     }
+    if (isEs.value) {
+      const config = buildEsConfig();
+      sourceItem.value.dbType = 'elasticsearch';
+      sourceItem.value.connectConfig = config;
+      // Credential-free display URL; the backend canonicalizes it on save.
+      sourceItem.value.url = config.endpoints.join(',');
+      return;
+    }
+    // Let the backend infer the concrete JDBC dialect from the URL.
+    sourceItem.value.dbType = undefined;
+    sourceItem.value.connectConfig = null;
   };
 
   const defaultSourceItem: EtlSource = {
@@ -484,6 +563,8 @@
 
   const connectionFamily = computed(() => {
     if (sourceItem.value.dbType === 'mongodb' || connectType.value === 'MONGODB') return 'MongoDB';
+    if (sourceItem.value.dbType === 'elasticsearch' || connectType.value === 'ELASTICSEARCH')
+      return 'Elasticsearch';
     const url = String(sourceItem.value.url || '').toLowerCase();
     if (url.startsWith('jdbc:postgresql:')) return 'PostgreSQL';
     if (url.startsWith('jdbc:mysql:')) return 'MySQL';
@@ -626,7 +707,7 @@
       notify((error as Error).message, 'warning');
       return;
     }
-    if (!isMongo.value && !sourceItem.value.url) {
+    if (isJdbc.value && !sourceItem.value.url) {
       notify('请先填写 JDBC 连接地址', 'warning');
       return;
     }
@@ -668,7 +749,7 @@
       id: 0,
       code: '',
     };
-    syncMongoForm();
+    syncConnectForm();
   };
 
   const initializeForm = () => {
@@ -685,7 +766,7 @@
         .then(resp => {
           // null 表示自然日，转成空串才能命中下拉项，否则会显示成原始值
           sourceItem.value = { ...resp, calendar: resp.calendar ?? '' };
-          syncMongoForm();
+          syncConnectForm();
           markClean();
         })
         .catch(error => {

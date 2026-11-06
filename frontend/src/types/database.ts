@@ -192,14 +192,19 @@ export interface EtlSource {
   remark?: string; // 系统备注信息
   enabled?: boolean; // 是否有效
   maxConcurrency?: number; // 最大并发数
-  dbType?: string; // mysql/postgresql/.../mongodb，后端写入
-  connectConfig?: MongoConnectConfig | null; // 非 JDBC 源的结构化连接配置（不含密码）
+  dbType?: string; // mysql/postgresql/.../mongodb/elasticsearch，后端写入
+  connectConfig?: MongoConnectConfig | EsConnectConfig | null; // 非 JDBC 源的结构化连接配置（不含密码）
 }
 
 export interface MongoConnectConfig {
   address: string[];
   database: string;
   authDb?: string;
+  options?: Record<string, string>;
+}
+
+export interface EsConnectConfig {
+  endpoints: string[];
   options?: Record<string, string>;
 }
 
@@ -257,7 +262,7 @@ export interface EtlTable {
   id: number; // 表ID，主键
   startAt?: string | null; // 表级调度时间点(HH:mm[:ss])，为空表示继承 etl_source.start_at
   dbType?: string | null; // 采集源类型（视图返回）
-  connectConfig?: MongoConnectConfig | null;
+  connectConfig?: MongoConnectConfig | EsConnectConfig | null;
   sourceDb: string; // 采集源库名或schema名称或owner名称
   sourceTable: string; // 采集源表名
   targetDb: string; // 目标库名，即提供给hive的库名

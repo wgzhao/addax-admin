@@ -94,6 +94,7 @@
             :compress-formats="compressFormats"
             :duplicate-target-names="duplicateTargetNames"
             :target-name-issue="targetNameIssue"
+            :source-db-type="selectedSourceId?.dbType"
           />
         </v-stepper-window-item>
 
@@ -308,6 +309,9 @@
   const commitResults = ref<CollectionPlanCommitResult[]>([]);
   const selectedSourceId = ref<EtlSource | null>(null);
   const isMongoSource = computed(() => selectedSourceId.value?.dbType === 'mongodb');
+  const isEsSource = computed(() => selectedSourceId.value?.dbType === 'elasticsearch');
+  const defaultFilterForSource = () =>
+    isMongoSource.value ? '{}' : isEsSource.value ? '{"match_all":{}}' : '1=1';
   const selectedDb = ref<string | null>(null);
   const tables = ref<EtlTableView[]>([]);
   const retiredTables = ref<CollectableTable[]>([]);
@@ -493,7 +497,7 @@
         .forEach((element: CollectableTable) => {
           const newItem: EtlTable = {
             ...defaultItem,
-            filter: isMongoSource.value ? '{}' : '1=1',
+            filter: defaultFilterForSource(),
           };
           newItem.sid = sourceId;
           newItem.sourceDb = dbName;

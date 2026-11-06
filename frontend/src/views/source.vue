@@ -202,6 +202,7 @@
   const typeLabel = (dbType?: string) => {
     if (!dbType) return 'JDBC';
     if (dbType === 'mongodb') return 'MongoDB';
+    if (dbType === 'elasticsearch') return 'Elasticsearch';
     return dbType.toUpperCase();
   };
 
