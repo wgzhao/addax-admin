@@ -207,7 +207,10 @@
                   class="mapping-row"
                 >
                   <span class="mono">{{ mapping.sourceColumnName }}</span>
-                  <span class="type-text">{{ sourceTypeOf(mapping.sourceColumnName) }}</span>
+                  <span class="type-text">
+                    {{ sourceTypeOf(mapping.sourceColumnName) }}
+                    <SourceFieldMetaTooltip :meta="sourceMetaOf(mapping.sourceColumnName)" />
+                  </span>
                   <v-combobox
                     v-model="mapping.targetColumnName"
                     :items="targetColumnNames"
@@ -245,6 +248,7 @@
   import { computed, ref } from 'vue';
   import type { CollectionPlanReviewRow, PlannedTargetColumn } from '@/types/database';
   import { reviewRowIssue, reviewRowIssueLabel, reviewRowValid } from '@/utils/collection-plan';
+  import SourceFieldMetaTooltip from '@/components/table/SourceFieldMetaTooltip.vue';
 
   type Filter = 'ALL' | 'READY' | 'WARNING' | 'ERROR';
 
@@ -352,6 +356,10 @@
 
   const sourceTypeOf = (sourceColumnName: string) =>
     active.value?.plan.sourceColumns.find(column => column.name === sourceColumnName)?.type || '-';
+
+  const sourceMetaOf = (sourceColumnName: string) =>
+    active.value?.plan.sourceColumns.find(column => column.name === sourceColumnName)?.sourceMeta ||
+    null;
 
   const targetTypeOf = (targetColumnName?: string | null) =>
     displayColumns.value.find(

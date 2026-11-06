@@ -3,7 +3,6 @@ package com.wgzhao.addax.admin.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -18,12 +17,13 @@ import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.wgzhao.addax.admin.service.source.ReaderJobContext;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.target.TargetTypeResolver;
-import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -31,11 +31,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-
-import static com.wgzhao.addax.admin.common.Constants.SPECIAL_FILTER_PLACEHOLDER;
-import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
-import static com.wgzhao.addax.admin.utils.DbUtil.quoteIfNeeded;
-import static com.wgzhao.addax.admin.utils.DbUtil.sourceTableRef;
 
 /**
  * 采集任务内容服务类，负责采集任务的模板生成与更新等相关操作
@@ -54,11 +49,11 @@ public class JobContentService
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final SystemConfigService configService;
     private final TargetService targetService;
-    private final RiskLogService riskLogService;
     private final StatService statService;
     private final ObjectMapper objectMapper;
     private final TargetTypeResolver targetTypeResolver;
     private final CalendarService calendarService;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -97,7 +92,7 @@ public class JobContentService
         LocalDate fillbackLastEtlDate = calendarService.previousBusinessDay(etlTable.getCalendar(), targetDate);
 
         Map<String, String> values = new HashMap<>();
-        values.put("reader", fillRdbmsReaderJobForDate(etlTable, dateValues, fillbackLastEtlDate));
+        values.put("reader", buildReaderJob(etlTable, dateValues, fillbackLastEtlDate));
         values.put("writer", targetService.buildWriterJobForDate(etlTable, targetDate));
 
         String jobTemplate = resolveJobTemplate(etlTable);
@@ -122,7 +117,7 @@ public class JobContentService
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.ADDAX_JOB, null);
 
         Map<String, String> values = new HashMap<>();
-        values.put("reader", fillRdbmsReaderJob(etlTable));
+        values.put("reader", buildReaderJob(etlTable, configService.getBizDateValues(), null));
         values.put("writer", targetService.buildWriterJob(etlTable));
 
         String jobTemplate = resolveJobTemplate(etlTable);
@@ -152,11 +147,15 @@ public class JobContentService
         return configService.getRdbms2RdbmsJobTemplate();
     }
 
+    /**
+     * The reader fragment is already final when this runs: the source adapter merged its per-table
+     * reader config (MongoDB even combines a custom query with the generated one). Merging it again
+     * here would overwrite that combination, so only the writer is merged.
+     */
     private String mergePluginConfigIntoJob(String job, VwEtlTableWithSource etlTable)
     {
-        JsonNode readerConfig = etlTable.getReaderPluginConfig();
         JsonNode writerConfig = etlTable.getWriterPluginConfig();
-        if ((readerConfig == null || readerConfig.isNull()) && (writerConfig == null || writerConfig.isNull())) {
+        if (writerConfig == null || writerConfig.isNull()) {
             return job;
         }
         try {
@@ -166,7 +165,6 @@ public class JobContentService
                 log.warn("任务模板结构不符合预期，缺少 job.content 对象，tid={}", etlTable.getId());
                 return job;
             }
-            mergeConfigToParameter(contentObject, "reader", readerConfig, etlTable.getId());
             mergeConfigToParameter(contentObject, "writer", writerConfig, etlTable.getId());
             return objectMapper.writeValueAsString(root);
         }
@@ -208,107 +206,44 @@ public class JobContentService
         customConfig.fields().forEachRemaining(entry -> parameterObject.set(entry.getKey(), entry.getValue()));
     }
 
-    private String fillRdbmsReaderJob(VwEtlTableWithSource vTable)
-    {
-        return fillRdbmsReaderJobForDate(vTable, configService.getBizDateValues(), null);
-    }
-
     /**
-     * Build reader JSON with custom date values and optional lastEtlDate override.
-     * Used by fillback to generate templates for a specific target date.
-     *
-     * @param vTable           table view
-     * @param dateValues       pre-computed date variable map
-     * @param overrideLastEtlDate if non-null, used as the "last etl date" for incremental filters
-     *                            instead of querying etl_statistic
-     * @return reader JSON fragment
+     * Resolve the engine-agnostic parts of the reader (last business date and target MAX lookup) and
+     * let the source adapter render the fragment. The adapter owns the filter syntax and the reader
+     * shape; the common layer only knows that a target may have a max value.
      */
-    private String fillRdbmsReaderJobForDate(VwEtlTableWithSource vTable, Map<String, String> dateValues, LocalDate overrideLastEtlDate)
+    private String buildReaderJob(VwEtlTableWithSource table, Map<String, String> dateValues,
+        LocalDate overrideLastEtlDate)
     {
-        String template = configService.getRdbmsReaderTemplate();
+        SourceAdapter adapter = sourceAdapterRegistry.resolve(table);
+        List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(table.getId());
+        String filter = table.getFilter() == null ? "" : table.getFilter();
 
-        Map<String, String> values = new HashMap<>();
-
-        values.put("name", vTable.getDbType() + "reader");
-        values.put("username", vTable.getUsername());
-        values.put("password", vTable.getPass() == null ? "" : vTable.getPass());
-        values.put("jdbcUrl", vTable.getUrl());
-        if (vTable.getFilter().startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
-            // incremental filter: use override date if provided, otherwise query latest stat
-            LocalDate lastEtlDate = overrideLastEtlDate != null
-                ? overrideLastEtlDate
-                : statService.getLastEtlDateByTid(vTable.getId());
-            if (lastEtlDate != null) {
-                String parsedFilter = parseFilterCondition(vTable, vTable.getFilter(), lastEtlDate);
-                values.put("where", parsedFilter);
-            } else {
-                values.put("where", "1=1");
-            }
-        }
-        else {
-            values.put("where", vTable.getFilter());
-        }
-        values.put("autoPk", String.valueOf(vTable.getAutoPk()));
-        values.put("splitPk", vTable.getSplitPk() == null ? "" : vTable.getSplitPk());
-        values.put("fetchSize", "20480");
-
-        // date time special values
-        values.putAll(dateValues);
-
-        DbType dbType = getDbType(vTable.getUrl());
-        String sourceTable = vTable.getSourceTable();
-        if (sourceTable.contains("${")) {
-            // dynamic table name: replace date placeholders
-            StringSubstitutor stringSubstitutor = new StringSubstitutor(dateValues);
-            sourceTable = stringSubstitutor.replace(sourceTable);
-        }
-        values.put("table", sourceTableRef(dbType, vTable.getSourceDb(), sourceTable));
-
-        // A mapping row is the source of truth for both the source expression and the record field name
-        // consumed by either writer shape.
-        List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(vTable.getId());
-        List<String> srcColumns = new ArrayList<>();
-        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings) {
-            String sourceName = mapping.sourceColumnName();
-            String targetName = mapping.targetColumnName();
-            String expression;
-            if (!mapping.sourceActive()) {
-                expression = "NULL as " + outputAlias(targetName);
-            }
-            else if (sourceName.equalsIgnoreCase(targetName)) {
-                expression = quoteIfNeeded(sourceName, dbType);
-            }
-            else {
-                expression = quoteIfNeeded(sourceName, dbType)
-                    + " as " + outputAlias(targetName);
-            }
-            srcColumns.add("\"" + RdbmsDdlUtil.jsonEscape(expression) + "\"");
-        }
-        // Snapshot mode: append the business date as a literal expression so the RDBMS target carries a
-        // date column even though the source table has none. It goes last and the writer appends the same
-        // column last (see RdbmsTargetAdapter.getRdbmsWriteColumns) so the positional mapping stays
-        // aligned; a source column with that name is reused instead of injected. The identifier is quoted
-        // like every other reader column, otherwise a reserved word such as "date" only breaks the reader.
-        String bizDateColumn = vTable.getRdbmsBusinessDateColumn();
-        if (bizDateColumn != null && !bizDateColumn.isBlank()
-            && mappings.stream().noneMatch(mapping ->
-                bizDateColumn.trim().equalsIgnoreCase(mapping.targetColumnName()))) {
-            String bizDateValue = dateValues.getOrDefault("biz_date_short", "");
-            String expression = "'" + bizDateValue + "' as " + outputAlias(bizDateColumn.trim());
-            srcColumns.add("\"" + RdbmsDdlUtil.jsonEscape(expression) + "\"");
-        }
-        values.put("column", String.join(", ", srcColumns));
-        StringSubstitutor substitutor = new StringSubstitutor(values);
-        return substitutor.replace(template);
-    }
-
-    private String outputAlias(String name)
-    {
-        if (name != null && name.matches("[A-Za-z_][A-Za-z0-9_$]*"))
+        LocalDate lastEtlDate = null;
+        String partValue = null;
+        if (adapter.isIncrementalFilter(filter))
         {
-            return name;
+            lastEtlDate = overrideLastEtlDate != null
+                ? overrideLastEtlDate
+                : statService.getLastEtlDateByTid(table.getId());
+            if (lastEtlDate != null)
+            {
+                String partFormat = table.getPartFormat();
+                if (partFormat == null || partFormat.isBlank())
+                {
+                    partFormat = "yyyyMMdd";
+                }
+                partValue = lastEtlDate.format(DateTimeFormatter.ofPattern(partFormat));
+            }
         }
-        return "\"" + (name == null ? "" : name.replace("\"", "\"\"")) + "\"";
+
+        ReaderJobContext context = new ReaderJobContext(dateValues, lastEtlDate, partValue, mappings,
+            (column, part) -> targetService.getMaxValue(table, column, part));
+        ObjectNode reader = adapter.buildReaderJob(table, context);
+        if (reader.get("parameter") instanceof ObjectNode parameter)
+        {
+            adapter.mergeReaderPluginConfig(parameter, table.getReaderPluginConfig(), table, dateValues);
+        }
+        return reader.toString();
     }
 
     /**
@@ -319,50 +254,6 @@ public class JobContentService
     public void deleteByTid(long tableId)
     {
         jobRepo.deleteById(tableId);
-    }
-
-    /**
-     * 解析特定过滤条件，并返回满足 Addax 要求的值
-     * 如果过滤条件字符串是是以__max__开头，我们认定这是特定过滤条件
-     * 他的格式为 __max__&lt;column_name&gt;
-     * 代表需要取目标表中该列的最大值作为过滤条件
-     * 这里的 &lt;column_name&gt; 我们要求比如整形数值类型，一般都是指向自增主键这样的字段
-     * @param table         采集表视图对象
-     * @param filterCondition 过滤条件字符串
-     * @param lastEtlDate  上次采集的业务日期(yyyy-MM-dd)
-     *
-     * @return 解析后的过滤条件字符串, 如果无法解析则返回 "1=1"
-     */
-    public String parseFilterCondition(VwEtlTableWithSource table, String filterCondition, LocalDate lastEtlDate)
-    {
-        if (filterCondition.length() < 8 || !filterCondition.startsWith(SPECIAL_FILTER_PLACEHOLDER)) {
-            return "1=1";
-        }
-        // 提取字段
-        String columnName = filterCondition.substring(SPECIAL_FILTER_PLACEHOLDER.length());
-        // 分区的日期格式
-        String partFormat = table.getPartFormat();
-        // 转为指定格式
-        String partValue = lastEtlDate.format(DateTimeFormatter.ofPattern(partFormat));
-        Object maxValue = targetService.getMaxValue(table, columnName, partValue);
-        if (maxValue == null) {
-            // 说明目标表还没有数据或者异常了，那么直接返回 1=1
-            // 记录一条风险日志，提醒用户可能存在类型不兼容或查询异常
-            try {
-                riskLogService.recordRisk("JobContentService", "WARN", "无法获取目标表(" +  table.getTargetDb() + "." + table.getTargetTable() + ")最大值，使用默认过滤 1=1", table.getId());
-            }
-            catch (Exception ex) {
-                log.warn("记录风险日志时出现异常: {}", ex.getMessage());
-            }
-            return "1=1";
-        }
-        try {
-            Long.parseLong(maxValue.toString());
-            return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > " + maxValue;
-        }
-        catch (NumberFormatException e) {
-            return quoteIfNeeded(columnName, getDbType(table.getUrl())) + " > '" + maxValue + "'";
-        }
     }
 
     /**

@@ -6,6 +6,9 @@ import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.scheduler.CollectionScheduler;
+import com.wgzhao.addax.admin.service.source.SourceAccessException;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -46,6 +49,8 @@ public class SourceService
 
     // Redis template used to broadcast source updates across cluster nodes
     private final StringRedisTemplate redisTemplate;
+
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     /**
      * 获取有效数据源数量
@@ -111,11 +116,7 @@ public class SourceService
         // 需要和现有数据的调度时间进行对比，如果不相同，则还需要更新调度时间
         EtlSource existing = etlSourceRepo.findById(etlSource.getId()).orElse(null);
 
-        // If URL changed or dbType is null/default, parse dbType from URL
-        if (etlSource.getUrl() != null) {
-            DbType parsed = DbUtil.getDbType(etlSource.getUrl());
-            etlSource.setDbType(parsed.getValue());
-        }
+        sourceAdapterRegistry.resolveForSave(etlSource, existing);
 
         etlSourceRepo.save(etlSource);
         if (existing == null) {
@@ -180,11 +181,7 @@ public class SourceService
      */
     public EtlSource create(EtlSource etlSource)
     {
-        // parse dbType from URL for new sources
-        if (etlSource.getUrl() != null) {
-            DbType parsed = DbUtil.getDbType(etlSource.getUrl());
-            etlSource.setDbType(parsed.getValue());
-        }
+        sourceAdapterRegistry.resolveForSave(etlSource, null);
 
         EtlSource save = etlSourceRepo.save(etlSource);
         // 新采集源创建时，默认创建一个同步任务
@@ -202,16 +199,20 @@ public class SourceService
      */
     public List<TableMetaDto> getUncollectedTables(EtlSource source, String dbName, Set<String> existsSet)
     {
-        try (Connection connection = DriverManager.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
+        try
+        {
             List<TableMetaDto> result = new ArrayList<>();
-            for (TableMetaDto meta : DbUtil.getAllTableMetas(connection, dbName)) {
-                if (!isCollected(existsSet, meta.name())) {
+            for (TableMetaDto meta : sourceAdapterRegistry.resolve(source).listTables(SourceRef.of(source), dbName))
+            {
+                if (!isCollected(existsSet, meta.name()))
+                {
                     result.add(meta);
                 }
             }
             return result;
         }
-        catch (SQLException e) {
+        catch (SourceAccessException e)
+        {
             log.warn("Failed to get uncollected tables for source {}: {}", source.getId(), e.getMessage());
             return null;
         }

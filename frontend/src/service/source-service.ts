@@ -1,6 +1,12 @@
 // 数据源管理接口
 import Requests from '@/utils/requests';
-import type { CollectableTable, EtlSource, TableMeta } from '@/types/database';
+import type {
+  CollectableTable,
+  EtlSource,
+  MongoConnectConfig,
+  SourceTypeDescriptor,
+  TableMeta,
+} from '@/types/database';
 
 class SourceService {
   prefix: string = '/sources';
@@ -40,8 +46,15 @@ class SourceService {
     username: string;
     password?: string;
     sourceId?: number;
+    dbType?: string;
+    connectConfig?: MongoConnectConfig | null;
   }): Promise<boolean> {
     return Requests.post(`${this.prefix}/test-connect`, params) as unknown as Promise<boolean>;
+  }
+
+  // 采集源类型与能力
+  fetchTypes(): Promise<SourceTypeDescriptor[]> {
+    return Requests.get(`${this.prefix}/types`) as unknown as Promise<SourceTypeDescriptor[]>;
   }
 
   // 检查编号是否存在

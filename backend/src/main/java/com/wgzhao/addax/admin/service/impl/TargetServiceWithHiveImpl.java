@@ -578,7 +578,15 @@ public class TargetServiceWithHiveImpl
                     // compare type; if different, use CHANGE COLUMN
                     boolean typeDiff = !Objects.equals(hc.type, typeFull);
                     // only change type when current Hive type is NOT compatible with desired type
-                    if (typeDiff && !isHiveTypeCompatible(hc.type, typeFull)) {
+                    boolean typeIncompatible = typeDiff && !isHiveTypeCompatible(hc.type, typeFull);
+                    // A COMMENT is part of the target contract too: the Mongo adapter now writes a
+                    // short stable comment, so existing sampled-statistics comments must be replaced
+                    // even when the column type itself did not move. Limit this repair to Mongo
+                    // sources; RDBMS comments already had their own lifecycle and should not churn.
+                    boolean sampledSource = "mongodb".equalsIgnoreCase(etlTable.getDbType());
+                    boolean commentDiff = sampledSource
+                        && !Objects.equals(normalizeComment(hc.comment), comment);
+                    if (typeIncompatible || commentDiff) {
                         alterDDLs.add(String.format("ALTER TABLE `%s`.`%s` CHANGE COLUMN `%s` `%s` %s%s",
                             etlTable.getTargetDb(), etlTable.getTargetTable(), name, name, typeFull,
                             newComment));

@@ -12,6 +12,10 @@ import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
+import com.wgzhao.addax.admin.service.source.SourceAccessException;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -51,6 +55,7 @@ public class SourceController
     private final SystemConfigService configService;
     private final AuditRecorder auditRecorder;
     private final CollectionScopeService collectionScopeService;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     /**
      * 查询所有数据源
@@ -215,7 +220,10 @@ public class SourceController
             }
             password = source.getPass();
         }
-        boolean isConnected = DbUtil.testConnection(payload.url(), payload.username(), password);
+        SourceRef ref = new SourceRef(payload.sourceId(), payload.dbType(), payload.url(),
+            payload.username(), password, payload.connectConfig());
+        SourceAdapter adapter = sourceAdapterRegistry.resolve(ref);
+        boolean isConnected = adapter.testConnection(ref);
         java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
         metadata.put("connected", isConnected);
         metadata.put("username", payload.username());
@@ -251,22 +259,27 @@ public class SourceController
     public ResponseEntity<List<String>> listDatabases(
         @PathVariable int sourceId)
     {
-        List<String> result = new ArrayList<>();
         EtlSource source = sourceService.getSource(sourceId);
         if (source == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
         }
-        try (Connection connection = DbUtil.getConnection(source.getUrl(), source.getUsername(), source.getPass())) {
-            assert connection != null;
-            ResultSet catalogs = connection.getMetaData().getCatalogs();
-            while (catalogs.next()) {
-                result.add(catalogs.getString(1));
-            }
+        try
+        {
+            return ResponseEntity.ok(sourceAdapterRegistry.resolve(source).listNamespaces(SourceRef.of(source)));
         }
-        catch (SQLException e) {
+        catch (SourceAccessException e)
+        {
             throw new ApiException(500, e.getMessage());
         }
-        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 采集源类型与能力，前端据此渲染类型下拉和按引擎区分的表单/控件。
+     */
+    @GetMapping("/types")
+    public ResponseEntity<List<com.wgzhao.addax.admin.service.source.SourceDescriptor>> types()
+    {
+        return ResponseEntity.ok(sourceAdapterRegistry.descriptors());
     }
 
     /**

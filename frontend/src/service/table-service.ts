@@ -89,6 +89,21 @@ class TableService {
     }) as unknown as Promise<ColumnMapping[]>;
   }
 
+  addManualColumn(
+    tableId: number,
+    payload: {
+      sourceName: string;
+      sourceType: string;
+      targetName?: string;
+      dataLength?: number;
+      comment?: string;
+    }
+  ): Promise<EtlColumn[]> {
+    return Requests.post(`${this.prefix}/${tableId}/columns`, payload, {
+      timeout: 120000,
+    }) as unknown as Promise<EtlColumn[]>;
+  }
+
   checkTargetContract(tableId: number): Promise<TargetContractReport> {
     return Requests.post(
       `${this.prefix}/${tableId}/target-contract/check`,

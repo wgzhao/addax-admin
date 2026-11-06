@@ -161,7 +161,7 @@
                 prepend-icon="mdi-lan-connect"
                 :loading="testingConnection"
                 :aria-busy="testingConnection"
-                :disabled="mode === 'detail' || !sourceItem.url"
+                :disabled="mode === 'detail' || (!isMongo && !sourceItem.url)"
                 @click="testConnect"
               >
                 测试连接
@@ -170,6 +170,21 @@
 
             <div class="field-grid">
               <div class="field span-2">
+                <label class="field-label" for="src-type">连接类型</label>
+                <v-select
+                  id="src-type"
+                  v-model="connectType"
+                  :items="connectTypeOptions"
+                  item-title="label"
+                  item-value="value"
+                  :disabled="mode !== 'add'"
+                  variant="outlined"
+                  density="compact"
+                  hide-details="auto"
+                />
+              </div>
+
+              <div v-if="!isMongo" class="field span-2">
                 <label class="field-label" for="src-url">JDBC 连接地址</label>
                 <v-text-field
                   id="src-url"
@@ -181,6 +196,66 @@
                   hide-details="auto"
                 />
               </div>
+
+              <template v-else>
+                <div class="field span-2">
+                  <label class="field-label" for="src-mongo-address">MongoDB 地址</label>
+                  <v-text-field
+                    id="src-mongo-address"
+                    v-model="mongoAddress"
+                    placeholder="host1:27017,host2:27017"
+                    :rules="[requiredRule]"
+                    variant="outlined"
+                    density="compact"
+                    hide-details="auto"
+                  />
+                  <p class="field-hint">不支持 mongodb+srv://，请填写具体的 host:port</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="src-mongo-db">数据库</label>
+                  <v-text-field
+                    id="src-mongo-db"
+                    v-model="mongoDatabase"
+                    placeholder="orders"
+                    :rules="[requiredRule]"
+                    variant="outlined"
+                    density="compact"
+                    hide-details="auto"
+                  />
+                </div>
+                <div class="field">
+                  <label class="field-label" for="src-mongo-authdb">认证库 authDb</label>
+                  <v-text-field
+                    id="src-mongo-authdb"
+                    v-model="mongoAuthDb"
+                    placeholder="admin"
+                    variant="outlined"
+                    density="compact"
+                    hide-details="auto"
+                  />
+                </div>
+                <div class="field span-2">
+                  <label class="field-label" for="src-mongo-options">高级选项 (JSON)</label>
+                  <v-textarea
+                    id="src-mongo-options"
+                    v-model="mongoOptions"
+                    placeholder='{"tls":"true"}'
+                    variant="outlined"
+                    density="compact"
+                    rows="2"
+                    hide-details="auto"
+                  />
+                </div>
+                <v-alert
+                  v-if="mongoPluginMissing"
+                  type="warning"
+                  variant="tonal"
+                  density="compact"
+                  class="span-2"
+                >
+                  Addax 未安装 mongodbreader 插件，任务运行会失败；请先把插件放入 Addax 的 plugin/reader 目录。
+                </v-alert>
+              </template>
 
               <div class="field">
                 <label class="field-label" for="src-user">用户名</label>
@@ -286,7 +361,7 @@
   import { ref, computed, watch, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
   import sourceService from '@/service/source-service';
-  import { EtlSource } from '@/types/database';
+  import { EtlSource, MongoConnectConfig, SourceTypeDescriptor } from '@/types/database';
 
   const props = defineProps({
     sid: Number,
@@ -299,6 +374,71 @@
   const testingConnection = ref(false);
   const connectionState = ref<{ ok: boolean; text: string } | null>(null);
   const dirty = ref(false);
+
+  const connectType = ref<'RDBMS' | 'MONGODB'>('RDBMS');
+  const connectTypeOptions = [
+    { label: '关系型数据库 (JDBC)', value: 'RDBMS' },
+    { label: 'MongoDB', value: 'MONGODB' },
+  ];
+  const mongoAddress = ref('');
+  const mongoDatabase = ref('');
+  const mongoAuthDb = ref('admin');
+  const mongoOptions = ref('{}');
+  const sourceTypes = ref<SourceTypeDescriptor[]>([]);
+  const isMongo = computed(() => connectType.value === 'MONGODB');
+  const mongoPluginMissing = computed(
+    () =>
+      isMongo.value &&
+      sourceTypes.value.find(type => type.type === 'MONGODB')?.readerPluginInstalled === false
+  );
+
+  const syncMongoForm = () => {
+    if (sourceItem.value.dbType === 'mongodb') {
+      connectType.value = 'MONGODB';
+      const config = sourceItem.value.connectConfig;
+      mongoAddress.value = (config?.address ?? []).join(',');
+      mongoDatabase.value = config?.database ?? '';
+      mongoAuthDb.value = config?.authDb ?? 'admin';
+      mongoOptions.value = JSON.stringify(config?.options ?? {}, null, 2);
+    } else {
+      connectType.value = 'RDBMS';
+    }
+  };
+
+  const buildMongoConfig = (): MongoConnectConfig => {
+    const address = mongoAddress.value
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean);
+    if (address.length === 0) throw new Error('请填写 MongoDB 地址');
+    if (!mongoDatabase.value.trim()) throw new Error('请填写 MongoDB 数据库');
+    let options: Record<string, string> = {};
+    try {
+      options = JSON.parse(mongoOptions.value || '{}');
+    } catch {
+      throw new Error('MongoDB 高级选项不是合法 JSON');
+    }
+    return {
+      address,
+      database: mongoDatabase.value.trim(),
+      authDb: mongoAuthDb.value.trim() || 'admin',
+      options,
+    };
+  };
+
+  const applyConnectConfig = () => {
+    if (isMongo.value) {
+      const config = buildMongoConfig();
+      sourceItem.value.dbType = 'mongodb';
+      sourceItem.value.connectConfig = config;
+      // Credential-free display URL; the backend canonicalizes it on save.
+      sourceItem.value.url = `mongodb://${config.address.join(',')}/${config.database}`;
+    } else {
+      // Let the backend infer the concrete JDBC dialect from the URL.
+      sourceItem.value.dbType = undefined;
+      sourceItem.value.connectConfig = null;
+    }
+  };
 
   const defaultSourceItem: EtlSource = {
     id: 0,
@@ -343,6 +483,7 @@
   );
 
   const connectionFamily = computed(() => {
+    if (sourceItem.value.dbType === 'mongodb' || connectType.value === 'MONGODB') return 'MongoDB';
     const url = String(sourceItem.value.url || '').toLowerCase();
     if (url.startsWith('jdbc:postgresql:')) return 'PostgreSQL';
     if (url.startsWith('jdbc:mysql:')) return 'MySQL';
@@ -454,6 +595,13 @@
       sourceItem.value.startAt = formatTimeInput(sourceItem.value.startAt);
     }
 
+    try {
+      applyConnectConfig();
+    } catch (error) {
+      notify((error as Error).message, 'error');
+      return;
+    }
+
     sourceService
       .save(sourceItem.value)
       .then(() => {
@@ -472,7 +620,13 @@
   };
 
   const testConnect = async () => {
-    if (!sourceItem.value.url) {
+    try {
+      applyConnectConfig();
+    } catch (error) {
+      notify((error as Error).message, 'warning');
+      return;
+    }
+    if (!isMongo.value && !sourceItem.value.url) {
       notify('请先填写 JDBC 连接地址', 'warning');
       return;
     }
@@ -484,6 +638,8 @@
         username: sourceItem.value.username,
         password: sourceItem.value.pass,
         sourceId: sourceItem.value.id > 0 ? sourceItem.value.id : undefined,
+        dbType: sourceItem.value.dbType,
+        connectConfig: sourceItem.value.connectConfig,
       });
       connectionState.value = resp
         ? { ok: true, text: '连接成功，可以保存配置' }
@@ -512,6 +668,7 @@
       id: 0,
       code: '',
     };
+    syncMongoForm();
   };
 
   const initializeForm = () => {
@@ -528,6 +685,7 @@
         .then(resp => {
           // null 表示自然日，转成空串才能命中下拉项，否则会显示成原始值
           sourceItem.value = { ...resp, calendar: resp.calendar ?? '' };
+          syncMongoForm();
           markClean();
         })
         .catch(error => {
@@ -545,8 +703,14 @@
     { immediate: true }
   );
 
-  onMounted(() => {
+  onMounted(async () => {
     if (!initialSnapshot.value) markClean();
+    try {
+      sourceTypes.value = await sourceService.fetchTypes();
+    } catch (error) {
+      // The endpoint is additive; an older backend simply exposes the JDBC form.
+      console.log(error);
+    }
   });
 </script>
 

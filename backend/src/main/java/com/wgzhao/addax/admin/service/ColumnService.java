@@ -1,20 +1,34 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
+import com.wgzhao.addax.admin.dto.ManualSourceColumnRequest;
+import com.wgzhao.addax.admin.dto.SourceFieldMeta;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.repository.EtlColumnRepo;
-import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
+import com.wgzhao.addax.admin.service.collection.IdentifierPolicy;
+import com.wgzhao.addax.admin.service.source.ColumnTypeMapping;
+import com.wgzhao.addax.admin.service.source.SchemaMode;
+import com.wgzhao.addax.admin.service.source.SourceAccessException;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceField;
+import com.wgzhao.addax.admin.service.source.SourceRef;
+import com.wgzhao.addax.admin.service.source.SourceSchema;
+import com.wgzhao.addax.admin.service.source.TargetFamily;
+import com.wgzhao.addax.admin.service.source.TypePurpose;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,10 +47,13 @@ public class ColumnService
 {
     private final EtlColumnRepo etlColumnRepo;
     private final ColumnMappingService columnMappingService;
-    private final DictService dictService;
     private final EtlJourService jourService;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
+    private final RiskLogService riskLogService;
+    private final VwEtlTableWithSourceRepo viewRepo;
     private final SchemaChangeLogService schemaChangeLogService;
     private final AlertService alertService;
+    private final ObjectMapper objectMapper;
 
     // Shared with TableService: a transient source outage must not be handled like a schema failure.
     public static final int UPDATE_NO_CHANGE = 0;
@@ -241,13 +258,11 @@ public class ColumnService
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_COLUMN, null);
 
         boolean changed = false;
-        boolean connected = false;
 
-        try (Connection connection = DbUtil.getConnectionWithRetry(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
-            connected = true;
-            // 注意，这里的获取到的表字段类型是已经通过 hive 字段映射过后的，而不是原始字段类型
+        try {
+            // 注意，这里的获取到的表字段类型是已经通过目标类型映射过后的，而不是原始字段类型
             // 比如原始类型是 varchar(255)，但映射后是 string
-            List<EtlColumn> sourceCols = getEtlColumnV2(connection, etlTable);
+            List<EtlColumn> sourceCols = discoverColumns(etlTable);
             if (sourceCols == null || sourceCols.isEmpty()) {
                 // metadata query failed (network, credentials, table dropped)
                 // or the table has no visible columns: alert and skip. An
@@ -288,7 +303,9 @@ public class ColumnService
                     else {
                         typeChanged = precisionChanged;
                     }
-                    // boolean commentChanged = !Objects.equals(nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
+                    boolean commentChanged = !Objects.equals(
+                        nvlStr(oc.getColComment()), nvlStr(sc.getColComment()));
+                    boolean sourceMetaChanged = !Objects.equals(oc.getSourceMeta(), sc.getSourceMeta());
                     if (typeChanged) {
                         // 记录类型变化
                         schemaChangeLogService.recordTypeChange(
@@ -298,19 +315,48 @@ public class ColumnService
                             oc.getDataPrecision(), sc.getDataPrecision(),
                             oc.getDataScale(), sc.getDataScale(),
                             oc.getColComment(), sc.getColComment());
-                        // 同步更新字段信息（源类型、长度/精度/比例、注释、目标类型）
+                        // 同步更新字段信息（源类型、长度/精度/比例、注释、目标类型、采样证据）
                         oc.setSourceType(sc.getSourceType());
                         oc.setDataLength(sc.getDataLength());
                         oc.setDataPrecision(sc.getDataPrecision());
                         oc.setDataScale(sc.getDataScale());
                         oc.setColComment(sc.getColComment());
+                        oc.setSourceMeta(sc.getSourceMeta());
                         oc.setTargetType(sc.getTargetType());
                         oc.setTargetTypeFull(sc.getTargetTypeFull());
                         etlColumnRepo.save(oc);
                         changed = true;
                     }
+                    else {
+                        // Sampling evidence changes on every refresh; persist it even when the target
+                        // type does not move, but only mark the table changed when the COMMENT does.
+                        boolean saved = false;
+                        if (commentChanged) {
+                            oc.setColComment(sc.getColComment());
+                            saved = true;
+                        }
+                        if (sourceMetaChanged) {
+                            oc.setSourceMeta(sc.getSourceMeta());
+                            saved = true;
+                        }
+                        if (saved) {
+                            etlColumnRepo.save(oc);
+                        }
+                        if (commentChanged) {
+                            changed = true;
+                        }
+                    }
                 }
                 else {
+                    if (!sourceAdapterRegistry.resolve(etlTable).capabilities().autoDeleteMissingColumns())
+                    {
+                        // A schema-on-read sample is not a schema: a rare field can be absent from
+                        // this refresh without having been dropped. Keep the existing mapping.
+                        riskLogService.recordRisk("ColumnService", "WARN",
+                            "源字段 " + oc.getColumnName() + " 未出现在本次采样中，已保留原映射",
+                            etlTable.getId());
+                        continue;
+                    }
                     // 源表中不存在该列 -> 删除占位
                     schemaChangeLogService.recordDelete(
                         etlTable.getId(), etlTable.getSourceDb(), etlTable.getSourceTable(), oc.getColumnName(),
@@ -337,13 +383,13 @@ public class ColumnService
                 }
             }
         }
-        catch (SQLException e) {
-            if (!connected) {
-                alertAndSkipFetch(etlTable, etlJour, "更新", "无法连接源数据库: " + DbUtil.describeError(e));
+        catch (SourceAccessException e) {
+            if (e.isUnavailable()) {
+                alertAndSkipFetch(etlTable, etlJour, "更新", "无法连接源数据库: " + e.getMessage());
                 log.error("[V2] failed to connect source for tid {}", etlTable.getId(), e);
                 return UPDATE_SOURCE_UNAVAILABLE;
             }
-            alertAndSkipFetch(etlTable, etlJour, "更新", DbUtil.describeError(e));
+            alertAndSkipFetch(etlTable, etlJour, "更新", e.getMessage());
             log.error("[V2] failed to update table columns for tid {}", etlTable.getId(), e);
             return UPDATE_FAILED;
         }
@@ -367,53 +413,117 @@ public class ColumnService
         log.error("[V2] skip {} table columns for {}, reason: {}", action, desc, reason);
     }
 
-    private List<EtlColumn> getEtlColumnV2(Connection connection, VwEtlTableWithSource etlTable) throws SQLException
+    /**
+     * Declare a source field that sampling cannot see. Used by schema-on-read sources for empty
+     * collections, rare fields and type overrides.
+     */
+    @Transactional
+    public List<EtlColumn> addManualColumn(long tid, ManualSourceColumnRequest request)
     {
-        List<EtlColumn> sourceCols = new ArrayList<>();
-        Map<String, String> hiveTypeMapping = dictService.getHiveTypeMapping();
-        // 当前策略：
-        // - 目标端为 HDFS（或未指定）时，沿用 Hive 类型映射
-        // - 目标端为 RDBMS 时，不做类型转换，目标类型直接使用源类型
-        boolean useHiveTypeMapping = etlTable.getTargetType() == null
-            || etlTable.getTargetType().isBlank()
-            || "HDFS".equalsIgnoreCase(etlTable.getTargetType());
-        String catalog = connection.getCatalog().isEmpty() ? etlTable.getSourceDb() : connection.getCatalog();
-        String schema = connection.getSchema();
-        if (etlTable.getUrl().startsWith("jdbc:mysql://")) {
-            // force switch to catalog for MySQL
-            catalog = etlTable.getSourceDb();
-            schema = null;
+        VwEtlTableWithSource view = viewRepo.findById(tid)
+            .orElseThrow(() -> new ApiException(404, "采集表不存在: " + tid));
+        SourceAdapter adapter = sourceAdapterRegistry.resolve(view);
+        if (!adapter.capabilities().samplingInference())
+        {
+            throw new ApiException(400, "该采集源不支持手工添加字段");
         }
-        ResultSet rs = connection.getMetaData().getColumns(catalog, schema, etlTable.getSourceTable(), null);
+        if (request == null || request.sourceName() == null || request.sourceName().isBlank())
+        {
+            throw new ApiException(400, "源字段名不能为空");
+        }
+        String sourceName = request.sourceName().trim();
+        IdentifierPolicy policy = columnMappingService.sourcePolicy(tid);
+        List<EtlColumn> existing = etlColumnRepo.findAllByTidOrderByColumnId(tid);
+        for (EtlColumn column : existing)
+        {
+            if (!isDeletedPlaceholder(column.getColumnName())
+                && policy.key(activeColumnName(column.getColumnName())).equals(policy.key(sourceName)))
+            {
+                throw new ApiException(409, "源字段已存在: " + sourceName);
+            }
+        }
+
+        String sourceType = request.sourceType() == null || request.sourceType().isBlank()
+            ? "string" : request.sourceType().trim().toLowerCase();
+        java.util.Set<String> allowed = java.util.Set.of(
+            "string", "int", "bigint", "double", "decimal", "boolean", "timestamp", "text", "binary");
+        if (!allowed.contains(sourceType))
+        {
+            throw new ApiException(400, "不支持的源字段类型: " + sourceType);
+        }
+        int length = request.dataLength() == null || request.dataLength() <= 0
+            ? ("string".equals(sourceType) ? 255 : 0) : request.dataLength();
+        Integer precision = request.dataPrecision();
+        Integer scale = request.dataScale();
+        if ("decimal".equals(sourceType))
+        {
+            precision = precision == null ? 38 : precision;
+            scale = scale == null ? 10 : scale;
+        }
+
+        TargetFamily family = view.getTargetType() == null || view.getTargetType().isBlank()
+            || "HDFS".equalsIgnoreCase(view.getTargetType()) ? TargetFamily.HDFS : TargetFamily.RDBMS;
+        DbType targetDialect = DbType.fromValue(view.getTargetType()).orElse(null);
+        SourceField field = new SourceField(sourceName, sourceType, sourceType, length, precision, scale,
+            request.comment(), true, false, request.targetName(), null);
+        ColumnTypeMapping mapping = adapter.mapColumnType(field, family, targetDialect, TypePurpose.ETL_COLUMN);
+
+        int nextId = existing.stream().map(EtlColumn::getColumnId)
+            .filter(java.util.Objects::nonNull).max(Integer::compareTo).orElse(0) + 1;
+        EtlColumn column = new EtlColumn();
+        column.setTid(tid);
+        column.setColumnId(nextId);
+        column.setColumnName(sourceName);
+        column.setSourceType(sourceType);
+        column.setDataLength(length);
+        column.setDataPrecision(precision == null ? 0 : precision);
+        column.setDataScale(scale == null ? 0 : scale);
+        column.setColComment(request.comment());
+        column.setTargetType(mapping.targetType());
+        column.setTargetTypeFull(mapping.targetTypeFull());
+        etlColumnRepo.save(column);
+        columnMappingService.reconcile(tid);
+        columnMappingService.setTargetName(tid, sourceName, request.targetName());
+        return etlColumnRepo.findAllByTidOrderByColumnId(tid);
+    }
+
+    private List<EtlColumn> discoverColumns(VwEtlTableWithSource etlTable)
+    {
+        SourceAdapter adapter = sourceAdapterRegistry.resolve(etlTable);
+        SourceSchema schema = adapter.inspectSchema(SourceRef.of(etlTable), etlTable.getSourceDb(),
+            etlTable.getSourceTable(), SchemaMode.COLUMN_REFRESH);
+        TargetFamily family = etlTable.getTargetType() == null
+            || etlTable.getTargetType().isBlank()
+            || "HDFS".equalsIgnoreCase(etlTable.getTargetType())
+            ? TargetFamily.HDFS : TargetFamily.RDBMS;
+        DbType targetDialect = DbType.fromValue(etlTable.getTargetType()).orElse(null);
+
+        List<EtlColumn> sourceCols = new ArrayList<>(schema.fields().size());
         int idx = 1;
-        while (rs.next()) {
+        for (SourceField field : schema.fields())
+        {
             EtlColumn etlColumn = new EtlColumn();
             etlColumn.setTid(etlTable.getId());
             etlColumn.setColumnId(idx);
-            etlColumn.setColumnName(rs.getString("COLUMN_NAME"));
-            String sourceType = rs.getString("TYPE_NAME").toLowerCase();
-            etlColumn.setSourceType(sourceType);
-            etlColumn.setDataLength(rs.getInt("COLUMN_SIZE"));
-            etlColumn.setDataPrecision(rs.getInt("COLUMN_SIZE"));
-            etlColumn.setDataScale(rs.getInt("DECIMAL_DIGITS"));
-            etlColumn.setColComment(rs.getString("REMARKS"));
-            if (useHiveTypeMapping) {
-                String hiveType = hiveTypeMapping.getOrDefault(sourceType, "string");
-                etlColumn.setTargetType(hiveType);
-                if (Objects.equals(hiveType, "decimal")) {
-                    hiveType = String.format("decimal(%d,%d)", rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"));
-                }
-                etlColumn.setTargetTypeFull(hiveType);
-            }
-            else {
-                // RDBMS 目标端暂不做类型映射转换
-                etlColumn.setTargetType(sourceType);
-                etlColumn.setTargetTypeFull(sourceType);
-            }
+            etlColumn.setColumnName(field.name());
+            etlColumn.setSourceType(field.sourceType());
+            etlColumn.setDataLength(field.dataLength());
+            etlColumn.setDataPrecision(field.dataPrecision());
+            etlColumn.setDataScale(field.dataScale());
+            etlColumn.setColComment(field.comment());
+            etlColumn.setSourceMeta(toJson(field.sourceMeta()));
+            ColumnTypeMapping mapping = adapter.mapColumnType(field, family, targetDialect, TypePurpose.ETL_COLUMN);
+            etlColumn.setTargetType(mapping.targetType());
+            etlColumn.setTargetTypeFull(mapping.targetTypeFull());
             sourceCols.add(etlColumn);
             idx++;
         }
         return sourceCols;
+    }
+
+    private JsonNode toJson(SourceFieldMeta meta)
+    {
+        return meta == null ? null : objectMapper.valueToTree(meta);
     }
 
     /**
@@ -437,10 +547,8 @@ public class ColumnService
 
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.CREATE_COLUMN, null);
 
-        boolean connected = false;
-        try (Connection connection = DbUtil.getConnectionWithRetry(etlTable.getUrl(), etlTable.getUsername(), etlTable.getPass())) {
-            connected = true;
-            List<EtlColumn> etlColumns = getEtlColumnV2(connection, etlTable);
+        try {
+            List<EtlColumn> etlColumns = discoverColumns(etlTable);
             if (etlColumns == null || etlColumns.isEmpty()) {
                 alertAndSkipFetch(etlTable, etlJour, "创建", "获取源表字段失败或源表无字段");
                 return UPDATE_FAILED;
@@ -452,13 +560,13 @@ public class ColumnService
             jourService.successJour(etlJour);
             return UPDATE_CHANGED;
         }
-        catch (SQLException e) {
-            if (!connected) {
-                alertAndSkipFetch(etlTable, etlJour, "创建", "无法连接源数据库: " + DbUtil.describeError(e));
+        catch (SourceAccessException e) {
+            if (e.isUnavailable()) {
+                alertAndSkipFetch(etlTable, etlJour, "创建", "无法连接源数据库: " + e.getMessage());
                 log.error("failed to connect source for tid {}", etlTable.getId(), e);
                 return UPDATE_SOURCE_UNAVAILABLE;
             }
-            alertAndSkipFetch(etlTable, etlJour, "创建", DbUtil.describeError(e));
+            alertAndSkipFetch(etlTable, etlJour, "创建", e.getMessage());
             log.error("failed to create table columns for tid {}", etlTable.getId(), e);
             return UPDATE_FAILED;
         }

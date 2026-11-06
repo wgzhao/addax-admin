@@ -38,10 +38,10 @@ public class EtlTable
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "source_db", length = 32, nullable = false)
+    @Column(name = "source_db", length = 64, nullable = false)
     private String sourceDb;
 
-    @Column(name = "source_table", length = 64, nullable = false)
+    @Column(name = "source_table", length = 255, nullable = false)
     private String sourceTable;
 
     @Column(name = "target_db", length = 50, nullable = false)

@@ -2,7 +2,10 @@ package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.wgzhao.addax.admin.common.DbType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -36,7 +39,7 @@ public class EtlSource
     @Column(name = "name", length = 200, nullable = false)
     private String name;
 
-    @Column(name = "url", length = 500, nullable = false)
+    @Column(name = "url", length = 1000, nullable = false)
     private String url;
 
     @Column(name = "username", length = 64)
@@ -88,6 +91,14 @@ public class EtlSource
 
     @Column(name = "db_type", length = 50)
     private String dbType = DbType.RDBMS.getValue();
+
+    /**
+     * Structured connection settings for non-JDBC sources (MongoDB today). JDBC sources keep everything
+     * in {@link #url}; this column is null for them. Secrets stay in {@link #username}/{@link #pass}.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "connect_config", columnDefinition = "jsonb")
+    private JsonNode connectConfig;
 
     // ===== computed fields for UI =====
     @org.hibernate.annotations.Formula("(select count(1) from etl_table t where t.sid = id)")

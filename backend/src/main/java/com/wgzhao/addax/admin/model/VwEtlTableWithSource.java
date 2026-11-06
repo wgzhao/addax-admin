@@ -53,6 +53,9 @@ public class VwEtlTableWithSource
     private String username;
     private String pass;
     private String dbType;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "connect_config")
+    private JsonNode connectConfig;
     /**
      * 采集源的调度时间点（HH:mm:ss / HH:mm）
      */

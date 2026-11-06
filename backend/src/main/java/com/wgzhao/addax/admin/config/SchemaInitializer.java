@@ -122,6 +122,57 @@ public class SchemaInitializer
     private static final String ADD_CALENDAR_COLUMN_SQL =
         "alter table public.etl_source add column if not exists calendar varchar(32)";
 
+    private static final String ADD_SOURCE_CONNECT_CONFIG_SQL =
+        "alter table public.etl_source add column if not exists connect_config jsonb";
+
+    private static final String WIDEN_SOURCE_URL_SQL =
+        "alter table public.etl_source alter column url type varchar(1000)";
+
+    /**
+     * Non-JDBC sources can carry longer names than the original JDBC-oriented columns allowed: a MongoDB
+     * collection may be up to 120 bytes, and the change-log tables copy the same values.
+     */
+    private static final String WIDEN_TABLE_IDENTIFIERS_SQL = """
+        alter table public.etl_table alter column source_db type varchar(64);
+        alter table public.etl_table alter column source_table type varchar(255)
+        """;
+
+    private static final String WIDEN_LOG_IDENTIFIERS_SQL = """
+        do $$
+        begin
+            if to_regclass('public.etl_table_change_log') is not null then
+                alter table public.etl_table_change_log alter column source_db type varchar(64);
+                alter table public.etl_table_change_log alter column source_table type varchar(255);
+            end if;
+            if to_regclass('public.schema_change_log') is not null then
+                alter table public.schema_change_log alter column source_table type varchar(255);
+            end if;
+        end
+        $$
+        """;
+
+    /**
+     * Old rows were created before db_type was authoritative for non-JDBC engines. Only fill blanks; an
+     * explicit value is never overwritten.
+     */
+    private static final String BACKFILL_DB_TYPE_SQL = """
+        update public.etl_source
+           set db_type = case
+                 when url like 'jdbc:mysql:%' then 'mysql'
+                 when url like 'jdbc:postgresql:%' then 'postgresql'
+                 when url like 'jdbc:oracle:%' then 'oracle'
+                 when url like 'jdbc:sqlserver:%' then 'sqlserver'
+                 when url like 'jdbc:hive2:%' or url like 'jdbc:hive:%' then 'hive'
+                 when url like 'jdbc:db2:%' then 'db2'
+                 when url like 'jdbc:sqlite:%' then 'sqlite'
+                 when url like 'jdbc:sybase:%' then 'sybase'
+                 when url like 'jdbc:clickhouse:%' or url like 'jdbc/chk%' then 'clickhouse'
+                 when url like 'mongodb://%' or url like 'mongodb+srv://%' then 'mongodb'
+                 else 'rdbms'
+               end
+         where db_type is null or btrim(db_type) = ''
+        """;
+
     private static final String SEED_WORK_DAY_DICT_SQL = """
         insert into public.sys_dict (code, name, classification, remark)
         values (1022, '工作日历', 'FR', '工作日(含调休)日期表，item_key 为 yyyyMMdd 的业务日期')
@@ -136,6 +187,13 @@ public class SchemaInitializer
             add column if not exists schema_management_mode varchar(16) not null default 'MANAGED',
             add column if not exists target_schema_fingerprint varchar(64)
         """;
+
+    /**
+     * Structured sampling evidence used by schema-on-read sources. It is deliberately separate from
+     * etl_column.col_comment so target comments remain short and stable.
+     */
+    private static final String ADD_COLUMN_SOURCE_META_SQL =
+        "alter table public.etl_column add column if not exists source_meta jsonb";
 
     /**
      * Rows created before target routing existed have no target id. They behaved as the default target,
@@ -197,10 +255,32 @@ public class SchemaInitializer
         """;
 
     private static final String CREATE_COLUMN_MAPPING_INDEXES_SQL = """
-        create unique index if not exists uk_column_mapping_tid_source
-            on public.etl_column_mapping (tid, lower(source_column_name));
         create unique index if not exists uk_column_mapping_tid_target
             on public.etl_column_mapping (tid, lower(target_column_name))
+        """;
+
+    /**
+     * Source names are case-sensitive for MongoDB ({@code Code} and {@code code} are different fields),
+     * while RDBMS sources keep using an insensitive key in the mapping service. The database index must
+     * therefore be exact; an existing lower(...) index is replaced once.
+     */
+    private static final String MIGRATE_COLUMN_MAPPING_SOURCE_INDEX_SQL = """
+        do $$
+        declare idxdef text;
+        begin
+            select indexdef into idxdef
+              from pg_indexes
+             where schemaname = 'public' and indexname = 'uk_column_mapping_tid_source';
+            if idxdef is null then
+                create unique index uk_column_mapping_tid_source
+                    on public.etl_column_mapping (tid, source_column_name);
+            elsif idxdef like '%lower(%' then
+                drop index public.uk_column_mapping_tid_source;
+                create unique index uk_column_mapping_tid_source
+                    on public.etl_column_mapping (tid, source_column_name);
+            end if;
+        end
+        $$
         """;
 
     private static final String ADD_TABLE_RETIREMENT_SQL = """
@@ -361,6 +441,16 @@ public class SchemaInitializer
         if (hasSource)
         {
             statement.execute(ADD_CALENDAR_COLUMN_SQL);
+            statement.execute(ADD_SOURCE_CONNECT_CONFIG_SQL);
+            // PostgreSQL refuses to alter a column type while a view selects it. The view is recreated
+            // at the end of this pipeline from EtlTableView.CREATE_SQL.
+            statement.execute(EtlTableView.DROP_SQL);
+            statement.execute(WIDEN_SOURCE_URL_SQL);
+            int backfilledTypes = statement.executeUpdate(BACKFILL_DB_TYPE_SQL);
+            if (backfilledTypes > 0)
+            {
+                log.info("Backfilled db_type for {} etl_source row(s)", backfilledTypes);
+            }
             if (statement.executeUpdate(SEED_WORK_DAY_DICT_SQL) > 0)
             {
                 log.info("Seeded the work-day calendar dictionary (code {})", WORK_DAY_DICT_CODE);
@@ -372,8 +462,18 @@ public class SchemaInitializer
             statement.execute(ADD_TARGET_OPTIONS_SQL);
             statement.execute(ADD_SCHEMA_OWNERSHIP_SQL);
             statement.execute(ADD_TABLE_RETIREMENT_SQL);
+            statement.execute(WIDEN_LOG_IDENTIFIERS_SQL);
+            // PostgreSQL refuses to alter a column type while a view selects it. Drop the view first;
+            // the refreshView step below recreates it from the build's definition (whose fingerprint
+            // changed with connect_config, so it is always recreated).
+            if (hasSource && exists(connection, "tables", "etl_target", null))
+            {
+                statement.execute(EtlTableView.DROP_SQL);
+                statement.execute(WIDEN_TABLE_IDENTIFIERS_SQL);
+            }
             if (exists(connection, "tables", "etl_column", null))
             {
+                statement.execute(ADD_COLUMN_SOURCE_META_SQL);
                 statement.execute(CREATE_COLUMN_MAPPING_SQL);
                 int mappings = statement.executeUpdate(BACKFILL_COLUMN_MAPPING_SQL);
                 if (mappings > 0)
@@ -381,6 +481,7 @@ public class SchemaInitializer
                     log.info("Backfilled {} column mapping(s) from etl_column", mappings);
                 }
                 statement.execute(CREATE_COLUMN_MAPPING_INDEXES_SQL);
+                statement.execute(MIGRATE_COLUMN_MAPPING_SOURCE_INDEX_SQL);
             }
             statement.execute(CREATE_EXECUTION_TABLE_SQL);
             statement.execute(ADD_EXECUTION_IDENTITY_SQL);

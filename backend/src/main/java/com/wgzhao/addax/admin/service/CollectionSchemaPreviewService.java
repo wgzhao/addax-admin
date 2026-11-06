@@ -12,6 +12,12 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
+import com.wgzhao.addax.admin.service.source.SchemaMode;
+import com.wgzhao.addax.admin.service.source.SourceAccessException;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceField;
+import com.wgzhao.addax.admin.service.source.SourceRef;
+import com.wgzhao.addax.admin.service.source.SourceSchema;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +47,7 @@ public class CollectionSchemaPreviewService
 {
     private final EtlSourceRepo sourceRepo;
     private final TargetAdapterRegistry targetAdapterRegistry;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
 
     public List<SourceColumnMetadata> inspectSourceColumns(Integer sourceId, String sourceDb, String sourceTable)
     {
@@ -186,70 +193,32 @@ public class CollectionSchemaPreviewService
 
     private List<SourceColumnMetadata> inspectSource(EtlSource source, String db, String tableName)
     {
-        try (Connection connection = DbUtil.getConnection(source.getUrl(), source.getUsername(), source.getPass()))
+        try
         {
-            if (connection == null)
-            {
-                throw new ApiException(400, "无法连接采集源数据库");
-            }
-            DbType dialect = DbUtil.getDbType(source.getUrl());
-            String catalog = switch (dialect)
-            {
-                case MYSQL, SQLSERVER -> db;
-                default -> null;
-            };
-            String schema = switch (dialect)
-            {
-                case POSTGRESQL ->
-                {
-                    // The batch UI selects a JDBC catalog while PostgreSQL metadata is schema-scoped.
-                    String catalogName = connection.getCatalog();
-                    yield db != null && !db.equalsIgnoreCase(catalogName) ? db : "public";
-                }
-                case SQLSERVER -> "dbo";
-                default -> null;
-            };
-            java.util.Set<String> primaryKeys = new java.util.HashSet<>();
-            try (ResultSet rs = connection.getMetaData().getPrimaryKeys(catalog, schema, tableName))
-            {
-                while (rs.next())
-                {
-                    String name = rs.getString("COLUMN_NAME");
-                    if (name != null)
-                    {
-                        primaryKeys.add(name.toLowerCase(Locale.ROOT));
-                    }
-                }
-            }
-            List<SourceColumnMetadata> columns = new ArrayList<>();
-            try (ResultSet rs = connection.getMetaData().getColumns(catalog, schema, tableName, null))
-            {
-                while (rs.next())
-                {
-                    String name = rs.getString("COLUMN_NAME");
-                    if (name == null)
-                    {
-                        continue;
-                    }
-                    int size = rs.getInt("COLUMN_SIZE");
-                    columns.add(new SourceColumnMetadata(
-                        name,
-                        rs.getString("TYPE_NAME"),
-                        size,
-                        size,
-                        rs.getInt("DECIMAL_DIGITS"),
-                        rs.getString("REMARKS"),
-                        rs.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls,
-                        primaryKeys.contains(name.toLowerCase(Locale.ROOT))));
-                }
-            }
-            if (columns.isEmpty())
+            SourceSchema schema = sourceAdapterRegistry.resolve(source)
+                .inspectSchema(SourceRef.of(source), db, tableName, SchemaMode.PREVIEW);
+            if (schema.fields().isEmpty())
             {
                 throw new ApiException(400, "源表不存在或没有可见字段: " + db + "." + tableName);
             }
+            List<SourceColumnMetadata> columns = new ArrayList<>(schema.fields().size());
+            for (SourceField field : schema.fields())
+            {
+                columns.add(new SourceColumnMetadata(
+                    field.name(),
+                    field.sourceType(),
+                    field.dataLength(),
+                    field.dataPrecision(),
+                    field.dataScale(),
+                    field.comment(),
+                    field.nullable(),
+                    field.primaryKey(),
+                    field.suggestedTargetName(),
+                    field.sourceMeta()));
+            }
             return columns;
         }
-        catch (SQLException e)
+        catch (SourceAccessException e)
         {
             throw new ApiException(400, "读取源表元数据失败: " + e.getMessage());
         }

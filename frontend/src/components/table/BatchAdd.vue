@@ -307,6 +307,7 @@
   const reviewRows = ref<CollectionPlanReviewRow[]>([]);
   const commitResults = ref<CollectionPlanCommitResult[]>([]);
   const selectedSourceId = ref<EtlSource | null>(null);
+  const isMongoSource = computed(() => selectedSourceId.value?.dbType === 'mongodb');
   const selectedDb = ref<string | null>(null);
   const tables = ref<EtlTableView[]>([]);
   const retiredTables = ref<CollectableTable[]>([]);
@@ -490,7 +491,10 @@
       (res || [])
         .filter(item => item.state === 'AVAILABLE')
         .forEach((element: CollectableTable) => {
-          const newItem: EtlTable = { ...defaultItem };
+          const newItem: EtlTable = {
+            ...defaultItem,
+            filter: isMongoSource.value ? '{}' : '1=1',
+          };
           newItem.sid = sourceId;
           newItem.sourceDb = dbName;
           newItem.sourceTable = element.name;

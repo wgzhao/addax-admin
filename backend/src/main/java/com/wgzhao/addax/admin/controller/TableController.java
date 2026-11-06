@@ -276,6 +276,14 @@ public class TableController
         return ResponseEntity.ok(columnService.getColumns(tableId));
     }
 
+    @PostMapping("/{tableId}/columns")
+    public ResponseEntity<List<EtlColumn>> addManualSourceColumn(
+        @PathVariable("tableId") long tableId,
+        @RequestBody com.wgzhao.addax.admin.dto.ManualSourceColumnRequest request)
+    {
+        return ResponseEntity.ok(columnService.addManualColumn(tableId, request));
+    }
+
     @GetMapping("/{tableId}/column-mappings")
     public ResponseEntity<List<ColumnMappingDto>> getColumnMappings(@PathVariable("tableId") long tableId)
     {
