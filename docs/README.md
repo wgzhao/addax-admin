@@ -8,6 +8,7 @@
   - [Docker 部署](manual/install/01-docker.md)
   - [主机模式部署](manual/install/02-source.md#主机模式部署)
   - [使用指南](manual/usage/01-quick-start.md)
+  - [MongoDB 采集](manual/usage/10-mongodb.md)
   - [运维排障](manual/operations/01-monitoring.md)
 
 ## 设计与实现
