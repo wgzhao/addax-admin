@@ -129,7 +129,10 @@ public class SourceService
         // 如果连接串，账号，密码三者没变更，则不要更新任务模板
         String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
         String newPos = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass();
-        boolean connectionChanged = !Objects.equals(existPos, newPos);
+        // Structured connection options live in connect_config for non-JDBC engines; a change there
+        // must refresh job templates even when the display URL is unchanged.
+        boolean connectionChanged = !Objects.equals(existPos, newPos)
+            || !Objects.equals(existing.getConnectConfig(), etlSource.getConnectConfig());
         // 连接源的修改，仅需要一个节点去更新任务模板即可，其他节点通过 Redis 消息通知来更新
         if (connectionChanged) {
             SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), scheduleChanged);

@@ -128,6 +128,12 @@ public class CollectionPlanPreviewService
         {
             findings.add(existing);
         }
+        TargetContractReport.Finding constantUnsupported = unsupportedConstantFinding(
+            request, adapter, sourceColumns);
+        if (constantUnsupported != null)
+        {
+            findings.add(constantUnsupported);
+        }
         List<CollectionPlanPreview.PlannedTargetColumn> planned = planColumns(request, adapter, sourceColumns);
         List<CollectionSchemaPreview.MappingSuggestion> mappings = planned.stream()
             .filter(column -> column.sourceColumnName() != null)
@@ -355,6 +361,45 @@ public class CollectionPlanPreviewService
         table.setTargetOptions(request.targetOptions());
         table.setSchemaManagementMode(SchemaManagementMode.from(request.schemaManagementMode()));
         return table;
+    }
+
+    /**
+     * An engine without constant columns cannot supply a target business date that is not backed by
+     * a source field. Report it in the preview instead of letting the job writer fail later with a
+     * positional column mismatch.
+     */
+    private TargetContractReport.Finding unsupportedConstantFinding(
+        CollectionSchemaPreviewRequest request, TargetAdapter targetAdapter,
+        List<SourceColumnMetadata> sourceColumns)
+    {
+        if (!"RDBMS".equalsIgnoreCase(targetAdapter.getType()))
+        {
+            return null;
+        }
+        String businessDateColumn = businessDateColumn(request.targetOptions());
+        if (businessDateColumn == null)
+        {
+            return null;
+        }
+        boolean mappedBySource = sourceColumns.stream()
+            .anyMatch(column -> businessDateColumn.equalsIgnoreCase(column.name()));
+        if (mappedBySource || request.sourceId() == null)
+        {
+            return null;
+        }
+        EtlSource source = sourceRepo.findById(request.sourceId()).orElse(null);
+        if (source == null)
+        {
+            return null;
+        }
+        SourceAdapter sourceAdapter = sourceAdapterRegistry.resolve(source);
+        if (sourceAdapter.capabilities().constantColumns())
+        {
+            return null;
+        }
+        return TargetContractReport.Finding.error("SOURCE_CONSTANT_UNSUPPORTED", businessDateColumn,
+            "constant", null, "采集源 " + sourceAdapter.getType()
+                + " 不支持常量列，快照业务日期列 " + businessDateColumn + " 必须由源字段映射提供");
     }
 
     private String businessDateColumn(JsonNode targetOptions)

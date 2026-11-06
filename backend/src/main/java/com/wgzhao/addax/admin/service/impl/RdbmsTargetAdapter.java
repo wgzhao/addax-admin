@@ -956,6 +956,15 @@ public class RdbmsTargetAdapter
         if (bizDateColumn != null && mappings.stream()
             .noneMatch(mapping -> bizDateColumn.equalsIgnoreCase(mapping.targetColumnName())))
         {
+            // The reader must inject one literal column for this writer column. An engine without
+            // constant columns (Elasticsearch) would make the positional lists disagree and write
+            // every following value into the wrong field.
+            SourceAdapter sourceAdapter = sourceAdapterRegistry.resolve(table);
+            if (!sourceAdapter.capabilities().constantColumns())
+            {
+                throw new ApiException(400, "采集源 " + sourceAdapter.getType()
+                    + " 不支持注入常量列，快照业务日期列 " + bizDateColumn + " 必须来自源字段映射");
+            }
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }
         return String.join(", ", columns);

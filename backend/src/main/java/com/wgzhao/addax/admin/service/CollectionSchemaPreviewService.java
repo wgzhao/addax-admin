@@ -145,6 +145,13 @@ public class CollectionSchemaPreviewService
                 {
                     platformProvidedTargets.add(key(businessDateColumn));
                     unmatchedTargets.remove(dateColumn.name());
+                    if (!sourceAdapterRegistry.resolve(source).capabilities().constantColumns())
+                    {
+                        findings.add(TargetContractReport.Finding.error(
+                            "SOURCE_CONSTANT_UNSUPPORTED", dateColumn.name(), "constant", null,
+                            "采集源不支持常量列，快照业务日期列 " + dateColumn.name()
+                                + " 必须由源字段映射提供"));
+                    }
                     if (!"string".equals(
                         com.wgzhao.addax.admin.utils.RdbmsDdlUtil.familyOf(dateColumn.type())))
                     {

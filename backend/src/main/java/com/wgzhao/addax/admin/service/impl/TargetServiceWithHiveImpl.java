@@ -583,7 +583,8 @@ public class TargetServiceWithHiveImpl
                     // short stable comment, so existing sampled-statistics comments must be replaced
                     // even when the column type itself did not move. Limit this repair to Mongo
                     // sources; RDBMS comments already had their own lifecycle and should not churn.
-                    boolean sampledSource = "mongodb".equalsIgnoreCase(etlTable.getDbType());
+                    boolean sampledSource = "mongodb".equalsIgnoreCase(etlTable.getDbType())
+                        || "elasticsearch".equalsIgnoreCase(etlTable.getDbType());
                     boolean commentDiff = sampledSource
                         && !Objects.equals(normalizeComment(hc.comment), comment);
                     if (typeIncompatible || commentDiff) {
