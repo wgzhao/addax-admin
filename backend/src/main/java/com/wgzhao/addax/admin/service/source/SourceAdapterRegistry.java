@@ -26,6 +26,8 @@ public class SourceAdapterRegistry
     public static final String RDBMS_TYPE = "RDBMS";
     public static final String MONGODB_TYPE = "MONGODB";
     public static final String MONGODB_DB_TYPE = "mongodb";
+    public static final String ELASTICSEARCH_TYPE = "ELASTICSEARCH";
+    public static final String ELASTICSEARCH_DB_TYPE = "elasticsearch";
 
     private final Map<String, SourceAdapter> byType;
     private final boolean nosqlEnabled;
@@ -67,30 +69,43 @@ public class SourceAdapterRegistry
         String url = ref.url() == null ? "" : ref.url().trim();
         boolean mongoUrl = url.startsWith("mongodb://") || url.startsWith("mongodb+srv://");
         boolean hasMongoConfig = ref.connectConfig() != null && ref.connectConfig().has("address");
+        boolean esUrl = url.startsWith("http://") || url.startsWith("https://");
+        boolean hasEsConfig = ref.connectConfig() != null && ref.connectConfig().has("endpoints");
 
         String type;
         if ("mongodb".equals(explicit) || "mongo".equals(explicit))
         {
             type = MONGODB_TYPE;
         }
+        else if ("elasticsearch".equals(explicit) || "es".equals(explicit))
+        {
+            type = ELASTICSEARCH_TYPE;
+        }
         else if (explicit.isEmpty() || "rdbms".equals(explicit))
         {
-            type = mongoUrl || hasMongoConfig ? MONGODB_TYPE : RDBMS_TYPE;
+            if (mongoUrl || hasMongoConfig)
+            {
+                type = MONGODB_TYPE;
+            }
+            else if (esUrl || hasEsConfig)
+            {
+                type = ELASTICSEARCH_TYPE;
+            }
+            else
+            {
+                type = RDBMS_TYPE;
+            }
         }
         else if (DbType.fromValue(explicit).isPresent())
         {
             type = RDBMS_TYPE;
-        }
-        else if ("elasticsearch".equals(explicit))
-        {
-            throw new ApiException(400, "Elasticsearch 采集源在本版本尚未开放");
         }
         else
         {
             throw new ApiException(400, "未知的采集源类型: " + ref.dbType());
         }
 
-        if (MONGODB_TYPE.equals(type) && !nosqlEnabled)
+        if (!RDBMS_TYPE.equals(type) && !nosqlEnabled)
         {
             throw new ApiException(400, "NoSQL 采集源已被禁用（addax.source.nosql.enabled=false）");
         }

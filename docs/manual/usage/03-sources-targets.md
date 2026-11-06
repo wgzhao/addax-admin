@@ -10,13 +10,13 @@
 | ------------- | ------------------------------------------------------------- |
 | 采集编号      | 两位大写字母，例如 `CR`，作为采集源的稳定标识，保存后不可修改 |
 | 采集名称      | 业务名称                                                      |
-| 连接类型      | `关系型数据库 (JDBC)` 或 `MongoDB`，保存后不可切换            |
+| 连接类型      | `关系型数据库 (JDBC)`、`MongoDB` 或 `Elasticsearch`，保存后不可切换 |
 | 采集时间      | 默认触发时间，格式 `HH:mm` 或 `HH:mm:ss`；留空使用系统默认值  |
 | 采集日历      | `自然日`、`工作日（含调休）`、`交易日`                        |
 | 最大并发数    | 该采集源同时运行的任务数上限；留空使用系统默认值              |
 | 启用调度      | 关闭后该源下所有采集定义不参与自动调度                        |
-| JDBC 连接地址 | RDBMS 源的连接串；MongoDB 源不显示此字段                      |
-| 用户名 / 密码 | 源端凭据；MongoDB 必须同时填写或同时留空                      |
+| JDBC 连接地址 | RDBMS 源的连接串；MongoDB/Elasticsearch 源不显示此字段        |
+| 用户名 / 密码 | 源端凭据；MongoDB/Elasticsearch 必须同时填写或同时留空        |
 | 备注          | 用途、负责人或维护注意事项                                    |
 
 ### MongoDB 采集源
@@ -32,6 +32,18 @@
 | 用户名 / 密码       | 无认证时都留空；有认证时两者必须同时填写                             |
 
 一个 MongoDB 采集源可以接入多个数据库：这里的“数据库”只是默认库，批量新增采集表时还可以选择实际源数据库，因此同一个采集源下可以分别接入不同数据库的集合。数据库和集合的采集细节见 [MongoDB 采集](10-mongodb.md)。
+
+### Elasticsearch 采集源
+
+连接类型选择 `Elasticsearch` 后，界面会隐藏 JDBC 地址，改为填写：
+
+| 字段                | 说明                                                                 |
+| ------------------- | -------------------------------------------------------------------- |
+| Elasticsearch 地址  | 一个或多个 `http(s)://host:port`，逗号分隔；管理端按顺序尝试，采集任务使用第一个 |
+| 高级选项 (JSON)     | 可选，例如 `{"insecureSkipVerify":"true","scroll":"3m"}`             |
+| 用户名 / 密码       | Basic Auth 凭据；无认证时都留空，有认证时两者必须同时填写             |
+
+Elasticsearch 没有数据库概念，管理端用固定命名空间 `indices` 承载全部索引和别名。索引、别名、字段映射与增量细节见 [Elasticsearch 采集](11-elasticsearch.md)。
 
 ### 连接测试
 
@@ -62,7 +74,7 @@
 | `POSTGRESQL` | `wR`          | PostgreSQL                        |
 | `SQLSERVER`  | `wR`          | SQL Server                        |
 
-MongoDB 目前只作为采集源，不作为目标端；MongoDB 采集到的数据写入上述目标端。
+MongoDB 和 Elasticsearch 目前只作为采集源，不作为目标端；它们采集到的数据写入上述目标端。
 
 目标端类型决定表详情和批量创建表单显示哪些专属属性：
 
@@ -90,6 +102,7 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 暂未实现，保存目标端或测
 ## 相关文档
 
 - [MongoDB 采集](10-mongodb.md)
+- [Elasticsearch 采集](11-elasticsearch.md)
 - [目标端能力与表属性](06-target-engines.md)
 - [批量创建采集表](04-create-collections.md)
 - [目标表结构与字段映射](05-target-contract.md)

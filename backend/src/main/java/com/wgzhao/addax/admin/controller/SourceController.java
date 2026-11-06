@@ -156,6 +156,7 @@ public class SourceController
         snapshot.put("enabled", source.isEnabled());
         snapshot.put("maxConcurrency", source.getMaxConcurrency());
         snapshot.put("dbType", source.getDbType());
+        snapshot.put("connectConfig", source.getConnectConfig());
         return snapshot;
     }
 

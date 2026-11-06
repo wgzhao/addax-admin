@@ -168,6 +168,7 @@ public class SchemaInitializer
                  when url like 'jdbc:sybase:%' then 'sybase'
                  when url like 'jdbc:clickhouse:%' or url like 'jdbc/chk%' then 'clickhouse'
                  when url like 'mongodb://%' or url like 'mongodb+srv://%' then 'mongodb'
+                 when url like 'http://%' or url like 'https://%' then 'elasticsearch'
                  else 'rdbms'
                end
          where db_type is null or btrim(db_type) = ''

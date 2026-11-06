@@ -44,6 +44,15 @@ id > 123456
 
 适合单调递增的主键或编号。
 
+## 非关系型源
+
+MongoDB 和 Elasticsearch 不使用 SQL：
+
+- MongoDB 使用 extended JSON 查询文档，见 [MongoDB 采集](10-mongodb.md)。
+- Elasticsearch 使用 Query DSL JSON 对象，见 [Elasticsearch 采集](11-elasticsearch.md)。
+
+`__max__<field>` 对这两类源同样适用，平台会把它转换为对应引擎的范围条件。Elasticsearch 的增量字段建议使用数值、`keyword` 或日期类型，`text` 字段的范围比较通常不符合预期。
+
 ## `__max__<field>` 的规则
 
 - `<field>` 是源表字段名，例如 `__max__id`、`__max__order_no`。

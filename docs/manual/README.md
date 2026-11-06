@@ -29,6 +29,7 @@
 3. [批量创建采集表](usage/04-create-collections.md)
 4. [目标表结构与字段映射](usage/05-target-contract.md)
 5. [MongoDB 采集](usage/10-mongodb.md)（仅使用 MongoDB 采集源时）
+6. [Elasticsearch 采集](usage/11-elasticsearch.md)（仅使用 Elasticsearch 采集源时）
 
 ### 日常运维
 
@@ -62,6 +63,7 @@
 | [增量与过滤](usage/08-filtering.md)                 | 业务日期过滤、字段条件、`__max__<field>`、风险回退    |
 | [调度与并发](usage/09-scheduling.md)                | 调度触发、队列、Redis 选主与分发、多节点权重、状态码  |
 | [MongoDB 采集](usage/10-mongodb.md)                 | MongoDB 源、多库接入、字段采样、切日刷新与注意事项    |
+| [Elasticsearch 采集](usage/11-elasticsearch.md)     | ES 源、索引/别名、mapping 与采样、DSL 过滤与增量      |
 
 ### 运维排障
 

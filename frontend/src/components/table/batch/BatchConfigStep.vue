@@ -212,7 +212,7 @@
             </v-col>
           </v-row>
           <v-row v-else density="comfortable">
-            <v-col cols="12" md="6">
+            <v-col v-if="sourceDbType !== 'elasticsearch'" cols="12" md="6">
               <v-text-field
                 v-model="options.rdbms.businessDateColumn"
                 label="快照业务日期列"
@@ -222,7 +222,12 @@
                 persistent-hint
               />
             </v-col>
-            <v-col cols="12" md="6">
+            <v-col v-else cols="12">
+              <v-alert type="info" variant="tonal" density="comfortable">
+                Elasticsearch 采集源不支持常量列，因此不能由平台注入业务日期。如需该列，请在字段映射中把索引里的日期字段映射到目标业务日期列。
+              </v-alert>
+            </v-col>
+            <v-col v-if="sourceDbType !== 'elasticsearch'" cols="12" md="6">
               <v-switch
                 v-model="options.rdbms.createPrimaryKey"
                 inset
@@ -318,6 +323,7 @@
     compressFormats: string[];
     duplicateTargetNames: string[];
     targetNameIssue: string;
+    sourceDbType?: string | null;
   }>();
 
   const targetTableTemplate = defineModel<string>('targetTableTemplate');

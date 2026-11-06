@@ -135,27 +135,35 @@
     return '未选择目标端';
   });
 
-  const overviewItems = computed(() => [
-    { label: '当前状态', value: overallState.value },
-    { label: '目标端', value: targetName.value },
-    { label: '调度时间', value: scheduleLabel(props.table) },
-    {
-      label: '最大运行时长',
-      value: props.table.maxRuntime ? `${props.table.maxRuntime} 秒` : '默认 2000 秒',
-    },
-    {
-      label: '剩余重试次数',
-      value:
-        props.table.retryCnt === undefined || props.table.retryCnt === null
-          ? '-'
-          : String(props.table.retryCnt),
-    },
-    { label: '自动切分', value: props.table.autoPk ? '已启用' : '未启用' },
-  ]);
+  const isEsSource = computed(() => props.table.dbType === 'elasticsearch');
+  const isNonRdbmsSource = computed(
+    () => props.table.dbType === 'mongodb' || isEsSource.value
+  );
+
+  const overviewItems = computed(() => {
+    const items = [
+      { label: '当前状态', value: overallState.value },
+      { label: '目标端', value: targetName.value },
+      { label: '调度时间', value: scheduleLabel(props.table) },
+      {
+        label: '最大运行时长',
+        value: props.table.maxRuntime ? `${props.table.maxRuntime} 秒` : '默认 2000 秒',
+      },
+      {
+        label: '剩余重试次数',
+        value:
+          props.table.retryCnt === undefined || props.table.retryCnt === null
+            ? '-'
+            : String(props.table.retryCnt),
+      },
+      { label: '自动切分', value: props.table.autoPk ? '已启用' : '未启用' },
+    ];
+    return isNonRdbmsSource.value ? items.filter(item => item.label !== '自动切分') : items;
+  });
 
   const storageItems = computed(() => {
     if (targetFamily(props.table.targetType) === 'rdbms') {
-      return [
+      const items = [
         { label: '目标端类型', value: '关系型数据库' },
         {
           label: '快照业务日期列',
@@ -167,9 +175,21 @@
           value: props.table.targetOptions.rdbms.createPrimaryKey ? '按源端主键创建' : '不创建',
         },
       ];
+      if (isEsSource.value) {
+        return items.filter(
+          item =>
+            item.label !== '快照业务日期列' &&
+            item.label !== '切分字段' &&
+            item.label !== '目标表主键'
+        );
+      }
+      if (isNonRdbmsSource.value) {
+        return items.filter(item => item.label !== '切分字段' && item.label !== '目标表主键');
+      }
+      return items;
     }
 
-    return [
+    const items = [
       { label: '目标端类型', value: 'Hive / HDFS' },
       { label: '分区字段', value: props.table.targetOptions.hdfs.partName || '非分区表' },
       { label: '分区格式', value: props.table.targetOptions.hdfs.partFormat || '-' },
@@ -177,6 +197,7 @@
       { label: '存储格式', value: props.table.targetOptions.hdfs.storageFormat || '继承系统设置' },
       { label: '压缩格式', value: props.table.targetOptions.hdfs.compressFormat || '继承系统设置' },
     ];
+    return isNonRdbmsSource.value ? items.filter(item => item.label !== '切分字段') : items;
   });
 </script>
 

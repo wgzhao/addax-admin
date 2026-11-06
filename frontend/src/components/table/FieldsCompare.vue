@@ -21,7 +21,7 @@
         </div>
         <div class="panel-actions">
           <v-btn
-            v-if="isMongoSource"
+            v-if="supportsManualFields"
             variant="tonal"
             color="primary"
             prepend-icon="mdi-plus"
@@ -241,9 +241,16 @@
   const tableDetail = ref<VEtlWithSource | null>(null);
   const manualDialog = ref(false);
   const manualSaving = ref(false);
-  const manualTypes = ['string', 'int', 'bigint', 'double', 'decimal', 'boolean', 'timestamp', 'text', 'binary'];
-  const manualForm = ref({ sourceName: '', sourceType: 'string', targetName: '', comment: '' });
   const isMongoSource = computed(() => tableDetail.value?.dbType === 'mongodb');
+  const isEsSource = computed(() => tableDetail.value?.dbType === 'elasticsearch');
+  const supportsManualFields = computed(() => isMongoSource.value || isEsSource.value);
+  // Elasticsearch dates arrive as strings; a manual timestamp column would make the writer fail.
+  const manualTypes = computed(() =>
+    isEsSource.value
+      ? ['string', 'int', 'bigint', 'double', 'decimal', 'boolean', 'text']
+      : ['string', 'int', 'bigint', 'double', 'decimal', 'boolean', 'timestamp', 'text', 'binary']
+  );
+  const manualForm = ref({ sourceName: '', sourceType: 'string', targetName: '', comment: '' });
 
   const cloneMappings = (value: ColumnMapping[]): ColumnMapping[] =>
     JSON.parse(JSON.stringify(value)) as ColumnMapping[];

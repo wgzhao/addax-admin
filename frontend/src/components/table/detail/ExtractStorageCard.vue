@@ -29,11 +29,16 @@
               :placeholder="
                 isMongoSource
                   ? 'MongoDB 查询 JSON，例如 {\'status\':\'paid\'} 或 __max__seq'
-                  : '可选，例如 dt=\'${biz_date_dash}\''
+                  : isEsSource
+                    ? 'ES Query DSL，例如 {\'term\':{\'status\':\'paid\'}} 或 __max__seq'
+                    : '可选，例如 dt=\'${biz_date_dash}\''
               "
               hide-details="auto"
             />
-            <p v-if="isMongoSource" class="field-hint">
+            <p v-if="isEsSource" class="field-hint">
+              使用 Elasticsearch Query DSL，不支持 SQL/script；__max__field 表示按目标最大值增量。
+            </p>
+            <p v-else-if="isMongoSource" class="field-hint">
               使用 MongoDB extended JSON，不支持 SQL；__max__field 表示按目标最大值增量。
             </p>
           </div>
@@ -123,7 +128,7 @@
           </v-col>
         </template>
 
-        <v-col v-else cols="12" md="4">
+        <v-col v-else-if="!isEsSource" cols="12" md="4">
           <div class="field-block">
             <div class="field-label">快照业务日期列</div>
             <v-text-field
@@ -136,7 +141,7 @@
           </div>
         </v-col>
 
-        <v-col v-if="!isMongoSource" cols="12" md="4">
+        <v-col v-if="!isNonRdbmsSource" cols="12" md="4">
           <div class="field-block">
             <div class="field-label">切分字段</div>
             <v-text-field
@@ -179,7 +184,7 @@
           </v-col>
         </template>
 
-        <v-col v-else cols="12" md="4">
+        <v-col v-else-if="!isEsSource" cols="12" md="4">
           <div class="field-block field-block--switch">
             <div class="field-label">目标表主键</div>
             <div class="switch-shell">
@@ -195,7 +200,7 @@
           </div>
         </v-col>
 
-        <v-col v-if="!isMongoSource" cols="12" md="4">
+        <v-col v-if="!isNonRdbmsSource" cols="12" md="4">
           <div class="field-block field-block--switch">
             <div class="field-label">切分策略</div>
             <div class="switch-shell">
@@ -234,6 +239,8 @@
   const compressFormats = HDFS_COMPRESS_FORMATS || [];
   const family = computed(() => targetFamily(props.targetType || table.value.targetType));
   const isMongoSource = computed(() => table.value.dbType === 'mongodb');
+  const isEsSource = computed(() => table.value.dbType === 'elasticsearch');
+  const isNonRdbmsSource = computed(() => isMongoSource.value || isEsSource.value);
   const partitionBindings = computed(() => table.value.targetOptions.hdfs.partitionBindings || []);
 
   // Why: the target contract rejects more than one BIZ_DATE partition.

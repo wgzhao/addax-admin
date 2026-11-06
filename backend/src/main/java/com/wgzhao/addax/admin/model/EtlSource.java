@@ -93,8 +93,9 @@ public class EtlSource
     private String dbType = DbType.RDBMS.getValue();
 
     /**
-     * Structured connection settings for non-JDBC sources (MongoDB today). JDBC sources keep everything
-     * in {@link #url}; this column is null for them. Secrets stay in {@link #username}/{@link #pass}.
+     * Structured connection settings for non-JDBC sources (MongoDB, Elasticsearch). JDBC sources keep
+     * everything in {@link #url}; this column is null for them. Secrets stay in
+     * {@link #username}/{@link #pass}.
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "connect_config", columnDefinition = "jsonb")
