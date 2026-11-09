@@ -22,18 +22,19 @@ describe('theme store', () => {
     stubSystemTheme(false);
   });
 
-  it('falls back to the system theme without a saved preference', () => {
+  it('defaults to light without a saved preference', () => {
     const store = useThemeStore();
     store.initTheme();
     expect(store.theme).toBe('light');
     expect(store.hasUserPreference).toBe(false);
   });
 
-  it('follows a dark system theme when nothing is saved', () => {
+  it('stays on the light default even when the OS prefers dark', () => {
     stubSystemTheme(true);
     const store = useThemeStore();
     store.initTheme();
-    expect(store.theme).toBe('dark');
+    expect(store.theme).toBe('light');
+    expect(store.hasUserPreference).toBe(false);
   });
 
   it('restores a saved preference over the system theme', () => {

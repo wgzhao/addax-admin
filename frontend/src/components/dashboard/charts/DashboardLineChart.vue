@@ -16,12 +16,13 @@
       yTitle?: string;
       y1Title?: string;
       stacked?: boolean;
+      showPoints?: boolean;
       valueFormatter?: (value: number) => string;
       y1Formatter?: (value: number) => string;
       // 追加到 tooltip 底部的补充行（如绝对计数），由调用方的原始数据行提供
       extraTooltip?: (index: number) => string[];
     }>(),
-    { stacked: false }
+    { stacked: false, showPoints: true }
   );
 
   const Line = loadChartComponent('Line', chart => {
@@ -78,7 +79,7 @@
         pointHoverBorderColor: color,
         tension: 0.35,
         cubicInterpolationMode: 'monotone' as const,
-        pointRadius: 3,
+        pointRadius: props.showPoints ? 3 : 0,
         pointHoverRadius: 5,
         pointHitRadius: 10,
         pointBorderWidth: 2,

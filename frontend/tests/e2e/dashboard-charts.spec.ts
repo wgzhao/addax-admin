@@ -7,8 +7,11 @@ import { fileURLToPath } from 'node:url';
 const artifactDir = fileURLToPath(new URL('./artifacts', import.meta.url));
 const screenshotsDir = fileURLToPath(new URL('../../../screenshots', import.meta.url));
 
+// 买方演示常见分辨率；1280x720 会让 KPI 行折成两行，不能反映首屏信息层级
+test.use({ viewport: { width: 1440, height: 900 } });
+
 const TABS: { value: string; label: string; screenshot: string }[] = [
-  { value: 'overview', label: '总览', screenshot: 'dashboard-overview.png' },
+  { value: 'overview', label: '经营总览', screenshot: 'dashboard-overview.png' },
   { value: 'health', label: '运行健康', screenshot: 'dashboard-health.png' },
   { value: 'quality', label: '数据质量', screenshot: 'dashboard-quality.png' },
   { value: 'sla', label: '耗时与 SLA', screenshot: 'dashboard-sla.png' },
@@ -23,32 +26,38 @@ const UNIT_TO_BYTES: Record<string, number> = {
   PiB: 1024 ** 5,
 };
 
-const DURATION_TO_SECS: Record<string, number> = { 分钟: 60, 小时: 3600, 天: 86400 };
-
-interface StatCardReading {
-  title: string;
-  numeric: string;
+interface StatTileReading {
+  label: string;
+  value: string;
   unit: string;
+  delta: string;
+  hint: string;
   unitFontSize: number;
   valueFontSize: number;
 }
 
-// 读取统计卡片上拆分的数值与单位，并记录两者字号
-async function readStatCard(page: Page, title: string): Promise<StatCardReading> {
-  const card = page
-    .locator('.stat-card')
-    .filter({ has: page.locator('.stat-title', { hasText: title }) });
-  const value = card.locator('.stat-value');
-  const unit = card.locator('.stat-unit');
-  await expect(unit).toHaveCount(1);
+// 读取经营总览 KPI 卡上的数值、单位、环比与上下文
+async function readStatTile(page: Page, label: string): Promise<StatTileReading> {
+  const tile = page
+    .locator('.stat-tile')
+    .filter({ has: page.locator('.stat-label', { hasText: label }) });
+  await expect(tile).toHaveCount(1);
 
-  const unitText = (await unit.innerText()).trim();
-  const valueText = (await value.innerText()).trim();
+  const value = tile.locator('.stat-value');
+  const unit = tile.locator('.stat-unit');
+  const hasUnit = (await unit.count()) > 0;
+  const unitText = hasUnit ? (await unit.innerText()).trim() : '';
+  const delta = tile.locator('.stat-delta');
+  const hint = tile.locator('.stat-hint');
   return {
-    title: (await card.locator('.stat-title').innerText()).trim(),
-    numeric: valueText.replace(unitText, '').trim(),
+    label: (await tile.locator('.stat-label').innerText()).trim(),
+    value: (await value.innerText()).trim(),
     unit: unitText,
-    unitFontSize: await unit.evaluate(el => Number.parseFloat(getComputedStyle(el).fontSize)),
+    delta: (await delta.count()) > 0 ? (await delta.innerText()).trim() : '',
+    hint: (await hint.count()) > 0 ? (await hint.innerText()).trim() : '',
+    unitFontSize: hasUnit
+      ? await unit.evaluate(el => Number.parseFloat(getComputedStyle(el).fontSize))
+      : 0,
     valueFontSize: await value.evaluate(el => Number.parseFloat(getComputedStyle(el).fontSize)),
   };
 }
@@ -78,14 +87,17 @@ function collectConsoleErrors(page: Page): () => string[] {
 
 // 断言当前激活窗口内的每个图表都进入 ready 或 empty（容忍数据稀疏），且画布有实际尺寸
 async function assertChartsSettled(page: Page) {
-  const charts = page.locator('[data-chart-state]');
+  // Why: inactive and leaving tab panes stay in the DOM, and their canvases
+  // have zero width; only the active pane's charts are meaningful here.
+  const activePane = page.locator('.v-window-item--active');
+  const charts = activePane.locator('[data-chart-state]:visible');
   await expect(charts.first()).toBeVisible();
   for (let i = 0; i < (await charts.count()); i++) {
     await expect(charts.nth(i)).toHaveAttribute('data-chart-state', /ready|empty/, {
       timeout: 20_000,
     });
   }
-  const readyCharts = page.locator('[data-chart-state="ready"]');
+  const readyCharts = activePane.locator('[data-chart-state="ready"]:visible');
   for (let i = 0; i < (await readyCharts.count()); i++) {
     const canvas = readyCharts.nth(i).locator('canvas');
     if ((await canvas.count()) === 0) continue;
@@ -101,10 +113,13 @@ test.describe('dashboard charts', () => {
     fs.mkdirSync(screenshotsDir, { recursive: true });
 
     await page.goto('/');
-    await expect(page.getByRole('tab', { name: '总览' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: '经营总览' })).toBeVisible();
 
     for (const tab of TABS) {
       await page.getByRole('tab', { name: tab.label }).click();
+      await expect(page.locator('.v-window-item--active')).toHaveCount(1);
+      // Let the window slide finish before asserting or screenshotting.
+      await page.waitForTimeout(350);
       await assertChartsSettled(page);
       await page.screenshot({
         path: path.join(screenshotsDir, tab.screenshot),
@@ -157,131 +172,112 @@ test.describe('dashboard charts', () => {
       body: summary,
       contentType: 'text/plain',
     });
-    // 全部图表接口必须都返回数据行（本环境已造数；空数据仅允许出现在统计窗口外）
-    const emptyEndpoints = results
-      .filter(r => r.path.includes('/dashboard/') && r.rows === 0)
-      .map(r => r.path);
-    expect(emptyEndpoints, `endpoints without data:\n${emptyEndpoints.join('\n')}`).toEqual([]);
+    // 状态码是硬约束；空数据是合法业务状态（例如近 14 天没有失败），
+    // 由界面呈现 empty，而不是让接口测试失败。
+    const failedEndpoints = results.filter(r => r.status !== 200).map(r => r.path);
+    expect(failedEndpoints, `endpoints not returning 200:\n${failedEndpoints.join('\n')}`).toEqual(
+      []
+    );
   });
 
-  test('shows adaptive units next to stat values', async ({ page }) => {
+  test('renders executive KPI tiles with units and context', async ({ page }) => {
     const initialSummary = page.waitForResponse(
       res => res.url().includes('/api/v1/dashboard/summary') && res.status() === 200
     );
     await page.goto('/');
-    await initialSummary;
-    await expect(page.locator('.stat-card')).toHaveCount(6);
-
-    const token = await page.evaluate(() => localStorage.getItem('authToken'));
-    const response = await page.request.get('/api/v1/dashboard/summary', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    expect(response.status()).toBe(200);
+    const response = await initialSummary;
     const summary = await response.json();
 
-    // 单位不能出现在标题里，只能跟在数值后面
-    const yesterday = await readStatCard(page, '昨日数据采集');
-    const total = await readStatCard(page, '累计数据采集');
-    const duration = await readStatCard(page, '最近采集总耗时');
+    await expect(page.locator('.health-label')).toHaveText('今日采集健康度');
+    await expect(page.locator('.stat-tile')).toHaveCount(4);
 
-    for (const card of [yesterday, total, duration]) {
-      expect(card.title, `${card.title} title must not carry a unit`).not.toContain('(');
-      expect(card.numeric).not.toBe('');
-      expect(Number.isFinite(Number(card.numeric)), `${card.title} value must be numeric`).toBe(
+    const today = await readStatTile(page, '今日数据量');
+    const done = await readStatTile(page, '今日完成表数');
+    const avg = await readStatTile(page, '平均单表耗时');
+    const total = await readStatTile(page, '累计数据量');
+
+    expect([today.label, done.label, avg.label, total.label]).toEqual([
+      '今日数据量',
+      '今日完成表数',
+      '平均单表耗时',
+      '累计数据量',
+    ]);
+
+    for (const tile of [today, total]) {
+      expect(tile.value).not.toBe('');
+      expect(Number.isFinite(Number(tile.value)), `${tile.label} value must be numeric`).toBe(
         true
       );
+      expect(Object.keys(UNIT_TO_BYTES)).toContain(tile.unit);
       expect(
-        card.unitFontSize,
-        `${card.title} unit must render smaller than the value`
-      ).toBeLessThan(card.valueFontSize);
-      // Why: the unit encodes the 1024x magnitude, so it must not shrink into noise
+        tile.unitFontSize,
+        `${tile.label} unit must render smaller than the value`
+      ).toBeLessThan(tile.valueFontSize);
       expect(
-        card.unitFontSize / card.valueFontSize,
-        `${card.title} unit must stay legible next to the value`
+        tile.unitFontSize / tile.valueFontSize,
+        `${tile.label} unit must stay legible next to the value`
       ).toBeGreaterThanOrEqual(0.5);
     }
 
-    // 精确的单位切换规则由下面的注入用例覆盖，这里只校验真实数据落在合法单位内
-    expect(Object.keys(UNIT_TO_BYTES)).toContain(yesterday.unit);
-    expect(Object.keys(UNIT_TO_BYTES)).toContain(total.unit);
-
-    const totalBytes = Number(total.numeric) * UNIT_TO_BYTES[total.unit];
-    // 三位有效数字的舍入误差上限约 0.5%
+    // 真实数据一致性：KPI 卡与 /dashboard/summary 同口径
+    const todayBytes = Number(today.value) * UNIT_TO_BYTES[today.unit];
+    expect(Math.abs(todayBytes - summary.lastDataBytes)).toBeLessThanOrEqual(
+      Math.max(1, summary.lastDataBytes * 0.006)
+    );
+    const totalBytes = Number(total.value) * UNIT_TO_BYTES[total.unit];
     expect(Math.abs(totalBytes - summary.totalDataBytes)).toBeLessThanOrEqual(
       Math.max(1, summary.totalDataBytes * 0.006)
     );
 
-    const yesterdayBytes = Number(yesterday.numeric) * UNIT_TO_BYTES[yesterday.unit];
-    expect(Math.abs(yesterdayBytes - summary.lastDataBytes)).toBeLessThanOrEqual(
-      Math.max(1, summary.lastDataBytes * 0.006)
+    const ratioDone = (summary.ratios ?? []).reduce(
+      (sum: number, ratio: { done?: number }) => sum + Number(ratio.done ?? 0),
+      0
     );
-
-    const durationSecs = Number(duration.numeric) * DURATION_TO_SECS[duration.unit];
-    expect(Math.abs(durationSecs - summary.totalTimeSecs)).toBeLessThanOrEqual(
-      Math.max(60, summary.totalTimeSecs * 0.05)
+    const ratioTotal = (summary.ratios ?? []).reduce(
+      (sum: number, ratio: { total?: number }) => sum + Number(ratio.total ?? 0),
+      0
     );
-    expect(duration.unit).toBe(
-      summary.totalTimeSecs >= 86400 ? '天' : summary.totalTimeSecs >= 3600 ? '小时' : '分钟'
-    );
+    expect(done.value).toBe(`${ratioDone}/${ratioTotal}`);
+    if (ratioTotal > 0) {
+      await expect(page.locator('.health-value')).toHaveText(
+        ((ratioDone / ratioTotal) * 100).toFixed(1)
+      );
+    }
 
     fs.mkdirSync(artifactDir, { recursive: true });
     await page
-      .locator('.stats-row')
-      .screenshot({ path: path.join(artifactDir, 'dashboard-stat-units-live.png') });
+      .locator('.kpi-row')
+      .screenshot({ path: path.join(artifactDir, 'dashboard-kpi-tiles-live.png') });
 
-    // 真实环境数据量小，再注入跨档数值覆盖 MiB/TiB/PiB、边界进位和空数据
+    // 注入跨档数值覆盖 MiB/TiB/PiB、边界进位和空数据
     const mockSummary = { ...summary };
     await page.route('**/api/v1/dashboard/summary', route => route.fulfill({ json: mockSummary }));
 
     const cases = [
       {
         name: 'MiB range',
-        input: { lastDataBytes: 289_910_538, totalDataBytes: 289_910_538, totalTimeSecs: 158 },
-        expected: {
-          yesterday: ['276', 'MiB'],
-          total: ['276', 'MiB'],
-          duration: ['3', '分钟'],
-        },
+        input: { lastDataBytes: 289_910_538, totalDataBytes: 289_910_538 },
+        expected: { today: ['276', 'MiB'], total: ['276', 'MiB'] },
       },
       {
-        // 复刻生产现场：昨日 224 GiB 与累计 226 TiB，两者数字相近但量级差 1024 倍
+        // 复刻生产现场：当日 224 GiB 与累计 226 TiB，两者数字相近但量级差 1024 倍
         name: 'GiB vs TiB (production-like)',
-        input: {
-          lastDataBytes: 240_518_168_576,
-          totalDataBytes: 248_489_627_877_376,
-          totalTimeSecs: 158,
-        },
-        expected: {
-          yesterday: ['224', 'GiB'],
-          total: ['226', 'TiB'],
-          duration: ['3', '分钟'],
-        },
+        input: { lastDataBytes: 240_518_168_576, totalDataBytes: 248_489_627_877_376 },
+        expected: { today: ['224', 'GiB'], total: ['226', 'TiB'] },
       },
       {
         name: 'boundary promote + PiB',
-        input: {
-          lastDataBytes: 1_099_124_222_878,
-          totalDataBytes: 2_684_354_560_000_000,
-          totalTimeSecs: 90_000,
-        },
-        expected: {
-          yesterday: ['1.00', 'TiB'],
-          total: ['2.38', 'PiB'],
-          duration: ['1.0', '天'],
-        },
+        input: { lastDataBytes: 1_099_124_222_878, totalDataBytes: 2_684_354_560_000_000 },
+        expected: { today: ['1.00', 'TiB'], total: ['2.38', 'PiB'] },
       },
       {
         name: 'empty data',
-        input: { lastDataBytes: 0, totalDataBytes: 0, totalTimeSecs: 0 },
-        expected: {
-          yesterday: ['0', 'B'],
-          total: ['0', 'B'],
-          duration: ['0', '分钟'],
-        },
+        input: { lastDataBytes: 0, totalDataBytes: 0 },
+        expected: { today: ['0', 'B'], total: ['0', 'B'] },
       },
     ] as const;
 
-    const mockedCards: Record<string, Record<string, StatCardReading>> = {};
+    const mockedTiles: Record<string, Record<string, StatTileReading>> = {};
     for (const item of cases) {
       Object.assign(mockSummary, item.input);
       const mockedResponse = page.waitForResponse(
@@ -289,26 +285,35 @@ test.describe('dashboard charts', () => {
       );
       await page.reload();
       await mockedResponse;
-      await expect(page.locator('.stat-card')).toHaveCount(6);
+      await expect(page.locator('.stat-tile')).toHaveCount(4);
+
+      // 等待 mock 值真正渲染后再读取，避免读到上一次渲染的过渡帧
+      const todayTile = page
+        .locator('.stat-tile')
+        .filter({ has: page.locator('.stat-label', { hasText: '今日数据量' }) });
+      const totalTile = page
+        .locator('.stat-tile')
+        .filter({ has: page.locator('.stat-label', { hasText: '累计数据量' }) });
+      await expect(todayTile.locator('.stat-unit')).toHaveText(item.expected.today[1]);
+      await expect(totalTile.locator('.stat-unit')).toHaveText(item.expected.total[1]);
 
       const rendered = {
-        yesterday: await readStatCard(page, '昨日数据采集'),
-        total: await readStatCard(page, '累计数据采集'),
-        duration: await readStatCard(page, '最近采集总耗时'),
+        today: await readStatTile(page, '今日数据量'),
+        total: await readStatTile(page, '累计数据量'),
       };
-      for (const key of ['yesterday', 'total', 'duration'] as const) {
+      for (const key of ['today', 'total'] as const) {
         expect(
-          [rendered[key].numeric, rendered[key].unit],
+          [rendered[key].value, rendered[key].unit],
           `${item.name}: ${key} should render as expected`
         ).toEqual([...item.expected[key]]);
       }
-      mockedCards[item.name] = rendered;
+      mockedTiles[item.name] = rendered;
 
       if (item.name === 'GiB vs TiB (production-like)') {
         fs.mkdirSync(artifactDir, { recursive: true });
         await page
-          .locator('.stats-row')
-          .screenshot({ path: path.join(artifactDir, 'dashboard-stat-units.png') });
+          .locator('.kpi-row')
+          .screenshot({ path: path.join(artifactDir, 'dashboard-kpi-tiles.png') });
       }
     }
 
@@ -316,18 +321,21 @@ test.describe('dashboard charts', () => {
       generatedAt: new Date().toISOString(),
       baseURL: page.url(),
       summary,
-      cards: { yesterday, total, duration },
-      mockedCards,
+      tiles: { today, done, avg, total },
+      mockedTiles,
     };
     fs.mkdirSync(artifactDir, { recursive: true });
     fs.writeFileSync(
-      path.join(artifactDir, 'dashboard-stat-units.json'),
+      path.join(artifactDir, 'dashboard-kpi-tiles.json'),
       JSON.stringify(artifact, null, 2)
     );
   });
 
   test('renders in light theme', async ({ browser }) => {
-    const context = await browser.newContext({ storageState: undefined });
+    const context = await browser.newContext({
+      storageState: undefined,
+      viewport: { width: 1440, height: 900 },
+    });
     const page = await context.newPage();
     const readErrors = collectConsoleErrors(page);
 
@@ -337,11 +345,13 @@ test.describe('dashboard charts', () => {
     await page
       .locator('input[autocomplete="current-password"]')
       .fill(process.env.E2E_PASSWORD || 'admin123');
-    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByRole('button', { name: '登录' }).click();
     await expect(page).toHaveURL('/');
 
     for (const tab of TABS) {
       await page.getByRole('tab', { name: tab.label }).click();
+      await expect(page.locator('.v-window-item--active')).toHaveCount(1);
+      await page.waitForTimeout(350);
       await assertChartsSettled(page);
     }
     expect(readErrors()).toEqual([]);

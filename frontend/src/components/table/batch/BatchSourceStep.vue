@@ -39,6 +39,18 @@
           :required="true"
           no-data-text="暂无可用的采集源"
         />
+        <div v-if="!loadingSources && sourceSystemList.length === 0" class="stage-empty-action">
+          <span>还没有可用的采集源</span>
+          <v-btn
+            size="small"
+            variant="text"
+            color="primary"
+            to="/source?action=create"
+            append-icon="mdi-arrow-right"
+          >
+            去创建
+          </v-btn>
+        </div>
       </section>
 
       <section class="stage-panel">
@@ -90,6 +102,18 @@
           prepend-inner-icon="mdi-database-arrow-right-outline"
           no-data-text="暂无启用的目标端"
         />
+        <div v-if="!loadingTargets && targets.length === 0" class="stage-empty-action">
+          <span>还没有启用的目标端</span>
+          <v-btn
+            size="small"
+            variant="text"
+            color="primary"
+            to="/target?action=create"
+            append-icon="mdi-arrow-right"
+          >
+            去创建
+          </v-btn>
+        </div>
       </section>
 
       <section class="stage-panel">
@@ -139,4 +163,15 @@
 
 <style lang="scss" scoped>
   @use './batch-step-shared' as *;
+
+  .stage-empty-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 2px 4px;
+    font-size: 12px;
+    color: var(--ds-text-3);
+  }
 </style>

@@ -5,7 +5,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test('should login with default account', async ({ page }) => {
   await login(page);
-  await expect(page.getByText('统一采集管理系统')).toBeVisible();
+  await expect(page.getByRole('tab', { name: '经营总览' })).toBeVisible();
 });
 
 test('should reject invalid credentials', async ({ page }) => {

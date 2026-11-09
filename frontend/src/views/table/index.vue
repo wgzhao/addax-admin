@@ -3,7 +3,7 @@
     class="table-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': dialogVisible || deleteDialogVisible }"
   >
-    <PageHeader title="采集表配置" subtitle="统一维护采集表、批量采集与结构更新。">
+    <PageHeader title="采集表管理" subtitle="统一维护采集表、批量采集与结构更新。">
       <v-menu offset-y :close-on-content-click="false">
         <template #activator="{ props }">
           <v-btn variant="tonal" prepend-icon="mdi-tune" v-bind="props">显示设置</v-btn>
@@ -278,16 +278,7 @@
               </div>
             </template>
             <template #item.status="{ item }">
-              <v-chip
-                size="small"
-                :color="getStatusColor(item.status)"
-                variant="tonal"
-                class="ds-status-code"
-                :class="`ds-status-code--${item.status}`"
-                :title="`${item.status} · ${statusLabel(item.status)}`"
-              >
-                <span class="ds-status-code__glyph">{{ item.status }}</span>
-              </v-chip>
+              <StatusChip :status="item.status" />
               <!-- Kill icon for running tasks: move to right, match E icon style -->
               <template v-if="item.status === 'R'">
                 <v-tooltip location="top">
@@ -475,10 +466,12 @@
   import EmptyState from '@/components/EmptyState.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
+  import StatusChip from '@/components/common/StatusChip.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
   import { buildCsv, downloadCsv } from '@/utils/csv';
   import { TABLE_STATUS_OPTIONS } from '@/utils';
+  import { statusMeta } from '@/utils/chart-colors';
   import tableService from '@/service/table-service';
   import taskService from '@/service/task-service';
   import sourceService from '@/service/source-service';
@@ -530,28 +523,16 @@
 
   // Why: single letters carry the meaning, so muted greys must still meet a
   // readable contrast in both themes; hue alone no longer disambiguates rows
-  const STATUS_COLOR: Record<string, string> = {
-    N: 'secondary',
-    R: 'info',
-    Y: 'success',
-    E: 'error',
-    X: 'grey',
-    W: 'warning',
-    U: 'blue-grey-darken-1',
-  };
-
-  function getStatusColor(status: string) {
-    return STATUS_COLOR[status] || 'grey';
-  }
+  const getStatusColor = (status: string) => statusMeta(status).token;
 
   const STATUS_LABEL: Record<string, string> = {
     N: '未采集',
     Y: '已采集',
-    X: '不采集',
+    X: '已排除',
     W: '等待采集',
-    E: '采集错误',
+    E: '采集失败',
     R: '采集中',
-    U: '待更新',
+    U: '待同步',
   };
 
   const statusLabel = (status: string) => STATUS_LABEL[status] || status || '未知';
@@ -612,7 +593,7 @@
       sortable: true,
       width: 140,
     },
-    { title: '状态', key: 'status', align: 'start', sortable: true, width: 92 },
+    { title: '状态', key: 'status', align: 'start', sortable: true, width: 112 },
     { title: '耗时(s)', key: 'duration', align: 'end', sortable: true, width: 96 },
     {
       title: '完成时间',
@@ -793,7 +774,7 @@
           result: '',
           extra: { tid: item.id },
         });
-        notify('采集任务已提交，可在任务中心查看进展', 'primary');
+        notify('采集任务已提交，可在采集任务页查看进展', 'primary');
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         notify('采集任务提交失败: ' + msg, 'error');
@@ -808,7 +789,7 @@
       taskService
         .executeTasksBatch(tids)
         .then(() => {
-          notify('批量采集任务已提交，可在任务中心查看进展', 'primary');
+          notify('批量采集任务已提交，可在采集任务页查看进展', 'primary');
         })
         .catch(err => {
           const msg = err instanceof Error ? err.message : String(err);
@@ -1174,7 +1155,7 @@
   "meta": {
     "title": "采集表管理",
     "icon": "mdi-table",
-    "requiresAuth": false,
+    "requiresAuth": true,
     "navGroup": "collect",
     "navOrder": 10
   }

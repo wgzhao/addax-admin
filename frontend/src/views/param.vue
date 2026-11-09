@@ -257,7 +257,7 @@
   "meta": {
     "title": "参数配置",
     "icon": "mdi-settings",
-    "requiresAuth": false,
+    "requiresAuth": true,
     "navHidden": true
   }
 }

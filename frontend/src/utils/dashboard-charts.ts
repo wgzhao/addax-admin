@@ -1,5 +1,6 @@
 import { defineAsyncComponent } from 'vue';
 import type { Component } from 'vue';
+import { APP_FONT_FAMILY } from '@/utils/font';
 
 export type ChartRegistrar = (chart: typeof import('chart.js')) => void;
 
@@ -17,6 +18,7 @@ export function loadChartComponent(
       promise = (async () => {
         const module = await import('vue-chartjs');
         const chart = await import('chart.js');
+        chart.Chart.defaults.font.family = APP_FONT_FAMILY;
         register(chart);
         return module[moduleName] as Component;
       })();

@@ -384,7 +384,7 @@
   "meta": {
     "title": "监控与告警",
     "icon": "mdi-monitor-dashboard",
-    "requiresAuth": false,
+    "requiresAuth": true,
     "navGroup": "collect",
     "navOrder": 30
   }

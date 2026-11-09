@@ -1,6 +1,6 @@
 <template>
   <div class="page-shell">
-    <PageHeader title="采集任务管理" subtitle="查看排队中、运行中与最近完成的采集任务。" />
+    <PageHeader title="采集任务" subtitle="查看排队中与运行中的采集任务；完成后可在采集表详情查看结果。" />
     <v-card flat class="ds-card task-card ds-table-scroll">
       <v-card-text>
         <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="comfortable">
@@ -24,8 +24,27 @@
             <span>{{ item.node_name || '-' }}</span>
           </template>
           <template #item.action="{ item }">
-            <v-btn small color="primary" @click="$emit('executeTask', item.id)">采集</v-btn>
-            <!-- 可扩展更多任务相关操作按钮 -->
+            <div class="task-actions">
+              <v-btn
+                size="small"
+                color="primary"
+                :loading="executing.includes(Number(item.id))"
+                @click="executeTask(item)"
+              >
+                采集
+              </v-btn>
+              <v-btn size="small" variant="text" :to="`/table/detail/${item.id}`">详情</v-btn>
+            </div>
+          </template>
+          <template #no-data>
+            <div class="task-empty">
+              <v-icon size="22" color="success">mdi-check-circle-outline</v-icon>
+              <div>
+                <div class="task-empty-title">当前没有排队或运行中的任务</div>
+                <div class="task-empty-sub">任务提交后会实时出现在这里</div>
+              </div>
+              <v-btn size="small" variant="text" to="/table">查看采集表</v-btn>
+            </div>
           </template>
         </v-data-table>
       </v-card-text>
@@ -38,12 +57,13 @@
   import taskService from '@/service/task-service';
   import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
   import type { DataTableHeader } from 'vuetify';
+  import { notify } from '@/stores/notifier';
 
   // 如果需要外部控制间隔，可以使用 prop；页面通常不传，默认 3 秒
   const props = defineProps<{ refreshInterval?: number }>();
 
   const headers: DataTableHeader[] = [
-    { title: '任务ID', key: 'id', align: 'center', width: '10%' },
+    { title: '采集表ID', key: 'id', align: 'center', width: '10%' },
     { title: '表名', key: 'tbl', align: 'center', width: '18%' },
     { title: '状态', key: 'status', align: 'center', width: '10%' },
     { title: '执行节点', key: 'node_name', align: 'center', width: '20%' },
@@ -63,6 +83,22 @@
   };
 
   const taskStatus = ref<TaskItem[]>([]);
+  const executing = ref<number[]>([]);
+
+  const executeTask = async (item: TaskItem) => {
+    const tid = Number(item.id);
+    if (!Number.isFinite(tid) || tid <= 0) return;
+    executing.value = [...executing.value, tid];
+    try {
+      await taskService.executeTask(tid);
+      notify('采集任务已提交，可在本页或采集表详情查看进展', 'success');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      notify('采集任务提交失败：' + msg, 'error');
+    } finally {
+      executing.value = executing.value.filter(id => id !== tid);
+    }
+  };
 
   let refreshTimer: any = null;
   let progressAnimator: any = null;
@@ -207,13 +243,38 @@
   .task-card {
     --ds-table-max: calc(100vh - 250px);
   }
+
+  .task-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .task-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 12px;
+  }
+
+  .task-empty-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgb(var(--v-theme-on-surface));
+  }
+
+  .task-empty-sub {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--ds-text-3);
+  }
 </style>
 
 <route lang="json">
 {
   "meta": {
-    "title": "采集任务管理",
-    "navTitle": "采集任务查看",
+    "title": "采集任务",
     "icon": "mdi-calendar-clock",
     "requiresAuth": true,
     "navGroup": "collect",

@@ -7,13 +7,13 @@ export interface StatusOption {
 
 // 采集表状态选项
 export const TABLE_STATUS_OPTIONS: StatusOption[] = [
-  { value: 'N', label: 'N - 未采集', text: 'N - 未采集' },
-  { value: 'Y', label: 'Y - 已采集', text: 'Y - 已采集' },
-  { value: 'X', label: 'X - 不采集', text: 'X - 不采集' },
-  { value: 'W', label: 'W - 等待采集', text: 'W - 等待采集' },
-  { value: 'E', label: 'E - 采集错误', text: 'E - 采集错误' },
-  { value: 'R', label: 'R - 正在采集', text: 'R - 正在采集' },
-  { value: 'U', label: 'U - 等待更新', text: 'U - 等待更新' },
+  { value: 'N', label: '未采集', text: '未采集' },
+  { value: 'Y', label: '已采集', text: '已采集' },
+  { value: 'X', label: '已排除', text: '已排除' },
+  { value: 'W', label: '等待采集', text: '等待采集' },
+  { value: 'E', label: '采集失败', text: '采集失败' },
+  { value: 'R', label: '采集中', text: '采集中' },
+  { value: 'U', label: '待同步', text: '待同步' },
 ];
 
 // 采集模式选项

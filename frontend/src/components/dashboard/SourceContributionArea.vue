@@ -1,60 +1,130 @@
 <template>
   <DashboardChartCard
     title="各采集源采集量贡献"
-    subtitle="近 30 天 Top8 + 其他（GiB）"
+    subtitle="近 30 天 · Top 8 + 其他"
     :height="340"
     :state="state"
     :error="error"
   >
-    <DashboardLineChart
-      :labels="shortLabels"
-      :series="series"
-      :stacked="true"
-      y-title="采集量 (GiB)"
-      :value-formatter="fmtGb"
-    />
+    <div v-if="items.length" class="contribution-list">
+      <div v-for="(item, index) in items" :key="item.code" class="contribution-row">
+        <div class="contribution-meta">
+          <span class="contribution-name" :title="item.name">{{ item.name }}</span>
+          <span class="contribution-value">{{ format(item.gib) }}</span>
+        </div>
+        <div class="contribution-track">
+          <span
+            class="contribution-bar"
+            :class="{
+              'contribution-bar--top': index === 0,
+              'contribution-bar--other': item.code === 'OTHER',
+            }"
+            :style="{ width: `${widthFor(item.gib)}%` }"
+          />
+        </div>
+      </div>
+    </div>
+    <div v-else class="contribution-empty">暂无采集量数据</div>
   </DashboardChartCard>
 </template>
 
 <script setup lang="ts">
   import { computed } from 'vue';
   import DashboardChartCard from './charts/DashboardChartCard.vue';
-  import DashboardLineChart from './charts/DashboardLineChart.vue';
-  import type { ChartSeries } from '@/types/dashboard';
   import { useChartData } from '@/composables/useChartData';
-  import { useChartTheme } from '@/composables/useChartTheme';
-  import { pivotSeries } from '@/composables/useSeriesPivot';
   import { dashboardService } from '@/service/dashboard-service';
 
-  const { raw, state, error } = useChartData(() => dashboardService.fetchSourceContribution30d());
-  const { palette } = useChartTheme();
+  const { raw, state, error } = useChartData(() =>
+    dashboardService.fetchSourceContribution30d()
+  );
 
-  // API 已按总量融合为 Top8 + '其他'（code 为 OTHER 时展示名称为“其他”）
-  const nameByCode = computed(() => {
-    const map: Record<string, string> = {};
+  const items = computed(() => {
+    const map = new Map<string, { code: string; name: string; gib: number }>();
     for (const row of raw.value ?? []) {
-      if (row.code && row.name) map[row.code] = row.name;
+      const code = row.code || row.name || 'UNKNOWN';
+      const current = map.get(code) ?? { code, name: row.name || row.code || '未知', gib: 0 };
+      current.gib += Number(row.gib ?? 0);
+      map.set(code, current);
     }
-    return map;
+    const sorted = [...map.values()].sort((a, b) => b.gib - a.gib);
+    const top = sorted.slice(0, 8);
+    const rest = sorted.slice(8).reduce((total, item) => total + item.gib, 0);
+    return rest > 0 ? [...top, { code: 'OTHER', name: '其他', gib: rest }] : top;
   });
 
-  const pivoted = computed(() =>
-    pivotSeries((raw.value ?? []) as unknown as Record<string, unknown>[], {
-      labelField: 'biz_date',
-      seriesField: 'code',
-      valueField: 'gib',
-      seriesLabels: nameByCode.value,
-    })
-  );
+  const max = computed(() => Math.max(...items.value.map(item => item.gib), 1));
+  const widthFor = (value: number) => Math.max((value / max.value) * 100, value > 0 ? 1.5 : 0);
 
-  const series = computed<ChartSeries[]>(() =>
-    pivoted.value.series.map((s, index) => ({
-      ...s,
-      fill: true,
-      color: palette.value[index % palette.value.length],
-    }))
-  );
-
-  const shortLabels = computed(() => pivoted.value.labels.map(d => d.slice(5)));
-  const fmtGb = (value: number) => `${value} GiB`;
+  const format = (value: number) => {
+    if (value >= 1024) return `${(value / 1024).toFixed(2)} TiB`;
+    return `${value.toFixed(2)} GiB`;
+  };
 </script>
+
+<style scoped>
+  .contribution-list {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    padding: 6px 2px;
+  }
+
+  .contribution-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .contribution-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .contribution-name {
+    color: var(--ds-text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .contribution-value {
+    color: rgb(var(--v-theme-on-surface));
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .contribution-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(var(--v-theme-on-surface), 0.06);
+    overflow: hidden;
+  }
+
+  .contribution-bar {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: rgba(var(--v-theme-primary), 0.62);
+  }
+
+  .contribution-bar--top {
+    background: rgb(var(--v-theme-primary));
+  }
+
+  .contribution-bar--other {
+    background: rgba(var(--v-theme-on-surface), 0.22);
+  }
+
+  .contribution-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 13px;
+    color: var(--ds-text-3);
+  }
+</style>

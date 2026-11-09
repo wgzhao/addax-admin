@@ -7,6 +7,7 @@ import VueRouter from 'unplugin-vue-router/vite'
 import Layouts from "vite-plugin-vue-layouts-next";
 import { loadEnv } from "vite";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 
 // Utilities
 import { defineConfig } from "vite";
@@ -19,6 +20,19 @@ export default defineConfig(({ command, mode }) => {
   const pkg = JSON.parse(
     readFileSync(new URL("./package.json", import.meta.url), "utf-8")
   );
+  const gitSha = (() => {
+    try {
+      return execSync("git rev-parse --short HEAD", {
+        cwd: fileURLToPath(new URL(".", import.meta.url)),
+        stdio: ["ignore", "pipe", "ignore"],
+      })
+        .toString()
+        .trim();
+    } catch {
+      return "dev";
+    }
+  })();
+  const buildTime = new Date().toISOString();
   return {
     plugins: [
       VueRouter({
@@ -26,7 +40,13 @@ export default defineConfig(({ command, mode }) => {
           {
             src: "src/views",
             path: "",
-            exclude: (exclude) => exclude.concat(['**/components/**', '**/login.vue','**/change-password.vue'])
+            exclude: (exclude) => exclude.concat([
+              '**/components/**',
+              '**/login.vue',
+              '**/change-password.vue',
+              '**/not-found.vue',
+              '**/forbidden.vue',
+            ])
           }
         ],
         dts: "src/types/vue-router.d.ts",
@@ -74,6 +94,13 @@ export default defineConfig(({ command, mode }) => {
     define: {
       "process.env": {},
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version || "dev"),
+      "import.meta.env.VITE_APP_BUILD_SHA": JSON.stringify(
+        env.VITE_APP_BUILD_SHA || gitSha
+      ),
+      "import.meta.env.VITE_APP_BUILD_TIME": JSON.stringify(
+        env.VITE_APP_BUILD_TIME || buildTime
+      ),
+      "import.meta.env.VITE_APP_ENV": JSON.stringify(env.VITE_APP_ENV || mode),
     },
     resolve: {
       alias: {
