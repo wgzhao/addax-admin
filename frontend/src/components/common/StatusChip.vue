@@ -5,7 +5,7 @@
     variant="tonal"
     label
     class="status-chip"
-    :title="`${status} · ${meta.label}`"
+    :title="meta.label"
   >
     <v-icon v-if="showIcon" start size="14">{{ meta.icon }}</v-icon>
     <span v-if="showLabel">{{ meta.label }}</span>
