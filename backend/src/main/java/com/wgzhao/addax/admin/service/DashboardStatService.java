@@ -92,6 +92,7 @@ public class DashboardStatService
             ranked as (
               select distinct on (tid)
                      tid,
+                     execution_id,
                      fail_cnt,
                      start_at as last_fail_at,
                      kind as last_kind,
