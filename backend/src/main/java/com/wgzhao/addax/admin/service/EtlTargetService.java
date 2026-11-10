@@ -1,30 +1,23 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
-import com.wgzhao.addax.admin.dto.DbConnectDto;
-import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTarget;
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
-import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
-import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.service.target.TargetAdapter;
+import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.net.MalformedURLException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 
-import static com.wgzhao.addax.admin.common.Constants.DEFAULT_TARGET_TYPE;
 import static com.wgzhao.addax.admin.common.Constants.HDFS_TARGET_TYPES;
-import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
+import static com.wgzhao.addax.admin.common.Constants.RDBMS_TARGET_TYPES;
 
 @Service
 @RequiredArgsConstructor
@@ -32,9 +25,8 @@ import static com.wgzhao.addax.admin.utils.DbUtil.getDbType;
 public class EtlTargetService
 {
     private final EtlTargetRepo etlTargetRepo;
-    private final TargetService targetService;
-    private final ObjectMapper objectMapper;
-    private final RdbmsWriterPlugins rdbmsWriterPlugins;
+    private final EtlTableRepo etlTableRepo;
+    private final TargetAdapterRegistry targetAdapterRegistry;
 
     public List<EtlTarget> listAll(Boolean enabledOnly)
     {
@@ -89,6 +81,10 @@ public class EtlTargetService
     public void delete(Long id)
     {
         EtlTarget existed = getById(id);
+        if (etlTableRepo.countByTargetId(id) > 0)
+        {
+            throw new ApiException(400, "Target is in use by collection tables and cannot be deleted");
+        }
         try {
             etlTargetRepo.delete(existed);
         }
@@ -105,29 +101,23 @@ public class EtlTargetService
 
     public void testConnect(EtlTarget target)
     {
-        validate(target, false);
         doTestConnect(target);
     }
 
     private void doTestConnect(EtlTarget target)
     {
-        String writerKey = target.getWriterTemplateKey() == null ? "" : target.getWriterTemplateKey().trim().toUpperCase(Locale.ROOT);
-        if ("WH".equals(writerKey)) {
-            HiveConnectDto hiveConnectDto = parseHiveConnect(target.getConnectConfig());
-            try {
-                Connection connection = targetService.getHiveDataSourceWithConfig(hiveConnectDto).getConnection();
-                connection.close();
-            }
-            catch (SQLException | MalformedURLException e) {
-                throw new ApiException(400, "Failed to connect target: " + e.getMessage());
-            }
-            return;
+        if (target == null)
+        {
+            throw new ApiException(400, "Target payload is empty");
         }
-
-        DbConnectDto dbConnectDto = parseDbConnect(target.getConnectConfig());
-        validateRdbmsTarget(target);
-        if (!DbUtil.testConnection(dbConnectDto.url(), dbConnectDto.username(), dbConnectDto.password())) {
-            throw new ApiException(400, "Failed to connect target");
+        TargetAdapter adapter = resolveAdapter(target);
+        try
+        {
+            adapter.testConnection(target);
+        }
+        catch (IllegalStateException e)
+        {
+            throw new ApiException(400, e.getMessage());
         }
     }
 
@@ -143,114 +133,70 @@ public class EtlTargetService
             throw new ApiException(400, "Target name is required");
         }
         if (target.getTargetType() == null || target.getTargetType().isBlank()) {
-            target.setTargetType(DEFAULT_TARGET_TYPE);
+            throw new ApiException(400, "Target type is required");
         }
         target.setTargetType(normalizeType(target.getTargetType()));
+        target.setWriterTemplateKey(inferWriterKey(target));
         if (target.getEnabled() == null) {
             target.setEnabled(true);
         }
         if (target.getIsDefault() == null) {
             target.setIsDefault(false);
         }
-        validateRdbmsTarget(target);
+        TargetAdapter adapter = resolveAdapter(target);
+        try
+        {
+            adapter.validateForSave(target);
+        }
+        catch (IllegalStateException e)
+        {
+            throw new ApiException(400, e.getMessage());
+        }
         if (checkCodeConflict && etlTargetRepo.findByCode(target.getCode()).isPresent()) {
             throw new ApiException(409, "Target code already exists");
         }
     }
 
-    /**
-     * Reject dialects we cannot serve end to end (DDL + writer plugin) while the target is being edited.
-     * Otherwise the misconfiguration only shows up when a collection job is refreshed or executed.
-     */
-    private void validateRdbmsTarget(EtlTarget target)
+    private TargetAdapter resolveAdapter(EtlTarget target)
     {
-        String writerKey = target.getWriterTemplateKey() == null ? ""
-            : target.getWriterTemplateKey().trim().toUpperCase(Locale.ROOT);
-        if ("WH".equals(writerKey) || HDFS_TARGET_TYPES.contains(normalizeType(target.getTargetType()))) {
-            return;
+        try
+        {
+            return targetAdapterRegistry.resolveForTarget(target);
         }
-        DbType dialect = resolveTargetDialect(target);
-        if (dialect == null || !rdbmsWriterPlugins.isSupported(dialect)) {
-            throw new ApiException(400, "Unsupported target dialect '" + (dialect == null ? target.getTargetType() : dialect)
-                + "'; supported RDBMS dialects: " + rdbmsWriterPlugins.supportedDialectsText()
-                + " (plus " + String.join(", ", HDFS_TARGET_TYPES) + " for Hive/HDFS)");
+        catch (IllegalStateException e)
+        {
+            throw new ApiException(400, e.getMessage());
         }
-        rdbmsWriterPlugins.requireInstalled(dialect);
     }
 
     /**
-     * The JDBC url is authoritative for the dialect because it decides the driver and the writer plugin;
-     * target_type is only a label that may lag behind a connection change.
+     * Keep API clients that only send target_type working: the writer key is routing metadata and can
+     * be derived from the family. An explicit key always wins.
      */
-    private DbType resolveTargetDialect(EtlTarget target)
+    private String inferWriterKey(EtlTarget target)
     {
-        String config = target.getConnectConfig();
-        if (config != null && !config.isBlank()) {
-            try {
-                JsonNode node = objectMapper.readTree(config);
-                JsonNode url = node.get("url");
-                if (url != null && !url.isNull() && !url.asText().isBlank()) {
-                    return getDbType(url.asText());
-                }
-            }
-            catch (Exception e) {
-                log.debug("Failed to resolve target dialect from connectConfig: {}", e.getMessage());
-            }
+        String key = target.getWriterTemplateKey();
+        if (key != null && !key.isBlank())
+        {
+            return key.trim();
         }
-        return DbType.fromValue(target.getTargetType()).orElse(null);
+        String type = normalizeType(target.getTargetType());
+        if (HDFS_TARGET_TYPES.contains(type))
+        {
+            return "wH";
+        }
+        if (RDBMS_TARGET_TYPES.contains(type) || DbType.fromValue(type).isPresent())
+        {
+            return "wR";
+        }
+        return key;
     }
 
     private String normalizeType(String targetType)
     {
         if (targetType == null || targetType.isBlank()) {
-            return DEFAULT_TARGET_TYPE;
+            return "";
         }
         return targetType.trim().toUpperCase(Locale.ROOT);
-    }
-
-    private HiveConnectDto parseHiveConnect(String config)
-    {
-        JsonNode node = parseConfigNode(config);
-        return new HiveConnectDto(
-            getText(node, "url"),
-            getText(node, "username"),
-            getText(node, "password"),
-            getText(node, "driverClassName"),
-            getText(node, "driverPath")
-        );
-    }
-
-    private DbConnectDto parseDbConnect(String config)
-    {
-        JsonNode node = parseConfigNode(config);
-        DbConnectDto dto = new DbConnectDto(
-            getText(node, "url"),
-            getText(node, "username"),
-            getText(node, "password"),
-            null
-        );
-        if (dto.url() == null || dto.url().isBlank()) {
-            throw new ApiException(400, "connectConfig.url is required");
-        }
-        return dto;
-    }
-
-    private JsonNode parseConfigNode(String config)
-    {
-        if (config == null || config.isBlank()) {
-            throw new ApiException(400, "connectConfig is required");
-        }
-        try {
-            return objectMapper.readTree(config);
-        }
-        catch (Exception e) {
-            throw new ApiException(400, "Invalid connectConfig JSON");
-        }
-    }
-
-    private String getText(JsonNode node, String key)
-    {
-        JsonNode v = node.get(key);
-        return v == null || v.isNull() ? "" : v.asText();
     }
 }

@@ -14,6 +14,7 @@ import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.utils.QueryUtil;
 import jakarta.persistence.EntityManager;
+import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -49,7 +50,7 @@ public class TableService
     private final DictService dictService;
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
-    private final TargetService targetService;
+    private final TargetAdapterRegistry targetAdapterRegistry;
     private final SystemConfigService configService;
     private final UserNotificationService userNotificationService;
     private final EntityManager entityManager;
@@ -133,7 +134,7 @@ public class TableService
                 log.info("refreshTableResources interrupted before creating/updating target table for {}", table.getId());
                 return TaskResultDto.failure("Refresh interrupted", 0);
             }
-            if (!targetService.createOrUpdateHiveTable(vwTable)) {
+            if (!targetAdapterRegistry.resolve(vwTable).createOrUpdateTable(vwTable)) {
                 setUpdateSchema(table);
                 log.warn("Failed to create or update target table for tid {}", table.getId());
                 return TaskResultDto.failure("Failed to create or update target table for tid " + table.getId(), 0);

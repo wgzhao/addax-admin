@@ -88,6 +88,11 @@ public class VwEtlTableWithSource
     @Column(name = "writer_plugin_config")
     private JsonNode writerPluginConfig;
     private String targetType;
+    /**
+     * Authoritative routing key of the table's target (`wH` = Hive/HDFS, `wR` = RDBMS). The UI uses
+     * it instead of the display-only target_type.
+     */
+    private String targetWriterTemplateKey;
     private String targetCode;
     private String targetName;
     private Boolean targetEnabled;

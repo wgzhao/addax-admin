@@ -13,6 +13,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.redis.RedisLockService;
+import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +63,7 @@ public class TaskService
     private final RedisLockService redisLockService;
     private final MasterElectionService electionService;
     private final EtlJobQueueService jobQueueService;
-    private final TargetService targetService;
+    private final TargetAdapterRegistry targetAdapterRegistry;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -395,7 +396,7 @@ public class TaskService
             // Tables without a date dimension cannot be fillbacked: multiple dates would overwrite each
             // other. Ask the target adapter instead of reading Hive columns directly, so an RDBMS target
             // is judged by its own business date column rather than by a leftover partition attribute.
-            if (!targetService.hasDateDimension(tableView)) {
+            if (!targetAdapterRegistry.resolve(tableView).hasDateDimension(tableView)) {
                 String reason = "该表没有可用的日期维度（HDFS 分区字段或 RDBMS 快照业务日期列），不支持补数";
                 riskLogService.recordRisk("Fillback", "WARN",
                     tableLabel + ": " + reason, tid);

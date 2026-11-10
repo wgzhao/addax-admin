@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.common.TargetOptions;
 import com.wgzhao.addax.admin.dto.CollectionSchemaPreview;
 import com.wgzhao.addax.admin.dto.CollectionSchemaPreviewRequest;
@@ -129,7 +130,7 @@ public class CollectionSchemaPreviewService
             }
         }
         Set<String> platformProvidedTargets = new LinkedHashSet<>();
-        if ("RDBMS".equalsIgnoreCase(adapter.getType()))
+        if (adapter.getFamily() == TargetFamily.RDBMS)
         {
             String businessDateColumn = businessDateColumn(request.targetOptions());
             if (businessDateColumn != null && !suggestedTargets.contains(key(businessDateColumn)))

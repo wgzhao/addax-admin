@@ -1,9 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import com.wgzhao.addax.admin.common.CalendarType;
-import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysDictRepo;
@@ -14,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +22,7 @@ import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 
 /**
  * 字典服务类，负责系统参数字典及字典项的相关业务操作。
- * 包含参数获取、类型转换、业务日期计算、Hive类型映射、HDFS配置等功能。
+ * 包含参数获取、类型转换、业务日期计算、Hive 类型映射等功能。
  */
 @Service
 @AllArgsConstructor
@@ -147,17 +143,6 @@ public class DictService
     {
         String res = sysItemRepo.getCalendarDateOffset(bizDate, days, CalendarType.TRADE_DAY.getDictCode());
         return res == null ? bizDate : res;
-    }
-
-    /**
-     * 获取 Hive CLI 命令
-     *
-     * @return Hive CLI 命令字符串
-     */
-    public String getHiveCli()
-    {
-        String res = getItemValue(1000, "HIVE_CLI", String.class);
-        return res == null ? "hive" : res;
     }
 
     /**
@@ -291,23 +276,6 @@ public class DictService
         return getItemValue(5000, kind, String.class);
     }
 
-    public void saveHdfsWriteTemplate(String template)
-    {
-        Optional<SysItem> itemOpt = sysItemRepo.findByDictCodeAndItemKey(1000, "HDFS_CONFIG");
-        SysItem item;
-        if (itemOpt.isPresent()) {
-            item = itemOpt.get();
-            item.setItemValue(template);
-        }
-        else {
-            item = new SysItem();
-            item.setDictCode(1000);
-            item.setItemKey("HDFS_CONFIG");
-            item.setItemValue(template);
-        }
-        sysItemRepo.save(item);
-    }
-
     /**
      * 获取字典项的值并自动类型转换
      *
@@ -352,39 +320,6 @@ public class DictService
             .collect(java.util.stream.Collectors.toMap(
                 SysItem::getItemKey,
                 SysItem::getItemValue));
-    }
-
-    /**
-     * 获取 HDFS 路径前缀
-     *
-     * @return HDFS 路径前缀
-     */
-    public String getHdfsPrefix()
-    {
-        String res = getItemValue(1000, "HDFS_PREFIX", String.class);
-        return res == null ? "/ods/" : res;
-    }
-
-    /**
-     * 获取 HDFS 压缩格式
-     *
-     * @return 压缩格式
-     */
-    public String getHdfsCompress()
-    {
-        String res = getItemValue(1000, "HDFS_COMPRESS_FORMAT", String.class);
-        return res == null ? "snappy" : res;
-    }
-
-    /**
-     * 获取 HDFS 存储格式
-     *
-     * @return 存储格式
-     */
-    public String getHdfsStorageFormat()
-    {
-        String res = getItemValue(1000, "HDFS_STORAGE_FORMAT", String.class);
-        return res == null ? "orc" : res;
     }
 
     // SysDict CRUD
@@ -517,17 +452,13 @@ public class DictService
         return sysItemRepo.existsById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
 
-    public HiveConnectDto getHiveServer2()
-    {
-        String hiveServer2 = getItemValue(1000, "HIVE_SERVER2", String.class);
-        JSONObject entries = JSONUtil.parseObj(hiveServer2);
-        String url = entries.getOrDefault("url", "jdbc:hive2://localhost:10000/default").toString();
-        String username = entries.getOrDefault("username", "hive").toString();
-        String password = entries.getOrDefault("password", "").toString();
-        String driverClassName = entries.getOrDefault("driverClassName", "org.apache.hive.jdbc.HiveDriver").toString();
-        String driverPath = entries.getOrDefault("driverPath", "").toString();
-        return new HiveConnectDto(url, username, password, driverClassName, driverPath);
-    }
+    /**
+     * Legacy Hive/HDFS globals. They are kept in {@code sys_item} for one release so a rollback still
+     * finds them, but they are no longer read or editable: the values live on each HDFS target now.
+     */
+    private static final Set<String> LEGACY_TARGET_CONFIG_KEYS = Set.of(
+        "HIVE_SERVER2", "HDFS_PREFIX", "HDFS_STORAGE_FORMAT", "HDFS_COMPRESS_FORMAT",
+        "HDFS_CONFIG", "HIVE_CLI");
 
     public Map<String, Object> getSysConfig()
     {
@@ -535,15 +466,16 @@ public class DictService
             .collect(java.util.stream.Collectors.toMap(
                 SysItem::getItemKey,
                 SysItem::getItemValue));
-        // HiveServer2 是一个 json 字符串，需要转换成对象返回
-        HiveConnectDto hiveServer2 = getHiveServer2();
-        result.put("HIVE_SERVER2", hiveServer2);
+        LEGACY_TARGET_CONFIG_KEYS.forEach(result::remove);
         return result;
     }
 
     public void saveSysConfig(Map<String, Object> payload)
     {
         for (Map.Entry<String, Object> entry : payload.entrySet()) {
+            if (LEGACY_TARGET_CONFIG_KEYS.contains(entry.getKey())) {
+                continue;
+            }
             findSystemItem(1000, entry.getKey()).ifPresent(item -> {
                 if (item.getItemValue() != entry.getValue()) {
                     item.setItemValue(entry.getValue().toString());
@@ -551,14 +483,6 @@ public class DictService
                 }
             });
         }
-    }
-
-    public Map<String, String> getHdfsDefaultFormats()
-    {
-        Map<String, String> defaults = new HashMap<>();
-        defaults.put("storageFormat", getHdfsStorageFormat());
-        defaults.put("compressFormat", getHdfsCompress());
-        return defaults;
     }
 
     // 获取三个模板

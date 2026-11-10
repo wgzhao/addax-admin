@@ -3,46 +3,40 @@ package com.wgzhao.addax.admin.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.common.TargetOptions;
-import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlJour;
+import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
-import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.ColumnMappingService;
+import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
-import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.RiskLogService;
+import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.target.HdfsConnectionManager;
+import com.wgzhao.addax.admin.service.target.HdfsTargetSettings;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Service;
 
-import javax.sql.DataSource;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -50,21 +44,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.Set;
-import java.time.format.DateTimeFormatter;
-import java.util.logging.Logger;
-
-import jakarta.annotation.PreDestroy;
 
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_PART_FORMAT;
-import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 import static com.wgzhao.addax.admin.common.HiveType.isHiveTypeCompatible;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class TargetServiceWithHiveImpl
+public class HdfsTargetAdapter
     implements TargetAdapter
 {
 
@@ -76,17 +64,38 @@ public class TargetServiceWithHiveImpl
     private final RiskLogService riskLogService;
     private final StringRedisTemplate redisTemplate;
     private final EtlTargetRepo etlTargetRepo;
-
-    private volatile DataSource hiveDataSource;
-    // keep a reference to the registered driver shim so we can deregister it if we ever reinit
-    private volatile Driver registeredHiveDriver;
-    // classloader holding the hive driver jar; must be closed when driver is re-initialized or on destroy
-    private volatile URLClassLoader hiveClassLoader;
+    private final HdfsConnectionManager connectionManager;
+    private final ObjectMapper objectMapper;
 
     @Override
     public String getType()
     {
         return "HDFS";
+    }
+
+    @Override
+    public TargetFamily getFamily()
+    {
+        return TargetFamily.HDFS;
+    }
+
+    @Override
+    public void validateForSave(EtlTarget target)
+    {
+        HdfsTargetSettings.from(target, objectMapper).validateForSave(target);
+    }
+
+    @Override
+    public void testConnection(EtlTarget target)
+    {
+        try (Connection connection = connectionManager.open(target))
+        {
+            log.info("Successfully connected to Hive target {}", target.getName());
+        }
+        catch (SQLException e)
+        {
+            throw new ApiException(400, "连接 HiveServer2 失败: " + e.getMessage());
+        }
     }
 
     @Override
@@ -105,170 +114,30 @@ public class TargetServiceWithHiveImpl
         return c.replace("'", "''");
     }
 
-    public Connection getHiveConnect()
+    private EtlTarget targetFor(VwEtlTableWithSource table)
     {
-        if (hiveDataSource == null) {
-            synchronized (this) {
-                if (hiveDataSource == null) {
-                    HiveConnectDto hiveConnectDto = configService.getHiveServer2();
-                    log.info("try to load hive jdbc driver from {}", hiveConnectDto.driverPath());
-                    try {
-                        hiveDataSource = getHiveDataSourceWithConfig(hiveConnectDto);
-                        Connection conn = hiveDataSource.getConnection();
-                        if (conn != null) {
-                            try {
-                                var md = conn.getMetaData();
-                                log.info("Obtained Hive connection: driver={} url={}", md.getDriverName(), md.getURL());
-                            }
-                            catch (Throwable ignore) {
-                                // ignore metadata logging failures
-                            }
-                        }
-                        return conn;
-                    }
-                    catch (SQLException | MalformedURLException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
+        if (table == null || table.getTargetId() == null)
+        {
+            throw new ApiException(400, "采集表未配置目标端: "
+                + (table == null ? "null" : table.getId()));
         }
-        try {
-            return hiveDataSource.getConnection();
-        }
-        catch (Exception e) {
-            throw new RuntimeException("Failed to get connection from Hive DataSource", e);
-        }
+        return etlTargetRepo.findById(table.getTargetId())
+            .orElseThrow(() -> new ApiException(400, "目标端不存在: " + table.getTargetId()));
     }
 
-    public DataSource getHiveDataSourceWithConfig(HiveConnectDto hiveConnectDto)
-        throws MalformedURLException
+    private HdfsTargetSettings settingsFor(EtlTarget target)
     {
-
-        File hiveJarFile = new File(hiveConnectDto.driverPath());
-        if (!hiveJarFile.exists() || !hiveJarFile.isFile()) {
-            String msg = String.format("Hive driver jar not found at path: %s", hiveConnectDto.driverPath());
-            log.error(msg);
-            throw new IllegalArgumentException(msg);
-        }
-
-        URL[] jarUrls = new URL[] {hiveJarFile.toURI().toURL()};
-        // close previous classloader to release JAR file handles and allow GC of old driver classes
-        if (hiveClassLoader != null) {
-            try {
-                hiveClassLoader.close();
-            }
-            catch (IOException ex) {
-                log.warn("Failed to close previous Hive URLClassLoader", ex);
-            }
-        }
-        // 创建独立的类加载器
-        URLClassLoader classLoader = new URLClassLoader(jarUrls, this.getClass().getClassLoader());
-        this.hiveClassLoader = classLoader;
-
-        // We'll set the context class loader only for the period of loading/registering the driver
-        ClassLoader previousCl = Thread.currentThread().getContextClassLoader();
-        try {
-            Thread.currentThread().setContextClassLoader(classLoader);
-
-            // Explicitly load and instantiate the driver class from the custom classloader
-            try {
-                Class<?> drvClass = Class.forName(hiveConnectDto.driverClassName(), true, classLoader);
-                Object drvObj = drvClass.getDeclaredConstructor().newInstance();
-                if (!(drvObj instanceof Driver realDriver)) {
-                    String msg = String.format("Configured driver class %s is not a java.sql.Driver", hiveConnectDto.driverClassName());
-                    log.error(msg);
-                    throw new IllegalArgumentException(msg);
-                }
-
-                // If there's already a registered shim from previous init, deregister it first
-                try {
-                    if (registeredHiveDriver != null) {
-                        try {
-                            DriverManager.deregisterDriver(registeredHiveDriver);
-                        }
-                        catch (SQLException ex) {
-                            log.warn("Failed to deregister previous hive driver shim", ex);
-                        }
-                        registeredHiveDriver = null;
-                    }
-                }
-                catch (Exception ex) {
-                    log.debug("No previous hive driver to deregister", ex);
-                }
-
-                Driver shim = new DriverShim(realDriver);
-                try {
-                    DriverManager.registerDriver(shim);
-                    registeredHiveDriver = shim;
-                    log.info("Registered Hive driver shim for {}", hiveConnectDto.driverClassName());
-                }
-                catch (SQLException se) {
-                    String msg = String.format("Failed to register hive driver shim: %s", se.getMessage());
-                    log.error(msg, se);
-                    throw new IllegalArgumentException(msg, se);
-                }
-            }
-            catch (ClassNotFoundException cnfe) {
-                String msg = String.format("Hive driver class not found: %s", hiveConnectDto.driverClassName());
-                log.error(msg, cnfe);
-                throw new IllegalArgumentException(msg, cnfe);
-            }
-            catch (ReflectiveOperationException roe) {
-                String msg = String.format("Failed to instantiate hive driver class: %s", hiveConnectDto.driverClassName());
-                log.error(msg, roe);
-                throw new IllegalArgumentException(msg, roe);
-            }
-        }
-        finally {
-            // restore previous classloader to avoid side effects for other parts of the application
-            Thread.currentThread().setContextClassLoader(previousCl);
-        }
-
-        BasicDataSource dataSource = new BasicDataSource();
-        dataSource.setUrl(hiveConnectDto.url());
-        dataSource.setUsername(hiveConnectDto.username());
-        dataSource.setPassword(hiveConnectDto.password());
-        // Do not set driverClassName here: we loaded the driver via a custom classloader
-        // and registered a DriverShim with DriverManager. Let DriverManager find the
-        // registered driver for the URL to avoid ClassNotFoundException from
-        // commons-dbcp2 trying to load the driver via the app classloader.
-        return dataSource;
+        return HdfsTargetSettings.from(target, objectMapper);
     }
 
-    /**
-     * 为指定 Hive 表添加分区。
-     * 对于非分区表（partName 为空），直接返回 true，不执行任何操作。
-     *
-     * @param taskId 采集任务 ID
-     * @param db Hive 数据库名
-     * @param table Hive 表名
-     * @param partName 分区字段名（为空表示非分区表)
-     * @param partValue 分区字段值
-     * @return 是否添加成功
-     */
-    @Override
-    public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
+    private HdfsTargetSettings settingsFor(VwEtlTableWithSource table)
     {
-        // 检查是否为非分区表
-        if (partName == null || partName.trim().isEmpty()) {
-            log.info("Table {}.{} is non-partitioned, skip partition operation", db, table);
-            return true;
-        }
+        return settingsFor(targetFor(table));
+    }
 
-        String sql = String.format("ALTER TABLE `%s`.`%s` ADD IF NOT EXISTS PARTITION (%s='%s')", db, table, partName, partValue);
-        EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
-        try (Connection conn = getHiveConnect();
-            Statement stmt = conn.createStatement()) {
-            log.info("Add partition for {}.{}: {}", db, table, sql);
-            stmt.execute(sql);
-            jourService.successJour(etlJour);
-            return true;
-        }
-        catch (SQLException e) {
-            log.error("Failed to add partition ", e);
-            jourService.failJour(etlJour, e.getMessage());
-            return false;
-        }
+    private Connection connectFor(VwEtlTableWithSource table) throws SQLException
+    {
+        return connectionManager.open(targetFor(table));
     }
 
     private List<PartitionValue> resolvePartitionValues(VwEtlTableWithSource table, LocalDate targetDate)
@@ -305,7 +174,7 @@ public class TargetServiceWithHiveImpl
         String sql = String.format("ALTER TABLE `%s`.`%s` ADD IF NOT EXISTS PARTITION (%s)",
             table.getTargetDb(), table.getTargetTable(), spec);
         EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
-        try (Connection connection = getHiveConnect();
+        try (Connection connection = connectFor(table);
             Statement statement = connection.createStatement())
         {
             statement.execute(sql);
@@ -326,7 +195,7 @@ public class TargetServiceWithHiveImpl
             .collect(java.util.stream.Collectors.joining("/"));
         String sql = String.format("SHOW PARTITIONS `%s`.`%s`", table.getTargetDb(), table.getTargetTable());
         EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
-        try (Connection connection = getHiveConnect();
+        try (Connection connection = connectFor(table);
             Statement statement = connection.createStatement();
             var rs = statement.executeQuery(sql))
         {
@@ -355,7 +224,7 @@ public class TargetServiceWithHiveImpl
         {
             throw new IllegalArgumentException("targetDb and targetTable are required");
         }
-        try (Connection connection = getHiveConnect();
+        try (Connection connection = connectFor(etlTable);
             Statement statement = connection.createStatement())
         {
             if (!hiveTableExists(statement, etlTable.getTargetDb(), etlTable.getTargetTable()))
@@ -406,27 +275,96 @@ public class TargetServiceWithHiveImpl
     @Override
     public String buildWriterJobForDate(VwEtlTableWithSource table, LocalDate targetDate)
     {
+        HdfsTargetSettings settings = settingsFor(table);
         String template = resolveWriterTemplate(table);
+        if (template == null || template.isBlank())
+        {
+            throw new ApiException(400, "未配置 wH HDFS 写入模板，请先在系统配置的作业模板中维护");
+        }
+        String storageFormat = effectiveStorageFormat(table, settings);
+        String compressFormat = effectiveCompressFormat(table, settings);
         Map<String, String> values = new HashMap<>();
-        // A row may not carry storage/compression in its bag; fall back to the global HDFS settings, which
-        // is what the table DDL already uses, so the writer and the table it writes to cannot disagree.
-        values.put("compress", StringUtils.defaultIfBlank(table.getCompressFormat(), dictService.getHdfsCompress()));
-        values.put("fileType", StringUtils.defaultIfBlank(table.getStorageFormat(), dictService.getHdfsStorageFormat()));
+        values.put("compress", compressFormat);
+        values.put("fileType", storageFormat);
         values.put("writeMode", table.getWriteMode());
         values.put("targetDb", table.getTargetDb());
         values.put("targetTable", table.getTargetTable());
+        if (StringUtils.isNotBlank(settings.defaultFS()))
+        {
+            values.put("defaultFS", settings.defaultFS());
+        }
+        if (StringUtils.isNotBlank(settings.hdfsSitePath()))
+        {
+            values.put("hdfsSitePath", settings.hdfsSitePath());
+        }
+        values.put("enableKerberos", String.valueOf(settings.enableKerberos()));
+        values.put("hadoopConfig", settings.hadoopConfig().toString());
         fillConnectionPlaceholders(values, table);
         values.put("column", resolveColumnPlaceholder(template, table));
         values.putAll(configService.getBizDateValuesForDate(targetDate));
 
-        Path hdfsPath = Paths.get(configService.getHdfsPrefix(), table.getTargetDb(), table.getTargetTable());
+        Path hdfsPath = Paths.get(settings.hdfsPrefix(), table.getTargetDb(), table.getTargetTable());
         for (PartitionValue partition : resolvePartitionValues(table, targetDate))
         {
             hdfsPath = hdfsPath.resolve(partition.name() + "=" + partition.value());
         }
         values.put("path", hdfsPath.toString());
 
-        return new org.apache.commons.text.StringSubstitutor(values).replace(template);
+        String rendered = new org.apache.commons.text.StringSubstitutor(values).replace(template);
+        return applyTargetSettings(rendered, settings, storageFormat, compressFormat, hdfsPath.toString());
+    }
+
+    private String effectiveStorageFormat(VwEtlTableWithSource table, HdfsTargetSettings settings)
+    {
+        return StringUtils.defaultIfBlank(table.getStorageFormat(), settings.storageFormat());
+    }
+
+    private String effectiveCompressFormat(VwEtlTableWithSource table, HdfsTargetSettings settings)
+    {
+        return StringUtils.defaultIfBlank(table.getCompressFormat(), settings.compressFormat());
+    }
+
+    /**
+     * The target endpoint, not a possibly customised writer template, owns the cluster identity and
+     * HDFS defaults. Overwriting them after rendering keeps an old template that still contains a
+     * hard-coded {@code defaultFS} from writing to the wrong cluster.
+     */
+    private String applyTargetSettings(String renderedWriter, HdfsTargetSettings settings,
+        String storageFormat, String compressFormat, String path)
+    {
+        try
+        {
+            JsonNode root = objectMapper.readTree(renderedWriter);
+            if (!(root instanceof ObjectNode writer))
+            {
+                return renderedWriter;
+            }
+            JsonNode parameterNode = writer.get("parameter");
+            if (!(parameterNode instanceof ObjectNode parameter))
+            {
+                log.warn("Writer template has no parameter object, target HDFS settings not applied");
+                return renderedWriter;
+            }
+            if (StringUtils.isNotBlank(settings.defaultFS()))
+            {
+                parameter.put("defaultFS", settings.defaultFS());
+            }
+            if (StringUtils.isNotBlank(settings.hdfsSitePath()))
+            {
+                parameter.put("hdfsSitePath", settings.hdfsSitePath());
+            }
+            parameter.put("haveKerberos", settings.enableKerberos());
+            parameter.set("hadoopConfig", settings.hadoopConfig());
+            parameter.put("fileType", storageFormat);
+            parameter.put("compress", compressFormat);
+            parameter.put("path", path);
+            return objectMapper.writeValueAsString(writer);
+        }
+        catch (Exception e)
+        {
+            log.warn("Failed to apply target HDFS settings to writer template: {}", e.getMessage());
+            return renderedWriter;
+        }
     }
 
     private String resolveWriterTemplate(VwEtlTableWithSource table)
@@ -489,10 +427,14 @@ public class TargetServiceWithHiveImpl
     @Override
     public boolean createOrUpdateTable(VwEtlTableWithSource etlTable)
     {
+        HdfsTargetSettings settings = settingsFor(etlTable);
+        String hdfsPrefix = settings.hdfsPrefix();
+        String storageFormat = effectiveStorageFormat(etlTable, settings);
+        String compressFormat = effectiveCompressFormat(etlTable, settings);
         List<String> hiveColumns = columnService.getHiveColumnsAsDDL(etlTable.getId());
 
         String createDbSql = MessageFormat.format("create database if not exists `{0}` location ''{1}/{0}''",
-            etlTable.getTargetDb(), dictService.getHdfsPrefix());
+            etlTable.getTargetDb(), hdfsPrefix);
 
         List<TargetOptions.HdfsPartitionBinding> bindings =
             TargetOptions.hdfsPartitionBindings(etlTable.getTargetOptions());
@@ -514,7 +456,7 @@ public class TargetServiceWithHiveImpl
                      tblproperties (''external.table.purge''=''true'', ''discover.partitions''=''true'', ''orc.compress''=''{7}'', ''snappy.compress''=''{7}'')
                     """,
                 etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
-                partitionDdl, dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+                partitionDdl, storageFormat, hdfsPrefix, compressFormat);
         }
         else {
             // 非分区表
@@ -527,12 +469,12 @@ public class TargetServiceWithHiveImpl
                      tblproperties (''external.table.purge''=''true'', ''orc.compress''=''{6}'', ''snappy.compress''=''{6}'')
                     """,
                 etlTable.getTargetDb(), etlTable.getTargetTable(), String.join(",\n", hiveColumns), etlTable.getTblComment(),
-                dictService.getHdfsStorageFormat(), dictService.getHdfsPrefix(), dictService.getHdfsCompress());
+                storageFormat, hdfsPrefix, compressFormat);
         }
 
         log.info("create table sql:\n{}", createTableSql);
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, createTableSql);
-        try (Connection conn = getHiveConnect();
+        try (Connection conn = connectFor(etlTable);
             Statement stmt = conn.createStatement()) {
             stmt.execute(createDbSql);
             // 1) Check whether table exists before creation
@@ -757,7 +699,7 @@ public class TargetServiceWithHiveImpl
         log.info("getMaxValue sql: {}", sql);
 
         String redisKey = "target:max:" + table.getId() + ":" + columnName;
-        try (Connection conn = getHiveConnect();
+        try (Connection conn = connectFor(table);
             Statement stmt = conn.createStatement();
             var rs = stmt.executeQuery(sql)) {
             Object sqlMax = null;
@@ -882,84 +824,5 @@ public class TargetServiceWithHiveImpl
 
     private record PartitionValue(String name, String value)
     {
-    }
-
-    // Driver shim to wrap a driver loaded from a custom classloader so DriverManager can use it
-    private record DriverShim(Driver driver)
-        implements Driver
-    {
-
-        @Override
-        public boolean acceptsURL(String u)
-            throws SQLException
-        {
-            return driver.acceptsURL(u);
-        }
-
-        @Override
-        public Connection connect(String u, Properties p)
-            throws SQLException
-        {
-            return driver.connect(u, p);
-        }
-
-        @Override
-        public int getMajorVersion()
-        {
-            return driver.getMajorVersion();
-        }
-
-        @Override
-        public int getMinorVersion()
-        {
-            return driver.getMinorVersion();
-        }
-
-        @Override
-        public DriverPropertyInfo[] getPropertyInfo(String u, Properties p)
-            throws SQLException
-        {
-            return driver.getPropertyInfo(u, p);
-        }
-
-        @Override
-        public boolean jdbcCompliant()
-        {
-            return driver.jdbcCompliant();
-        }
-
-        @Override
-        public Logger getParentLogger()
-            throws SQLFeatureNotSupportedException
-        {
-            try {
-                return driver.getParentLogger();
-            }
-            catch (AbstractMethodError ame) {
-                // some older drivers don't implement this
-                throw new SQLFeatureNotSupportedException(ame);
-            }
-        }
-    }
-
-    @PreDestroy
-    public void destroy()
-    {
-        if (registeredHiveDriver != null) {
-            try {
-                DriverManager.deregisterDriver(registeredHiveDriver);
-            }
-            catch (SQLException ex) {
-                log.warn("Failed to deregister Hive driver on shutdown", ex);
-            }
-        }
-        if (hiveClassLoader != null) {
-            try {
-                hiveClassLoader.close();
-            }
-            catch (IOException ex) {
-                log.warn("Failed to close Hive URLClassLoader on shutdown", ex);
-            }
-        }
     }
 }

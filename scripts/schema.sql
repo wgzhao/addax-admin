@@ -1712,6 +1712,7 @@ CREATE VIEW public.vw_etl_table_with_source AS
     s.db_type,
     s.connect_config,
     tt.target_type,
+    tt.writer_template_key AS target_writer_template_key,
     tt.code AS target_code,
     tt.name AS target_name,
     tt.enabled AS target_enabled

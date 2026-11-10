@@ -27,7 +27,7 @@ import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TargetContractService;
-import com.wgzhao.addax.admin.service.TargetService;
+import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.UserNotificationService;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
@@ -134,7 +134,7 @@ public class TaskQueueManagerV2Impl
     private final EtlJourService jourService;
     private final SystemConfigService configService;
     private final JobContentService jobContentService;
-    private final TargetService targetService;
+    private final TargetAdapterRegistry targetAdapterRegistry;
     private final TargetContractService targetContractService;
     private final EtlJobQueueService jobQueueService;
     private final JdbcTemplate jdbcTemplate;
@@ -1270,7 +1270,7 @@ public class TaskQueueManagerV2Impl
             bizDateStr = overrideBizDate.format(dtf);
         }
         try {
-            boolean prepareResult = targetService.prepareBeforeRun(taskId, tableView, executionBizDate);
+            boolean prepareResult = targetAdapterRegistry.resolve(tableView).prepareBeforeRun(taskId, tableView, executionBizDate);
             if (!prepareResult) {
                 executionService.finish(execution, false, "Target preparation failed");
                 return false;

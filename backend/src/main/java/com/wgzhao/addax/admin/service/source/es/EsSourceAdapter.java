@@ -25,7 +25,7 @@ import com.wgzhao.addax.admin.service.source.SourceField;
 import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.service.source.SourceSchema;
 import com.wgzhao.addax.admin.service.source.SourceTableHints;
-import com.wgzhao.addax.admin.service.source.TargetFamily;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.service.source.TypePurpose;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

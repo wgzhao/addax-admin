@@ -21,7 +21,7 @@ import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.source.SourceField;
 import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.service.source.SourceSchema;
-import com.wgzhao.addax.admin.service.source.TargetFamily;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.service.source.TypePurpose;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -461,8 +461,7 @@ public class ColumnService
             scale = scale == null ? 10 : scale;
         }
 
-        TargetFamily family = view.getTargetType() == null || view.getTargetType().isBlank()
-            || "HDFS".equalsIgnoreCase(view.getTargetType()) ? TargetFamily.HDFS : TargetFamily.RDBMS;
+        TargetFamily family = targetFamily(view.getTargetWriterTemplateKey(), view.getTargetType());
         DbType targetDialect = DbType.fromValue(view.getTargetType()).orElse(null);
         SourceField field = new SourceField(sourceName, sourceType, sourceType, length, precision, scale,
             request.comment(), true, false, request.targetName(), null);
@@ -492,10 +491,7 @@ public class ColumnService
         SourceAdapter adapter = sourceAdapterRegistry.resolve(etlTable);
         SourceSchema schema = adapter.inspectSchema(SourceRef.of(etlTable), etlTable.getSourceDb(),
             etlTable.getSourceTable(), SchemaMode.COLUMN_REFRESH);
-        TargetFamily family = etlTable.getTargetType() == null
-            || etlTable.getTargetType().isBlank()
-            || "HDFS".equalsIgnoreCase(etlTable.getTargetType())
-            ? TargetFamily.HDFS : TargetFamily.RDBMS;
+        TargetFamily family = targetFamily(etlTable.getTargetWriterTemplateKey(), etlTable.getTargetType());
         DbType targetDialect = DbType.fromValue(etlTable.getTargetType()).orElse(null);
 
         List<EtlColumn> sourceCols = new ArrayList<>(schema.fields().size());
@@ -609,5 +605,25 @@ public class ColumnService
     public void deleteByTid(long tableId)
     {
         etlColumnRepo.deleteAllByTid(tableId);
+    }
+
+    /**
+     * The writer key is authoritative; target_type is only a label. A missing target falls back to
+     * the RDBMS mapping instead of assuming Hive, so an unconfigured row cannot silently receive
+     * Hive types.
+     */
+    private static TargetFamily targetFamily(String writerTemplateKey, String targetType)
+    {
+        String key = writerTemplateKey == null ? "" : writerTemplateKey.trim().toUpperCase(java.util.Locale.ROOT);
+        if ("WH".equals(key))
+        {
+            return TargetFamily.HDFS;
+        }
+        if ("WR".equals(key))
+        {
+            return TargetFamily.RDBMS;
+        }
+        String type = targetType == null ? "" : targetType.trim().toUpperCase(java.util.Locale.ROOT);
+        return "HDFS".equals(type) || "HIVE".equals(type) ? TargetFamily.HDFS : TargetFamily.RDBMS;
     }
 }

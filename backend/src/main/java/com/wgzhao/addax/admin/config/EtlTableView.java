@@ -63,6 +63,7 @@ public final class EtlTableView
             s.db_type,
             s.connect_config,
             tt.target_type,
+            tt.writer_template_key as target_writer_template_key,
             tt.code as target_code,
             tt.name as target_name,
             tt.enabled as target_enabled

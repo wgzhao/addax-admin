@@ -4,7 +4,7 @@ import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.source.ColumnTypeMapping;
 import com.wgzhao.addax.admin.service.source.SourceField;
-import com.wgzhao.addax.admin.service.source.TargetFamily;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.service.source.TypePurpose;
 import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.RequiredArgsConstructor;

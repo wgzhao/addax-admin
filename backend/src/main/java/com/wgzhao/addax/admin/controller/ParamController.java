@@ -272,16 +272,6 @@ public class ParamController
     }
 
     /**
-     * 获取默认的 HDFS 存储格式和压缩格式
-     */
-    @GetMapping("/hdfs-storage-defaults")
-    public ResponseEntity<Map<String, String>> getHdfsDefaults()
-    {
-        Map<String, String> defaults = dictService.getHdfsDefaultFormats();
-        return ResponseEntity.ok(defaults);
-    }
-
-    /**
      * 生成指定年份的日历（交易日历 1021 / 工作日历 1022），includeWeekend 控制是否包含周末。
      *
      * 工作日历生成的是“周一至周五”的起点，节假日与调休仍需维护者按官方安排增删。
