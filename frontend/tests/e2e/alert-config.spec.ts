@@ -494,6 +494,24 @@ test('alert channel, rule, delivery retry and paused-channel semantics end to en
     await expect(card).toBeVisible();
     await expect(card).toContainText('已停用');
 
+    // The four card actions must stay on one row at the grid's minimum width;
+    // the old spacer added an extra gap and pushed 启用/停用 onto its own line.
+    await page.evaluate(() => {
+      const grid = document.querySelector('.channel-grid');
+      if (grid instanceof HTMLElement) grid.style.gridTemplateColumns = '340px';
+    });
+    const actionTops = await card
+      .locator('.channel-actions .v-btn')
+      .evaluateAll(buttons =>
+        buttons.map(button => Math.round(button.getBoundingClientRect().top))
+      );
+    expect(actionTops).toHaveLength(4);
+    expect(new Set(actionTops).size).toBe(1);
+    await page.evaluate(() => {
+      const grid = document.querySelector('.channel-grid');
+      if (grid instanceof HTMLElement) grid.style.gridTemplateColumns = '';
+    });
+
     // A channel cannot be enabled before a successful test send.
     await expect(card.getByTestId('channel-enable')).toBeDisabled();
     await expect(card.getByTestId('channel-enable')).toContainText('启用');

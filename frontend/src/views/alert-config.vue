@@ -212,8 +212,8 @@
                   >
                     删除
                   </v-btn>
-                  <v-spacer />
                   <v-btn
+                    class="channel-toggle"
                     data-testid="channel-enable"
                     size="small"
                     :variant="channel.enabled ? 'text' : 'flat'"
@@ -2354,9 +2354,20 @@
   .channel-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
     margin-top: auto;
     flex-wrap: wrap;
+  }
+
+  .channel-actions :deep(.v-btn) {
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  .channel-toggle {
+    margin-left: auto;
   }
 
   .empty-state {
