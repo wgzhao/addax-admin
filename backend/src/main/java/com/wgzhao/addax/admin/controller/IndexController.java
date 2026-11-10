@@ -260,7 +260,7 @@ public class IndexController
     }
 
     /**
-     * 近 30 天各数据源采集量贡献（Top8 + 其他）
+     * 近 30 天各数据源每日采集量（未折叠，Top8 + 其他由前端计算）
      *
      * @return 每日每源数据量长表
      */

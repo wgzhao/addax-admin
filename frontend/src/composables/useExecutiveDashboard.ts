@@ -126,6 +126,9 @@ export function useExecutiveDashboard() {
     const map = new Map<string, { code: string; name: string; gib: number }>();
     for (const row of volumeRows.value) {
       if (!days.has(row.biz_date)) continue;
+      // Why: the backend fills empty calendar days with a null placeholder row;
+      // folding those would create a bogus 未知 source with 0 bytes
+      if (!row.code && !row.name) continue;
       const code = row.code || row.name || 'UNKNOWN';
       const current = map.get(code) ?? {
         code,

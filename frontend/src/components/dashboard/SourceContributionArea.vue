@@ -41,6 +41,9 @@
   const items = computed(() => {
     const map = new Map<string, { code: string; name: string; gib: number }>();
     for (const row of raw.value ?? []) {
+      // Why: empty calendar days arrive as null placeholders and must not
+      // become a 未知 source in the contribution list
+      if (!row.code && !row.name) continue;
       const code = row.code || row.name || 'UNKNOWN';
       const current = map.get(code) ?? { code, name: row.name || row.code || '未知', gib: 0 };
       current.gib += Number(row.gib ?? 0);
