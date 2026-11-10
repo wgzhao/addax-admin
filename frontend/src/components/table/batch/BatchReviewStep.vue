@@ -769,8 +769,10 @@
     padding: 14px;
     overflow: auto;
     border-radius: 10px;
-    background: #111827;
-    color: #d1fae5;
+    /* Why: a fixed dark terminal block ignored the light theme; follow the
+       themed surface so the DDL stays readable in both modes */
+    background: rgb(var(--v-theme-surface-variant));
+    color: var(--ds-text-2);
     font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
     font-size: 0.74rem;
     line-height: 1.6;

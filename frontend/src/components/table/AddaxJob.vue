@@ -316,7 +316,9 @@
 
   .code-shell__body {
     padding: 16px;
-    background: #0f172a;
+    /* Why: the token palette in overrides.scss flips with the theme, so the
+       code surface must follow the theme too instead of a fixed dark block */
+    background: rgb(var(--v-theme-surface-variant));
   }
 
   .code-shell__body--editing {
