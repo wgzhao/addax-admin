@@ -1,5 +1,5 @@
 <template>
-  <v-card flat class="ds-card pulse-card">
+  <v-card flat class="ds-card pulse-card" :class="{ 'pulse-card--compact': compact }">
     <v-card-title class="pulse-head">
       <div class="pulse-head__text">
         <span class="pulse-title">今日运行 · 日切心跳</span>
@@ -22,6 +22,16 @@
           @click="onlyUnfinished = !onlyUnfinished"
         >
           {{ onlyUnfinished ? '显示全部' : '仅看未完成' }}
+        </v-btn>
+        <v-btn
+          v-if="compact"
+          size="small"
+          variant="text"
+          class="pulse-filter"
+          append-icon="mdi-arrow-right"
+          @click="$emit('show-all')"
+        >
+          查看全部
         </v-btn>
       </div>
     </v-card-title>
@@ -91,6 +101,9 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue';
   import { useTodayPulse } from '@/composables/useTodayPulse';
+
+  withDefaults(defineProps<{ compact?: boolean }>(), { compact: false });
+  defineEmits<{ 'show-all': [] }>();
 
   const { loading, rows, counts, switchLabel, cutoverPct, ticks, nowPct } = useTodayPulse();
   const onlyUnfinished = ref(false);
@@ -196,6 +209,20 @@
   /* Why: v-card clips its content, which would break the sticky ruler */
   .pulse-card {
     overflow: visible;
+  }
+
+  /* Why: with dozens of sources the overview would otherwise be ~1500px tall
+     and leave the neighbouring risk card with a large empty gap; the full
+     list stays available in the 今日运行 tab */
+  .pulse-card--compact .pulse-scroll {
+    max-height: var(--pulse-max-height, 430px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Inside the capped scroll area the ruler follows the card top, not the page */
+  .pulse-card--compact .pulse-axis-strip {
+    top: 0;
   }
 
   /* Why: with the list scrolling as part of the page, the ruler must follow the viewport */

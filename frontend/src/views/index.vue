@@ -61,7 +61,7 @@
 
             <v-row density="comfortable" class="exec-row">
               <v-col cols="12" lg="7">
-                <TodayPulse />
+                <TodayPulse compact @show-all="tab = 'today'" />
               </v-col>
               <v-col cols="12" lg="5">
                 <RiskQueue
