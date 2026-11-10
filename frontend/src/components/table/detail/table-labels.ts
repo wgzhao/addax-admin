@@ -1,4 +1,5 @@
 import { TABLE_STATUS_OPTIONS } from '@/utils';
+import { statusMeta } from '@/utils/chart-colors';
 import type { VEtlWithSource } from '@/types/database';
 
 // Pure display-label helpers for the detail cards; kept in one module so the
@@ -48,15 +49,4 @@ export const statusLabel = (table: VEtlWithSource) => {
   return matched?.label || table.status || '未设置';
 };
 
-export const statusColor = (table: VEtlWithSource) => {
-  const statusColorMap: Record<string, string> = {
-    N: 'grey-lighten-1',
-    R: 'blue',
-    Y: 'success',
-    E: 'error',
-    X: 'warning',
-    W: 'amber',
-    U: 'grey-darken-1',
-  };
-  return statusColorMap[table.status] || 'grey';
-};
+export const statusColor = (table: VEtlWithSource) => statusMeta(table.status).token;

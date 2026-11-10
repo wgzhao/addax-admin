@@ -1,5 +1,26 @@
 // 首页图表接口返回类型（与后端 /dashboard/* 的 snake_case 别名一致）
 
+export interface SourceRatioRow {
+  source_name: string;
+  pct?: number;
+  total?: number;
+  done?: number;
+  failed?: number;
+  running?: number;
+  pending?: number;
+}
+
+export interface DashboardSummary {
+  ratios: SourceRatioRow[];
+  allDbSourceCount: number;
+  tableCount: number;
+  allTableCount: number;
+  lastDataBytes: number;
+  totalDataBytes: number;
+  totalTimeSecs: number;
+  totalDays: number;
+}
+
 export interface TableStatusDistRow {
   status: string;
   cnt: number;

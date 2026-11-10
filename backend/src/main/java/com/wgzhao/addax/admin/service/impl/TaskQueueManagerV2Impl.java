@@ -1564,7 +1564,14 @@ public class TaskQueueManagerV2Impl
     @SuppressWarnings("unchecked")
     private void notifyJobCompletion(EtlJobQueue job, TaskResultDto result)
     {
-        if (result == null) return;
+        // Why: scheduled collection spans thousands of tables per day. A
+        // per-run success notification turns the bell into noise, so success
+        // is visible on the dashboard and only failures reach the inbox.
+        if (result == null || result.success()) return;
+        // Intermediate retry failures are noisy too; only the final attempt
+        // is actionable. AlertService follows the same rule for external alerts.
+        if (job.getAttempts() < job.getMaxAttempts()) return;
+
         String payload = job.getPayload();
         if (payload == null || payload.isBlank()) return;
         String username = null;
@@ -1579,8 +1586,8 @@ public class TaskQueueManagerV2Impl
         if (username == null || username.isBlank()) return;
         EtlTable table = tableService.getTable(job.getTid());
         String target = table == null ? String.valueOf(job.getTid()) : table.getTargetDb() + "." + table.getTargetTable();
-        String status = result.success() ? "成功" : "失败";
-        String content = String.format("表 %s 采集%s，耗时 %ss。", target, status, result.durationSeconds());
-        userNotificationService.create(username, "采集任务完成", content, "COLLECT", "tid", String.valueOf(job.getTid()));
+        String reason = result.message() == null || result.message().isBlank() ? "" : "：" + result.message();
+        String content = String.format("表 %s 采集失败，耗时 %ss%s", target, result.durationSeconds(), reason);
+        userNotificationService.create(username, "采集任务失败", content, "COLLECT_FAILURE", "tid", String.valueOf(job.getTid()));
     }
 }

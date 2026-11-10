@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { routes as autoRoutes } from 'vue-router/auto-routes';
 import { useAuthStore } from '@/stores/auth';
+import { APP_NAME, APP_SUBTITLE } from '@/config/branding';
 
 // The generated routes from unplugin-vue-router carry their own vue-router type
 // instances. Cast to the workspace's RouteRecordRaw to avoid cross-package
@@ -26,30 +27,24 @@ routes.push({
 });
 
 routes.push({
-  path: '/help',
-  name: 'Help',
-  component: () => import('@/views/help.vue'),
-  meta: {
-    layout: 'default',
-    title: '帮助中心',
-    icon: 'mdi-book-open-variant',
-    navHidden: true,
-  },
-});
-
-routes.push({
   path: '/login',
   name: 'Login',
   component: () => import('@/views/login.vue'),
   meta: { layout: 'login', navHidden: true },
 });
 
-// 字典维护页面
 routes.push({
-  path: '/dict',
-  name: 'DictMaintenance',
-  component: () => import('@/views/dict.vue'),
-  meta: { title: '字典维护', icon: 'mdi-book-open-page-variant' },
+  path: '/forbidden',
+  name: 'Forbidden',
+  component: () => import('@/views/forbidden.vue'),
+  meta: { layout: 'default', navHidden: true, title: '无权访问' },
+});
+
+routes.push({
+  path: '/:pathMatch(.*)*',
+  name: 'NotFound',
+  component: () => import('@/views/not-found.vue'),
+  meta: { layout: 'default', navHidden: true, title: '页面不存在' },
 });
 
 const router = createRouter({
@@ -58,28 +53,38 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
-
   // 如果访问登录页面，直接放行
   if (to.path === '/login') {
     next();
     return;
   }
 
-  // 检查是否有 token
+  // 显式声明为公开的页面才允许免登录访问
+  if (to.meta.requiresAuth === false) {
+    next();
+    return;
+  }
+
+  const authStore = useAuthStore();
+
   if (!authStore.token) {
-    next('/login');
+    next({ path: '/login', query: { redirect: to.fullPath } });
     return;
   }
 
   // 可选：检查 JWT token 是否过期（客户端预检查）
   if (authStore.isTokenExpired && authStore.isTokenExpired()) {
     authStore.logout();
-    next('/login');
+    next({ path: '/login', query: { redirect: to.fullPath } });
     return;
   }
 
   next();
+});
+
+router.afterEach(to => {
+  const title = typeof to.meta.title === 'string' ? to.meta.title.trim() : '';
+  document.title = title ? `${title} · ${APP_NAME}` : `${APP_NAME} · ${APP_SUBTITLE}`;
 });
 
 export default router;

@@ -1,6 +1,12 @@
 import { computed } from 'vue';
 import { useTheme } from 'vuetify';
-import { CATEGORICAL_DARK, CATEGORICAL_LIGHT } from '@/utils/chart-colors';
+import {
+  CATEGORICAL_DARK,
+  CATEGORICAL_LIGHT,
+  EMPHASIS_DARK,
+  EMPHASIS_LIGHT,
+} from '@/utils/chart-colors';
+import { APP_FONT_FAMILY } from '@/utils/font';
 
 // 将 #rgb / #rrggbb 转成 rgba 字符串，非法输入回退到主题蓝
 export function hexToRgba(hex: string, alpha: number): string {
@@ -37,6 +43,9 @@ export function useChartTheme() {
   const grid = computed(() => hexToRgba(onSurface.value, isDark.value ? 0.18 : 0.1));
 
   const palette = computed(() => (isDark.value ? CATEGORICAL_DARK : CATEGORICAL_LIGHT));
+  const emphasis = computed(() => (isDark.value ? EMPHASIS_DARK : EMPHASIS_LIGHT));
+  const muted = computed(() => hexToRgba(onSurface.value, isDark.value ? 0.32 : 0.22));
+  const fontFamily = APP_FONT_FAMILY;
 
   const tooltip = computed(() => ({
     backgroundColor: hexToRgba(surface.value, isDark.value ? 0.95 : 0.98),
@@ -46,5 +55,18 @@ export function useChartTheme() {
     bodyColor: onSurface.value,
   }));
 
-  return { isDark, colors, resolve, onSurface, surface, grid, palette, tooltip, hexToRgba };
+  return {
+    isDark,
+    colors,
+    resolve,
+    onSurface,
+    surface,
+    grid,
+    palette,
+    emphasis,
+    muted,
+    fontFamily,
+    tooltip,
+    hexToRgba,
+  };
 }

@@ -338,7 +338,7 @@
   "meta": {
     "title": "采集源管理",
     "icon": "mdi-database-cog",
-    "requiresAuth": false,
+    "requiresAuth": true,
     "navGroup": "source",
     "navOrder": 10
   }

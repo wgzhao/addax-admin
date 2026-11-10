@@ -64,56 +64,63 @@
     }),
   }));
 
-  const options = computed<ChartOptions<'bar'>>(() => ({
-    indexAxis: props.horizontal ? ('y' as const) : ('x' as const),
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: { padding: { left: 10, right: 25, top: 25, bottom: 0 } },
-    scales: {
-      x: {
-        stacked: props.stacked,
-        grid: { display: false },
-        ticks: {
-          color: onSurface.value,
-          font: { size: props.tickFontSize },
-          maxRotation: props.horizontal ? 0 : 30,
-          autoSkipPadding: 8,
+  const options = computed<ChartOptions<'bar'>>(() => {
+    const valueAxis = {
+      stacked: props.stacked,
+      beginAtZero: props.beginAtZero,
+      grid: { color: grid.value },
+      ticks: {
+        color: onSurface.value,
+        font: { size: props.tickFontSize },
+        callback: (value: unknown) => format(value),
+      },
+      title: props.yTitle
+        ? { display: true, text: props.yTitle, color: onSurface.value }
+        : { display: false },
+    };
+    const categoryAxis = {
+      stacked: props.stacked,
+      grid: { display: false },
+      ticks: {
+        color: onSurface.value,
+        font: { size: props.tickFontSize },
+        maxRotation: props.horizontal ? 0 : 30,
+        autoSkipPadding: 8,
+      },
+    };
+
+    return {
+      indexAxis: props.horizontal ? ('y' as const) : ('x' as const),
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { left: 10, right: 25, top: 25, bottom: 0 } },
+      // Why: in a horizontal bar chart the category axis is Y and the value
+      // axis is X; formatting categories as durations turned table names into
+      // "0s, 1s, 2s" ticks.
+      scales: props.horizontal
+        ? { x: valueAxis, y: categoryAxis }
+        : { x: categoryAxis, y: valueAxis },
+      plugins: {
+        legend: {
+          display: props.series.length > 1,
+          position: 'bottom',
+          labels: {
+            color: onSurface.value,
+            usePointStyle: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            padding: 12,
+            font: { size: 11 },
+          },
         },
-      },
-      y: {
-        stacked: props.stacked,
-        beginAtZero: props.beginAtZero,
-        grid: { color: grid.value },
-        ticks: {
-          color: onSurface.value,
-          font: { size: props.tickFontSize },
-          callback: value => format(value),
+        tooltip: {
+          intersect: false,
+          ...tooltip.value,
+          footerColor: onSurface.value,
+          callbacks: props.tooltipAfter ? { footer: props.tooltipAfter } : {},
         },
-        title: props.yTitle
-          ? { display: true, text: props.yTitle, color: onSurface.value }
-          : { display: false },
+        ...(props.markers?.length ? { valueMarker: { markers: props.markers } } : {}),
       },
-    },
-    plugins: {
-      legend: {
-        display: props.series.length > 1,
-        position: 'bottom',
-        labels: {
-          color: onSurface.value,
-          usePointStyle: true,
-          boxWidth: 8,
-          boxHeight: 8,
-          padding: 12,
-          font: { size: 11 },
-        },
-      },
-      tooltip: {
-        intersect: false,
-        ...tooltip.value,
-        footerColor: onSurface.value,
-        callbacks: props.tooltipAfter ? { footer: props.tooltipAfter } : {},
-      },
-      ...(props.markers?.length ? { valueMarker: { markers: props.markers } } : {}),
-    },
-  }));
+    };
+  });
 </script>

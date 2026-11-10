@@ -104,7 +104,7 @@
               hide-details
             />
           </v-col>
-          <v-col cols="6" sm="3" lg="1">
+          <v-col cols="6" sm="3" lg="2">
             <v-select
               v-model="filters.severity"
               :items="severityOptions"
@@ -115,7 +115,7 @@
               hide-details
             />
           </v-col>
-          <v-col cols="12" lg="2" class="d-flex justify-end">
+          <v-col cols="12" lg="1" class="d-flex justify-end">
             <v-btn
               color="primary"
               variant="flat"
@@ -173,7 +173,7 @@
           </template>
           <template #item.action="{ item }">
             <div class="action-cell">
-              <span class="action-code">{{ item.action }}</span>
+              <span class="action-code" :title="item.action">{{ actionLabel(item.action) }}</span>
               <span class="action-resource">
                 {{ item.resourceType || 'API' }}
                 <template v-if="item.resourceId"> · {{ item.resourceId }}</template>
@@ -211,7 +211,7 @@
         <v-card-title class="detail-title">
           <div>
             <span class="detail-eyebrow">SECURITY EVENT #{{ selectedEvent.id }}</span>
-            <h2>{{ selectedEvent.action }}</h2>
+            <h2 :title="selectedEvent.action">{{ actionLabel(selectedEvent.action) }}</h2>
           </div>
           <v-chip :color="severityColor(selectedEvent.severity)" variant="tonal" size="small">
             {{ selectedEvent.severity }}
@@ -279,7 +279,7 @@
           <section class="detail-section">
             <h3>请求上下文</h3>
             <dl class="context-list">
-              <dt>Request ID</dt>
+              <dt>请求 ID</dt>
               <dd>
                 <code>{{ selectedEvent.requestId || '—' }}</code>
               </dd>
@@ -314,13 +314,34 @@
 
   const outcomeOptions = ['SUCCESS', 'ACCEPTED', 'DENIED', 'FAILED'];
   const severityOptions = ['INFO', 'WARNING', 'CRITICAL'];
+
+  // Why: audit actions are stable machine codes; the list and detail views
+  // should read like an operation log, with the raw code kept in the tooltip.
+  const ACTION_LABELS: Record<string, string> = {
+    AUTH_LOGIN_SUCCESS: '登录成功',
+    AUTH_LOGIN_FAILED: '登录失败',
+    AUTH_PASSWORD_CHANGED: '修改密码',
+    TABLE_COLUMN_MAPPINGS_UPDATED: '更新字段映射',
+    TASK_QUEUE_CONFIGURED: '配置任务队列',
+    TASK_QUEUE_RESET: '重置任务队列',
+    SOURCE_UPDATED: '更新采集源',
+    TABLE_JOB_OVERRIDDEN: '覆盖采集任务配置',
+    WRITE_ACCESS_DENIED: '写入被拒绝',
+    TABLE_RETIRED: '退役采集表',
+    USER_CREATED: '创建用户',
+    COLLECTION_LOGS_CLEANED: '清理采集日志',
+    SYSTEM_CONFIG_UPDATED: '更新系统配置',
+    TARGET_CREATED: '创建目标端',
+  };
+  const actionLabel = (action?: string) => (action ? ACTION_LABELS[action] || action : '—');
+
   const headers = [
     { title: '时间', key: 'occurredAt', width: 150 },
     { title: '操作者', key: 'actorUsername', width: 150 },
     { title: '动作 / 资源', key: 'action', minWidth: 260 },
     { title: '级别', key: 'severity', width: 105 },
     { title: '结果', key: 'outcome', width: 110 },
-    { title: 'Request ID', key: 'requestId', width: 140 },
+    { title: '请求 ID', key: 'requestId', width: 140 },
   ];
 
   const events = ref<AuditEvent[]>([]);

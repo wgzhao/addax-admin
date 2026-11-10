@@ -9,7 +9,14 @@
         aria-label="打开导航菜单"
         @click="drawerOpen = true"
       />
-      <v-app-bar-title>统一采集管理系统</v-app-bar-title>
+      <router-link to="/" class="brand-lockup" :aria-label="`${APP_NAME} 首页`">
+        <img :src="APP_LOGO" class="brand-mark" alt="" width="28" height="28" />
+        <span class="brand-copy">
+          <span class="brand-name">{{ APP_NAME }}</span>
+          <span v-if="!compactNav" class="brand-sub">{{ APP_SUBTITLE }}</span>
+        </span>
+        <span v-if="showEnv" class="brand-env">{{ APP_ENV_LABEL }}</span>
+      </router-link>
       <NavCluster v-if="!compactNav" :items="urls" />
       <v-menu
         :min-width="0"
@@ -56,6 +63,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
+      <NotificationMenu v-if="authStore.isLoggedIn" />
       <UserMenu v-if="authStore.currentUserName" @logout="logout" />
       <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">登录</v-btn>
       <v-btn icon title="全局搜索 (Ctrl+K)" aria-label="全局搜索" @click="toggleCommandPalette">
@@ -92,6 +100,9 @@
   import NavDrawer from './NavDrawer.vue';
   import UserMenu from './UserMenu.vue';
   import SchemaUpdateAllDialog from './SchemaUpdateAllDialog.vue';
+  import NotificationMenu from '@/components/NotificationMenu.vue';
+  import { APP_LOGO, APP_NAME, APP_SUBTITLE } from '@/config/branding';
+  import { APP_ENV, APP_ENV_LABEL } from '@/config/version';
 
   const router = useRouter();
   const route = useRoute();
@@ -99,6 +110,7 @@
 
   // Why: below ~1000px the topbar cannot fit every menu, so the same tree moves into a drawer
   const compactNav = computed(() => width.value < 1000);
+  const showEnv = computed(() => APP_ENV !== 'production');
   const drawerOpen = ref(false);
 
   watch(
@@ -109,7 +121,7 @@
   );
 
   const authStore = useAuthStore();
-  const { isDarkTheme, toggleTheme, themeStore } = useAppTheme();
+  const { isDarkTheme, toggleTheme } = useAppTheme();
 
   // 表结构更新操作（按需）
   const updateSchemaNeed = async () => {
@@ -136,10 +148,8 @@
     })
   );
 
-  // 切换主题函数
   const toggleThemeWithLog = () => {
     toggleTheme();
-    console.log('当前主题切换为：', themeStore.theme);
   };
 
   const goQuickCreate = (path: '/source' | '/target' | '/table') => {
@@ -166,7 +176,84 @@
   @use './topbar-menu-shared' as *;
 
   .topbar-bar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0;
+    right: 0;
+    z-index: 1005;
     border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.16);
+  }
+
+  /* Why: Vuetify's app bar default slot starts at the viewport edge; the
+     brand mark needs the same optical inset as the page content. */
+  .topbar-bar :deep(.v-toolbar__content) {
+    padding-inline: 20px;
+  }
+
+  @media (max-width: 760px) {
+    .topbar-bar :deep(.v-toolbar__content) {
+      padding-inline: 12px;
+    }
+  }
+
+  .brand-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    margin-inline-end: 18px;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .brand-mark {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    flex: none;
+  }
+
+  .brand-copy {
+    display: inline-flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.1;
+  }
+
+  .brand-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.1px;
+    color: rgb(var(--v-theme-on-surface));
+    white-space: nowrap;
+  }
+
+  .brand-sub {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--ds-text-3);
+    white-space: nowrap;
+  }
+
+  .brand-env {
+    margin-inline-start: 2px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgb(var(--v-theme-warning));
+    background: rgba(var(--v-theme-warning), 0.12);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 1280px) {
+    .brand-sub {
+      display: none;
+    }
+
+    .brand-lockup {
+      margin-inline-end: 10px;
+    }
   }
 
   .topbar-bar :deep(.top-nav-btn) {

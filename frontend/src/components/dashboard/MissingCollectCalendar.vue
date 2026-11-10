@@ -29,7 +29,14 @@
         </template>
       </div>
       <div class="calendar-footer">
-        <v-chip size="x-small" variant="tonal" color="success">无缺失</v-chip>
+        <div class="calendar-scale">
+          <span>缺失少</span>
+          <span
+            class="calendar-scale-bar"
+            :style="{ background: `linear-gradient(90deg, ${ramp.join(',')})` }"
+          />
+          <span>缺失多</span>
+        </div>
         <v-chip size="x-small" variant="tonal" color="error">
           近 8 周共缺失 {{ totalMissing }} 表·天
         </v-chip>
@@ -46,8 +53,12 @@
   import { useChartTheme } from '@/composables/useChartTheme';
   import { dashboardService } from '@/service/dashboard-service';
 
+  const LIGHT_RAMP = ['#e3effc', '#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95'];
+  const DARK_RAMP = ['#16283d', '#1c4270', '#256abf', '#3987e5', '#6da7ec', '#9ec5f4', '#cde2fb'];
+
   const { raw, state, error } = useChartData(() => dashboardService.fetchMissingCalendar());
-  const { resolve, hexToRgba } = useChartTheme();
+  const { isDark } = useChartTheme();
+  const ramp = computed(() => (isDark.value ? DARK_RAMP : LIGHT_RAMP));
 
   const weekdayHeaders = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -66,16 +77,19 @@
 
   // 按周（周一为首日）排列成 7 行 × N 列的网格
   const weeks = computed<(Cell | null)[][]>(() => {
-    const successColor = resolve('success', '#217A38');
-    const errorColor = resolve('error', '#C92A2A');
+    const steps = ramp.value;
     const days: Cell[] = rows.value.map(row => {
       if (row.expected === 0) {
         return { bizDate: row.biz_date, missing: 0, expected: 0, color: 'transparent' };
       }
       const ratio = Math.min(Math.max(row.missing / row.expected, 0), 1);
-      const color =
-        ratio === 0 ? hexToRgba(successColor, 0.15) : hexToRgba(errorColor, 0.15 + ratio * 0.7);
-      return { bizDate: row.biz_date, missing: row.missing, expected: row.expected, color };
+      const step = ratio === 0 ? 0 : Math.max(1, Math.ceil(ratio * (steps.length - 1)));
+      return {
+        bizDate: row.biz_date,
+        missing: row.missing,
+        expected: row.expected,
+        color: steps[Math.min(step, steps.length - 1)],
+      };
     });
     if (!days.length) return [];
 
@@ -115,7 +129,7 @@
   .calendar-grid {
     display: grid;
     grid-template-columns: auto repeat(8, 1fr);
-    grid-auto-rows: 24px;
+    grid-auto-rows: 26px;
     gap: 4px;
     align-items: center;
   }
@@ -128,7 +142,7 @@
   }
 
   .calendar-cell {
-    height: 100%;
+    height: 26px;
     border-radius: 4px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
     cursor: default;
@@ -140,7 +154,23 @@
 
   .calendar-footer {
     display: flex;
-    gap: 8px;
-    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+  }
+
+  .calendar-scale {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ds-text-3);
+  }
+
+  .calendar-scale-bar {
+    width: 120px;
+    height: 8px;
+    border-radius: 999px;
+    border: 1px solid var(--ds-border-subtle);
   }
 </style>

@@ -19,7 +19,7 @@
         slim
         @click="resetThemeToSystem"
       >
-        <v-list-item-title>跟随系统主题</v-list-item-title>
+        <v-list-item-title>使用系统主题</v-list-item-title>
       </v-list-item>
       <v-divider class="my-1" />
       <v-list-item
@@ -161,7 +161,6 @@
 
   const resetThemeToSystem = () => {
     resetToSystemTheme();
-    console.log('当前主题切换为：', themeStore.theme);
   };
 
   const goHelp = () => {

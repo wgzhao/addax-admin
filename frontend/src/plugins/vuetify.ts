@@ -18,7 +18,9 @@ export default createVuetify({
     messages: { zhHans },
   },
   theme: {
-    defaultTheme: 'dark',
+    // Why: the console is demoed to buyers in meeting rooms; light is the
+    // default first impression, while dark stays a first-class preference.
+    defaultTheme: 'light',
     themes: modernTheme,
   },
   icons: {

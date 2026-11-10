@@ -92,6 +92,7 @@ public class DashboardStatService
             ranked as (
               select distinct on (tid)
                      tid,
+                     execution_id,
                      fail_cnt,
                      start_at as last_fail_at,
                      kind as last_kind,
@@ -221,7 +222,8 @@ public class DashboardStatService
         return jdbcTemplate.queryForList(sql, bizDate, bizDate);
     }
 
-    // 近 30 天各数据源每日采集量（GiB）长表，Top8 + 其他，用于堆叠面积图
+    // 近 30 天各数据源每日采集量（GiB）长表；折叠 Top8 由前端完成，
+    // 后端不能返回合成的 OTHER 行，否则前端会把它当成真实数据源再折叠一次
     public List<Map<String, Object>> statLast30DaysSourceContribution()
     {
         LocalDate bizDate = anchor();
@@ -238,33 +240,16 @@ public class DashboardStatService
                 and e.biz_date <= ?::date
               group by coalesce(x.source_code, v.code), e.biz_date
             ),
-            top_sources as (
-              select code
-              from win
-              group by code
-              order by sum(bytes) desc
-              limit 8
-            ),
-            rolled as (
-              select w.biz_date,
-                     case when t.code is null then 'OTHER' else t.code end as code,
-                     case when t.code is null then '其他' else n.name end as name,
-                     sum(w.bytes) as bytes
-              from win w
-              left join top_sources t on t.code = w.code
-              left join (select code, min(name) as name from win group by code) n on n.code = w.code
-              group by w.biz_date, t.code, n.name
-            ),
             span as (
               select generate_series(?::date - 29, ?::date, interval '1 day')::date as biz_date
             )
             select to_char(s.biz_date, 'YYYY-MM-DD') as biz_date,
-                   r.code,
-                   r.name,
-                   round(coalesce(r.bytes, 0) / 1024.0 / 1024 / 1024, 3) as gib
+                   w.code,
+                   w.name,
+                   round(coalesce(w.bytes, 0) / 1024.0 / 1024 / 1024, 3) as gib
             from span s
-            left join rolled r on r.biz_date = s.biz_date
-            order by s.biz_date, r.code
+            left join win w on w.biz_date = s.biz_date
+            order by s.biz_date, w.code
             """;
         return jdbcTemplate.queryForList(sql, bizDate, bizDate, bizDate, bizDate);
     }

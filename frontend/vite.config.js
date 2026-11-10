@@ -7,6 +7,7 @@ import VueRouter from 'unplugin-vue-router/vite';
 import Layouts from "vite-plugin-vue-layouts-next";
 import { loadEnv } from "vite";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 // Utilities
 import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
@@ -17,6 +18,20 @@ export default defineConfig(function (_a) {
     var isBuild = command === "build";
     var env = loadEnv(mode, process.cwd());
     var pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
+    var gitSha = (function () {
+        try {
+            return execSync("git rev-parse --short HEAD", {
+                cwd: fileURLToPath(new URL(".", import.meta.url)),
+                stdio: ["ignore", "pipe", "ignore"],
+            })
+                .toString()
+                .trim();
+        }
+        catch (_a) {
+            return "dev";
+        }
+    })();
+    var buildTime = new Date().toISOString();
     return {
         plugins: [
             VueRouter({
@@ -24,7 +39,13 @@ export default defineConfig(function (_a) {
                     {
                         src: "src/views",
                         path: "",
-                        exclude: function (exclude) { return exclude.concat(['**/components/**', '**/login.vue', '**/change-password.vue']); }
+                        exclude: function (exclude) { return exclude.concat([
+                            '**/components/**',
+                            '**/login.vue',
+                            '**/change-password.vue',
+                            '**/not-found.vue',
+                            '**/forbidden.vue',
+                        ]); }
                     }
                 ],
                 dts: "src/types/vue-router.d.ts",
@@ -72,6 +93,9 @@ export default defineConfig(function (_a) {
         define: {
             "process.env": {},
             "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version || "dev"),
+            "import.meta.env.VITE_APP_BUILD_SHA": JSON.stringify(env.VITE_APP_BUILD_SHA || gitSha),
+            "import.meta.env.VITE_APP_BUILD_TIME": JSON.stringify(env.VITE_APP_BUILD_TIME || buildTime),
+            "import.meta.env.VITE_APP_ENV": JSON.stringify(env.VITE_APP_ENV || mode),
         },
         resolve: {
             alias: {

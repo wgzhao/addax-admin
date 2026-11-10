@@ -308,6 +308,75 @@ test('current table keeps addax job editing available', async ({ page }) => {
   expect(JSON.parse(jobSaves[0]).job.content.reader.parameter.fetchSize).toBe(20480);
 });
 
+test('addax job code panel follows the theme and stays readable', async ({ page }) => {
+  await mockSession(page);
+  await mockApi(page);
+  await page.goto('/table/detail/101?tab=job&tblname=crm_prod.customer_profile');
+
+  const shell = page.locator('.code-shell__body');
+  await expect(shell).toBeVisible({ timeout: 15_000 });
+
+  const readPalette = () =>
+    page.evaluate(() => {
+      const appEl = document.querySelector('.v-application') as HTMLElement;
+      const shellEl = document.querySelector('.code-shell__body') as HTMLElement;
+      const preEl = document.querySelector('.code-shell__body pre') as HTMLElement;
+      return {
+        theme: appEl.classList.contains('v-theme--dark') ? 'dark' : 'light',
+        shellBg: getComputedStyle(shellEl).backgroundColor,
+        preColor: getComputedStyle(preEl).color,
+        surfaceVariant: getComputedStyle(appEl)
+          .getPropertyValue('--v-theme-surface-variant')
+          .trim(),
+      };
+    });
+
+  const toRgb = (value: string) => value.match(/\d+/g)!.slice(0, 3).map(Number);
+  const luminance = (rgb: number[]) => {
+    const [r, g, b] = rgb.map(channel => {
+      const c = channel / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrastRatio = (fg: string, bg: string) => {
+    const [hi, lo] = [luminance(toRgb(fg)), luminance(toRgb(bg))].sort((a, b) => b - a);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+
+  const light = await readPalette();
+  expect(light.theme).toBe('light');
+  expect(toRgb(light.shellBg)).toEqual(toRgb(`rgb(${light.surfaceVariant})`));
+  expect(contrastRatio(light.preColor, light.shellBg)).toBeGreaterThanOrEqual(4.5);
+  await shell.screenshot({ path: path.join(artifactDir, 'addax-job-code-light.png') });
+
+  await page.getByRole('button', { name: '切换为深色模式' }).click();
+  await expect(page.locator('.v-application')).toHaveClass(/v-theme--dark/);
+
+  const dark = await readPalette();
+  expect(dark.theme).toBe('dark');
+  expect(dark.shellBg).not.toBe(light.shellBg);
+  expect(toRgb(dark.shellBg)).toEqual(toRgb(`rgb(${dark.surfaceVariant})`));
+  expect(contrastRatio(dark.preColor, dark.shellBg)).toBeGreaterThanOrEqual(4.5);
+  await shell.screenshot({ path: path.join(artifactDir, 'addax-job-code-dark.png') });
+
+  fs.writeFileSync(
+    path.join(artifactDir, 'addax-job-code-theme.json'),
+    JSON.stringify(
+      {
+        light,
+        dark,
+        contrast: {
+          light: contrastRatio(light.preColor, light.shellBg),
+          dark: contrastRatio(dark.preColor, dark.shellBg),
+        },
+      },
+      null,
+      2
+    )
+  );
+});
+
 test('retired table hides addax job editing and never writes it', async ({ page }) => {
   await mockSession(page);
   const jobSaves: string[] = [];

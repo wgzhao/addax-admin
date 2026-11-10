@@ -16,8 +16,12 @@ Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管�
 
 以下为系统界面截图（演示数据），帮助你快速了解界面与功能覆盖：
 
-![Home](screenshots/home.png)
+![Home - light and dark](screenshots/dashboard-overview-split.png)
+![Executive Dashboard](screenshots/dashboard-overview.png)
 ![Today Run Pulse](screenshots/dashboard-today.png)
+![Health](screenshots/dashboard-health.png)
+![Data Quality](screenshots/dashboard-quality.png)
+![SLA](screenshots/dashboard-sla.png)
 ![Source Management](screenshots/source.png)
 ![Target Management](screenshots/target.png)
 ![Collection Tables](screenshots/ods-etl.png)

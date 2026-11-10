@@ -17,7 +17,7 @@ const getSystemTheme = (): ThemeName => {
 };
 
 export const useThemeStore = defineStore('curTheme', {
-  state: () => ({ theme: 'dark' as ThemeName, hasUserPreference: false }),
+  state: () => ({ theme: 'light' as ThemeName, hasUserPreference: false }),
   actions: {
     initTheme() {
       const savedTheme = parseTheme(localStorage.getItem(STORAGE_KEY));
@@ -26,7 +26,9 @@ export const useThemeStore = defineStore('curTheme', {
         this.hasUserPreference = true;
         return;
       }
-      this.theme = getSystemTheme();
+      // Why: light-first is the product default for buyer demos; only an
+      // explicit user action switches to the OS preference.
+      this.theme = 'light';
       this.hasUserPreference = false;
     },
     setTheme(theme: ThemeName) {
@@ -49,7 +51,7 @@ export const useThemeStore = defineStore('curTheme', {
       return this.theme;
     },
     getIcon() {
-      return this.theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+      return this.theme === 'light' ? 'mdi-weather-sunny' : 'mdi-weather-night';
     },
   },
 });

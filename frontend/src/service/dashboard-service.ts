@@ -1,6 +1,7 @@
 // 首页仪表盘接口
 import Requests from '@/utils/requests';
 import type {
+  DashboardSummary,
   ErrorRateRow,
   FailTopRow,
   FailTrendRow,
@@ -16,6 +17,11 @@ import type {
 
 class DashboardService {
   prefix = '/dashboard';
+
+  // 首页统计卡片聚合数据
+  fetchSummary(): Promise<DashboardSummary> {
+    return Requests.get(`${this.prefix}/summary`) as unknown as Promise<DashboardSummary>;
+  }
 
   // 当前采集表状态分布（实时）
   fetchTableStatusDist(): Promise<TableStatusDistRow[]> {

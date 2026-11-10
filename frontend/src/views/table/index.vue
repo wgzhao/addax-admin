@@ -3,7 +3,7 @@
     class="table-page page-shell ds-management-page"
     :class="{ 'ds-management-page--modal-open': dialogVisible || deleteDialogVisible }"
   >
-    <PageHeader title="采集表配置" subtitle="统一维护采集表、批量采集与结构更新。">
+    <PageHeader title="采集表管理" subtitle="统一维护采集表、批量采集与结构更新。">
       <v-menu offset-y :close-on-content-click="false">
         <template #activator="{ props }">
           <v-btn variant="tonal" prepend-icon="mdi-tune" v-bind="props">显示设置</v-btn>
@@ -210,35 +210,9 @@
             :item-class="getRowClass"
             @update:options="loadItems"
           >
-            <!-- Why: the code stays the primary status signal, so the header carries
-                 the legend and the cell keeps its width stable across rows -->
             <template #header.status="{ column, getSortIcon }">
-              <div class="v-data-table-header__content ds-status-header">
+              <div class="v-data-table-header__content">
                 <span>{{ column.title }}</span>
-                <v-tooltip location="bottom" max-width="260" open-delay="150">
-                  <template #activator="{ props: tipProps }">
-                    <v-icon
-                      v-bind="tipProps"
-                      icon="mdi-information-outline"
-                      size="14"
-                      class="ds-status-header__hint"
-                      aria-label="查看状态码说明"
-                      @click.stop
-                    />
-                  </template>
-                  <div class="ds-status-legend">
-                    <div class="ds-status-legend__title">状态码说明</div>
-                    <div
-                      v-for="entry in STATUS_LEGEND"
-                      :key="entry.code"
-                      class="ds-status-legend__row"
-                    >
-                      <v-icon icon="mdi-circle" size="8" :color="getStatusColor(entry.code)" />
-                      <span class="ds-status-legend__code ds-mono-text">{{ entry.code }}</span>
-                      <span class="ds-status-legend__label">{{ entry.label }}</span>
-                    </div>
-                  </div>
-                </v-tooltip>
                 <v-icon
                   v-if="column.sortable"
                   class="v-data-table-header__sort-icon"
@@ -278,16 +252,7 @@
               </div>
             </template>
             <template #item.status="{ item }">
-              <v-chip
-                size="small"
-                :color="getStatusColor(item.status)"
-                variant="tonal"
-                class="ds-status-code"
-                :class="`ds-status-code--${item.status}`"
-                :title="`${item.status} · ${statusLabel(item.status)}`"
-              >
-                <span class="ds-status-code__glyph">{{ item.status }}</span>
-              </v-chip>
+              <StatusChip :status="item.status" />
               <!-- Kill icon for running tasks: move to right, match E icon style -->
               <template v-if="item.status === 'R'">
                 <v-tooltip location="top">
@@ -475,10 +440,12 @@
   import EmptyState from '@/components/EmptyState.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
+  import StatusChip from '@/components/common/StatusChip.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
   import { buildCsv, downloadCsv } from '@/utils/csv';
   import { TABLE_STATUS_OPTIONS } from '@/utils';
+  import { statusMeta } from '@/utils/chart-colors';
   import tableService from '@/service/table-service';
   import taskService from '@/service/task-service';
   import sourceService from '@/service/source-service';
@@ -530,37 +497,7 @@
 
   // Why: single letters carry the meaning, so muted greys must still meet a
   // readable contrast in both themes; hue alone no longer disambiguates rows
-  const STATUS_COLOR: Record<string, string> = {
-    N: 'secondary',
-    R: 'info',
-    Y: 'success',
-    E: 'error',
-    X: 'grey',
-    W: 'warning',
-    U: 'blue-grey-darken-1',
-  };
-
-  function getStatusColor(status: string) {
-    return STATUS_COLOR[status] || 'grey';
-  }
-
-  const STATUS_LABEL: Record<string, string> = {
-    N: '未采集',
-    Y: '已采集',
-    X: '不采集',
-    W: '等待采集',
-    E: '采集错误',
-    R: '采集中',
-    U: '待更新',
-  };
-
-  const statusLabel = (status: string) => STATUS_LABEL[status] || status || '未知';
-
-  // Lifecycle order reads better than an alphabetical or enum order
-  const STATUS_LEGEND = ['N', 'W', 'R', 'Y', 'E', 'U', 'X'].map(code => ({
-    code,
-    label: STATUS_LABEL[code],
-  }));
+  const statusLabel = (status: string) => statusMeta(status).label;
 
   const runStatuses = ref<string[]>([]);
   const sourceId = ref<number | null>(null);
@@ -573,17 +510,15 @@
     { label: '全部', value: 'ALL' },
   ];
 
-  // Cap the visible codes so the trigger reads as a summary instead of an ellipsis
+  // Show the dictionary meaning, never the internal status code.
   const statusFilterLabel = computed(() => {
-    const codes = runStatuses.value;
-    if (!codes.length) return '状态';
-    if (codes.length <= 3) return codes.join(', ');
-    return `${codes.slice(0, 3).join(', ')} +${codes.length - 3}`;
+    const labels = runStatuses.value.map(statusLabel);
+    if (!labels.length) return '状态';
+    if (labels.length <= 3) return labels.join('、');
+    return `${labels.slice(0, 3).join('、')} +${labels.length - 3}`;
   });
   const statusFilterTitle = computed(() =>
-    runStatuses.value.length
-      ? runStatuses.value.map(code => `${code} ${statusLabel(code)}`).join('，')
-      : '按状态筛选'
+    runStatuses.value.length ? runStatuses.value.map(statusLabel).join('，') : '按状态筛选'
   );
 
   function toggleStatus(code: string) {
@@ -612,7 +547,7 @@
       sortable: true,
       width: 140,
     },
-    { title: '状态', key: 'status', align: 'start', sortable: true, width: 92 },
+    { title: '状态', key: 'status', align: 'start', sortable: true, width: 112 },
     { title: '耗时(s)', key: 'duration', align: 'end', sortable: true, width: 96 },
     {
       title: '完成时间',
@@ -793,7 +728,7 @@
           result: '',
           extra: { tid: item.id },
         });
-        notify('采集任务已提交，可在任务中心查看进展', 'primary');
+        notify('采集任务已提交，可在采集任务页查看进展', 'primary');
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         notify('采集任务提交失败: ' + msg, 'error');
@@ -808,7 +743,7 @@
       taskService
         .executeTasksBatch(tids)
         .then(() => {
-          notify('批量采集任务已提交，可在任务中心查看进展', 'primary');
+          notify('批量采集任务已提交，可在采集任务页查看进展', 'primary');
         })
         .catch(err => {
           const msg = err instanceof Error ? err.message : String(err);
@@ -1174,7 +1109,7 @@
   "meta": {
     "title": "采集表管理",
     "icon": "mdi-table",
-    "requiresAuth": false,
+    "requiresAuth": true,
     "navGroup": "collect",
     "navOrder": 10
   }

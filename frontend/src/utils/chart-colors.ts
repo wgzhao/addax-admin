@@ -1,41 +1,96 @@
 // 图表调色板与语义色映射（token 名由 useChartTheme 解析为实际主题色）
-
-// 浅色沿用现有柱状图的硬编码色，避免已有图表视觉突变
+//
+// Why: the previous palette failed the dataviz checks (light CVD ΔE 5.7,
+// dark lightness band out of range). These are the validated reference steps;
+// re-run scripts/validate_palette.js before changing them.
 export const CATEGORICAL_LIGHT = [
-  '#2563EB',
-  '#22C55E',
-  '#F59E0B',
-  '#EF4444',
-  '#A855F7',
-  '#14B8A6',
-  '#F97316',
-  '#0EA5E9',
+  '#2a78d6',
+  '#eb6834',
+  '#1baf7a',
+  '#eda100',
+  '#e87ba4',
+  '#008300',
+  '#6250d6',
+  '#e34948',
 ];
 
-// 深色为提亮变体，保证暗背景对比度
 export const CATEGORICAL_DARK = [
-  '#60A5FA',
-  '#4ADE80',
-  '#FBBF24',
-  '#F87171',
-  '#C084FC',
-  '#2DD4BF',
-  '#FB923C',
-  '#38BDF8',
+  '#3987e5',
+  '#d95926',
+  '#199e70',
+  '#c98500',
+  '#d55181',
+  '#008300',
+  '#9085e9',
+  '#e66767',
 ];
 
-// 采集表状态码到中文标签与主题 token 的映射
-export const STATUS_META: Record<string, { label: string; token: string; fallback: string }> = {
-  Y: { label: '已完成', token: 'success', fallback: '#217A38' },
-  R: { label: '运行中', token: 'info', fallback: '#1E67B3' },
-  W: { label: '等待中', token: 'warning', fallback: '#A86717' },
-  E: { label: '失败', token: 'error', fallback: '#C92A2A' },
-  N: { label: '未采集', token: 'grey-500', fallback: '#8C99A8' },
-  U: { label: '待同步', token: 'grey-700', fallback: '#4E5968' },
-  X: { label: '已排除', token: 'grey-400', fallback: '#B7C2CE' },
+// Most dashboard charts use one accent plus a muted context series.
+export const EMPHASIS_LIGHT = '#2a78d6';
+export const EMPHASIS_DARK = '#3987e5';
+
+// 采集表状态码到中文标签、图标与主题 token 的单一映射。
+export const STATUS_META: Record<
+  string,
+  { label: string; token: string; fallback: string; icon: string }
+> = {
+  Y: {
+    label: '已采集',
+    token: 'success',
+    fallback: '#217A38',
+    icon: 'mdi-check-circle-outline',
+  },
+  R: {
+    label: '采集中',
+    token: 'info',
+    fallback: '#1E67B3',
+    icon: 'mdi-progress-clock',
+  },
+  W: {
+    label: '等待采集',
+    token: 'warning',
+    fallback: '#A86717',
+    icon: 'mdi-clock-outline',
+  },
+  E: {
+    label: '采集失败',
+    token: 'error',
+    fallback: '#C92A2A',
+    icon: 'mdi-alert-circle-outline',
+  },
+  N: {
+    label: '未采集',
+    token: 'grey-500',
+    fallback: '#8C99A8',
+    icon: 'mdi-minus-circle-outline',
+  },
+  U: {
+    label: '待同步',
+    token: 'grey-600',
+    fallback: '#4E5968',
+    icon: 'mdi-cloud-sync-outline',
+  },
+  X: {
+    label: '已排除',
+    token: 'grey-400',
+    fallback: '#B7C2CE',
+    icon: 'mdi-cancel',
+  },
 };
 
 export const STATUS_ORDER = ['Y', 'R', 'W', 'E', 'N', 'U', 'X'];
+
+export const statusMeta = (status: string | null | undefined) => {
+  const key = (status || '').toUpperCase();
+  return (
+    STATUS_META[key] || {
+      label: key || '未知',
+      token: 'grey-500',
+      fallback: '#8C99A8',
+      icon: 'mdi-help-circle-outline',
+    }
+  );
+};
 
 // 流水操作类型到中文标签与调色板索引的映射（与后端 JourKind 对齐）
 export const JOUR_KIND_META: Record<string, { label: string; paletteIndex: number }> = {
