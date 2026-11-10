@@ -234,8 +234,8 @@ export interface HdfsTargetOptions {
   partKind?: string; // partition kind, D = daily; empty means the table is not partitioned
   partName?: string; // target partition column; absent means the table is not partitioned
   partFormat?: string; // date format of the partition value
-  storageFormat?: string; // target storage format; falls back to the HDFS_STORAGE_FORMAT setting
-  compressFormat?: string; // target compression; falls back to the HDFS_COMPRESS_FORMAT setting
+  storageFormat?: string; // target storage format; falls back to the target endpoint default
+  compressFormat?: string; // target compression; falls back to the target endpoint default
   partitionCreationMode?: 'PLATFORM' | 'EXTERNAL';
   partitionBindings?: HdfsPartitionBinding[];
 }
@@ -265,8 +265,8 @@ export interface EtlTable {
   connectConfig?: MongoConnectConfig | EsConnectConfig | null;
   sourceDb: string; // 采集源库名或schema名称或owner名称
   sourceTable: string; // 采集源表名
-  targetDb: string; // 目标库名，即提供给hive的库名
-  targetTable: string; // 目标表名，即Hive的表名
+  targetDb: string; // 目标库名或 schema
+  targetTable: string; // 目标表名
   // Target-specific attributes (hdfs / rdbms). Only the section of the picked target family is written;
   // see pickTargetOptions.
   targetOptions?: Partial<EtlTargetOptions>;
@@ -367,6 +367,8 @@ export interface VEtlWithSource extends EtlTable {
   remark?: string; // 系统备注信息
   enabled?: boolean; // 是否有效
   targetType?: string;
+  // Authoritative routing key of the target (`wH` Hive/HDFS, `wR` RDBMS); targetType is display-only.
+  targetWriterTemplateKey?: string;
   targetCode?: string;
   targetName?: string;
   targetEnabled?: boolean;

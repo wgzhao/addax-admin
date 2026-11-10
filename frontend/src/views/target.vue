@@ -54,6 +54,7 @@
             :headers="headers"
             :items="targets"
             :search="searchValue"
+            :custom-filter="targetFilter"
             item-value="id"
             density="comfortable"
             items-per-page="20"
@@ -233,11 +234,12 @@
                     <v-text-field
                       id="target-url"
                       v-model="connectForm.url"
-                      placeholder="jdbc:postgresql://host:5432/db"
+                      :placeholder="connectionPlaceholder"
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
                       autocomplete="url"
+                      :rules="[requiredRule]"
                     />
                   </div>
                   <div class="field">
@@ -277,28 +279,6 @@
                       </template>
                     </v-text-field>
                   </div>
-                  <div v-if="form.targetType === 'HDFS'" class="field">
-                    <label class="field-label" for="target-driver">驱动类名</label>
-                    <v-text-field
-                      id="target-driver"
-                      v-model="connectForm.driverClassName"
-                      variant="outlined"
-                      density="compact"
-                      hide-details="auto"
-                      autocomplete="off"
-                    />
-                  </div>
-                  <div v-if="form.targetType === 'HDFS'" class="field">
-                    <label class="field-label" for="target-driver-path">驱动路径</label>
-                    <v-text-field
-                      id="target-driver-path"
-                      v-model="connectForm.driverPath"
-                      variant="outlined"
-                      density="compact"
-                      hide-details="auto"
-                      autocomplete="off"
-                    />
-                  </div>
                   <div v-if="showConnectJson" class="field span-2">
                     <label class="field-label" for="target-connect-json">连接配置 JSON</label>
                     <v-textarea
@@ -315,9 +295,137 @@
                 </div>
               </section>
 
-              <section class="form-section">
+              <section v-if="isHdfsTarget" class="form-section">
                 <header class="section-head">
                   <span class="section-index">03</span>
+                  <h3>HDFS / Hive 设置</h3>
+                </header>
+                <v-alert type="info" variant="tonal" density="compact" class="hdfs-driver-hint">
+                  Hive JDBC 驱动由后端 drivers 目录加载（${APP_HOME}/drivers），无需在此配置路径。
+                </v-alert>
+                <div class="field-grid">
+                  <div class="field span-2">
+                    <label class="field-label" for="target-hive-driver">驱动类名（可选）</label>
+                    <v-text-field
+                      id="target-hive-driver"
+                      v-model="connectForm.driverClassName"
+                      placeholder="org.apache.hive.jdbc.HiveDriver"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="field span-2">
+                    <label class="field-label" for="target-hive-driver-path"
+                      >驱动 jar 路径（可选）</label
+                    >
+                    <v-text-field
+                      id="target-hive-driver-path"
+                      v-model="connectForm.driverPath"
+                      placeholder="留空使用后端 drivers 目录"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                      autocomplete="off"
+                    />
+                    <p class="field-help">
+                      仅当驱动无法放入 drivers 目录时填写，例如会与主程序类冲突的 HDP standalone
+                      jar。
+                    </p>
+                  </div>
+                  <div class="field span-2">
+                    <label class="field-label" for="target-default-fs">
+                      defaultFS <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <v-text-field
+                      id="target-default-fs"
+                      v-model="connectForm.defaultFS"
+                      placeholder="hdfs://nameservice1"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                      autocomplete="off"
+                      :rules="[requiredRule]"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-hdfs-prefix">HDFS 目录前缀</label>
+                    <v-text-field
+                      id="target-hdfs-prefix"
+                      v-model="connectForm.hdfsPrefix"
+                      placeholder="/ods"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-hdfs-site">hdfs-site.xml 路径</label>
+                    <v-text-field
+                      id="target-hdfs-site"
+                      v-model="connectForm.hdfsSitePath"
+                      placeholder="/etc/hadoop/conf/hdfs-site.xml"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-storage">存储格式</label>
+                    <v-select
+                      id="target-storage"
+                      v-model="connectForm.storageFormat"
+                      :items="storageFormats"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-compress">压缩格式</label>
+                    <v-select
+                      id="target-compress"
+                      v-model="connectForm.compressFormat"
+                      :items="compressFormats"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                    />
+                  </div>
+                  <div class="field span-2">
+                    <label class="field-label" for="target-hadoop-config"
+                      >hadoopConfig (JSON)</label
+                    >
+                    <v-textarea
+                      id="target-hadoop-config"
+                      v-model="connectForm.hadoopConfig"
+                      placeholder="{}"
+                      variant="outlined"
+                      density="compact"
+                      rows="3"
+                      hide-details="auto"
+                      :rules="[jsonObjectRule]"
+                    />
+                  </div>
+                  <div class="field">
+                    <v-switch
+                      v-model="connectForm.enableKerberos"
+                      inset
+                      density="compact"
+                      label="启用 Kerberos"
+                      color="primary"
+                      hide-details
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section class="form-section">
+                <header class="section-head">
+                  <span class="section-index">04</span>
                   <h3>状态与备注</h3>
                 </header>
                 <div class="field-grid">
@@ -383,13 +491,14 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, watch } from 'vue';
+  import { computed, onMounted, ref, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import EmptyState from '@/components/EmptyState.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
   import targetService from '@/service/target-service';
+  import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants';
   import dictService from '@/service/dict-service';
   import type { EtlTarget } from '@/types/database';
 
@@ -449,7 +558,59 @@
     password: '',
     driverClassName: '',
     driverPath: '',
+    defaultFS: '',
+    hdfsPrefix: '/ods',
+    hdfsSitePath: '',
+    enableKerberos: false,
+    hadoopConfig: '{}',
+    storageFormat: 'orc',
+    compressFormat: 'snappy',
   });
+
+  const storageFormats = HDFS_STORAGE_FORMATS;
+  const compressFormats = HDFS_COMPRESS_FORMATS;
+
+  const isHdfsTarget = computed(
+    () => (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WH'
+  );
+
+  const connectionPlaceholder = computed(() =>
+    isHdfsTarget.value ? 'jdbc:hive2://host:10000/default' : 'jdbc:postgresql://host:5432/db'
+  );
+
+  const requiredRule = (value: any) => !!(value && String(value).trim()) || '必填项';
+  const jsonObjectRule = (value: string) => {
+    const text = (value || '').trim();
+    if (!text) return true;
+    try {
+      const parsed = JSON.parse(text);
+      return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) || '必须是 JSON 对象';
+    } catch {
+      return 'JSON 格式不正确';
+    }
+  };
+
+  const parseHadoopConfig = (value: string): Record<string, unknown> => {
+    const text = (value || '').trim();
+    if (!text) return {};
+    try {
+      const parsed = JSON.parse(text);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  // The name column renders code + name, so the default search (which inspects displayed values only)
+  // cannot match a code. Search the raw endpoint fields explicitly.
+  const targetFilter = (_value: unknown, query: string, item?: { raw?: EtlTarget }) => {
+    const text = (query || '').trim().toLowerCase();
+    if (!text) return true;
+    const target = item?.raw;
+    return [target?.code, target?.name, target?.targetType, target?.writerTemplateKey]
+      .filter(Boolean)
+      .some(value => String(value).toLowerCase().includes(text));
+  };
 
   const getTargetTypeColor = (targetType?: string) => {
     const colorMap = {
@@ -462,14 +623,21 @@
   };
 
   const syncConnectConfig = () => {
-    const payload: Record<string, string> = {
+    const payload: Record<string, unknown> = {
       url: connectForm.value.url || '',
       username: connectForm.value.username || '',
       password: connectForm.value.password || '',
     };
-    if (form.value.targetType === 'HDFS') {
+    if (isHdfsTarget.value) {
       payload.driverClassName = connectForm.value.driverClassName || '';
       payload.driverPath = connectForm.value.driverPath || '';
+      payload.defaultFS = connectForm.value.defaultFS || '';
+      payload.hdfsPrefix = connectForm.value.hdfsPrefix || '/ods';
+      payload.hdfsSitePath = connectForm.value.hdfsSitePath || '';
+      payload.enableKerberos = !!connectForm.value.enableKerberos;
+      payload.hadoopConfig = parseHadoopConfig(connectForm.value.hadoopConfig);
+      payload.storageFormat = connectForm.value.storageFormat || 'orc';
+      payload.compressFormat = connectForm.value.compressFormat || 'snappy';
     }
     form.value.connectConfig = JSON.stringify(payload);
   };
@@ -478,9 +646,18 @@
   watch(
     () => form.value.targetType,
     t => {
-      if (!form.value.writerTemplateKey) {
+      // Follow the family while the key is still one of the derived defaults; a custom writer
+      // template key is left alone.
+      const current = (form.value.writerTemplateKey || '').trim().toUpperCase();
+      if (!current || current === 'WH' || current === 'WR') {
         form.value.writerTemplateKey = t === 'HDFS' ? 'wH' : 'wR';
       }
+      syncConnectConfig();
+    }
+  );
+  watch(
+    () => form.value.writerTemplateKey,
+    () => {
       syncConnectConfig();
     }
   );
@@ -492,6 +669,13 @@
       password: '',
       driverClassName: '',
       driverPath: '',
+      defaultFS: '',
+      hdfsPrefix: '/ods',
+      hdfsSitePath: '',
+      enableKerberos: false,
+      hadoopConfig: '{}',
+      storageFormat: 'orc',
+      compressFormat: 'snappy',
     };
     if (!target.connectConfig) {
       syncConnectConfig();
@@ -504,6 +688,15 @@
       connectForm.value.password = obj.password || '';
       connectForm.value.driverClassName = obj.driverClassName || '';
       connectForm.value.driverPath = obj.driverPath || '';
+      connectForm.value.defaultFS = obj.defaultFS || '';
+      connectForm.value.hdfsPrefix = obj.hdfsPrefix || '/ods';
+      connectForm.value.hdfsSitePath = obj.hdfsSitePath || '';
+      connectForm.value.enableKerberos = !!obj.enableKerberos;
+      connectForm.value.hadoopConfig = obj.hadoopConfig
+        ? JSON.stringify(obj.hadoopConfig, null, 2)
+        : '{}';
+      connectForm.value.storageFormat = obj.storageFormat || 'orc';
+      connectForm.value.compressFormat = obj.compressFormat || 'snappy';
     } catch {
       notify('connectConfig 不是有效 JSON，已重置连接表单', 'warning');
     }

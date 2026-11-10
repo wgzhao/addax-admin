@@ -7,6 +7,7 @@ interface TableRow {
   targetDb: string;
   targetTable: string;
   targetType?: string | null;
+  targetWriterTemplateKey?: string | null;
   targetName?: string | null;
   targetOptions?: {
     hdfs?: { partName?: string };
@@ -27,9 +28,13 @@ async function listTables(request: APIRequestContext, token: string): Promise<Ta
   return body.content as TableRow[];
 }
 
-function familyOf(table: TableRow): 'hdfs' | 'rdbms' {
-  const type = (table.targetType || 'HDFS').toUpperCase();
-  return RDBMS_TYPES.includes(type) ? 'rdbms' : 'hdfs';
+function familyOf(table: TableRow): 'hdfs' | 'rdbms' | 'unknown' {
+  const key = (table.targetWriterTemplateKey || '').toUpperCase();
+  if (key === 'WH') return 'hdfs';
+  if (key === 'WR') return 'rdbms';
+  const type = (table.targetType || '').toUpperCase();
+  if (['HDFS', 'HIVE'].includes(type)) return 'hdfs';
+  return RDBMS_TYPES.includes(type) ? 'rdbms' : 'unknown';
 }
 
 /**

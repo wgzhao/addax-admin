@@ -96,7 +96,9 @@
                 {{
                   family === 'hdfs'
                     ? '支持多个分区键，其中最多一个业务日期分区；其余使用固定值。'
-                    : '配置快照字段与目标表主键策略。'
+                    : family === 'rdbms'
+                    ? '配置快照字段与目标表主键策略。'
+                    : '未识别目标端，请先检查目标端配置。'
                 }}
               </div>
             </div>
@@ -211,7 +213,7 @@
               />
             </v-col>
           </v-row>
-          <v-row v-else density="comfortable">
+          <v-row v-else-if="family === 'rdbms'" density="comfortable">
             <v-col v-if="sourceDbType !== 'elasticsearch'" cols="12" md="6">
               <v-text-field
                 v-model="options.rdbms.businessDateColumn"
@@ -224,7 +226,8 @@
             </v-col>
             <v-col v-else cols="12">
               <v-alert type="info" variant="tonal" density="comfortable">
-                Elasticsearch 采集源不支持常量列，因此不能由平台注入业务日期。如需该列，请在字段映射中把索引里的日期字段映射到目标业务日期列。
+                Elasticsearch
+                采集源不支持常量列，因此不能由平台注入业务日期。如需该列，请在字段映射中把索引里的日期字段映射到目标业务日期列。
               </v-alert>
             </v-col>
             <v-col v-if="sourceDbType !== 'elasticsearch'" cols="12" md="6">
@@ -238,6 +241,9 @@
               />
             </v-col>
           </v-row>
+          <v-alert v-else type="warning" variant="tonal" density="comfortable">
+            当前目标端类型无法识别，无法配置目标端专属属性。请先在目标端管理中修正目标端。
+          </v-alert>
         </section>
       </div>
 
@@ -316,7 +322,7 @@
   import type { EtlTableView, EtlTargetOptions, HdfsPartitionBinding } from '@/types/database';
 
   const props = defineProps<{
-    targets: { label: string; value: number; targetType: string }[];
+    targets: { label: string; value: number; targetType: string; writerTemplateKey?: string }[];
     targetId: number | null;
     targetDb: string;
     storageFormats: string[];
@@ -341,7 +347,7 @@
 
   const family = computed(() => {
     const picked = props.targets.find(t => t.value === props.targetId);
-    return targetFamily(picked?.targetType);
+    return targetFamily(picked?.writerTemplateKey, picked?.targetType);
   });
 
   const targetNameKey = (name: string) => (family.value === 'hdfs' ? name.toLowerCase() : name);
