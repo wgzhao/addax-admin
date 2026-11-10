@@ -104,7 +104,7 @@
               hide-details
             />
           </v-col>
-          <v-col cols="6" sm="3" lg="1">
+          <v-col cols="6" sm="3" lg="2">
             <v-select
               v-model="filters.severity"
               :items="severityOptions"
@@ -115,7 +115,7 @@
               hide-details
             />
           </v-col>
-          <v-col cols="12" lg="2" class="d-flex justify-end">
+          <v-col cols="12" lg="1" class="d-flex justify-end">
             <v-btn
               color="primary"
               variant="flat"

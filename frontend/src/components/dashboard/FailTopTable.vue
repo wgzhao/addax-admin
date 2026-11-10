@@ -36,16 +36,15 @@
           </div>
         </template>
         <template #item.fail_cnt="{ item }">
-          <v-chip size="x-small" color="error" variant="tonal">{{ item.fail_cnt }}</v-chip>
-        </template>
-        <template #item.retry_cnt="{ item }">
-          <span>{{ item.retry_cnt }}</span>
-        </template>
-        <template #item.last_kind="{ item }">
-          {{ kindLabel(item.last_kind) }}
+          <div class="cell-fail">
+            <v-chip size="x-small" color="error" variant="tonal">{{ item.fail_cnt }}</v-chip>
+            <span class="cell-kind">{{ kindLabel(item.last_kind) }}</span>
+          </div>
         </template>
         <template #item.last_fail_at="{ item }">
-          <span class="cell-time">{{ item.last_fail_at ?? '-' }}</span>
+          <span class="cell-time" :title="item.last_fail_at ?? ''">{{
+            shortTime(item.last_fail_at)
+          }}</span>
         </template>
         <template #item.last_error="{ item }">
           <v-tooltip :text="item.last_error || '-'" location="top" max-width="480">
@@ -82,19 +81,39 @@
   const { raw, state, error } = useChartData(() => dashboardService.fetchFailTopTables());
   const rows = computed(() => raw.value ?? []);
 
+  // Why: this card shares the row with a 7-column chart, so six columns made
+  // headers wrap vertically at 1440px; keep four and fold the kind into the
+  // failure count cell.
   const headers: DataTableHeader[] = [
     { title: '源库.表', key: 'table', sortable: false },
-    { title: '失败次数', key: 'fail_cnt', align: 'center' },
-    { title: '重试余量', key: 'retry_cnt', align: 'center' },
+    { title: '失败次数', key: 'fail_cnt', align: 'center', width: 84 },
+    { title: '最近失败', key: 'last_fail_at', width: 92 },
+    { title: '错误摘要', key: 'last_error', sortable: false, width: 140 },
+  ];
+
+  // The CSV keeps the fields that no longer have their own column.
+  const csvHeaders: DataTableHeader[] = [
+    { title: '源库.表', key: 'table' },
+    { title: '目标库.表', key: 'targetTable' },
+    { title: '失败次数', key: 'fail_cnt' },
+    { title: '重试余量', key: 'retry_cnt' },
     { title: '最近失败', key: 'last_fail_at' },
-    { title: '类型', key: 'last_kind', sortable: false },
-    { title: '错误摘要', key: 'last_error', sortable: false },
+    { title: '类型', key: 'last_kind' },
+    { title: '错误摘要', key: 'last_error' },
   ];
 
   const kindLabel = (kind: string | null) => (kind ? JOUR_KIND_META[kind]?.label ?? kind : '-');
 
+  const shortTime = (value?: string | null) => (value ? value.slice(5, 16) : '-');
+
   const exportCsv = () => {
-    downloadCsv('fail-top-tables', buildCsv(headers, rows.value));
+    const exportRows = rows.value.map(row => ({
+      ...row,
+      table: `${row.source_db}.${row.source_table}`,
+      targetTable: `${row.target_db}.${row.target_table}`,
+      last_kind: kindLabel(row.last_kind),
+    }));
+    downloadCsv('fail-top-tables', buildCsv(csvHeaders, exportRows));
   };
 </script>
 
@@ -106,6 +125,22 @@
 
   .fail-top-table {
     font-size: 12px;
+  }
+
+  .fail-top-table :deep(th) {
+    white-space: nowrap;
+  }
+
+  /* Why: fixed layout caps the error column at the card edge instead of
+     letting the table overflow and clip the summary */
+  .fail-top-table :deep(table) {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .fail-top-table :deep(td),
+  .fail-top-table :deep(th) {
+    overflow: hidden;
   }
 
   .fail-top-table--clickable :deep(tbody tr) {
@@ -120,17 +155,36 @@
 
   .cell-primary {
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .cell-secondary,
   .cell-time {
     color: rgb(var(--v-theme-on-surface-muted));
     font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cell-fail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .cell-kind {
+    color: rgb(var(--v-theme-on-surface-muted));
+    font-size: 10px;
+    white-space: nowrap;
   }
 
   .cell-error {
     display: inline-block;
-    max-width: 260px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

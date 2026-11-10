@@ -335,7 +335,7 @@
       baselineMappings.value = cloneMappings(mappings.value);
       baselineSignature.value = mappingSignature(mappings.value);
       editing.value = false;
-      await checkContract();
+      if (!isManagedTarget()) await checkContract();
       notify('字段映射已保存并重新生成采集任务', 'success');
     } catch (err) {
       notify(`字段映射保存失败: ${(err as Error).message || String(err)}`, 'error');
@@ -379,7 +379,7 @@
       manualDialog.value = false;
       manualForm.value = { sourceName: '', sourceType: 'string', targetName: '', comment: '' };
       await loadMappings();
-      await checkContract();
+      if (!isManagedTarget()) await checkContract();
       notify('源字段已添加，请刷新任务后重新运行', 'success');
     } catch (err) {
       notify(`添加源字段失败: ${(err as Error).message || String(err)}`, 'error');
@@ -397,18 +397,20 @@
     { title: '状态', key: 'status', width: '10%' },
   ];
 
+  const isManagedTarget = () => tableDetail.value?.schemaManagementMode === 'MANAGED';
+
   onMounted(async () => {
     loading.value = true;
     error.value = '';
     try {
-      tableService
-        .fetchTableDetail(tid)
-        .then(detail => {
-          tableDetail.value = detail;
-        })
-        .catch(() => undefined);
-      await loadMappings();
-      await checkContract();
+      const [detail] = await Promise.all([
+        tableService.fetchTableDetail(tid).catch(() => null),
+        loadMappings(),
+      ]);
+      tableDetail.value = detail;
+      // Why: a MANAGED target is created by the platform on the first run, so
+      // its absence now is expected and must not flag every column as missing.
+      if (!isManagedTarget()) await checkContract();
     } catch (err) {
       error.value = (err as Error).message || String(err);
     } finally {

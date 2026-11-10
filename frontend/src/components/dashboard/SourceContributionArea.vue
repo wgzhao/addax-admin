@@ -2,7 +2,7 @@
   <DashboardChartCard
     title="各采集源采集量贡献"
     subtitle="近 30 天 · Top 8 + 其他"
-    :height="340"
+    :height="cardHeight"
     :state="state"
     :error="error"
   >
@@ -54,6 +54,10 @@
     const rest = sorted.slice(8).reduce((total, item) => total + item.gib, 0);
     return rest > 0 ? [...top, { code: 'OTHER', name: '其他', gib: rest }] : top;
   });
+
+  // Why: a ninth row (Top 8 + 其他) is taller than the fixed 340px body and
+  // would overflow the card, so grow the card with the row count
+  const cardHeight = computed(() => Math.max(340, items.value.length * 39 + 12));
 
   const max = computed(() => Math.max(...items.value.map(item => item.gib), 1));
   const widthFor = (value: number) => Math.max((value / max.value) * 100, value > 0 ? 1.5 : 0);
