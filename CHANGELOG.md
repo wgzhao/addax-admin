@@ -14,6 +14,13 @@
 
 ### Changed
 
+- `drivers/` 改为隔离类加载器加载（移除 `-Dloader.path`，新增 `-Daddax.drivers.dir`）；HDP/Cloudera standalone Hive JDBC jar 可直接放入，驱动损坏不再阻止应用启动。
+
+- HiveServer2 连接、HDFS 前缀、`defaultFS`、存储/压缩格式下沉到目标端，系统配置不再维护 Hive/HDFS 全局项。
+- Hive JDBC 驱动与关系型驱动统一由 `${APP_HOME}/drivers` 提供，升级时需把旧 `driverPath` 指向的 jar 放入该目录。
+- 目标端无法解析时不再回退 HDFS；目标端被删除或被引用时显式报错。
+- 新建采集表的存储/压缩默认值来自所选目标端。
+
 - 默认主题改为浅色优先，深色保留为一等公民。
 - 图表统一为单轴、状态色与分类色分离，并采用通过校验的色板。
 - 采集表状态由单字母改为「图标 + 文字 + 颜色」。

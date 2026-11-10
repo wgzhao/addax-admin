@@ -88,10 +88,14 @@ MongoDB 和 Elasticsearch 目前只作为采集源，不作为目标端；它们
 | 目标端名称 / 编码 | 业务标识                                                |
 | 目标端类型        | `HDFS`、`MYSQL`、`POSTGRESQL`、`SQLSERVER`              |
 | Writer 模板键     | 从下拉框选择，决定使用哪个 writer 插件模板              |
-| JDBC 连接信息     | 目标端地址、用户名、密码；Hive 还需要驱动类名和驱动路径 |
+| 连接信息          | 目标端 JDBC 地址、用户名、密码                          |
+| HDFS / Hive 设置  | 仅 `wH` 目标端：`defaultFS`、HDFS 前缀、`hdfsSitePath`、Kerberos、存储/压缩格式 |
 | 启用              | 关闭后不能用于新建采集表                                |
 | 设为默认目标端    | 批量创建时默认选中                                      |
 | 备注              | 用途、负责人或维护注意事项                              |
+
+Hive JDBC 驱动与关系型驱动统一放在后端节点的 `${APP_HOME}/drivers`，目标端不再配置驱动路径。该驱动
+只供 addax-admin 建表与读取元数据，Addax 的 `hdfswriter` 不需要它。
 
 Oracle、DB2、Sybase、ClickHouse、SQLite 暂未实现，保存目标端或测试连接时会直接报错，不会生成引用不存在 writer 插件的采集任务。
 

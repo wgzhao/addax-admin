@@ -50,14 +50,15 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时
 | ------- | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `hdfs`  | `partitionBindings`                | 目标分区键与运行期取值的一对一绑定；支持业务日期或固定值，可配置多个分区键                         |
 | `hdfs`  | `partitionCreationMode`            | Hive 分区创建责任，`PLATFORM` 表示运行期由平台创建，`EXTERNAL` 表示由外部创建并在运行前校验        |
-| `hdfs`  | `storageFormat` / `compressFormat` | Hive/HDFS 文件存储与压缩格式；为空时沿用系统设置（`HDFS_STORAGE_FORMAT` / `HDFS_COMPRESS_FORMAT`） |
+| `hdfs`  | `storageFormat` / `compressFormat` | Hive/HDFS 文件存储与压缩格式；为空时沿用目标端默认值 |
 | `rdbms` | `businessDateColumn`               | 平台提供的普通快照字段，为空表示不承载业务日期；不是数据库分区字段                                 |
 | `rdbms` | `createPrimaryKey`                 | 是否按源端主键在目标表建主键，默认开                                                               |
 
 表详情与批量创建表单按目标端能力动态渲染：
 
-- Hive 目标端显示分区/存储字段。
+- Hive 目标端显示分区/存储字段，存储/压缩的默认值来自所选目标端。
 - 关系型目标端显示快照日期列与主键开关。
+- 无法识别目标端时不再默认按 Hive 渲染，而是提示先修正目标端。
 
 ## 快照式采集
 
