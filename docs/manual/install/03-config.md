@@ -26,8 +26,12 @@
 | `SERVER_PORT`     | `50601`           | 后端监听端口                                                       |
 | `LOG_DIR`         | `./logs`          | 日志目录                                                           |
 | `WEIGHT`          | `1.0`             | 节点并发权重，映射到 `node.concurrency.weight`，取值 `0.0` - `1.0` |
-| `WECOM_ROBOT_KEY` | 空                | 企业微信机器人 Key，多个用逗号分隔                                 |
+| `ALERT_SECRET_KEY` | 空               | 告警通道配置加密密钥；未设置时从 `JWT_SECRET` 派生并记录警告       |
 | `JWT_SECRET`      | 内置默认值        | JWT 签名密钥，生产环境必须覆盖                                     |
+
+`ALERT_SECRET_KEY` 用于加密告警通道中的 Webhook 地址、签名密钥、HMAC 密钥、SMTP 密码等敏感配置。生产环境
+应在创建告警通道之前设置；密钥变更后已保存的通道配置无法解密，需要重新填写。未设置时会从
+`JWT_SECRET` 派生，并在启动日志中给出警告。
 
 ### JWT 密钥
 
