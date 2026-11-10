@@ -20,8 +20,8 @@ export WEIGHT=0.5                                              # 调度权重, (
 
 export LOG_DIR="./logs"                                        # 日志目录
 # export JWT_SECRET="替换为随机密钥"                              # 生产环境必须设置
-# 企业微信通知
-export WECOM_ROBOT_KEY=""                                # 企业微信机器人 Key（如有）
+# 告警通道配置存于数据库（系统管理 → 告警配置），敏感配置使用该密钥加密
+# export ALERT_SECRET_KEY=""                               # 生产环境建议设置为随机长字符串
 # 其他可选环境变量
 # export SERVER_PORT=9090                                      # 服务端口（如需覆盖 application.properties 配置）
 # export SPRING_PROFILES_ACTIVE=prod                           # Spring Boot 激活的 profile
