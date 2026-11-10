@@ -16,6 +16,7 @@ const menus: MenuCase[] = [
   { title: '数据洞察', path: '/data-insight', group: '数据管理' },
   { title: '系统状态', path: '/status', group: '系统管理' },
   { title: '系统配置', path: '/sys-settings', group: '系统管理' },
+  { title: '告警配置', path: '/alert-config', group: '系统管理' },
   { title: '字典维护', path: '/dict', group: '系统管理' },
   { title: '日志管理', path: '/logs', group: '系统管理' },
   { title: '安全审计', path: '/audit', group: '系统管理' },

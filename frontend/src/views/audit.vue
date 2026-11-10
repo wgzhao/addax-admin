@@ -332,6 +332,17 @@
     COLLECTION_LOGS_CLEANED: '清理采集日志',
     SYSTEM_CONFIG_UPDATED: '更新系统配置',
     TARGET_CREATED: '创建目标端',
+    ALERT_CHANNEL_CREATED: '新增告警通道',
+    ALERT_CHANNEL_UPDATED: '更新告警通道',
+    ALERT_CHANNEL_DELETED: '删除告警通道',
+    ALERT_CHANNEL_TESTED: '测试告警通道',
+    ALERT_RULE_CREATED: '新增告警规则',
+    ALERT_RULE_UPDATED: '更新告警规则',
+    ALERT_RULE_DELETED: '删除告警规则',
+    ALERT_SILENCE_CREATED: '新增告警静默',
+    ALERT_SILENCE_DELETED: '删除告警静默',
+    ALERT_DELIVERY_RETRIED: '重试告警投递',
+    ALERT_TEST_EVENT_SENT: '发送测试告警',
   };
   const actionLabel = (action?: string) => (action ? ACTION_LABELS[action] || action : '—');
 

@@ -69,7 +69,8 @@ services:
       # 应用配置
       LOG_DIR: /app/logs
       WEIGHT: ${WEIGHT:-1.0}
-      WECOM_ROBOT_KEY: ${WECOM_ROBOT_KEY:-}
+      # 告警通道在「系统管理 → 告警配置」中维护，密钥用于加密通道配置
+      ALERT_SECRET_KEY: ${ALERT_SECRET_KEY:-}
       # 服务端口
       SERVER_PORT: ${SERVER_PORT:-50601}
     volumes:

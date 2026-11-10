@@ -255,7 +255,7 @@ docker compose up -d
 | `FRONTEND_PORT`                                                   | `50080`                     | 前端映射到宿主机的端口                       |
 | `LOG_DIR`                                                         | `/app/logs`                 | 后端日志目录（容器内）                       |
 | `WEIGHT`                                                          | `1.0`                       | 节点并发权重，对应 `node.concurrency.weight` |
-| `WECOM_ROBOT_KEY`                                                 | 空                          | 企业微信机器人 Key，多个用逗号分隔           |
+| `ALERT_SECRET_KEY`                                                | 空                          | 告警通道配置加密密钥                         |
 
 更完整的运行参数说明见 [系统配置](03-config.md)。
 
