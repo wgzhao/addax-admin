@@ -5,16 +5,15 @@ import { fileURLToPath } from 'node:url';
 
 // 首页图表 E2E：验证四个 tab 的图表渲染状态，并把各图表 API 的实际返回落成可复现产物
 const artifactDir = fileURLToPath(new URL('./artifacts', import.meta.url));
-const screenshotsDir = fileURLToPath(new URL('../../../screenshots', import.meta.url));
 
 // 买方演示常见分辨率；1280x720 会让 KPI 行折成两行，不能反映首屏信息层级
 test.use({ viewport: { width: 1440, height: 900 } });
 
 const TABS: { value: string; label: string; screenshot: string }[] = [
-  { value: 'overview', label: '经营总览', screenshot: 'dashboard-overview.png' },
-  { value: 'health', label: '运行健康', screenshot: 'dashboard-health.png' },
-  { value: 'quality', label: '数据质量', screenshot: 'dashboard-quality.png' },
-  { value: 'sla', label: '耗时与 SLA', screenshot: 'dashboard-sla.png' },
+  { value: 'overview', label: '经营总览', screenshot: 'dashboard-chart-overview.png' },
+  { value: 'health', label: '运行健康', screenshot: 'dashboard-chart-health.png' },
+  { value: 'quality', label: '数据质量', screenshot: 'dashboard-chart-quality.png' },
+  { value: 'sla', label: '耗时与 SLA', screenshot: 'dashboard-chart-sla.png' },
 ];
 
 const UNIT_TO_BYTES: Record<string, number> = {
@@ -110,7 +109,7 @@ async function assertChartsSettled(page: Page) {
 test.describe('dashboard charts', () => {
   test('renders every tab and captures screenshots', async ({ page }) => {
     const readErrors = collectConsoleErrors(page);
-    fs.mkdirSync(screenshotsDir, { recursive: true });
+    fs.mkdirSync(artifactDir, { recursive: true });
 
     await page.goto('/');
     await expect(page.getByRole('tab', { name: '经营总览' })).toBeVisible();
@@ -122,7 +121,7 @@ test.describe('dashboard charts', () => {
       await page.waitForTimeout(350);
       await assertChartsSettled(page);
       await page.screenshot({
-        path: path.join(screenshotsDir, tab.screenshot),
+        path: path.join(artifactDir, tab.screenshot),
         fullPage: true,
       });
     }
