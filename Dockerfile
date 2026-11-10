@@ -82,7 +82,7 @@ CMD ["sh", "-c", "\
     -XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
     -Djava.security.egd=file:/dev/./urandom \
-    -Dloader.path=/app/drivers \
+    -Daddax.drivers.dir=/app/drivers \
     -Dloader.main=com.wgzhao.addax.admin.AdminApplication \
     -cp app.jar \
     org.springframework.boot.loader.launch.PropertiesLauncher \

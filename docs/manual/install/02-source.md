@@ -162,7 +162,7 @@ ExecStart=/usr/lib/jvm/java-21-openjdk-amd64/bin/java \
   -Dapp.home=/opt/app/addax-admin \
   -Dspring.config.location=/opt/app/addax-admin/config/application.properties \
   -Dlogging.file.path=/opt/app/addax-admin/logs \
-  -Dloader.path=/opt/app/addax-admin/drivers \
+  -Daddax.drivers.dir=/opt/app/addax-admin/drivers \
   -Dloader.main=com.wgzhao.addax.admin.AdminApplication \
   -cp /opt/app/addax-admin/lib/addax-admin-<version>.jar \
   org.springframework.boot.loader.launch.PropertiesLauncher

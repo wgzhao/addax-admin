@@ -31,7 +31,7 @@ PATH=$JAVA_HOME/bin:$PATH
 [ -d ${APP_HOME}/job ] || mkdir ${APP_HOME}/job
 
 JAVA_OPTS="-Djava.security.properties=${LIB_DIR}/java.security -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+UseZGC -XX:+UseDynamicNumberOfGCThreads "
-JAVA_OPTS="$JAVA_OPTS -Dapp.home=${APP_HOME} -Dlogging.file.path=${APP_HOME}/logs -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
+JAVA_OPTS="$JAVA_OPTS -Dapp.home=${APP_HOME} -Dlogging.file.path=${APP_HOME}/logs -Daddax.drivers.dir=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
 
 # Function to get server port
 get_server_port() {
