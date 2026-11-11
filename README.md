@@ -66,6 +66,7 @@ addax-admin/
 - 目标契约与显式字段映射：目标表支持平台托管（自动建表与结构演进）和外部管理（只读校验、不执行 DDL）两种模式；源字段与目标字段允许不同名，Reader 输出、Writer 列、DDL、执行快照和错误提示共用同一份一对一映射；批量创建逐表预览并隔离阻断与告警。
 - 动态表名采集：原生支持日表、月表等动态表名模板（如 `t_order_${biz_date_short}`），自动解析业务日期并生成相应的采集任务。
 - 增量采集与智能过滤：支持使用上一次采集结果（例如前一日最大 ID 或指定字段）作为本次增量采集的过滤条件；同时支持自定义过滤表达式，适合复杂增量场景。
+- 补数回补：在采集表详情页按日历选择历史日期（支持多段区间和单日），异步逐日回补并实时查看批次进度；可选日期以系统业务日期为上限，业务日期变量按目标日期注入，不影响正常调度。
 - 多节点并发与权重：采用 sharing-nothing 架构、Redis 选主与心跳、节点权重设定（`WEIGHT`），实现全局/源级并发控制、任务高可用与负载均衡。
 - 可视化管理：完整的任务配置、字段对比、实时执行进度与历史日志查询，提升运维效率。
 - 企业级安全与可扩展性：JWT + Spring Security 做权限与认证，采用 Spring Data JPA 与模块化前端设计，方便定制与扩展。
@@ -83,6 +84,7 @@ addax-admin/
 - [MongoDB 采集](docs/manual/usage/10-mongodb.md)
 - [Elasticsearch 采集](docs/manual/usage/11-elasticsearch.md)
 - [调度与并发](docs/manual/usage/09-scheduling.md)
+- [补数回补](docs/manual/usage/12-fillback.md)
 - [故障排查](docs/manual/operations/02-troubleshooting.md)
 - [架构决策记录](docs/adr/)
 

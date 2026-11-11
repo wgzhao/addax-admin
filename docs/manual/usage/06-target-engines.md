@@ -88,6 +88,8 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时
 
 补多个日期会互相覆盖，提交时会被跳过并记录风险日志。
 
+补数的入口、日期选择和批次进度见 [补数回补](12-fillback.md)。
+
 ## 主键开关
 
 关闭 `createPrimaryKey` 后：

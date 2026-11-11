@@ -34,9 +34,10 @@
 ### 日常运维
 
 1. [调度与并发](usage/09-scheduling.md)
-2. [执行监控与日志](operations/01-monitoring.md)
-3. [故障排查](operations/02-troubleshooting.md)
-4. [常见问题](operations/03-faq.md)
+2. [补数回补](usage/12-fillback.md)
+3. [执行监控与日志](operations/01-monitoring.md)
+4. [故障排查](operations/02-troubleshooting.md)
+5. [常见问题](operations/03-faq.md)
 
 ## 目录
 
@@ -64,6 +65,7 @@
 | [调度与并发](usage/09-scheduling.md)                | 调度触发、队列、Redis 选主与分发、多节点权重、状态码  |
 | [MongoDB 采集](usage/10-mongodb.md)                 | MongoDB 源、多库接入、字段采样、切日刷新与注意事项    |
 | [Elasticsearch 采集](usage/11-elasticsearch.md)     | ES 源、索引/别名、mapping 与采样、DSL 过滤与增量      |
+| [补数回补](usage/12-fillback.md)                    | 详情页补数 tab、日期选择、批次进度、限制与常见问题    |
 
 ### 运维排障
 
