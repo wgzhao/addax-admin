@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.CalendarService;
+import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
@@ -37,6 +38,7 @@ public class LogController
     private final StatService statService;
     private final SystemConfigService configService;
     private final EtlJourService jourService;
+    private final EtlExecutionService executionService;
     private final TableService tableService;
     private final CalendarService calendarService;
     private final AuditRecorder auditRecorder;
@@ -135,11 +137,20 @@ public class LogController
         sta.setTotalRecs(dto.totalReadRecords());
         sta.setTotalErrors(dto.totalErrorRecords());
         sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
-        // addax reports only the table id, so the business date has to be derived here instead of being
-        // taken from the report. The table's own calendar decides it: a source collecting on workdays or
-        // trading days is stamped with a date the global business date does not match on the morning
-        // after a holiday, and the missing-collection report reads this column back.
-        sta.setBizDate(calendarService.businessDate(tableService.getSourceCalendar(tid)));
+        // The execution snapshot knows the exact date the run was started for. A fillback run
+        // carries a historical date, so deriving the date from "now" would make every fillback
+        // overwrite the same etl_statistic row. Fall back to the table calendar only when the
+        // report does not carry an execution id (legacy callers).
+        LocalDate bizDate = executionId == null
+            ? null
+            : executionService.findBizDate(executionId).orElse(null);
+        if (bizDate == null) {
+            // The table's own calendar decides it: a source collecting on workdays or trading days
+            // is stamped with a date the global business date does not match on the morning after a
+            // holiday, and the missing-collection report reads this column back.
+            bizDate = calendarService.businessDate(tableService.getSourceCalendar(tid));
+        }
+        sta.setBizDate(bizDate);
         return statService.saveOrUpdate(sta);
     }
 }

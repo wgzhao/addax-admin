@@ -896,7 +896,8 @@ public class TaskQueueManagerV2Impl
             lease.start();
 
             taskResultDto = executeEtlTaskWithConcurrencyControl(
-                task, job.getBizDate(), job.getId(), job.getAttempts(), lease);
+                task, job.getBizDate(), job.getId(), job.getAttempts(), lease,
+                isFillbackPayload(job.getPayload()));
 
             String fenceReason = lease.fenceReason();
             if (fenceReason != null) {
@@ -1144,11 +1145,11 @@ public class TaskQueueManagerV2Impl
     private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
         Long queueId, int attemptNo)
     {
-        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, queueId, attemptNo, null);
+        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, queueId, attemptNo, null, false);
     }
 
     private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
-        Long queueId, int attemptNo, RunLease lease)
+        Long queueId, int attemptNo, RunLease lease, boolean forceRegenerate)
     {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
@@ -1157,7 +1158,7 @@ public class TaskQueueManagerV2Impl
         }
         try {
             tableService.setRunning(task);
-            boolean result = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo, lease);
+            boolean result = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo, lease, forceRegenerate);
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
             log.info("Task {}.{}({}) completed, elapsed={}s, result={}", task.getSourceDb(), task.getSourceTable(), tid, duration, result);
             task.setDuration(duration);
@@ -1207,11 +1208,11 @@ public class TaskQueueManagerV2Impl
 
     public boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate)
     {
-        return executeEtlTaskLogic(task, overrideBizDate, null, 1, null);
+        return executeEtlTaskLogic(task, overrideBizDate, null, 1, null, overrideBizDate != null);
     }
 
     private boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo,
-        RunLease lease)
+        RunLease lease, boolean forceRegenerate)
     {
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
@@ -1227,15 +1228,15 @@ public class TaskQueueManagerV2Impl
             return false;
         }
 
-        // For fillback tasks, overrideBizDate contains the target fillback date
-        // which differs from the system biz_date. In this case the pre-generated
-        // template (built for the current biz_date) is stale and must be regenerated
-        // in-memory for the target date. Normal tasks pass null and use the cached template.
+        // For fillback tasks, overrideBizDate contains the target fillback date. The cached template
+        // was built for another business date (and its curr_* values are frozen), so it must be
+        // regenerated in-memory — even when the fillback date equals today's business date.
+        // Normal tasks use the cached template unless the queue row's date differs from the system one.
         String job;
         LocalDate systemBizDate = configService.getBizDateAsDate();
-        if (overrideBizDate != null && !overrideBizDate.equals(systemBizDate)) {
-            log.info("Task {} using fillback date {} (system biz_date={}), regenerating template",
-                taskId, overrideBizDate, systemBizDate);
+        if (overrideBizDate != null && (forceRegenerate || !overrideBizDate.equals(systemBizDate))) {
+            log.info("Task {} using date {} (system biz_date={}, fillback={}), regenerating template",
+                taskId, overrideBizDate, systemBizDate, forceRegenerate);
             job = jobContentService.getJobContentForDate(taskId, overrideBizDate);
         } else {
             job = jobContentService.getJobContent(taskId);
@@ -1297,7 +1298,10 @@ public class TaskQueueManagerV2Impl
             String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
             String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
             String jobName = taskId + ":" + execution.getId();
-            String jvmProps = String.format("-DjobName=%s -Dlog.file.name=%s", jobName, logName);
+            // addax.sh no longer injects date variables. They are passed as system properties of
+            // this job's own JVM: biz_* follow the execution business date, curr_* stay the real
+            // launch time, and no global state (Redis BIZ_DATE, admin JVM properties) is touched.
+            String jvmProps = buildJvmProps(jobName, logName, executionBizDate);
             List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
             String cmd = toCommandString(cmdArgs);
             boolean retCode = executeAddax(cmdArgs, cmd, taskId, execution.getId(), logName,
@@ -1309,6 +1313,45 @@ public class TaskQueueManagerV2Impl
         catch (RuntimeException e) {
             executionService.finish(execution, false, e.getMessage());
             throw e;
+        }
+    }
+
+    /**
+     * Build the {@code -p} argument for one addax process.
+     *
+     * <p>Since addax.sh stopped injecting the date variables, every caller must provide them. They
+     * are system properties of the child JVM only; the values are derived from the execution
+     * business date (biz_*) and the real launch time (curr_*).
+     *
+     * <p>Values containing spaces (the datetime formats) are single-quoted because addax.sh
+     * re-parses the parameter through {@code sh -c}; the values originate from date formatting and
+     * contain no shell metacharacters.
+     */
+    private String buildJvmProps(String jobName, String logName, LocalDate executionBizDate)
+    {
+        StringBuilder props = new StringBuilder();
+        props.append("-DjobName=").append(jobName).append(" -Dlog.file.name=").append(logName);
+        configService.getBizDateValuesForDate(executionBizDate).forEach((name, value) ->
+            props.append(" -D").append(name).append("='").append(value).append('\''));
+        return props.toString();
+    }
+
+    /**
+     * A queue row is a fillback task when its payload was written by the fillback submit path.
+     * Fillback rows always regenerate their job so the date substitution is never taken from a
+     * stale cached template.
+     */
+    private boolean isFillbackPayload(String payload)
+    {
+        if (payload == null || payload.isBlank()) {
+            return false;
+        }
+        try {
+            Map<?, ?> map = objectMapper.readValue(payload, Map.class);
+            return "fillback".equals(String.valueOf(map.get("action")));
+        }
+        catch (Exception e) {
+            return false;
         }
     }
 

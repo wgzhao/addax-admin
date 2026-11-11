@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.ApiResponse;
+import com.wgzhao.addax.admin.dto.FillbackProgressDto;
 import com.wgzhao.addax.admin.dto.FillbackRequestDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -267,16 +268,32 @@ public class TaskController
     {
         String username = getCurrentUsername();
         FillbackResultDto result = taskService.fillback(
-            request.tids(), request.startDate(), request.endDate(), username);
+            request.tids(), request.startDate(), request.endDate(), request.dates(), username);
         auditRecorder.accepted("COLLECTION_FILLBACK_SUBMITTED", "SCHEDULING", "CRITICAL", "ETL_TABLE",
             "fillback", "fillback", Map.of(
                 "tids", request.tids(),
-                "startDate", request.startDate().toString(),
-                "endDate", request.endDate().toString(),
+                "batchId", result.batchId(),
+                "dates", result.details().stream().mapToInt(d -> d.dates().size()).sum(),
                 "enqueued", result.totalEnqueued(),
                 "skipped", result.skipped()
             ));
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    /**
+     * 补数进度
+     * 按批次返回逐日状态；不传 batchId 时返回该表最近一次补数。
+     *
+     * @param tid     采集表 ID
+     * @param batchId 补数批次 ID，可空
+     * @return 补数进度
+     */
+    @GetMapping("/{tid}/fillback/progress")
+    public ResponseEntity<ApiResponse<FillbackProgressDto>> fillbackProgress(
+        @PathVariable long tid,
+        @RequestParam(name = "batchId", required = false) String batchId)
+    {
+        return ResponseEntity.ok(ApiResponse.success(taskService.getFillbackProgress(tid, batchId)));
     }
 
     /**

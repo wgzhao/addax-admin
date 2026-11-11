@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.dto.TaskResultDto;
+import com.wgzhao.addax.admin.dto.FillbackProgressDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.common.Constants;
@@ -16,6 +17,7 @@ import com.wgzhao.addax.admin.redis.RedisLockService;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -25,11 +27,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -333,46 +336,63 @@ public class TaskService
     }
 
     /**
-     * Submit fillback (补数) tasks for the given tables and date range.
+     * Submit fillback (补数) tasks for the given tables and dates.
      * Each (table, date) pair is enqueued as a separate task with the fillback date
      * as its biz_date. Tables without a date dimension (no Hive partition column and no
      * RDBMS business date column) are skipped with a risk log entry.
-     * Total task count (tables × days) must not exceed {@value #FILLBACK_MAX_TASKS}.
+     * Total task count (tables × dates) must not exceed {@value #FILLBACK_MAX_TASKS}.
+     *
+     * <p>{@code dates} is the detail page's calendar selection and takes precedence over the
+     * start/end range; the range form is kept for the list page and older clients.
      *
      * @param tids      table IDs to fillback
-     * @param startDate fillback start date (inclusive)
-     * @param endDate   fillback end date (inclusive)
+     * @param startDate fillback start date (inclusive), used when {@code dates} is absent
+     * @param endDate   fillback end date (inclusive), used when {@code dates} is absent
+     * @param dates     explicit target dates
      * @param username  requesting user
-     * @return fillback result with enqueue details
+     * @return fillback result with batch id and enqueue details
      */
-    public FillbackResultDto fillback(List<Long> tids, LocalDate startDate, LocalDate endDate, String username)
+    public FillbackResultDto fillback(List<Long> tids, LocalDate startDate, LocalDate endDate,
+        List<LocalDate> dates, String username)
     {
         if (tids == null || tids.isEmpty()) {
             throw new ApiException(400, "补数表列表不能为空");
         }
-        if (startDate == null || endDate == null) {
+        List<LocalDate> targetDates = resolveFillbackDates(startDate, endDate, dates);
+        if (targetDates.isEmpty()) {
             throw new ApiException(400, "补数日期不能为空");
         }
-        if (startDate.isAfter(endDate)) {
-            throw new ApiException(400, "开始日期不能晚于结束日期");
+
+        // Fillback is for history: today's period belongs to the normal scheduler, and dates
+        // beyond the current business date have no data to re-collect.
+        LocalDate maxDate = configService.getBizDateAsDate();
+        for (LocalDate date : targetDates) {
+            if (date.isAfter(maxDate)) {
+                throw new ApiException(400,
+                    "补数日期 " + date + " 晚于当前业务日期 " + maxDate);
+            }
         }
 
-        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
-        long totalTasks = (long) tids.size() * days;
+        long totalTasks = (long) tids.size() * targetDates.size();
         if (totalTasks > FILLBACK_MAX_TASKS) {
             throw new ApiException(400,
                 String.format("补数任务总数(%d)超过上限(%d)：表数=%d, 天数=%d",
-                    totalTasks, FILLBACK_MAX_TASKS, tids.size(), days));
+                    totalTasks, FILLBACK_MAX_TASKS, tids.size(), targetDates.size()));
         }
 
         if (queueManager.isRefreshing()) {
             throw new ApiException(409, "正在刷新表结构，暂时无法提交补数任务");
         }
 
+        String batchId = UUID.randomUUID().toString();
+        Instant submittedAt = Instant.now();
+        LocalDate rangeStart = targetDates.getFirst();
+        LocalDate rangeEnd = targetDates.getLast();
+        DateTimeFormatter dateFmt = DateTimeFormatter.ISO_LOCAL_DATE;
+
         int totalEnqueued = 0;
         int skipped = 0;
         List<FillbackResultDto.Detail> details = new ArrayList<>();
-        DateTimeFormatter dateFmt = DateTimeFormatter.ISO_LOCAL_DATE;
 
         for (Long tid : tids) {
             EtlTable table = tableService.getTable(tid);
@@ -404,14 +424,14 @@ public class TaskService
                 continue;
             }
 
-            List<String> dates = new ArrayList<>();
+            List<String> enqueuedDates = new ArrayList<>();
             int enqueuedForTable = 0;
-            for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-                String payload = buildFillbackPayload(username, date);
+            for (LocalDate date : targetDates) {
+                String payload = buildFillbackPayload(username, date, batchId, targetDates, submittedAt);
                 if (queueManager.addFillbackTaskToQueue(table, date, payload)) {
                     enqueuedForTable++;
                     totalEnqueued++;
-                    dates.add(date.format(dateFmt));
+                    enqueuedDates.add(date.format(dateFmt));
                 } else {
                     skipped++;
                 }
@@ -419,29 +439,288 @@ public class TaskService
 
             // Record audit journey
             EtlJour jour = jourService.addJour(tid, JourKind.FILLBACK,
-                String.format("fillback %s ~ %s by %s, enqueued=%d",
-                    startDate.format(dateFmt), endDate.format(dateFmt), username, enqueuedForTable));
+                String.format("fillback batch=%s %s ~ %s dates=%d by %s, enqueued=%d",
+                    batchId, rangeStart.format(dateFmt), rangeEnd.format(dateFmt),
+                    targetDates.size(), username, enqueuedForTable));
             jourService.successJour(jour);
 
-            details.add(new FillbackResultDto.Detail(tid, tableLabel, dates, enqueuedForTable, false, null));
+            details.add(new FillbackResultDto.Detail(tid, tableLabel, enqueuedDates, enqueuedForTable, false, null));
         }
 
-        log.info("Fillback completed: totalEnqueued={}, skipped={}, tables={}", totalEnqueued, skipped, tids.size());
-        return new FillbackResultDto(totalEnqueued, skipped, details);
+        log.info("Fillback completed: batch={}, totalEnqueued={}, skipped={}, tables={}, dates={}",
+            batchId, totalEnqueued, skipped, tids.size(), targetDates.size());
+        return new FillbackResultDto(batchId, submittedAt, totalEnqueued, skipped, details);
     }
 
-    private String buildFillbackPayload(String username, LocalDate date)
+    /**
+     * Resolve the requested dates, keeping the explicit calendar selection as the source of truth.
+     */
+    private List<LocalDate> resolveFillbackDates(LocalDate startDate, LocalDate endDate, List<LocalDate> dates)
+    {
+        if (dates != null && !dates.isEmpty()) {
+            return dates.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+        }
+        if (startDate == null || endDate == null) {
+            throw new ApiException(400, "补数日期不能为空");
+        }
+        if (startDate.isAfter(endDate)) {
+            throw new ApiException(400, "开始日期不能晚于结束日期");
+        }
+        return startDate.datesUntil(endDate.plusDays(1)).toList();
+    }
+
+    private String buildFillbackPayload(String username, LocalDate date, String batchId,
+        List<LocalDate> requestedDates, Instant submittedAt)
     {
         try {
             Map<String, Object> map = new HashMap<>();
             map.put("submitter", username);
             map.put("action", "fillback");
             map.put("fillback_date", date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+            map.put("batch_id", batchId);
+            map.put("submitted_at", submittedAt.toString());
+            map.put("requested_dates", requestedDates.stream().map(LocalDate::toString).toList());
             return objectMapper.writeValueAsString(map);
         }
         catch (Exception e) {
-            log.debug("Failed to serialize fillback payload: {}", e.getMessage());
+            // A null payload would make the row invisible to progress queries, so fail the whole
+            // submission instead of enqueueing work that cannot be tracked.
+            throw new IllegalStateException("Failed to serialize fillback payload", e);
+        }
+    }
+
+    /**
+     * Progress of one fillback batch. The batch metadata lives in the queue row payload; dates
+     * without a row are reported as unresolved (deduplicated at submit time or cleaned up).
+     *
+     * @param tid     table id
+     * @param batchId batch id, null for the table's latest batch
+     * @return progress snapshot
+     */
+    public FillbackProgressDto getFillbackProgress(long tid, String batchId)
+    {
+        LocalDate maxDate = configService.getBizDateAsDate();
+        VwEtlTableWithSource view = tableService.getTableView(tid);
+        boolean supported = false;
+        String reason = null;
+        boolean retired = false;
+        boolean sourceEnabled = true;
+        String tableStatus = null;
+        String tableLabel = "(unknown)";
+
+        if (view == null) {
+            reason = "采集表不存在";
+        }
+        else {
+            tableLabel = view.getTargetDb() + "." + view.getTargetTable();
+            retired = view.getRetiredAt() != null;
+            sourceEnabled = !Boolean.FALSE.equals(view.getEnabled());
+            tableStatus = view.getStatus();
+            if (retired) {
+                reason = "采集表已退役";
+            }
+            else {
+                try {
+                    supported = targetAdapterRegistry.resolve(view).hasDateDimension(view);
+                    if (!supported) {
+                        reason = "该表没有可用的日期维度（HDFS 分区字段或 RDBMS 快照业务日期列），不支持补数";
+                    }
+                }
+                catch (Exception e) {
+                    reason = "目标端配置无效: " + e.getMessage();
+                }
+            }
+        }
+
+        String effectiveBatch = batchId == null || batchId.isBlank() ? null : batchId.trim();
+        if (effectiveBatch != null && !isUuid(effectiveBatch)) {
+            throw new ApiException(400, "batchId 格式不正确");
+        }
+        if (effectiveBatch == null) {
+            effectiveBatch = jobQueueService.findLatestFillbackBatchId(tid).orElse(null);
+        }
+        if (effectiveBatch == null) {
+            return emptyProgress(tid, tableLabel, supported, reason, retired, sourceEnabled, tableStatus, maxDate, null);
+        }
+
+        List<EtlJobQueueService.FillbackJobRow> rows = jobQueueService.findFillbackBatchRows(tid, effectiveBatch);
+        if (rows.isEmpty()) {
+            // The batch may be older than the daily queue cleanup, or every date was deduplicated
+            // at submit time (then the row payload, and with it the requested dates, never existed).
+            return emptyProgress(tid, tableLabel, supported, reason, retired, sourceEnabled, tableStatus, maxDate, effectiveBatch);
+        }
+
+        String firstPayload = rows.getFirst().payload();
+        List<LocalDate> requestedDates = parseRequestedDates(firstPayload);
+        String submitter = parseText(firstPayload, "submitter");
+        Instant submittedAt = parseInstant(firstPayload, "submitted_at");
+        if (submittedAt == null) {
+            submittedAt = rows.stream()
+                .map(EtlJobQueueService.FillbackJobRow::createdAt)
+                .filter(Objects::nonNull)
+                .min(Instant::compareTo)
+                .orElse(null);
+        }
+
+        // A batch has one row per date; keep the newest row if a manual DB edit left duplicates.
+        Map<LocalDate, EtlJobQueueService.FillbackJobRow> byDate = new HashMap<>();
+        for (EtlJobQueueService.FillbackJobRow row : rows) {
+            if (row.bizDate() == null) {
+                continue;
+            }
+            EtlJobQueueService.FillbackJobRow previous = byDate.get(row.bizDate());
+            if (previous == null || row.id() > previous.id()) {
+                byDate.put(row.bizDate(), row);
+            }
+        }
+        if (requestedDates.isEmpty()) {
+            requestedDates = byDate.keySet().stream().sorted().toList();
+        }
+
+        int pending = 0;
+        int running = 0;
+        int completed = 0;
+        int failed = 0;
+        int cancelled = 0;
+        int unresolved = 0;
+        List<FillbackProgressDto.Item> items = new ArrayList<>();
+
+        for (LocalDate date : requestedDates) {
+            EtlJobQueueService.FillbackJobRow row = byDate.get(date);
+            if (row == null) {
+                unresolved++;
+                items.add(new FillbackProgressDto.Item(date, "unresolved", 0, 0, null, null, null, null, null));
+                continue;
+            }
+            switch (String.valueOf(row.status())) {
+                case "pending" -> pending++;
+                case "running" -> running++;
+                case "completed" -> completed++;
+                case "failed" -> failed++;
+                case "cancelled" -> cancelled++;
+                default -> unresolved++;
+            }
+            String error = row.execError() != null ? row.execError() : row.lastError();
+            items.add(new FillbackProgressDto.Item(date, row.status(), row.attempts(), row.maxAttempts(),
+                error, row.id(), row.createdAt(), row.execStartedAt(), row.execFinishedAt()));
+        }
+
+        FillbackProgressDto.Counts counts = new FillbackProgressDto.Counts(
+            requestedDates.size(), pending, running, completed, failed, cancelled, unresolved);
+        String state = computeFillbackState(counts);
+        return new FillbackProgressDto(true, effectiveBatch, tid, tableLabel, supported, reason, retired,
+            sourceEnabled, tableStatus, maxDate,
+            requestedDates.isEmpty() ? null : requestedDates.getFirst(),
+            requestedDates.isEmpty() ? null : requestedDates.getLast(),
+            submitter, submittedAt, requestedDates.size(), state, counts, items);
+    }
+
+    private FillbackProgressDto emptyProgress(long tid, String table, boolean supported, String reason,
+        boolean retired, boolean sourceEnabled, String tableStatus, LocalDate maxDate, String batchId)
+    {
+        return new FillbackProgressDto(false, batchId, tid, table, supported, reason, retired, sourceEnabled,
+            tableStatus, maxDate, null, null, null, null, 0, "UNKNOWN",
+            new FillbackProgressDto.Counts(0, 0, 0, 0, 0, 0, 0), List.of());
+    }
+
+    private static String computeFillbackState(FillbackProgressDto.Counts counts)
+    {
+        if (counts.total() == 0) {
+            return "UNKNOWN";
+        }
+        if (counts.running() > 0) {
+            return "RUNNING";
+        }
+        if (counts.pending() > 0) {
+            return "PENDING";
+        }
+        int finished = counts.completed() + counts.failed() + counts.cancelled();
+        if (finished == 0) {
+            return "UNKNOWN";
+        }
+        if (counts.failed() == 0 && counts.cancelled() == 0 && counts.unresolved() == 0
+            && counts.completed() == counts.total()) {
+            return "COMPLETED";
+        }
+        if (counts.completed() > 0) {
+            return "PARTIAL_SUCCESS";
+        }
+        if (counts.failed() > 0) {
+            return "FAILED";
+        }
+        if (counts.cancelled() > 0) {
+            return "CANCELLED";
+        }
+        return "UNKNOWN";
+    }
+
+    private List<LocalDate> parseRequestedDates(String payload)
+    {
+        if (payload == null || payload.isBlank()) {
+            return List.of();
+        }
+        try {
+            JsonNode node = objectMapper.readTree(payload).path("requested_dates");
+            if (!node.isArray()) {
+                return List.of();
+            }
+            List<LocalDate> dates = new ArrayList<>();
+            node.forEach(item -> {
+                try {
+                    dates.add(LocalDate.parse(item.asText()));
+                }
+                catch (RuntimeException ignored) {
+                    // a malformed entry is skipped; the other dates still describe the batch
+                }
+            });
+            return dates.stream().distinct().sorted().toList();
+        }
+        catch (Exception e) {
+            log.warn("Failed to parse fillback payload: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private String parseText(String payload, String field)
+    {
+        if (payload == null || payload.isBlank()) {
             return null;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(payload).path(field);
+            return node.isMissingNode() || node.isNull() ? null : node.asText();
+        }
+        catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Instant parseInstant(String payload, String field)
+    {
+        String value = parseText(payload, field);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        }
+        catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private static boolean isUuid(String value)
+    {
+        try {
+            UUID.fromString(value);
+            return true;
+        }
+        catch (IllegalArgumentException e) {
+            return false;
         }
     }
 
