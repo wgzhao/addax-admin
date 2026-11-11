@@ -30,8 +30,8 @@
                 isMongoSource
                   ? 'MongoDB 查询 JSON，例如 {\'status\':\'paid\'} 或 __max__seq'
                   : isEsSource
-                    ? 'ES Query DSL，例如 {\'term\':{\'status\':\'paid\'}} 或 __max__seq'
-                    : '可选，例如 dt=\'${biz_date_dash}\''
+                  ? 'ES Query DSL，例如 {\'term\':{\'status\':\'paid\'}} 或 __max__seq'
+                  : '可选，例如 dt=\'${biz_date_dash}\''
               "
               hide-details="auto"
             />
@@ -230,6 +230,7 @@
 
   const props = defineProps<{
     targetType?: string | null;
+    writerTemplateKey?: string | null;
   }>();
 
   // Object-level model: mutate fields only, never assign the whole object
@@ -237,7 +238,12 @@
 
   const storageOptions = ['orc', 'parquet', 'text'];
   const compressFormats = HDFS_COMPRESS_FORMATS || [];
-  const family = computed(() => targetFamily(props.targetType || table.value.targetType));
+  const family = computed(() =>
+    targetFamily(
+      props.writerTemplateKey ?? table.value.targetWriterTemplateKey,
+      props.targetType || table.value.targetType
+    )
+  );
   const isMongoSource = computed(() => table.value.dbType === 'mongodb');
   const isEsSource = computed(() => table.value.dbType === 'elasticsearch');
   const isNonRdbmsSource = computed(() => isMongoSource.value || isEsSource.value);

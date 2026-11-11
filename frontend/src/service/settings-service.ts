@@ -7,24 +7,11 @@ export interface ConfigItem {
   remark: string;
 }
 
-export interface HiveServer2Config {
-  url: string;
-  username: string;
-  password: string;
-  driverPath: string;
-  driverClassName?: string;
-}
-
 export interface SystemConfig {
-  HDFS_STORAGE_FORMAT: string;
-  HDFS_COMPRESS_FORMAT: string;
   ADDAX: string;
-  HIVE_SERVER2: HiveServer2Config;
-  HDFS_PREFIX: string;
   SWITCH_TIME: string;
   CONCURRENT_LIMIT: number; // 后端返回字符串格式
   QUEUE_SIZE: number; // 后端返回字符串格式
-  HDFS_CONFIG: string;
 }
 
 class SettingsService {
@@ -50,62 +37,6 @@ class SettingsService {
   async saveSettings(config: any): Promise<boolean> {
     await Requests.post(`${this.baseUrl}/sys-config`, config);
     return true;
-  }
-
-  /**
-   * 测试HiveServer2连接
-   */
-  testHiveConnection(config: HiveServer2Config): Promise<any> {
-    return Requests.post(`${this.baseUrl}/test-hive-connect`, config, {
-      timeout: 5000,
-    }) as unknown as Promise<any>;
-  }
-
-  /**
-   * 验证Addax程序目录
-   */
-  async validateAddaxPath(path: string): Promise<any> {
-    try {
-      const response = await Requests.get('/settings/addax-path/validate', { path });
-      return response;
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
-
-  /*
-   * 保存作业配置模板
-   */
-  async saveHdfsWriterConfig(configData: string): Promise<boolean> {
-    try {
-      const response = await Requests.post<boolean>(
-        `${this.baseUrl}/addax-hdfs-writer-template`,
-        configData
-      );
-      // 处理不同的返回结构
-      const respObj: any = response as any;
-      if (respObj != null && typeof respObj === 'object' && 'data' in respObj) {
-        return respObj.data;
-      }
-      return response as boolean;
-    } catch (error) {
-      console.error('保存作业配置失败:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 获取作业配置模板
-   */
-  async getHdfsWriterConfig(): Promise<any> {
-    try {
-      const response = await Requests.get(`${this.baseUrl}/addax-hdfs-writer-template`);
-      return response;
-    } catch (error) {
-      console.error('获取作业配置失败:', error);
-      throw error;
-    }
   }
 
   /**
@@ -165,19 +96,6 @@ class SettingsService {
     } catch (error) {
       console.error('触发切日调度任务失败:', error);
       throw error;
-    }
-  }
-
-  /**
-   * 获取Addax作业内容
-   */
-  async getAddaxJobContent(path: string): Promise<any> {
-    try {
-      const response = await Requests.get('/settings/addax-content', { path });
-      return response;
-    } catch (error) {
-      console.error(error);
-      return null;
     }
   }
 }

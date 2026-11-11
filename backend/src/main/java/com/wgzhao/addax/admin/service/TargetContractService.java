@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.HiveType;
 import com.wgzhao.addax.admin.common.TargetOptions;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.model.EtlColumn;
@@ -284,7 +285,7 @@ public class TargetContractService
 
     private boolean isRdbmsAdapter(TargetAdapter adapter)
     {
-        return "RDBMS".equalsIgnoreCase(adapter.getType());
+        return adapter.getFamily() == TargetFamily.RDBMS;
     }
 
     private String expectedType(EtlColumn column)

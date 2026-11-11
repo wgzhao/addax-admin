@@ -295,13 +295,6 @@ test.describe('management pages', () => {
     await page.goto('/sys-settings');
     await expect(page.getByText('系统配置')).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(1200);
-    // The Hive endpoint points at an internal test host; mask it for the public
-    // README without touching the running configuration.
-    await page
-      .locator('input[value*="jdbc:hive2"]')
-      .evaluate((el: HTMLInputElement) => {
-        el.value = 'jdbc:hive2://hive-server:10000/default';
-      });
     await hideFooter(page);
     await shot('sys-setting.png');
   });

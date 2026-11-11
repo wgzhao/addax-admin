@@ -179,9 +179,8 @@
   import tableService from '@/service/table-service';
   import sourceService from '@/service/source-service';
   import targetService from '@/service/target-service';
-  import dictService from '@/service/dict-service';
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils';
-  import { normalizeTargetOptions, pickTargetOptions } from '@/utils/target-options';
+  import { normalizeTargetOptions, pickTargetOptions, targetFamily } from '@/utils/target-options';
   import {
     CollectableTable,
     EtlSource,
@@ -302,7 +301,15 @@
   const tableOptions = ref<EtlTargetOptions>(normalizeTargetOptions());
   const storageFormats = ref(HDFS_STORAGE_FORMATS);
   const compressFormats = ref(HDFS_COMPRESS_FORMATS);
-  const targetEndpoints = ref<{ label: string; value: number; targetType: string }[]>([]);
+  const targetEndpoints = ref<
+    {
+      label: string;
+      value: number;
+      targetType: string;
+      writerTemplateKey?: string;
+      connectConfig?: string;
+    }[]
+  >([]);
   const targetId = ref<number | null>(null);
   const schemaManagementMode = ref<'MANAGED' | 'EXTERNAL'>('MANAGED');
   const reviewRows = ref<CollectionPlanReviewRow[]>([]);
@@ -330,8 +337,12 @@
     return invalid ? reviewRowIssueLabel(reviewRowIssue(invalid)) : '';
   });
 
-  const selectedTargetType = computed(
-    () => targetEndpoints.value.find(t => t.value === targetId.value)?.targetType
+  const selectedTarget = computed(() =>
+    targetEndpoints.value.find(t => t.value === targetId.value)
+  );
+  const selectedTargetType = computed(() => selectedTarget.value?.targetType);
+  const selectedTargetFamily = computed(() =>
+    targetFamily(selectedTarget.value?.writerTemplateKey, selectedTarget.value?.targetType)
   );
   const selectedSourceLabel = computed(() =>
     selectedSourceId.value
@@ -348,10 +359,8 @@
   };
 
   // Hive folds table names to lower case; an RDBMS target keeps them case-sensitive.
-  const targetNameKey = (name: string) => {
-    const type = (selectedTargetType.value || '').toUpperCase();
-    return type === '' || type === 'HDFS' || type === 'HIVE' ? name.toLowerCase() : name;
-  };
+  const targetNameKey = (name: string) =>
+    selectedTargetFamily.value === 'hdfs' ? name.toLowerCase() : name;
 
   // Why: a template without ${table} silently maps several sources onto one target table.
   const duplicateTargetNames = computed(() => {
@@ -503,7 +512,11 @@
           newItem.sourceDb = dbName;
           newItem.sourceTable = element.name;
           newItem.targetDb = routeTargetDb;
-          newItem.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
+          newItem.targetOptions = pickTargetOptions(
+            tableOptions.value,
+            targetEndpoints.value.find(t => t.value === targetId.value)?.writerTemplateKey,
+            selectedTargetType.value
+          );
           newItem.targetId = routeTargetId;
           newItem.targetTable = element.name;
           newItem.tblComment = element.comment || '';
@@ -563,7 +576,11 @@
     const itemsToSave = selectedTables.value.map(item => {
       const s = { ...item };
       s.targetDb = targetDb.value.trim();
-      s.targetOptions = pickTargetOptions(tableOptions.value, selectedTargetType.value);
+      s.targetOptions = pickTargetOptions(
+        tableOptions.value,
+        targetEndpoints.value.find(t => t.value === targetId.value)?.writerTemplateKey,
+        selectedTargetType.value
+      );
       s.targetId = targetId.value;
       s.schemaManagementMode = schemaManagementMode.value;
       if (!s.targetTable) s.targetTable = s.sourceTable;
@@ -672,24 +689,32 @@
             label: `${t.name} (${t.targetType})`,
             value: t.id as number,
             targetType: t.targetType,
+            writerTemplateKey: t.writerTemplateKey,
+            connectConfig: t.connectConfig,
           }));
         if (targetEndpoints.value.length > 0) targetId.value = targetEndpoints.value[0].value;
+        applyTargetDefaults();
       })
       .catch(error => notify(`获取目标端列表失败: ${error}`, 'error'))
       .finally(() => {
         loadingTargets.value = false;
       });
-
-    dictService
-      .getHdfsStorageDefaults()
-      .then(res => {
-        tableOptions.value.hdfs.storageFormat = res.storageFormat;
-        tableOptions.value.hdfs.compressFormat = res.compressFormat;
-      })
-      .catch(() => {
-        // Why: storage defaults are optional; the form still works with the built-in values.
-      });
   });
+
+  // New-table storage defaults belong to the selected target endpoint, not to a global setting.
+  const applyTargetDefaults = () => {
+    const config = selectedTarget.value?.connectConfig;
+    if (!config) return;
+    try {
+      const parsed = JSON.parse(config);
+      if (parsed.storageFormat) tableOptions.value.hdfs.storageFormat = parsed.storageFormat;
+      if (parsed.compressFormat) tableOptions.value.hdfs.compressFormat = parsed.compressFormat;
+    } catch {
+      // Why: an invalid connect config is reported by the target page; the wizard keeps its defaults.
+    }
+  };
+
+  watch(targetId, applyTargetDefaults);
 
   onBeforeUnmount(() => {
     window.removeEventListener('beforeunload', onBeforeUnload);

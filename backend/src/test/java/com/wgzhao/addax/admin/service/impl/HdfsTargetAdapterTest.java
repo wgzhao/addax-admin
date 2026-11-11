@@ -6,12 +6,12 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class TargetServiceWithHiveImplTest
+class HdfsTargetAdapterTest
 {
     @Test
     void removesPartitionColumnRepeatedInTheDescribeColumnSection()
     {
-        var description = TargetServiceWithHiveImpl.parseHiveDescription(List.of(
+        var description = HdfsTargetAdapter.parseHiveDescription(List.of(
             row("id", "decimal(19,0)", ""),
             row("update_time", "string", "更新时间"),
             // Hive's JDBC driver repeats partition columns before the separator row.
@@ -28,9 +28,9 @@ class TargetServiceWithHiveImplTest
             .toList());
     }
 
-    private static TargetServiceWithHiveImpl.HiveDescriptionRow row(
+    private static HdfsTargetAdapter.HiveDescriptionRow row(
         String name, String type, String comment)
     {
-        return new TargetServiceWithHiveImpl.HiveDescriptionRow(name, type, comment);
+        return new HdfsTargetAdapter.HiveDescriptionRow(name, type, comment);
     }
 }

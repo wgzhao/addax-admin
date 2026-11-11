@@ -1,8 +1,7 @@
 import type { EtlTargetOptions } from '@/types/database';
 
-// Fallbacks for a table whose bag does not carry the attribute yet. They must match the backend's
-// documented defaults (the Java defaults / the legacy column defaults): the effective defaults for a new
-// table come from the HDFS settings (HDFS_STORAGE_FORMAT / HDFS_COMPRESS_FORMAT), which BatchAdd loads.
+// Fallbacks for a table whose bag does not carry the attribute yet. They are Hive-family product
+// defaults; the effective defaults for a new table come from the selected target endpoint.
 const DEFAULT_HDFS_OPTIONS = {
   partKind: 'D',
   partName: 'logdate',
@@ -24,15 +23,23 @@ const DEFAULT_RDBMS_OPTIONS = {
   createPrimaryKey: true,
 };
 
-export type TargetFamily = 'hdfs' | 'rdbms';
+export type TargetFamily = 'hdfs' | 'rdbms' | 'unknown';
 
 /**
- * Hive/HDFS is the default target, so an unknown or blank target type keeps the historical behaviour.
+ * The writer template key is authoritative. target_type is a display label that may lag behind a
+ * connection change, and a blank/unknown target must not silently inherit the Hive form.
  */
-export function targetFamily(targetType?: string | null): TargetFamily {
+export function targetFamily(
+  writerTemplateKey?: string | null,
+  targetType?: string | null
+): TargetFamily {
+  const key = (writerTemplateKey || '').trim().toUpperCase();
+  if (key === 'WH') return 'hdfs';
+  if (key === 'WR') return 'rdbms';
   const type = (targetType || '').trim().toUpperCase();
-  if (type === 'HDFS' || type === 'HIVE' || type === '') return 'hdfs';
-  return 'rdbms';
+  if (type === 'HDFS' || type === 'HIVE') return 'hdfs';
+  if (['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'].includes(type)) return 'rdbms';
+  return 'unknown';
 }
 
 /**
@@ -65,10 +72,11 @@ export function normalizeTargetOptions(
  */
 export function pickTargetOptions(
   options?: Partial<EtlTargetOptions> | null,
+  writerTemplateKey?: string | null,
   targetType?: string | null
 ): Partial<EtlTargetOptions> {
+  const family = targetFamily(writerTemplateKey, targetType);
+  if (family === 'unknown') return {};
   const normalized = normalizeTargetOptions(options);
-  return targetFamily(targetType) === 'hdfs'
-    ? { hdfs: normalized.hdfs }
-    : { rdbms: normalized.rdbms };
+  return family === 'hdfs' ? { hdfs: normalized.hdfs } : { rdbms: normalized.rdbms };
 }

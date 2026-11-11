@@ -23,7 +23,8 @@ import java.util.Map;
 import com.wgzhao.addax.admin.service.source.ReaderJobContext;
 import com.wgzhao.addax.admin.service.source.SourceAdapter;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
-import com.wgzhao.addax.admin.service.target.TargetTypeResolver;
+import com.wgzhao.addax.admin.common.TargetFamily;
+import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
@@ -48,10 +49,9 @@ public class JobContentService
     private final EtlJourService jourService;
     private final VwEtlTableWithSourceRepo vwEtlTableWithSourceRepo;
     private final SystemConfigService configService;
-    private final TargetService targetService;
+    private final TargetAdapterRegistry targetAdapterRegistry;
     private final StatService statService;
     private final ObjectMapper objectMapper;
-    private final TargetTypeResolver targetTypeResolver;
     private final CalendarService calendarService;
     private final SourceAdapterRegistry sourceAdapterRegistry;
 
@@ -93,7 +93,7 @@ public class JobContentService
 
         Map<String, String> values = new HashMap<>();
         values.put("reader", buildReaderJob(etlTable, dateValues, fillbackLastEtlDate));
-        values.put("writer", targetService.buildWriterJobForDate(etlTable, targetDate));
+        values.put("writer", targetAdapterRegistry.resolve(etlTable).buildWriterJobForDate(etlTable, targetDate));
 
         String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
@@ -118,7 +118,7 @@ public class JobContentService
 
         Map<String, String> values = new HashMap<>();
         values.put("reader", buildReaderJob(etlTable, configService.getBizDateValues(), null));
-        values.put("writer", targetService.buildWriterJob(etlTable));
+        values.put("writer", targetAdapterRegistry.resolve(etlTable).buildWriterJob(etlTable));
 
         String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
@@ -139,8 +139,8 @@ public class JobContentService
      */
     private String resolveJobTemplate(VwEtlTableWithSource etlTable)
     {
-        String family = targetTypeResolver.resolveAdapterType(etlTable == null ? null : etlTable.getId());
-        if ("HDFS".equalsIgnoreCase(family))
+        TargetFamily family = targetAdapterRegistry.resolve(etlTable).getFamily();
+        if (family == TargetFamily.HDFS)
         {
             return configService.getRdbms2HdfsJobTemplate();
         }
@@ -237,7 +237,7 @@ public class JobContentService
         }
 
         ReaderJobContext context = new ReaderJobContext(dateValues, lastEtlDate, partValue, mappings,
-            (column, part) -> targetService.getMaxValue(table, column, part));
+            (column, part) -> targetAdapterRegistry.resolve(table).getMaxValue(table, column, part));
         ObjectNode reader = adapter.buildReaderJob(table, context);
         if (reader.get("parameter") instanceof ObjectNode parameter)
         {

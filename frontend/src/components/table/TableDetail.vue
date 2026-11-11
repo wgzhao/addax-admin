@@ -37,6 +37,7 @@
         v-model:writer-plugin-config-text="writerPluginConfigText"
         :target-options="targetOptions"
         :target-type="selectedTargetType"
+        :writer-template-key="selectedTargetWriterKey"
         @show-placeholder-help="showPlaceholderInfo = true"
         @show-filter-help="showFilterRuleInfo = true"
       />
@@ -72,7 +73,14 @@
   // cast: unplugin-vue-router does not type custom route-block path params
   const tid = computed(() => Number((route.params as Record<string, string>).tid));
 
-  const targetOptions = ref<{ label: string; value: number; targetType: string }[]>([]);
+  const targetOptions = ref<
+    {
+      label: string;
+      value: number;
+      targetType: string;
+      writerTemplateKey?: string;
+    }[]
+  >([]);
 
   // Render with a normalized options bag so the target-specific fields always have an object to bind to.
   const table = ref<VEtlWithSource>({ targetOptions: normalizeTargetOptions() } as VEtlWithSource);
@@ -143,6 +151,11 @@
     return picked?.targetType || table.value.targetType;
   });
 
+  const selectedTargetWriterKey = computed(() => {
+    const picked = targetOptions.value.find(t => t.value === table.value.targetId);
+    return picked?.writerTemplateKey || table.value.targetWriterTemplateKey;
+  });
+
   const isRetired = computed(() => !!table.value.retiredAt);
 
   const loadDetail = async () => {
@@ -175,6 +188,7 @@
           label: `${t.name} (${t.targetType})`,
           value: t.id as number,
           targetType: t.targetType,
+          writerTemplateKey: t.writerTemplateKey,
         }));
     } catch {
       notify('加载目标端列表失败', 'warning');
@@ -233,7 +247,11 @@
       // Merge over the stored bag: switching target families must not drop the other family's settings.
       targetOptions: {
         ...storedOptions.value,
-        ...pickTargetOptions(table.value.targetOptions, selectedTargetType.value),
+        ...pickTargetOptions(
+          table.value.targetOptions,
+          selectedTargetWriterKey.value,
+          selectedTargetType.value
+        ),
       },
       splitPk: table.value.splitPk,
       autoPk: table.value.autoPk,

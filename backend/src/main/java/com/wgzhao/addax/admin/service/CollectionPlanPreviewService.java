@@ -21,7 +21,7 @@ import com.wgzhao.addax.admin.service.source.ColumnTypeMapping;
 import com.wgzhao.addax.admin.service.source.SourceAdapter;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.source.SourceField;
-import com.wgzhao.addax.admin.service.source.TargetFamily;
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.service.source.TypePurpose;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
@@ -218,7 +218,7 @@ public class CollectionPlanPreviewService
         int ordinal = 0;
         for (SourceColumnMetadata source : sourceColumns)
         {
-            boolean primaryKey = "RDBMS".equalsIgnoreCase(adapter.getType())
+            boolean primaryKey = adapter.getFamily() == TargetFamily.RDBMS
                 && createPrimaryKey(request.targetOptions()) && source.primaryKey();
             String targetName = source.suggestedTargetName() == null || source.suggestedTargetName().isBlank()
                 ? source.name() : source.suggestedTargetName();
@@ -226,7 +226,7 @@ public class CollectionPlanPreviewService
                 targetName, source.name(), targetType(request, adapter, source),
                 source.nullable(), primaryKey, source.comment(), "SOURCE", ++ordinal));
         }
-        if ("RDBMS".equalsIgnoreCase(adapter.getType()))
+        if (adapter.getFamily() == TargetFamily.RDBMS)
         {
             String businessDateColumn = businessDateColumn(request.targetOptions());
             if (businessDateColumn != null && columns.stream()
@@ -254,8 +254,7 @@ public class CollectionPlanPreviewService
         }
         if (sourceAdapter != null && !SourceAdapterRegistry.RDBMS_TYPE.equals(sourceAdapter.getType()))
         {
-            TargetFamily family = "HDFS".equalsIgnoreCase(adapter.getType())
-                ? TargetFamily.HDFS : TargetFamily.RDBMS;
+            TargetFamily family = adapter.getFamily();
             SourceField field = new SourceField(source.name(), source.type(), source.type(),
                 source.size(), source.precision(), source.scale(), source.comment(),
                 source.nullable(), source.primaryKey(), source.suggestedTargetName(),
@@ -264,7 +263,7 @@ public class CollectionPlanPreviewService
                 targetDialect(request.targetId()), TypePurpose.PLANNED_DDL);
             return mapping.targetTypeFull();
         }
-        if (!"HDFS".equalsIgnoreCase(adapter.getType()))
+        if (adapter.getFamily() != TargetFamily.HDFS)
         {
             return RdbmsDdlUtil.renderType(targetDialect(request.targetId()), source.type(),
                 source.size(), source.precision() == null ? source.size() : source.precision(),
@@ -284,7 +283,7 @@ public class CollectionPlanPreviewService
     private List<TargetTableMetadata.TargetPartition> plannedPartitions(
         CollectionSchemaPreviewRequest request, TargetAdapter adapter)
     {
-        if (!"HDFS".equalsIgnoreCase(adapter.getType()))
+        if (adapter.getFamily() != TargetFamily.HDFS)
         {
             return List.of();
         }
@@ -296,7 +295,7 @@ public class CollectionPlanPreviewService
     private String buildManagedDdl(CollectionSchemaPreviewRequest request, TargetAdapter adapter,
         List<CollectionPlanPreview.PlannedTargetColumn> columns)
     {
-        if (!"RDBMS".equalsIgnoreCase(adapter.getType()))
+        if (adapter.getFamily() != TargetFamily.RDBMS)
         {
             String partitions = plannedPartitions(request, adapter).isEmpty()
                 ? ""
@@ -372,7 +371,7 @@ public class CollectionPlanPreviewService
         CollectionSchemaPreviewRequest request, TargetAdapter targetAdapter,
         List<SourceColumnMetadata> sourceColumns)
     {
-        if (!"RDBMS".equalsIgnoreCase(targetAdapter.getType()))
+        if (targetAdapter.getFamily() != TargetFamily.RDBMS)
         {
             return null;
         }

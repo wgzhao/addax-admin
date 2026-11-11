@@ -77,7 +77,29 @@ yarn build
 - 检查数据库用户是否有 `ALTER TABLE`、`CREATE OR REPLACE VIEW` 权限。
 - 修复后重新启动，迁移会再次尝试。
 
+## HiveServer2 / HDFS 配置迁移（目标端化）
+
+从旧版本升级时，服务启动会把全局 `HIVE_SERVER2`、`HDFS_PREFIX`、`HDFS_STORAGE_FORMAT`、
+`HDFS_COMPRESS_FORMAT`、`HDFS_CONFIG` 以及 `wH` 模板中的 `defaultFS`/`hdfsSitePath` 合并进每个
+HDFS 目标端的 `connect_config`：
+
+- 只补缺失键，目标端已有的配置不会被覆盖；
+- 旧 `sys_item` 行保留，但系统配置接口和页面不再展示；
+- 目标端缺少 `writer_template_key` 时补 `wH`。
+
+**驱动**：迁移会把旧 `HIVE_SERVER2.driverPath` 一并保留到 HDFS 目标端，因此升级后 Hive 操作通常
+可以继续使用原来的 standalone jar。新目标端建议把普通 `hive-jdbc*.jar` 放到 `${APP_HOME}/drivers`
+（Docker 为 `/app/drivers`）；如果驱动 jar 打包了自己的 Tomcat/SLF4J、无法放入 `drivers/`，在目标端的
+「驱动 jar 路径」里单独指定即可。驱动缺失时接口返回 400 并提示驱动目录。
+
+升级后检查：
+
+1. 目标端管理里每个 HDFS 目标端都有 HiveServer2 地址、`defaultFS` 和 HDFS 前缀；
+2. 点击「测试连接」返回成功；
+3. 执行一次表结构刷新，确认建表和分区正常。
+
 ## 回滚
+
 
 1. 停止应用：
 

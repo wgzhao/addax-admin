@@ -1,9 +1,6 @@
 <template>
   <div class="sys-settings-page page-shell">
-    <PageHeader
-      title="系统配置"
-      subtitle="运行路径、Hive 连接、执行并发与作业模板。修改后需保存才会生效。"
-    >
+    <PageHeader title="系统配置" subtitle="运行路径、执行并发与作业模板。修改后需保存才会生效。">
       <v-chip
         v-if="!loading"
         size="small"
@@ -30,10 +27,10 @@
 
     <div v-if="loading" class="settings-shell">
       <div class="settings-rail rail-skeleton">
-        <div v-for="n in 4" :key="n" class="ds-skeleton" style="height: 54px; margin-bottom: 8px" />
+        <div v-for="n in 3" :key="n" class="ds-skeleton" style="height: 54px; margin-bottom: 8px" />
       </div>
       <div class="settings-main">
-        <div v-for="n in 4" :key="n" class="ds-card skeleton-card">
+        <div v-for="n in 3" :key="n" class="ds-card skeleton-card">
           <div class="ds-skeleton" style="height: 20px; width: 30%" />
           <div class="ds-skeleton" style="height: 44px; margin-top: 16px" />
           <div class="ds-skeleton" style="height: 44px; margin-top: 12px" />
@@ -72,7 +69,7 @@
               <span class="setting-mark"><v-icon size="20">mdi-tune-variant</v-icon></span>
               <div class="setting-heading">
                 <h2>运行基础</h2>
-                <p>Addax 安装位置、HDFS 落库默认值，以及业务日切换时刻。</p>
+                <p>Addax 安装位置与业务日切换时刻。</p>
               </div>
             </header>
             <div class="field-grid">
@@ -88,19 +85,6 @@
                   :rules="[rules.required]"
                 />
                 <p class="field-help">调度进程通过该目录调用 Addax 可执行文件。</p>
-              </div>
-
-              <div class="field">
-                <label class="field-label" for="cfg-hdfs-prefix">HDFS 目录前缀</label>
-                <v-text-field
-                  id="cfg-hdfs-prefix"
-                  v-model="settings['HDFS_PREFIX']"
-                  placeholder="/ods"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details="auto"
-                  :rules="[rules.required]"
-                />
               </div>
 
               <div class="field">
@@ -120,33 +104,6 @@
                   </template>
                 </v-text-field>
                 <p class="field-help">切日之前启动的任务仍计入上一业务日。</p>
-              </div>
-
-              <div class="field">
-                <label class="field-label" for="cfg-storage">默认 HDFS 存储格式</label>
-                <v-select
-                  id="cfg-storage"
-                  v-model="settings['HDFS_STORAGE_FORMAT']"
-                  :items="storageFormats"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details="auto"
-                  :rules="[rules.required]"
-                />
-                <p class="field-help">新建采集表时作为默认值。</p>
-              </div>
-
-              <div class="field">
-                <label class="field-label" for="cfg-compress">默认压缩格式</label>
-                <v-select
-                  id="cfg-compress"
-                  v-model="settings['HDFS_COMPRESS_FORMAT']"
-                  :items="compressFormats"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details="auto"
-                  :rules="[rules.required]"
-                />
               </div>
             </div>
           </section>
@@ -196,105 +153,6 @@
             </div>
           </section>
         </div>
-
-        <section id="cfg-hive" class="ds-card setting-card">
-          <header class="setting-head">
-            <span class="setting-mark"><v-icon size="20">mdi-database-cog-outline</v-icon></span>
-            <div class="setting-heading">
-              <h2>HiveServer2 连接</h2>
-              <p>用于建表、表结构比对与结果校验，连接串变更后建议先测试。</p>
-            </div>
-            <div class="setting-head-actions">
-              <v-chip
-                v-if="connectionState"
-                size="small"
-                :color="connectionState.ok ? 'success' : 'error'"
-                variant="tonal"
-                :prepend-icon="connectionState.ok ? 'mdi-check-circle' : 'mdi-alert-circle'"
-              >
-                {{ connectionState.ok ? '连接正常' : '连接失败' }}
-              </v-chip>
-              <v-btn
-                variant="tonal"
-                size="small"
-                prepend-icon="mdi-lan-connect"
-                :loading="testingConnection"
-                @click="testHiveConnection"
-              >
-                测试连接
-              </v-btn>
-            </div>
-          </header>
-          <div class="field-grid">
-            <div class="field span-2">
-              <label class="field-label" for="cfg-hive-url">JDBC 连接地址</label>
-              <v-text-field
-                id="cfg-hive-url"
-                v-model="hiveServer2Config.url"
-                placeholder="jdbc:hive2://nn01:10000"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                :rules="[rules.required, rules.jdbcUrl]"
-              />
-            </div>
-
-            <div class="field">
-              <label class="field-label" for="cfg-hive-user">用户名</label>
-              <v-text-field
-                id="cfg-hive-user"
-                v-model="hiveServer2Config.username"
-                placeholder="hive"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                :rules="[rules.required]"
-              />
-            </div>
-
-            <div class="field">
-              <label class="field-label" for="cfg-hive-password">密码</label>
-              <v-text-field
-                id="cfg-hive-password"
-                v-model="hiveServer2Config.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="请输入密码"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                autocomplete="new-password"
-                :append-inner-icon="showPassword ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
-                @click:append-inner="showPassword = !showPassword"
-              />
-            </div>
-
-            <div class="field">
-              <label class="field-label" for="cfg-hive-driver">驱动类名</label>
-              <v-text-field
-                id="cfg-hive-driver"
-                v-model="hiveServer2Config.driverClassName"
-                placeholder="org.apache.hive.jdbc.HiveDriver"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                :rules="[rules.required]"
-              />
-            </div>
-
-            <div class="field">
-              <label class="field-label" for="cfg-hive-driver-path">驱动路径</label>
-              <v-text-field
-                id="cfg-hive-driver-path"
-                v-model="hiveServer2Config.driverPath"
-                placeholder="/opt/app/lib/hive-jdbc.jar"
-                variant="outlined"
-                density="comfortable"
-                hide-details="auto"
-                :rules="[rules.required]"
-              />
-            </div>
-          </div>
-        </section>
 
         <section id="cfg-template" class="ds-card setting-card template-card">
           <header class="setting-head">
@@ -423,11 +281,10 @@
 <script setup lang="ts">
   import PageHeader from '@/components/PageHeader.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
-  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
   import { onBeforeRouteLeave } from 'vue-router';
   import { notify } from '@/stores/notifier';
-  import settingsService, { type HiveServer2Config } from '@/service/settings-service';
-  import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants';
+  import settingsService from '@/service/settings-service';
   import { SysItem } from '@/types/database';
 
   type TemplateKey = 'R2H' | 'rR' | 'wH';
@@ -436,36 +293,15 @@
   const loading = ref(true);
   const loadError = ref(false);
   const saving = ref(false);
-  const testingConnection = ref(false);
-  const showPassword = ref(false);
   const validationFailed = ref(false);
 
   const settings = ref<any>({});
   const originalSwitchTime = ref<string>('');
 
-  const storageFormats = HDFS_STORAGE_FORMATS;
-  const compressFormats = HDFS_COMPRESS_FORMATS;
-
-  const hiveServer2Config = ref<HiveServer2Config>({
-    url: '',
-    username: '',
-    password: '',
-    driverClassName: '',
-    driverPath: '',
-  });
-
   const templates = ref<Map<string, SysItem>>(new Map());
   const rRJobTemplate = ref<string>('');
   const wHJobTemplate = ref<string>('');
   const R2HJobTemplate = ref<string>('');
-
-  const EMPTY_HIVE: HiveServer2Config = {
-    url: '',
-    username: '',
-    password: '',
-    driverClassName: '',
-    driverPath: '',
-  };
 
   const templateTabs: Array<{ key: TemplateKey; label: string; doc: string }> = [
     { key: 'R2H', label: '采集主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
@@ -500,28 +336,13 @@
 
   // Why: a single baseline keeps dirty tracking and "discard" cheap and exact
   const baseline = ref('');
-  const EDITABLE_SETTING_KEYS = [
-    'ADDAX',
-    'HDFS_PREFIX',
-    'SWITCH_TIME',
-    'HDFS_STORAGE_FORMAT',
-    'HDFS_COMPRESS_FORMAT',
-    'CONCURRENT_LIMIT',
-    'QUEUE_SIZE',
-  ];
+  const EDITABLE_SETTING_KEYS = ['ADDAX', 'SWITCH_TIME', 'CONCURRENT_LIMIT', 'QUEUE_SIZE'];
 
   const snapshot = () =>
     JSON.stringify({
       settings: Object.fromEntries(
         EDITABLE_SETTING_KEYS.map(key => [key, String(settings.value[key] ?? '')])
       ),
-      hive: {
-        url: hiveServer2Config.value.url ?? '',
-        username: hiveServer2Config.value.username ?? '',
-        password: hiveServer2Config.value.password ?? '',
-        driverClassName: hiveServer2Config.value.driverClassName ?? '',
-        driverPath: hiveServer2Config.value.driverPath ?? '',
-      },
       templates: [R2HJobTemplate.value, rRJobTemplate.value, wHJobTemplate.value],
     });
 
@@ -541,9 +362,6 @@
     let count = 0;
     for (const key of EDITABLE_SETTING_KEYS) {
       if (before.settings[key] !== after.settings[key]) count += 1;
-    }
-    for (const key of Object.keys(after.hive)) {
-      if (before.hive[key] !== after.hive[key]) count += 1;
     }
     after.templates.forEach((value: string, index: number) => {
       if (before.templates[index] !== value) count += 1;
@@ -567,20 +385,13 @@
 
   const sectionDirty = computed<Record<string, boolean>>(() => {
     if (!diff.value) {
-      return { 'cfg-basic': false, 'cfg-hive': false, 'cfg-perf': false, 'cfg-template': false };
+      return { 'cfg-basic': false, 'cfg-perf': false, 'cfg-template': false };
     }
     const { before, after } = diff.value;
     const changed = (keys: string[]) =>
       keys.some(key => before.settings[key] !== after.settings[key]);
     return {
-      'cfg-basic': changed([
-        'ADDAX',
-        'HDFS_PREFIX',
-        'SWITCH_TIME',
-        'HDFS_STORAGE_FORMAT',
-        'HDFS_COMPRESS_FORMAT',
-      ]),
-      'cfg-hive': Object.keys(after.hive).some(key => before.hive[key] !== after.hive[key]),
+      'cfg-basic': changed(['ADDAX', 'SWITCH_TIME']),
       'cfg-perf': changed(['CONCURRENT_LIMIT', 'QUEUE_SIZE']),
       'cfg-template': after.templates.some(
         (value: string, index: number) => before.templates[index] !== value
@@ -588,19 +399,12 @@
     };
   });
 
-  const hiveHost = computed(() => {
-    const match = /^jdbc:hive2:\/\/([^/;]+)/.exec(hiveServer2Config.value.url || '');
-    return match?.[1] || '未配置连接串';
-  });
-
   const sections = computed(() => [
     {
       id: 'cfg-basic',
       index: '01',
       label: '运行基础',
-      meta: `切日 ${settings.value['SWITCH_TIME'] || '--:--'} · ${
-        settings.value['HDFS_STORAGE_FORMAT'] || '默认存储'
-      }`,
+      meta: `切日 ${settings.value['SWITCH_TIME'] || '--:--'}`,
     },
     {
       id: 'cfg-perf',
@@ -610,10 +414,9 @@
         settings.value['QUEUE_SIZE'] ?? '-'
       }`,
     },
-    { id: 'cfg-hive', index: '03', label: 'HiveServer2', meta: hiveHost.value },
     {
       id: 'cfg-template',
-      index: '04',
+      index: '03',
       label: '作业模板',
       meta: `${
         [R2HJobTemplate, rRJobTemplate, wHJobTemplate].filter(item => item.value.trim()).length
@@ -763,8 +566,6 @@
     return diff.value.before.templates[index] !== diff.value.after.templates[index];
   };
 
-  const connectionState = ref<{ ok: boolean; message: string } | null>(null);
-
   const rules = {
     required: (value: any) => {
       if (typeof value === 'number') return value !== null && value !== undefined;
@@ -779,36 +580,7 @@
       const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
       return timeRegex.test(value) || '时间格式不正确，请使用 HH:mm 格式（如：16:30）';
     },
-    jdbcUrl: (value: string) => {
-      if (!value) return '此字段为必填项';
-      const jdbcRegex = /^jdbc:hive2:\/\/.+$/;
-      return jdbcRegex.test(value) || 'JDBC 地址应以 jdbc:hive2:// 开头';
-    },
   };
-
-  const testHiveConnection = async () => {
-    testingConnection.value = true;
-    connectionState.value = null;
-    try {
-      const res = await settingsService.testHiveConnection(hiveServer2Config.value);
-      connectionState.value = { ok: true, message: res.data || '连接成功' };
-      notify(res.data || '连接成功', 'success');
-    } catch (error: any) {
-      connectionState.value = { ok: false, message: error?.message || '连接失败' };
-      notify(error?.message || error || '连接失败', 'error');
-    } finally {
-      testingConnection.value = false;
-    }
-  };
-
-  // Why: a stale "connection ok" badge after editing the URL is worse than none
-  watch(
-    hiveServer2Config,
-    () => {
-      connectionState.value = null;
-    },
-    { deep: true }
-  );
 
   const jumpTo = (id: string) => {
     activeSection.value = id;
@@ -866,8 +638,6 @@
       focusFirstError();
       return;
     }
-
-    settings.value['HIVE_SERVER2'] = JSON.stringify(hiveServer2Config.value);
 
     saving.value = true;
     try {
@@ -939,7 +709,6 @@
     for (const key of EDITABLE_SETTING_KEYS) {
       settings.value[key] = saved.settings[key];
     }
-    hiveServer2Config.value = { ...saved.hive };
     R2HJobTemplate.value = saved.templates[0];
     rRJobTemplate.value = saved.templates[1];
     wHJobTemplate.value = saved.templates[2];
@@ -965,26 +734,6 @@
       rRJobTemplate.value = templates.value.get('rR')?.itemValue || '';
       wHJobTemplate.value = templates.value.get('wH')?.itemValue || '';
       R2HJobTemplate.value = templates.value.get('R2H')?.itemValue || '';
-
-      if (!settings.value['HDFS_STORAGE_FORMAT']) {
-        settings.value['HDFS_STORAGE_FORMAT'] = storageFormats[0];
-      }
-      if (!settings.value['HDFS_COMPRESS_FORMAT']) {
-        settings.value['HDFS_COMPRESS_FORMAT'] = compressFormats[0];
-      }
-
-      if (loadedSettings['HIVE_SERVER2']) {
-        if (typeof loadedSettings['HIVE_SERVER2'] === 'string') {
-          try {
-            hiveServer2Config.value = JSON.parse(loadedSettings['HIVE_SERVER2']);
-          } catch (error) {
-            console.error('解析 HIVE_SERVER2 配置失败:', error);
-            hiveServer2Config.value = { ...EMPTY_HIVE };
-          }
-        } else {
-          hiveServer2Config.value = loadedSettings['HIVE_SERVER2'];
-        }
-      }
 
       if (typeof settings.value['SWITCH_TIME'] === 'string') {
         originalSwitchTime.value = settings.value['SWITCH_TIME'];

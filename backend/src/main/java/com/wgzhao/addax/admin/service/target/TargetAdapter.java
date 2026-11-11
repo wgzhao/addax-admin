@@ -1,6 +1,8 @@
 package com.wgzhao.addax.admin.service.target;
 
+import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
+import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 
 import java.time.LocalDate;
@@ -17,6 +19,26 @@ public interface TargetAdapter
     String getType();
 
     /**
+     * 目标族。调用方用它决定表结构/属性展示，不再比较 {@link #getType()} 字符串。
+     */
+    TargetFamily getFamily();
+
+    /**
+     * Validate a target endpoint before it is saved. Default: nothing beyond connectivity parsing.
+     */
+    default void validateForSave(EtlTarget target)
+    {
+    }
+
+    /**
+     * Test the connection described by the target payload (saved or unsaved).
+     */
+    default void testConnection(EtlTarget target)
+    {
+        throw new UnsupportedOperationException("Target type " + getType() + " does not support connection tests");
+    }
+
+    /**
      * Whether this target carries a per-day value: HDFS uses its partition column, RDBMS uses the
      * snapshot business date column. Generic code asks this capability instead of reading Hive fields,
      * so a target without a date dimension is never treated as if it had one.
@@ -25,8 +47,6 @@ public interface TargetAdapter
     {
         return false;
     }
-
-    boolean addPartition(long taskId, String db, String table, String partName, String partValue);
 
     boolean createOrUpdateTable(VwEtlTableWithSource etlTable);
 

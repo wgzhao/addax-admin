@@ -15,6 +15,8 @@ public interface EtlTableRepo
 {
     List<EtlTable> findBySid(int sid);
 
+    long countByTargetId(Long targetId);
+
     @Query(value = """
         select count(t.id) from VwEtlTableWithSource t
         where t.status not in ( 'X' ,'U')

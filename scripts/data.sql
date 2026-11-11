@@ -22,18 +22,12 @@ INSERT INTO public.sys_dict (code, name, classification, remark) VALUES
 
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (1000, 'HDFS_PREFIX', '/ods', 'HDFS 目录前缀'),
-        (1000, 'HIVE_CLI', 'hive', 'HIVE 命令行'),
-        (1000, 'RUN_LOG', '/var/tmp/log', '运行日志目录'),
+values  (1000, 'RUN_LOG', '/var/tmp/log', '运行日志目录'),
         (1000, 'CONCURRENT_LIMIT', '30', '最大采集并发数量'),
         (1000, 'ADDAX', '/opt/app/addax', 'Addax程序目录'),
         (1000, 'QUEUE_SIZE', '40', '采集队列长度'),
         (1000, 'SWITCH_TIME', '16:20', '切日时间'),
-        (1000, 'HDFS_COMPRESS_FORMAT', 'lz4', '存储 压缩格式，默认 lz4，可选 gz, snappy,zstd'),
-        (1000, 'HDFS_STORAGE_FORMAT', 'orc', '存储格式，默认 ORC，可选 parquet'),
-        (1000, 'SCHEMA_REFRESH_TIMEOUT', '600', '表结构刷新超时秒数'),
-        (1000, 'HDFS_CONFIG', '{"defaultFS":"hdfs://cluster","hdfsPrefix":"/ods/","enableKerberos":false,"enableHA":true,"hdfsSitePath":"/etc/hadoop/conf/hdfs-site.xml"}', 'HDFS 配置'),
-        (1000, 'HIVE_SERVER2', '{"url":"jdbc:hive2://nn01:10000/default","username":"hive","password":"","driverClassName":"org.apache.hive.jdbc.HiveDriver","driverPath":"/usr/hdp/current/hive-client/jdbc/hive-jdbc-3.1.0.3.1.4.0-315-standalone.jar"}', null);
+        (1000, 'SCHEMA_REFRESH_TIMEOUT', '600', '表结构刷新超时秒数');
 
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
@@ -148,12 +142,4 @@ values  (5001, 'rR', '{
 
 select insert_dates_for_year(extract('year' from now())::integer, 1021);
 
-insert into public.etl_target (code, name, target_type, enabled, is_default, remark)
-values ('DEFAULT_HDFS', '默认HDFS目标端', 'HDFS', true, true, '系统初始化默认目标端')
-on conflict (code) do nothing;
-
-update public.etl_table t
-set target_id = tt.id
-from public.etl_target tt
-where tt.code = 'DEFAULT_HDFS'
-  and t.target_id is null;
+-- Targets are user-configured resources: HDFS is no longer seeded as the implicit default.

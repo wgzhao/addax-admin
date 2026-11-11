@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service.target;
 
+import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -9,8 +10,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.wgzhao.addax.admin.common.Constants.DEFAULT_TARGET_TYPE;
 
 /**
  * 目标端适配器注册中心。
@@ -37,22 +36,26 @@ public class TargetAdapterRegistry
     public TargetAdapter resolve(VwEtlTableWithSource table)
     {
         String targetType = table == null
-            ? targetTypeResolver.resolveAdapterType(null)
+            ? targetTypeResolver.resolveAdapterType((Long) null)
             : table.getId() == null
                 ? targetTypeResolver.resolveAdapterTypeByTargetId(table.getTargetId())
-                : targetTypeResolver.resolveTargetType(table.getId());
+                : targetTypeResolver.resolveAdapterType(table.getId());
         return getByType(targetType);
     }
 
-    public TargetAdapter resolveDefault()
+    /**
+     * Resolve for target CRUD/test-connection, where only the target row exists.
+     */
+    public TargetAdapter resolveForTarget(EtlTarget target)
     {
-        return getByType(DEFAULT_TARGET_TYPE);
+        return getByType(targetTypeResolver.resolveAdapterType(target));
     }
 
     public TargetAdapter getByType(String type)
     {
         TargetAdapter adapter = adaptersByType.get(normalize(type));
-        if (adapter == null) {
+        if (adapter == null)
+        {
             throw new IllegalStateException("No target adapter found for type: " + type
                 + ". Registered types: " + adaptersByType.keySet()
                 + "; RDBMS targets must use a dialect that is implemented end to end.");
@@ -62,7 +65,8 @@ public class TargetAdapterRegistry
 
     private String normalize(String type)
     {
-        if (type == null) {
+        if (type == null)
+        {
             return "";
         }
         return type.trim().toUpperCase(Locale.ROOT);

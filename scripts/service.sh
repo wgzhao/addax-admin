@@ -26,7 +26,7 @@ KILL_WAIT=5
 [ -f "$ENV_FILE" ] && . "$ENV_FILE"
 [ -d ${APP_HOME}/job ] || mkdir ${APP_HOME}/job
 
-JAVA_OPTS="-Dapp.home=${APP_HOME} -Dspring.config.location=${CONFIG_DIR}/application.properties -Dlogging.file.path=${LOG_DIR} -Dloader.path=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
+JAVA_OPTS="-Dapp.home=${APP_HOME} -Dspring.config.location=${CONFIG_DIR}/application.properties -Dlogging.file.path=${LOG_DIR} -Daddax.drivers.dir=${DRIVERS_DIR} -Dloader.main=com.wgzhao.addax.admin.AdminApplication"
 
 # Function to get server port
 get_server_port() {

@@ -60,9 +60,9 @@ VALUES
 -- ---------------------------------------------------------------------------
 INSERT INTO etl_target (id, code, name, target_type, enabled, is_default, remark, writer_template_key, connect_config)
 VALUES
-  (1, 'HDFS_EDW',  'HDFS 数仓',   'HDFS',  true,  true,  'ODS 层默认落 HDFS，ORC + SNAPPY', 'wH', '{"defaultFS":"hdfs://nameservice1","path":"/warehouse"}'),
-  (2, 'DORIS_ODS', 'Doris 数仓',  'MYSQL', true,  false, 'DWD/DWS/ADS 层，兼容 MySQL 协议', 'wR', '{"jdbcUrl":"jdbc:mysql://10.20.12.61:9030"}'),
-  (3, 'MYSQL_BIZ', '业务回写库',  'MYSQL', true,  false, '小维表回写业务库', 'wR', '{"jdbcUrl":"jdbc:mysql://10.20.8.20:3306"}');
+  (1, 'HDFS_EDW',  'HDFS 数仓',   'HDFS',  true,  true,  'ODS 层默认落 HDFS，ORC + SNAPPY', 'wH', '{"url":"jdbc:hive2://10.20.12.51:10000/warehouse","username":"hive","password":"******","defaultFS":"hdfs://nameservice1","hdfsPrefix":"/warehouse","storageFormat":"orc","compressFormat":"snappy"}'),
+  (2, 'DORIS_ODS', 'Doris 数仓',  'MYSQL', true,  false, 'DWD/DWS/ADS 层，兼容 MySQL 协议', 'wR', '{"url":"jdbc:mysql://10.20.12.61:9030","username":"etl_write","password":"******"}'),
+  (3, 'MYSQL_BIZ', '业务回写库',  'MYSQL', true,  false, '小维表回写业务库', 'wR', '{"url":"jdbc:mysql://10.20.8.20:3306","username":"etl_write","password":"******"}');
 
 -- ---------------------------------------------------------------------------
 -- 4. Tables: 82 definitions across the 12 sources
@@ -590,7 +590,7 @@ SELECT
               'column', (SELECT jsonb_agg(c.column_name ORDER BY c.column_id) FROM etl_column c WHERE c.tid = t.id),
               'connection', jsonb_build_array(jsonb_build_object(
                 'table', jsonb_build_array(t.target_table),
-                'jdbcUrl', jsonb_build_array(tgt.connect_config::jsonb ->> 'jdbcUrl')
+                'jdbcUrl', jsonb_build_array(tgt.connect_config::jsonb ->> 'url')
               ))
             )
           END

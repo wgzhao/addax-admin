@@ -136,9 +136,7 @@
   });
 
   const isEsSource = computed(() => props.table.dbType === 'elasticsearch');
-  const isNonRdbmsSource = computed(
-    () => props.table.dbType === 'mongodb' || isEsSource.value
-  );
+  const isNonRdbmsSource = computed(() => props.table.dbType === 'mongodb' || isEsSource.value);
 
   const overviewItems = computed(() => {
     const items = [
@@ -162,9 +160,9 @@
   });
 
   const storageItems = computed(() => {
-    if (targetFamily(props.table.targetType) === 'rdbms') {
+    if (targetFamily(props.table.targetWriterTemplateKey, props.table.targetType) === 'rdbms') {
       const items = [
-        { label: '目标端类型', value: '关系型数据库' },
+        { label: '目标端类型', value: props.table.targetType || '关系型数据库' },
         {
           label: '快照业务日期列',
           value: props.table.targetOptions.rdbms.businessDateColumn || '不承载日期',
@@ -190,12 +188,18 @@
     }
 
     const items = [
-      { label: '目标端类型', value: 'Hive / HDFS' },
+      { label: '目标端类型', value: props.table.targetType || '-' },
       { label: '分区字段', value: props.table.targetOptions.hdfs.partName || '非分区表' },
       { label: '分区格式', value: props.table.targetOptions.hdfs.partFormat || '-' },
       { label: '切分字段', value: props.table.splitPk || '自动获取' },
-      { label: '存储格式', value: props.table.targetOptions.hdfs.storageFormat || '继承系统设置' },
-      { label: '压缩格式', value: props.table.targetOptions.hdfs.compressFormat || '继承系统设置' },
+      {
+        label: '存储格式',
+        value: props.table.targetOptions.hdfs.storageFormat || '继承目标端默认值',
+      },
+      {
+        label: '压缩格式',
+        value: props.table.targetOptions.hdfs.compressFormat || '继承目标端默认值',
+      },
     ];
     return isNonRdbmsSource.value ? items.filter(item => item.label !== '切分字段') : items;
   });

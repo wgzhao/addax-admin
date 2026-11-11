@@ -46,7 +46,7 @@
 | ------------------------------------------ | ---------------------------------------------- |
 | [Docker 部署](install/01-docker.md)        | 预构建镜像、源码构建、Addax 引擎安装、备份恢复 |
 | [主机模式与本地开发](install/02-source.md) | 编译产物部署、systemd、Nginx、本地开发         |
-| [系统配置](install/03-config.md)           | 环境变量、运行参数、HiveServer2、作业模板      |
+| [系统配置](install/03-config.md)           | 环境变量、运行参数、目标端连接、作业模板       |
 | [升级与迁移](install/04-upgrade.md)        | 版本升级、v4.2.0 `target_options` 迁移、回滚   |
 
 ### 使用指南

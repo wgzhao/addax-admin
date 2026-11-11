@@ -46,7 +46,7 @@ test('target dialog keeps its fields readable and validates required input', asy
   });
 
   await dialog.getByRole('button', { name: '保存' }).click();
-  await expect(dialog.getByText('必填项')).toHaveCount(2);
+  await expect(dialog.getByText('必填项')).toHaveCount(4);
 
   await page.locator('#target-code').fill('E2E_DIALOG_TARGET');
   await page.locator('#target-name').fill('E2E Dialog Target');
@@ -75,16 +75,22 @@ test('target dialog keeps its fields readable and validates required input', asy
   await page.keyboard.type('POSTGRESQL');
   await page.keyboard.press('Enter');
   await expect(typeField).toContainText('POSTGRESQL');
-  await expect(page.locator('#target-driver')).toHaveCount(0);
-  await expect(page.locator('#target-driver-path')).toHaveCount(0);
+  await expect(page.locator('#target-default-fs')).toHaveCount(0);
+  await expect(page.locator('#target-hdfs-prefix')).toHaveCount(0);
 
   await typeField.locator('.v-field').click();
   await page.keyboard.type('HDFS');
   await page.keyboard.press('Enter');
   await expect(typeField).toContainText('HDFS');
-  await expect(page.locator('#target-driver')).toBeVisible();
-  await expect(page.locator('#target-driver-path')).toBeVisible();
+  await expect(page.locator('#target-default-fs')).toBeVisible();
+  await expect(page.locator('#target-hdfs-prefix')).toBeVisible();
+  await expect(page.locator('#target-driver')).toHaveCount(0);
+  await expect(page.locator('#target-driver-path')).toHaveCount(0);
 
+  // HDFS targets require the writer cluster; the dialog must say so before saving.
+  await dialog.getByRole('button', { name: '保存' }).click();
+  await expect(dialog.getByText('必填项')).toHaveCount(1);
+  await page.locator('#target-default-fs').fill('hdfs://nameservice1');
   await expect(dialog.getByText('必填项')).toHaveCount(0);
 
   fs.mkdirSync(artifactDir, { recursive: true });
@@ -100,7 +106,7 @@ test('target dialog keeps its fields readable and validates required input', asy
           'required fields show inline errors',
           'password visibility toggles',
           'connect JSON reflects the form',
-          'driver fields follow the target type',
+          'HDFS/Hive fields follow the writer key and defaultFS is required',
         ],
       },
       null,

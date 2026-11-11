@@ -9,6 +9,7 @@
       <ExtractStorageCard
         v-model:table="table"
         :target-type="targetType"
+        :writer-template-key="writerTemplateKey"
         @show-filter-help="$emit('show-filter-help')"
       />
     </v-col>
@@ -36,8 +37,14 @@
   import SnapshotRemarkCard from './SnapshotRemarkCard.vue';
 
   defineProps<{
-    targetOptions: { label: string; value: number; targetType: string }[];
+    targetOptions: {
+      label: string;
+      value: number;
+      targetType: string;
+      writerTemplateKey?: string;
+    }[];
     targetType?: string | null;
+    writerTemplateKey?: string | null;
   }>();
 
   defineEmits(['show-placeholder-help', 'show-filter-help']);

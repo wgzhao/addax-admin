@@ -2,7 +2,6 @@ package com.wgzhao.addax.admin.service;
 
 import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wgzhao.addax.admin.dto.HiveConnectDto;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -97,9 +96,6 @@ public class SystemConfigService
         tmp.put("CUR_DATETIME", DateUtil.now());
         tmp.put("LOG_PATH", dictService.getLogPath());
         tmp.put("SWITCH_TIME", dictService.getSwitchTime());
-        tmp.put("HIVE_CLI", dictService.getHiveCli());
-        tmp.put("HDFS_PREFIX", dictService.getHdfsPrefix());
-        tmp.put("HIVE_SERVER2", dictService.getHiveServer2());
         tmp.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
         tmp.put("QUEUE_SIZE", dictService.getQueueSize());
         tmp.put("ADDAX_HOME", dictService.getAddaxHome());
@@ -153,20 +149,6 @@ public class SystemConfigService
     {
         String switchTime = getSwitchTime();
         return LocalTime.parse(switchTime, DateTimeFormatter.ofPattern("HH:mm"));
-    }
-
-    public HiveConnectDto getHiveServer2()
-    {
-        try {
-            String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "HIVE_SERVER2");
-            if (s != null) {
-                return objectMapper.readValue(s, HiveConnectDto.class);
-            }
-        }
-        catch (Exception e) {
-            log.error("Failed to parse HIVE_SERVER2 config: {}", e.getMessage());
-        }
-        return dictService.getHiveServer2();
     }
 
     public int getConcurrentLimit()
@@ -251,20 +233,6 @@ public class SystemConfigService
             log.warn("Failed to read SCHEMA_REFRESH_TIMEOUT from redis: {}", e.getMessage());
         }
         return 600;
-    }
-
-    public String getHdfsPrefix()
-    {
-        try {
-            String s = redisTemplate.opsForValue().get(REDIS_CONFIG_PREFIX + "HDFS_PREFIX");
-            if (s != null) {
-                return s;
-            }
-        }
-        catch (Exception e) {
-            log.warn("Failed to read HDFS_PREFIX from redis: {}", e.getMessage());
-        }
-        return dictService.getHdfsPrefix();
     }
 
     public String getRdbmsReaderTemplate()

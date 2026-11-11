@@ -43,13 +43,6 @@ const deleteDictItem = (dictCode: number, itemKey: string): Promise<void> => {
   ) as unknown as Promise<void>;
 };
 
-const getHdfsStorageDefaults = (): Promise<{ storageFormat: string; compressFormat: string }> => {
-  return Requests.get(`${apiPrefix.value}/hdfs-storage-defaults`) as unknown as Promise<{
-    storageFormat: string;
-    compressFormat: string;
-  }>;
-};
-
 // 生成日历字典（后端批量生成）。
 // dictCode: 1021 交易日历、1022 工作日历；year: 四位年份；includeWeekend: true/false
 const generateCalendar = (
@@ -102,7 +95,6 @@ export default {
   createDictItem,
   updateDictItem,
   deleteDictItem,
-  getHdfsStorageDefaults,
   generateCalendar,
   refreshTradeCalendar,
   getCalendarCoverage,

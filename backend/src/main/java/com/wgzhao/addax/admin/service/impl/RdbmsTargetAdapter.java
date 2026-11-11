@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.JourKind;
+import com.wgzhao.addax.admin.common.TargetFamily;
+import com.wgzhao.addax.admin.dto.DbConnectDto;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
@@ -73,15 +75,73 @@ public class RdbmsTargetAdapter
     }
 
     @Override
+    public TargetFamily getFamily()
+    {
+        return TargetFamily.RDBMS;
+    }
+
+    @Override
+    public void validateForSave(EtlTarget target)
+    {
+        DbType dialect = getDbType(parseDbConnect(target).url());
+        if (!rdbmsWriterPlugins.isSupported(dialect))
+        {
+            throw new ApiException(400, "Unsupported target dialect '"
+                + (dialect == null ? target.getTargetType() : dialect)
+                + "'; supported RDBMS dialects: " + rdbmsWriterPlugins.supportedDialectsText()
+                + " (plus HDFS/HIVE for Hive targets)");
+        }
+        rdbmsWriterPlugins.requireInstalled(dialect);
+    }
+
+    @Override
+    public void testConnection(EtlTarget target)
+    {
+        validateForSave(target);
+        DbConnectDto connect = parseDbConnect(target);
+        if (!DbUtil.testConnection(connect.url(), connect.username(), connect.password()))
+        {
+            throw new ApiException(400, "Failed to connect target");
+        }
+    }
+
+    @Override
     public boolean hasDateDimension(VwEtlTableWithSource table)
     {
         return table != null && normalizeColumn(table.getRdbmsBusinessDateColumn()) != null;
     }
 
-    @Override
-    public boolean addPartition(long taskId, String db, String table, String partName, String partValue)
+    private DbConnectDto parseDbConnect(EtlTarget target)
     {
-        return true;
+        String config = target == null ? null : target.getConnectConfig();
+        if (config == null || config.isBlank())
+        {
+            throw new ApiException(400, "connectConfig is required");
+        }
+        try
+        {
+            JsonNode node = objectMapper.readTree(config);
+            String url = text(node, "url");
+            if (url == null || url.isBlank())
+            {
+                throw new ApiException(400, "connectConfig.url is required");
+            }
+            return new DbConnectDto(url, text(node, "username"), text(node, "password"), null);
+        }
+        catch (ApiException e)
+        {
+            throw e;
+        }
+        catch (Exception e)
+        {
+            throw new ApiException(400, "Invalid connectConfig JSON");
+        }
+    }
+
+    private String text(JsonNode node, String key)
+    {
+        JsonNode value = node.get(key);
+        return value == null || value.isNull() ? "" : value.asText();
     }
 
     @Override
@@ -915,12 +975,6 @@ public class RdbmsTargetAdapter
             log.warn("Invalid connect_config for target {}: {}", table.getTargetId(), e.getMessage());
             return null;
         }
-    }
-
-    private String text(JsonNode node, String key)
-    {
-        JsonNode n = node.get(key);
-        return n == null || n.isNull() ? null : n.asText();
     }
 
     private record ConnectInfo(String url, String username, String password)
