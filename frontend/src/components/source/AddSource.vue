@@ -7,7 +7,7 @@
           <h2 class="ds-dialog-title">{{ dialogTitle }}</h2>
           <p class="ds-dialog-subtitle">{{ dialogSubtitle }}</p>
           <div v-if="showContext" class="source-context" aria-label="采集源摘要">
-            <span class="source-context__code">{{ sourceItem.code }}</span>
+            <span class="source-context__code">{{ sourceItem.name }}</span>
             <span class="source-context__divider" aria-hidden="true" />
             <span
               class="source-context__state"
@@ -56,7 +56,9 @@
                 />
                 <p class="field-help">
                   {{
-                    mode === 'edit' ? '编号保存后不可修改' : '建议使用两位大写字母，保存后不可修改'
+                    mode === 'edit'
+                      ? '编号仅用于历史展示，保存后不可修改'
+                      : '仅用于历史展示，不参与目标库命名；建议两位大写字母，保存后不可修改'
                   }}
                 </p>
               </div>

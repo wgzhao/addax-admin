@@ -68,6 +68,13 @@ class SourceService {
     return Requests.get(`${this.prefix}/${sourceId}/databases`) as unknown as Promise<string[]>;
   }
 
+  // 查询采集源在目标端上最近使用的目标库，仅作为向导的建议值
+  fetchRecentTargetDbs(sourceId: number, targetId: number): Promise<string[]> {
+    return Requests.get(`${this.prefix}/${sourceId}/target-databases`, {
+      targetId,
+    }) as unknown as Promise<string[]>;
+  }
+
   // 查询未采集的表
   fetchUncollectedTables(sourceId: number, dbName: string): Promise<TableMeta[]> {
     return Requests.get(

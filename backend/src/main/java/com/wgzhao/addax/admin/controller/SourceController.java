@@ -310,6 +310,25 @@ public class SourceController
     }
 
     /**
+     * 查询采集源在指定目标端上最近使用的目标库，供批量新增向导作为建议值。
+     * 目标库仍然是用户显式输入的路由字段，不会从采集源编号推导。
+     *
+     * @param sourceId 采集源 ID（路径参数）
+     * @param targetId 目标端 ID（查询参数）
+     * @return 按最近使用时间倒序排列的目标库名
+     */
+    @GetMapping("/{sourceId}/target-databases")
+    public ResponseEntity<List<String>> listRecentTargetDatabases(
+        @PathVariable int sourceId,
+        @RequestParam Long targetId)
+    {
+        if (sourceService.getSource(sourceId) == null) {
+            throw new ApiException(400, "sourceId 对应的采集源不存在");
+        }
+        return ResponseEntity.ok(tableService.findRecentTargetDbs(sourceId, targetId));
+    }
+
+    /**
      * 查询未采集的表(含表注释)
      *
      * @param sourceId 数据源ID（路径参数），示例: 1

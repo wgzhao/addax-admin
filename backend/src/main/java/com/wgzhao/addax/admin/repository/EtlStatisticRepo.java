@@ -29,11 +29,12 @@ public interface EtlStatisticRepo
     @Query(value = """
         select
             biz_date,
-            array_agg(code) AS sources,
-            array_agg(total_secs) AS total_secs
+            array_agg(name ORDER BY source_id) AS sources,
+            array_agg(total_secs ORDER BY source_id) AS total_secs
         FROM (
                  SELECT
-                     coalesce(x.source_code, b.code) AS code,
+                     coalesce(x.source_id, b.sid) AS source_id,
+                     min(coalesce(x.source_name, b.name)) AS name,
                      t.biz_date,
                      SUM(t.take_secs) AS total_secs
                  FROM
@@ -46,7 +47,7 @@ public interface EtlStatisticRepo
                  WHERE
                      t.biz_date >= current_date - 5
                  GROUP BY
-                     coalesce(x.source_code, b.code), t.biz_date
+                     coalesce(x.source_id, b.sid), t.biz_date
              ) sub
         GROUP BY
             biz_date
@@ -58,11 +59,12 @@ public interface EtlStatisticRepo
     @Query(value = """
         select
                  biz_date,
-                 array_agg(code) AS sources,
-                 array_agg(total_bytes) AS total_bytes
+                 array_agg(name ORDER BY source_id) AS sources,
+                 array_agg(total_bytes ORDER BY source_id) AS total_bytes
              FROM (
                       SELECT
-                          coalesce(x.source_code, b.code) AS code,
+                          coalesce(x.source_id, b.sid) AS source_id,
+                          min(coalesce(x.source_name, b.name)) AS name,
                           t.biz_date,
                           round(SUM(total_bytes) / 1024 / 1024,2) AS total_bytes
                       FROM
@@ -76,7 +78,7 @@ public interface EtlStatisticRepo
                       WHERE
                           t.biz_date >= current_date - INTERVAL '5 days'
                       GROUP BY
-                          coalesce(x.source_code, b.code), t.biz_date
+                          coalesce(x.source_id, b.sid), t.biz_date
                   ) sub
              GROUP BY
                  biz_date

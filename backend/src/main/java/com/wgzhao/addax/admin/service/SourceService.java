@@ -161,7 +161,7 @@ public class SourceService
     public void deleteById(int id)
     {
         // 删除之前，应该先取消该数据源的调度任务
-        etlSourceRepo.findById(id).ifPresent(etlSource -> collectionScheduler.cancelTask(etlSource.getCode()));
+        etlSourceRepo.findById(id).ifPresent(etlSource -> collectionScheduler.cancelTask(etlSource.getId()));
         etlSourceRepo.deleteById(id);
     }
 

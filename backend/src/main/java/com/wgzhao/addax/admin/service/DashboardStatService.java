@@ -105,7 +105,6 @@ public class DashboardStatService
                    coalesce(x.source_table, v.source_table) as source_table,
                    coalesce(x.target_db, v.target_db) as target_db,
                    coalesce(x.target_table, v.target_table) as target_table,
-                   coalesce(x.source_code, v.code) as source_code,
                    coalesce(x.source_name, v.name) as source_name,
                    v.retry_cnt,
                    r.fail_cnt,
@@ -229,7 +228,7 @@ public class DashboardStatService
         LocalDate bizDate = anchor();
         String sql = """
             with win as (
-              select coalesce(x.source_code, v.code) as code,
+              select coalesce(x.source_id, v.sid) as source_id,
                      min(coalesce(x.source_name, v.name)) as name,
                      e.biz_date,
                      sum(e.total_bytes) as bytes
@@ -238,18 +237,18 @@ public class DashboardStatService
               left join vw_etl_table_with_source v on v.id = e.tid
               where e.biz_date > ?::date - 30
                 and e.biz_date <= ?::date
-              group by coalesce(x.source_code, v.code), e.biz_date
+              group by coalesce(x.source_id, v.sid), e.biz_date
             ),
             span as (
               select generate_series(?::date - 29, ?::date, interval '1 day')::date as biz_date
             )
             select to_char(s.biz_date, 'YYYY-MM-DD') as biz_date,
-                   w.code,
+                   w.source_id,
                    w.name,
                    round(coalesce(w.bytes, 0) / 1024.0 / 1024 / 1024, 3) as gib
             from span s
             left join win w on w.biz_date = s.biz_date
-            order by s.biz_date, w.code
+            order by s.biz_date, w.source_id
             """;
         return jdbcTemplate.queryForList(sql, bizDate, bizDate, bizDate, bizDate);
     }
@@ -278,7 +277,6 @@ public class DashboardStatService
                    coalesce(x.source_table, v.source_table) as source_table,
                    coalesce(x.target_db, v.target_db) as target_db,
                    coalesce(x.target_table, v.target_table) as target_table,
-                   coalesce(x.source_code, v.code) as source_code,
                    coalesce(x.source_name, v.name) as source_name,
                    a.days,
                    a.avg_secs,

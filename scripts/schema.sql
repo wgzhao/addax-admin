@@ -166,6 +166,7 @@ CREATE TABLE public.etl_execution (
     source_table character varying(255),
     source_code character varying(50),
     source_name character varying(200),
+    source_id integer,
     target_db character varying(64),
     target_table character varying(255),
     target_code character varying(50),

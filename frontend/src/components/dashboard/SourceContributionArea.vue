@@ -7,7 +7,7 @@
     :error="error"
   >
     <div v-if="items.length" class="contribution-list">
-      <div v-for="(item, index) in items" :key="item.code" class="contribution-row">
+      <div v-for="(item, index) in items" :key="item.key" class="contribution-row">
         <div class="contribution-meta">
           <span class="contribution-name" :title="item.name">{{ item.name }}</span>
           <span class="contribution-value">{{ format(item.gib) }}</span>
@@ -17,7 +17,7 @@
             class="contribution-bar"
             :class="{
               'contribution-bar--top': index === 0,
-              'contribution-bar--other': item.code === 'OTHER',
+              'contribution-bar--other': item.key === 'OTHER',
             }"
             :style="{ width: `${widthFor(item.gib)}%` }"
           />
@@ -39,20 +39,20 @@
   );
 
   const items = computed(() => {
-    const map = new Map<string, { code: string; name: string; gib: number }>();
+    const map = new Map<string, { key: string; name: string; gib: number }>();
     for (const row of raw.value ?? []) {
       // Why: empty calendar days arrive as null placeholders and must not
       // become a 未知 source in the contribution list
-      if (!row.code && !row.name) continue;
-      const code = row.code || row.name || 'UNKNOWN';
-      const current = map.get(code) ?? { code, name: row.name || row.code || '未知', gib: 0 };
+      if (row.source_id == null && !row.name) continue;
+      const key = row.source_id != null ? String(row.source_id) : row.name || 'UNKNOWN';
+      const current = map.get(key) ?? { key, name: row.name || '未知', gib: 0 };
       current.gib += Number(row.gib ?? 0);
-      map.set(code, current);
+      map.set(key, current);
     }
     const sorted = [...map.values()].sort((a, b) => b.gib - a.gib);
     const top = sorted.slice(0, 8);
     const rest = sorted.slice(8).reduce((total, item) => total + item.gib, 0);
-    return rest > 0 ? [...top, { code: 'OTHER', name: '其他', gib: rest }] : top;
+    return rest > 0 ? [...top, { key: 'OTHER', name: '其他', gib: rest }] : top;
   });
 
   // Why: a ninth row (Top 8 + 其他) is taller than the fixed 340px body and

@@ -59,14 +59,17 @@ public class CollectionScheduler
 
     public void scheduleOrUpdateTask(EtlSource source)
     {
-        String taskId = "source-" + source.getCode();
+        // The primary key is the only identity the scheduler can rely on: code is a display label
+        // without a database uniqueness guarantee, so two sources sharing one would overwrite each
+        // other's cron registration.
+        String taskId = "source-" + source.getId();
         if (source.isEnabled() && source.getStartAt() != null) {
-            log.info("Scheduling task for source {} at {}", source.getCode(), source.getStartAt());
+            log.info("Scheduling task for source {}({}) at {}", source.getName(), source.getId(),
+                source.getStartAt());
             String cronExpression = convertLocalTimeToCron(source.getStartAt());
             taskSchedulerService.cancelTask(taskId);
             // Enqueue is idempotent: DB unique constraint prevents duplicate pending/running entries
             int sourceId = source.getId();
-            String sourceCode = source.getCode();
             Runnable task = () -> {
                 try {
                     // The cron fires every day; the calendar decides whether this day is one of them.
@@ -79,7 +82,7 @@ public class CollectionScheduler
                     // master happened to restart.
                     Optional<EtlSource> current = etlSourceRepo.findById(sourceId);
                     if (current.isEmpty()) {
-                        log.warn("Source {} is gone, skipping its scheduled collection", sourceCode);
+                        log.warn("Source {} is gone, skipping its scheduled collection", sourceId);
                         return;
                     }
                     String calendar = current.get().getCalendar();
@@ -89,13 +92,13 @@ public class CollectionScheduler
                     CalendarService.Verdict verdict = calendarService.evaluate(calendar, businessDate);
                     if (!verdict.due()) {
                         calendarService.reportRefusal(verdict, calendar,
-                            "source=" + sourceCode + ", date=" + businessDate);
+                            "source=" + sourceId + ", date=" + businessDate);
                         return;
                     }
                     taskService.executeTasksForSource(sourceId);
                 }
                 catch (Exception e) {
-                    log.error("Error executing scheduled collection for source {}", sourceCode, e);
+                    log.error("Error executing scheduled collection for source {}", sourceId, e);
                 }
             };
             taskSchedulerService.scheduleTask(taskId, task, cronExpression);
@@ -115,9 +118,9 @@ public class CollectionScheduler
         }
     }
 
-    public void cancelTask(String code)
+    public void cancelTask(int sourceId)
     {
-        String taskId = "source-" + code;
+        String taskId = "source-" + sourceId;
         taskSchedulerService.cancelTask(taskId);
     }
 

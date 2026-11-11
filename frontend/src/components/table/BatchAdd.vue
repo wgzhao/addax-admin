@@ -344,11 +344,7 @@
   const selectedTargetFamily = computed(() =>
     targetFamily(selectedTarget.value?.writerTemplateKey, selectedTarget.value?.targetType)
   );
-  const selectedSourceLabel = computed(() =>
-    selectedSourceId.value
-      ? `${selectedSourceId.value.code} · ${selectedSourceId.value.name}`
-      : '未选择'
-  );
+  const selectedSourceLabel = computed(() => selectedSourceId.value?.name || '未选择');
 
   const resolveTargetTable = (item: EtlTableView) => {
     const tpl = targetTableTemplate.value || '${table}';
@@ -399,6 +395,29 @@
     writeMode: 'overwrite',
   };
 
+  // The target database is a route field, not a naming rule derived from the source. Suggest the
+  // most recently used database for this source + target pair, and never overwrite user input.
+  const autoTargetDb = ref('');
+  let targetDbSuggestionSeq = 0;
+
+  const suggestTargetDb = async () => {
+    const source = selectedSourceId.value;
+    const target = targetId.value;
+    if (!source?.id || !target) return;
+    const seq = ++targetDbSuggestionSeq;
+    try {
+      const dbs = await sourceService.fetchRecentTargetDbs(source.id, target);
+      if (seq !== targetDbSuggestionSeq) return;
+      const suggestion = dbs[0] ?? '';
+      if (!targetDb.value || targetDb.value === autoTargetDb.value) {
+        targetDb.value = suggestion;
+      }
+      autoTargetDb.value = suggestion;
+    } catch {
+      if (seq === targetDbSuggestionSeq) autoTargetDb.value = '';
+    }
+  };
+
   watch(selectedSourceId, val => {
     selectedDb.value = null;
     tables.value = [];
@@ -406,10 +425,20 @@
     selectedTables.value = [];
     sourceDbs.value = [];
     search.value = '';
+    targetDb.value = '';
+    autoTargetDb.value = '';
 
-    targetDb.value = val?.code ? 'ods' + val.code.toLowerCase() : '';
+    if (val?.id) {
+      getDbsBySourceId();
+      void suggestTargetDb();
+    }
+  });
 
-    if (val?.id) getDbsBySourceId();
+  watch(targetId, () => {
+    // A different endpoint means the previous suggestion is meaningless; user input is kept.
+    if (targetDb.value === autoTargetDb.value) targetDb.value = '';
+    autoTargetDb.value = '';
+    void suggestTargetDb();
   });
 
   watch(selectedDb, () => {

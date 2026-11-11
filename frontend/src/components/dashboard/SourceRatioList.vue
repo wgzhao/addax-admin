@@ -2,7 +2,7 @@
   <div v-if="visibleRows.length" class="progress-stack">
     <div
       v-for="ratio in visibleRows"
-      :key="ratio.source_name"
+      :key="ratio.sid ?? ratio.source_name"
       class="progress-item"
       :class="{ 'progress-item--alert': failed(ratio) > 0 }"
       :title="tooltip(ratio)"
@@ -46,6 +46,7 @@
   import { computed } from 'vue';
 
   export interface SourceRatio {
+    sid?: number;
     source_name: string;
     pct?: number;
     total?: number;

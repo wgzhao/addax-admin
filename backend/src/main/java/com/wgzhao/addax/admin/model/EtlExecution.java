@@ -50,6 +50,13 @@ public class EtlExecution
     @Column(name = "source_name", length = 200)
     private String sourceName;
 
+    /**
+     * Stable source identity at execution time. Old rows do not have it and fall back to the
+     * definition's sid; new rows never depend on the display-only source code.
+     */
+    @Column(name = "source_id")
+    private Integer sourceId;
+
     @Column(name = "target_db", length = 64)
     private String targetDb;
 
