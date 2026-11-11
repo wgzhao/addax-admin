@@ -50,6 +50,7 @@
           <v-tab value="fields">字段比较</v-tab>
           <v-tab value="result">采集结果</v-tab>
           <v-tab value="executions">执行快照</v-tab>
+          <v-tab value="fillback">补数</v-tab>
           <v-tab value="history">变更历史</v-tab>
         </v-tabs>
 
@@ -74,6 +75,9 @@
           <v-tabs-window-item value="executions">
             <ExecutionHistory />
           </v-tabs-window-item>
+          <v-tabs-window-item value="fillback">
+            <FillbackTab :active="currentTab === 'fillback'" />
+          </v-tabs-window-item>
           <v-tabs-window-item value="history">
             <ChangeHistory />
           </v-tabs-window-item>
@@ -93,6 +97,7 @@
   import AddaxJob from '@/components/table/AddaxJob.vue';
   import AddaxResult from '@/components/table/AddaxResult.vue';
   import ExecutionHistory from '@/components/table/ExecutionHistory.vue';
+  import FillbackTab from '@/components/table/detail/FillbackTab.vue';
   import LogFiles from '@/components/table/LogFiles.vue';
   import ChangeHistory from '@/components/table/ChangeHistory.vue';
 

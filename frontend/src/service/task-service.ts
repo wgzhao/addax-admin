@@ -18,8 +18,9 @@ interface ExecuteTaskResponse {
 
 interface FillbackRequest {
   tids: number[];
-  startDate: string;
-  endDate: string;
+  startDate?: string;
+  endDate?: string;
+  dates?: string[];
 }
 
 export interface FillbackDetail {
@@ -32,9 +33,65 @@ export interface FillbackDetail {
 }
 
 export interface FillbackResult {
+  batchId: string;
+  submittedAt: string;
   totalEnqueued: number;
   skipped: number;
   details: FillbackDetail[];
+}
+
+export type FillbackProgressState =
+  | 'UNKNOWN'
+  | 'SKIPPED'
+  | 'PENDING'
+  | 'RUNNING'
+  | 'COMPLETED'
+  | 'PARTIAL_SUCCESS'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'HISTORY_PRUNED';
+
+export interface FillbackProgressCounts {
+  total: number;
+  pending: number;
+  running: number;
+  completed: number;
+  failed: number;
+  cancelled: number;
+  unresolved: number;
+}
+
+export interface FillbackProgressItem {
+  date: string;
+  status: string;
+  attempts: number;
+  maxAttempts: number;
+  lastError: string | null;
+  queueId: number | null;
+  createdAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface FillbackProgress {
+  found: boolean;
+  batchId: string | null;
+  tid: number;
+  table: string;
+  supported: boolean;
+  reason: string | null;
+  retired: boolean;
+  sourceEnabled: boolean;
+  tableStatus: string | null;
+  maxDate: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  submitter: string | null;
+  submittedAt: string | null;
+  requestedCount: number;
+  state: FillbackProgressState;
+  counts: FillbackProgressCounts;
+  items: FillbackProgressItem[];
 }
 
 class TaskService {
@@ -97,11 +154,22 @@ class TaskService {
     return Requests.post(`${this.prefix}/${taskId}/kill`, {}) as unknown as Promise<ApiResponse>;
   }
 
-  // 补数采集：对指定表在给定日期范围内重新采集
+  // 补数采集：对指定表在给定日期集合或日期范围内重新采集
   fillback(request: FillbackRequest): Promise<ApiResponseWrapper<FillbackResult>> {
     return Requests.post(`${this.prefix}/fillback`, request) as unknown as Promise<
       ApiResponseWrapper<FillbackResult>
     >;
+  }
+
+  // 补数进度：不传 batchId 时返回该表最近一次补数
+  getFillbackProgress(
+    tid: number,
+    batchId?: string
+  ): Promise<ApiResponseWrapper<FillbackProgress>> {
+    return Requests.get(
+      `${this.prefix}/${tid}/fillback/progress`,
+      batchId ? { batchId } : undefined
+    ) as unknown as Promise<ApiResponseWrapper<FillbackProgress>>;
   }
 }
 
