@@ -1,15 +1,20 @@
 package com.wgzhao.addax.admin.dto;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
  * Fillback (补数) result.
  *
+ * @param batchId       id shared by every queue row of this submission, used to poll progress
+ * @param submittedAt   time the submission was accepted
  * @param totalEnqueued number of tasks successfully enqueued
  * @param skipped       number of tasks skipped (already pending/running)
  * @param details       per-table breakdown
  */
 public record FillbackResultDto(
+    String batchId,
+    Instant submittedAt,
     int totalEnqueued,
     int skipped,
     List<Detail> details

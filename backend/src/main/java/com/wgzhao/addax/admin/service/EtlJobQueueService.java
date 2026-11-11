@@ -47,8 +47,56 @@ public class EtlJobQueueService
         var leaseUntil = rs.getTimestamp("lease_until");
         j.setLeaseUntil(leaseUntil == null ? null : leaseUntil.toInstant());
         j.setLastError(rs.getString("last_error"));
+        j.setCreatedAt(toInstant(rs.getTimestamp("created_at")));
+        j.setUpdatedAt(toInstant(rs.getTimestamp("updated_at")));
         return j;
     }
+
+    private static Instant toInstant(java.sql.Timestamp timestamp)
+    {
+        return timestamp == null ? null : timestamp.toInstant();
+    }
+
+    /**
+     * One queue row of a fillback batch, plus the latest execution attempt of that row.
+     *
+     * <p>The queue row's {@code updated_at} is not refreshed by the terminal update statements, so
+     * the execution snapshot is the only reliable source for start/finish times.
+     */
+    public record FillbackJobRow(
+        long id,
+        long tid,
+        LocalDate bizDate,
+        String status,
+        String payload,
+        int attempts,
+        int maxAttempts,
+        String lastError,
+        Instant createdAt,
+        Instant claimedAt,
+        Instant execStartedAt,
+        Instant execFinishedAt,
+        String execError,
+        Integer execAttemptNo
+    )
+    {
+    }
+
+    private static final RowMapper<FillbackJobRow> FILLBACK_ROW_MAPPER = (rs, rowNum) -> new FillbackJobRow(
+        rs.getLong("id"),
+        rs.getLong("tid"),
+        rs.getObject("biz_date", LocalDate.class),
+        rs.getString("status"),
+        rs.getString("payload"),
+        rs.getInt("attempts"),
+        rs.getInt("max_attempts"),
+        rs.getString("last_error"),
+        toInstant(rs.getTimestamp("created_at")),
+        toInstant(rs.getTimestamp("claimed_at")),
+        toInstant(rs.getTimestamp("exec_started_at")),
+        toInstant(rs.getTimestamp("exec_finished_at")),
+        rs.getString("exec_error"),
+        rs.getObject("exec_attempt_no", Integer.class));
 
     public long countPending()
     {
@@ -290,6 +338,55 @@ public class EtlJobQueueService
                   AND NOT (status = 'pending' AND payload IS NOT NULL)
             """;
         jdbcTemplate.update(sql, java.sql.Timestamp.from(createdBefore));
+    }
+
+    /**
+     * Queue rows of one fillback batch, joined with the latest execution attempt of each row.
+     *
+     * @param tid     table id
+     * @param batchId batch id stored in the row payload
+     * @return rows ordered by business date
+     */
+    public List<FillbackJobRow> findFillbackBatchRows(long tid, String batchId)
+    {
+        String sql = """
+            SELECT q.id, q.tid, q.biz_date, q.status, q.payload, q.attempts, q.max_attempts,
+                   q.last_error, q.created_at, q.claimed_at,
+                   e.started_at AS exec_started_at, e.finished_at AS exec_finished_at,
+                   e.error_message AS exec_error, e.attempt_no AS exec_attempt_no
+            FROM public.etl_job_queue q
+            LEFT JOIN LATERAL (
+                SELECT started_at, finished_at, error_message, attempt_no
+                FROM public.etl_execution
+                WHERE job_queue_id = q.id
+                ORDER BY id DESC
+                LIMIT 1
+            ) e ON true
+            WHERE q.tid = ? AND q.payload->>'batch_id' = ?
+            ORDER BY q.biz_date, q.id
+            """;
+        return jdbcTemplate.query(sql, FILLBACK_ROW_MAPPER, tid, batchId);
+    }
+
+    /**
+     * Latest fillback batch id for a table, used when the detail page reloads without a batch id.
+     *
+     * @param tid table id
+     * @return the newest batch id, or empty when the table has no surviving fillback rows
+     */
+    public Optional<String> findLatestFillbackBatchId(long tid)
+    {
+        String sql = """
+            SELECT payload->>'batch_id'
+            FROM public.etl_job_queue
+            WHERE tid = ?
+              AND payload->>'action' = 'fillback'
+              AND payload->>'batch_id' IS NOT NULL
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """;
+        List<String> ids = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString(1), tid);
+        return ids.isEmpty() ? Optional.empty() : Optional.ofNullable(ids.getFirst());
     }
 
     /**

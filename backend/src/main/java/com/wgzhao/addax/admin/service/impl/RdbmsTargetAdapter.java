@@ -355,19 +355,35 @@ public class RdbmsTargetAdapter
         }
         DbType dialect = getDbType(conn.url());
         String tableRef = RdbmsDdlUtil.tableRef(dialect, table.getTargetDb(), table.getTargetTable());
-        String sql = String.format("SELECT MAX(%s) FROM %s", RdbmsDdlUtil.quoteIdent(dialect, columnName), tableRef);
+        // The snapshot business-date column marks which run wrote each row. A fillback of an old
+        // date must continue from that date's snapshot, not from the global maximum of all history;
+        // otherwise the reader's lower bound is newer than the data and the fillback reads 0 rows.
+        String businessDateColumn = table.getRdbmsBusinessDateColumn();
+        boolean scopeByBusinessDate = businessDateColumn != null && !businessDateColumn.isBlank()
+            && partValue != null && !partValue.isBlank();
+        String where = scopeByBusinessDate
+            ? " WHERE " + RdbmsDdlUtil.quoteIdent(dialect, businessDateColumn.trim()) + " = ?"
+            : "";
+        String sql = String.format("SELECT MAX(%s) FROM %s%s",
+            RdbmsDdlUtil.quoteIdent(dialect, columnName), tableRef, where);
         try (Connection c = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
         {
             if (c == null)
             {
                 return null;
             }
-            try (Statement stmt = c.createStatement();
-                ResultSet rs = stmt.executeQuery(sql))
+            try (PreparedStatement stmt = c.prepareStatement(sql))
             {
-                if (rs.next())
+                if (scopeByBusinessDate)
                 {
-                    return rs.getObject(1);
+                    stmt.setString(1, partValue);
+                }
+                try (ResultSet rs = stmt.executeQuery())
+                {
+                    if (rs.next())
+                    {
+                        return rs.getObject(1);
+                    }
                 }
             }
         }

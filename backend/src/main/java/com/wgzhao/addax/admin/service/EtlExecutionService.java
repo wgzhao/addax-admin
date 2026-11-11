@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -89,6 +90,17 @@ public class EtlExecutionService
     {
         return executionRepo.findByTidOrderByStartedAtDescIdDesc(
             tid, PageRequest.of(Math.max(page, 0), Math.max(pageSize, 1)));
+    }
+
+    /**
+     * Business date captured when the execution started.
+     *
+     * @param executionId execution id
+     * @return the execution's business date, or empty when the execution no longer exists
+     */
+    public Optional<LocalDate> findBizDate(long executionId)
+    {
+        return executionRepo.findById(executionId).map(EtlExecution::getBizDate);
     }
 
     private JsonNode buildSnapshot(VwEtlTableWithSource table,

@@ -20,10 +20,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.wgzhao.addax.admin.service.source.ReaderJobContext;
 import com.wgzhao.addax.admin.service.source.SourceAdapter;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.common.TargetFamily;
+import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +46,9 @@ import org.springframework.stereotype.Service;
 @AllArgsConstructor
 public class JobContentService
 {
+
+    /** Placeholders left after generation, used to surface unknown/misspelled business variables. */
+    private static final Pattern BIZ_VARIABLE_PATTERN = Pattern.compile("\\$\\{(biz_\\w+)}");
 
     private final EtlJobRepo jobRepo;
     private final EtlTableRepo tableRepo;
@@ -97,7 +105,8 @@ public class JobContentService
 
         String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
-        return mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
+        String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
+        return substituteBizDates(job, dateValues, tid);
     }
 
     /**
@@ -116,13 +125,15 @@ public class JobContentService
         log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(), etlTable.getId());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.ADDAX_JOB, null);
 
+        Map<String, String> dateValues = configService.getBizDateValues();
         Map<String, String> values = new HashMap<>();
-        values.put("reader", buildReaderJob(etlTable, configService.getBizDateValues(), null));
+        values.put("reader", buildReaderJob(etlTable, dateValues, null));
         values.put("writer", targetAdapterRegistry.resolve(etlTable).buildWriterJob(etlTable));
 
         String jobTemplate = resolveJobTemplate(etlTable);
         StringSubstitutor substitutor = new StringSubstitutor(values);
         String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
+        job = substituteBizDates(job, dateValues, etlTable.getId());
 
         EtlJob etlJob = new EtlJob(etlTable.getId(), job);
         jobRepo.save(etlJob);
@@ -207,6 +218,43 @@ public class JobContentService
     }
 
     /**
+     * Substitute business-date variables in the final job, including plugin configs merged after
+     * the template was rendered.
+     *
+     * <p>Only {@code biz_*} is replaced here: {@code curr_*} must stay unresolved so the addax
+     * process resolves it to the real run time via its {@code -p} properties. This is also why the
+     * map is filtered instead of reusing the full date map.
+     *
+     * @param job        final job JSON
+     * @param dateValues variables of the run's business date
+     * @param tid        table id, for the warning
+     * @return job with business dates resolved
+     */
+    private String substituteBizDates(String job, Map<String, String> dateValues, long tid)
+    {
+        if (job == null || job.isEmpty() || dateValues == null || dateValues.isEmpty()) {
+            return job;
+        }
+        Map<String, String> bizValues = new HashMap<>();
+        dateValues.forEach((name, value) -> {
+            if (name.startsWith("biz_")) {
+                bizValues.put(name, value);
+            }
+        });
+
+        String substituted = new StringSubstitutor(bizValues).replace(job);
+        Matcher matcher = BIZ_VARIABLE_PATTERN.matcher(substituted);
+        Set<String> unresolved = new TreeSet<>();
+        while (matcher.find()) {
+            unresolved.add(matcher.group(1));
+        }
+        if (!unresolved.isEmpty()) {
+            log.warn("Job for tid={} still contains unresolved biz_ variables: {}", tid, unresolved);
+        }
+        return substituted;
+    }
+
+    /**
      * Resolve the engine-agnostic parts of the reader (last business date and target MAX lookup) and
      * let the source adapter render the fragment. The adapter owns the filter syntax and the reader
      * shape; the common layer only knows that a target may have a max value.
@@ -215,6 +263,7 @@ public class JobContentService
         LocalDate overrideLastEtlDate)
     {
         SourceAdapter adapter = sourceAdapterRegistry.resolve(table);
+        TargetAdapter targetAdapter = targetAdapterRegistry.resolve(table);
         List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(table.getId());
         String filter = table.getFilter() == null ? "" : table.getFilter();
 
@@ -227,7 +276,10 @@ public class JobContentService
                 : statService.getLastEtlDateByTid(table.getId());
             if (lastEtlDate != null)
             {
-                String partFormat = table.getPartFormat();
+                // The RDBMS snapshot column holds biz_date_short (yyyyMMdd). A stale HDFS
+                // partFormat (or the reverse) must not change how the max lookup scopes that date.
+                boolean rdbmsTarget = targetAdapter.getFamily() == TargetFamily.RDBMS;
+                String partFormat = rdbmsTarget ? "yyyyMMdd" : table.getPartFormat();
                 if (partFormat == null || partFormat.isBlank())
                 {
                     partFormat = "yyyyMMdd";
@@ -237,7 +289,7 @@ public class JobContentService
         }
 
         ReaderJobContext context = new ReaderJobContext(dateValues, lastEtlDate, partValue, mappings,
-            (column, part) -> targetAdapterRegistry.resolve(table).getMaxValue(table, column, part));
+            (column, part) -> targetAdapter.getMaxValue(table, column, part));
         ObjectNode reader = adapter.buildReaderJob(table, context);
         if (reader.get("parameter") instanceof ObjectNode parameter)
         {
