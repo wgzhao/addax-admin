@@ -300,9 +300,6 @@
                   <span class="section-index">03</span>
                   <h3>HDFS / Hive 设置</h3>
                 </header>
-                <v-alert type="info" variant="tonal" density="compact" class="hdfs-driver-hint">
-                  Hive JDBC 驱动由后端 drivers 目录加载（${APP_HOME}/drivers），无需在此配置路径。
-                </v-alert>
                 <div class="field-grid">
                   <div class="field span-2">
                     <label class="field-label" for="target-hive-driver">驱动类名（可选）</label>
@@ -323,16 +320,12 @@
                     <v-text-field
                       id="target-hive-driver-path"
                       v-model="connectForm.driverPath"
-                      placeholder="留空使用后端 drivers 目录"
+                      placeholder="仅当驱动无法放入 drivers 目录时填写，例如会与主程序类冲突的 HDP standalone jar。"
                       variant="outlined"
                       density="compact"
                       hide-details="auto"
                       autocomplete="off"
                     />
-                    <p class="field-help">
-                      仅当驱动无法放入 drivers 目录时填写，例如会与主程序类冲突的 HDP standalone
-                      jar。
-                    </p>
                   </div>
                   <div class="field span-2">
                     <label class="field-label" for="target-default-fs">
