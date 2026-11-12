@@ -86,10 +86,13 @@ Authorization is enforced on the server, not in the UI.
 
 ## Token and revocation
 
-The JWT no longer carries the full authority or grant list. It carries the subject and an
-`auth_version`; `users.auth_version` is incremented on role change, disable, delete and password
-change. `JwtFilter` verifies that the account still exists, is enabled, and that the token version
-matches the database. This also fixes the pre-existing hole where a disabled account could keep using
+The JWT is a pointer, not the authority: `JwtFilter` re-reads the account's role, enabled flag and
+`auth_version` from the database. It verifies that the account still exists and is enabled, and that
+the token version matches the database. `users.auth_version` is incremented on role change, disable,
+delete and password change. Grant information is never embedded in the token.
+
+The `authorities` claim is kept in the token for compatibility and diagnostics, but the filter does
+not trust it. This also fixes the pre-existing hole where a disabled account could keep using
 an eight-day token.
 
 Grants are resolved from the database per request with a short-lived cache. Revocation takes effect
