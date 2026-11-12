@@ -106,7 +106,6 @@
   push('日志管理', '/logs', 'mdi-file-document-outline');
   push('字典维护', '/dict', 'mdi-book-open-page-variant');
   push('系统配置', '/sys-settings', 'mdi-cog-outline');
-  push('集群状态', '/cluster', 'mdi-server-network');
 
   const actions: PaletteItem[] = [
     {

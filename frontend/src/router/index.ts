@@ -40,6 +40,12 @@ routes.push({
   meta: { layout: 'default', navHidden: true, title: '无权访问' },
 });
 
+// The former cluster page is now part of system status; keep old bookmarks working.
+routes.push({
+  path: '/cluster',
+  redirect: '/status',
+});
+
 routes.push({
   path: '/:pathMatch(.*)*',
   name: 'NotFound',
