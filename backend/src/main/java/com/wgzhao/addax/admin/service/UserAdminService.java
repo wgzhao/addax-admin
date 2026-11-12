@@ -27,6 +27,7 @@ public class UserAdminService
     private final PasswordEncoder passwordEncoder;
     private final UserAuthStateService userAuthStateService;
     private final UserSourceGrantService userSourceGrantService;
+    private final AuthzService authzService;
     private final JdbcTemplate jdbcTemplate;
 
     public List<UserAdminDto> listUsers()
@@ -139,10 +140,17 @@ public class UserAdminService
             );
         }
 
+        UserAdminDto updated = toUserAdminDto(normalizedUsername);
+        // Grants only mean something for the user role. Clearing them on a role change prevents a
+        // later change back to user from silently reactivating the old management rights.
+        if (!Roles.USER.equals(Roles.highest(updated.authorities()))) {
+            userSourceGrantService.deleteAll(normalizedUsername);
+        }
         // Any account edit invalidates existing tokens: a changed password, role or enabled flag must
         // take effect immediately instead of waiting for the eight-day JWT to expire.
         userAuthStateService.bumpAuthVersion(normalizedUsername);
-        return toUserAdminDto(normalizedUsername);
+        authzService.invalidateGrants(normalizedUsername);
+        return updated;
     }
 
     @Transactional

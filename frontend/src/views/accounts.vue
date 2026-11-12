@@ -70,6 +70,7 @@
             <template #item.actions="{ item }">
               <div class="ds-action-inline">
                 <v-btn
+                  v-if="canGrant(item)"
                   size="small"
                   variant="text"
                   color="info"
@@ -367,6 +368,17 @@
     return authorities.map(item => normalizeAuthority(item)).join(', ');
   };
 
+  const roleOf = (item: AccountUser) => {
+    const roles = (item.authorities || []).map(normalizeAuthority);
+    if (roles.includes('admin')) return 'admin';
+    if (roles.includes('user')) return 'user';
+    return 'guest';
+  };
+
+  // Guest is read-only by definition and admin already manages every source; only user accounts
+  // can receive a management grant.
+  const canGrant = (item: AccountUser) => roleOf(item) === 'user';
+
   const openCreateDialog = () => {
     dialogMode.value = 'create';
     formModel.value = {
@@ -495,6 +507,7 @@
   };
 
   const openGrantDialog = async (item: AccountUser) => {
+    if (!canGrant(item)) return;
     grantUser.value = item.username;
     grantRows.value = [];
     grantDialogVisible.value = true;

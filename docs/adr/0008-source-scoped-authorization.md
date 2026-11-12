@@ -49,6 +49,10 @@ A grant is a management grant: it lets the account modify and execute that sourc
 the first iteration are ignored. `VIEW` is deliberately not a read grant because every authenticated
 role can already read every source.
 
+Grants only apply to accounts whose effective role is `user`. The API rejects grant changes for
+admin and guest accounts, and changing a user to another role clears the existing grants so a later
+change back to user cannot silently reactivate them.
+
 The four authorization predicates are:
 
 ```
@@ -131,7 +135,7 @@ model:
 ## Consequences
 
 - A `user` with no grants sees every source read-only, exactly like guest; only granted sources gain
-  write controls.
+  write controls. Admin and guest accounts cannot be granted sources.
 - Dashboard and monitoring remain global read for guest and user because user includes guest read
   access. A future feature may add optional source filters, but that is not an authorization
   boundary.
