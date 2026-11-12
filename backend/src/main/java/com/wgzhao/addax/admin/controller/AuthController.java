@@ -1,10 +1,12 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.common.Roles;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.AuthRequestDTO;
 import com.wgzhao.addax.admin.dto.ChangePasswordDTO;
 import com.wgzhao.addax.admin.service.JwtService;
+import com.wgzhao.addax.admin.service.UserAuthStateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +52,7 @@ public class AuthController
     // 注入用于更新密码的 manager 与编码器
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final UserAuthStateService userAuthStateService;
     private final AuditRecorder auditRecorder;
 
     /**
@@ -64,12 +67,16 @@ public class AuthController
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(authRequestDTO.username(), authRequestDTO.password()));
             if (authentication.isAuthenticated()) {
+                UserAuthStateService.AuthState state = userAuthStateService.load(authRequestDTO.username());
+                if (state == null || !state.enabled()) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, "账号已禁用或不存在"));
+                }
                 List<String> authorities = authentication.getAuthorities() == null
                     ? List.of()
                     : authentication.getAuthorities().stream()
                     .map((item) -> normalizeAuthority(item.getAuthority()))
                     .toList();
-                String token = jwtService.generateToken(authRequestDTO.username(), authorities);
+                String token = jwtService.generateToken(authRequestDTO.username(), authorities, state.authVersion());
                 auditRecorder.success("AUTH_LOGIN_SUCCESS", "AUTH", "INFO", "USER",
                     authRequestDTO.username(), authRequestDTO.username(), null, null,
                     Map.of("authorities", authorities), authRequestDTO.username());
@@ -152,6 +159,7 @@ public class AuthController
                 .password(encoded)
                 .build();
             ((JdbcUserDetailsManager) userDetailsService).updateUser(updated);
+            userAuthStateService.bumpAuthVersion(username);
             auditRecorder.success("AUTH_PASSWORD_CHANGED", "ACCOUNT", "WARNING", "USER",
                 username, username, null, null);
             // 在更新后，重新刷新 SecurityContext 中的认证信息为最新（可选）
@@ -168,14 +176,6 @@ public class AuthController
 
     private String normalizeAuthority(String authority)
     {
-        if (authority == null || authority.isBlank()) {
-            return "user";
-        }
-
-        String normalized = authority.trim().toLowerCase();
-        if (normalized.startsWith("role_")) {
-            normalized = normalized.substring(5);
-        }
-        return "admin".equals(normalized) ? "admin" : "user";
+        return Roles.normalize(authority);
     }
 }

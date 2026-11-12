@@ -84,8 +84,23 @@ public class JwtService
      */
     public String generateToken(String username, List<String> authorities)
     {
+        return generateToken(username, authorities, 0);
+    }
+
+    /**
+     * 生成JWT令牌（包含角色与账号版本）。认证过滤器会用 authVersion 与数据库当前值比较，
+     * 这样禁用、删除、改密或改角色后旧令牌立即失效。
+     *
+     * @param username 用户名
+     * @param authorities 角色列表
+     * @param authVersion 当前账号版本
+     * @return JWT令牌字符串
+     */
+    public String generateToken(String username, List<String> authorities, int authVersion)
+    {
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities == null ? List.of() : authorities);
+        claims.put("authVersion", authVersion);
         return createToken(claims, username);
     }
 
@@ -166,6 +181,34 @@ public class JwtService
             }
         }
         return result;
+    }
+
+    /**
+     * 提取JWT中的账号版本。旧 token 没有该 claim 时按 0 处理，升级期间不会强制所有人重新登录；
+     * 账号版本一旦自增，旧 token 就会被拒绝。
+     *
+     * @param token JWT令牌
+     * @return 账号版本
+     */
+    public int extractAuthVersion(String token)
+    {
+        Claims claims = extractClaim(token, Function.identity());
+        if (claims == null) {
+            return 0;
+        }
+        Object raw = claims.get("authVersion");
+        if (raw instanceof Number number) {
+            return number.intValue();
+        }
+        if (raw != null) {
+            try {
+                return Integer.parseInt(String.valueOf(raw));
+            }
+            catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
     }
 
     /**
