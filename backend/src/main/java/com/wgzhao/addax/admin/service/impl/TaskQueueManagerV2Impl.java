@@ -1249,6 +1249,14 @@ public class TaskQueueManagerV2Impl
             executionService.finish(execution, false, "Job template not generated");
             return false;
         }
+        // Guard for templates stored before dates were frozen: addax no longer resolves variables,
+        // so anything still in the cached JSON must be resolved here or it runs literally.
+        String frozenJob = jobContentService.freezeDateVariables(job, executionBizDate, taskId);
+        if (!frozenJob.equals(job)) {
+            log.warn("Task {} job template still contained date variables; resolved them at dispatch. "
+                + "Refresh the table to persist the frozen values.", taskId);
+            job = frozenJob;
+        }
         TargetContractReport contractReport = null;
         if (tableView.getSchemaManagementMode() == SchemaManagementMode.EXTERNAL)
         {
@@ -1298,10 +1306,10 @@ public class TaskQueueManagerV2Impl
             String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
             String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
             String jobName = taskId + ":" + execution.getId();
-            // addax.sh no longer injects date variables. They are passed as system properties of
-            // this job's own JVM: biz_* follow the execution business date, curr_* stay the real
-            // launch time, and no global state (Redis BIZ_DATE, admin JVM properties) is touched.
-            String jvmProps = buildJvmProps(jobName, logName, executionBizDate);
+            // Date variables are frozen into the job JSON at generation time; the file on disk is
+            // the record of what this run uses. Only the job name and log file name still travel
+            // to the child JVM.
+            String jvmProps = buildJvmProps(jobName, logName);
             List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
             String cmd = toCommandString(cmdArgs);
             boolean retCode = executeAddax(cmdArgs, cmd, taskId, execution.getId(), logName,
@@ -1319,21 +1327,14 @@ public class TaskQueueManagerV2Impl
     /**
      * Build the {@code -p} argument for one addax process.
      *
-     * <p>Since addax.sh stopped injecting the date variables, every caller must provide them. They
-     * are system properties of the child JVM only; the values are derived from the execution
-     * business date (biz_*) and the real launch time (curr_*).
-     *
-     * <p>Values containing spaces (the datetime formats) are single-quoted because addax.sh
-     * re-parses the parameter through {@code sh -c}; the values originate from date formatting and
-     * contain no shell metacharacters.
+     * <p>Date variables are already literal values in the job JSON, so passing them again would be
+     * dead weight — and a trap, because a launch-time value silently disagrees with the frozen one.
+     * {@code jobName} feeds addax's job report and {@code log.file.name} names the log the admin
+     * reads back.
      */
-    private String buildJvmProps(String jobName, String logName, LocalDate executionBizDate)
+    private String buildJvmProps(String jobName, String logName)
     {
-        StringBuilder props = new StringBuilder();
-        props.append("-DjobName=").append(jobName).append(" -Dlog.file.name=").append(logName);
-        configService.getBizDateValuesForDate(executionBizDate).forEach((name, value) ->
-            props.append(" -D").append(name).append("='").append(value).append('\''));
-        return props.toString();
+        return "-DjobName=" + jobName + " -Dlog.file.name=" + logName;
     }
 
     /**

@@ -305,9 +305,11 @@ public class SystemConfigService
     }
 
     /**
-     * Build date variable map for an arbitrary date, used by fillback template generation.
+     * Build the date variable map for an arbitrary business date. Every value is frozen into the
+     * job JSON by the generator; {@code biz_*} follows {@code targetDate} and {@code curr_*} is the
+     * generation clock.
      *
-     * @param targetDate the date to compute variables for
+     * @param targetDate the business date to compute {@code biz_*} variables for
      * @return variable map with same keys as {@link #getBizDateValues()}
      */
     public Map<String, String> getBizDateValuesForDate(LocalDate targetDate)
@@ -330,7 +332,8 @@ public class SystemConfigService
         values.put("biz_datetime_0_dash", dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd 00:00:00")));
         values.put("biz_datetime_0_short", dt.format(DateTimeFormatter.ofPattern("yyyyMMdd000000")));
 
-        // current date time — always real now, not the target date
+        // Generation clock, not the target date. These values are frozen into the job JSON by
+        // JobContentService, so they record when the task content was generated.
         LocalDateTime now = LocalDateTime.now();
         values.put("curr_date_short", now.format(DateTimeFormatter.ofPattern("yyyyMMdd")));
         values.put("curr_date_dash", now.format(DateTimeFormatter.ISO_LOCAL_DATE));

@@ -28,8 +28,8 @@
       </v-card-title>
       <v-card-text>
         <v-alert type="info" variant="tonal" density="comfortable" class="mb-4">
-          按所选日期逐日回补：目标日期作为 <code>biz_*</code>，<code>curr_*</code> 仍使用真实运行时间；
-          补数按系统模板重新生成，不包含手工编辑的作业内容。
+          按所选日期逐日回补：目标日期作为 <code>biz_*</code>，<code>curr_*</code> 使用该次补数生成任务时的真实时间，
+          并随 <code>biz_*</code> 一起冻结进任务文件；补数按系统模板重新生成，不包含手工编辑的作业内容。
         </v-alert>
 
         <div class="date-picker-layout">
