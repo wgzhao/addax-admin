@@ -114,8 +114,8 @@ model:
 
 ## Migration
 
-- `normalizeAuthority` accepts `guest`; unknown authorities fail closed to guest and log a warning.
-  If multiple authorities exist, `admin > user > guest` wins.
+- `normalizeAuthority` accepts `guest`; unknown authorities fail closed to guest. If multiple
+  authorities exist, `admin > user > guest` wins.
 - `scripts/schema.sql` and the startup `SchemaInitializer` create `user_source_grant` and
   `users.auth_version` idempotently.
 - Existing `user` accounts receive `VIEW` on every current source in one migration, preserving their
