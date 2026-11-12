@@ -97,7 +97,7 @@ export function buildNavMenu(
   const homeRoute = flatRoutes.find(item => item.isHome);
 
   const result: NavItem[] = [];
-  if (homeRoute && role !== 'user') {
+  if (homeRoute) {
     result.push({ path: homeRoute.path, title: homeRoute.title, name: 'Home' });
   }
 

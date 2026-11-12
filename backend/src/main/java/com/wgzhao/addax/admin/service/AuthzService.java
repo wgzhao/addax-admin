@@ -60,19 +60,18 @@ public class AuthzService
     }
 
     /**
-     * @return null when the role sees every source (admin and guest), otherwise the exact set of
-     * readable source IDs. An empty set means the user has no grants and must see nothing.
+     * Every authenticated role can read source metadata: user is defined as guest read access plus
+     * management of granted sources. The method stays for callers that want to express a scope, but
+     * it now returns null (all sources).
      */
     public Set<Integer> readableSourceIds()
     {
-        if (isAdmin() || isGuest()) {
-            return null;
-        }
-        return currentGrants().keySet();
+        return null;
     }
 
     /**
-     * @return null for admin (all sources), otherwise the sources with OPERATE.
+     * Sources the current account may manage. Admin returns null (all); guest returns an empty set;
+     * user returns the sources with an OPERATE grant.
      */
     public Set<Integer> operableSourceIds()
     {
@@ -82,9 +81,7 @@ public class AuthzService
         if (isGuest()) {
             return Set.of();
         }
-        return currentGrants().entrySet().stream()
-            .filter(entry -> entry.getValue() == UserSourceGrantService.AccessLevel.OPERATE)
-            .map(Map.Entry::getKey)
+        return currentGrants().keySet().stream()
             .collect(Collectors.toUnmodifiableSet());
     }
 
@@ -114,10 +111,7 @@ public class AuthzService
 
     public boolean canReadSource(int sourceId)
     {
-        if (isAdmin() || isGuest()) {
-            return true;
-        }
-        return currentGrants().containsKey(sourceId);
+        return true;
     }
 
     public boolean canOperateSource(int sourceId)
@@ -128,7 +122,7 @@ public class AuthzService
         if (isGuest()) {
             return false;
         }
-        return currentGrants().get(sourceId) == UserSourceGrantService.AccessLevel.OPERATE;
+        return currentGrants().containsKey(sourceId);
     }
 
     /**

@@ -36,8 +36,11 @@ public class UserSourceGrantService
             return Map.of();
         }
         Map<Integer, AccessLevel> grants = new LinkedHashMap<>();
+        // VIEW rows from the earlier model are ignored: a user already reads every source, so only
+        // OPERATE changes what the account may do.
         jdbcTemplate.query(
-            "select source_id, access_level from public.user_source_grant where username = ?",
+            "select source_id, access_level from public.user_source_grant " +
+            "where username = ? and access_level = 'OPERATE'",
             rs -> {
                 grants.put(rs.getInt("source_id"), parseLevel(rs.getString("access_level")));
             },
@@ -50,7 +53,7 @@ public class UserSourceGrantService
         return jdbcTemplate.query(
             "select g.source_id, s.name, g.access_level " +
             "from public.user_source_grant g join public.etl_source s on s.id = g.source_id " +
-            "where g.username = ? order by s.name, g.source_id",
+            "where g.username = ? and g.access_level = 'OPERATE' order by s.name, g.source_id",
             (rs, rowNum) -> new SourceGrantDto(
                 rs.getInt("source_id"),
                 rs.getString("name"),
@@ -94,21 +97,42 @@ public class UserSourceGrantService
             if (input.sourceId() <= 0) {
                 throw new ApiException(400, "采集源 ID 无效");
             }
-            normalized.put(input.sourceId(), parseLevel(input.accessLevel()));
+            normalized.put(input.sourceId(), parseInputLevel(input.accessLevel()));
         }
         return normalized;
+    }
+
+    /**
+     * Grants are management rights only. A user already reads every source, so VIEW is not a
+     * meaningful grant level anymore; reject it instead of storing a no-op row.
+     */
+    private AccessLevel parseInputLevel(String value)
+    {
+        if (value == null || value.isBlank()) {
+            throw new ApiException(400, "授权级别只支持 OPERATE");
+        }
+        try {
+            AccessLevel level = AccessLevel.valueOf(value.trim().toUpperCase(Locale.ROOT));
+            if (level != AccessLevel.OPERATE) {
+                throw new ApiException(400, "授权级别只支持 OPERATE");
+            }
+            return level;
+        }
+        catch (IllegalArgumentException e) {
+            throw new ApiException(400, "授权级别只支持 OPERATE");
+        }
     }
 
     private AccessLevel parseLevel(String value)
     {
         if (value == null || value.isBlank()) {
-            throw new ApiException(400, "授权级别必须是 VIEW 或 OPERATE");
+            return AccessLevel.OPERATE;
         }
         try {
             return AccessLevel.valueOf(value.trim().toUpperCase(Locale.ROOT));
         }
         catch (IllegalArgumentException e) {
-            throw new ApiException(400, "授权级别必须是 VIEW 或 OPERATE");
+            return AccessLevel.OPERATE;
         }
     }
 

@@ -96,10 +96,9 @@ export const useAuthStore = defineStore('auth', {
     isGuest: state => state.role === 'guest',
     // Admin-only actions: target/config management and source creation/deletion.
     canWrite: state => state.role === 'admin',
-    canReadSource: state => (sourceId?: number | null) => {
-      if (state.role === 'admin' || state.role === 'guest') return true;
-      return sourceId != null && state.grants[sourceId] != null;
-    },
+    // All authenticated roles may read source/table metadata; `user` is guest read access plus
+    // management of granted sources.
+    canReadSource: () => (sourceId?: number | null) => true,
     canOperateSource: state => (sourceId?: number | null) => {
       if (state.role === 'admin') return true;
       if (state.role === 'guest' || sourceId == null) return false;

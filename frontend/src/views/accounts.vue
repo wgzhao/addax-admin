@@ -188,7 +188,7 @@
         <v-card-title>采集源授权 · {{ grantUser }}</v-card-title>
         <v-card-text>
           <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-            只读：可查看该源的采集源、采集表、执行历史与统计。可操作：还可以修改配置、执行采集、查看作业与日志。
+            所有登录账号都可以查看采集源和采集表；这里只控制“可操作”权限，即修改配置、执行采集、查看作业与日志。
           </v-alert>
           <v-skeleton-loader v-if="grantLoading" type="list-item-two-line@3" />
           <v-table v-else density="compact">
@@ -281,7 +281,6 @@
   const grantSaving = ref(false);
   const grantLevelOptions = [
     { label: '无', value: '' },
-    { label: '只读', value: 'VIEW' },
     { label: '可操作', value: 'OPERATE' },
   ];
   const grantRows = ref<
@@ -509,7 +508,7 @@
       grantRows.value = sources.map(source => ({
         sourceId: source.id,
         sourceName: source.name,
-        accessLevel: bySource.get(source.id) || '',
+        accessLevel: bySource.get(source.id) === 'OPERATE' ? 'OPERATE' : '',
       }));
     } catch (error: any) {
       notify('加载采集源授权失败: ' + (error.message || error), 'error');

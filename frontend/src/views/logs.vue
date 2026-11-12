@@ -66,7 +66,7 @@
     "requiresAuth": true,
     "navGroup": "systemManage",
     "navOrder": 30,
-    "roles": ["admin"]
+    "roles": ["admin", "user"]
   }
 }
 </route>
