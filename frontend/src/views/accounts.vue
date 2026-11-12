@@ -223,7 +223,7 @@
     { title: '操作', key: 'actions', sortable: false, width: 320 },
   ];
 
-  const authorityOptions = ['admin', 'user'];
+  const authorityOptions = ['admin', 'user', 'guest'];
 
   const formModel = ref<{
     username: string;
@@ -279,11 +279,12 @@
   };
 
   const normalizeAuthority = (authority?: string) => {
-    const value = (authority || '').trim().toLowerCase();
+    let value = (authority || '').trim().toLowerCase();
     if (value.startsWith('role_')) {
-      return value.slice(5) === 'admin' ? 'admin' : 'user';
+      value = value.slice(5);
     }
-    return value === 'admin' ? 'admin' : 'user';
+    // Keep guest distinct; mapping it to user would silently change the account on edit.
+    return value === 'admin' || value === 'guest' ? value : 'user';
   };
 
   const formatAuthorities = (authorities: string[]) => {
@@ -431,7 +432,8 @@
     "title": "账号管理",
     "icon": "mdi-account-group-outline",
     "requiresAuth": true,
-    "navHidden": true
+    "navHidden": true,
+    "roles": ["admin"]
   }
 }
 </route>

@@ -1393,7 +1393,8 @@
     "icon": "mdi-cog-outline",
     "requiresAuth": true,
     "navGroup": "systemManage",
-    "navOrder": 10
+    "navOrder": 10,
+    "roles": ["admin"]
   }
 }
 </route>

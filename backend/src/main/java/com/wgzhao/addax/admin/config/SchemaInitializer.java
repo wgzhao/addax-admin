@@ -233,6 +233,13 @@ public class SchemaInitializer
      */
     private static final int WORK_DAY_DICT_CODE = 1022;
 
+    /**
+     * Version of the account's authentication state. Login embeds it in the JWT; a mismatch means the
+     * account was disabled, deleted, re-roled or had its password changed, so the token is rejected.
+     */
+    private static final String ADD_USER_AUTH_VERSION_SQL =
+        "alter table public.users add column if not exists auth_version integer not null default 0";
+
     private static final String ADD_CALENDAR_COLUMN_SQL =
         "alter table public.etl_source add column if not exists calendar varchar(32)";
 
@@ -554,6 +561,12 @@ public class SchemaInitializer
         // etl table check so an installation without sources can still alert.
         statement.execute(CREATE_ALERT_TABLES_SQL);
         statement.execute(CREATE_ALERT_INDEXES_SQL);
+        // Authentication state is independent of the collection schema; upgrade it even on an
+        // installation that has never created a source.
+        if (exists(connection, "tables", "users", null))
+        {
+            statement.execute(ADD_USER_AUTH_VERSION_SQL);
+        }
         boolean hasSource = exists(connection, "tables", "etl_source", null);
         boolean hasTable = exists(connection, "tables", "etl_table", null);
         if (!hasSource && !hasTable)

@@ -4,7 +4,13 @@
     :class="{ 'ds-management-page--modal-open': dialogVisible }"
   >
     <PageHeader title="目标端管理" subtitle="统一维护目标端连接、模板键与默认落库策略。">
-      <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="openCreate">
+      <v-btn
+        v-if="authStore.canWrite"
+        color="primary"
+        variant="flat"
+        prepend-icon="mdi-plus"
+        @click="openCreate"
+      >
         新增目标端
       </v-btn>
     </PageHeader>
@@ -45,7 +51,9 @@
           <EmptyState
             title="暂无目标端"
             description="当前还没有配置任何目标端。点击下方按钮新增目标端后，即可配置连接、模板键和默认落库策略。"
-            :primary="{ label: '新增目标端', icon: 'mdi-plus' }"
+            :primary="
+              authStore.canWrite ? { label: '新增目标端', icon: 'mdi-plus' } : undefined
+            "
             @primary="openCreate"
           />
         </template>
@@ -97,7 +105,7 @@
             </template>
 
             <template #item.action="{ item }">
-              <div class="ds-action-inline">
+              <div v-if="authStore.canWrite" class="ds-action-inline">
                 <v-btn
                   size="small"
                   variant="text"
@@ -494,9 +502,12 @@
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants';
   import dictService from '@/service/dict-service';
   import type { EtlTarget } from '@/types/database';
+  import type { DataTableHeader } from 'vuetify';
+  import { useAuthStore } from '@/stores/auth';
 
   const route = useRoute();
   const router = useRouter();
+  const authStore = useAuthStore();
 
   const targets = ref<EtlTarget[]>([]);
   const enabledOnly = ref(true);
@@ -523,15 +534,20 @@
   const targetTypes = ['HDFS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'];
   const writerTemplateOptions = ref<{ label: string; value: string }[]>([]);
 
-  const headers = [
-    { title: 'ID', key: 'id', width: 72 },
-    { title: '目标端', key: 'name', minWidth: '180px' },
-    { title: '类型', key: 'targetType', width: 120 },
-    { title: '模板键', key: 'writerTemplateKey', width: 140 },
-    { title: '启用', key: 'enabled', width: 90 },
-    { title: '默认', key: 'isDefault', width: 90 },
-    { title: '操作', key: 'action', sortable: false, width: 280 },
-  ];
+  const headers = computed<DataTableHeader[]>(() => {
+    const base: DataTableHeader[] = [
+      { title: 'ID', key: 'id', width: 72 },
+      { title: '目标端', key: 'name', minWidth: '180px' },
+      { title: '类型', key: 'targetType', width: 120 },
+      { title: '模板键', key: 'writerTemplateKey', width: 140 },
+      { title: '启用', key: 'enabled', width: 90 },
+      { title: '默认', key: 'isDefault', width: 90 },
+    ];
+    if (authStore.canWrite) {
+      base.push({ title: '操作', key: 'action', sortable: false, width: 280 });
+    }
+    return base;
+  });
 
   const blankForm = (): EtlTarget => ({
     code: '',
@@ -804,7 +820,7 @@
 
   const openCreateFromQuery = () => {
     const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action;
-    if (action !== 'create') return;
+    if (action !== 'create' || !authStore.canWrite) return;
 
     openCreate();
 

@@ -4,7 +4,13 @@
     :class="{ 'ds-management-page--modal-open': isShow || deleteDialog }"
   >
     <PageHeader title="采集源管理" subtitle="统一维护采集源、连接配置与启停状态。">
-      <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="doAction(-1, 'add')">
+      <v-btn
+        v-if="authStore.canWrite"
+        color="primary"
+        variant="flat"
+        prepend-icon="mdi-plus"
+        @click="doAction(-1, 'add')"
+      >
         新增采集源
       </v-btn>
     </PageHeader>
@@ -43,7 +49,9 @@
           <EmptyState
             title="暂无采集源"
             description="当前还没有配置任何采集源。点击下方按钮新增采集源后，即可继续维护连接与采集配置。"
-            :primary="{ label: '新增采集源', icon: 'mdi-plus' }"
+            :primary="
+              authStore.canWrite ? { label: '新增采集源', icon: 'mdi-plus' } : undefined
+            "
             @primary="() => doAction(-1, 'add')"
           />
         </template>
@@ -80,7 +88,7 @@
             </template>
 
             <template #item.actions="{ item }">
-              <div class="ds-action-inline">
+              <div v-if="authStore.canWrite" class="ds-action-inline">
                 <v-btn
                   variant="text"
                   color="primary"
@@ -168,9 +176,11 @@
   import EmptyState from '@/components/EmptyState.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
+  import { useAuthStore } from '@/stores/auth';
 
   const route = useRoute();
   const router = useRouter();
+  const authStore = useAuthStore();
 
   const sources = ref([]);
   const isShow = ref(false);
@@ -185,19 +195,24 @@
   const mode = ref('show');
   const searchValue = ref('');
 
-  const headers: DataTableHeader[] = [
-    { title: 'ID', key: 'id', width: '2%' },
-    { title: '编号', key: 'code', width: '5%' },
-    { title: '采集源', key: 'name', minWidth: '5%' },
-    { title: '类型', key: 'dbType', width: '6%' },
-    { title: '连接串', key: 'url', minWidth: '15%' },
-    { title: '状态', key: 'enabled', width: '3%' },
-    { title: '表数量', key: 'tableCount', width: '5%' },
-    { title: '有效表数量', key: 'validTableCount', width: '7%' },
-    { title: '采集时间', key: 'startAt', width: '6%' },
-    { title: '采集日历', key: 'calendar', width: '8%' },
-    { title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' },
-  ];
+  const headers = computed<DataTableHeader[]>(() => {
+    const base: DataTableHeader[] = [
+      { title: 'ID', key: 'id', width: '2%' },
+      { title: '编号', key: 'code', width: '5%' },
+      { title: '采集源', key: 'name', minWidth: '5%' },
+      { title: '类型', key: 'dbType', width: '6%' },
+      { title: '连接串', key: 'url', minWidth: '15%' },
+      { title: '状态', key: 'enabled', width: '3%' },
+      { title: '表数量', key: 'tableCount', width: '5%' },
+      { title: '有效表数量', key: 'validTableCount', width: '7%' },
+      { title: '采集时间', key: 'startAt', width: '6%' },
+      { title: '采集日历', key: 'calendar', width: '8%' },
+    ];
+    if (authStore.canWrite) {
+      base.push({ title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' });
+    }
+    return base;
+  });
 
   const typeLabel = (dbType?: string) => {
     if (!dbType) return 'JDBC';
@@ -307,7 +322,7 @@
 
   const openCreateFromQuery = () => {
     const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action;
-    if (action !== 'create') return;
+    if (action !== 'create' || !authStore.canWrite) return;
 
     doAction(-1, 'add');
 

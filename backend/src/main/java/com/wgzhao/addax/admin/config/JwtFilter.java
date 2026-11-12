@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.config;
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.audit.AuditRequestFilter;
 import com.wgzhao.addax.admin.service.JwtService;
+import com.wgzhao.addax.admin.service.UserAuthStateService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -32,6 +33,7 @@ public class JwtFilter
 {
 
     private final JwtService jwtService;
+    private final UserAuthStateService userAuthStateService;
     private final AuditRecorder auditRecorder;
 
     @Override
@@ -83,12 +85,26 @@ public class JwtFilter
         }
 
         log.debug("valid token, username: {}", username);
+        UserAuthStateService.AuthState state = userAuthStateService.load(username);
+        if (state == null || !state.enabled()) {
+            auditRecorder.independentFailure("AUTH_TOKEN_REJECTED", "AUTH", "WARNING",
+                "API", null, request.getRequestURI(), null,
+                state == null ? "ACCOUNT_NOT_FOUND" : "ACCOUNT_DISABLED", null,
+                Map.of("reason", state == null ? "not_found" : "disabled"));
+            writeUnauthorized(response, state == null ? "账号不存在" : "账号已被禁用");
+            return;
+        }
+        if (jwtService.extractAuthVersion(token) != state.authVersion()) {
+            auditRecorder.independentFailure("AUTH_TOKEN_REJECTED", "AUTH", "WARNING",
+                "API", null, request.getRequestURI(), null, "ACCOUNT_CHANGED", null,
+                Map.of("reason", "auth_version_changed"));
+            writeUnauthorized(response, "登录状态已失效，请重新登录");
+            return;
+        }
+
         request.setAttribute(AuditRequestFilter.JWT_ID_ATTRIBUTE, claims.getId());
-        List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(token).stream()
-            .map((item) -> item == null ? "" : item.trim().toLowerCase())
-            .filter((item) -> !item.isBlank())
-            .map(SimpleGrantedAuthority::new)
-            .toList();
+        List<SimpleGrantedAuthority> authorities =
+            List.of(new SimpleGrantedAuthority(state.role()));
 
         UsernamePasswordAuthenticationToken authenticationToken =
             new UsernamePasswordAuthenticationToken(username, null, authorities);
@@ -96,5 +112,13 @@ public class JwtFilter
         authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         filterChain.doFilter(request, response);
+    }
+
+    private void writeUnauthorized(HttpServletResponse response, String message)
+        throws IOException
+    {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"message\":\"" + message + "\"}");
     }
 }

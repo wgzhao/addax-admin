@@ -1,7 +1,9 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.dto.EtlTargetView;
 import com.wgzhao.addax.admin.model.EtlTarget;
+import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.EtlTargetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,18 +27,19 @@ import java.util.List;
 public class TargetController
 {
     private final EtlTargetService etlTargetService;
+    private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
 
     @GetMapping("")
-    public ResponseEntity<List<EtlTarget>> listTargets(@RequestParam(value = "enabledOnly", required = false) Boolean enabledOnly)
+    public ResponseEntity<List<EtlTargetView>> listTargets(@RequestParam(value = "enabledOnly", required = false) Boolean enabledOnly)
     {
-        return ResponseEntity.ok(etlTargetService.listAll(enabledOnly));
+        return ResponseEntity.ok(etlTargetService.listViews(enabledOnly, authzService.isAdmin()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EtlTarget> getTarget(@PathVariable Long id)
+    public ResponseEntity<EtlTargetView> getTarget(@PathVariable Long id)
     {
-        return ResponseEntity.ok(etlTargetService.getById(id));
+        return ResponseEntity.ok(etlTargetService.getView(id, authzService.isAdmin()));
     }
 
     @PostMapping("")

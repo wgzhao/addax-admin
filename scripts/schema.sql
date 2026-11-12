@@ -1661,7 +1661,8 @@ ALTER SEQUENCE public.user_notification_id_seq OWNED BY public.user_notification
 CREATE TABLE public.users (
     username character varying(50) NOT NULL,
     password character varying(500) NOT NULL,
-    enabled boolean NOT NULL
+    enabled boolean NOT NULL,
+    auth_version integer DEFAULT 0 NOT NULL
 );
 
 

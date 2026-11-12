@@ -23,6 +23,8 @@ registerPlugins(app);
 // 在应用初始化时加载本地存储中的 Token
 const authStore = useAuthStore(pinia);
 authStore.loadTokenFromStorage();
+// Resolve the role before the first navigation needs it; the router guard also awaits this.
+void authStore.loadCurrentUser();
 
 const themeStore = useThemeStore(pinia);
 themeStore.initTheme();

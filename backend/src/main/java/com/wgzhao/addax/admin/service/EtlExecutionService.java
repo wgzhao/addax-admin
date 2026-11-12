@@ -104,6 +104,17 @@ public class EtlExecutionService
         return executionRepo.findById(executionId).map(EtlExecution::getBizDate);
     }
 
+    /**
+     * A job report must name an execution that belongs to the table it reports on; otherwise an
+     * arbitrary caller can write statistics for any tid.
+     */
+    public boolean belongsTo(long executionId, long tid)
+    {
+        return executionRepo.findById(executionId)
+            .map(execution -> execution.getTid() != null && execution.getTid() == tid)
+            .orElse(false);
+    }
+
     private JsonNode buildSnapshot(VwEtlTableWithSource table,
         List<ColumnMappingService.ResolvedColumnMapping> mappings, String job,
         LocalDate bizDate, TargetContractReport contractReport)

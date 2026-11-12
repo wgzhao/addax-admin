@@ -126,6 +126,14 @@ public class LogController
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
+        if (tableService.getTable(tid) == null) {
+            log.warn("Rejecting job report for unknown tid {}", tid);
+            return false;
+        }
+        if (executionId != null && !executionService.belongsTo(executionId, tid)) {
+            log.warn("Rejecting job report for execution {} that does not belong to tid {}", executionId, tid);
+            return false;
+        }
         EtlStatistic sta = new EtlStatistic();
         sta.setTid(tid);
         sta.setExecutionId(executionId);

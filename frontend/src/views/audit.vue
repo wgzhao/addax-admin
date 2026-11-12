@@ -736,7 +736,8 @@
     "icon": "mdi-shield-search",
     "requiresAuth": true,
     "navGroup": "systemManage",
-    "navOrder": 40
+    "navOrder": 40,
+    "roles": ["admin"]
   }
 }
 </route>

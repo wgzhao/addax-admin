@@ -19,6 +19,7 @@
       </router-link>
       <NavCluster v-if="!compactNav" :items="urls" />
       <v-menu
+        v-if="authStore.canWrite"
         :min-width="0"
         offset-y
         open-on-hover
@@ -142,10 +143,14 @@
   };
 
   const urls = computed<NavItem[]>(() =>
-    buildNavMenu(router.getRoutes(), {
-      updateSchemaNeed,
-      openConfirmUpdateAll,
-    })
+    buildNavMenu(
+      router.getRoutes(),
+      {
+        updateSchemaNeed,
+        openConfirmUpdateAll,
+      },
+      authStore.role
+    )
   );
 
   const toggleThemeWithLog = () => {

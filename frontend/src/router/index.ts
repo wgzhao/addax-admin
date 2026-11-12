@@ -58,7 +58,7 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // 如果访问登录页面，直接放行
   if (to.path === '/login') {
     next();
@@ -82,6 +82,17 @@ router.beforeEach((to, from, next) => {
   if (authStore.isTokenExpired && authStore.isTokenExpired()) {
     authStore.logout();
     next({ path: '/login', query: { redirect: to.fullPath } });
+    return;
+  }
+
+  // The role lives on the server. Wait for it before deciding whether the route is visible; the
+  // default is guest, so a slow response can never expose an admin page.
+  if (!authStore.roleLoaded) {
+    await authStore.loadCurrentUser();
+  }
+  const requiredRoles = Array.isArray(to.meta.roles) ? (to.meta.roles as string[]) : null;
+  if (requiredRoles && !requiredRoles.includes(authStore.role)) {
+    next({ path: '/forbidden' });
     return;
   }
 

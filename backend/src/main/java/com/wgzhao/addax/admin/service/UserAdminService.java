@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.Roles;
 import com.wgzhao.addax.admin.dto.CreateUserDTO;
 import com.wgzhao.addax.admin.dto.UpdateUserDTO;
 import com.wgzhao.addax.admin.dto.UserAdminDto;
@@ -23,6 +24,7 @@ public class UserAdminService
 {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final UserAuthStateService userAuthStateService;
     private final JdbcTemplate jdbcTemplate;
 
     public List<UserAdminDto> listUsers()
@@ -130,6 +132,9 @@ public class UserAdminService
             );
         }
 
+        // Any account edit invalidates existing tokens: a changed password, role or enabled flag must
+        // take effect immediately instead of waiting for the eight-day JWT to expire.
+        userAuthStateService.bumpAuthVersion(normalizedUsername);
         return toUserAdminDto(normalizedUsername);
     }
 
@@ -184,6 +189,7 @@ public class UserAdminService
             .build();
 
         manager.updateUser(updated);
+        userAuthStateService.bumpAuthVersion(normalizedUsername);
         return toUserAdminDto(normalizedUsername);
     }
 
@@ -219,19 +225,7 @@ public class UserAdminService
 
     private String normalizeAuthority(String authority)
     {
-        if (authority == null || authority.isBlank()) {
-            return "user";
-        }
-
-        String normalized = authority.trim().toLowerCase();
-        if (normalized.startsWith("role_")) {
-            normalized = normalized.substring(5);
-        }
-
-        if ("admin".equals(normalized)) {
-            return "admin";
-        }
-        return "user";
+        return Roles.normalize(authority);
     }
 
     private String currentUsername()

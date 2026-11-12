@@ -51,6 +51,9 @@ public class VwEtlTableWithSource
     private String name;
     private String url;
     private String username;
+    // The view joins the source row directly, so without this every table list response carried the
+    // plaintext source password. Internal job rendering still calls getPass().
+    @JsonIgnore
     private String pass;
     private String dbType;
     @JdbcTypeCode(SqlTypes.JSON)

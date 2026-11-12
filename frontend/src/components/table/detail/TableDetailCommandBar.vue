@@ -13,7 +13,7 @@
       <span v-else-if="retired" class="command-hint">退役配置仅供查看</span>
     </div>
 
-    <div class="command-actions">
+    <div v-if="authStore.canWrite" class="command-actions">
       <template v-if="editing">
         <v-btn variant="text" :disabled="saving" @click="$emit('cancel')">取消</v-btn>
         <v-btn
@@ -40,6 +40,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useAuthStore } from '@/stores/auth';
+
   defineProps<{
     editing: boolean;
     dirty: boolean;
@@ -49,6 +51,8 @@
   }>();
 
   defineEmits(['edit', 'cancel', 'save']);
+
+  const authStore = useAuthStore();
 </script>
 
 <style scoped>

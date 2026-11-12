@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia';
+import { highestRole, type Role } from '@/utils/roles';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: '' as string | null, // 存储用户的 Token
     username: '' as string | null, // 存储用户名
+    role: 'guest' as Role,
+    roleLoaded: false,
   }),
   actions: {
     // 更新 Token
@@ -25,11 +28,33 @@ export const useAuthStore = defineStore('auth', {
       if (username) {
         this.username = username;
       }
+      // The persisted token says nothing about the current role; always re-read it.
+      this.role = 'guest';
+      this.roleLoaded = false;
+    },
+    async loadCurrentUser() {
+      if (!this.token) {
+        this.role = 'guest';
+        this.roleLoaded = true;
+        return;
+      }
+      try {
+        // Dynamic import avoids a module cycle: requests -> auth store -> user service -> requests.
+        const { default: userService } = await import('@/service/user-service');
+        const me = await userService.me();
+        this.role = highestRole(me.authorities);
+      } catch {
+        this.role = 'guest';
+      } finally {
+        this.roleLoaded = true;
+      }
     },
     // 退出登录
     logout() {
       this.token = null;
       this.username = null;
+      this.role = 'guest';
+      this.roleLoaded = false;
       localStorage.removeItem('authToken');
       localStorage.removeItem('authUsername');
     },
@@ -52,5 +77,10 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isLoggedIn: state => !!state.token,
     currentUserName: state => state.username,
+    isAdmin: state => state.role === 'admin',
+    isGuest: state => state.role === 'guest',
+    // Phase 0 keeps all business writes admin-only. Phase 1 replaces this with the source grant
+    // check once user_source_grant exists.
+    canWrite: state => state.role === 'admin',
   },
 });
