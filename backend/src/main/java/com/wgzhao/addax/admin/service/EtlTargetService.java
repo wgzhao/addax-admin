@@ -1,6 +1,10 @@
 package com.wgzhao.addax.admin.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.DbType;
+import com.wgzhao.addax.admin.dto.EtlTargetView;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
@@ -15,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import static com.wgzhao.addax.admin.common.Constants.HDFS_TARGET_TYPES;
 import static com.wgzhao.addax.admin.common.Constants.RDBMS_TARGET_TYPES;
@@ -24,9 +29,17 @@ import static com.wgzhao.addax.admin.common.Constants.RDBMS_TARGET_TYPES;
 @Slf4j
 public class EtlTargetService
 {
+    /**
+     * Writer defaults the add-table flow needs. Everything else in connect_config can identify the
+     * cluster or contain a credential, so it is stripped for non-admin readers.
+     */
+    private static final Set<String> PUBLIC_CONNECT_KEYS =
+        Set.of("defaultFS", "hdfsPrefix", "storageFormat", "compressFormat");
+
     private final EtlTargetRepo etlTargetRepo;
     private final EtlTableRepo etlTableRepo;
     private final TargetAdapterRegistry targetAdapterRegistry;
+    private final ObjectMapper objectMapper;
 
     public List<EtlTarget> listAll(Boolean enabledOnly)
     {
@@ -40,6 +53,50 @@ public class EtlTargetService
     {
         return etlTargetRepo.findById(id)
             .orElseThrow(() -> new ApiException(404, "Target not found"));
+    }
+
+    public List<EtlTargetView> listViews(Boolean enabledOnly, boolean includeSecrets)
+    {
+        return listAll(enabledOnly).stream()
+            .map(target -> toView(target, includeSecrets))
+            .toList();
+    }
+
+    public EtlTargetView getView(Long id, boolean includeSecrets)
+    {
+        return toView(getById(id), includeSecrets);
+    }
+
+    private EtlTargetView toView(EtlTarget target, boolean includeSecrets)
+    {
+        return EtlTargetView.from(target, includeSecrets
+            ? target.getConnectConfig()
+            : sanitizeConnectConfig(target.getConnectConfig()));
+    }
+
+    private String sanitizeConnectConfig(String raw)
+    {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        try {
+            JsonNode parsed = objectMapper.readTree(raw);
+            if (!parsed.isObject()) {
+                return "{}";
+            }
+            ObjectNode sanitized = objectMapper.createObjectNode();
+            for (String key : PUBLIC_CONNECT_KEYS) {
+                JsonNode value = parsed.get(key);
+                if (value != null) {
+                    sanitized.set(key, value);
+                }
+            }
+            return objectMapper.writeValueAsString(sanitized);
+        }
+        catch (Exception e) {
+            log.warn("Failed to sanitize target connect config: {}", e.getMessage());
+            return "{}";
+        }
     }
 
     @Transactional
