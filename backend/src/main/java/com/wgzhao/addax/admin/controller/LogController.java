@@ -5,9 +5,11 @@ import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.PageResponse;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.AddaxLog;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
+import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.EtlJourService;
@@ -41,6 +43,7 @@ public class LogController
     private final EtlExecutionService executionService;
     private final TableService tableService;
     private final CalendarService calendarService;
+    private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
 
     @GetMapping("/addax")
@@ -58,7 +61,11 @@ public class LogController
         if (pageSize == -1) {
             pageSize = Integer.MAX_VALUE;
         }
-        return PageResponse.from(addaxLogService.listWithPage(page, pageSize));
+        if (authzService.isGuest()) {
+            throw new ApiException(403, "无权查看采集日志");
+        }
+        return PageResponse.from(addaxLogService.listWithPage(page, pageSize,
+            authzService.operableSourceIds()));
     }
 
     /**
@@ -70,6 +77,14 @@ public class LogController
     @GetMapping("/addax/{tid}")
     public ApiResponse<List<AddaxLogDto>> getSpLog(@PathVariable String tid)
     {
+        long tableId;
+        try {
+            tableId = Long.parseLong(tid);
+        }
+        catch (NumberFormatException e) {
+            throw new ApiException(400, "Invalid tid");
+        }
+        authzService.requireTableRead(tableId);
         return ApiResponse.success(addaxLogService.getLogEntry(tid));
     }
 
@@ -87,6 +102,7 @@ public class LogController
     @GetMapping("/jour/{tid}")
     public ApiResponse<String> getJourLog(@PathVariable Long tid)
     {
+        authzService.requireTableOperate(tid);
         return ApiResponse.success(jourService.findLastErrorByTableId(tid));
     }
 
@@ -99,6 +115,11 @@ public class LogController
     @GetMapping("/addax/{id}/content")
     public ResponseEntity<String> getLogFileContent(@PathVariable Long id)
     {
+        Long tid = addaxLogService.findTidById(id);
+        if (tid == null) {
+            throw new ApiException(404, "Log not found");
+        }
+        authzService.requireTableOperate(tid);
         String addaxLog = addaxLogService.getLogContent(id);
         return ResponseEntity.ok(addaxLog);
     }

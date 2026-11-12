@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
@@ -313,10 +314,27 @@ public class TableService
     public Page<VwEtlTableWithSource> findTables(int page, int pageSize, String q, List<String> statuses,
         Integer sourceId, String sortField, String sortOrder, String scope)
     {
+        return findTables(page, pageSize, q, statuses, sourceId, sortField, sortOrder, scope, null);
+    }
+
+    /**
+     * @param allowedSourceIds null means every source (admin/guest); a set limits the query to that
+     *                         set. The filter is applied in SQL so pagination totals stay correct.
+     */
+    public Page<VwEtlTableWithSource> findTables(int page, int pageSize, String q, List<String> statuses,
+        Integer sourceId, String sortField, String sortOrder, String scope,
+        Collection<Integer> allowedSourceIds)
+    {
         Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
+        if (allowedSourceIds != null && allowedSourceIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
         String normalizedScope = scope == null ? "CURRENT" : scope.toUpperCase();
         Specification<VwEtlTableWithSource> spec = (root, query, cb) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            if (allowedSourceIds != null) {
+                predicates.add(root.get("sid").in(allowedSourceIds));
+            }
             if ("CURRENT".equals(normalizedScope)) {
                 predicates.add(cb.isNull(root.get("retiredAt")));
             }
