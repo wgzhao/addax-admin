@@ -123,25 +123,25 @@ export function useExecutiveDashboard() {
 
   const sourceContribution = computed(() => {
     const days = new Set(volumeSeries.value.map(item => item.date));
-    const map = new Map<string, { code: string; name: string; gib: number }>();
+    const map = new Map<string, { key: string; name: string; gib: number }>();
     for (const row of volumeRows.value) {
       if (!days.has(row.biz_date)) continue;
       // Why: the backend fills empty calendar days with a null placeholder row;
       // folding those would create a bogus 未知 source with 0 bytes
-      if (!row.code && !row.name) continue;
-      const code = row.code || row.name || 'UNKNOWN';
-      const current = map.get(code) ?? {
-        code,
-        name: row.name || row.code || '未知',
+      if (row.source_id == null && !row.name) continue;
+      const key = row.source_id != null ? String(row.source_id) : row.name || 'UNKNOWN';
+      const current = map.get(key) ?? {
+        key,
+        name: row.name || '未知',
         gib: 0,
       };
       current.gib += Number(row.gib ?? 0);
-      map.set(code, current);
+      map.set(key, current);
     }
     const sorted = [...map.values()].sort((a, b) => b.gib - a.gib);
     const top = sorted.slice(0, 8);
     const rest = sum(sorted.slice(8).map(item => item.gib));
-    return rest > 0 ? [...top, { code: 'OTHER', name: '其他', gib: rest }] : top;
+    return rest > 0 ? [...top, { key: 'OTHER', name: '其他', gib: rest }] : top;
   });
 
   const missingTotal = computed(() =>

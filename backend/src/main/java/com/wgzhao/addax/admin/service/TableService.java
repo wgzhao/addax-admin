@@ -60,6 +60,15 @@ public class TableService
     private final CollectionScopeService collectionScopeService;
 
     /**
+     * Target databases this source most recently used on the given endpoint. Used by the batch
+     * wizard as a convenience default; callers must still treat the target database as user input.
+     */
+    public List<String> findRecentTargetDbs(int sid, long targetId)
+    {
+        return etlTableRepo.findRecentTargetDbs(sid, targetId);
+    }
+
+    /**
      * 刷新指定采集表的资源（如字段、模板等）
      *
      * @param table 采集表对象

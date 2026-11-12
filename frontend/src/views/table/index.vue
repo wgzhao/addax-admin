@@ -222,7 +222,7 @@
             </template>
             <template #item.sourceTable="{ item }">
               <div class="ds-cell-stack">
-                <span class="ds-cell-meta">{{ item.name }}({{ item.code }})</span>
+                <span class="ds-cell-meta">{{ item.name }}</span>
                 <span
                   class="ds-cell-primary ds-ellipsis"
                   :title="`${item.sourceDb || ''}.${item.sourceTable || ''}`"
@@ -803,7 +803,7 @@
     try {
       const res = await sourceService.list();
       sourceOptions.value = res.map((s: any) => ({
-        label: `${s.code}_${s.name}${s.enabled === false ? '（已停用）' : ''}`,
+        label: `${s.name}${s.enabled === false ? '（已停用）' : ''}`,
         value: s.id,
       }));
     } catch (err) {

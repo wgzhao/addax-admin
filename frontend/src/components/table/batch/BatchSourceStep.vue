@@ -26,7 +26,7 @@
         <v-select
           v-model="selectedSourceId"
           :items="sourceSystemList"
-          :item-props="item => ({ title: `${item.code} — ${item.name}` })"
+          :item-props="item => ({ title: item.name })"
           item-value="id"
           label="采集源系统"
           density="comfortable"

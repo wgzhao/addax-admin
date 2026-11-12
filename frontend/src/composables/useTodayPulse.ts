@@ -3,6 +3,7 @@ import { monitorService } from '@/service/monitor-service';
 import settingsService from '@/service/settings-service';
 
 interface Row {
+  sid?: number;
   sys_name?: string;
   start_at?: string;
   total_cnt?: number | string;
@@ -92,7 +93,7 @@ export const rows = computed<PulseRow[]>(() => {
           : (item.start_at || '--:--').slice(0, 5);
 
       return {
-        key: `${fullName}-${item.start_at}`,
+        key: `${item.sid ?? fullName}-${item.start_at}`,
         name,
         fullName,
         total,

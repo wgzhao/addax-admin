@@ -8,7 +8,7 @@
     <ErrorState v-else-if="error" :message="error" @retry="$emit('retry')" />
     <div v-else-if="items.length === 0" class="contribution-empty">暂无数据源贡献数据</div>
     <ul v-else class="contribution-list" :data-chart-state="chartState">
-      <li v-for="(item, index) in items" :key="item.code" class="contribution-row">
+      <li v-for="(item, index) in items" :key="item.key" class="contribution-row">
         <div class="contribution-meta">
           <span class="contribution-name" :title="item.name">{{ item.name }}</span>
           <span class="contribution-value">{{ format(item.gib) }}</span>
@@ -18,7 +18,7 @@
             class="contribution-bar"
             :class="{
               'contribution-bar--top': index === 0,
-              'contribution-bar--other': item.code === 'OTHER',
+              'contribution-bar--other': item.key === 'OTHER',
             }"
             :style="{ width: `${widthFor(item.gib)}%` }"
           />
@@ -39,7 +39,7 @@
 
   const props = withDefaults(
     defineProps<{
-      items: { code: string; name: string; gib: number }[];
+      items: { key: string; name: string; gib: number }[];
       rangeDays: number;
       loading?: boolean;
       error?: string | null;

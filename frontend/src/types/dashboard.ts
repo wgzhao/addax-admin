@@ -1,6 +1,7 @@
 // 首页图表接口返回类型（与后端 /dashboard/* 的 snake_case 别名一致）
 
 export interface SourceRatioRow {
+  sid?: number;
   source_name: string;
   pct?: number;
   total?: number;
@@ -38,7 +39,6 @@ export interface FailTopRow {
   source_table: string;
   target_db: string;
   target_table: string;
-  source_code: string;
   source_name: string;
   retry_cnt: number;
   fail_cnt: number;
@@ -69,7 +69,7 @@ export interface RecsBytesRow {
 
 export interface SourceContributionRow {
   biz_date: string;
-  code: string | null;
+  source_id: number | null;
   name: string | null;
   gib: number;
 }
@@ -80,7 +80,6 @@ export interface SlowTableRow {
   source_table: string;
   target_db: string;
   target_table: string;
-  source_code: string;
   source_name: string;
   days: number;
   avg_secs: number;

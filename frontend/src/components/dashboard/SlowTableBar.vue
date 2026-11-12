@@ -54,7 +54,7 @@
     return [
       `最大耗时：${formatSeconds(row.max_secs)}`,
       `累计耗时：${formatSeconds(row.total_secs)} / ${row.days} 天`,
-      `源：${row.source_name} (${row.source_code})`,
+      `源：${row.source_name}`,
     ];
   };
 </script>

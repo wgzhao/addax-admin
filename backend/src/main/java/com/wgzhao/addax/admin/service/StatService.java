@@ -93,7 +93,8 @@ public class StatService
     {
         String sql = """
             SELECT
-                name || '(' || code || ')' AS source_name,
+                t.sid,
+                name AS source_name,
                 COUNT(*) AS total,
                 SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) AS done,
                 SUM(CASE WHEN t.status = 'E' THEN 1 ELSE 0 END) AS failed,
@@ -102,7 +103,7 @@ public class StatService
                 round(SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS pct
             FROM vw_etl_table_with_source t
             WHERE t.status <> 'X' and t.enabled = true and t.retired_at is null
-            GROUP BY t.code, t.name
+            GROUP BY t.sid, t.name
             having count(*) > 0
             ORDER BY SUM(CASE WHEN t.status = 'Y' THEN 1 ELSE 0 END) * 1.0 / COUNT(*) ASC
             """;
@@ -144,7 +145,7 @@ public class StatService
         String sql = """
             with total_info as (
                 select
-                s.code,
+                s.sid,
                 max(source_start_at) as start_at,
                 count(*) as total_cnt,
                 sum(case when status = 'Y' then 1 else 0 end) as succ_cnt,
@@ -155,17 +156,17 @@ public class StatService
                 from
                 vw_etl_table_with_source s
                 where s.enabled = true and s.status <> 'X' and s.retired_at is null
-                group by s.code
+                group by s.sid
             ),
             last2_info as (
-                select code, name,
+                select sid, name,
                        max(t.y_begin_at)   as y_begin_at,
                         max(t.y_finish_at)  as y_finish_at,
                         max(t.y_take_secs)   as y_take_secs,
                         max(t.t_begin_at)   as t_begin_at,
                         max(t.t_finish_at)  as t_finish_at,
                         max(t.t_take_secs)   as t_take_secs
-                    from (select code,
+                    from (select sid,
                                  name,
                                  min(e.start_at)                                     as y_begin_at,
                                  null                                                as t_begin_at,
@@ -180,9 +181,9 @@ public class StatService
                             and s.enabled = true
                             and s.status <> 'X'
                             and s.retired_at is null
-                          group by s.code, s.name, biz_date
+                          group by s.sid, s.name, biz_date
                           union all
-                          select code,
+                          select sid,
                                  name,
                                  null                                                as y_begin_at,
                                  min(e.start_at)                                     as t_begin_at,
@@ -197,10 +198,11 @@ public class StatService
                             and s.enabled = true
                             and s.status <> 'X'
                             and s.retired_at is null
-                          group by s.code, s.name, biz_date) t
-                    group by t.code, t.name
+                          group by s.sid, s.name, biz_date) t
+                    group by t.sid, t.name
             )
-            select b.name || '(' || b.code || ')' as sys_name,
+            select a.sid,
+            b.name as sys_name,
             a.start_at,
             a.total_cnt, a.succ_cnt, a.run_cnt, a.fail_cnt, a.no_run_cnt, a.no_create_table_cnt,
             to_char(b.y_begin_at, 'YYYY-mm-dd HH24:MI:SS') as y_begin_at,
@@ -211,7 +213,7 @@ public class StatService
             b.t_take_secs
             from total_info a
             join last2_info b
-            on a.code = b.code
+            on a.sid = b.sid
             order by a.start_at
             """;
         return jdbcTemplate.queryForList(sql, configService.getBizDateAsDate().plusDays(-1),

@@ -308,6 +308,7 @@ export interface EtlExecution {
   sourceTable?: string;
   sourceCode?: string;
   sourceName?: string;
+  sourceId?: number | null;
   targetDb?: string;
   targetTable?: string;
   targetCode?: string;

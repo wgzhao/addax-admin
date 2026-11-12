@@ -17,10 +17,7 @@ export const sourceIdentity = (table: VEtlWithSource) =>
 export const targetIdentity = (table: VEtlWithSource) =>
   `${table.targetDb || '未配置库'}.${table.targetTable || '未配置表'}`;
 
-export const sourceSystemLabel = (table: VEtlWithSource) => {
-  if (!table.name && !table.code) return '未配置';
-  return table.code ? `${table.name || '-'} (${table.code})` : table.name;
-};
+export const sourceSystemLabel = (table: VEtlWithSource) => table.name || '未配置';
 
 export const targetLabel = (
   table: VEtlWithSource,

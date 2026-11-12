@@ -183,4 +183,22 @@ public interface EtlTableRepo
                 WHERE t.status <> 'X' AND s.enabled = true AND t.retiredAt is null
         """)
     List<EtlTable> findCanRefreshTables();
+
+    /**
+     * Target databases a source has used on one target endpoint, most recently touched first. The
+     * batch wizard uses this only as a suggestion; the target database remains an explicit route
+     * field and is never derived from the source.
+     */
+    @Query(value = """
+        select t.target_db
+        from etl_table t
+        where t.sid = :sid
+          and t.target_id = :targetId
+          and t.retired_at is null
+          and t.target_db is not null
+          and btrim(t.target_db) <> ''
+        group by t.target_db
+        order by max(t.updated_at) desc nulls last, count(*) desc, t.target_db
+        """, nativeQuery = true)
+    List<String> findRecentTargetDbs(@Param("sid") int sid, @Param("targetId") long targetId);
 }
