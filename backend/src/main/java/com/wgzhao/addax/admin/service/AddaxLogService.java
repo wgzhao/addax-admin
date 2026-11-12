@@ -63,6 +63,27 @@ public class AddaxLogService
         return addaxLogRepo.findAllByOrderByIdDesc(pageRequest);
     }
 
+    /**
+     * @param allowedSourceIds null means every source; an empty set returns an empty page without
+     *                         touching the database.
+     */
+    public Page<AddaxLog> listWithPage(int page, int pageSize, java.util.Collection<Integer> allowedSourceIds)
+    {
+        Pageable pageRequest = PageRequest.of(page, pageSize);
+        if (allowedSourceIds == null) {
+            return addaxLogRepo.findAllByOrderByIdDesc(pageRequest);
+        }
+        if (allowedSourceIds.isEmpty()) {
+            return Page.empty(pageRequest);
+        }
+        return addaxLogRepo.findBySourceIds(allowedSourceIds, pageRequest);
+    }
+
+    public Long findTidById(long id)
+    {
+        return addaxLogRepo.findTidById(id);
+    }
+
     @Async
     @Transactional
     public void cleanupLogsBefore(LocalDate before) {

@@ -1,7 +1,7 @@
 <template>
   <v-card title="采集日志表" class="ds-table-scroll">
     <template #text>
-      <v-row justify="center" align-content="center">
+      <v-row v-if="authStore.isAdmin" justify="center" align-content="center">
         <v-col cols="col-3">
           <v-text-field
             v-model="selectedCleanupDate"
@@ -58,7 +58,7 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="cleanupDialog" max-width="520">
+    <v-dialog v-if="authStore.isAdmin" v-model="cleanupDialog" max-width="520">
       <v-card>
         <v-card-title>清理日志</v-card-title>
         <v-card-text>
@@ -94,6 +94,9 @@
   import logService from '@/service/log-service';
   import { ref, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
+  import { useAuthStore } from '@/stores/auth';
+
+  const authStore = useAuthStore();
 
   const props = defineProps({ table: String, filters: Object });
   const items = ref([]);

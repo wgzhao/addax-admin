@@ -2,9 +2,14 @@ package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.CreateUserDTO;
+import com.wgzhao.addax.admin.dto.CurrentUserDto;
+import com.wgzhao.addax.admin.dto.SourceGrantDto;
+import com.wgzhao.addax.admin.dto.SourceGrantInput;
 import com.wgzhao.addax.admin.dto.UpdateUserDTO;
 import com.wgzhao.addax.admin.dto.UserAdminDto;
+import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.UserAdminService;
+import com.wgzhao.addax.admin.service.UserSourceGrantService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,6 +30,8 @@ import java.util.Map;
 public class UserController
 {
     private final UserAdminService userAdminService;
+    private final UserSourceGrantService userSourceGrantService;
+    private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
 
     @GetMapping("")
@@ -34,9 +41,31 @@ public class UserController
     }
 
     @GetMapping("/me")
-    public UserAdminDto currentUser()
+    public CurrentUserDto currentUser()
     {
         return userAdminService.currentUser();
+    }
+
+    @GetMapping("/{username}/grants")
+    public List<SourceGrantDto> listGrants(@PathVariable String username)
+    {
+        authzService.requireAdmin();
+        return userSourceGrantService.list(username);
+    }
+
+    @PutMapping("/{username}/grants")
+    @Transactional
+    public List<SourceGrantDto> replaceGrants(@PathVariable String username,
+        @RequestBody List<SourceGrantInput> grants)
+    {
+        authzService.requireAdmin();
+        List<SourceGrantDto> before = userSourceGrantService.list(username);
+        List<SourceGrantDto> after = userSourceGrantService.replace(
+            username, grants, authzService.currentUsername());
+        authzService.invalidateGrants(username);
+        auditRecorder.success("USER_SOURCE_GRANTS_UPDATED", "ACCOUNT", "CRITICAL", "USER",
+            username, username, before, after);
+        return after;
     }
 
     @PostMapping("")

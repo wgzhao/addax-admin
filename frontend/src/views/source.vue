@@ -88,8 +88,12 @@
             </template>
 
             <template #item.actions="{ item }">
-              <div v-if="authStore.canWrite" class="ds-action-inline">
+              <div
+                v-if="authStore.canWrite || authStore.canOperateSource(item.id)"
+                class="ds-action-inline"
+              >
                 <v-btn
+                  v-if="authStore.canOperateSource(item.id)"
                   variant="text"
                   color="primary"
                   size="small"
@@ -99,6 +103,7 @@
                   <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
                 </v-btn>
                 <v-btn
+                  v-if="authStore.canWrite"
                   variant="text"
                   color="info"
                   size="small"
@@ -108,6 +113,7 @@
                   <v-icon size="16" class="mr-1">mdi-content-copy</v-icon>克隆
                 </v-btn>
                 <v-btn
+                  v-if="authStore.canWrite"
                   variant="text"
                   color="error"
                   size="small"
@@ -208,7 +214,7 @@
       { title: '采集时间', key: 'startAt', width: '6%' },
       { title: '采集日历', key: 'calendar', width: '8%' },
     ];
-    if (authStore.canWrite) {
+    if (authStore.canWrite || authStore.hasOperateSources) {
       base.push({ title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' });
     }
     return base;

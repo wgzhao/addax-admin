@@ -274,6 +274,15 @@ public class SourceService
         return etlSourceRepo.findByEnabled(true);
     }
 
+    public List<EtlSource> findByIdIn(java.util.Collection<Integer> ids)
+    {
+        if (ids == null || ids.isEmpty())
+        {
+            return List.of();
+        }
+        return etlSourceRepo.findByIdIn(ids);
+    }
+
     public Long getAllSources()
     {
         return etlSourceRepo.count();

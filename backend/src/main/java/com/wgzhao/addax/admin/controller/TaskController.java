@@ -10,6 +10,7 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.AlertService;
+import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -68,6 +69,7 @@ public class TaskController
      * 告警服务
      */
     private final AlertService alertService;
+    private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
 
     /**
@@ -166,6 +168,7 @@ public class TaskController
     @Transactional
     public ResponseEntity<Map<String, Object>> updateJob(@PathVariable long taskId)
     {
+        authzService.requireTableOperate(taskId);
         jobContentService.updateJob(tableService.getTableView(taskId));
         auditRecorder.success("TABLE_JOB_REGENERATED", "SCHEDULING", "WARNING", "ETL_TABLE",
             taskId, null, null, null);
@@ -185,6 +188,7 @@ public class TaskController
         @PathVariable long taskId,
         @RequestParam(name = "isSync", required = false, defaultValue = "false") boolean isSync)
     {
+        authzService.requireTableOperate(taskId);
         TaskResultDto result;
         if (isSync) {
             EtlTable etlTable = tableService.getTable(taskId);
@@ -233,6 +237,9 @@ public class TaskController
     public ResponseEntity<TaskResultDto> executeTasksBatch(
         @RequestBody List<Long> tids)
     {
+        for (Long tid : tids) {
+            authzService.requireTableOperate(tid);
+        }
         int successCount = 0;
         int failCount = 0;
         TaskResultDto result;
@@ -266,6 +273,9 @@ public class TaskController
     public ResponseEntity<ApiResponse<FillbackResultDto>> fillback(
         @RequestBody FillbackRequestDto request)
     {
+        for (Long tid : request.tids()) {
+            authzService.requireTableOperate(tid);
+        }
         String username = getCurrentUsername();
         FillbackResultDto result = taskService.fillback(
             request.tids(), request.startDate(), request.endDate(), request.dates(), username);
@@ -293,6 +303,7 @@ public class TaskController
         @PathVariable long tid,
         @RequestParam(name = "batchId", required = false) String batchId)
     {
+        authzService.requireTableRead(tid);
         return ResponseEntity.ok(ApiResponse.success(taskService.getFillbackProgress(tid, batchId)));
     }
 
@@ -305,6 +316,19 @@ public class TaskController
     public ResponseEntity<List<Map<String, Object>>> getAllTaskStatus()
     {
         List<Map<String, Object>> status = taskService.getAllTaskStatus();
+        java.util.Set<Integer> allowed = authzService.readableSourceIds();
+        if (allowed != null) {
+            status = status.stream()
+                .filter(row -> {
+                    Object idObj = row.get("id");
+                    if (!(idObj instanceof Number number)) {
+                        return false;
+                    }
+                    Integer sid = authzService.tableSid(number.longValue());
+                    return sid != null && allowed.contains(sid);
+                })
+                .toList();
+        }
         return ResponseEntity.ok(status);
     }
 
@@ -318,6 +342,7 @@ public class TaskController
     public ResponseEntity<String> getLastErrorByTableId(
         @PathVariable long tableId)
     {
+        authzService.requireTableOperate(tableId);
         String errorMsg = jourService.findLastErrorByTableId(tableId);
         if (errorMsg == null || errorMsg.isEmpty()) {
             return ResponseEntity.ok("No error message found for the given table ID");
@@ -338,6 +363,7 @@ public class TaskController
     public ResponseEntity<TaskResultDto> killTask(
         @PathVariable long tid)
     {
+        authzService.requireTableOperate(tid);
         TaskResultDto result = taskService.killTask(tid);
         if (result.success()) {
             auditRecorder.accepted("COLLECTION_KILL_REQUESTED", "SCHEDULING", "CRITICAL", "ETL_TABLE",

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface AddaxLogRepo
@@ -28,9 +29,18 @@ public interface AddaxLogRepo
     @Query(value = "select log from addax_log where id = ?1", nativeQuery = true)
     String findLogById(Long id);
 
+    @Query("select a.tid from AddaxLog a where a.id = :id")
+    Long findTidById(@Param("id") Long id);
 
     // 按 id 倒序分页查询 AddaxLog 实体
     Page<AddaxLog> findAllByOrderByIdDesc(Pageable pageable);
+
+    @Query("""
+        select a from AddaxLog a
+        where a.tid in (select t.id from EtlTable t where t.sid in :sourceIds)
+        order by a.id desc
+        """)
+    Page<AddaxLog> findBySourceIds(@Param("sourceIds") Collection<Integer> sourceIds, Pageable pageable);
 
     @Modifying
     @Query("delete from AddaxLog a where a.runDate < :before")

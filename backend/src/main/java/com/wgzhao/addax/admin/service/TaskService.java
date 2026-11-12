@@ -797,6 +797,7 @@ public class TaskService
         String sql = """
             select
             id,
+            t.sid,
             target_db || '.' ||  target_table as tbl,
             status,
             to_char(start_time, 'yyyy-MM-dd HH24:MM:SS') as start_time,

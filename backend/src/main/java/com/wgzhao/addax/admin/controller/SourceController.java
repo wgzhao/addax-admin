@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.common.CalendarType;
 import com.wgzhao.addax.admin.model.EtlSource;
+import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.SourceService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -51,6 +52,7 @@ import java.time.temporal.ChronoUnit;
 public class SourceController
 {
     private final SourceService sourceService;
+    private final AuthzService authzService;
     private final TableService tableService;
     private final SystemConfigService configService;
     private final AuditRecorder auditRecorder;
@@ -65,7 +67,7 @@ public class SourceController
     @GetMapping("")
     public ResponseEntity<List<EtlSource>> list()
     {
-        return ResponseEntity.ok(sourceService.findAll());
+        return ResponseEntity.ok(visibleSources(sourceService.findAll()));
     }
 
     /**
@@ -76,7 +78,16 @@ public class SourceController
     @GetMapping("/enabled")
     public ResponseEntity<List<EtlSource>> listEnabled()
     {
-        return ResponseEntity.ok(sourceService.findEnabledSources());
+        return ResponseEntity.ok(visibleSources(sourceService.findEnabledSources()));
+    }
+
+    private List<EtlSource> visibleSources(List<EtlSource> sources)
+    {
+        Set<Integer> allowed = authzService.readableSourceIds();
+        if (allowed == null) {
+            return sources;
+        }
+        return sources.stream().filter(source -> allowed.contains(source.getId())).toList();
     }
 
     /**
@@ -112,6 +123,7 @@ public class SourceController
     @Transactional
     public ResponseEntity<Integer> updateSource(@PathVariable int id, @RequestBody EtlSource etlSource)
     {
+        authzService.requireSourceOperate(id);
         if (etlSource.getId() != id) {
             throw new ApiException(400, "ID in path and body do not match");
         }
@@ -170,6 +182,7 @@ public class SourceController
     public ResponseEntity<EtlSource> get(
         @PathVariable int id)
     {
+        authzService.requireSourceRead(id);
         return sourceService.findById(id)
             .map(ResponseEntity::ok)
             .orElseThrow(() -> new ApiException(404, "Source not found"));
@@ -212,6 +225,13 @@ public class SourceController
     @Transactional
     public ResponseEntity<Boolean> testConnect(@RequestBody DbConnectDto payload)
     {
+        if (payload.sourceId() != null) {
+            authzService.requireSourceOperate(payload.sourceId());
+        }
+        else {
+            // A source-less test is the add-source form; only admins may create sources.
+            authzService.requireAdmin();
+        }
         String password = payload.password();
         // Sentinel means the client didn't supply a new password — resolve from DB.
         if (EtlSource.PASS_SENTINEL.equals(password) && payload.sourceId() != null) {
@@ -260,6 +280,7 @@ public class SourceController
     public ResponseEntity<List<String>> listDatabases(
         @PathVariable int sourceId)
     {
+        authzService.requireSourceOperate(sourceId);
         EtlSource source = sourceService.getSource(sourceId);
         if (source == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
@@ -302,6 +323,7 @@ public class SourceController
         @RequestParam Long targetId,
         @RequestParam(required = false) String targetDb)
     {
+        authzService.requireSourceOperate(sourceId);
         EtlSource source = sourceService.getSource(sourceId);
         if (source == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
@@ -322,6 +344,7 @@ public class SourceController
         @PathVariable int sourceId,
         @RequestParam Long targetId)
     {
+        authzService.requireSourceOperate(sourceId);
         if (sourceService.getSource(sourceId) == null) {
             throw new ApiException(400, "sourceId 对应的采集源不存在");
         }
@@ -340,6 +363,7 @@ public class SourceController
         @PathVariable int sourceId,
         @PathVariable String dbName)
     {
+        authzService.requireSourceOperate(sourceId);
         List<TableMetaDto> result;
         List<String> existsTables = tableService.getTablesBySidAndDb(sourceId, dbName);
         // 为了尽量避免大小写带来的不一致，这里做一个双写的Set

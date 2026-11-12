@@ -37,7 +37,7 @@
         导出本页
       </v-btn>
       <v-btn
-        v-if="authStore.canWrite"
+        v-if="authStore.canWrite || authStore.hasOperateSources"
         color="primary"
         variant="flat"
         prepend-icon="mdi-plus"
@@ -146,7 +146,11 @@
         </div>
 
         <div
-          v-if="authStore.canWrite && selected.length > 0 && scope !== 'RETIRED'"
+          v-if="
+            (authStore.canWrite || authStore.hasOperateSources) &&
+            selected.length > 0 &&
+            scope !== 'RETIRED'
+          "
           class="ds-bulk-bar"
         >
           <span class="ds-bulk-bar__count">已选择 {{ selected.length }} 行</span>
@@ -195,7 +199,9 @@
                 : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
             "
             :primary="
-              authStore.canWrite ? { label: '新增采集表', icon: 'mdi-plus' } : undefined
+              authStore.canWrite || authStore.hasOperateSources
+                ? { label: '新增采集表', icon: 'mdi-plus' }
+                : undefined
             "
             @primary="() => router.push('/table/batch-add')"
           />
@@ -212,7 +218,7 @@
             :items-length="totalItems"
             item-value="id"
             :loading="loading"
-            :show-select="authStore.canWrite"
+            :show-select="authStore.canWrite || authStore.hasOperateSources"
             :item-class="getRowClass"
             @update:options="loadItems"
           >
@@ -260,7 +266,7 @@
             <template #item.status="{ item }">
               <StatusChip :status="item.status" />
               <!-- Kill icon for running tasks: move to right, match E icon style -->
-              <template v-if="authStore.canWrite && item.status === 'R'">
+              <template v-if="authStore.canOperateSource(item.sid) && item.status === 'R'">
                 <v-tooltip location="top">
                   <template #activator="{ props }">
                     <v-icon
@@ -318,7 +324,11 @@
 
             <template #item.action="{ item }">
               <div class="adjust-start align-center space-between">
-                <v-tooltip v-if="authStore.canWrite && !item.retiredAt" text="发起采集" location="top">
+                <v-tooltip
+                  v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
+                  text="发起采集"
+                  location="top"
+                >
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="primary"
@@ -331,7 +341,11 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip v-if="authStore.canWrite && !item.retiredAt" text="更新表结构" location="top">
+                <v-tooltip
+                  v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
+                  text="更新表结构"
+                  location="top"
+                >
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="warning"
@@ -344,7 +358,11 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip v-if="authStore.canWrite && !item.retiredAt" text="退役此采集表" location="top">
+                <v-tooltip
+                  v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
+                  text="退役此采集表"
+                  location="top"
+                >
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="error"
@@ -357,7 +375,11 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip v-else-if="authStore.canWrite" text="恢复采集表" location="top">
+                <v-tooltip
+                  v-else-if="authStore.canOperateSource(item.sid)"
+                  text="恢复采集表"
+                  location="top"
+                >
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="success"
@@ -822,7 +844,7 @@
 
   const openCreateFromQuery = () => {
     const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action;
-    if (action !== 'create' || !authStore.canWrite) return;
+    if (action !== 'create' || !(authStore.canWrite || authStore.hasOperateSources)) return;
     router.push('/table/batch-add');
     const query = { ...route.query };
     delete query.action;

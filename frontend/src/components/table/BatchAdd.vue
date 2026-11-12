@@ -174,6 +174,7 @@
   import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
   import { onBeforeRouteLeave, useRouter } from 'vue-router';
   import { notify } from '@/stores/notifier';
+  import { useAuthStore } from '@/stores/auth';
   import { reviewRowIssue, reviewRowIssueLabel, reviewRowValid } from '@/utils/collection-plan';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import tableService from '@/service/table-service';
@@ -204,6 +205,7 @@
   const emit = defineEmits(['refresh-data']);
   void emit;
   const router = useRouter();
+  const authStore = useAuthStore();
 
   const currentStep = ref(1);
 
@@ -488,7 +490,9 @@
     loadingSources.value = true;
     sourceLoadError.value = '';
     try {
-      sourceSystemList.value = await sourceService.listActiveSources();
+      sourceSystemList.value = (await sourceService.listActiveSources()).filter(source =>
+        authStore.canOperateSource(source.id)
+      );
     } catch (error) {
       sourceSystemList.value = [];
       sourceLoadError.value = `获取源系统列表失败：${(error as Error)?.message || error}`;

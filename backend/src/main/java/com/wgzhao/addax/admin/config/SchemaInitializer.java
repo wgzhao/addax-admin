@@ -240,6 +240,40 @@ public class SchemaInitializer
     private static final String ADD_USER_AUTH_VERSION_SQL =
         "alter table public.users add column if not exists auth_version integer not null default 0";
 
+    /**
+     * Source-scoped grants. The table is created without foreign keys first so it can exist on an
+     * installation that has users but no collection schema yet; the keys are added when possible.
+     */
+    private static final String CREATE_USER_SOURCE_GRANT_SQL = """
+        create table if not exists public.user_source_grant (
+            username varchar(50) not null,
+            source_id integer not null,
+            access_level varchar(16) not null default 'OPERATE',
+            granted_by varchar(50) not null,
+            granted_at timestamp with time zone not null default current_timestamp,
+            constraint user_source_grant_access_level_check
+                check (access_level in ('VIEW', 'OPERATE')),
+            constraint user_source_grant_pkey primary key (username, source_id)
+        );
+        create index if not exists idx_user_source_grant_source
+            on public.user_source_grant (source_id);
+        do $$
+        begin
+            if not exists (select 1 from pg_constraint where conname = 'user_source_grant_username_fkey') then
+                alter table public.user_source_grant
+                    add constraint user_source_grant_username_fkey
+                    foreign key (username) references public.users(username) on delete cascade;
+            end if;
+            if to_regclass('public.etl_source') is not null
+               and not exists (select 1 from pg_constraint where conname = 'user_source_grant_source_fkey') then
+                alter table public.user_source_grant
+                    add constraint user_source_grant_source_fkey
+                    foreign key (source_id) references public.etl_source(id) on delete cascade;
+            end if;
+        end
+        $$
+        """;
+
     private static final String ADD_CALENDAR_COLUMN_SQL =
         "alter table public.etl_source add column if not exists calendar varchar(32)";
 
@@ -566,6 +600,7 @@ public class SchemaInitializer
         if (exists(connection, "tables", "users", null))
         {
             statement.execute(ADD_USER_AUTH_VERSION_SQL);
+            statement.execute(CREATE_USER_SOURCE_GRANT_SQL);
         }
         boolean hasSource = exists(connection, "tables", "etl_source", null);
         boolean hasTable = exists(connection, "tables", "etl_table", null);

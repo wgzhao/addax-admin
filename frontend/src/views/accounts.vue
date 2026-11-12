@@ -72,6 +72,15 @@
                 <v-btn
                   size="small"
                   variant="text"
+                  color="info"
+                  class="px-2"
+                  @click="openGrantDialog(item)"
+                >
+                  <v-icon size="16" class="mr-1">mdi-shield-key-outline</v-icon>授权
+                </v-btn>
+                <v-btn
+                  size="small"
+                  variant="text"
                   color="primary"
                   class="px-2 ds-action-btn-main"
                   @click="openEditDialog(item)"
@@ -174,6 +183,58 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="grantDialogVisible" max-width="640">
+      <v-card>
+        <v-card-title>采集源授权 · {{ grantUser }}</v-card-title>
+        <v-card-text>
+          <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+            所有登录账号都可以查看采集源和采集表；这里只控制“可操作”权限，即修改配置、执行采集、查看作业与日志。
+          </v-alert>
+          <v-skeleton-loader v-if="grantLoading" type="list-item-two-line@3" />
+          <v-table v-else density="compact">
+            <thead>
+              <tr>
+                <th>采集源</th>
+                <th style="width: 180px">授权</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in grantRows" :key="row.sourceId">
+                <td>{{ row.sourceName }}</td>
+                <td>
+                  <v-select
+                    v-model="row.accessLevel"
+                    :items="grantLevelOptions"
+                    item-title="label"
+                    item-value="value"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                  />
+                </td>
+              </tr>
+              <tr v-if="grantRows.length === 0">
+                <td colspan="2">暂无采集源</td>
+              </tr>
+            </tbody>
+          </v-table>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="grantDialogVisible = false">取消</v-btn>
+          <v-btn
+            color="primary"
+            variant="flat"
+            :loading="grantSaving"
+            :disabled="grantLoading"
+            @click="saveGrants"
+          >
+            保存授权
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <ConfirmDialog
       v-model="confirmState.open"
       :title="confirmState.title"
@@ -187,7 +248,8 @@
 
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue';
-  import userService, { type AccountUser } from '@/service/user-service';
+  import userService, { type AccountUser, type SourceGrant } from '@/service/user-service';
+  import sourceService from '@/service/source-service';
   import EmptyState from '@/components/EmptyState.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
@@ -213,6 +275,17 @@
   };
   const dialogVisible = ref(false);
   const dialogMode = ref<DialogMode>('create');
+  const grantDialogVisible = ref(false);
+  const grantUser = ref('');
+  const grantLoading = ref(false);
+  const grantSaving = ref(false);
+  const grantLevelOptions = [
+    { label: '无', value: '' },
+    { label: '可操作', value: 'OPERATE' },
+  ];
+  const grantRows = ref<
+    Array<{ sourceId: number; sourceName: string; accessLevel: '' | SourceGrant['accessLevel'] }>
+  >([]);
   const showPassword = ref(false);
   const confirmPasswordRef = ref<{ validate: () => void } | null>(null);
 
@@ -419,6 +492,51 @@
         }
       },
     };
+  };
+
+  const openGrantDialog = async (item: AccountUser) => {
+    grantUser.value = item.username;
+    grantRows.value = [];
+    grantDialogVisible.value = true;
+    grantLoading.value = true;
+    try {
+      const [sources, grants] = await Promise.all([
+        sourceService.list(),
+        userService.grants(item.username),
+      ]);
+      const bySource = new Map(grants.map(grant => [grant.sourceId, grant.accessLevel]));
+      grantRows.value = sources.map(source => ({
+        sourceId: source.id,
+        sourceName: source.name,
+        accessLevel: bySource.get(source.id) === 'OPERATE' ? 'OPERATE' : '',
+      }));
+    } catch (error: any) {
+      notify('加载采集源授权失败: ' + (error.message || error), 'error');
+      grantDialogVisible.value = false;
+    } finally {
+      grantLoading.value = false;
+    }
+  };
+
+  const saveGrants = async () => {
+    grantSaving.value = true;
+    try {
+      await userService.replaceGrants(
+        grantUser.value,
+        grantRows.value
+          .filter(row => row.accessLevel)
+          .map(row => ({
+            sourceId: row.sourceId,
+            accessLevel: row.accessLevel as SourceGrant['accessLevel'],
+          }))
+      );
+      notify('采集源授权已保存', 'success');
+      grantDialogVisible.value = false;
+    } catch (error: any) {
+      notify('保存采集源授权失败: ' + (error.message || error), 'error');
+    } finally {
+      grantSaving.value = false;
+    }
   };
 
   onMounted(() => {

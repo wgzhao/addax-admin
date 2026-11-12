@@ -4,6 +4,7 @@ import com.wgzhao.addax.admin.model.EtlSource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -16,4 +17,6 @@ public interface EtlSourceRepo
     boolean existsByCode(String code);
 
     List<EtlSource> findByEnabled(boolean b);
+
+    List<EtlSource> findByIdIn(Collection<Integer> ids);
 }

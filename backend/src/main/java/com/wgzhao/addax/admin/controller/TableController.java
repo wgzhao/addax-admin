@@ -23,6 +23,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.EtlTableChangeLog;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
+import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.CollectionSchemaPreviewService;
@@ -70,6 +71,7 @@ public class TableController
      * 采集表服务
      */
     private final TableService tableService;
+    private final AuthzService authzService;
     /**
      * 采集表数据仓库
      */
@@ -141,9 +143,13 @@ public class TableController
             throw new ApiException(400, "scope must be CURRENT, DORMANT, RETIRED, or ALL");
         }
         List<String> statusList = parseStatuses(statuses);
+        if (sourceId != null && !authzService.canReadSource(sourceId)) {
+            throw new ApiException(403, "无权访问该采集源");
+        }
         Page<VwEtlTableWithSource> result;
         result = tableService.findTables(
-            page, pageSize, q, statusList, sourceId, sortField, sortOrder, normalizedScope);
+            page, pageSize, q, statusList, sourceId, sortField, sortOrder, normalizedScope,
+            authzService.readableSourceIds());
         return ResponseEntity.ok(PageResponse.from(result));
     }
 
@@ -174,6 +180,7 @@ public class TableController
         if (table == null) {
             throw new ApiException(404, "Table not found");
         }
+        authzService.requireSourceRead(table.getSid());
         return ResponseEntity.ok(table);
     }
 
@@ -187,6 +194,7 @@ public class TableController
     @Transactional
     public ResponseEntity<String> deleteTable(@PathVariable("tableId") long tableId)
     {
+        authzService.requireTableOperate(tableId);
         EtlTable before = etlTableRepo.findById(tableId)
             .orElseThrow(() -> new ApiException(404, "Table not found"));
         tableService.retireTable(tableId, getCurrentUsername());
@@ -200,6 +208,7 @@ public class TableController
     @Transactional
     public ResponseEntity<VwEtlTableWithSource> restoreTable(@PathVariable("tableId") long tableId)
     {
+        authzService.requireTableOperate(tableId);
         EtlTable before = etlTableRepo.findById(tableId)
             .orElseThrow(() -> new ApiException(404, "Table not found"));
         tableService.restoreTable(tableId);
@@ -215,6 +224,7 @@ public class TableController
         @RequestParam(value = "page", defaultValue = "0") int page,
         @RequestParam(value = "pageSize", defaultValue = "10") int pageSize)
     {
+        authzService.requireTableRead(tableId);
         return ResponseEntity.ok(PageResponse.from(executionService.list(tableId, page, pageSize)));
     }
 
@@ -233,6 +243,11 @@ public class TableController
         if (etl.getId() == null || etl.getId() != tableId) {
             throw new ApiException(400, "Table ID in path and body must match");
         }
+        authzService.requireTableOperate(tableId);
+        if (etl.getSid() == null) {
+            throw new ApiException(400, "Source ID is required");
+        }
+        authzService.requireSourceOperate(etl.getSid());
         EtlTable existing = etlTableRepo.findById(tableId)
             .orElseThrow(() -> new ApiException(404, "Table not found"));
         if (existing.getRetiredAt() != null) {
@@ -254,6 +269,7 @@ public class TableController
         if (!etlTableRepo.existsById(tableId)) {
             throw new ApiException(404, "Table not found");
         }
+        authzService.requireTableRead(tableId);
         if (page < 0) {
             page = 0;
         }
@@ -273,6 +289,7 @@ public class TableController
     @GetMapping("/{tableId}/columns")
     public ResponseEntity<List<EtlColumn>> getTableColumns(@PathVariable("tableId") long tableId)
     {
+        authzService.requireTableRead(tableId);
         return ResponseEntity.ok(columnService.getColumns(tableId));
     }
 
@@ -281,6 +298,7 @@ public class TableController
         @PathVariable("tableId") long tableId,
         @RequestBody com.wgzhao.addax.admin.dto.ManualSourceColumnRequest request)
     {
+        authzService.requireTableOperate(tableId);
         return ResponseEntity.ok(columnService.addManualColumn(tableId, request));
     }
 
@@ -291,6 +309,7 @@ public class TableController
         {
             throw new ApiException(404, "Table not found");
         }
+        authzService.requireTableRead(tableId);
         columnMappingService.reconcile(tableId);
         return ResponseEntity.ok(columnMappingService.list(tableId));
     }
@@ -300,6 +319,7 @@ public class TableController
         @PathVariable("tableId") long tableId,
         @RequestBody List<ColumnMappingInput> mappings)
     {
+        authzService.requireTableOperate(tableId);
         EtlTable table = etlTableRepo.findById(tableId)
             .orElseThrow(() -> new ApiException(404, "Table not found"));
         if (table.getRetiredAt() != null)
@@ -324,6 +344,7 @@ public class TableController
     @PostMapping("/{tableId}/target-contract/check")
     public ResponseEntity<TargetContractReport> checkTargetContract(@PathVariable long tableId)
     {
+        authzService.requireTableOperate(tableId);
         VwEtlTableWithSource table = tableService.getTableView(tableId);
         if (table == null)
         {
@@ -336,6 +357,10 @@ public class TableController
     public ResponseEntity<CollectionSchemaPreview> previewExternalSchema(
         @RequestBody CollectionSchemaPreviewRequest request)
     {
+        if (request.sourceId() == null) {
+            throw new ApiException(400, "Source ID is required");
+        }
+        authzService.requireSourceOperate(request.sourceId());
         return ResponseEntity.ok(schemaPreviewService.preview(request));
     }
 
@@ -343,6 +368,12 @@ public class TableController
     public ResponseEntity<List<CollectionPlanPreview>> previewCollectionPlans(
         @RequestBody List<CollectionSchemaPreviewRequest> requests)
     {
+        for (CollectionSchemaPreviewRequest request : requests) {
+            if (request.sourceId() == null) {
+                throw new ApiException(400, "Source ID is required");
+            }
+            authzService.requireSourceOperate(request.sourceId());
+        }
         return ResponseEntity.ok(collectionPlanPreviewService.preview(requests));
     }
 
@@ -350,6 +381,12 @@ public class TableController
     public ResponseEntity<List<CollectionPlanCommitResult>> commitCollectionPlans(
         @RequestBody List<CollectionPlanCommitItem> items)
     {
+        for (CollectionPlanCommitItem item : items) {
+            if (item.table() == null || item.table().getSid() == null) {
+                throw new ApiException(400, "Source ID is required");
+            }
+            authzService.requireSourceOperate(item.table().getSid());
+        }
         List<CollectionPlanCommitResult> results = collectionPlanCommitService.commit(items);
         for (CollectionPlanCommitResult result : results)
         {
@@ -373,6 +410,10 @@ public class TableController
     @PostMapping("/external")
     public ResponseEntity<EtlTable> createExternalTable(@RequestBody ExternalCollectionCreateRequest request)
     {
+        if (request.table() == null || request.table().getSid() == null) {
+            throw new ApiException(400, "Source ID is required");
+        }
+        authzService.requireSourceOperate(request.table().getSid());
         EtlTable saved = externalCollectionService.create(request);
         auditRecorder.success("EXTERNAL_TABLE_CREATED", "COLLECTION_DEFINITION", "WARNING",
             "ETL_TABLE", saved.getId(), saved.getSourceTable(), null, saved);
@@ -388,6 +429,7 @@ public class TableController
     @GetMapping("/{tableId}/statistics")
     public ResponseEntity<List<EtlStatistic>> getTableStatistics(@PathVariable("tableId") long tableId)
     {
+        authzService.requireTableRead(tableId);
         return ResponseEntity.ok(statService.getLast15Records(tableId));
     }
 
@@ -400,6 +442,12 @@ public class TableController
     @PostMapping("/batch")
     public ResponseEntity<Integer> saveBatchTables(@RequestBody List<EtlTable> etls)
     {
+        for (EtlTable table : etls) {
+            if (table.getSid() == null) {
+                throw new ApiException(400, "Source ID is required");
+            }
+            authzService.requireSourceOperate(table.getSid());
+        }
         if (etls.stream().anyMatch(table ->
             table.getSchemaManagementMode() == SchemaManagementMode.EXTERNAL))
         {
@@ -425,6 +473,10 @@ public class TableController
     @Transactional
     public ResponseEntity<EtlTable> saveTable(@RequestBody EtlTable etl)
     {
+        if (etl.getSid() == null) {
+            throw new ApiException(400, "Source ID is required");
+        }
+        authzService.requireSourceOperate(etl.getSid());
         if (etl.getSchemaManagementMode() == SchemaManagementMode.EXTERNAL)
         {
             throw new ApiException(400, "External tables require schema preview and confirmed mappings");
@@ -471,6 +523,7 @@ public class TableController
     @Transactional
     public ResponseEntity<TaskResultDto> refreshTableResources(@PathVariable long tableId)
     {
+        authzService.requireTableOperate(tableId);
         EtlTable table = etlTableRepo.findById(tableId).orElse(null);
         if (table == null) {
             return ResponseEntity.status(400).body(TaskResultDto.failure("tableId 对应的采集表不存在", 0));
@@ -502,6 +555,9 @@ public class TableController
     @Transactional
     public ResponseEntity<Integer> batchUpdateStatus(@RequestBody BatchTableStatusDto params)
     {
+        for (Long tid : params.tids()) {
+            authzService.requireTableOperate(tid);
+        }
         tableService.updateTableStatuses(params);
         auditRecorder.success("TABLE_STATUSES_UPDATED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
             "batch", "batch status", null, null,
@@ -531,6 +587,7 @@ public class TableController
     @GetMapping("/{tableId}/addax-job")
     public ResponseEntity<String> getAddaxJob(@PathVariable long tableId)
     {
+        authzService.requireTableOperate(tableId);
         // 具体实现略
         String job = jobContentService.getJobContent(tableId);
         if (job == null || job.isEmpty()) {
@@ -552,6 +609,7 @@ public class TableController
     @Transactional
     public ResponseEntity<String> updateAddaxJob(@PathVariable long tableId, @RequestBody String jobContent)
     {
+        authzService.requireTableOperate(tableId);
         String before = jobContentService.getJobContent(tableId);
         jobContentService.updateJobContent(tableId, jobContent);
         java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();

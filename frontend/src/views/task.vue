@@ -26,7 +26,7 @@
           <template #item.action="{ item }">
             <div class="task-actions">
               <v-btn
-                v-if="authStore.canWrite"
+                v-if="authStore.canOperateSource(item.sid)"
                 size="small"
                 color="primary"
                 :loading="executing.includes(Number(item.id))"

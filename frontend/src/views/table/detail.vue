@@ -45,12 +45,12 @@
           @update:model-value="handleTabChange"
         >
           <v-tab value="info">基本详情</v-tab>
-          <v-tab v-if="authStore.canWrite" value="logs">采集日志</v-tab>
-          <v-tab v-if="authStore.canWrite" value="job">采集任务配置</v-tab>
+          <v-tab v-if="canOperateTable" value="logs">采集日志</v-tab>
+          <v-tab v-if="canOperateTable" value="job">采集任务配置</v-tab>
           <v-tab value="fields">字段比较</v-tab>
           <v-tab value="result">采集结果</v-tab>
           <v-tab value="executions">执行快照</v-tab>
-          <v-tab v-if="authStore.canWrite" value="fillback">补数</v-tab>
+          <v-tab v-if="canOperateTable" value="fillback">补数</v-tab>
           <v-tab value="history">变更历史</v-tab>
         </v-tabs>
 
@@ -60,11 +60,11 @@
           <v-tabs-window-item value="info">
             <TableDetail ref="detailRef" />
           </v-tabs-window-item>
-          <v-tabs-window-item v-if="authStore.canWrite" value="logs">
+          <v-tabs-window-item v-if="canOperateTable" value="logs">
             <LogFiles />
           </v-tabs-window-item>
-          <v-tabs-window-item v-if="authStore.canWrite" value="job">
-            <AddaxJob :retired-at="retiredAt" />
+          <v-tabs-window-item v-if="canOperateTable" value="job">
+            <AddaxJob :retired-at="retiredAt" :can-write="canOperateTable" />
           </v-tabs-window-item>
           <v-tabs-window-item value="fields">
             <FieldsCompare />
@@ -75,8 +75,8 @@
           <v-tabs-window-item value="executions">
             <ExecutionHistory />
           </v-tabs-window-item>
-          <v-tabs-window-item v-if="authStore.canWrite" value="fillback">
-            <FillbackTab :active="currentTab === 'fillback'" />
+          <v-tabs-window-item v-if="canOperateTable" value="fillback">
+            <FillbackTab :active="currentTab === 'fillback'" :can-write="canOperateTable" />
           </v-tabs-window-item>
           <v-tabs-window-item value="history">
             <ChangeHistory />
@@ -88,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch, onMounted } from 'vue';
+  import { computed, ref, watch, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import tableService from '@/service/table-service';
   import { useAuthStore } from '@/stores/auth';
@@ -115,6 +115,10 @@
   const retiredBy = ref<string | null>(null);
   const sourceEnabled = ref(true);
   const tableStatus = ref('');
+  const tableSid = ref<number | null>(null);
+  const canOperateTable = computed(
+    () => tableSid.value != null && authStore.canOperateSource(tableSid.value)
+  );
 
   // unplugin-vue-router 0.19 does not emit param types for custom route-block
   // paths, so the :tid param is absent from the generated RouteNamedMap
@@ -138,9 +142,9 @@
   // A deep link may point at a tab the current role cannot see; move it to the info tab once the
   // role is known. Waiting for roleLoaded avoids overriding an admin's link with the guest default.
   watch(
-    () => [authStore.roleLoaded, authStore.canWrite] as const,
-    ([loaded, canWrite]) => {
-      if (loaded && !canWrite && ['logs', 'job', 'fillback'].includes(currentTab.value)) {
+    () => [authStore.roleLoaded, canOperateTable.value] as const,
+    ([loaded, canOperate]) => {
+      if (loaded && !canOperate && ['logs', 'job', 'fillback'].includes(currentTab.value)) {
         currentTab.value = 'info';
       }
     },
@@ -158,6 +162,7 @@
     tableService
       .fetchTableDetail(Number(tid))
       .then(table => {
+        tableSid.value = table.sid ?? null;
         retiredAt.value = table.retiredAt || null;
         retiredBy.value = table.retiredBy || null;
         sourceEnabled.value = table.enabled !== false;
