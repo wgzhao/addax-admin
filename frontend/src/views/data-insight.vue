@@ -262,7 +262,8 @@
     "icon": "mdi-chart-box-outline",
     "requiresAuth": true,
     "navGroup": "data",
-    "navOrder": 10
+    "navOrder": 10,
+    "roles": ["admin", "guest"]
   }
 }
 </route>

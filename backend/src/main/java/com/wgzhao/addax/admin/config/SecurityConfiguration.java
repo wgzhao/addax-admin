@@ -47,6 +47,9 @@ public class SecurityConfiguration
                 .permitAll()
                 // 只读接口：登录即可
                 .requestMatchers(HttpMethod.GET, "/audit-events", "/audit-events/**").hasAuthority("admin")
+                // Dashboard/monitor aggregates are cross-source. They stay global for admin and guest
+                // until Phase 2 scopes them; a source-scoped user is redirected to /table instead.
+                .requestMatchers("/dashboard/**", "/monitor/**").hasAnyAuthority("admin", "guest")
                 .requestMatchers(HttpMethod.GET, "/**").authenticated()
                 // 自助写操作：不能落到下面的 admin-only 规则里
                 .requestMatchers(HttpMethod.POST,

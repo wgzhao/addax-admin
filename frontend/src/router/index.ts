@@ -90,6 +90,12 @@ router.beforeEach(async (to, from, next) => {
   if (!authStore.roleLoaded) {
     await authStore.loadCurrentUser();
   }
+  // Cross-source dashboard aggregates are not scoped yet (Phase 2); send a scoped user to the
+  // filtered table list instead of showing every source's numbers.
+  if (to.path === '/' && authStore.role === 'user') {
+    next({ path: '/table' });
+    return;
+  }
   const requiredRoles = Array.isArray(to.meta.roles) ? (to.meta.roles as string[]) : null;
   if (requiredRoles && !requiredRoles.includes(authStore.role)) {
     next({ path: '/forbidden' });

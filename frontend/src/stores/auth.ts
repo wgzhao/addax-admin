@@ -15,6 +15,11 @@ export const useAuthStore = defineStore('auth', {
     // 更新 Token
     setToken(token: string) {
       this.token = token;
+      // The old role belongs to the previous session; reset it so the router guard re-reads
+      // /users/me before deciding where the new session may go.
+      this.role = 'guest';
+      this.grants = {};
+      this.roleLoaded = false;
       localStorage.setItem('authToken', token); // 持久化存储
     },
     setUserName(username: string) {

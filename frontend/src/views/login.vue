@@ -134,6 +134,9 @@
       if (res && res.code === 0 && res.data) {
         authStore.setToken(res.data);
         authStore.setUserName(auth.value.username);
+        // Resolve the role before navigating; the first route may depend on it (for example a
+        // scoped user is redirected away from the cross-source dashboard).
+        await authStore.loadCurrentUser();
         await router.push({ path: '/' });
       } else {
         const msg = res && res.message ? res.message : '登录失败';

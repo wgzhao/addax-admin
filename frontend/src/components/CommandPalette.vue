@@ -98,13 +98,17 @@
       run: () => router.push(path),
     });
 
-  push('首页', '/', 'mdi-home');
+  if (authStore.role !== 'user') {
+    push('首页', '/', 'mdi-home');
+  }
   push('采集源管理', '/source', 'mdi-database-cog');
   push('目标端管理', '/target', 'mdi-database-export');
   push('采集表配置', '/table', 'mdi-table');
   push('采集任务', '/task', 'mdi-calendar-clock');
-  push('监控与告警', '/monitor', 'mdi-monitor-dashboard');
-  push('数据洞察', '/data-insight', 'mdi-chart-box-outline');
+  if (authStore.role !== 'user') {
+    push('监控与告警', '/monitor', 'mdi-monitor-dashboard');
+    push('数据洞察', '/data-insight', 'mdi-chart-box-outline');
+  }
   if (authStore.canWrite) {
     push('日志管理', '/logs', 'mdi-file-document-outline');
     push('字典维护', '/dict', 'mdi-book-open-page-variant');

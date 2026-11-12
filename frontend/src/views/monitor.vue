@@ -386,7 +386,8 @@
     "icon": "mdi-monitor-dashboard",
     "requiresAuth": true,
     "navGroup": "collect",
-    "navOrder": 30
+    "navOrder": 30,
+    "roles": ["admin", "guest"]
   }
 }
 </route>
