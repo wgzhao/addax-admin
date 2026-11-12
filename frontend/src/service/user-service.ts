@@ -1,9 +1,16 @@
 import Requests from '@/utils/requests';
 
+export interface SourceGrant {
+  sourceId: number;
+  sourceName: string;
+  accessLevel: 'VIEW' | 'OPERATE';
+}
+
 export interface AccountUser {
   username: string;
   enabled: boolean;
   authorities: string[];
+  grants?: SourceGrant[];
 }
 
 interface CreateUserPayload {
@@ -23,6 +30,22 @@ class UserService {
 
   me(): Promise<AccountUser> {
     return Requests.get(`${this.prefix}/me`) as unknown as Promise<AccountUser>;
+  }
+
+  grants(username: string): Promise<SourceGrant[]> {
+    return Requests.get(
+      `${this.prefix}/${encodeURIComponent(username)}/grants`
+    ) as unknown as Promise<SourceGrant[]>;
+  }
+
+  replaceGrants(
+    username: string,
+    grants: Array<{ sourceId: number; accessLevel: 'VIEW' | 'OPERATE' }>
+  ): Promise<SourceGrant[]> {
+    return Requests.put(
+      `${this.prefix}/${encodeURIComponent(username)}/grants`,
+      grants
+    ) as unknown as Promise<SourceGrant[]>;
   }
 
   list(): Promise<AccountUser[]> {

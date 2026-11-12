@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia';
 import { highestRole, type Role } from '@/utils/roles';
 
+export type GrantLevel = 'VIEW' | 'OPERATE';
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: '' as string | null, // 存储用户的 Token
     username: '' as string | null, // 存储用户名
     role: 'guest' as Role,
+    grants: {} as Record<number, GrantLevel>,
     roleLoaded: false,
   }),
   actions: {
@@ -30,11 +33,13 @@ export const useAuthStore = defineStore('auth', {
       }
       // The persisted token says nothing about the current role; always re-read it.
       this.role = 'guest';
+      this.grants = {};
       this.roleLoaded = false;
     },
     async loadCurrentUser() {
       if (!this.token) {
         this.role = 'guest';
+        this.grants = {};
         this.roleLoaded = true;
         return;
       }
@@ -43,8 +48,12 @@ export const useAuthStore = defineStore('auth', {
         const { default: userService } = await import('@/service/user-service');
         const me = await userService.me();
         this.role = highestRole(me.authorities);
+        this.grants = Object.fromEntries(
+          (me.grants || []).map(grant => [grant.sourceId, grant.accessLevel])
+        ) as Record<number, GrantLevel>;
       } catch {
         this.role = 'guest';
+        this.grants = {};
       } finally {
         this.roleLoaded = true;
       }
@@ -54,6 +63,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.username = null;
       this.role = 'guest';
+      this.grants = {};
       this.roleLoaded = false;
       localStorage.removeItem('authToken');
       localStorage.removeItem('authUsername');
@@ -79,8 +89,18 @@ export const useAuthStore = defineStore('auth', {
     currentUserName: state => state.username,
     isAdmin: state => state.role === 'admin',
     isGuest: state => state.role === 'guest',
-    // Phase 0 keeps all business writes admin-only. Phase 1 replaces this with the source grant
-    // check once user_source_grant exists.
+    // Admin-only actions: target/config management and source creation/deletion.
     canWrite: state => state.role === 'admin',
+    canReadSource: state => (sourceId?: number | null) => {
+      if (state.role === 'admin' || state.role === 'guest') return true;
+      return sourceId != null && state.grants[sourceId] != null;
+    },
+    canOperateSource: state => (sourceId?: number | null) => {
+      if (state.role === 'admin') return true;
+      if (state.role === 'guest' || sourceId == null) return false;
+      return state.grants[sourceId] === 'OPERATE';
+    },
+    hasOperateSources: state =>
+      state.role === 'admin' || Object.values(state.grants).includes('OPERATE'),
   },
 });

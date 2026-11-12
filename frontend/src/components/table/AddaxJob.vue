@@ -91,12 +91,12 @@
   import tableService from '@/service/table-service';
   import { useRoute } from 'vue-router';
   import { useNotifier } from '@/stores/notifier';
-  import { useAuthStore } from '@/stores/auth';
 
   hljs.registerLanguage('json', json);
 
   const props = defineProps<{
     retiredAt?: string | null;
+    canWrite?: boolean;
   }>();
 
   const { notify } = useNotifier();
@@ -113,8 +113,7 @@
   const editContent = ref('');
   const dirty = ref(false);
   // A missing value means the parent has not loaded the table lifecycle yet.
-  const authStore = useAuthStore();
-  const canEdit = computed(() => props.retiredAt === null && authStore.canWrite);
+  const canEdit = computed(() => props.retiredAt === null && props.canWrite);
   const isRetired = computed(() => Boolean(props.retiredAt));
 
   const displayText = computed(() => {

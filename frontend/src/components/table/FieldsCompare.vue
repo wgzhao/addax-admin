@@ -19,7 +19,7 @@
             源字段通过显式映射写入目标字段。外部管理的目标表只校验结构，不执行表或字段 DDL。
           </div>
         </div>
-        <div v-if="authStore.canWrite" class="panel-actions">
+        <div v-if="canOperate" class="panel-actions">
           <v-btn
             v-if="supportsManualFields"
             variant="tonal"
@@ -241,6 +241,9 @@
   const baselineSignature = ref('');
   const error = ref('');
   const tableDetail = ref<VEtlWithSource | null>(null);
+  const canOperate = computed(
+    () => tableDetail.value?.sid != null && authStore.canOperateSource(tableDetail.value.sid)
+  );
   const manualDialog = ref(false);
   const manualSaving = ref(false);
   const isMongoSource = computed(() => tableDetail.value?.dbType === 'mongodb');

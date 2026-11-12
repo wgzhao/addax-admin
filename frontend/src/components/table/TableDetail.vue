@@ -15,6 +15,7 @@
         :dirty="dirty"
         :saving="saving"
         :retired="isRetired"
+        :can-write="canOperate"
         :updated-at="table.updatedAt"
         @edit="beginEdit"
         @cancel="cancelEdit"
@@ -68,6 +69,7 @@
   import TableDetailCommandBar from './detail/TableDetailCommandBar.vue';
   import TableDetailEditForm from './detail/TableDetailEditForm.vue';
   import TableDetailState from './detail/TableDetailState.vue';
+  import { useAuthStore } from '@/stores/auth';
 
   const route = useRoute();
   // cast: unplugin-vue-router does not type custom route-block path params
@@ -84,6 +86,10 @@
 
   // Render with a normalized options bag so the target-specific fields always have an object to bind to.
   const table = ref<VEtlWithSource>({ targetOptions: normalizeTargetOptions() } as VEtlWithSource);
+  const authStore = useAuthStore();
+  const canOperate = computed(
+    () => table.value.sid != null && authStore.canOperateSource(table.value.sid)
+  );
   // The bag as stored on the row, so a save keeps the section of the other target family untouched.
   const storedOptions = ref<Partial<EtlTargetOptions>>({});
   const readerPluginConfigText = ref('');
