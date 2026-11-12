@@ -48,4 +48,18 @@ public class UserAuthStateService
             "update users set auth_version = auth_version + 1 where username = ?",
             username);
     }
+
+    public void markLastLogin(String username)
+    {
+        jdbcTemplate.update(
+            "update users set last_login_at = now() where username = ?",
+            username);
+    }
+
+    public void markPasswordChanged(String username)
+    {
+        jdbcTemplate.update(
+            "update users set password_changed_at = now() where username = ?",
+            username);
+    }
 }

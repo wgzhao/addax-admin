@@ -48,9 +48,17 @@
           >
             <template #item.username="{ item }">
               <div class="ds-cell-stack">
-                <span class="ds-cell-meta">系统账号</span>
-                <span class="ds-cell-primary">{{ item.username }}</span>
+                <span class="ds-cell-meta">{{ item.username }}</span>
+                <span class="ds-cell-primary">{{ item.displayName || item.username }}</span>
               </div>
+            </template>
+
+            <template #item.email="{ item }">
+              <span class="ds-cell-support">{{ item.email || '-' }}</span>
+            </template>
+
+            <template #item.lastLoginAt="{ item }">
+              <span class="ds-cell-support">{{ formatTime(item.lastLoginAt) }}</span>
             </template>
 
             <template #item.enabled="{ item }">
@@ -139,6 +147,24 @@
               label="用户名"
               :disabled="dialogMode === 'edit'"
               :rules="[rules.required]"
+            />
+            <v-text-field
+              v-model="formModel.displayName"
+              label="姓名 / 显示名"
+              placeholder="留空时使用用户名"
+            />
+            <v-text-field
+              v-model="formModel.email"
+              label="邮箱（可选）"
+              :rules="[rules.emailOptional]"
+            />
+            <v-textarea
+              v-model="formModel.remark"
+              label="备注（可选）"
+              rows="2"
+              auto-grow
+              variant="outlined"
+              density="compact"
             />
             <v-text-field
               v-model="formModel.password"
@@ -291,10 +317,12 @@
   const confirmPasswordRef = ref<{ validate: () => void } | null>(null);
 
   const headers = [
-    { title: '用户名', key: 'username', minWidth: '180px' },
+    { title: '账号 / 姓名', key: 'username', minWidth: '200px' },
+    { title: '邮箱', key: 'email', minWidth: '200px' },
+    { title: '最后登录', key: 'lastLoginAt', width: 170 },
     { title: '状态', key: 'enabled', width: 110 },
-    { title: '角色', key: 'authorities', minWidth: '180px' },
-    { title: '操作', key: 'actions', sortable: false, width: 320 },
+    { title: '角色', key: 'authorities', minWidth: '150px' },
+    { title: '操作', key: 'actions', sortable: false, width: 370 },
   ];
 
   const authorityOptions = ['admin', 'user', 'guest'];
@@ -304,11 +332,17 @@
     password: string;
     confirmPassword: string;
     authority: string;
+    displayName: string;
+    email: string;
+    remark: string;
   }>({
     username: '',
     password: '',
     confirmPassword: '',
     authority: 'user',
+    displayName: '',
+    email: '',
+    remark: '',
   });
 
   // Create always needs the confirmation; edit only once a new password is being typed
@@ -338,6 +372,13 @@
     passwordMatch: (v: string) => v === formModel.value.password || '两次输入的密码不一致',
     passwordMatchOptional: (v: string) =>
       !v || v === formModel.value.password || '两次输入的密码不一致',
+    emailOptional: (v: string) =>
+      !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || '邮箱格式不正确',
+  };
+
+  const formatTime = (value?: string | null) => {
+    if (!value) return '-';
+    return value.replace('T', ' ').slice(0, 19);
   };
 
   const loadUsers = async () => {
@@ -386,6 +427,9 @@
       password: '',
       confirmPassword: '',
       authority: 'user',
+      displayName: '',
+      email: '',
+      remark: '',
     };
     showPassword.value = false;
     dialogVisible.value = true;
@@ -398,6 +442,9 @@
       password: '',
       confirmPassword: '',
       authority: normalizeAuthority(item.authorities?.[0]),
+      displayName: item.displayName || '',
+      email: item.email || '',
+      remark: item.remark || '',
     };
     showPassword.value = false;
     dialogVisible.value = true;
@@ -408,6 +455,9 @@
     const password = formModel.value.password || '';
     const confirmPassword = formModel.value.confirmPassword || '';
     const authority = formModel.value.authority;
+    const displayName = formModel.value.displayName?.trim() || '';
+    const email = formModel.value.email?.trim() || '';
+    const remark = formModel.value.remark?.trim() || '';
 
     if (!username) {
       notify('用户名不能为空', 'warning');
@@ -441,10 +491,19 @@
           password,
           enabled: true,
           authority,
+          displayName,
+          email,
+          remark,
         });
         notify('账号创建成功', 'success');
       } else {
-        const payload: { password?: string; authority?: string } = { authority };
+        const payload: {
+          password?: string;
+          authority?: string;
+          displayName: string;
+          email: string;
+          remark: string;
+        } = { authority, displayName, email, remark };
         if (password) {
           payload.password = password;
         }

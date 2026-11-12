@@ -241,6 +241,23 @@ public class SchemaInitializer
         "alter table public.users add column if not exists auth_version integer not null default 0";
 
     /**
+     * Minimal account profile. Existing rows get the migration timestamp for created_at and their
+     * username as display_name; last_login_at/password_changed_at stay null until the next event.
+     */
+    private static final String ADD_USER_PROFILE_COLUMNS_SQL = """
+        alter table public.users add column if not exists display_name varchar(100);
+        alter table public.users add column if not exists email varchar(200);
+        alter table public.users add column if not exists remark varchar(500);
+        alter table public.users add column if not exists created_at timestamp without time zone
+            not null default current_timestamp;
+        alter table public.users add column if not exists last_login_at timestamp without time zone;
+        alter table public.users add column if not exists password_changed_at timestamp without time zone;
+        update public.users
+           set display_name = username
+         where display_name is null or btrim(display_name) = '';
+        """;
+
+    /**
      * Source-scoped grants. The table is created without foreign keys first so it can exist on an
      * installation that has users but no collection schema yet; the keys are added when possible.
      */
@@ -600,6 +617,7 @@ public class SchemaInitializer
         if (exists(connection, "tables", "users", null))
         {
             statement.execute(ADD_USER_AUTH_VERSION_SQL);
+            statement.execute(ADD_USER_PROFILE_COLUMNS_SQL);
             statement.execute(CREATE_USER_SOURCE_GRANT_SQL);
         }
         boolean hasSource = exists(connection, "tables", "etl_source", null);

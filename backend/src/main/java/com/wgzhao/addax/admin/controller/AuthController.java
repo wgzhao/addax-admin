@@ -77,6 +77,7 @@ public class AuthController
                     .map((item) -> normalizeAuthority(item.getAuthority()))
                     .toList();
                 String token = jwtService.generateToken(authRequestDTO.username(), authorities, state.authVersion());
+                userAuthStateService.markLastLogin(authRequestDTO.username());
                 auditRecorder.success("AUTH_LOGIN_SUCCESS", "AUTH", "INFO", "USER",
                     authRequestDTO.username(), authRequestDTO.username(), null, null,
                     Map.of("authorities", authorities), authRequestDTO.username());
@@ -159,6 +160,7 @@ public class AuthController
                 .password(encoded)
                 .build();
             ((JdbcUserDetailsManager) userDetailsService).updateUser(updated);
+            userAuthStateService.markPasswordChanged(username);
             userAuthStateService.bumpAuthVersion(username);
             auditRecorder.success("AUTH_PASSWORD_CHANGED", "ACCOUNT", "WARNING", "USER",
                 username, username, null, null);
