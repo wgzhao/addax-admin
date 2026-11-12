@@ -47,7 +47,18 @@ public class SecurityConfiguration
                 .permitAll()
                 // 只读接口：登录即可
                 .requestMatchers(HttpMethod.GET, "/audit-events", "/audit-events/**").hasAuthority("admin")
+                // 这些响应包含连接凭据、渲染后的 job 或原始日志，Phase 1 会按源授权重新开放给
+                // OPERATE 用户；在此之前只允许管理员读取。
+                .requestMatchers(HttpMethod.GET,
+                    "/tables/*/addax-job",
+                    "/log/addax",
+                    "/log/addax/*/content",
+                    "/log/jour/*").hasAuthority("admin")
                 .requestMatchers(HttpMethod.GET, "/**").authenticated()
+                // 自助写操作：不能落到下面的 admin-only 规则里
+                .requestMatchers(HttpMethod.POST,
+                    "/user-notifications/*/read",
+                    "/user-notifications/read-all").authenticated()
                 // 写操作接口：仅 admin
                 .requestMatchers(HttpMethod.POST, "/**").hasAuthority("admin")
                 .requestMatchers(HttpMethod.PUT, "/**").hasAuthority("admin")
