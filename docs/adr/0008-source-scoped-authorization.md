@@ -112,8 +112,9 @@ model:
   needs them.
 - `GET /tables/{id}/addax-job` and `GET /log/addax/{id}/content` are operational reads restricted to
   admin and `OPERATE`; both can contain credentials.
-- `POST /log/job-report` is currently unauthenticated and can forge statistics; it needs a shared
-  secret or a network restriction.
+- `POST /log/job-report` is unauthenticated because Addax posts to it directly. The controller now
+  rejects reports for unknown tables and for executions that do not belong to the reported table; a
+  shared secret or a network restriction remains a deployment follow-up.
 
 ## Migration
 
