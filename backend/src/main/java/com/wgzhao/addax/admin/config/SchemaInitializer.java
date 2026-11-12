@@ -240,6 +240,64 @@ public class SchemaInitializer
     private static final String ADD_USER_AUTH_VERSION_SQL =
         "alter table public.users add column if not exists auth_version integer not null default 0";
 
+    /**
+     * Source-scoped grants. The table is created without foreign keys first so it can exist on an
+     * installation that has users but no collection schema yet; the keys are added when possible.
+     */
+    private static final String CREATE_USER_SOURCE_GRANT_SQL = """
+        create table if not exists public.user_source_grant (
+            username varchar(50) not null,
+            source_id integer not null,
+            access_level varchar(16) not null default 'OPERATE',
+            granted_by varchar(50) not null,
+            granted_at timestamp with time zone not null default current_timestamp,
+            constraint user_source_grant_access_level_check
+                check (access_level in ('VIEW', 'OPERATE')),
+            constraint user_source_grant_pkey primary key (username, source_id)
+        );
+        create index if not exists idx_user_source_grant_source
+            on public.user_source_grant (source_id);
+        do $$
+        begin
+            if not exists (select 1 from pg_constraint where conname = 'user_source_grant_username_fkey') then
+                alter table public.user_source_grant
+                    add constraint user_source_grant_username_fkey
+                    foreign key (username) references public.users(username) on delete cascade;
+            end if;
+            if to_regclass('public.etl_source') is not null
+               and not exists (select 1 from pg_constraint where conname = 'user_source_grant_source_fkey') then
+                alter table public.user_source_grant
+                    add constraint user_source_grant_source_fkey
+                    foreign key (source_id) references public.etl_source(id) on delete cascade;
+            end if;
+        end
+        $$
+        """;
+
+    /**
+     * One-time migration: existing user accounts could read every source before grants existed, so
+     * give them VIEW on every source. New installations get the marker immediately and never
+     * auto-grant later sources.
+     */
+    private static final String MIGRATE_USER_SOURCE_GRANTS_SQL = """
+        insert into public.user_source_grant (username, source_id, access_level, granted_by)
+        select u.username, s.id, 'VIEW', 'system-migration'
+          from public.users u
+          join public.authorities a on a.username = u.username
+          cross join public.etl_source s
+         where lower(a.authority) in ('user', 'role_user')
+        on conflict (username, source_id) do nothing
+        """;
+
+    private static final String INSERT_USER_SOURCE_GRANT_MIGRATION_SQL = """
+        insert into public.sys_item (dict_code, item_key, item_value, remark)
+        select 1000, 'AUTH_SOURCE_GRANT_MIGRATED', to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+               'one-time VIEW grants for existing user accounts'
+         where not exists (
+             select 1 from public.sys_item
+              where dict_code = 1000 and item_key = 'AUTH_SOURCE_GRANT_MIGRATED')
+        """;
+
     private static final String ADD_CALENDAR_COLUMN_SQL =
         "alter table public.etl_source add column if not exists calendar varchar(32)";
 
@@ -566,6 +624,8 @@ public class SchemaInitializer
         if (exists(connection, "tables", "users", null))
         {
             statement.execute(ADD_USER_AUTH_VERSION_SQL);
+            statement.execute(CREATE_USER_SOURCE_GRANT_SQL);
+            migrateUserSourceGrants(connection, statement);
         }
         boolean hasSource = exists(connection, "tables", "etl_source", null);
         boolean hasTable = exists(connection, "tables", "etl_table", null);
@@ -1062,6 +1122,41 @@ public class SchemaInitializer
                 long length = rs.getLong(1);
                 return length > 0 && length < minLength;
             }
+        }
+    }
+
+    private void migrateUserSourceGrants(Connection connection, Statement statement)
+        throws SQLException
+    {
+        if (!exists(connection, "tables", "sys_item", null)
+            || !exists(connection, "tables", "authorities", null))
+        {
+            log.warn("sys_item/authorities missing, skip source grant migration");
+            return;
+        }
+        if (hasGrantMigrationMarker(connection))
+        {
+            return;
+        }
+        if (exists(connection, "tables", "etl_source", null))
+        {
+            int grants = statement.executeUpdate(MIGRATE_USER_SOURCE_GRANTS_SQL);
+            if (grants > 0)
+            {
+                log.info("Granted {} VIEW source grant(s) to existing user accounts", grants);
+            }
+        }
+        statement.execute(INSERT_USER_SOURCE_GRANT_MIGRATION_SQL);
+    }
+
+    private boolean hasGrantMigrationMarker(Connection connection) throws SQLException
+    {
+        String sql = "select count(*) from public.sys_item "
+            + "where dict_code = 1000 and item_key = 'AUTH_SOURCE_GRANT_MIGRATED'";
+        try (PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery())
+        {
+            return rs.next() && rs.getInt(1) > 0;
         }
     }
 

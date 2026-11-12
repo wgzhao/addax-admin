@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.Roles;
 import com.wgzhao.addax.admin.dto.CreateUserDTO;
+import com.wgzhao.addax.admin.dto.CurrentUserDto;
 import com.wgzhao.addax.admin.dto.UpdateUserDTO;
 import com.wgzhao.addax.admin.dto.UserAdminDto;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -25,6 +26,7 @@ public class UserAdminService
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final UserAuthStateService userAuthStateService;
+    private final UserSourceGrantService userSourceGrantService;
     private final JdbcTemplate jdbcTemplate;
 
     public List<UserAdminDto> listUsers()
@@ -52,13 +54,18 @@ public class UserAdminService
         return new java.util.ArrayList<>(result.values());
     }
 
-    public UserAdminDto currentUser()
+    public CurrentUserDto currentUser()
     {
         String username = currentUsername();
         if (username == null || username.isBlank()) {
             throw new ApiException(404, "当前登录账号不存在");
         }
-        return toUserAdminDto(username);
+        UserAdminDto user = toUserAdminDto(username);
+        return new CurrentUserDto(
+            user.username(),
+            user.enabled(),
+            user.authorities(),
+            userSourceGrantService.list(username));
     }
 
     @Transactional

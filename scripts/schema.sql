@@ -1667,6 +1667,25 @@ CREATE TABLE public.users (
 
 
 --
+-- Name: user_source_grant; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_source_grant (
+    username character varying(50) NOT NULL,
+    source_id integer NOT NULL,
+    access_level character varying(16) DEFAULT 'OPERATE'::character varying NOT NULL,
+    granted_by character varying(50) NOT NULL,
+    granted_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT user_source_grant_access_level_check CHECK (((access_level)::text = ANY ((ARRAY['VIEW'::character varying, 'OPERATE'::character varying])::text[])))
+);
+
+ALTER TABLE ONLY public.user_source_grant
+    ADD CONSTRAINT user_source_grant_pkey PRIMARY KEY (username, source_id);
+
+CREATE INDEX idx_user_source_grant_source ON public.user_source_grant USING btree (source_id);
+
+
+--
 -- Name: vw_etl_table_with_source; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -2397,6 +2416,12 @@ CREATE TABLE public.alert_silence (
 );
 
 CREATE INDEX idx_alert_silence_window ON public.alert_silence USING btree (ends_at, starts_at);
+
+-- Added after the referenced primary keys exist.
+ALTER TABLE ONLY public.user_source_grant
+    ADD CONSTRAINT user_source_grant_source_fkey FOREIGN KEY (source_id) REFERENCES public.etl_source(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.user_source_grant
+    ADD CONSTRAINT user_source_grant_username_fkey FOREIGN KEY (username) REFERENCES public.users(username) ON DELETE CASCADE;
 
 --
 -- PostgreSQL database dump complete
