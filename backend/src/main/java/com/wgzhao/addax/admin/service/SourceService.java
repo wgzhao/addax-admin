@@ -24,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 
 /**
@@ -117,11 +119,15 @@ public class SourceService
         EtlSource existing = etlSourceRepo.findById(etlSource.getId()).orElse(null);
 
         sourceAdapterRegistry.resolveForSave(etlSource, existing);
-
-        etlSourceRepo.save(etlSource);
         if (existing == null) {
+            etlSourceRepo.save(etlSource);
             return etlSource;
         }
+
+        // Capture the comparison before save(). findById() and save() share the persistence context
+        // inside the controller transaction, so merge() updates the same managed instance `existing`
+        // points at; comparing afterwards would always see the new values and silently skip both the
+        // job-template refresh and the schedule broadcast.
         boolean scheduleChanged = !Objects.equals(existing.getStartAt(), etlSource.getStartAt());
         boolean calendarChanged = !Objects.equals(existing.getCalendar(), etlSource.getCalendar());
 
@@ -133,24 +139,61 @@ public class SourceService
         // must refresh job templates even when the display URL is unchanged.
         boolean connectionChanged = !Objects.equals(existPos, newPos)
             || !Objects.equals(existing.getConnectConfig(), etlSource.getConnectConfig());
+
+        etlSourceRepo.save(etlSource);
+
         // 连接源的修改，仅需要一个节点去更新任务模板即可，其他节点通过 Redis 消息通知来更新
         if (connectionChanged) {
-            SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), scheduleChanged);
-            eventPublisher.publishEvent(sourceUpdatedEvent);
+            SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), true);
+            runAfterCommit(() -> {
+                try {
+                    eventPublisher.publishEvent(sourceUpdatedEvent);
+                }
+                catch (Exception e) {
+                    // The update is already committed; a failed job-template refresh must not turn the
+                    // successful save into a 500. The next table refresh or source save retries it.
+                    log.warn("Failed to refresh job templates for sourceId={}: {}", etlSource.getId(),
+                        e.getMessage());
+                }
+            });
         }
 
-        // 如果调度时间或采集日历发生变更，则广播到集群中的其他节点，通知它们重新注册定时任务
+        // 如果调度时间或采集日历发生变更，则广播到集群中的其他节点，通知它们重新注册定时任务。
+        // The subscriber reads the source in a different transaction, so the message must leave only
+        // after this transaction commits; otherwise it can re-register the old schedule.
         if (scheduleChanged || calendarChanged) {
-            try {
-                redisTemplate.convertAndSend(REDIS_SOURCE_UPDATE_CHANNEL, String.valueOf(etlSource.getId()));
-                log.info("Published source schedule change for sourceId={} to redis channel {}", etlSource.getId(), REDIS_SOURCE_UPDATE_CHANNEL);
-            }
-            catch (Exception e) {
-                log.warn("Failed to publish source schedule change to redis: {}", e.getMessage());
-            }
+            runAfterCommit(() -> publishScheduleChange(etlSource.getId()));
         }
 
         return etlSource;
+    }
+
+    private void runAfterCommit(Runnable action)
+    {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization()
+            {
+                @Override
+                public void afterCommit()
+                {
+                    action.run();
+                }
+            });
+            return;
+        }
+        action.run();
+    }
+
+    private void publishScheduleChange(int sourceId)
+    {
+        try {
+            redisTemplate.convertAndSend(REDIS_SOURCE_UPDATE_CHANNEL, String.valueOf(sourceId));
+            log.info("Published source schedule change for sourceId={} to redis channel {}", sourceId,
+                REDIS_SOURCE_UPDATE_CHANNEL);
+        }
+        catch (Exception e) {
+            log.warn("Failed to publish source schedule change to redis: {}", e.getMessage());
+        }
     }
 
     /**
