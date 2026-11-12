@@ -259,6 +259,21 @@
         </li>
       </ul>
     </section>
+
+    <section class="notes-section">
+      <div class="section-heading">
+        <h3>补数注意</h3>
+      </div>
+      <ul class="notes-list">
+        <li>
+          <v-icon size="16">mdi-calendar-remove-outline</v-icon>
+          <span>
+            <code>__max__&lt;field&gt;</code>
+            只有下界，适合连续每日采集；历史补数会读入后续日期的数据，请改用日期条件，详见用户手册「补数回补」。
+          </span>
+        </li>
+      </ul>
+    </section>
   </HelpDialogShell>
 </template>
 

@@ -60,7 +60,7 @@
 | [批量创建采集表](usage/04-create-collections.md)    | 五步流程、目标策略、逐表预览、创建结果                |
 | [目标表结构与字段映射](usage/05-target-contract.md) | `MANAGED`/`EXTERNAL`、字段映射、阻断与告警            |
 | [目标端能力与表属性](usage/06-target-engines.md)    | Hive/关系型目标、写入语义、`target_options`、补数限制 |
-| [动态表名](usage/07-dynamic-tables.md)              | `${biz_*}`/`${curr_*}` 变量、日表/月表示例、跨日风险  |
+| [动态表名](usage/07-dynamic-tables.md)              | `${biz_*}`/`${curr_*}` 变量、生成时冻结、日表/月表示例 |
 | [增量与过滤](usage/08-filtering.md)                 | 业务日期过滤、字段条件、`__max__<field>`、风险回退    |
 | [调度与并发](usage/09-scheduling.md)                | 调度触发、队列、Redis 选主与分发、多节点权重、状态码  |
 | [MongoDB 采集](usage/10-mongodb.md)                 | MongoDB 源、多库接入、字段采样、切日刷新与注意事项    |

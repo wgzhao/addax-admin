@@ -133,7 +133,7 @@ Elasticsearch 采集源**不支持常量列**，因此不能由平台为关系�
 - `column`：不允许覆盖；平台按字段映射的位置生成列列表，覆盖会导致列错位。
 - 其他键：直接写入 Reader 参数，例如 `headers`、`scroll`。
 
-日期变量（如 `${biz_date_dash}`）在自定义 `search` / `query` 中同样会被替换。
+日期变量（如 `${biz_date_dash}`）在自定义 `search` / `query` 中同样会被替换，替换结果在生成任务内容时冻结为确定值。
 
 ## 注意事项
 

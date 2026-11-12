@@ -2,7 +2,7 @@
   <HelpDialogShell
     v-model="open"
     title="源表动态命名说明"
-    subtitle="在源表名中拼接任务业务日期或实际运行时间，生成按日期切分的表名。"
+    subtitle="在源表名中拼接任务业务日期或生成时刻的日期时间，生成按日期切分的表名。"
     icon="mdi-calendar-clock-outline"
     :max-width="900"
   >
@@ -14,8 +14,9 @@
     </div>
 
     <v-alert type="info" variant="tonal" density="compact" class="date-warning">
-      <strong>业务日期可能不等于实际运行日期。</strong>
-      跨日重试或补数时，<code>biz_*</code> 跟随任务业务日，<code>curr_*</code> 使用真实运行时间。
+      <strong>所有日期变量在生成任务内容时一次性冻结为确定值。</strong>
+      <code>biz_*</code> 跟随任务业务日；<code>curr_*</code> 使用生成时刻的真实日期时间。
+      替换结果直接写入任务 JSON，运行时不再解析变量；重试沿用已生成的任务内容，不会重新计算。
     </v-alert>
 
     <div class="search-row">
@@ -154,14 +155,14 @@
     {
       name: 'biz_datetime_short',
       group: 'biz-datetime',
-      label: '业务日期与当前时分秒，紧凑格式',
+      label: '业务日期与生成时刻的时分秒，紧凑格式',
       format: 'yyyyMMddHHmmss',
       example: '20260127140530',
     },
     {
       name: 'biz_datetime_dash',
       group: 'biz-datetime',
-      label: '业务日期与当前时分秒，短横线格式',
+      label: '业务日期与生成时刻的时分秒，短横线格式',
       format: 'yyyy-MM-dd HH:mm:ss',
       example: '2026-01-27 14:05:30',
     },
@@ -182,44 +183,44 @@
     {
       name: 'curr_date_short',
       group: 'curr-date',
-      label: '实际运行日期，紧凑格式',
+      label: '生成时刻日期，紧凑格式',
       format: 'yyyyMMdd',
       example: currentDateShort,
     },
     {
       name: 'curr_date_dash',
       group: 'curr-date',
-      label: '实际运行日期，短横线格式',
+      label: '生成时刻日期，短横线格式',
       format: 'yyyy-MM-dd',
       example: currentDateDash,
     },
     {
       name: 'curr_datetime_short',
       group: 'curr-datetime',
-      label: '实际运行日期时间，紧凑格式',
+      label: '生成时刻日期时间，紧凑格式',
       format: 'yyyyMMddHHmmss',
-      example: '以实际运行为准',
+      example: '20260127140530',
     },
     {
       name: 'curr_datetime_dash',
       group: 'curr-datetime',
-      label: '实际运行日期时间，短横线格式',
+      label: '生成时刻日期时间，短横线格式',
       format: 'yyyy-MM-dd HH:mm:ss',
-      example: '以实际运行为准',
+      example: '2026-01-27 14:05:30',
     },
     {
       name: 'curr_datetime_0_dash',
       group: 'curr-datetime',
-      label: '实际运行日当天 00:00:00，短横线格式',
+      label: '生成时刻当天 00:00:00，短横线格式',
       format: 'yyyy-MM-dd 00:00:00',
-      example: '以实际运行为准',
+      example: '2026-01-27 00:00:00',
     },
     {
       name: 'curr_datetime_0_short',
       group: 'curr-datetime',
-      label: '实际运行日当天 00:00:00，紧凑格式',
+      label: '生成时刻当天 00:00:00，紧凑格式',
       format: 'yyyyMMdd000000',
-      example: '以实际运行为准',
+      example: '20260127000000',
     },
   ];
 
@@ -232,17 +233,17 @@
     {
       key: 'biz-datetime',
       title: '业务日期时间',
-      description: '使用任务业务日，并组合生成任务时的时分秒。',
+      description: '使用任务业务日，并组合生成任务内容时的时分秒。',
     },
     {
       key: 'curr-date',
-      title: '当前日期',
-      description: '使用实际运行时间，跨日重试时可能与业务日期不同。',
+      title: '生成时刻日期',
+      description: '使用生成任务内容时的实际日期，跨日重试或补数时可能与业务日期不同。',
     },
     {
       key: 'curr-datetime',
-      title: '当前日期时间',
-      description: '使用实际运行日期和时间，适合生成运行时快照名称。',
+      title: '生成时刻日期时间',
+      description: '使用生成任务内容时的实际日期和时间，生成后即固定，适合快照名称。',
     },
   ];
 

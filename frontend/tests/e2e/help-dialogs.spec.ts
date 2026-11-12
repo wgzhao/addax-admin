@@ -109,7 +109,7 @@ test('dynamic naming help is searchable, copyable and keeps controls fixed', asy
   await page.getByRole('button', { name: '动态命名' }).click();
 
   await expect(page.getByRole('heading', { name: '源表动态命名说明', level: 2 })).toBeVisible();
-  await expect(page.getByText('业务日期可能不等于实际运行日期')).toBeVisible();
+  await expect(page.getByText('所有日期变量在生成任务内容时一次性冻结为确定值')).toBeVisible();
   await expect(page.getByRole('button', { name: '关闭' }).first()).toBeVisible();
 
   const initialGeometry = await dialogGeometry(page);
