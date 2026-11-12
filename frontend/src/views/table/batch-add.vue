@@ -24,3 +24,14 @@
     overflow: visible;
   }
 </style>
+
+<route lang="json">
+{
+  "meta": {
+    "title": "批量新增采集表",
+    "requiresAuth": true,
+    "navHidden": true,
+    "roles": ["admin"]
+  }
+}
+</route>

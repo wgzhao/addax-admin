@@ -968,7 +968,8 @@
     "title": "字典维护",
     "icon": "mdi-book-open-page-variant",
     "navGroup": "systemManage",
-    "navOrder": 20
+    "navOrder": 20,
+    "roles": ["admin"]
   }
 }
 </route>

@@ -65,6 +65,7 @@
   import tableService from '@/service/table-service';
   import { useAppTheme } from '@/composables/useAppTheme';
   import { commandPaletteOpen, toggleCommandPalette } from '@/stores/command-palette';
+  import { useAuthStore } from '@/stores/auth';
 
   interface PaletteItem {
     id: string;
@@ -84,6 +85,7 @@
 
   const router = useRouter();
   const { toggleTheme } = useAppTheme();
+  const authStore = useAuthStore();
 
   const navItems: PaletteItem[] = [];
   const push = (label: string, path: string, icon: string) =>
@@ -103,9 +105,11 @@
   push('采集任务', '/task', 'mdi-calendar-clock');
   push('监控与告警', '/monitor', 'mdi-monitor-dashboard');
   push('数据洞察', '/data-insight', 'mdi-chart-box-outline');
-  push('日志管理', '/logs', 'mdi-file-document-outline');
-  push('字典维护', '/dict', 'mdi-book-open-page-variant');
-  push('系统配置', '/sys-settings', 'mdi-cog-outline');
+  if (authStore.canWrite) {
+    push('日志管理', '/logs', 'mdi-file-document-outline');
+    push('字典维护', '/dict', 'mdi-book-open-page-variant');
+    push('系统配置', '/sys-settings', 'mdi-cog-outline');
+  }
 
   const actions: PaletteItem[] = [
     {

@@ -107,7 +107,13 @@
       :export-name="panel.exportName"
     >
       <template #item.actions="{ item }">
-        <v-btn size="small" color="error" variant="text" @click="disableTable(item)">
+        <v-btn
+          v-if="authStore.canWrite"
+          size="small"
+          color="error"
+          variant="text"
+          @click="disableTable(item)"
+        >
           禁用采集
         </v-btn>
       </template>
@@ -149,6 +155,9 @@
     hasMissingDates,
   } from '@/components/insight/insight-panels';
   import type { InsightFilters, InsightPanel } from '@/components/insight/insight-panels';
+  import { useAuthStore } from '@/stores/auth';
+
+  const authStore = useAuthStore();
 
   const defaultFilters: InsightFilters = {
     days: 15,

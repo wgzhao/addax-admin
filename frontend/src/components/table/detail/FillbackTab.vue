@@ -103,7 +103,7 @@
           {{ submitError }}
         </v-alert>
       </v-card-text>
-      <v-card-actions class="fillback-actions">
+      <v-card-actions v-if="authStore.canWrite" class="fillback-actions">
         <v-spacer />
         <v-btn
           color="primary"
@@ -229,6 +229,7 @@
   import { useRoute } from 'vue-router';
   import dayjs from 'dayjs';
   import { notify } from '@/stores/notifier';
+  import { useAuthStore } from '@/stores/auth';
   import taskService from '@/service/task-service';
   import type {
     FillbackProgress,
@@ -240,6 +241,7 @@
 
   const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true });
   const route = useRoute();
+  const authStore = useAuthStore();
   const tid = computed(() => Number((route.params as Record<string, string>).tid));
   const routeBatchId =
     typeof route.query.batchId === 'string' ? route.query.batchId : undefined;

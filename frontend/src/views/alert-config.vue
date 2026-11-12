@@ -2558,7 +2558,8 @@
     "icon": "mdi-bell-cog-outline",
     "requiresAuth": true,
     "navGroup": "systemManage",
-    "navOrder": 15
+    "navOrder": 15,
+    "roles": ["admin"]
   }
 }
 </route>

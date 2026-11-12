@@ -19,7 +19,7 @@
             源字段通过显式映射写入目标字段。外部管理的目标表只校验结构，不执行表或字段 DDL。
           </div>
         </div>
-        <div class="panel-actions">
+        <div v-if="authStore.canWrite" class="panel-actions">
           <v-btn
             v-if="supportsManualFields"
             variant="tonal"
@@ -217,6 +217,7 @@
   import { useRoute } from 'vue-router';
   import type { DataTableHeader } from 'vuetify';
   import { notify } from '@/stores/notifier';
+  import { useAuthStore } from '@/stores/auth';
   import tableService from '@/service/table-service';
   import SourceFieldMetaTooltip from './SourceFieldMetaTooltip.vue';
   import type {
@@ -228,6 +229,7 @@
 
   const route = useRoute();
   const tid = Number((route.params as Record<string, string>).tid);
+  const authStore = useAuthStore();
 
   const mappings = ref<ColumnMapping[]>([]);
   const contractReport = ref<TargetContractReport | null>(null);

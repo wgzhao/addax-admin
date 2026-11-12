@@ -26,6 +26,7 @@
           <template #item.action="{ item }">
             <div class="task-actions">
               <v-btn
+                v-if="authStore.canWrite"
                 size="small"
                 color="primary"
                 :loading="executing.includes(Number(item.id))"
@@ -58,9 +59,11 @@
   import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
   import type { DataTableHeader } from 'vuetify';
   import { notify } from '@/stores/notifier';
+  import { useAuthStore } from '@/stores/auth';
 
   // 如果需要外部控制间隔，可以使用 prop；页面通常不传，默认 3 秒
   const props = defineProps<{ refreshInterval?: number }>();
+  const authStore = useAuthStore();
 
   const headers: DataTableHeader[] = [
     { title: '采集表ID', key: 'id', align: 'center', width: '10%' },

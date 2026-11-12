@@ -65,7 +65,8 @@
     "icon": "mdi-file-document-outline",
     "requiresAuth": true,
     "navGroup": "systemManage",
-    "navOrder": 30
+    "navOrder": 30,
+    "roles": ["admin"]
   }
 }
 </route>

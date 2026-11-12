@@ -45,12 +45,12 @@
           @update:model-value="handleTabChange"
         >
           <v-tab value="info">基本详情</v-tab>
-          <v-tab value="logs">采集日志</v-tab>
-          <v-tab value="job">采集任务配置</v-tab>
+          <v-tab v-if="authStore.canWrite" value="logs">采集日志</v-tab>
+          <v-tab v-if="authStore.canWrite" value="job">采集任务配置</v-tab>
           <v-tab value="fields">字段比较</v-tab>
           <v-tab value="result">采集结果</v-tab>
           <v-tab value="executions">执行快照</v-tab>
-          <v-tab value="fillback">补数</v-tab>
+          <v-tab v-if="authStore.canWrite" value="fillback">补数</v-tab>
           <v-tab value="history">变更历史</v-tab>
         </v-tabs>
 
@@ -60,10 +60,10 @@
           <v-tabs-window-item value="info">
             <TableDetail ref="detailRef" />
           </v-tabs-window-item>
-          <v-tabs-window-item value="logs">
+          <v-tabs-window-item v-if="authStore.canWrite" value="logs">
             <LogFiles />
           </v-tabs-window-item>
-          <v-tabs-window-item value="job">
+          <v-tabs-window-item v-if="authStore.canWrite" value="job">
             <AddaxJob :retired-at="retiredAt" />
           </v-tabs-window-item>
           <v-tabs-window-item value="fields">
@@ -75,7 +75,7 @@
           <v-tabs-window-item value="executions">
             <ExecutionHistory />
           </v-tabs-window-item>
-          <v-tabs-window-item value="fillback">
+          <v-tabs-window-item v-if="authStore.canWrite" value="fillback">
             <FillbackTab :active="currentTab === 'fillback'" />
           </v-tabs-window-item>
           <v-tabs-window-item value="history">
@@ -91,6 +91,7 @@
   import { ref, watch, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import tableService from '@/service/table-service';
+  import { useAuthStore } from '@/stores/auth';
 
   import TableDetail from '@/components/table/TableDetail.vue';
   import FieldsCompare from '@/components/table/FieldsCompare.vue';
@@ -103,6 +104,7 @@
 
   const route = useRoute();
   const router = useRouter();
+  const authStore = useAuthStore();
 
   const currentTab = ref(String(route.query.tab || 'info'));
   const detailRef = ref<{ canLeave: () => boolean } | null>(null);
@@ -132,6 +134,18 @@
       query: { ...route.query, tab: val },
     });
   });
+
+  // A deep link may point at a tab the current role cannot see; move it to the info tab once the
+  // role is known. Waiting for roleLoaded avoids overriding an admin's link with the guest default.
+  watch(
+    () => [authStore.roleLoaded, authStore.canWrite] as const,
+    ([loaded, canWrite]) => {
+      if (loaded && !canWrite && ['logs', 'job', 'fillback'].includes(currentTab.value)) {
+        currentTab.value = 'info';
+      }
+    },
+    { immediate: true }
+  );
 
   const handleTabChange = (nextTab: unknown) => {
     const target = String(nextTab);

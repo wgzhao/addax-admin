@@ -432,7 +432,8 @@
     "title": "账号管理",
     "icon": "mdi-account-group-outline",
     "requiresAuth": true,
-    "navHidden": true
+    "navHidden": true,
+    "roles": ["admin"]
   }
 }
 </route>

@@ -37,6 +37,7 @@
         导出本页
       </v-btn>
       <v-btn
+        v-if="authStore.canWrite"
         color="primary"
         variant="flat"
         prepend-icon="mdi-plus"
@@ -144,7 +145,10 @@
           </div>
         </div>
 
-        <div v-if="selected.length > 0 && scope !== 'RETIRED'" class="ds-bulk-bar">
+        <div
+          v-if="authStore.canWrite && selected.length > 0 && scope !== 'RETIRED'"
+          class="ds-bulk-bar"
+        >
           <span class="ds-bulk-bar__count">已选择 {{ selected.length }} 行</span>
           <div class="ds-bulk-bar__actions">
             <v-btn variant="flat" color="primary" prepend-icon="mdi-database" @click="doEtl(null)">
@@ -190,7 +194,9 @@
                 ? '没有因表停采或采集源停用而暂停的采集定义。'
                 : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
             "
-            :primary="{ label: '新增采集表', icon: 'mdi-plus' }"
+            :primary="
+              authStore.canWrite ? { label: '新增采集表', icon: 'mdi-plus' } : undefined
+            "
             @primary="() => router.push('/table/batch-add')"
           />
         </template>
@@ -206,7 +212,7 @@
             :items-length="totalItems"
             item-value="id"
             :loading="loading"
-            show-select
+            :show-select="authStore.canWrite"
             :item-class="getRowClass"
             @update:options="loadItems"
           >
@@ -254,7 +260,7 @@
             <template #item.status="{ item }">
               <StatusChip :status="item.status" />
               <!-- Kill icon for running tasks: move to right, match E icon style -->
-              <template v-if="item.status === 'R'">
+              <template v-if="authStore.canWrite && item.status === 'R'">
                 <v-tooltip location="top">
                   <template #activator="{ props }">
                     <v-icon
@@ -312,7 +318,7 @@
 
             <template #item.action="{ item }">
               <div class="adjust-start align-center space-between">
-                <v-tooltip v-if="!item.retiredAt" text="发起采集" location="top">
+                <v-tooltip v-if="authStore.canWrite && !item.retiredAt" text="发起采集" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="primary"
@@ -325,7 +331,7 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip v-if="!item.retiredAt" text="更新表结构" location="top">
+                <v-tooltip v-if="authStore.canWrite && !item.retiredAt" text="更新表结构" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="warning"
@@ -338,7 +344,7 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip v-if="!item.retiredAt" text="退役此采集表" location="top">
+                <v-tooltip v-if="authStore.canWrite && !item.retiredAt" text="退役此采集表" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="error"
@@ -351,7 +357,7 @@
                     ></v-icon-btn>
                   </template>
                 </v-tooltip>
-                <v-tooltip v-else text="恢复采集表" location="top">
+                <v-tooltip v-else-if="authStore.canWrite" text="恢复采集表" location="top">
                   <template #activator="{ props: activatorProps }">
                     <v-icon-btn
                       color="success"
@@ -451,6 +457,7 @@
   import sourceService from '@/service/source-service';
   import { notify } from '@/stores/notifier';
   import taskCenter from '@/stores/task-center';
+  import { useAuthStore } from '@/stores/auth';
   import type { DataTableHeader } from 'vuetify';
   // 异步按需加载组件，减轻首屏体积
   const BatchUpdate = defineAsyncComponent(() => import('@/components/table/BatchUpdate.vue'));
@@ -458,6 +465,7 @@
 
   const route = useRoute();
   const router = useRouter();
+  const authStore = useAuthStore();
 
   const table = ref([]);
   const search = ref('');
@@ -814,7 +822,7 @@
 
   const openCreateFromQuery = () => {
     const action = Array.isArray(route.query.action) ? route.query.action[0] : route.query.action;
-    if (action !== 'create') return;
+    if (action !== 'create' || !authStore.canWrite) return;
     router.push('/table/batch-add');
     const query = { ...route.query };
     delete query.action;

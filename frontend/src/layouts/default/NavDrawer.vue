@@ -44,9 +44,9 @@
       </template>
     </v-list>
 
-    <v-divider class="my-2" />
+    <v-divider v-if="authStore.canWrite" class="my-2" />
 
-    <v-list nav density="comfortable" class="nav-drawer__list">
+    <v-list v-if="authStore.canWrite" nav density="comfortable" class="nav-drawer__list">
       <v-list-subheader>快捷新增</v-list-subheader>
       <v-list-item
         v-for="entry in createItems"
@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
   import { useRoute, useRouter } from 'vue-router';
+  import { useAuthStore } from '@/stores/auth';
   import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from './build-nav';
   import type { NavChildItem, NavItem } from './build-nav';
 
@@ -69,6 +70,7 @@
 
   const route = useRoute();
   const router = useRouter();
+  const authStore = useAuthStore();
 
   const createItems = [
     { title: '新增采集源', icon: 'mdi-database-cog', path: '/source?action=create' },

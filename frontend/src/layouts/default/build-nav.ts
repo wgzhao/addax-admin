@@ -35,7 +35,8 @@ const NAV_GROUP_TITLE: Record<NavGroup, string> = {
 // for the collect group so this stays a pure function over route records.
 export function buildNavMenu(
   routes: ReturnType<Router['getRoutes']>,
-  actions: NavActions
+  actions: NavActions,
+  role: string = 'guest'
 ): NavItem[] {
   const routeMap = new Map<
     string,
@@ -55,6 +56,8 @@ export function buildNavMenu(
 
     if (!path || path.includes('/:') || path === '/:pathMatch(.*)*') return;
     if (meta.layout === 'login' || meta.navHidden) return;
+    const requiredRoles = Array.isArray(meta.roles) ? (meta.roles as string[]) : null;
+    if (requiredRoles && !requiredRoles.includes(role)) return;
 
     const title = typeof meta.title === 'string' ? meta.title.trim() : '';
     const navTitle = typeof meta.navTitle === 'string' ? meta.navTitle.trim() : '';
@@ -108,8 +111,9 @@ export function buildNavMenu(
         icon: item.icon,
       }));
 
-    // Attach standalone actions (not routes) to the collect group
-    if (groupKey === 'collect') {
+    // Attach standalone actions (not routes) to the collect group. Both write to every table, so
+    // they are admin-only until source-scoped writes exist.
+    if (groupKey === 'collect' && role === 'admin') {
       children.push(
         { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: actions.updateSchemaNeed },
         { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: actions.openConfirmUpdateAll }
