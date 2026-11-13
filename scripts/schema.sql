@@ -1662,7 +1662,13 @@ CREATE TABLE public.users (
     username character varying(50) NOT NULL,
     password character varying(500) NOT NULL,
     enabled boolean NOT NULL,
-    auth_version integer DEFAULT 0 NOT NULL
+    auth_version integer DEFAULT 0 NOT NULL,
+    display_name character varying(100),
+    email character varying(200),
+    remark character varying(500),
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    last_login_at timestamp without time zone,
+    password_changed_at timestamp without time zone
 );
 
 

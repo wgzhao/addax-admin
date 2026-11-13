@@ -8,9 +8,15 @@ export interface SourceGrant {
 
 export interface AccountUser {
   username: string;
+  displayName?: string | null;
+  email?: string | null;
+  remark?: string | null;
   enabled: boolean;
   authorities: string[];
   grants?: SourceGrant[];
+  createdAt?: string | null;
+  lastLoginAt?: string | null;
+  passwordChangedAt?: string | null;
 }
 
 interface CreateUserPayload {
@@ -18,11 +24,17 @@ interface CreateUserPayload {
   password: string;
   enabled?: boolean;
   authority?: string;
+  displayName?: string;
+  email?: string;
+  remark?: string;
 }
 
 interface UpdateUserPayload {
   password?: string;
   authority?: string;
+  displayName?: string;
+  email?: string;
+  remark?: string;
 }
 
 class UserService {

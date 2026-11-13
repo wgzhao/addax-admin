@@ -1,5 +1,12 @@
 package com.wgzhao.addax.admin.dto;
 
-public record CreateUserDTO(String username, String password, Boolean enabled, String authority)
+public record CreateUserDTO(
+    String username,
+    String password,
+    Boolean enabled,
+    String authority,
+    String displayName,
+    String email,
+    String remark)
 {
 }

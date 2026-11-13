@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.Roles;
 import com.wgzhao.addax.admin.dto.SourceGrantDto;
 import com.wgzhao.addax.admin.dto.SourceGrantInput;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -66,6 +67,9 @@ public class UserSourceGrantService
     {
         if (!userExists(username)) {
             throw new ApiException(404, "账号不存在");
+        }
+        if (!isUserRole(username)) {
+            throw new ApiException(400, "只有 user 角色可以分配采集源授权");
         }
         Map<Integer, AccessLevel> normalized = normalize(inputs);
         if (!normalized.isEmpty()) {
@@ -134,6 +138,25 @@ public class UserSourceGrantService
         catch (IllegalArgumentException e) {
             return AccessLevel.OPERATE;
         }
+    }
+
+    /**
+     * Guest is read-only by definition and admin already has every source; allowing either to
+     * receive grants would make the role meaningless. The effective role (highest authority) is
+     * used, so a legacy admin+user pair still cannot receive grants.
+     */
+    private boolean isUserRole(String username)
+    {
+        List<String> authorities = jdbcTemplate.query(
+            "select authority from public.authorities where username = ?",
+            (rs, rowNum) -> rs.getString("authority"),
+            username);
+        return Roles.USER.equals(Roles.highest(authorities));
+    }
+
+    public void deleteAll(String username)
+    {
+        jdbcTemplate.update("delete from public.user_source_grant where username = ?", username);
     }
 
     private boolean userExists(String username)

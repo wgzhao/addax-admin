@@ -1,7 +1,9 @@
 <template>
   <v-menu offset-y :min-width="0">
     <template #activator="{ props }">
-      <v-btn v-bind="props" flat>{{ authStore.currentUserName }}</v-btn>
+      <v-btn v-bind="props" flat>{{
+        profileDisplayName || authStore.currentUserName
+      }}</v-btn>
     </template>
     <v-list density="compact" nav class="top-nav-menu-list user-nav-menu-list">
       <v-list-item
@@ -79,12 +81,20 @@
             <v-list-item-subtitle>{{ authStore.currentUserName || '-' }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item>
+            <v-list-item-title>姓名</v-list-item-title>
+            <v-list-item-subtitle>{{ profileDisplayName || '-' }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
             <v-list-item-title>角色</v-list-item-title>
             <v-list-item-subtitle>{{ profileRole || '-' }}</v-list-item-subtitle>
           </v-list-item>
           <v-list-item>
             <v-list-item-title>邮箱</v-list-item-title>
-            <v-list-item-subtitle>未配置</v-list-item-subtitle>
+            <v-list-item-subtitle>{{ profileEmail || '未配置' }}</v-list-item-subtitle>
+          </v-list-item>
+          <v-list-item>
+            <v-list-item-title>最后登录</v-list-item-title>
+            <v-list-item-subtitle>{{ formatTime(profileLastLoginAt) }}</v-list-item-subtitle>
           </v-list-item>
         </v-list>
       </v-card-text>
@@ -115,8 +125,16 @@
   const profileDialog = ref(false);
   const versionDialog = ref(false);
   const profileRole = ref('');
+  const profileDisplayName = ref('');
+  const profileEmail = ref('');
+  const profileLastLoginAt = ref<string | null>(null);
   const isAdmin = ref(false);
   const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new';
+
+  const formatTime = (value?: string | null) => {
+    if (!value) return '-';
+    return value.replace('T', ' ').slice(0, 19);
+  };
 
   const normalizeAuthority = (authority?: string) => {
     const value = (authority || '').trim().toLowerCase();
@@ -129,6 +147,9 @@
   const refreshCurrentUserRole = async () => {
     if (!authStore.isLoggedIn) {
       profileRole.value = '';
+      profileDisplayName.value = '';
+      profileEmail.value = '';
+      profileLastLoginAt.value = null;
       isAdmin.value = false;
       return;
     }
@@ -137,9 +158,15 @@
       const me = await userService.me();
       const roles = (me?.authorities || []).map(item => normalizeAuthority(item));
       profileRole.value = roles[0] || '';
+      profileDisplayName.value = me?.displayName || '';
+      profileEmail.value = me?.email || '';
+      profileLastLoginAt.value = me?.lastLoginAt || null;
       isAdmin.value = roles.includes('admin');
     } catch {
       profileRole.value = '';
+      profileDisplayName.value = '';
+      profileEmail.value = '';
+      profileLastLoginAt.value = null;
       isAdmin.value = false;
     }
   };
