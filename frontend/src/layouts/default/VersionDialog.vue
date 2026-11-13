@@ -33,7 +33,7 @@
 
           <div class="version-links">
             <a :href="APP_RELEASES_URL" target="_blank" rel="noopener noreferrer">更新日志</a>
-            <a :href="APP_DOCS_URL" target="_blank" rel="noopener noreferrer">使用文档</a>
+            <a :href="APP_DOCS_URL" target="_blank" rel="noopener noreferrer">安装与部署文档</a>
             <a :href="APP_SUPPORT_URL" target="_blank" rel="noopener noreferrer">联系支持</a>
           </div>
           <div class="version-app-copyright">

@@ -622,7 +622,8 @@
     "title": "账号管理",
     "icon": "mdi-account-group-outline",
     "requiresAuth": true,
-    "navHidden": true,
+    "navGroup": "systemManage",
+    "navOrder": 35,
     "roles": ["admin"]
   }
 }

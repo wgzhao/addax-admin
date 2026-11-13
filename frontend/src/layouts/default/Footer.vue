@@ -1,13 +1,8 @@
 <template>
   <v-footer app height="40" class="app-footer">
     <div class="footer-links">
-      <a :href="APP_DOCS_URL" target="_blank" rel="noopener noreferrer" class="footer-link">
-        文档
-      </a>
+      <router-link to="/help" class="footer-link">帮助中心</router-link>
       <router-link to="/status" class="footer-link">系统状态</router-link>
-      <a :href="APP_SUPPORT_URL" target="_blank" rel="noopener noreferrer" class="footer-link">
-        支持
-      </a>
       <a
         href="https://github.com/wgzhao/addax-admin"
         target="_blank"
@@ -27,7 +22,7 @@
 
 <script setup lang="ts">
   import { computed } from 'vue';
-  import { APP_COMPANY, APP_DOCS_URL, APP_LICENSE, APP_SUPPORT_URL } from '@/config/branding';
+  import { APP_COMPANY, APP_LICENSE } from '@/config/branding';
   import { APP_BUILD_SHA, APP_BUILD_TIME, APP_ENV_LABEL, APP_VERSION } from '@/config/version';
 
   const year = new Date().getFullYear();
@@ -90,7 +85,9 @@
       gap: 10px;
     }
 
-    .footer-meta:not(.footer-meta--version) {
+    /* Why: a 40px strip cannot hold links plus build metadata on phones; the
+       version and environment stay reachable from 账号 → 系统版本 */
+    .footer-meta {
       display: none;
     }
   }

@@ -49,6 +49,12 @@ test('help center renders the manual, supports search, deep links and in-app nav
   await expect(page.getByRole('heading', { name: '快速上手', level: 1 })).toBeVisible();
   await expect(page).toHaveURL(/chapter=usage%2F01-quick-start|chapter=usage\/01-quick-start/);
 
+  // The in-app manual owns usage/ops; install and deployment live only in the external project docs
+  const installLink = page.getByRole('link', { name: '安装与部署' });
+  await expect(installLink).toBeVisible();
+  await expect(installLink).toHaveAttribute('href', /github\.com\/wgzhao\/addax-admin/);
+  await expect(installLink).toHaveAttribute('target', '_blank');
+
   await page
     .locator('.help-sidebar')
     .getByText('目标表结构与字段映射', { exact: true })

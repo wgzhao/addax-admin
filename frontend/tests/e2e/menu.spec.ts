@@ -20,6 +20,7 @@ const menus: MenuCase[] = [
   { title: '字典维护', path: '/dict', group: '系统管理' },
   { title: '日志管理', path: '/logs', group: '系统管理' },
   { title: '安全审计', path: '/audit', group: '系统管理' },
+  { title: '账号管理', path: '/accounts', group: '系统管理' },
 ];
 
 for (const menu of menus) {
