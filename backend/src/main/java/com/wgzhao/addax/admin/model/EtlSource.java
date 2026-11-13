@@ -33,17 +33,6 @@ public class EtlSource
     @Column(name = "id")
     private int id;
 
-    /**
-     * Legacy display label kept for one release so old clients and rolling nodes still agree on the
-     * wire contract. It no longer drives target-database naming, scheduling identity or statistics;
-     * the primary key is the source identity.
-     *
-     * @deprecated use {@link #id} or {@link #name}; scheduled for removal in Phase 2.
-     */
-    @Deprecated
-    @Column(name = "code", length = 10, nullable = false)
-    private String code;
-
     @Column(name = "name", length = 200, nullable = false)
     private String name;
 

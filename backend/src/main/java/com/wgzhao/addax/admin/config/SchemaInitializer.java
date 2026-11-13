@@ -312,6 +312,14 @@ public class SchemaInitializer
         "alter table public.etl_source alter column url type varchar(1000)";
 
     /**
+     * The source code was a display-only second identity; the primary key is the source identity.
+     * It is removed once every node runs a release that no longer selects it. The view selects it,
+     * so the view is dropped around the drop and recreated at the end of the pipeline.
+     */
+    private static final String DROP_SOURCE_CODE_SQL =
+        "alter table public.etl_source drop column if exists code";
+
+    /**
      * Non-JDBC sources can carry longer names than the original JDBC-oriented columns allowed: a MongoDB
      * collection may be up to 120 bytes, and the change-log tables copy the same values.
      */
@@ -712,6 +720,12 @@ public class SchemaInitializer
         {
             statement.execute(ADD_CALENDAR_COLUMN_SQL);
             statement.execute(ADD_SOURCE_CONNECT_CONFIG_SQL);
+            if (exists(connection, "columns", "etl_source", "code"))
+            {
+                statement.execute(EtlTableView.DROP_SQL);
+                statement.execute(DROP_SOURCE_CODE_SQL);
+                log.info("Dropped the legacy etl_source.code column");
+            }
             // PostgreSQL refuses to alter a column type while a view selects it. Drop the view only
             // when the widening actually runs: an unconditional drop forced a view recreation (and a
             // migration log line) on every single startup of a converged database.

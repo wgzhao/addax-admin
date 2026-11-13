@@ -315,7 +315,7 @@
   const sourceOptions = computed(() =>
     sources.value.map(source => ({
       value: source.id,
-      title: `${source.name || source.code} (#${source.id})`,
+      title: `${source.name} (#${source.id})`,
     }))
   );
 

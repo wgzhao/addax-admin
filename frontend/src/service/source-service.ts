@@ -58,11 +58,6 @@ class SourceService {
     return Requests.get(`${this.prefix}/types`) as unknown as Promise<SourceTypeDescriptor[]>;
   }
 
-  // 检查编号是否存在
-  checkCode(code: string): Promise<boolean> {
-    return Requests.get(`${this.prefix}/check-code?code=${code}`) as unknown as Promise<boolean>;
-  }
-
   // 查询采集源下所有数据库
   fetchDatabasesBySource(sourceId: number): Promise<string[]> {
     return Requests.get(`${this.prefix}/${sourceId}/databases`) as unknown as Promise<string[]>;

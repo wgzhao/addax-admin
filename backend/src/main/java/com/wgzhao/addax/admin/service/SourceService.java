@@ -76,17 +76,6 @@ public class SourceService
     }
 
     /**
-     * 检查数据源编号是否存在
-     *
-     * @param code 数据源编号
-     * @return 是否存在
-     */
-    public boolean checkCode(String code)
-    {
-        return etlSourceRepo.existsByCode(code);
-    }
-
-    /**
      * 查询所有数据源
      *
      * @return 数据源列表

@@ -54,11 +54,11 @@ function seed(): number {
     delete from etl_column where tid in (select id from etl_table where source_table like 'failure_e2e_%');
     delete from etl_job where tid in (select id from etl_table where source_table like 'failure_e2e_%');
     delete from etl_table where source_table like 'failure_e2e_%';
-    delete from etl_source where code = 'FX';
+    delete from etl_source where name = 'Failure E2E Source';
     delete from etl_target where code = 'FX_TARGET';
 
-    insert into etl_source (code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar)
-    values ('FX', 'Failure E2E Source', 'jdbc:postgresql://localhost:5432/${dbName}',
+    insert into etl_source (name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar)
+    values ('Failure E2E Source', 'jdbc:postgresql://localhost:5432/${dbName}',
             'failure_user', 'failure-password-must-not-leak', '23:59:00', true, 2, 'POSTGRESQL', 'NATURAL_DAY');
 
     insert into etl_target (code, name, target_type, connect_config, writer_template_key, enabled, is_default, remark)
@@ -76,7 +76,7 @@ function seed(): number {
            'updated_at >= 2026-01-01', 'A', 1, now(), now(), 120,
            s.id, 0, 'failure facts e2e', 'N', '', true, 'insert', null, t.id, now(), now()
     from etl_source s, etl_target t
-    where s.code = 'FX' and t.code = 'FX_TARGET';
+    where s.name = 'Failure E2E Source' and t.code = 'FX_TARGET';
 
     insert into etl_column (tid, column_name, column_id, source_type, data_length, data_precision, data_scale, col_comment, target_type, target_type_full)
     select id, 'id', 1, 'bigint', 8, 19, 0, 'source id', 'BIGINT', 'bigint' from etl_table where source_table = 'failure_e2e_source';

@@ -204,7 +204,6 @@
   const headers = computed<DataTableHeader[]>(() => {
     const base: DataTableHeader[] = [
       { title: 'ID', key: 'id', width: '2%' },
-      { title: '编号', key: 'code', width: '5%' },
       { title: '采集源', key: 'name', minWidth: '5%' },
       { title: '类型', key: 'dbType', width: '6%' },
       { title: '连接串', key: 'url', minWidth: '15%' },
@@ -268,7 +267,6 @@
       cloneData: {
         ...item,
         id: 0,
-        code: '',
       },
     };
     isShow.value = true;

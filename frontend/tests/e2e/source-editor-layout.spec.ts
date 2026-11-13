@@ -14,7 +14,6 @@ const token = [
 
 const source = {
   id: 11,
-  code: 'WG',
   name: '维格数仓',
   url: 'jdbc:postgresql://warehouse.internal:5432/analytics',
   username: 'etl_reader',
@@ -97,14 +96,14 @@ test('source edit dialog keeps a clear hierarchy and actionable state across bre
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/source');
 
-  const row = page.getByRole('row', { name: /WG/ });
+  const row = page.getByRole('row', { name: /维格数仓/ });
   await expect(row).toBeVisible();
   await row.getByRole('button', { name: '编辑', exact: true }).click();
 
   const dialog = page.locator('.v-dialog').filter({ hasText: '编辑采集源' });
   const card = dialog.locator('.add-source-card');
   await expect(card).toBeVisible();
-  await expect(dialog.locator('.source-context__code')).toHaveText('WG');
+  await expect(dialog.locator('.source-context__code')).toHaveText('维格数仓');
   await expect(dialog.locator('.source-context')).toContainText('调度已启用');
   await expect(dialog.locator('.source-context')).toContainText('03:10');
   await expect(dialog.locator('.source-section h3')).toHaveText(['基本信息', '连接信息', '备注']);

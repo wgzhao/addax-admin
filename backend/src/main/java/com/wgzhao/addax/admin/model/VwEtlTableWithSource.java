@@ -47,7 +47,6 @@ public class VwEtlTableWithSource
     private LocalDateTime endTime;
     private Integer sid;
     private Integer duration;
-    private String code;
     private String name;
     private String url;
     private String username;
@@ -77,7 +76,7 @@ public class VwEtlTableWithSource
     private String tblComment;
     // Only the partition column name is searchable, not the whole bag: matching target_options::text made
     // a search for "hdfs" (or a storage format) hit every Hive table.
-    @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , target_options->'hdfs'->>'partName' , code, name))")
+    @Formula("UPPER(concat_ws('|', id, source_db || '.' || source_table , target_db || '.' || target_table , target_options->'hdfs'->>'partName' , name))")
     private String filterColumn;
     private Integer maxConcurrency;
     private String splitPk;

@@ -13,35 +13,34 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 interface Row {
   biz_date: string;
-  code: string | null;
   name: string | null;
   gib: number;
 }
 
 const DAYS = ['2026-11-08', '2026-11-09', '2026-11-10'];
 const SOURCES = [
-  ['A', '源A', 100],
-  ['B', '源B', 90],
-  ['C', '源C', 80],
-  ['D', '源D', 70],
-  ['E', '源E', 60],
-  ['F', '源F', 50],
-  ['G', '源G', 40],
-  ['H', '源H', 30],
-  ['I', '源I', 10],
-  ['J', '源J', 5],
-  ['K', '源K', 3],
-  ['L', '源L', 2],
+  ['源A', 100],
+  ['源B', 90],
+  ['源C', 80],
+  ['源D', 70],
+  ['源E', 60],
+  ['源F', 50],
+  ['源G', 40],
+  ['源H', 30],
+  ['源I', 10],
+  ['源J', 5],
+  ['源K', 3],
+  ['源L', 2],
 ] as const;
 
 function buildRows(): Row[] {
   const rows: Row[] = [];
   // An empty calendar day is represented by a null placeholder; it must not
   // turn into a 未知 source.
-  rows.push({ biz_date: '2026-11-07', code: null, name: null, gib: 0 });
+  rows.push({ biz_date: '2026-11-07', name: null, gib: 0 });
   for (const day of DAYS) {
-    for (const [code, name, gib] of SOURCES) {
-      rows.push({ biz_date: day, code, name, gib });
+    for (const [name, gib] of SOURCES) {
+      rows.push({ biz_date: day, name, gib });
     }
   }
   return rows;

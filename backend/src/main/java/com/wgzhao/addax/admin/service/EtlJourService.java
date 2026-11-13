@@ -54,7 +54,6 @@ public class EtlJourService
                 ObjectNode snapshot = objectMapper.createObjectNode();
                 snapshot.put("sourceDb", table.getSourceDb());
                 snapshot.put("sourceTable", table.getSourceTable());
-                snapshot.put("sourceCode", table.getCode());
                 snapshot.put("sourceName", table.getName());
                 snapshot.put("targetDb", table.getTargetDb());
                 snapshot.put("targetTable", table.getTargetTable());

@@ -9,8 +9,8 @@ const dbName = process.env.E2E_DB_NAME || 'addax_admin_history_e2e';
 const artifactDir = fileURLToPath(new URL('./artifacts', import.meta.url));
 
 const SOURCE_STATES = [
-  { key: 'enabled', code: 'MTE', enabled: true, name: 'Matrix Enabled Source' },
-  { key: 'disabled', code: 'MTD', enabled: false, name: 'Matrix Disabled Source' },
+  { key: 'enabled', enabled: true, name: 'Matrix Enabled Source' },
+  { key: 'disabled', enabled: false, name: 'Matrix Disabled Source' },
 ] as const;
 const TABLE_STATUSES = ['N', 'W', 'R', 'Y', 'E', 'U', 'X'] as const;
 const LIFECYCLES = ['current', 'retired'] as const;
@@ -60,7 +60,7 @@ function seedMatrix(): MatrixCase[] {
                  ${lifecycle === 'retired' ? 'now()' : 'null'},
                  ${lifecycle === 'retired' ? "'admin'" : 'null'}
           from etl_source s, etl_target t
-          where s.code = '${source.code}' and t.code = 'MT_TARGET';
+          where s.name = '${source.name}' and t.code = 'MT_TARGET';
         `);
       }
     }
@@ -83,7 +83,7 @@ function seedMatrix(): MatrixCase[] {
       select id from etl_table where source_table like 'matrix_%'
     );
     delete from etl_table where source_table like 'matrix_%';
-    delete from etl_source where code in ('MTE', 'MTD');
+    delete from etl_source where name in ('Matrix Enabled Source', 'Matrix Disabled Source');
     delete from etl_target where code = 'MT_TARGET';
 
     insert into etl_target (
@@ -95,11 +95,11 @@ function seedMatrix(): MatrixCase[] {
     );
 
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values
-      ('MTE', 'Matrix Enabled Source', 'jdbc:postgresql://localhost:5432/${dbName}',
+      ('Matrix Enabled Source', 'jdbc:postgresql://localhost:5432/${dbName}',
        'matrix', 'matrix-secret', '23:59:00', true, 2, 'POSTGRESQL', 'NATURAL_DAY'),
-      ('MTD', 'Matrix Disabled Source', 'jdbc:postgresql://localhost:5432/${dbName}',
+      ('Matrix Disabled Source', 'jdbc:postgresql://localhost:5432/${dbName}',
        'matrix', 'matrix-secret', '23:59:00', false, 2, 'POSTGRESQL', 'NATURAL_DAY');
 
     ${tables.join('\n')}
@@ -112,7 +112,7 @@ function seedMatrix(): MatrixCase[] {
     from etl_table t
     join etl_source s on s.id = t.sid
     where t.source_table like 'matrix_%'
-    order by s.code, t.retired_at nulls first, t.status;
+    order by s.name, t.retired_at nulls first, t.status;
   `);
 
   const ids = new Map(
@@ -250,7 +250,7 @@ test('collection table state matrix matches lifecycle, source and table boundari
   });
   const sources = await sourcesResponse.json();
   for (const source of SOURCE_STATES) {
-    const sourceId = sources.find((row: { code: string }) => row.code === source.code)?.id;
+    const sourceId = sources.find((row: { name: string }) => row.name === source.name)?.id;
     const sourceResponse = await request.get(
       `/api/v1/tables?page=0&pageSize=100&q=matrix_&scope=CURRENT&sourceId=${sourceId}`,
       { headers: authHeaders(token) }
