@@ -35,23 +35,6 @@
         <v-list-item-title>系统版本</v-list-item-title>
       </v-list-item>
       <v-list-item
-        v-if="isAdmin"
-        class="top-nav-menu-item"
-        prepend-icon="mdi-account-group-outline"
-        slim
-        @click="goAccounts"
-      >
-        <v-list-item-title>账号管理</v-list-item-title>
-      </v-list-item>
-      <v-list-item
-        class="top-nav-menu-item"
-        prepend-icon="mdi-book-open-variant"
-        slim
-        @click="goHelp"
-      >
-        <v-list-item-title>帮助中心</v-list-item-title>
-      </v-list-item>
-      <v-list-item
         class="top-nav-menu-item"
         prepend-icon="mdi-message-text-outline"
         slim
@@ -135,7 +118,6 @@
   const profileDisplayName = ref('');
   const profileEmail = ref('');
   const profileLastLoginAt = ref<string | null>(null);
-  const isAdmin = ref(false);
   const feedbackUrl = 'https://github.com/wgzhao/addax-admin/issues/new';
 
   const formatTime = (value?: string | null) => {
@@ -157,7 +139,6 @@
       profileDisplayName.value = '';
       profileEmail.value = '';
       profileLastLoginAt.value = null;
-      isAdmin.value = false;
       return;
     }
 
@@ -168,13 +149,11 @@
       profileDisplayName.value = me?.displayName || '';
       profileEmail.value = me?.email || '';
       profileLastLoginAt.value = me?.lastLoginAt || null;
-      isAdmin.value = roles.includes('admin');
     } catch {
       profileRole.value = '';
       profileDisplayName.value = '';
       profileEmail.value = '';
       profileLastLoginAt.value = null;
-      isAdmin.value = false;
     }
   };
 
@@ -195,14 +174,6 @@
 
   const resetThemeToSystem = () => {
     resetToSystemTheme();
-  };
-
-  const goHelp = () => {
-    router.push('/help');
-  };
-
-  const goAccounts = () => {
-    router.push('/accounts');
   };
 
   const openFeedback = () => {

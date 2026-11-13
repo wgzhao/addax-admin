@@ -17,9 +17,9 @@ test.describe('brand shell', () => {
     const favicon = page.locator('link[rel="icon"]');
     await expect(favicon).toHaveAttribute('href', '/favicon.svg');
 
-    await expect(page.locator('.footer-link', { hasText: '文档' })).toBeVisible();
+    await expect(page.locator('.footer-link', { hasText: '帮助中心' })).toBeVisible();
     await expect(page.locator('.footer-link', { hasText: '系统状态' })).toBeVisible();
-    await expect(page.locator('.footer-link', { hasText: '支持' })).toBeVisible();
+    await expect(page.locator('.footer-link', { hasText: 'GitHub' })).toBeVisible();
 
     fs.mkdirSync(artifactDir, { recursive: true });
     await page.locator('.topbar-bar').screenshot({
@@ -40,6 +40,13 @@ test.describe('brand shell', () => {
       path.join(artifactDir, 'brand-shell.json'),
       JSON.stringify(artifact, null, 2)
     );
+  });
+
+  test('footer help link opens the in-app manual', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('.footer-link', { hasText: '帮助中心' }).click();
+    await expect(page).toHaveURL(/\/help$/);
+    await expect(page.getByRole('heading', { name: '帮助中心' })).toBeVisible();
   });
 
   test('shows build and environment in the version dialog', async ({ page }) => {

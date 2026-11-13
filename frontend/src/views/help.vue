@@ -12,6 +12,7 @@
     type ManualSearchResult,
   } from '@/help/manual';
   import { renderMarkdown } from '@/help/markdown';
+  import { APP_DOCS_URL } from '@/config/branding';
 
   const route = useRoute();
   const router = useRouter();
@@ -131,6 +132,16 @@
 <template>
   <div class="page-shell help-page">
     <PageHeader title="帮助中心" subtitle="使用与运维手册；安装部署请参考项目的安装手册。">
+      <v-btn
+        size="small"
+        variant="text"
+        :href="APP_DOCS_URL"
+        target="_blank"
+        rel="noopener noreferrer"
+        append-icon="mdi-open-in-new"
+      >
+        安装与部署
+      </v-btn>
       <v-chip size="small" variant="tonal">v{{ appVersion }}</v-chip>
     </PageHeader>
 
