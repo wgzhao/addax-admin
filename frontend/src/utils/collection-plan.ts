@@ -1,11 +1,7 @@
 import type { CollectionPlanReviewRow } from '@/types/database';
 
 export type ReviewRowIssue =
-  | 'PLAN_BLOCKED'
-  | 'EMPTY_TARGET'
-  | 'DUPLICATE_TARGET'
-  | 'MISSING_TARGET'
-  | null;
+  'PLAN_BLOCKED' | 'EMPTY_TARGET' | 'DUPLICATE_TARGET' | 'MISSING_TARGET' | null;
 
 // Why: the wizard and the review list must agree on what blocks a commit,
 // otherwise a row can look green while the confirm button stays disabled.

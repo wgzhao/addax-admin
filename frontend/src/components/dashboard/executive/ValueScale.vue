@@ -3,7 +3,9 @@
     <div class="value-grid">
       <div class="value-item">
         <span class="value-label">累计采集量</span>
-        <span class="value-number">{{ totalData.value }}<small>{{ totalData.unit }}</small></span>
+        <span class="value-number"
+          >{{ totalData.value }}<small>{{ totalData.unit }}</small></span
+        >
       </div>
       <div class="value-item">
         <span class="value-label">累计采集天数</span>
@@ -11,16 +13,16 @@
       </div>
       <div class="value-item">
         <span class="value-label">采集源 / 采集表</span>
-        <span class="value-number">{{ sourceCount }}<small>源</small> · {{ coverage }}<small>表</small></span>
+        <span class="value-number"
+          >{{ sourceCount }}<small>源</small> · {{ coverage }}<small>表</small></span
+        >
       </div>
       <div class="value-item">
         <span class="value-label">今日采集健康度</span>
         <span class="value-number">{{ healthRate.toFixed(1) }}<small>%</small></span>
       </div>
     </div>
-    <template #footer>
-      累计值来自采集统计；采集表覆盖率为有效表 / 全部表。
-    </template>
+    <template #footer> 累计值来自采集统计；采集表覆盖率为有效表 / 全部表。 </template>
   </SectionCard>
 </template>
 

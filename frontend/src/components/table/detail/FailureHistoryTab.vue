@@ -33,7 +33,13 @@
         class="failure-history__switch"
       />
       <v-spacer />
-      <v-btn variant="text" size="small" prepend-icon="mdi-refresh" :loading="loading" @click="load">
+      <v-btn
+        variant="text"
+        size="small"
+        prepend-icon="mdi-refresh"
+        :loading="loading"
+        @click="load"
+      >
         刷新
       </v-btn>
     </div>
@@ -183,7 +189,6 @@
       if (active) load();
     }
   );
-
 </script>
 
 <style scoped>

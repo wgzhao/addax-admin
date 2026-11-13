@@ -485,11 +485,8 @@
 
 <style scoped>
   .audit-page {
-    background: radial-gradient(
-        circle at 95% 0%,
-        rgba(var(--v-theme-warning), 0.08),
-        transparent 28%
-      ),
+    background:
+      radial-gradient(circle at 95% 0%, rgba(var(--v-theme-warning), 0.08), transparent 28%),
       rgb(var(--v-theme-surface));
   }
 

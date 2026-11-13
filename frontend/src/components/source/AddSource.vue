@@ -256,7 +256,8 @@
                     hide-details="auto"
                   />
                   <p class="field-hint">
-                    支持 insecureSkipVerify、connectTimeoutMs、readTimeoutMs、scroll、batchSize、searchType、multiThread、compression、discovery
+                    支持
+                    insecureSkipVerify、connectTimeoutMs、readTimeoutMs、scroll、batchSize、searchType、multiThread、compression、discovery
                   </p>
                 </div>
               </template>
@@ -772,7 +773,8 @@
   .source-dialog-head {
     position: relative;
     padding: 18px 20px 16px;
-    background: linear-gradient(118deg, rgba(var(--v-theme-primary), 0.12), transparent 48%),
+    background:
+      linear-gradient(118deg, rgba(var(--v-theme-primary), 0.12), transparent 48%),
       rgba(var(--v-theme-surface-variant), 0.34);
   }
 
@@ -851,7 +853,8 @@
     padding: 14px;
     border: 1px solid var(--ds-border-subtle);
     border-radius: var(--ds-radius-md);
-    background: linear-gradient(180deg, rgba(var(--v-theme-primary), 0.025), transparent 42%),
+    background:
+      linear-gradient(180deg, rgba(var(--v-theme-primary), 0.025), transparent 42%),
       rgba(var(--v-theme-surface-variant), 0.3);
     animation: source-section-enter 0.26s ease-out both;
   }

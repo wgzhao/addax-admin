@@ -48,10 +48,18 @@
       percent: pct(count, meta.sampleSize),
     }));
     if (meta.nullCount > 0) {
-      result.push({ label: 'null', count: meta.nullCount, percent: pct(meta.nullCount, meta.sampleSize) });
+      result.push({
+        label: 'null',
+        count: meta.nullCount,
+        percent: pct(meta.nullCount, meta.sampleSize),
+      });
     }
     if (meta.missing > 0) {
-      result.push({ label: '缺失', count: meta.missing, percent: pct(meta.missing, meta.sampleSize) });
+      result.push({
+        label: '缺失',
+        count: meta.missing,
+        percent: pct(meta.missing, meta.sampleSize),
+      });
     }
     return result;
   });

@@ -74,7 +74,8 @@
         </article>
       </div>
       <p class="mongo-note">
-        不支持 <code>$where</code>、<code>$function</code>、<code>$accumulator</code>；增量字段建议建索引。
+        不支持
+        <code>$where</code>、<code>$function</code>、<code>$accumulator</code>；增量字段建议建索引。
       </p>
     </section>
 
@@ -136,7 +137,10 @@
         </article>
       </div>
       <p class="mongo-note">
-        不支持 <code>script</code>、<code>script_fields</code>、<code>runtime_mappings</code>；增量字段建议使用数值或 keyword 类型。
+        不支持
+        <code>script</code
+        >、<code>script_fields</code>、<code>runtime_mappings</code>；增量字段建议使用数值或 keyword
+        类型。
       </p>
     </section>
 

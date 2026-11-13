@@ -195,8 +195,8 @@
   }
 
   .mono-data {
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
-      monospace;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
     font-variant-numeric: tabular-nums;
   }
 

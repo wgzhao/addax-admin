@@ -13,8 +13,7 @@ export const valueMarkerPlugin: Plugin = {
 
   afterDatasetsDraw(chart: Chart) {
     const options = chart.options.plugins as
-      | { valueMarker?: { markers?: ValueMarker[] } }
-      | undefined;
+      { valueMarker?: { markers?: ValueMarker[] } } | undefined;
     const markers = options?.valueMarker?.markers;
     if (!markers || markers.length === 0) return;
 

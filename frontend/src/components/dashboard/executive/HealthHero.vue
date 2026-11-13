@@ -17,12 +17,18 @@
       </div>
       <div class="health-message">{{ status.message }}</div>
       <div class="health-counts">
-        <span><i class="dot dot--done" />已采集 <b>{{ totals.done }}</b></span>
-        <span><i class="dot dot--running" />采集中 <b>{{ totals.running }}</b></span>
+        <span
+          ><i class="dot dot--done" />已采集 <b>{{ totals.done }}</b></span
+        >
+        <span
+          ><i class="dot dot--running" />采集中 <b>{{ totals.running }}</b></span
+        >
         <span :class="{ 'health-counts--alert': totals.failed > 0 }">
           <i class="dot dot--failed" />失败 <b>{{ totals.failed }}</b>
         </span>
-        <span><i class="dot dot--pending" />未开始 <b>{{ totals.pending }}</b></span>
+        <span
+          ><i class="dot dot--pending" />未开始 <b>{{ totals.pending }}</b></span
+        >
         <span class="health-total">共 {{ totals.total }} 张表</span>
       </div>
     </div>
@@ -35,7 +41,10 @@
       <div class="health-track">
         <span class="seg seg--done" :style="{ flexGrow: Math.max(totals.done, 0) }" />
         <span class="seg seg--failed" :style="{ flexGrow: Math.max(totals.failed, 0) }" />
-        <span class="seg seg--rest" :style="{ flexGrow: Math.max(totals.total - totals.done - totals.failed, 0) }" />
+        <span
+          class="seg seg--rest"
+          :style="{ flexGrow: Math.max(totals.total - totals.done - totals.failed, 0) }"
+        />
       </div>
       <div class="health-meter-foot">
         <span>成功率 {{ healthRate.toFixed(1) }}%</span>

@@ -1,9 +1,6 @@
 <template>
   <div class="page-shell failures-page">
-    <PageHeader
-      title="错误中心"
-      subtitle="跨采集表查看失败事实、重复错误与历史清理。"
-    >
+    <PageHeader title="错误中心" subtitle="跨采集表查看失败事实、重复错误与历史清理。">
       <v-btn
         v-if="authStore.isAdmin"
         variant="tonal"
@@ -123,7 +120,13 @@
           <v-chip v-if="filters.tid" closable size="small" variant="tonal" @click:close="clearTid">
             采集表 #{{ filters.tid }}
           </v-chip>
-          <v-chip v-if="filters.fingerprint" closable size="small" variant="tonal" @click:close="clearFingerprint">
+          <v-chip
+            v-if="filters.fingerprint"
+            closable
+            size="small"
+            variant="tonal"
+            @click:close="clearFingerprint"
+          >
             错误指纹 {{ filters.fingerprint.slice(0, 10) }}…
           </v-chip>
         </div>
@@ -325,9 +328,7 @@
     category: null as string | null,
     fingerprint: null as string | null,
     tid:
-      route.query.tid && Number.isFinite(Number(route.query.tid))
-        ? Number(route.query.tid)
-        : null,
+      route.query.tid && Number.isFinite(Number(route.query.tid)) ? Number(route.query.tid) : null,
     q: '',
     from: defaultFrom(),
     to: today(),

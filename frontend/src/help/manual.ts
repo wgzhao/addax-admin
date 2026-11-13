@@ -122,9 +122,7 @@ function chapterFrom(path: string, raw: string): ManualChapter | null {
 export const chapters: ManualChapter[] = Object.entries(modules)
   .map(([path, raw]) => chapterFrom(path, raw))
   .filter((chapter): chapter is ManualChapter => chapter !== null)
-  .sort(
-    (a, b) => GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || a.order - b.order
-  );
+  .sort((a, b) => GROUP_ORDER[a.group] - GROUP_ORDER[b.group] || a.order - b.order);
 
 export const chapterMap = new Map(chapters.map(chapter => [chapter.slug, chapter]));
 
@@ -136,8 +134,9 @@ export const manualGroups: ManualGroup[] = (['usage', 'operations'] as const)
   }))
   .filter(group => group.chapters.length > 0);
 
-export const defaultChapterSlug =
-  chapterMap.has('usage/01-quick-start') ? 'usage/01-quick-start' : chapters[0]?.slug || '';
+export const defaultChapterSlug = chapterMap.has('usage/01-quick-start')
+  ? 'usage/01-quick-start'
+  : chapters[0]?.slug || '';
 
 export interface ManualSearchResult {
   slug: string;

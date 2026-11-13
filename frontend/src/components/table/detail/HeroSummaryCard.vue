@@ -127,8 +127,8 @@
 
   .hero-route__value {
     margin-top: 8px;
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
-      monospace;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
     font-size: 0.96rem;
     font-weight: 600;
     color: rgb(var(--v-theme-primary));
@@ -145,7 +145,8 @@
     padding: 14px 16px;
     border-radius: 16px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background: linear-gradient(
+    background:
+      linear-gradient(
         180deg,
         rgba(var(--v-theme-primary), 0.055),
         rgba(var(--v-theme-primary), 0.01)

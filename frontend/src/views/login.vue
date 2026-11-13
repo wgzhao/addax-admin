@@ -110,7 +110,13 @@
   import { useAuthStore } from '@/stores/auth';
   import { authService } from '@/service/auth-service';
   import { notify } from '@/stores/notifier';
-  import { APP_DOCS_URL, APP_LOGO, APP_NAME, APP_SUBTITLE, APP_SUPPORT_URL } from '@/config/branding';
+  import {
+    APP_DOCS_URL,
+    APP_LOGO,
+    APP_NAME,
+    APP_SUBTITLE,
+    APP_SUPPORT_URL,
+  } from '@/config/branding';
   import { APP_ENV_LABEL, APP_VERSION } from '@/config/version';
 
   const form = ref(false);

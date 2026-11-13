@@ -65,7 +65,10 @@ class FailureService {
   }
 
   cleanup(payload: FailureCleanupRequest): Promise<FailureCleanupResult> {
-    return Requests.post(`${this.prefix}/cleanup`, payload) as unknown as Promise<FailureCleanupResult>;
+    return Requests.post(
+      `${this.prefix}/cleanup`,
+      payload
+    ) as unknown as Promise<FailureCleanupResult>;
   }
 }
 

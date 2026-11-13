@@ -3,19 +3,34 @@
     <v-alert v-if="capabilityLoaded && !supported" type="warning" variant="tonal" class="mb-4">
       {{ progress?.reason || '该表不支持补数' }}
     </v-alert>
-    <v-alert v-else-if="progress?.sourceEnabled === false" type="warning" variant="tonal" class="mb-4">
+    <v-alert
+      v-else-if="progress?.sourceEnabled === false"
+      type="warning"
+      variant="tonal"
+      class="mb-4"
+    >
       采集源已停用，仍可手工补数；恢复采集源后才会参与自动调度。
     </v-alert>
     <v-alert v-else-if="progress?.tableStatus === 'X'" type="warning" variant="tonal" class="mb-4">
       该采集表已停采，仍可手工补数；恢复后才会参与自动调度。
     </v-alert>
 
-    <v-alert v-if="submitResult" :type="submitResult.totalEnqueued > 0 ? 'success' : 'warning'" variant="tonal" class="mb-4">
+    <v-alert
+      v-if="submitResult"
+      :type="submitResult.totalEnqueued > 0 ? 'success' : 'warning'"
+      variant="tonal"
+      class="mb-4"
+    >
       已入队 {{ submitResult.totalEnqueued }} 个任务
       <template v-if="submitResult.skipped > 0">，跳过 {{ submitResult.skipped }} 个</template>。
       <span v-if="skippedDates.length"> 跳过日期：{{ skippedDates.join('、') }}。</span>
       <span v-if="submitResult.details.some(d => d.skipped)">
-        被跳过的表：{{ submitResult.details.filter(d => d.skipped).map(d => `${d.table}（${d.reason}）`).join('；') }}
+        被跳过的表：{{
+          submitResult.details
+            .filter(d => d.skipped)
+            .map(d => `${d.table}（${d.reason}）`)
+            .join('；')
+        }}
       </span>
     </v-alert>
 
@@ -28,8 +43,9 @@
       </v-card-title>
       <v-card-text>
         <v-alert type="info" variant="tonal" density="comfortable" class="mb-4">
-          按所选日期逐日回补：目标日期作为 <code>biz_*</code>，<code>curr_*</code> 使用该次补数生成任务时的真实时间，
-          并随 <code>biz_*</code> 一起冻结进任务文件；补数按系统模板重新生成，不包含手工编辑的作业内容。
+          按所选日期逐日回补：目标日期作为 <code>biz_*</code>，<code>curr_*</code>
+          使用该次补数生成任务时的真实时间， 并随
+          <code>biz_*</code> 一起冻结进任务文件；补数按系统模板重新生成，不包含手工编辑的作业内容。
         </v-alert>
 
         <div class="date-picker-layout">
@@ -48,9 +64,7 @@
           <div class="date-picker-side">
             <p class="picker-hint">
               点选一天作为起点，再点一天作为终点；只点一天可直接添加为单日。可以分多次添加不连续的区间。
-              <template v-if="maxDate">
-                可选日期不晚于业务日期 {{ maxDate }}。
-              </template>
+              <template v-if="maxDate"> 可选日期不晚于业务日期 {{ maxDate }}。 </template>
             </p>
             <div class="picker-actions">
               <v-btn
@@ -61,7 +75,11 @@
               >
                 添加
               </v-btn>
-              <v-btn variant="text" :disabled="pendingRange.length === 0" @click="pendingRange = []">
+              <v-btn
+                variant="text"
+                :disabled="pendingRange.length === 0"
+                @click="pendingRange = []"
+              >
                 清空选择
               </v-btn>
             </div>
@@ -130,7 +148,13 @@
           <span v-if="progress.submitter">提交人：{{ progress.submitter }}</span>
           <span v-if="progress.submittedAt">提交时间：{{ formatTime(progress.submittedAt) }}</span>
           <v-spacer />
-          <v-btn size="small" variant="text" prepend-icon="mdi-refresh" :loading="loading" @click="loadProgress(currentBatchId || undefined)">
+          <v-btn
+            size="small"
+            variant="text"
+            prepend-icon="mdi-refresh"
+            :loading="loading"
+            @click="loadProgress(currentBatchId || undefined)"
+          >
             刷新
           </v-btn>
         </div>
@@ -230,10 +254,7 @@
   import dayjs from 'dayjs';
   import { notify } from '@/stores/notifier';
   import taskService from '@/service/task-service';
-  import type {
-    FillbackProgress,
-    FillbackResult,
-  } from '@/service/task-service';
+  import type { FillbackProgress, FillbackResult } from '@/service/task-service';
 
   const MAX_TASKS = 20;
   const POLL_INTERVAL = 3000;
@@ -244,8 +265,7 @@
   });
   const route = useRoute();
   const tid = computed(() => Number((route.params as Record<string, string>).tid));
-  const routeBatchId =
-    typeof route.query.batchId === 'string' ? route.query.batchId : undefined;
+  const routeBatchId = typeof route.query.batchId === 'string' ? route.query.batchId : undefined;
 
   const pendingRange = ref<unknown[]>([]);
   const selectedDates = ref<string[]>([]);
@@ -374,7 +394,11 @@
     const end = dayjs(picked[picked.length - 1]);
     if (!start.isValid() || !end.isValid()) return [];
     const dates: string[] = [];
-    for (let current = start; current.isBefore(end) || current.isSame(end); current = current.add(1, 'day')) {
+    for (
+      let current = start;
+      current.isBefore(end) || current.isSame(end);
+      current = current.add(1, 'day')
+    ) {
       dates.push(current.format('YYYY-MM-DD'));
     }
     return dates;

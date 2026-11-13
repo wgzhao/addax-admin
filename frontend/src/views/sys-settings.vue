@@ -843,7 +843,9 @@
     border-radius: var(--ds-radius-sm);
     color: inherit;
     text-decoration: none;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease;
   }
 
   .rail-link:hover {
@@ -1244,7 +1246,9 @@
     background: color-mix(in srgb, var(--ds-surface-raised) 88%, transparent);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
     backdrop-filter: blur(10px);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .save-dock--dirty {

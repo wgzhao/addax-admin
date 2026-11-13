@@ -150,8 +150,8 @@
                       channel.lastTestOk === true
                         ? 'success'
                         : channel.lastTestOk === false
-                        ? 'error'
-                        : undefined
+                          ? 'error'
+                          : undefined
                     "
                     variant="tonal"
                   >
@@ -159,8 +159,8 @@
                       channel.lastTestOk === true
                         ? '成功'
                         : channel.lastTestOk === false
-                        ? '失败'
-                        : '未测试'
+                          ? '失败'
+                          : '未测试'
                     }}
                   </v-chip>
                 </div>
@@ -1577,7 +1577,7 @@
   };
 
   const defaultRate = (type: AlertChannelType) =>
-    ({ WECOM: 20, DINGTALK: 20, FEISHU: 100, WEBHOOK: 60, EMAIL: 30 }[type]);
+    ({ WECOM: 20, DINGTALK: 20, FEISHU: 100, WEBHOOK: 60, EMAIL: 30 })[type];
 
   const channelForm = reactive({
     name: '',

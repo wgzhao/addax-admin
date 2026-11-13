@@ -34,9 +34,7 @@
   import { useChartData } from '@/composables/useChartData';
   import { dashboardService } from '@/service/dashboard-service';
 
-  const { raw, state, error } = useChartData(() =>
-    dashboardService.fetchSourceContribution30d()
-  );
+  const { raw, state, error } = useChartData(() => dashboardService.fetchSourceContribution30d());
 
   const items = computed(() => {
     const map = new Map<string, { key: string; name: string; gib: number }>();
