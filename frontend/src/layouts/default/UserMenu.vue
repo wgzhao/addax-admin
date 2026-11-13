@@ -1,7 +1,9 @@
 <template>
   <v-menu offset-y :min-width="0">
     <template #activator="{ props }">
-      <v-btn v-bind="props" flat>{{
+      <!-- Why: share the topbar nav button metrics; without top-nav-btn the
+           global button reset inherits body weight (400) instead of 500 -->
+      <v-btn v-bind="props" class="top-nav-btn" variant="text">{{
         profileDisplayName || authStore.currentUserName
       }}</v-btn>
     </template>
@@ -65,7 +67,12 @@
       >
         <v-list-item-title>修改密码</v-list-item-title>
       </v-list-item>
-      <v-list-item class="top-nav-menu-item" prepend-icon="mdi-logout" slim @click="$emit('logout')">
+      <v-list-item
+        class="top-nav-menu-item"
+        prepend-icon="mdi-logout"
+        slim
+        @click="$emit('logout')"
+      >
         <v-list-item-title>注销</v-list-item-title>
       </v-list-item>
     </v-list>

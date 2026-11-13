@@ -64,9 +64,11 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <NotificationMenu v-if="authStore.isLoggedIn" />
-      <UserMenu v-if="authStore.currentUserName" @logout="logout" />
-      <v-btn v-if="!authStore.isLoggedIn" @click="goLogin">登录</v-btn>
+    </template>
+    <!-- Why: Vuetify pins the append slot right (margin-inline: auto 4px), so
+         business nav stays left while utilities/account sit in the usual
+         right-hand order: search, theme, notifications, account -->
+    <template #append>
       <v-btn icon title="全局搜索 (Ctrl+K)" aria-label="全局搜索" @click="toggleCommandPalette">
         <v-icon>mdi-magnify</v-icon>
       </v-btn>
@@ -78,6 +80,11 @@
         @click="toggleThemeWithLog"
       >
         <v-icon>mdi-theme-light-dark</v-icon>
+      </v-btn>
+      <NotificationMenu v-if="authStore.isLoggedIn" />
+      <UserMenu v-if="authStore.currentUserName" @logout="logout" />
+      <v-btn v-if="!authStore.isLoggedIn" class="top-nav-btn" variant="text" @click="goLogin">
+        登录
       </v-btn>
     </template>
   </v-app-bar>
@@ -193,6 +200,12 @@
      brand mark needs the same optical inset as the page content. */
   .topbar-bar :deep(.v-toolbar__content) {
     padding-inline: 20px;
+  }
+
+  /* Why: the append slot adds its own 4px end margin; drop it so the right
+     cluster lines up with the same 20px inset as the brand on the left */
+  .topbar-bar :deep(.v-toolbar__append) {
+    margin-inline-end: 0;
   }
 
   @media (max-width: 760px) {
