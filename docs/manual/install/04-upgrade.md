@@ -60,6 +60,48 @@ yarn install
 yarn build
 ```
 
+## v4.5.0 升级说明
+
+### 数据库变更
+
+首次启动会执行一次幂等迁移，自动创建或补齐以下对象，无需手工执行 SQL：
+
+- 新建 `alert_channel`、`alert_rule`、`alert_event`、`alert_delivery`、`alert_silence`；
+- 新建 `user_source_grant`；
+- `users` 增加 `auth_version`、`display_name`、`email`、`remark`、`created_at`、`last_login_at`、`password_changed_at`；
+- `etl_source` 增加 `connect_config`，`url` 放宽到 1000；
+- `etl_column` 增加 `source_meta`，字段映射索引改为大小写敏感；
+- `etl_execution` 增加 `source_id`，`etl_table` 的标识字段放宽。
+
+迁移失败会中止启动，处理方式与下方「回滚」一致。
+
+### 告警配置
+
+`WECOM_ROBOT_KEY` 和 `alert.wechat.*` 不再读取，外部告警统一在「系统管理 → 告警配置」维护：
+
+1. 升级前设置 `ALERT_SECRET_KEY`，用于加密通道中的 Webhook、签名密钥和 SMTP 密码；未设置时会从
+   `JWT_SECRET` 派生并在日志中告警。
+2. 升级后新增通道、测试发送成功后再启用，并按事件类型配置规则。
+3. 未启用任何通道时事件记录为 `SKIPPED_NO_CHANNEL`，不会回退到环境变量。
+
+密钥变更后已保存的通道配置无法解密，需要重新填写。
+
+### 账号与权限
+
+- 角色固定为 `admin`、`user`、`guest`；`guest` 是登录后的只读角色，不是匿名访问。
+- 升级后非管理员账号仍为只读，需要管理员在「账号管理 → 授权」中为 `user` 账号逐个采集源授予
+  「可操作」（`OPERATE`）。`admin` 和 `guest` 不接受授权。
+- `user` 只能修改、执行和补数被授权的采集源；`guest` 不能查看采集日志和作业内容。
+- 角色变更、停用账号和修改密码会提升 `auth_version`，旧 JWT 在下一次请求时立即失效。
+- 详见 [账号与权限](../usage/13-access-control.md)。
+
+### 采集源标识与日期变量
+
+- 调度任务 id 改为 `source-<id>`，源级统计按 `sid` 分组；`etl_source.code` 保留为兼容字段，
+  不再参与调度和统计。
+- `curr_*` 变量改为作业生成时冻结，与 `biz_*` 一样写入作业 JSON。历史模板中的占位符会在分发时
+  兜底解析，下一次切日刷新后持久化为具体值；依赖每次运行取当前时间的作业需要调整。
+
 ## v4.2.0 及之后的 `target_options` 迁移
 
 从 v4.2.0 升级时无需手工改表。服务启动会自动执行一次幂等迁移：
