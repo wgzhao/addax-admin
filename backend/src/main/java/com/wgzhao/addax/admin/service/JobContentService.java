@@ -125,22 +125,29 @@ public class JobContentService
         }
         log.info("准备更新表 {}.{}({}) 的采集任务模板", etlTable.getTargetDb(), etlTable.getTargetTable(), etlTable.getId());
         EtlJour etlJour = jourService.addJour(etlTable.getId(), JourKind.ADDAX_JOB, null);
+        try {
+            Map<String, String> dateValues = configService.getBizDateValues();
+            Map<String, String> values = new HashMap<>();
+            values.put("reader", buildReaderJob(etlTable, dateValues, null));
+            values.put("writer", targetAdapterRegistry.resolve(etlTable).buildWriterJob(etlTable));
 
-        Map<String, String> dateValues = configService.getBizDateValues();
-        Map<String, String> values = new HashMap<>();
-        values.put("reader", buildReaderJob(etlTable, dateValues, null));
-        values.put("writer", targetAdapterRegistry.resolve(etlTable).buildWriterJob(etlTable));
+            String jobTemplate = resolveJobTemplate(etlTable);
+            StringSubstitutor substitutor = new StringSubstitutor(values);
+            String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
+            job = substituteDateVariables(job, dateValues, etlTable.getId());
 
-        String jobTemplate = resolveJobTemplate(etlTable);
-        StringSubstitutor substitutor = new StringSubstitutor(values);
-        String job = mergePluginConfigIntoJob(substitutor.replace(jobTemplate), etlTable);
-        job = substituteDateVariables(job, dateValues, etlTable.getId());
-
-        EtlJob etlJob = new EtlJob(etlTable.getId(), job);
-        jobRepo.save(etlJob);
-        jourService.successJour(etlJour);
-        log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
-        return TaskResultDto.success("更新采集任务模板成功", 0);
+            EtlJob etlJob = new EtlJob(etlTable.getId(), job);
+            jobRepo.save(etlJob);
+            jourService.successJour(etlJour);
+            log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
+            return TaskResultDto.success("更新采集任务模板成功", 0);
+        }
+        catch (RuntimeException e) {
+            // Previously an exception here left the journal row looking successful and the table
+            // in a failed state with no evidence at all.
+            jourService.failJour(etlJour, e.getMessage() == null ? "生成采集任务模板失败" : e.getMessage());
+            throw e;
+        }
     }
 
     /**

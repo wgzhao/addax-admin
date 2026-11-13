@@ -282,26 +282,26 @@
                   <span>点击中止当前运行任务</span>
                 </v-tooltip>
               </template>
-              <template v-if="item.status === 'U' || item.status === 'E'">
-                <v-menu open-on-click :close-on-content-click="false" min-width="220" offset-y>
+              <template
+                v-if="
+                  authStore.canOperateSource(item.sid) &&
+                  (item.status === 'U' || item.status === 'E')
+                "
+              >
+                <v-tooltip location="top">
                   <template #activator="{ props }">
                     <v-icon
+                      v-bind="props"
                       size="16"
                       color="warning"
                       class="ml-1 align-middle cursor-pointer"
-                      v-bind="props"
-                      @click.stop="fetchErrorMsg(item.id)"
+                      @click.stop="openFailure(item.id)"
                     >
                       mdi-alert-circle-outline
                     </v-icon>
                   </template>
-                  <div class="ds-error-popover">
-                    <span v-if="errorMsgMap[item.id] !== undefined">
-                      {{ errorMsgMap[item.id] || '无详细错误信息' }}
-                    </span>
-                    <span v-else>加载中...</span>
-                  </div>
-                </v-menu>
+                  <span>查看最近失败详情与历史</span>
+                </v-tooltip>
               </template>
             </template>
 
@@ -460,6 +460,8 @@
     confirm-text="中止任务"
     @confirm="runKill"
   />
+
+  <FailureDrawer v-model="failureDrawerOpen" :tid="failureTid" />
 </template>
 
 <script setup lang="ts">
@@ -468,6 +470,7 @@
   import EmptyState from '@/components/EmptyState.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
+  import FailureDrawer from '@/components/failures/FailureDrawer.vue';
   import StatusChip from '@/components/common/StatusChip.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
@@ -679,19 +682,12 @@
     downloadCsv(`tables-page-${currentPage.value}`, buildCsv(csvHeaders, rows));
   }
 
-  const errorMsgMap = ref<Record<number, string>>({});
+  const failureDrawerOpen = ref(false);
+  const failureTid = ref<number | null>(null);
 
-  function fetchErrorMsg(tid: number) {
-    errorMsgMap.value[tid] = '';
-    taskService
-      .getLastError(tid)
-      .then(res => {
-        errorMsgMap.value[tid] = res || '无详细错误信息';
-      })
-      .catch(err => {
-        const msg = err instanceof Error ? err.message : String(err);
-        errorMsgMap.value[tid] = '获取错误信息失败: ' + msg;
-      });
+  function openFailure(tid: number) {
+    failureTid.value = tid;
+    failureDrawerOpen.value = true;
   }
 
   const dialogMaxWidth = computed<number | undefined>(() => {

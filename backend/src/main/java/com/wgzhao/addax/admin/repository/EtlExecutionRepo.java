@@ -15,4 +15,10 @@ public interface EtlExecutionRepo
     List<EtlExecution> findTop15ByTidOrderByStartedAtDescIdDesc(long tid);
 
     Optional<EtlExecution> findTop1ByTidOrderByStartedAtDescIdDesc(long tid);
+
+    /**
+     * Used to tell "this table never failed" apart from "its failure facts were purged": if a failed
+     * execution still exists but no failure fact does, the facts must have been cleaned.
+     */
+    boolean existsByTidAndStatus(long tid, String status);
 }

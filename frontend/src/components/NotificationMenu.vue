@@ -88,9 +88,16 @@
             </div>
           </template>
           <v-list-item-title class="notification-item-title">
-            {{ item.title || '系统通知' }}
+            <span class="notification-item-title-text">{{ item.title || '系统通知' }}</span>
+            <span v-if="relativeTime(item.createdAt)" class="notification-item-time">
+              {{ relativeTime(item.createdAt) }}
+            </span>
           </v-list-item-title>
-          <v-list-item-subtitle v-if="item.content" class="notification-item-content">
+          <v-list-item-subtitle
+            v-if="item.content"
+            class="notification-item-content"
+            :title="item.content"
+          >
             {{ item.content }}
           </v-list-item-subtitle>
           <template #append>
@@ -173,11 +180,30 @@
     }
   };
 
+  const relativeTime = (value?: string): string => {
+    if (!value) return '';
+    const ts = new Date(value).getTime();
+    if (Number.isNaN(ts)) return '';
+    const diff = Date.now() - ts;
+    if (diff < 60_000) return '刚刚';
+    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`;
+    if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)} 天前`;
+    return new Date(ts).toLocaleDateString();
+  };
+
+  // Collection notifications carry the table id in refId ("tid"), so the bell can lead
+  // straight to the run log that holds the full stack trace behind the short reason.
   const targetFor = (item: UserNotification): string | null => {
     if (!item.refId) return null;
     const type = (item.refType || '').toUpperCase();
-    if (type.includes('TABLE') || type.includes('TASK') || type.includes('EXECUTION')) {
-      return `/table/detail/${item.refId}`;
+    if (
+      type.includes('TID') ||
+      type.includes('TABLE') ||
+      type.includes('TASK') ||
+      type.includes('EXECUTION')
+    ) {
+      return `/table/detail/${item.refId}?tab=logs`;
     }
     return null;
   };
@@ -331,9 +357,26 @@
   }
 
   .notification-item-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
     font-size: 13px;
     font-weight: 600;
     line-height: 1.4;
+  }
+
+  .notification-item-title-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .notification-item-time {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--ds-text-3);
   }
 
   .notification-item-content {
