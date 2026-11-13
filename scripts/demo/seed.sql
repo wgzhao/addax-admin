@@ -21,6 +21,7 @@ BEGIN;
 -- 1. Clear collection content (FK-safe order)
 -- ---------------------------------------------------------------------------
 DELETE FROM addax_log;
+DELETE FROM etl_failure;
 DELETE FROM etl_table_change_log;
 DELETE FROM etl_column_mapping;
 DELETE FROM etl_job;
@@ -545,6 +546,49 @@ FROM (VALUES
   ('crm_campaign_member',    'COLLECT',   5,  '01:33:09'::time, 18, 'addax job',              'Data truncation: Incorrect datetime value: ''0000-00-00 00:00:00'' for column ''last_follow_at'''),
   ('crm_campaign_member',    'COLLECT',   12, '01:34:22'::time, 22, 'addax job',              'Data truncation: Incorrect datetime value: ''0000-00-00 00:00:00'' for column ''last_follow_at''')
 ) AS v(table_name, kind, days_ago, at_time, duration, cmd, error_msg);
+
+-- Failure facts for the demo error center. Mirrors the failed journeys above;
+-- the real application records these through FailureRecorder at runtime.
+INSERT INTO etl_failure (
+  tid, execution_id, occurred_at, stage, category, error_class, summary, detail,
+  fingerprint, attempt_no, max_attempts, final_attempt, run_type, biz_date,
+  source_id, source_db, source_table, target_db, target_table, legacy_jour_id
+)
+SELECT
+  j.tid,
+  j.execution_id,
+  j.start_at + make_interval(secs => coalesce(j.duration, 0)),
+  CASE j.kind
+    WHEN 'COLLECT' THEN 'COLLECT'
+    WHEN 'PARTITION' THEN 'PARTITION'
+    WHEN 'UPDATE_TABLE' THEN 'TARGET_SCHEMA'
+    WHEN 'UPDATE_COLUMN' THEN 'SOURCE_SCHEMA'
+    ELSE 'PREPARE'
+  END,
+  CASE
+    WHEN lower(j.error_msg) LIKE '%permission denied%' THEN 'AUTH'
+    WHEN lower(j.error_msg) LIKE '%timed out%' THEN 'TIMEOUT'
+    WHEN lower(j.error_msg) LIKE '%data truncation%' THEN 'DATA'
+    WHEN lower(j.error_msg) LIKE '%lock wait%' THEN 'DATA'
+    ELSE 'UNKNOWN'
+  END,
+  'DEMO',
+  left(regexp_replace(j.error_msg, '\s+', ' ', 'g'), 1000),
+  j.error_msg,
+  md5(concat_ws('|', j.tid, j.kind, 'DEMO',
+    lower(left(regexp_replace(j.error_msg, '\s+', ' ', 'g'), 1000)))),
+  coalesce(x.attempt_no, 1),
+  1,
+  true,
+  'NORMAL',
+  x.biz_date,
+  v.sid, v.source_db, v.source_table, v.target_db, v.target_table,
+  j.id
+FROM etl_jour j
+LEFT JOIN etl_execution x ON x.id = j.execution_id
+LEFT JOIN vw_etl_table_with_source v ON v.id = j.tid
+WHERE j.status = false
+  AND j.error_msg IS NOT NULL;
 
 -- ---------------------------------------------------------------------------
 -- 9. Addax job templates and raw logs for the last three runs of every table

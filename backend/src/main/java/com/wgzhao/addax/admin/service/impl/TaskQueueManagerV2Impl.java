@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.service.impl;
 import cn.hutool.core.date.DateUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.Constants;
+import com.wgzhao.addax.admin.common.FailureStage;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -23,6 +24,8 @@ import com.wgzhao.addax.admin.service.EtlJobQueueService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.ExecutionManager;
+import com.wgzhao.addax.admin.service.FailureEvidence;
+import com.wgzhao.addax.admin.service.FailureRecorder;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -31,6 +34,7 @@ import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.UserNotificationService;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
+import com.wgzhao.addax.admin.utils.FailureText;
 import com.wgzhao.addax.admin.utils.ProcessGuard;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -44,8 +48,10 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,6 +72,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -132,6 +140,7 @@ public class TaskQueueManagerV2Impl
     private final TableService tableService;
     private final EtlExecutionService executionService;
     private final EtlJourService jourService;
+    private final FailureRecorder failureRecorder;
     private final SystemConfigService configService;
     private final JobContentService jobContentService;
     private final TargetAdapterRegistry targetAdapterRegistry;
@@ -896,7 +905,7 @@ public class TaskQueueManagerV2Impl
             lease.start();
 
             taskResultDto = executeEtlTaskWithConcurrencyControl(
-                task, job.getBizDate(), job.getId(), job.getAttempts(), lease,
+                task, job.getBizDate(), job.getId(), job.getAttempts(), job.getMaxAttempts(), lease,
                 isFillbackPayload(job.getPayload()));
 
             String fenceReason = lease.fenceReason();
@@ -922,8 +931,8 @@ public class TaskQueueManagerV2Impl
             }
             else {
                 Duration backoff = computeBackoff(job.getAttempts());
-                jobQueueService.failOrReschedule(job, "Addax non-zero exit", backoff, instanceId);
-                notifyFinalFailure(job, task, "Addax 非0退出");
+                jobQueueService.failOrReschedule(job, taskResultDto.message(), backoff, instanceId);
+                notifyFinalFailure(job, task, taskResultDto.message());
             }
         }
         catch (Exception e) {
@@ -950,6 +959,20 @@ public class TaskQueueManagerV2Impl
             else {
                 Duration backoff = computeBackoff(job.getAttempts());
                 try { jobQueueService.failOrReschedule(job, e.getMessage(), backoff, instanceId); } catch (Exception ignored) {}
+                // A failure before the execution pipeline even started (missing table, queue I/O)
+                // has no COLLECT/PREPARE fact yet; record it at the queue stage.
+                if (taskResultDto == null) {
+                    failureRecorder.record(job.getTid(), e.getMessage() == null ? "Queue execution failed" : e.getMessage(),
+                        FailureEvidence.create()
+                            .queue(job.getId())
+                            .stage(FailureStage.QUEUE)
+                            .errorClass(e.getClass().getSimpleName())
+                            .detail(FailureText.stackTrace(e))
+                            .attempt(job.getAttempts(), job.getMaxAttempts())
+                            .finalAttempt(isFinalAttempt(job.getAttempts(), job.getMaxAttempts()))
+                            .runType(isFillbackPayload(job.getPayload()) ? "FILLBACK" : "NORMAL")
+                            .bizDate(job.getBizDate()));
+                }
                 notifyFinalFailure(job, task, e.getMessage());
             }
         }
@@ -1139,17 +1162,17 @@ public class TaskQueueManagerV2Impl
 
     public TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate)
     {
-        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, null, 1);
+        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, null, 1, 1);
     }
 
     private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
-        Long queueId, int attemptNo)
+        Long queueId, int attemptNo, int maxAttempts)
     {
-        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, queueId, attemptNo, null, false);
+        return executeEtlTaskWithConcurrencyControl(task, overrideBizDate, queueId, attemptNo, maxAttempts, null, false);
     }
 
     private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
-        Long queueId, int attemptNo, RunLease lease, boolean forceRegenerate)
+        Long queueId, int attemptNo, int maxAttempts, RunLease lease, boolean forceRegenerate)
     {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
@@ -1158,9 +1181,10 @@ public class TaskQueueManagerV2Impl
         }
         try {
             tableService.setRunning(task);
-            boolean result = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo, lease, forceRegenerate);
+            TaskResultDto logicResult = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo,
+                maxAttempts, lease, forceRegenerate);
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
-            log.info("Task {}.{}({}) completed, elapsed={}s, result={}", task.getSourceDb(), task.getSourceTable(), tid, duration, result);
+            log.info("Task {}.{}({}) completed, elapsed={}s, result={}", task.getSourceDb(), task.getSourceTable(), tid, duration, logicResult.success());
             task.setDuration(duration);
             // A run that no longer owns its queue row must not write a table state that belongs to
             // the successor run. stillOwned() also renews the lease, closing the expiry race.
@@ -1169,13 +1193,13 @@ public class TaskQueueManagerV2Impl
                     task.getSourceDb(), task.getSourceTable(), tid, lease.fenceReason());
                 return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), duration);
             }
-            if (result) {
+            if (logicResult.success()) {
                 tableService.setFinished(task);
                 return TaskResultDto.success("Success", duration);
             }
             else {
                 tableService.setFailed(task);
-                return TaskResultDto.failure("Failed: Addax non-zero exit", duration);
+                return TaskResultDto.failure(logicResult.message(), duration);
             }
         }
         catch (Exception e) {
@@ -1189,13 +1213,33 @@ public class TaskQueueManagerV2Impl
             {
                 task.setDuration(duration);
                 tableService.setUpdateSchema(task);
-                return TaskResultDto.failure(
-                    "Target contract blocked: " + contractViolation.getReport().summary(), duration);
+                String contractSummary = "Target contract blocked: " + contractViolation.getReport().summary();
+                failureRecorder.record(tid, contractSummary, FailureEvidence.create()
+                    .execution(contractViolation.getExecutionId())
+                    .queue(queueId)
+                    .stage(FailureStage.TARGET_SCHEMA)
+                    .errorClass("TargetContractViolation")
+                    .detail(FailureText.stackTrace(e))
+                    .attempt(attemptNo, maxAttempts)
+                    .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                    .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
+                    .bizDate(overrideBizDate)
+                    .occurredAt(LocalDateTime.now()));
+                return TaskResultDto.failure(contractSummary, duration);
             }
             log.error("Task {}.{}({}) failed, elapsed={}s", task.getSourceDb(), task.getSourceTable(), tid, duration, e);
             task.setDuration(duration);
             tableService.setFailed(task);
             String msg = e.getMessage() == null ? "Internal error" : e.getMessage();
+            failureRecorder.record(tid, "Exception: " + msg, FailureEvidence.create()
+                .stage(FailureStage.PREPARE)
+                .errorClass(e.getClass().getSimpleName())
+                .detail(FailureText.stackTrace(e))
+                .attempt(attemptNo, maxAttempts)
+                .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
+                .bizDate(overrideBizDate)
+                .occurredAt(LocalDateTime.now()));
             return TaskResultDto.failure("Exception: " + msg, duration);
         }
     }
@@ -1208,24 +1252,32 @@ public class TaskQueueManagerV2Impl
 
     public boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate)
     {
-        return executeEtlTaskLogic(task, overrideBizDate, null, 1, null, overrideBizDate != null);
+        return executeEtlTaskLogic(task, overrideBizDate, null, 1, 1, null, overrideBizDate != null).success();
     }
 
-    private boolean executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo,
-        RunLease lease, boolean forceRegenerate)
+    private TaskResultDto executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo,
+        int maxAttempts, RunLease lease, boolean forceRegenerate)
     {
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
 
         if (lease != null && lease.fenceReason() != null) {
             log.warn("Not executing tid={}: {}", taskId, lease.fenceReason());
-            return false;
+            return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), 0);
         }
 
         VwEtlTableWithSource tableView = tableService.getTableView(taskId);
         if (tableView == null) {
             log.warn("Table view not found, taskId={}", taskId);
-            return false;
+            failureRecorder.record(taskId, "Table view not found", FailureEvidence.create()
+                .queue(queueId)
+                .stage(FailureStage.PREPARE)
+                .errorClass("TableNotFound")
+                .attempt(attemptNo, maxAttempts)
+                .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
+                .bizDate(overrideBizDate));
+            return TaskResultDto.failure("Table view not found", 0);
         }
 
         // For fillback tasks, overrideBizDate contains the target fillback date. The cached template
@@ -1247,7 +1299,16 @@ public class TaskQueueManagerV2Impl
             EtlExecution execution = executionService.start(
                 tableView, null, executionBizDate, queueId, attemptNo);
             executionService.finish(execution, false, "Job template not generated");
-            return false;
+            failureRecorder.record(taskId, "Job template not generated", FailureEvidence.create()
+                .execution(execution.getId())
+                .queue(queueId)
+                .stage(FailureStage.JOB_TEMPLATE)
+                .errorClass("JobTemplateMissing")
+                .attempt(attemptNo, maxAttempts)
+                .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
+                .bizDate(executionBizDate));
+            return TaskResultDto.failure("Job template not generated", 0);
         }
         // Guard for templates stored before dates were frozen: addax no longer resolves variables,
         // so anything still in the cached JSON must be resolved here or it runs literally.
@@ -1267,7 +1328,7 @@ public class TaskQueueManagerV2Impl
         if (contractReport != null && contractReport.blocked())
         {
             executionService.finish(execution, false, contractReport.summary());
-            throw new TargetContractViolationException(contractReport);
+            throw new TargetContractViolationException(contractReport, execution.getId());
         }
         String partFormat = task.getPartFormat();
         String bizDateStr = configService.getBizDate();
@@ -1282,7 +1343,16 @@ public class TaskQueueManagerV2Impl
             boolean prepareResult = targetAdapterRegistry.resolve(tableView).prepareBeforeRun(taskId, tableView, executionBizDate);
             if (!prepareResult) {
                 executionService.finish(execution, false, "Target preparation failed");
-                return false;
+                failureRecorder.record(taskId, "Target preparation failed", FailureEvidence.create()
+                    .execution(execution.getId())
+                    .queue(queueId)
+                    .stage(FailureStage.PREPARE)
+                    .errorClass("TargetPreparationFailed")
+                    .attempt(attemptNo, maxAttempts)
+                    .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                    .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
+                    .bizDate(executionBizDate));
+                return TaskResultDto.failure("Target preparation failed", 0);
             }
 
             File tempFile;
@@ -1301,7 +1371,18 @@ public class TaskQueueManagerV2Impl
             catch (IOException e) {
                 log.error("Failed to write temp job file", e);
                 executionService.finish(execution, false, "Failed to write temp job file: " + e.getMessage());
-                return false;
+                failureRecorder.record(taskId, "Failed to write temp job file: " + e.getMessage(),
+                    FailureEvidence.create()
+                        .execution(execution.getId())
+                        .queue(queueId)
+                        .stage(FailureStage.JOB_TEMPLATE)
+                        .errorClass(e.getClass().getSimpleName())
+                        .detail(FailureText.stackTrace(e))
+                        .attempt(attemptNo, maxAttempts)
+                        .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                        .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
+                        .bizDate(executionBizDate));
+                return TaskResultDto.failure("Failed to write temp job file: " + e.getMessage(), 0);
             }
             String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
             String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
@@ -1312,11 +1393,13 @@ public class TaskQueueManagerV2Impl
             String jvmProps = buildJvmProps(jobName, logName);
             List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
             String cmd = toCommandString(cmdArgs);
-            boolean retCode = executeAddax(cmdArgs, cmd, taskId, execution.getId(), logName,
-                task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime(), lease);
-            executionService.finish(execution, retCode, retCode ? null : "Addax exited with a non-zero code");
+            TaskResultDto addaxResult = executeAddax(cmdArgs, cmd, task, execution, logName,
+                task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime(), lease,
+                attemptNo, maxAttempts, forceRegenerate);
+            executionService.finish(execution, addaxResult.success(),
+                addaxResult.success() ? null : addaxResult.message());
             log.debug("Task {} log written to: {}", taskId, logName);
-            return retCode;
+            return addaxResult;
         }
         catch (RuntimeException e) {
             executionService.finish(execution, false, e.getMessage());
@@ -1356,9 +1439,12 @@ public class TaskQueueManagerV2Impl
         }
     }
 
-    private boolean executeAddax(List<String> commandArgs, String commandForLog, long tid, long executionId,
-        String logName, long maxRuntimeSeconds, RunLease lease)
+    private TaskResultDto executeAddax(List<String> commandArgs, String commandForLog, EtlTable task,
+        EtlExecution execution, String logName, long maxRuntimeSeconds, RunLease lease,
+        int attemptNo, int maxAttempts, boolean fillback)
     {
+        long tid = task.getId();
+        long executionId = execution.getId();
         EtlJour etlJour = jourService.addJour(tid, executionId, JourKind.COLLECT, commandForLog);
         Process process = null;
         TaskResultDto taskResult;
@@ -1402,16 +1488,76 @@ public class TaskQueueManagerV2Impl
         } catch (IOException e) {
             log.error("Failed to read Addax log: {}", path, e);
         }
-        addaxLogService.insertLog(tid, executionId, logContent);
+        Long logId = logContent == null ? null : addaxLogService.insertLog(tid, executionId, logContent);
+        if (logContent == null) {
+            addaxLogService.insertLog(tid, executionId, null);
+        }
         etlJour.setDuration(taskResult.durationSeconds());
-        etlJour.setStatus(true);
-        if (!taskResult.success()) {
-            log.error("Addax task {} failed, exit: {}", tid, taskResult.message());
+        if (taskResult.success()) {
+            etlJour.setStatus(true);
+        }
+        else {
+            // The exit code alone ("Addax non-zero exit") gives an operator nothing to act on.
+            // The addax log is already in hand, so surface the first actionable line from it.
+            String reason = FailureText.summarizeAddaxFailure(logContent, taskResult.message());
+            log.error("Addax task {} failed: {}", tid, reason);
             etlJour.setStatus(false);
-            etlJour.setErrorMsg(taskResult.message());
+            etlJour.setErrorMsg(reason);
+            taskResult = TaskResultDto.failure(reason, taskResult.durationSeconds());
+            // A fenced run no longer owns the outcome; the successor's run will report it.
+            if (!isOwnershipLost(reason)) {
+                failureRecorder.record(tid, reason, FailureEvidence.create()
+                    .execution(executionId)
+                    .queue(execution.getJobQueueId())
+                    .log(logId, logName)
+                    .occurredAt(LocalDateTime.now())
+                    .stage(FailureStage.COLLECT)
+                    .errorClass(addaxErrorClass(taskResult, logContent))
+                    .errorCode(addaxErrorCode(taskResult, logContent))
+                    .detail(FailureText.extractFailureExcerpt(logContent, taskResult.message()))
+                    .attempt(attemptNo, maxAttempts)
+                    .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
+                    .runType(fillback ? "FILLBACK" : "NORMAL")
+                    .bizDate(execution.getBizDate()));
+            }
         }
         jourService.saveJour(etlJour);
-        return taskResult.success();
+        return taskResult;
+    }
+
+    private static boolean isFinalAttempt(int attemptNo, int maxAttempts)
+    {
+        return maxAttempts <= 0 || attemptNo >= maxAttempts;
+    }
+
+    private static boolean isOwnershipLost(String message)
+    {
+        return message != null && message.startsWith("Ownership lost");
+    }
+
+    private static String addaxErrorClass(TaskResultDto result, String logContent)
+    {
+        String message = result.message() == null ? "" : result.message();
+        if (message.startsWith("Process timed out")) {
+            return "AddaxTimeout";
+        }
+        if (message.startsWith("exit code")) {
+            return "AddaxNonZeroExit";
+        }
+        return logContent == null ? "AddaxLaunchFailed" : "AddaxFailure";
+    }
+
+    private static String addaxErrorCode(TaskResultDto result, String logContent)
+    {
+        String message = result.message() == null ? "" : result.message();
+        Matcher matcher = Pattern.compile("exit code:\\s*(\\d+)").matcher(message);
+        if (matcher.find()) {
+            return "EXIT_" + matcher.group(1);
+        }
+        if (message.startsWith("Process timed out")) {
+            return "TIMEOUT";
+        }
+        return logContent == null ? "NO_LOG" : null;
     }
 
     private String toCommandString(List<String> args)

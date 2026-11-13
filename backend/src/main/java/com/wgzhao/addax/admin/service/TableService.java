@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.common.FailureStage;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
@@ -59,6 +60,7 @@ public class TableService
     private final CalendarService calendarService;
     private final TargetContractService targetContractService;
     private final CollectionScopeService collectionScopeService;
+    private final FailureRecorder failureRecorder;
 
     /**
      * Target databases this source most recently used on the given endpoint. Used by the batch
@@ -133,6 +135,12 @@ public class TableService
             if (report.blocked())
             {
                 setUpdateSchema(table);
+                failureRecorder.record(table.getId(), "目标表契约校验失败: " + report.summary(),
+                    FailureEvidence.create()
+                        .stage(FailureStage.TARGET_SCHEMA)
+                        .errorClass("TargetContractViolation")
+                        .detail(report.summary())
+                        .bizDate(configService.getBizDateAsDate()));
                 return TaskResultDto.failure("目标表契约校验失败: " + report.summary(), 0);
             }
             table.setTargetSchemaFingerprint(report.fingerprint());

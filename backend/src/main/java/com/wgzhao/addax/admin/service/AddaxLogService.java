@@ -29,12 +29,15 @@ public class AddaxLogService
         this.retentionDays = retentionDays;
     }
 
-    public void insertLog(long tid, String message)
+    public Long insertLog(long tid, String message)
     {
-        insertLog(tid, null, message);
+        return insertLog(tid, null, message);
     }
 
-    public void insertLog(long tid, Long executionId, String message)
+    /**
+     * @return the stored log id, so a failure fact can point at the exact run's output
+     */
+    public Long insertLog(long tid, Long executionId, String message)
     {
         AddaxLog addaxLog = new AddaxLog();
         addaxLog.setTid(tid);
@@ -44,7 +47,7 @@ public class AddaxLogService
         addaxLog.setLog(message == null ? null : message.replace("\u0000", ""));
         addaxLog.setRunDate(LocalDate.now());
         addaxLog.setRunAt(LocalDateTime.now());
-        addaxLogRepo.save(addaxLog);
+        return addaxLogRepo.save(addaxLog).getId();
     }
 
     public String getLogContent(long id)

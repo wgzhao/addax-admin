@@ -12,7 +12,7 @@ import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
-import com.wgzhao.addax.admin.service.EtlJourService;
+import com.wgzhao.addax.admin.service.FailureService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -39,7 +39,7 @@ public class LogController
     private final AddaxLogService addaxLogService;
     private final StatService statService;
     private final SystemConfigService configService;
-    private final EtlJourService jourService;
+    private final FailureService failureService;
     private final EtlExecutionService executionService;
     private final TableService tableService;
     private final CalendarService calendarService;
@@ -103,7 +103,7 @@ public class LogController
     public ApiResponse<String> getJourLog(@PathVariable Long tid)
     {
         authzService.requireTableOperate(tid);
-        return ApiResponse.success(jourService.findLastErrorByTableId(tid));
+        return ApiResponse.success(failureService.latestSummary(tid));
     }
 
     /**

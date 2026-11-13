@@ -11,7 +11,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.AlertService;
 import com.wgzhao.addax.admin.service.AuthzService;
-import com.wgzhao.addax.admin.service.EtlJourService;
+import com.wgzhao.addax.admin.service.FailureService;
 import com.wgzhao.addax.admin.service.JobContentService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
@@ -62,9 +62,9 @@ public class TaskController
      */
     private final JobContentService jobContentService;
     /**
-     * 日志服务
+     * 失败事实服务（对外保留旧接口，数据源已切换到 etl_failure）
      */
-    private final EtlJourService jourService;
+    private final FailureService failureService;
     /**
      * 告警服务
      */
@@ -343,7 +343,7 @@ public class TaskController
         @PathVariable long tableId)
     {
         authzService.requireTableOperate(tableId);
-        String errorMsg = jourService.findLastErrorByTableId(tableId);
+        String errorMsg = failureService.latestSummary(tableId);
         if (errorMsg == null || errorMsg.isEmpty()) {
             return ResponseEntity.ok("No error message found for the given table ID");
         }

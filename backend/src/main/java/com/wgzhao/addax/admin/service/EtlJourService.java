@@ -2,6 +2,7 @@ package com.wgzhao.addax.admin.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.wgzhao.addax.admin.common.FailureStage;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.repository.EtlJourRepo;
@@ -23,6 +24,7 @@ public class EtlJourService
     private final EtlJourRepo etlJourRepo;
     private final VwEtlTableWithSourceRepo tableRepo;
     private final ObjectMapper objectMapper;
+    private final FailureRecorder failureRecorder;
 
     /**
      * 新增一条采集流水
@@ -89,10 +91,34 @@ public class EtlJourService
     @Transactional
     public void failJour(EtlJour jour, String errorMsg)
     {
+        failJour(jour, errorMsg, FailureEvidence.create());
+    }
+
+    /**
+     * Mark the journal row failed and record the matching failure fact. The journal is an operation
+     * log; the fact is the durable, queryable evidence used by the UI.
+     */
+    @Transactional
+    public void failJour(EtlJour jour, String errorMsg, FailureEvidence evidence)
+    {
         jour.setStatus(false);
         jour.setErrorMsg(errorMsg);
         jour.setDuration(Duration.between(jour.getStartAt(), LocalDateTime.now()).toSeconds());
         etlJourRepo.save(jour);
+        FailureEvidence ev = evidence == null ? FailureEvidence.create() : evidence;
+        if (!ev.hasStage()) {
+            ev.stage(FailureStage.fromJourKind(jour.getKind()));
+        }
+        if (ev.executionId() == null && jour.getExecutionId() != null) {
+            ev.execution(jour.getExecutionId());
+        }
+        if (ev.runType() == null) {
+            ev.runType(JourKind.FILLBACK.equals(jour.getKind()) ? "FILLBACK" : "NORMAL");
+        }
+        if (ev.occurredAt() == null && jour.getStartAt() != null) {
+            ev.occurredAt(jour.getStartAt().plusSeconds(jour.getDuration() == null ? 0 : jour.getDuration()));
+        }
+        failureRecorder.record(jour.getTid(), errorMsg, ev);
     }
 
     /**
@@ -113,17 +139,6 @@ public class EtlJourService
     public void deleteByTid(long tableId)
     {
         etlJourRepo.deleteAllByTid(tableId);
-    }
-
-    /**
-     * 查询指定表的最后一次错误信息
-     *
-     * @param tableId 表ID
-     * @return 错误信息
-     */
-    public String findLastErrorByTableId(long tableId)
-    {
-        return etlJourRepo.findLastError(tableId);
     }
 
     public EtlJour getLastByTidWithKind(long tableId, String kind)
