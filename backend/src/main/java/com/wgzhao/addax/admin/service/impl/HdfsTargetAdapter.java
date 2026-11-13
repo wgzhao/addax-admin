@@ -1,9 +1,10 @@
 package com.wgzhao.addax.admin.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.common.TargetOptions;
@@ -394,7 +395,7 @@ public class HdfsTargetAdapter
                 return;
             }
             try {
-                JsonNode node = new ObjectMapper().readTree(config);
+                JsonNode node = JsonMapper.builder().build().readTree(config);
                 putIfPresent(values, "jdbcUrl", node, "url");
                 putIfPresent(values, "username", node, "username");
                 putIfPresent(values, "password", node, "password");
@@ -763,9 +764,9 @@ public class HdfsTargetAdapter
             columns.add(targetColumn);
         }
         try {
-            return new ObjectMapper().writeValueAsString(columns);
+            return JsonMapper.builder().build().writeValueAsString(columns);
         }
-        catch (JsonProcessingException e) {
+        catch (JacksonException e) {
             throw new RuntimeException("column 转换为 JSON 失败", e);
         }
     }

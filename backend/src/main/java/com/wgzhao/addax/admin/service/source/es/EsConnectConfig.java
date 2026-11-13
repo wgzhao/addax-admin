@@ -1,8 +1,9 @@
 package com.wgzhao.addax.admin.service.source.es;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.service.source.SourceRef;
 
@@ -97,7 +98,7 @@ public record EsConnectConfig(
         JsonNode optionsNode = node.get("options");
         if (optionsNode != null && optionsNode.isObject())
         {
-            optionsNode.fields().forEachRemaining(entry ->
+            optionsNode.properties().forEach(entry ->
                 options.put(entry.getKey(), entry.getValue().asText()));
         }
         return new EsConnectConfig(endpoints, options);
@@ -298,7 +299,7 @@ public record EsConnectConfig(
 
     public JsonNode toJson()
     {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = JsonMapper.builder().build();
         ObjectNode node = mapper.createObjectNode();
         var array = node.putArray("endpoints");
         endpoints.forEach(array::add);

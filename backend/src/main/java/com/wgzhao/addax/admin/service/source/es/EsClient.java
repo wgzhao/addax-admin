@@ -1,7 +1,9 @@
 package com.wgzhao.addax.admin.service.source.es;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
@@ -31,7 +33,7 @@ import java.util.List;
 final class EsClient
     implements AutoCloseable
 {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private final HttpClient http;
     private final List<URI> endpoints;
@@ -89,7 +91,7 @@ final class EsClient
             payload = body == null ? null
                 : body instanceof String text ? text : objectMapper.writeValueAsString(body);
         }
-        catch (IOException e)
+        catch (JacksonException e)
         {
             throw new EsConnectionException("无法序列化 Elasticsearch 请求: " + e.getMessage(), e);
         }
@@ -173,7 +175,7 @@ final class EsClient
             }
             return body.length() > 500 ? body.substring(0, 500) : body;
         }
-        catch (IOException e)
+        catch (JacksonException e)
         {
             return body.length() > 500 ? body.substring(0, 500) : body;
         }

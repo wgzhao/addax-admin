@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.wgzhao.addax.admin.utils.ProcessGuard;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -37,7 +38,7 @@ public class ExecutionManager
     private final ConcurrentHashMap<Long, ConcurrentHashMap<Long, ProcessHolder>> running = new ConcurrentHashMap<>();
     // Tracks tasks explicitly killed by user so worker can avoid rescheduling them as normal failures.
     private final ConcurrentHashMap<Long, Instant> killRequested = new ConcurrentHashMap<>();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = JsonMapper.builder().build();
     private final RedisMessageListenerContainer listenerContainer;
     // Kill requests are executed off the shared RedisMessageListenerContainer dispatch thread:
     // killing a process tree can take tens of seconds (up to 1.2s per descendant, twice), which

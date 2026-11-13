@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.service.source.es;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.service.source.SourceAccessException;
 import com.wgzhao.addax.admin.service.source.SourceRef;
 import lombok.RequiredArgsConstructor;

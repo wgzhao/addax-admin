@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.alert;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.alert.model.AlertEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -53,7 +53,7 @@ public class AlertMessageFactory
         Map<String, String> links = new LinkedHashMap<>();
         JsonNode linkNode = payload == null ? null : payload.path("links");
         if (linkNode != null && linkNode.isObject()) {
-            linkNode.fields().forEachRemaining(entry -> links.put(entry.getKey(), entry.getValue().asText()));
+            linkNode.properties().forEach(entry -> links.put(entry.getKey(), entry.getValue().asText()));
         }
         String title = payload == null ? event.getEventKey() : payload.path("title").asText(event.getEventKey());
         String markdown = payload == null ? title : payload.path("markdown").asText(title);

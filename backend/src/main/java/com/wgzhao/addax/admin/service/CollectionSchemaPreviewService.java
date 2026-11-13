@@ -280,13 +280,13 @@ public class CollectionSchemaPreviewService
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String businessDateColumn(com.fasterxml.jackson.databind.JsonNode targetOptions)
+    private String businessDateColumn(tools.jackson.databind.JsonNode targetOptions)
     {
         if (targetOptions == null || !targetOptions.has("rdbms"))
         {
             return null;
         }
-        com.fasterxml.jackson.databind.JsonNode value =
+        tools.jackson.databind.JsonNode value =
             targetOptions.path("rdbms").path("businessDateColumn");
         return value.isTextual() && !value.asText().isBlank() ? value.asText().trim() : null;
     }

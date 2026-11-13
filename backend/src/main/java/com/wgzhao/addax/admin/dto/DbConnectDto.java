@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 /**
  * 数据库连接信息传输对象。

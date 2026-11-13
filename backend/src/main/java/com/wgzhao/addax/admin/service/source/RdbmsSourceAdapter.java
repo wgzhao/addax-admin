@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.service.source;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.TargetFamily;
@@ -491,7 +491,7 @@ public class RdbmsSourceAdapter implements SourceAdapter
             log.warn("reader 插件配置必须是 JSON 对象，tid={}", table.getId());
             return;
         }
-        customConfig.fields().forEachRemaining(entry ->
+        customConfig.properties().forEach(entry ->
             readerParameter.set(entry.getKey(), entry.getValue()));
     }
 

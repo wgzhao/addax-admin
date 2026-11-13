@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.dto.EtlTargetView;
 import com.wgzhao.addax.admin.exception.ApiException;

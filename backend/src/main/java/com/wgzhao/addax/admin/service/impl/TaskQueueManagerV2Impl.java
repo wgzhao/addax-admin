@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service.impl;
 
 import cn.hutool.core.date.DateUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.FailureStage;
 import com.wgzhao.addax.admin.common.JourKind;
