@@ -60,7 +60,6 @@ public class EtlExecutionService
         execution.setBizDate(bizDate);
         execution.setSourceDb(table.getSourceDb());
         execution.setSourceTable(table.getSourceTable());
-        execution.setSourceCode(table.getCode());
         execution.setSourceName(table.getName());
         execution.setSourceId(table.getSid());
         execution.setTargetDb(table.getTargetDb());
@@ -126,7 +125,6 @@ public class EtlExecutionService
         tableNode.put("tid", table.getId());
         tableNode.put("sourceDb", table.getSourceDb());
         tableNode.put("sourceTable", table.getSourceTable());
-        tableNode.put("sourceCode", table.getCode());
         tableNode.put("sourceName", table.getName());
         tableNode.put("sourceId", table.getSid());
         tableNode.put("targetDb", table.getTargetDb());

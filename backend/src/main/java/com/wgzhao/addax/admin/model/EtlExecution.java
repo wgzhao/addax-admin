@@ -44,6 +44,10 @@ public class EtlExecution
     @Column(name = "source_table", length = 255)
     private String sourceTable;
 
+    /**
+     * Historical snapshot only: rows written before the source code was retired still carry it.
+     * New executions leave it null; source identity is {@link #sourceId}.
+     */
     @Column(name = "source_code", length = 50)
     private String sourceCode;
 

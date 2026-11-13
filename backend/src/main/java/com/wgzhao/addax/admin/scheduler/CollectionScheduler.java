@@ -59,9 +59,8 @@ public class CollectionScheduler
 
     public void scheduleOrUpdateTask(EtlSource source)
     {
-        // The primary key is the only identity the scheduler can rely on: code is a display label
-        // without a database uniqueness guarantee, so two sources sharing one would overwrite each
-        // other's cron registration.
+        // The primary key is the only identity the scheduler can rely on; the source name is not
+        // unique either, so using anything else could overwrite another source's cron registration.
         String taskId = "source-" + source.getId();
         if (source.isEnabled() && source.getStartAt() != null) {
             log.info("Scheduling task for source {}({}) at {}", source.getName(), source.getId(),

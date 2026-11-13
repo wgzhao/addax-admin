@@ -28,7 +28,7 @@ test('batch plan preview isolates managed plans from external blocking errors', 
   const managedTarget = `plan_managed_target_${runId}`;
   const externalSource = `plan_external_source_${runId}`;
   const externalTarget = `plan_external_missing_${runId}`;
-  const sourceCode = `PS${runId.slice(-6)}`;
+  const sourceName = `Batch Plan E2E ${runId}`;
   const targetCode = `PT${runId.slice(-6)}`;
   const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
 
@@ -48,13 +48,13 @@ test('batch plan preview isolates managed plans from external blocking errors', 
       customer_name text
     );
 
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
 
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'Batch Plan E2E', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
 
@@ -67,7 +67,7 @@ test('batch plan preview isolates managed plans from external blocking errors', 
     );
   `);
 
-  const sourceId = Number(psql(`select id from etl_source where code = ${sqlLiteral(sourceCode)}`));
+  const sourceId = Number(psql(`select id from etl_source where name = ${sqlLiteral(sourceName)}`));
   const targetId = Number(psql(`select id from etl_target where code = ${sqlLiteral(targetCode)}`));
   const token = await apiLogin(request);
 
@@ -167,7 +167,7 @@ test('batch wizard reviews every selected table before the final create action',
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const sourceCode = `WZ${runId.slice(-6)}`;
+  const sourceName = `Batch Review UI ${runId}`;
   const targetCode = `WT${runId.slice(-6)}`;
   const firstSource = `wizard_source_a_${runId}`;
   const secondSource = `wizard_source_b_${runId}`;
@@ -185,12 +185,12 @@ test('batch wizard reviews every selected table before the final create action',
       id bigint primary key,
       status text
     );
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'Batch Review UI', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
     insert into etl_target (
@@ -240,9 +240,9 @@ test('batch wizard reviews every selected table before the final create action',
 
   const sourceSelect = page.getByRole('combobox', { name: /采集源系统/ });
   await page.locator('.v-select').filter({ hasText: '采集源系统' }).click();
-  await page.keyboard.type(sourceCode);
+  await page.keyboard.type(sourceName);
   await page.keyboard.press('Enter');
-  await expect(sourceSelect).toHaveValue(new RegExp(sourceCode));
+  await expect(sourceSelect).toHaveValue(new RegExp(sourceName));
   const dbSelect = page.getByRole('combobox', { name: /源数据库/ });
   await page.locator('.v-select').filter({ hasText: '源数据库' }).click();
   await page.keyboard.type(dbName);
@@ -422,7 +422,7 @@ test('managed RDBMS snapshot column is created and accepted by the target contra
   const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const sourceTable = `snapshot_contract_source_${runId}`;
   const targetTable = `snapshot_contract_target_${runId}`;
-  const sourceCode = `SS${runId.slice(-6)}`;
+  const sourceName = `Snapshot Contract E2E ${runId}`;
   const targetCode = `ST${runId.slice(-6)}`;
   const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
 
@@ -433,12 +433,12 @@ test('managed RDBMS snapshot column is created and accepted by the target contra
       id bigint primary key,
       customer_name text
     );
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'Snapshot Contract E2E', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
     insert into etl_target (
@@ -450,7 +450,7 @@ test('managed RDBMS snapshot column is created and accepted by the target contra
     );
   `);
 
-  const sourceId = Number(psql(`select id from etl_source where code = ${sqlLiteral(sourceCode)}`));
+  const sourceId = Number(psql(`select id from etl_source where name = ${sqlLiteral(sourceName)}`));
   const targetId = Number(psql(`select id from etl_target where code = ${sqlLiteral(targetCode)}`));
   const token = await apiLogin(request);
   const headers = { Authorization: `Bearer ${token}` };
@@ -543,7 +543,7 @@ test('external RDBMS snapshot column stays platform-provided without target DDL'
   const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const sourceTable = `external_snapshot_source_${runId}`;
   const targetTable = `external_snapshot_target_${runId}`;
-  const sourceCode = `ES${runId.slice(-6)}`;
+  const sourceName = `External Snapshot E2E ${runId}`;
   const targetCode = `ET${runId.slice(-6)}`;
   const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
 
@@ -559,12 +559,12 @@ test('external RDBMS snapshot column stays platform-provided without target DDL'
       customer_name text,
       logdate varchar(8) not null
     );
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'External Snapshot E2E', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
     insert into etl_target (
@@ -576,7 +576,7 @@ test('external RDBMS snapshot column stays platform-provided without target DDL'
     );
   `);
 
-  const sourceId = Number(psql(`select id from etl_source where code = ${sqlLiteral(sourceCode)}`));
+  const sourceId = Number(psql(`select id from etl_source where name = ${sqlLiteral(sourceName)}`));
   const targetId = Number(psql(`select id from etl_target where code = ${sqlLiteral(targetCode)}`));
   const token = await apiLogin(request);
   const headers = { Authorization: `Bearer ${token}` };
@@ -694,7 +694,7 @@ test('legacy managed batch initializes target tables after the definition commit
   test.setTimeout(90_000);
   const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const sourceTables = [`legacy_batch_a_${runId}`, `legacy_batch_b_${runId}`];
-  const sourceCode = `LB${runId.slice(-6)}`;
+  const sourceName = `Legacy Batch E2E ${runId}`;
   const targetCode = `LT${runId.slice(-6)}`;
   const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
 
@@ -710,12 +710,12 @@ test('legacy managed batch initializes target tables after the definition commit
         `
       )
       .join('\n')}
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'Legacy Batch E2E', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
     insert into etl_target (
@@ -727,7 +727,7 @@ test('legacy managed batch initializes target tables after the definition commit
     );
   `);
 
-  const sourceId = Number(psql(`select id from etl_source where code = ${sqlLiteral(sourceCode)}`));
+  const sourceId = Number(psql(`select id from etl_source where name = ${sqlLiteral(sourceName)}`));
   const targetId = Number(psql(`select id from etl_target where code = ${sqlLiteral(targetCode)}`));
   const token = await apiLogin(request);
   const response = await request.post('/api/v1/tables/batch', {
@@ -783,7 +783,7 @@ test('batch wizard blocks duplicate targets and invalid mappings before create',
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const sourceCode = `GZ${runId.slice(-6)}`;
+  const sourceName = `Batch Guard UI ${runId}`;
   const targetCode = `GT${runId.slice(-6)}`;
   const targetName = `Batch Guard Target ${runId}`;
   const firstSource = `guard_source_a_${runId}`;
@@ -802,12 +802,12 @@ test('batch wizard blocks duplicate targets and invalid mappings before create',
       id bigint primary key,
       status text
     );
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'Batch Guard UI', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
     insert into etl_target (
@@ -824,9 +824,9 @@ test('batch wizard blocks duplicate targets and invalid mappings before create',
   const sourceSelect = page.getByRole('combobox', { name: /采集源系统/ });
   await expect(sourceSelect).toBeEnabled();
   await page.locator('.v-select').filter({ hasText: '采集源系统' }).click();
-  await page.keyboard.type(sourceCode);
+  await page.keyboard.type(sourceName);
   await page.keyboard.press('Enter');
-  await expect(sourceSelect).toHaveValue(new RegExp(sourceCode));
+  await expect(sourceSelect).toHaveValue(new RegExp(sourceName));
 
   const dbSelect = page.getByRole('combobox', { name: /源数据库/ });
   await expect(dbSelect).toBeEnabled();

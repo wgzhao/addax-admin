@@ -11,12 +11,11 @@ test.describe('MongoDB collection source', () => {
   });
 
   test('switches the source form to MongoDB and saves the connection', async ({ page }) => {
-    const code = `MUI${Date.now().toString().slice(-6)}`;
+    const name = `Mongo UI E2E ${Date.now().toString().slice(-6)}`;
     await page.goto('/source');
 
     await page.getByRole('button', { name: '新增采集源' }).first().click();
-    await page.locator('#src-code').fill(code);
-    await page.locator('#src-name').fill('Mongo UI E2E');
+    await page.locator('#src-name').fill(name);
 
     const typeInput = page.locator('#src-type');
     await typeInput.focus();
@@ -37,7 +36,7 @@ test.describe('MongoDB collection source', () => {
     await page.getByRole('button', { name: '创建采集源' }).click();
     await expect(page.getByText('保存成功')).toBeVisible();
     await expect(
-      page.locator('tr', { hasText: code }).getByText('MongoDB', { exact: true })
+      page.locator('tr', { hasText: name }).getByText('MongoDB', { exact: true })
     ).toBeVisible();
   });
 

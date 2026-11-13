@@ -21,7 +21,6 @@ const token = [
 
 const table: MockTable = {
   id: 101,
-  code: 'CRM',
   name: '客户关系中心',
   sourceDb: 'crm_prod',
   sourceTable: 'customer_profile_with_a_long_descriptive_table_name',

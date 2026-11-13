@@ -55,7 +55,7 @@ test('external target contract, renamed mapping, drift blocking, and managed reg
   const targetName = `external_mapping_target_${runId}`;
   const managedSource = `managed_mapping_source_${runId}`;
   const managedTarget = `managed_mapping_target_${runId}`;
-  const sourceCode = `XE${runId.slice(-6)}`;
+  const fixtureSourceName = `External Mapping E2E ${runId}`;
   const targetCode = `XT${runId.slice(-6)}`;
   const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
   const fixtureHomeSql = fixtureHome.replaceAll("'", "''");
@@ -127,13 +127,13 @@ test('external target contract, renamed mapping, drift blocking, and managed reg
     delete from etl_table where source_table in (${sqlLiteral(sourceName)}, ${sqlLiteral(
     managedSource
   )});
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(fixtureSourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
 
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'External Mapping E2E', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(fixtureSourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
 
@@ -149,7 +149,9 @@ test('external target contract, renamed mapping, drift blocking, and managed reg
       where dict_code = 1000 and item_key = 'ADDAX';
   `);
 
-  const sourceId = Number(psql(`select id from etl_source where code = ${sqlLiteral(sourceCode)}`));
+  const sourceId = Number(
+    psql(`select id from etl_source where name = ${sqlLiteral(fixtureSourceName)}`)
+  );
   const targetId = Number(psql(`select id from etl_target where code = ${sqlLiteral(targetCode)}`));
   const token = await apiLogin(request);
 

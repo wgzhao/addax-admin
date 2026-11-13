@@ -23,7 +23,7 @@ test('field mapping stays read-only until the user explicitly enters edit mode',
   const runId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const sourceTable = `mapping_edit_source_${runId}`;
   const targetTable = `mapping_edit_target_${runId}`;
-  const sourceCode = `FE${runId.slice(-6)}`;
+  const sourceName = `Field Mapping Edit E2E ${runId}`;
   const targetCode = `FT${runId.slice(-6)}`;
   const jdbcUrl = `jdbc:postgresql://localhost:5432/${dbName}`;
 
@@ -34,12 +34,12 @@ test('field mapping stays read-only until the user explicitly enters edit mode',
       id bigint primary key,
       customer_name text
     );
-    delete from etl_source where code = ${sqlLiteral(sourceCode)};
+    delete from etl_source where name = ${sqlLiteral(sourceName)};
     delete from etl_target where code = ${sqlLiteral(targetCode)};
     insert into etl_source (
-      code, name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
+      name, url, username, pass, start_at, enabled, max_concurrency, db_type, calendar
     ) values (
-      ${sqlLiteral(sourceCode)}, 'Field Mapping Edit E2E', ${sqlLiteral(jdbcUrl)},
+      ${sqlLiteral(sourceName)}, ${sqlLiteral(jdbcUrl)},
       ${sqlLiteral(dbUser)}, '', '23:59:00', true, 1, 'POSTGRESQL', 'NATURAL_DAY'
     );
     insert into etl_target (
@@ -51,7 +51,7 @@ test('field mapping stays read-only until the user explicitly enters edit mode',
     );
   `);
 
-  const sourceId = Number(psql(`select id from etl_source where code = ${sqlLiteral(sourceCode)}`));
+  const sourceId = Number(psql(`select id from etl_source where name = ${sqlLiteral(sourceName)}`));
   const targetId = Number(psql(`select id from etl_target where code = ${sqlLiteral(targetCode)}`));
   const token = await apiLogin(request);
   const headers = { Authorization: `Bearer ${token}` };

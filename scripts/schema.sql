@@ -447,7 +447,6 @@ ALTER SEQUENCE public.etl_jour_id_seq1 OWNED BY public.etl_jour.id;
 
 CREATE TABLE public.etl_source (
     id integer NOT NULL,
-    code character varying(50) NOT NULL,
     name character varying(200) NOT NULL,
     url character varying(1000) NOT NULL,
     username character varying(64),
@@ -476,13 +475,6 @@ COMMENT ON TABLE public.etl_source IS '采集源表';
 --
 
 COMMENT ON COLUMN public.etl_source.id IS '采集源 ID';
-
-
---
--- Name: COLUMN etl_source.code; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.etl_source.code IS '采集编号,一般以两个大写字母作为标志';
 
 
 --
@@ -1727,7 +1719,6 @@ CREATE VIEW public.vw_etl_table_with_source AS
     t.retired_by,
     t.reader_plugin_config,
     t.writer_plugin_config,
-    s.code,
     s.name,
     s.url,
     s.username,

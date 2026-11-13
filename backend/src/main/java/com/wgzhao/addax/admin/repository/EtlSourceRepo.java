@@ -14,8 +14,6 @@ public interface EtlSourceRepo
 
     Integer countByEnabled(boolean b);
 
-    boolean existsByCode(String code);
-
     List<EtlSource> findByEnabled(boolean b);
 
     List<EtlSource> findByIdIn(Collection<Integer> ids);

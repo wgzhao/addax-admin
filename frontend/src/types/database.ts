@@ -180,7 +180,6 @@ export interface EtlStatistic {
 // 采集源表 etl_source
 export interface EtlSource {
   id: number; // 采集源ID，自增主键
-  code: string; // 采集编号，一般以两个大写字母作为标志
   name: string; // 采集源名称
   url: string; // 采集源JDBC连接串
   username?: string; // 采集源连接的账号
@@ -357,7 +356,6 @@ export interface CollectableTable {
 
 export interface VEtlWithSource extends EtlTable {
   targetOptions: EtlTargetOptions;
-  code: string; // 采集编号，一般以两个大写字母作为标志
   name: string; // 采集源名称
   url: string; // 采集源JDBC连接串
   username?: string; // 采集源连接的账号

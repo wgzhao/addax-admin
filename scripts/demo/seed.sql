@@ -41,20 +41,20 @@ DELETE FROM risk_log;
 -- 2. Sources: an enterprise landscape with mixed engines and schedules
 -- ---------------------------------------------------------------------------
 INSERT INTO etl_source
-  (id, code, name, url, username, pass, start_at, remark, enabled, max_concurrency, db_type, calendar, connect_config)
+  (id, name, url, username, pass, start_at, remark, enabled, max_concurrency, db_type, calendar, connect_config)
 VALUES
-  (101, 'CRM', '客户中心',     'jdbc:mysql://10.20.8.11:3306/crm',        'etl_read', '******', '01:10', '集团客户主数据与销售过程数据', true, 10, 'mysql',         NULL,        '{}'::jsonb),
-  (102, 'OMS', '交易中台',     'jdbc:mysql://10.20.8.12:3306/oms',        'etl_read', '******', '01:20', '订单、支付、退款与履约交易数据', true, 12, 'mysql',         NULL,        '{}'::jsonb),
-  (103, 'POS', '门店零售',     'jdbc:mysql://10.20.8.13:3306/pos',        'etl_read', '******', '02:00', '线下门店 POS 交易与会员数据', true,  8, 'mysql',         NULL,        '{}'::jsonb),
-  (104, 'WMS', '仓储物流',     'jdbc:mysql://10.20.8.14:3306/wms',        'etl_read', '******', '02:15', '库存、出入库与承运数据', true,      8, 'mysql',         NULL,        '{}'::jsonb),
-  (105, 'ERP', '集团 ERP',     'jdbc:mysql://10.20.8.15:3306/erp',        'etl_read', '******', '02:30', '物料、采购、生产与组织主数据', true,  8, 'mysql',         'WORK_DAY',  '{}'::jsonb),
-  (106, 'FIN', '财务共享',     'jdbc:mysql://10.20.8.16:3306/fin',        'etl_read', '******', '02:45', '总账、应收应付与成本中心', true,      6, 'mysql',         'WORK_DAY',  '{}'::jsonb),
-  (107, 'MKT', '营销平台',     'jdbc:postgresql://10.20.9.21:5432/marketing',                                  'etl_read', '******', '03:00', '活动、渠道与线索评分数据', true,      6, 'postgresql',    NULL,        '{}'::jsonb),
-  (108, 'SCM', '供应链协同',   'jdbc:sqlserver://10.20.9.22:1433;databaseName=scm',                           'etl_read', '******', '03:10', '采购协同、交付计划与结算数据', true,  6, 'sqlserver',     NULL,        '{}'::jsonb),
-  (109, 'CDP', '客户画像',     'mongodb://10.20.10.31:27017/customer_profile?authSource=admin',                NULL,       NULL,     '03:20', '标签画像与行为事件明细', true,        10, 'mongodb',       NULL,        '{"authDb":"admin"}'::jsonb),
-  (110, 'LOG', '埋点日志集群', 'http://10.20.11.41:9200,http://10.20.11.42:9200',                            NULL,       NULL,     '03:30', 'APP、小程序与站点埋点日志', true,    16, 'elasticsearch', NULL,        '{}'::jsonb),
-  (111, 'DWH', '集团数据仓库', 'jdbc:hive2://10.20.12.51:10000/warehouse',                                    'hive',     '******', '04:00', 'DWD/DWS/ADS 分层加工数据', true,     8, 'hive',          'TRADE_DAY', '{}'::jsonb),
-  (112, 'HR',  '人力资源',     'jdbc:mysql://10.20.8.17:3306/hr',         'etl_read', '******', '02:50', '员工、组织与考勤数据（已停用调度）', false, 4, 'mysql',    'WORK_DAY',  '{}'::jsonb);
+  (101, '客户中心',     'jdbc:mysql://10.20.8.11:3306/crm',        'etl_read', '******', '01:10', '集团客户主数据与销售过程数据', true, 10, 'mysql',         NULL,        '{}'::jsonb),
+  (102, '交易中台',     'jdbc:mysql://10.20.8.12:3306/oms',        'etl_read', '******', '01:20', '订单、支付、退款与履约交易数据', true, 12, 'mysql',         NULL,        '{}'::jsonb),
+  (103, '门店零售',     'jdbc:mysql://10.20.8.13:3306/pos',        'etl_read', '******', '02:00', '线下门店 POS 交易与会员数据', true,  8, 'mysql',         NULL,        '{}'::jsonb),
+  (104, '仓储物流',     'jdbc:mysql://10.20.8.14:3306/wms',        'etl_read', '******', '02:15', '库存、出入库与承运数据', true,      8, 'mysql',         NULL,        '{}'::jsonb),
+  (105, '集团 ERP',     'jdbc:mysql://10.20.8.15:3306/erp',        'etl_read', '******', '02:30', '物料、采购、生产与组织主数据', true,  8, 'mysql',         'WORK_DAY',  '{}'::jsonb),
+  (106, '财务共享',     'jdbc:mysql://10.20.8.16:3306/fin',        'etl_read', '******', '02:45', '总账、应收应付与成本中心', true,      6, 'mysql',         'WORK_DAY',  '{}'::jsonb),
+  (107, '营销平台',     'jdbc:postgresql://10.20.9.21:5432/marketing',                                  'etl_read', '******', '03:00', '活动、渠道与线索评分数据', true,      6, 'postgresql',    NULL,        '{}'::jsonb),
+  (108, '供应链协同',   'jdbc:sqlserver://10.20.9.22:1433;databaseName=scm',                           'etl_read', '******', '03:10', '采购协同、交付计划与结算数据', true,  6, 'sqlserver',     NULL,        '{}'::jsonb),
+  (109, '客户画像',     'mongodb://10.20.10.31:27017/customer_profile?authSource=admin',                NULL,       NULL,     '03:20', '标签画像与行为事件明细', true,        10, 'mongodb',       NULL,        '{"authDb":"admin"}'::jsonb),
+  (110, '埋点日志集群', 'http://10.20.11.41:9200,http://10.20.11.42:9200',                            NULL,       NULL,     '03:30', 'APP、小程序与站点埋点日志', true,    16, 'elasticsearch', NULL,        '{}'::jsonb),
+  (111, '集团数据仓库', 'jdbc:hive2://10.20.12.51:10000/warehouse',                                    'hive',     '******', '04:00', 'DWD/DWS/ADS 分层加工数据', true,     8, 'hive',          'TRADE_DAY', '{}'::jsonb),
+  (112, '人力资源',     'jdbc:mysql://10.20.8.17:3306/hr',         'etl_read', '******', '02:50', '员工、组织与考勤数据（已停用调度）', false, 4, 'mysql',    'WORK_DAY',  '{}'::jsonb);
 
 -- ---------------------------------------------------------------------------
 -- 3. Targets
@@ -359,7 +359,7 @@ CROSS JOIN LATERAL (
       -- deterministic ±4% daily noise
       * (1 + ((s.id * 17 + extract(doy FROM d.day)::int * 29) % 9 - 4) * 0.01)
       -- retail/log traffic peaks at weekends
-      * CASE WHEN src.code IN ('OMS', 'POS', 'WMS', 'LOG') AND extract(isodow FROM d.day) IN (6, 7)
+      * CASE WHEN src.id IN (102, 103, 104, 110) AND extract(isodow FROM d.day) IN (6, 7)
              THEN 1.10 ELSE 1 END
     )::bigint AS bytes,
     round(
@@ -419,7 +419,7 @@ WHERE st.tid = s.id
 -- ---------------------------------------------------------------------------
 INSERT INTO etl_execution
   (id, tid, job_queue_id, attempt_no, biz_date, source_db, source_table,
-   source_code, source_name, target_db, target_table, target_code, target_name,
+   source_name, target_db, target_table, target_code, target_name,
    status, started_at, finished_at, snapshot_version, config_snapshot, job_digest, error_message)
 SELECT
   100000 + row_number() OVER (ORDER BY s.id, e.day),
@@ -429,7 +429,6 @@ SELECT
   e.day,
   s.source_db,
   s.source_table,
-  src.code,
   src.name,
   s.target_db,
   s.source_table,

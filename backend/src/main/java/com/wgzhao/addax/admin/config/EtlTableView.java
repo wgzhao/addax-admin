@@ -51,7 +51,6 @@ public final class EtlTableView
             t.retired_by,
             t.reader_plugin_config,
             t.writer_plugin_config,
-            s.code,
             s.name,
             s.url,
             s.username,

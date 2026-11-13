@@ -10,7 +10,6 @@ const dbName = process.env.E2E_DB_NAME || 'addax_admin_history_e2e';
 const runId = `${Date.now()}`.slice(-8);
 const auditUser = `audit_e2e_${runId}`;
 const auditPassword = 'audit-user-password';
-const sourceCode = `AU${runId}`;
 const sourceSecret = `audit-source-secret-${runId}`;
 
 const authHeaders = (token: string) => ({ Authorization: `Bearer ${token}` });
@@ -92,7 +91,6 @@ test('security audit records attribution, denial and redacted changes end to end
   const createSource = await request.post('/api/v1/sources', {
     headers: authHeaders(adminToken),
     data: {
-      code: sourceCode,
       name: `Audit E2E ${runId}`,
       url: `jdbc:postgresql://localhost:5432/audit_${runId}`,
       username: 'audit_e2e',

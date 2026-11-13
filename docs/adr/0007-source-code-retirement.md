@@ -28,10 +28,16 @@ We therefore decouple the field from every functional path, then remove it:
 - The UI and manual use the source name as the primary label. The code field remains mandatory and
   immutable for one release so a rolling deployment still satisfies the old `NOT NULL` contract.
 
-## Phase 2 (next release)
+## Phase 2 (this change)
 
-- Drop `etl_source.code`, the form field, the check-code endpoint and the remaining display columns.
-- `etl_execution.source_code` may stay as a historical snapshot column; it is not used for grouping.
+- The startup migration drops `etl_source.code` (after dropping the view that selected it) and
+  `scripts/schema.sql` no longer creates it.
+- The entity field, the source form field, the uniqueness check, `GET /sources/check-code`, the
+  source list column and the source-code entries in audit snapshots and execution snapshots are gone.
+- `vw_etl_table_with_source` no longer exposes the code, and the free-text search formula no longer
+  matches it.
+- `etl_execution.source_code` stays as a historical snapshot column; new executions leave it null
+  and grouping never used it.
 
 ## Consequences
 
@@ -39,5 +45,6 @@ We therefore decouple the field from every functional path, then remove it:
   existing Hive paths are unchanged.
 - A source can be renamed without splitting its statistics, because grouping is by `sid`.
 - Duplicate codes can no longer affect scheduling or statistics during Phase 1.
-- Keep the column until every node runs the new code; `etl_execution.source_id` is additive and
-  nullable, so the migration is safe in both directions for one release.
+- Dropping the column is not compatible with a rolling upgrade: an old node still selects it, so
+  every node must be stopped before the new release starts. `etl_execution.source_id` was additive
+  and nullable, which is why the previous release could roll.

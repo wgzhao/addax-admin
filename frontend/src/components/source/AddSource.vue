@@ -42,28 +42,6 @@
 
             <div class="field-grid">
               <div class="field">
-                <label class="field-label" for="src-code">采集编号</label>
-                <v-text-field
-                  id="src-code"
-                  v-model="sourceItem.code"
-                  placeholder="两位大写字母"
-                  autocomplete="off"
-                  :disabled="mode === 'edit'"
-                  :rules="[requiredRule, codeExistsRule]"
-                  variant="outlined"
-                  density="compact"
-                  hide-details="auto"
-                />
-                <p class="field-help">
-                  {{
-                    mode === 'edit'
-                      ? '编号仅用于历史展示，保存后不可修改'
-                      : '仅用于历史展示，不参与目标库命名；建议两位大写字母，保存后不可修改'
-                  }}
-                </p>
-              </div>
-
-              <div class="field">
                 <label class="field-label" for="src-name">采集名称</label>
                 <v-text-field
                   id="src-name"
@@ -523,7 +501,6 @@
 
   const defaultSourceItem: EtlSource = {
     id: 0,
-    code: '',
     name: '',
     url: '',
     username: '',
@@ -641,18 +618,6 @@
   };
 
   const requiredRule = (value: string) => !!value || '必填项';
-  const codeExistsRule = async (value: string) => {
-    if (props.mode !== 'add' || !value) {
-      return true;
-    }
-    try {
-      const exists = await sourceService.checkCode(value);
-      return !exists || '编号已存在';
-    } catch (error) {
-      notify('检查编号失败: ' + ((error as Error).message || error), 'error');
-      return '编号校验失败，请稍后重试';
-    }
-  };
 
   const save = async () => {
     if (props.mode !== 'add' && props.mode !== 'edit') return;
@@ -749,7 +714,6 @@
       ...cloneData,
       calendar: cloneData.calendar ?? '',
       id: 0,
-      code: '',
     };
     syncConnectForm();
   };

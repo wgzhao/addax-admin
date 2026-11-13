@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -129,10 +128,6 @@ public class SourceController
         }
         EtlSource existing = sourceService.findById(id).orElseThrow(() -> new ApiException(404, "Source not found"));
         java.util.Map<String, Object> before = sourceSnapshot(existing);
-        // etlSource.code 不允许修改
-        if (!Objects.equals(existing.getCode(), etlSource.getCode())) {
-            throw new ApiException(400, "Source code cannot be modified");
-        }
         // Sentinel means the client didn't change the password — keep the stored one.
         if (EtlSource.PASS_SENTINEL.equals(etlSource.getPass())) {
             etlSource.setPass(existing.getPass());
@@ -155,7 +150,6 @@ public class SourceController
     {
         java.util.Map<String, Object> snapshot = new java.util.LinkedHashMap<>();
         snapshot.put("id", source.getId());
-        snapshot.put("code", source.getCode());
         snapshot.put("name", source.getName());
         snapshot.put("url", source.getUrl());
         snapshot.put("username", source.getUsername());
@@ -252,22 +246,6 @@ public class SourceController
             payload.sourceId(), payload.url(), null, null,
             metadata);
         return ResponseEntity.ok(isConnected);
-    }
-
-    /**
-     * 检查编号是否存在
-     *
-     * @param code 数据源编号（查询参数），示例: SRC001
-     * @return 编号是否存在
-     */
-    @GetMapping("/check-code")
-    public ResponseEntity<Boolean> checkCode(
-        @RequestParam(value = "code") String code)
-    {
-        if (code == null || code.isEmpty()) {
-            return ResponseEntity.ok(false);
-        }
-        return ResponseEntity.ok(sourceService.checkCode(code));
     }
 
     /**
