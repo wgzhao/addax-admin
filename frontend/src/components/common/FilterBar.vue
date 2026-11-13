@@ -3,13 +3,12 @@
     <div class="filter-group">
       <span class="filter-label">{{ label }}</span>
       <v-btn-toggle
-        :model-value="modelValue"
+        v-model="model"
         mandatory
         density="compact"
         variant="outlined"
         divided
         class="filter-toggle"
-        @update:model-value="onChange"
       >
         <v-btn v-for="range in ranges" :key="range.value" :value="range.value" size="small">
           {{ range.label }}
@@ -39,9 +38,10 @@
 </template>
 
 <script setup lang="ts">
+  const model = defineModel<number>({ required: true });
+
   withDefaults(
     defineProps<{
-      modelValue: number;
       ranges: { label: string; value: number }[];
       label?: string;
       updatedAt?: string;
@@ -51,14 +51,7 @@
     { label: '趋势范围', updatedAt: '', envLabel: '', loading: false }
   );
 
-  const emit = defineEmits<{
-    'update:modelValue': [value: number];
-    refresh: [];
-  }>();
-
-  const onChange = (value: unknown) => {
-    if (typeof value === 'number') emit('update:modelValue', value);
-  };
+  defineEmits<{ refresh: [] }>();
 </script>
 
 <style scoped>

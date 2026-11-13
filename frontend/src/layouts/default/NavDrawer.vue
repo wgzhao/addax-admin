@@ -1,12 +1,11 @@
 <template>
   <v-navigation-drawer
-    v-if="modelValue"
-    :model-value="modelValue"
+    v-if="open"
+    v-model="open"
     temporary
     location="left"
     width="320"
     class="nav-drawer"
-    @update:model-value="value => emit('update:modelValue', value)"
   >
     <div class="nav-drawer__header">
       <div class="nav-drawer__title">统一采集管理系统</div>
@@ -15,7 +14,7 @@
         icon="mdi-close"
         size="small"
         aria-label="关闭导航菜单"
-        @click="emit('update:modelValue', false)"
+        @click="open = false"
       />
     </div>
 
@@ -65,8 +64,8 @@
   import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from './build-nav';
   import type { NavChildItem, NavItem } from './build-nav';
 
-  defineProps<{ modelValue: boolean; items: NavItem[] }>();
-  const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
+  const open = defineModel<boolean>({ required: true });
+  defineProps<{ items: NavItem[] }>();
 
   const route = useRoute();
   const router = useRouter();
@@ -81,7 +80,9 @@
   const isPathActive = (path?: string) => isPathActiveFor(route.path, path);
   const isMenuActive = (item: NavItem) => isMenuActiveFor(route.path, item);
 
-  const close = () => emit('update:modelValue', false);
+  const close = () => {
+    open.value = false;
+  };
 
   const handleChild = (child: NavChildItem) => {
     if (child.onClick) {

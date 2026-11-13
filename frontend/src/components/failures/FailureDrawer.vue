@@ -1,12 +1,5 @@
 <template>
-  <v-navigation-drawer
-    :model-value="modelValue"
-    location="right"
-    temporary
-    width="560"
-    class="failure-drawer"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
+  <v-navigation-drawer v-model="open" location="right" temporary width="560" class="failure-drawer">
     <div class="failure-drawer__header">
       <div>
         <div class="failure-drawer__eyebrow">失败详情</div>
@@ -116,7 +109,9 @@
           <div class="failure-drawer__section-title">证据</div>
 
           <div class="evidence-row">
-            <v-icon size="18" :color="evidenceColor(evidence.log)">mdi-file-document-outline</v-icon>
+            <v-icon size="18" :color="evidenceColor(evidence.log)"
+              >mdi-file-document-outline</v-icon
+            >
             <div class="evidence-row__text">
               <strong>原始日志</strong>
               <span>{{ evidenceText('log') }}</span>
@@ -166,7 +161,9 @@
               {{ showDetail ? '收起' : '展开' }}
             </v-btn>
           </div>
-          <pre v-if="showDetail && failure.detail" class="failure-drawer__detail">{{ failure.detail }}</pre>
+          <pre v-if="showDetail && failure.detail" class="failure-drawer__detail">{{
+            failure.detail
+          }}</pre>
         </div>
       </div>
 
@@ -199,7 +196,6 @@
       <v-icon size="40" color="disabled">mdi-help-circle-outline</v-icon>
       <div class="failure-drawer__state-title">没有可显示的信息</div>
     </div>
-
   </v-navigation-drawer>
 
   <!-- Keep the log dialog outside the drawer: inside it is positioned relative to the drawer and
@@ -243,13 +239,12 @@
     LatestFailure,
   } from '@/types/failure';
 
+  const open = defineModel<boolean>({ required: true });
+
   const props = defineProps<{
-    modelValue: boolean;
     tid?: number | null;
     failureId?: number | null;
   }>();
-
-  const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
   const loading = ref(false);
   const error = ref('');
@@ -261,12 +256,18 @@
   const logError = ref('');
   const showDetail = ref(false);
 
-  const failure = computed<Failure | null>(() => detail.value?.failure ?? latest.value?.failure ?? null);
+  const failure = computed<Failure | null>(
+    () => detail.value?.failure ?? latest.value?.failure ?? null
+  );
   const evidence = computed<FailureEvidence>(
-    () => detail.value?.evidence ?? latest.value?.evidence ?? { detail: 'missing', log: 'missing', execution: 'missing' }
+    () =>
+      detail.value?.evidence ??
+      latest.value?.evidence ?? { detail: 'missing', log: 'missing', execution: 'missing' }
   );
   const occurrences = computed<FailureOccurrences>(
-    () => detail.value?.occurrences ?? latest.value?.occurrences ?? { count: 0, firstSeenAt: null, lastSeenAt: null }
+    () =>
+      detail.value?.occurrences ??
+      latest.value?.occurrences ?? { count: 0, firstSeenAt: null, lastSeenAt: null }
   );
   const hint = computed(() => detail.value?.hint ?? latest.value?.hint ?? null);
   const resolvedTid = computed(() => props.tid ?? failure.value?.tid ?? null);
@@ -284,8 +285,10 @@
     return '暂无失败记录';
   });
   const emptyDesc = computed(() => {
-    if (latest.value?.reason === 'PURGED') return '该表没有找到对应的失败记录，可能已按保留策略清理。';
-    if (latest.value?.reason === 'NO_EVIDENCE_FOR_STATE') return '状态为失败，但系统没有找到失败事实。';
+    if (latest.value?.reason === 'PURGED')
+      return '该表没有找到对应的失败记录，可能已按保留策略清理。';
+    if (latest.value?.reason === 'NO_EVIDENCE_FOR_STATE')
+      return '状态为失败，但系统没有找到失败事实。';
     return '该采集表当前没有失败记录。';
   });
   const attemptLabel = computed(() => {
@@ -308,7 +311,8 @@
     const state = evidence.value[kind];
     if (state === 'available') {
       if (kind === 'log') return failure.value?.logName || '可查看';
-      if (kind === 'execution') return failure.value?.executionId ? `执行 #${failure.value.executionId}` : '可查看';
+      if (kind === 'execution')
+        return failure.value?.executionId ? `执行 #${failure.value.executionId}` : '可查看';
       return '可展开查看';
     }
     if (state === 'restricted') return '需要该采集源的操作授权';
@@ -319,7 +323,7 @@
   }
 
   async function load() {
-    if (!props.modelValue) return;
+    if (!open.value) return;
     loading.value = true;
     error.value = '';
     latest.value = null;
@@ -365,13 +369,13 @@
   }
 
   function close() {
-    emit('update:modelValue', false);
+    open.value = false;
   }
 
   watch(
-    () => [props.modelValue, props.tid, props.failureId],
+    () => [open.value, props.tid, props.failureId],
     () => {
-      if (props.modelValue) load();
+      if (open.value) load();
     },
     { immediate: true }
   );

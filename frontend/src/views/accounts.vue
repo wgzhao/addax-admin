@@ -274,7 +274,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue';
+  import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
   import userService, { type AccountUser, type SourceGrant } from '@/service/user-service';
   import sourceService from '@/service/source-service';
   import EmptyState from '@/components/EmptyState.vue';
@@ -314,7 +314,7 @@
     Array<{ sourceId: number; sourceName: string; accessLevel: '' | SourceGrant['accessLevel'] }>
   >([]);
   const showPassword = ref(false);
-  const confirmPasswordRef = ref<{ validate: () => void } | null>(null);
+  const confirmPasswordRef = useTemplateRef<{ validate: () => void }>('confirmPasswordRef');
 
   const headers = [
     { title: '账号 / 姓名', key: 'username', minWidth: '200px' },
@@ -372,8 +372,7 @@
     passwordMatch: (v: string) => v === formModel.value.password || '两次输入的密码不一致',
     passwordMatchOptional: (v: string) =>
       !v || v === formModel.value.password || '两次输入的密码不一致',
-    emailOptional: (v: string) =>
-      !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || '邮箱格式不正确',
+    emailOptional: (v: string) => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v) || '邮箱格式不正确',
   };
 
   const formatTime = (value?: string | null) => {

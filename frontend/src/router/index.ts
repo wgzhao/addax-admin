@@ -58,31 +58,28 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
+// Vue Router 5 deprecates the next() callback in guards; return the outcome instead.
+router.beforeEach(async to => {
   // 如果访问登录页面，直接放行
   if (to.path === '/login') {
-    next();
-    return;
+    return true;
   }
 
   // 显式声明为公开的页面才允许免登录访问
   if (to.meta.requiresAuth === false) {
-    next();
-    return;
+    return true;
   }
 
   const authStore = useAuthStore();
 
   if (!authStore.token) {
-    next({ path: '/login', query: { redirect: to.fullPath } });
-    return;
+    return { path: '/login', query: { redirect: to.fullPath } };
   }
 
   // 可选：检查 JWT token 是否过期（客户端预检查）
   if (authStore.isTokenExpired && authStore.isTokenExpired()) {
     authStore.logout();
-    next({ path: '/login', query: { redirect: to.fullPath } });
-    return;
+    return { path: '/login', query: { redirect: to.fullPath } };
   }
 
   // The role lives on the server. Wait for it before deciding whether the route is visible; the
@@ -92,11 +89,10 @@ router.beforeEach(async (to, from, next) => {
   }
   const requiredRoles = Array.isArray(to.meta.roles) ? (to.meta.roles as string[]) : null;
   if (requiredRoles && !requiredRoles.includes(authStore.role)) {
-    next({ path: '/forbidden' });
-    return;
+    return { path: '/forbidden' };
   }
 
-  next();
+  return true;
 });
 
 router.afterEach(to => {
