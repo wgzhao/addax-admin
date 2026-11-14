@@ -221,11 +221,24 @@
             />
 
             <div v-if="placeholderTokens.length" class="editor-slots">
-              <span class="slots-label">运行时占位符</span>
+              <span class="slots-label"><v-icon size="12">mdi-lock</v-icon> 契约占位符</span>
               <code v-for="token in placeholderTokens" :key="token" class="slot-chip">
                 {{ token }}
               </code>
-              <span class="slots-hint">保存时原样保留，执行时由调度器替换</span>
+              <span class="slots-hint">不可增删改，执行时由调度器替换</span>
+            </div>
+            <div v-if="!activeContract.valid" class="editor-contract-error">
+              <v-icon size="14" color="error">mdi-alert-circle-outline</v-icon>
+              <span class="contract-error-text">
+                <template v-if="activeContract.missing.length">
+                  缺少占位符
+                  <code v-for="t in activeContract.missing" :key="t" class="contract-token">{{ t }}</code>
+                </template>
+                <template v-if="activeContract.extra.length">
+                  多余占位符
+                  <code v-for="t in activeContract.extra" :key="t" class="contract-token">{{ t }}</code>
+                </template>
+              </span>
             </div>
 
             <div class="editor-status">
@@ -349,6 +362,11 @@
     wH: wHJobTemplate,
     wR: wRJobTemplate,
   };
+
+  // The ${...} names are a hard contract with the job generator. The baseline is the template as
+  // it was loaded (its stored state), mirroring the backend's "reject changes to the placeholder
+  // set" rule — not a hardcoded default, so an existing deployment's deliberate hardcoding stays
+  // editable as a non-placeholder change.
 
   const activeTemplateKey = ref<TemplateKey>('R2H');
   const activeTemplateText = computed({
@@ -567,6 +585,36 @@
   const placeholderTokens = computed(() =>
     [...new Set(templateAnalysis.value.tokens)].slice(0, 12)
   );
+
+  // Extract every ${name} (inside or outside a JSON string) — the same view the backend contract
+  // check uses, unlike analyzeTemplate which only tracks bare tokens for JSON masking.
+  const extractPlaceholders = (text: string) => {
+    const tokens: string[] = [];
+    const re = /\$\{([^{}]+)\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(text))) {
+      tokens.push(match[1].trim());
+    }
+    return tokens;
+  };
+
+  const contractViolation = (text: string, key: TemplateKey) => {
+    const baseline = templates.value.get(key)?.itemValue ?? '';
+    const expected = [...new Set(extractPlaceholders(baseline))];
+    const actual = [...new Set(extractPlaceholders(text))];
+    const missing = expected.filter(t => !actual.includes(t));
+    const extra = actual.filter(t => !expected.includes(t));
+    return { missing, extra, valid: missing.length === 0 && extra.length === 0 };
+  };
+
+  const activeContract = computed(() =>
+    contractViolation(activeTemplateText.value, activeTemplateKey.value)
+  );
+
+  const allContractsValid = () =>
+    (Object.keys(templateRefs) as TemplateKey[]).every(key =>
+      contractViolation(templateRefs[key].value, key).valid
+    );
   const validationText = computed(() => {
     switch (templateAnalysis.value.state) {
       case 'empty':
@@ -656,6 +704,12 @@
       notify('当前模板为空', 'warning');
       return;
     }
+    if (!activeContract.value.valid) {
+      const missing = activeContract.value.missing.join(', ') || '无';
+      const extra = activeContract.value.extra.join(', ') || '无';
+      notify(`占位符与契约不一致（缺少: ${missing}；多余: ${extra}）`, 'error');
+      return;
+    }
     notify(
       analysis.state === 'slot'
         ? `模板结构有效，包含 ${analysis.tokens.length} 处运行时占位符`
@@ -677,6 +731,10 @@
     if (!isValid) {
       notify('请修正表单中标红的字段', 'error');
       focusFirstError();
+      return;
+    }
+    if (!allContractsValid()) {
+      notify('作业模板占位符与契约不一致，请修正后再保存', 'error');
       return;
     }
 
@@ -1251,6 +1309,32 @@
 
   .slots-hint {
     color: var(--ds-text-3);
+    font-size: 11px;
+  }
+
+  .editor-contract-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 16px;
+    border-top: 1px solid rgba(var(--v-theme-error), 0.25);
+    background: rgba(var(--v-theme-error), 0.06);
+    color: rgb(var(--v-theme-error));
+    font-size: 12px;
+  }
+
+  .contract-error-text {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .contract-token {
+    padding: 0 5px;
+    border-radius: 4px;
+    background: rgba(var(--v-theme-error), 0.12);
+    font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
     font-size: 11px;
   }
 

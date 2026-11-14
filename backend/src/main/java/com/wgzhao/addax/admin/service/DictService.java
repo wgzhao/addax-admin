@@ -1,11 +1,13 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.CalendarType;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -13,6 +15,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_SWITCH_TIME;
@@ -66,7 +70,77 @@ public class DictService
         }
         """;
 
+    private static final String DEFAULT_RDBMS_READER_TEMPLATE = """
+        {
+            "name": "${name}",
+            "parameter": {
+                "username": "${username}",
+                "password": "${password}",
+                "column": [${column}],
+                "where": "${where}",
+                "autoPk": "${autoPk}",
+                "splitPk": "${splitPk}",
+                "connection": {
+                    "jdbcUrl": [ "${jdbcUrl}" ],
+                    "table": [ "${table}" ]
+                },
+                "fetchSize": ${fetchSize}
+            }
+        }
+        """;
+
+    private static final String DEFAULT_HDFS_WRITER_TEMPLATE = """
+        {
+            "name": "hdfswriter",
+            "parameter": {
+              "defaultFS": "hdfs://yytz",
+              "fileType": "${fileType}",
+              "compress": "${compress}",
+              "path": "${path}",
+              "fileName": "addax",
+              "writeMode": "overwrite",
+              "column": ${column},
+              "createPath": true,
+              "haveKerberos": false,
+              "hdfsSitePath": "/etc/hadoop/conf/hdfs-site.xml",
+              "hadoopConfig": {}
+            }
+        }
+        """;
+
+    private static final String DEFAULT_RDBMS2HDFS_JOB_TEMPLATE = """
+        {
+          "job": {
+            "content": {
+                "reader": ${reader},
+                 "writer": ${writer},
+              "setting": {
+                "speed": {
+                  "batchSize": 20480,
+                  "bytes": -1,
+                  "channel": 1
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    // The placeholder contract: each ${token} is a name the job generator substitutes at render
+    // time. Validation compares a submitted template's token set against its built-in default,
+    // so the contract and the default can never drift apart.
+    private static final Map<String, String> DEFAULT_TEMPLATES = Map.of(
+        "R2H", DEFAULT_RDBMS2HDFS_JOB_TEMPLATE,
+        "R2R", DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE,
+        "rR", DEFAULT_RDBMS_READER_TEMPLATE,
+        "wH", DEFAULT_HDFS_WRITER_TEMPLATE,
+        "wR", DEFAULT_RDBMS_WRITER_TEMPLATE);
+
+    private static final java.util.regex.Pattern PLACEHOLDER =
+        java.util.regex.Pattern.compile("\\$\\{([^{}]+)}");
+
     private final SysItemRepo sysItemRepo;
+    private final ObjectMapper objectMapper;
 
     /**
      * 获取切日时间（如未配置则返回默认值）
@@ -166,7 +240,8 @@ public class DictService
 
     public String getRdbms2HdfsJobTemplate()
     {
-        return getItemValue(5000, "R2H", String.class);
+        String res = getItemValue(5000, "R2H", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_RDBMS2HDFS_JOB_TEMPLATE : res;
     }
 
     public String getRdbms2RdbmsJobTemplate()
@@ -178,13 +253,15 @@ public class DictService
     // 读取 RDBMS Reader 模板
     public String getRdbmsReaderTemplate()
     {
-        return getItemValue(5001, "rR", String.class);
+        String res = getItemValue(5001, "rR", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_RDBMS_READER_TEMPLATE : res;
     }
 
     // 获取 HDFS Writer 模板
     public String getHdfsWriterTemplate()
     {
-        return getItemValue(5001, "wH", String.class);
+        String res = getItemValue(5001, "wH", String.class);
+        return (res == null || res.isBlank()) ? DEFAULT_HDFS_WRITER_TEMPLATE : res;
     }
 
     // 获取 RDBMS Writer 模板
@@ -225,7 +302,10 @@ public class DictService
      */
     public void ensureRdbmsTemplates()
     {
+        ensureItem(5000, "R2H", DEFAULT_RDBMS2HDFS_JOB_TEMPLATE, "关系型数据库到HDFS的模板");
         ensureItem(5000, "R2R", DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE, "关系型数据库到关系型数据库的模板");
+        ensureItem(5001, "rR", DEFAULT_RDBMS_READER_TEMPLATE, "通用关系型数据库读取模板");
+        ensureItem(5001, "wH", DEFAULT_HDFS_WRITER_TEMPLATE, "HDFS写入模板");
         ensureItem(5001, "wR", DEFAULT_RDBMS_WRITER_TEMPLATE, "通用关系型数据库写入模板");
     }
 
@@ -361,8 +441,119 @@ public class DictService
             if (item.getDictCode() != 5000 && item.getDictCode() != 5001) {
                 continue;
             }
+            validateTemplateContract(item);
             saveItem(item);
         }
+    }
+
+    /**
+     * The {@code ${...}} names in a template are a hard contract with the job generator: renaming,
+     * removing or adding one leaves an unresolved literal in the rendered job. The guard prevents
+     * the placeholder set from changing relative to the template's own stored state — not to the
+     * shipped default — so a deployment that already hardcoded a value (e.g. {@code writeMode})
+     * keeps working while accidental placeholder edits are still refused.
+     */
+    private void validateTemplateContract(SysItem item)
+    {
+        String key = item.getItemKey();
+        String defaultTemplate = DEFAULT_TEMPLATES.get(key);
+        if (defaultTemplate == null)
+        {
+            throw new ApiException(400, "未知作业模板键: " + key);
+        }
+        String stored = getItemValue(item.getDictCode(), key, String.class);
+        String baseline = (stored == null || stored.isBlank()) ? defaultTemplate : stored;
+        Set<String> expected = placeholdersOf(baseline);
+        Set<String> actual = placeholdersOf(item.getItemValue());
+        Set<String> missing = new TreeSet<>(expected);
+        missing.removeAll(actual);
+        Set<String> extra = new TreeSet<>(actual);
+        extra.removeAll(expected);
+        if (!missing.isEmpty() || !extra.isEmpty())
+        {
+            String reason = "模板 " + key + " 的占位符与契约不一致"
+                + (missing.isEmpty() ? "" : "，缺少: " + missing)
+                + (extra.isEmpty() ? "" : "，多余: " + extra)
+                + "。占位符是任务生成的契约，不允许增删改";
+            throw new ApiException(400, reason);
+        }
+        validateTemplateJson(key, item.getItemValue());
+    }
+
+    private Set<String> placeholdersOf(String template)
+    {
+        if (template == null || template.isBlank())
+        {
+            return Set.of();
+        }
+        return PLACEHOLDER.matcher(template).results()
+            .map(m -> m.group(1).trim())
+            .collect(Collectors.toSet());
+    }
+
+    private void validateTemplateJson(String key, String template)
+    {
+        try
+        {
+            objectMapper.readTree(maskPlaceholders(template));
+        }
+        catch (Exception e)
+        {
+            throw new ApiException(400, "模板 " + key + " 不是合法的 JSON（占位符已按字符串处理）: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Replace bare {@code ${...}} tokens (those outside a JSON string) with quoted string literals
+     * so {@code readTree} can parse the surrounding structure; tokens inside strings are already
+     * valid JSON text and are left untouched.
+     */
+    private String maskPlaceholders(String text)
+    {
+        StringBuilder out = new StringBuilder();
+        boolean inString = false;
+        int i = 0;
+        int slot = 0;
+        while (i < text.length())
+        {
+            char c = text.charAt(i);
+            if (inString)
+            {
+                if (c == '\\' && i + 1 < text.length())
+                {
+                    out.append(c).append(text.charAt(i + 1));
+                    i += 2;
+                    continue;
+                }
+                if (c == '"')
+                {
+                    inString = false;
+                }
+                out.append(c);
+                i += 1;
+                continue;
+            }
+            if (c == '"')
+            {
+                inString = true;
+                out.append(c);
+                i += 1;
+                continue;
+            }
+            if (c == '$' && i + 1 < text.length() && text.charAt(i + 1) == '{')
+            {
+                int end = text.indexOf('}', i + 2);
+                if (end != -1)
+                {
+                    out.append("\"__ADDAX_SLOT_").append(slot++).append("__\"");
+                    i = end + 1;
+                    continue;
+                }
+            }
+            out.append(c);
+            i += 1;
+        }
+        return out.toString();
     }
 
     // 表结构刷新超时时间，单位秒
