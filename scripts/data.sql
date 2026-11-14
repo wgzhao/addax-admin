@@ -12,11 +12,9 @@ INSERT INTO public.sys_dict (code, name, classification, remark) VALUES
 (1000, '系统配置项开关', null, '系统常用配置项开关'),
 (1021, '交易日表', 'FR', '自动从柜台取最新的交易日表信息'),
 (1022, '工作日历', 'FR', '工作日(含调休)日期表，item_key 为 yyyyMMdd 的业务日期'),
-(1060, '通用运行状态', 'FR', '通用的运行状态字典E,R,N,Y,W'),
 (2011, 'ODS采集类型映射', 'FR', '源表的字段类型映射至HADOOP'),
 (5000, 'JOB模板', 'AT', 'JSON的主模板，与5001关联'),
-(5001, 'JOB模板子模块', 'AT', '实际读写数据库的JSON模块'),
-(2010, 'SQL 保留字', null, 'SQL 的关键字，当字段使用了关键字时，需要对其转义');
+(5001, 'JOB模板子模块', 'AT', '实际读写数据库的JSON模块');
 
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
@@ -26,17 +24,6 @@ values  (1000, 'CONCURRENT_LIMIT', '30', '最大采集并发数量'),
         (1000, 'SWITCH_TIME', '16:20', '切日时间'),
         (1000, 'SCHEMA_REFRESH_TIMEOUT', '600', '表结构刷新超时秒数');
 
-
-insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (1060, 'E', '运行错误', '2024-13-30');
-
-insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (1060, 'N', '未运行', '2024-13-30'),
-        (1060, 'R', '正在运行', '2024-13-30'),
-        (1060, 'U', '等待更新表结构', null),
-        (1060, 'W', '等待', '2024-13-30'),
-        (1060, 'X', '禁用', '2024-13-30'),
-        (1060, 'Y', '运行结束', '2024-13-30');
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
 values  (2011, 'bigint', 'bigint', '数值型'),

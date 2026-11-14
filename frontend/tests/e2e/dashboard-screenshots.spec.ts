@@ -284,13 +284,17 @@ test.describe('management pages', () => {
     await hideFooter(page);
     await shot('audit.png');
 
-    await page.goto('/dict');
-    await expect(page.getByText('字典维护')).toBeVisible({ timeout: 20_000 });
-    await page.getByText('通用运行状态').first().click();
-    await expect(page.getByText('运行错误')).toBeVisible({ timeout: 20_000 });
+    await page.goto('/calendars');
+    await expect(page.getByText('采集日历')).toBeVisible({ timeout: 20_000 });
     await page.waitForTimeout(500);
     await hideFooter(page);
-    await shot('etl-dict.png');
+    await shot('etl-calendar.png');
+
+    await page.goto('/type-mappings');
+    await expect(page.getByText('类型映射')).toBeVisible({ timeout: 20_000 });
+    await page.waitForTimeout(500);
+    await hideFooter(page);
+    await shot('etl-type-mappings.png');
 
     await page.goto('/sys-settings');
     await expect(page.getByText('系统配置')).toBeVisible({ timeout: 20_000 });

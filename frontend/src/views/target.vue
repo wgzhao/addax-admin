@@ -498,8 +498,8 @@
   import { notify } from '@/stores/notifier';
   import targetService from '@/service/target-service';
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants';
-  import dictService from '@/service/dict-service';
-  import type { EtlTarget } from '@/types/database';
+  import settingsService from '@/service/settings-service';
+  import type { EtlTarget, SysItem } from '@/types/database';
   import type { DataTableHeader } from 'vuetify';
   import { useAuthStore } from '@/stores/auth';
 
@@ -804,7 +804,12 @@
 
   const loadWriterTemplateOptions = async () => {
     try {
-      const items = await dictService.listSysItems(5001);
+      const templates = await settingsService.getJobConfig();
+      // axios 返回的是普通对象，而非真正的 Map；与 sys-settings 页保持一致地归一化。
+      const items: SysItem[] =
+        templates instanceof Map
+          ? Array.from(templates.values())
+          : Object.values((templates as unknown as Record<string, SysItem>) || {});
       writerTemplateOptions.value = items
         .filter(i => i.itemKey && i.itemKey.startsWith('w'))
         .map(i => ({
