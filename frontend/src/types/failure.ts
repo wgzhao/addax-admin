@@ -6,7 +6,8 @@ export type FailureStage =
   | 'JOB_TEMPLATE'
   | 'COLLECT'
   | 'QUEUE'
-  | 'RECOVERY';
+  | 'RECOVERY'
+  | 'RECONCILE';
 
 export type FailureCategory =
   | 'OOM'

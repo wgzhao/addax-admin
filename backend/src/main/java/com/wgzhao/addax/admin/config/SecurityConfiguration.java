@@ -69,7 +69,8 @@ public class SecurityConfiguration
                     "/tasks/*/executions",
                     "/tasks/executions/batch",
                     "/tasks/fillback",
-                    "/tasks/*/kill").authenticated()
+                    "/tasks/*/kill",
+                    "/reconciles/run").authenticated()
                 .requestMatchers(HttpMethod.PUT,
                     "/sources/*",
                     "/tables/*",

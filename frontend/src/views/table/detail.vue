@@ -50,6 +50,7 @@
           <v-tab value="fields">字段比较</v-tab>
           <v-tab value="result">采集结果</v-tab>
           <v-tab value="failures">失败记录</v-tab>
+          <v-tab value="reconcile">对账</v-tab>
           <v-tab value="executions">执行快照</v-tab>
           <v-tab v-if="canOperateTable" value="fillback">补数</v-tab>
           <v-tab value="history">变更历史</v-tab>
@@ -75,6 +76,9 @@
           </v-tabs-window-item>
           <v-tabs-window-item value="failures">
             <FailureHistoryTab :tid="Number(tid)" :active="currentTab === 'failures'" />
+          </v-tabs-window-item>
+          <v-tabs-window-item value="reconcile">
+            <ReconcileTab :active="currentTab === 'reconcile'" :can-write="canOperateTable" />
           </v-tabs-window-item>
           <v-tabs-window-item value="executions">
             <ExecutionHistory />
@@ -103,6 +107,7 @@
   import AddaxResult from '@/components/table/AddaxResult.vue';
   import ExecutionHistory from '@/components/table/ExecutionHistory.vue';
   import FailureHistoryTab from '@/components/table/detail/FailureHistoryTab.vue';
+  import ReconcileTab from '@/components/table/detail/ReconcileTab.vue';
   import FillbackTab from '@/components/table/detail/FillbackTab.vue';
   import LogFiles from '@/components/table/LogFiles.vue';
   import ChangeHistory from '@/components/table/ChangeHistory.vue';

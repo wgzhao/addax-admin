@@ -9,6 +9,7 @@ export const FAILURE_STAGE_LABELS: Record<FailureStage, string> = {
   COLLECT: '采集进程',
   QUEUE: '任务队列',
   RECOVERY: '执行恢复',
+  RECONCILE: '采集对账',
 };
 
 export const FAILURE_CATEGORY_LABELS: Record<FailureCategory, string> = {
