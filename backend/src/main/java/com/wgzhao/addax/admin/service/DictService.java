@@ -1,9 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.common.CalendarType;
-import com.wgzhao.addax.admin.model.SysDict;
 import com.wgzhao.addax.admin.model.SysItem;
-import com.wgzhao.addax.admin.repository.SysDictRepo;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +13,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.wgzhao.addax.admin.common.Constants.DEFAULT_SWITCH_TIME;
@@ -70,7 +67,6 @@ public class DictService
         """;
 
     private final SysItemRepo sysItemRepo;
-    private final SysDictRepo sysDictRepo;
 
     /**
      * 获取切日时间（如未配置则返回默认值）
@@ -312,100 +308,11 @@ public class DictService
                 SysItem::getItemValue));
     }
 
-    // SysDict CRUD
-
-    /**
-     * 查询所有参数字典
-     *
-     * @return 字典列表
-     */
-    public List<SysDict> findAllDicts()
-    {
-        return sysDictRepo.findAll();
-    }
-
-    /**
-     * 根据编码查询字典
-     *
-     * @param dictCode 字典编码
-     * @return 字典对象
-     */
-    public Optional<SysDict> findDictById(int dictCode)
-    {
-        return sysDictRepo.findById(dictCode);
-    }
+    // SysItem CRUD
 
     public Optional<SysItem> findSystemItem(int dictCode, String itemKey)
     {
         return sysItemRepo.findByDictCodeAndItemKey(dictCode, itemKey);
-    }
-
-    /**
-     * 保存字典对象
-     *
-     * @param dict 字典对象
-     * @return 保存后的字典对象
-     */
-    public SysDict saveDict(SysDict dict)
-    {
-        return sysDictRepo.save(dict);
-    }
-
-    /**
-     * 删除字典
-     *
-     * @param dictCode 字典编码
-     */
-    public void deleteDict(int dictCode)
-    {
-        sysDictRepo.deleteById(dictCode);
-    }
-
-    /**
-     * 检查字典是否存在
-     *
-     * @param dictCode 字典编码
-     * @return 是否存在
-     */
-    public boolean existsDict(int dictCode)
-    {
-        return sysDictRepo.existsById(dictCode);
-    }
-
-    /**
-     * 根据编码查询字典对象
-     *
-     * @param code 字典编码
-     * @return 字典对象
-     */
-    public SysDict findDictByCode(int code)
-    {
-        return sysDictRepo.findByCode(code);
-    }
-
-    // SysItem CRUD
-
-    /**
-     * 查询指定字典下的所有字典项
-     *
-     * @param dictCode 字典编码
-     * @return 字典项列表
-     */
-    public List<SysItem> findItemsByDictCode(int dictCode)
-    {
-        return sysItemRepo.findByDictCodeOrderByDictCodeAsc(dictCode);
-    }
-
-    /**
-     * 根据主键查询字典项
-     *
-     * @param dictCode 字典编码
-     * @param itemKey 字典项键
-     * @return 字典项对象
-     */
-    public Optional<SysItem> findItemById(int dictCode, String itemKey)
-    {
-        return sysItemRepo.findById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
 
     /**
@@ -417,29 +324,6 @@ public class DictService
     public SysItem saveItem(SysItem item)
     {
         return sysItemRepo.save(item);
-    }
-
-    /**
-     * 删除字典项
-     *
-     * @param dictCode 字典编码
-     * @param itemKey 字典项键
-     */
-    public void deleteItem(int dictCode, String itemKey)
-    {
-        sysItemRepo.deleteById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
-    }
-
-    /**
-     * 检查字典项是否存在
-     *
-     * @param dictCode 字典编码
-     * @param itemKey 字典项键
-     * @return 是否存在
-     */
-    public boolean existsItem(int dictCode, String itemKey)
-    {
-        return sysItemRepo.existsById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
 
     public Map<String, Object> getSysConfig()
@@ -479,13 +363,6 @@ public class DictService
             }
             saveItem(item);
         }
-    }
-
-    public Set<String> getSqlReservedKeywords()
-    {
-        return sysItemRepo.findByDictCodeOrderByDictCodeAsc(2010).stream()
-            .map(SysItem::getItemKey)
-            .collect(Collectors.toSet());
     }
 
     // 表结构刷新超时时间，单位秒

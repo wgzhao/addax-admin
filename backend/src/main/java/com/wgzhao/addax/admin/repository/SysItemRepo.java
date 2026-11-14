@@ -14,8 +14,6 @@ public interface SysItemRepo
 
     List<SysItem> findByDictCode(int dictCode);
 
-    List<SysItem> findByDictCodeOrderByDictCodeAsc(int dictCode);
-
     @Query("SELECT s FROM SysItem s WHERE s.dictCode = 2011")
     List<SysItem> getHiveTypeItems();
 
