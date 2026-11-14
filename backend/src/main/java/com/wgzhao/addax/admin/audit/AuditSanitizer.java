@@ -1,10 +1,10 @@
 package com.wgzhao.addax.admin.audit;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -48,8 +48,8 @@ public class AuditSanitizer
             return fields;
         }
         List<String> names = new ArrayList<>();
-        before.fieldNames().forEachRemaining(names::add);
-        after.fieldNames().forEachRemaining(name -> {
+        before.propertyNames().forEach(names::add);
+        after.propertyNames().forEach(name -> {
             if (!names.contains(name)) {
                 names.add(name);
             }
@@ -86,7 +86,7 @@ public class AuditSanitizer
         }
         if (node.isObject()) {
             ObjectNode result = JsonNodeFactory.instance.objectNode();
-            node.fields().forEachRemaining(entry ->
+            node.properties().forEach(entry ->
                 result.set(entry.getKey(), redact(entry.getValue(), entry.getKey())));
             return result;
         }

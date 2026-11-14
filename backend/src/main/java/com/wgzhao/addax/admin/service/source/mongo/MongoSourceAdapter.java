@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.service.source.mongo;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.mongodb.client.MongoClient;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
@@ -318,7 +318,7 @@ public class MongoSourceAdapter implements SourceAdapter
             log.warn("MongoDB reader 插件配置必须是 JSON 对象，tid={}", table.getId());
             return;
         }
-        customConfig.fields().forEachRemaining(entry -> {
+        customConfig.properties().forEach(entry -> {
             String key = entry.getKey();
             JsonNode value = entry.getValue();
             if ("query".equals(key))
@@ -328,7 +328,7 @@ public class MongoSourceAdapter implements SourceAdapter
             else if ("connection".equals(key) && value.isObject()
                 && readerParameter.get("connection") instanceof ObjectNode current)
             {
-                value.fields().forEachRemaining(field -> current.set(field.getKey(), field.getValue()));
+                value.properties().forEach(field -> current.set(field.getKey(), field.getValue()));
             }
             else
             {

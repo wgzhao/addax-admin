@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.service.source;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 

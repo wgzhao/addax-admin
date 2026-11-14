@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;

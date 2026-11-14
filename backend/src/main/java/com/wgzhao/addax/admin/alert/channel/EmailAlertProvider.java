@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.alert.channel;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.wgzhao.addax.admin.alert.AlertChannelProvider;
 import com.wgzhao.addax.admin.alert.AlertChannelType;
 import com.wgzhao.addax.admin.alert.AlertDeliveryResult;

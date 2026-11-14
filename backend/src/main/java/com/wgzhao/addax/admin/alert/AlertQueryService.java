@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.alert;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.wgzhao.addax.admin.alert.dto.AlertDeliveryDto;
 import com.wgzhao.addax.admin.alert.dto.AlertEventDto;
 import com.wgzhao.addax.admin.alert.model.AlertDelivery;
@@ -42,7 +42,7 @@ public class AlertQueryService
                 throw new ApiException(400, "无效的事件状态: " + status);
             }
         }
-        Specification<AlertEvent> spec = Specification.where(null);
+        Specification<AlertEvent> spec = (root, query, cb) -> cb.conjunction();
         String typeFilter = blankToNull(eventType);
         if (typeFilter != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("eventType"), typeFilter));
@@ -70,7 +70,7 @@ public class AlertQueryService
         if (status != null && !status.isBlank() && deliveryStatus == null) {
             throw new ApiException(400, "无效的投递状态: " + status);
         }
-        Specification<AlertDelivery> spec = Specification.where(null);
+        Specification<AlertDelivery> spec = (root, query, cb) -> cb.conjunction();
         if (deliveryStatus != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), deliveryStatus));
         }

@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
@@ -222,7 +222,7 @@ public class JobContentService
             return;
         }
 
-        customConfig.fields().forEachRemaining(entry -> parameterObject.set(entry.getKey(), entry.getValue()));
+        customConfig.properties().forEach(entry -> parameterObject.set(entry.getKey(), entry.getValue()));
     }
 
     /**

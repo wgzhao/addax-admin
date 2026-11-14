@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.common.TargetOptions;
