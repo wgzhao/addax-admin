@@ -105,6 +105,23 @@
                 </v-text-field>
                 <p class="field-help">切日之前启动的任务仍计入上一业务日。</p>
               </div>
+
+              <div class="field">
+                <label class="field-label" for="cfg-schema-refresh-timeout">表结构刷新超时</label>
+                <v-text-field
+                  id="cfg-schema-refresh-timeout"
+                  v-model.number="settings['SCHEMA_REFRESH_TIMEOUT']"
+                  type="number"
+                  min="1"
+                  placeholder="600"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details="auto"
+                  suffix="秒"
+                  :rules="[rules.required, rules.positiveNumber]"
+                />
+                <p class="field-help">源表结构刷新作业的超时上限。</p>
+              </div>
             </div>
           </section>
 
@@ -287,7 +304,7 @@
   import settingsService from '@/service/settings-service';
   import { SysItem } from '@/types/database';
 
-  type TemplateKey = 'R2H' | 'rR' | 'wH';
+  type TemplateKey = 'R2H' | 'R2R' | 'rR' | 'wH' | 'wR';
 
   const form = ref<any>(null);
   const loading = ref(true);
@@ -301,10 +318,13 @@
   const templates = ref<Map<string, SysItem>>(new Map());
   const rRJobTemplate = ref<string>('');
   const wHJobTemplate = ref<string>('');
+  const wRJobTemplate = ref<string>('');
   const R2HJobTemplate = ref<string>('');
+  const R2RJobTemplate = ref<string>('');
 
   const templateTabs: Array<{ key: TemplateKey; label: string; doc: string }> = [
     { key: 'R2H', label: '采集主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
+    { key: 'R2R', label: '关系型主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
     {
       key: 'rR',
       label: 'RDBMS 读取',
@@ -315,12 +335,19 @@
       label: 'HDFS 写入',
       doc: 'https://wgzhao.github.io/Addax/latest/writer/hdfswriter/',
     },
+    {
+      key: 'wR',
+      label: 'RDBMS 写入',
+      doc: 'https://wgzhao.github.io/Addax/latest/writer/rdbmswriter/',
+    },
   ];
 
   const templateRefs: Record<TemplateKey, typeof R2HJobTemplate> = {
     R2H: R2HJobTemplate,
+    R2R: R2RJobTemplate,
     rR: rRJobTemplate,
     wH: wHJobTemplate,
+    wR: wRJobTemplate,
   };
 
   const activeTemplateKey = ref<TemplateKey>('R2H');
@@ -336,14 +363,26 @@
 
   // Why: a single baseline keeps dirty tracking and "discard" cheap and exact
   const baseline = ref('');
-  const EDITABLE_SETTING_KEYS = ['ADDAX', 'SWITCH_TIME', 'CONCURRENT_LIMIT', 'QUEUE_SIZE'];
+  const EDITABLE_SETTING_KEYS = [
+    'ADDAX',
+    'SWITCH_TIME',
+    'CONCURRENT_LIMIT',
+    'QUEUE_SIZE',
+    'SCHEMA_REFRESH_TIMEOUT',
+  ];
 
   const snapshot = () =>
     JSON.stringify({
       settings: Object.fromEntries(
         EDITABLE_SETTING_KEYS.map(key => [key, String(settings.value[key] ?? '')])
       ),
-      templates: [R2HJobTemplate.value, rRJobTemplate.value, wHJobTemplate.value],
+      templates: [
+        R2HJobTemplate.value,
+        R2RJobTemplate.value,
+        rRJobTemplate.value,
+        wHJobTemplate.value,
+        wRJobTemplate.value,
+      ],
     });
 
   const currentSnapshot = computed(snapshot);
@@ -391,7 +430,7 @@
     const changed = (keys: string[]) =>
       keys.some(key => before.settings[key] !== after.settings[key]);
     return {
-      'cfg-basic': changed(['ADDAX', 'SWITCH_TIME']),
+      'cfg-basic': changed(['ADDAX', 'SWITCH_TIME', 'SCHEMA_REFRESH_TIMEOUT']),
       'cfg-perf': changed(['CONCURRENT_LIMIT', 'QUEUE_SIZE']),
       'cfg-template': after.templates.some(
         (value: string, index: number) => before.templates[index] !== value
@@ -419,8 +458,10 @@
       index: '03',
       label: '作业模板',
       meta: `${
-        [R2HJobTemplate, rRJobTemplate, wHJobTemplate].filter(item => item.value.trim()).length
-      } / 3 已配置`,
+        [R2HJobTemplate, R2RJobTemplate, rRJobTemplate, wHJobTemplate, wRJobTemplate].filter(
+          item => item.value.trim()
+        ).length
+      } / 5 已配置`,
     },
   ]);
 
@@ -643,14 +684,28 @@
     try {
       const rRTemplate = templates.value.get('rR');
       const wHTemplate = templates.value.get('wH');
+      const wRTemplate = templates.value.get('wR');
       const r2hTemplate = templates.value.get('R2H');
+      const r2rTemplate = templates.value.get('R2R');
 
-      if (!rRTemplate || !wHTemplate || !r2hTemplate) {
+      if (!rRTemplate || !wHTemplate || !wRTemplate || !r2hTemplate || !r2rTemplate) {
         notify('作业模板配置缺失，请刷新后重试', 'error');
         return;
       }
 
       const payload: SysItem[] = [
+        {
+          dictCode: r2hTemplate.dictCode,
+          itemKey: 'R2H',
+          itemValue: R2HJobTemplate.value,
+          remark: r2hTemplate.remark,
+        },
+        {
+          dictCode: r2rTemplate.dictCode,
+          itemKey: 'R2R',
+          itemValue: R2RJobTemplate.value,
+          remark: r2rTemplate.remark,
+        },
         {
           dictCode: rRTemplate.dictCode,
           itemKey: 'rR',
@@ -664,10 +719,10 @@
           remark: wHTemplate.remark,
         },
         {
-          dictCode: r2hTemplate.dictCode,
-          itemKey: 'R2H',
-          itemValue: R2HJobTemplate.value,
-          remark: r2hTemplate.remark,
+          dictCode: wRTemplate.dictCode,
+          itemKey: 'wR',
+          itemValue: wRJobTemplate.value,
+          remark: wRTemplate.remark,
         },
       ];
 
@@ -710,8 +765,10 @@
       settings.value[key] = saved.settings[key];
     }
     R2HJobTemplate.value = saved.templates[0];
-    rRJobTemplate.value = saved.templates[1];
-    wHJobTemplate.value = saved.templates[2];
+    R2RJobTemplate.value = saved.templates[1];
+    rRJobTemplate.value = saved.templates[2];
+    wHJobTemplate.value = saved.templates[3];
+    wRJobTemplate.value = saved.templates[4];
     validationFailed.value = false;
     form.value?.resetValidation?.();
     notify('已撤销未保存的修改', 'info');
@@ -733,7 +790,9 @@
 
       rRJobTemplate.value = templates.value.get('rR')?.itemValue || '';
       wHJobTemplate.value = templates.value.get('wH')?.itemValue || '';
+      wRJobTemplate.value = templates.value.get('wR')?.itemValue || '';
       R2HJobTemplate.value = templates.value.get('R2H')?.itemValue || '';
+      R2RJobTemplate.value = templates.value.get('R2R')?.itemValue || '';
 
       if (typeof settings.value['SWITCH_TIME'] === 'string') {
         originalSwitchTime.value = settings.value['SWITCH_TIME'];
