@@ -111,8 +111,8 @@ Hive JDBC 驱动与 MySQL/PostgreSQL/SQL Server 驱动一样，放在后端节�
 
 系统配置中维护五类 Addax 作业模板：
 
-- 采集主模板 `R2H`（RDBMS → HDFS）
-- 关系型主模板 `R2R`（RDBMS → RDBMS）
+- RDBMS→HDFS 主模板 `R2H`
+- RDBMS→RDBMS 主模板 `R2R`
 - RDBMS 读取模板 `rR`
 - HDFS 写入模板 `wH`
 - RDBMS 写入模板 `wR`
