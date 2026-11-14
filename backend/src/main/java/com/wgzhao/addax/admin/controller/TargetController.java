@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/targets")
@@ -93,6 +94,12 @@ public class TargetController
         auditRecorder.success("TARGET_CONNECTION_TESTED", "CONFIG", "INFO", "ETL_TARGET",
             target.getId(), target.getName(), null, null);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/detect-dialect")
+    public ResponseEntity<EtlTargetService.DialectInfo> detectDialect(@RequestBody Map<String, String> body)
+    {
+        return ResponseEntity.ok(etlTargetService.detectDialect(body.get("url")));
     }
 
     private java.util.Map<String, Object> targetSnapshot(EtlTarget target)
