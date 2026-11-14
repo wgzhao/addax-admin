@@ -16,6 +16,7 @@ public final class FailureStage
     public static final String QUEUE = "QUEUE";
     public static final String RECOVERY = "RECOVERY";
     public static final String RECONCILE = "RECONCILE";
+    public static final String DATA_QUALITY = "DATA_QUALITY";
 
     private FailureStage() {}
 

@@ -11,6 +11,7 @@ import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.CalendarService;
+import com.wgzhao.addax.admin.service.DataQualityService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.FailureService;
 import com.wgzhao.addax.admin.service.ReconcileService;
@@ -47,6 +48,7 @@ public class LogController
     private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
     private final ReconcileService reconcileService;
+    private final DataQualityService dataQualityService;
 
     @GetMapping("/addax")
     public PageResponse<AddaxLog> listAddaxLog(
@@ -185,6 +187,7 @@ public class LogController
         boolean saved = statService.saveOrUpdate(sta);
         reconcileService.reconcile(tid, executionId, bizDate,
             dto.totalReadRecords(), dto.totalErrorRecords());
+        dataQualityService.checkRowCountDrift(tid, executionId, bizDate, dto.totalReadRecords());
         return saved;
     }
 }
