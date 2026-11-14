@@ -9,8 +9,10 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
+import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
+import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -39,6 +41,7 @@ public class EtlTargetService
     private final EtlTargetRepo etlTargetRepo;
     private final EtlTableRepo etlTableRepo;
     private final TargetAdapterRegistry targetAdapterRegistry;
+    private final RdbmsWriterPlugins rdbmsWriterPlugins;
     private final ObjectMapper objectMapper;
 
     public List<EtlTarget> listAll(Boolean enabledOnly)
@@ -154,6 +157,34 @@ public class EtlTargetService
     {
         EtlTarget target = getById(id);
         doTestConnect(target);
+    }
+
+    /**
+     * Resolve the target family and concrete RDBMS dialect from a JDBC URL, without opening a
+     * connection. The family follows the same rule the routing resolver uses (Hive URL -> HDFS),
+     * and the dialect's writer plugin reflects whether the dialect is implemented end to end.
+     * The save-time gate in {@code RdbmsTargetAdapter#validateForSave} remains authoritative.
+     */
+    public DialectInfo detectDialect(String url)
+    {
+        if (url == null || url.isBlank())
+        {
+            throw new ApiException(400, "JDBC URL is required");
+        }
+        DbType dialect = DbUtil.getDbType(url.trim());
+        if (HDFS_TARGET_TYPES.contains(dialect.name()))
+        {
+            return new DialectInfo("HDFS", dialect.name(), "hdfswriter", true, "");
+        }
+        boolean supported = rdbmsWriterPlugins.isSupported(dialect);
+        return new DialectInfo("RDBMS", dialect.name(),
+            supported ? rdbmsWriterPlugins.pluginName(dialect) : null,
+            supported, rdbmsWriterPlugins.supportedDialectsText());
+    }
+
+    public record DialectInfo(String family, String dialect, String writerPlugin,
+        boolean supported, String supportedDialects)
+    {
     }
 
     public void testConnect(EtlTarget target)

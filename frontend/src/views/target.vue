@@ -248,6 +248,27 @@
                       :rules="[requiredRule]"
                     />
                   </div>
+                  <div v-if="isRdbmsTarget && detectedDialect" class="field span-2 dialect-hint">
+                    <span class="field-label">识别到的方言</span>
+                    <v-chip
+                      v-if="detectedDialect.supported"
+                      size="small"
+                      color="success"
+                      variant="tonal"
+                    >
+                      {{ detectedDialect.dialect }} · {{ detectedDialect.writerPlugin }}
+                    </v-chip>
+                    <v-alert
+                      v-else
+                      type="warning"
+                      variant="tonal"
+                      density="compact"
+                      class="dialect-alert"
+                    >
+                      目标方言 {{ detectedDialect.dialect }} 暂不支持；支持：
+                      {{ detectedDialect.supportedDialects }}
+                    </v-alert>
+                  </div>
                   <div class="field">
                     <label class="field-label" for="target-user">连接用户名</label>
                     <v-text-field
@@ -496,7 +517,7 @@
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
-  import targetService from '@/service/target-service';
+  import targetService, { type DialectInfo } from '@/service/target-service';
   import { HDFS_STORAGE_FORMATS, HDFS_COMPRESS_FORMATS } from '@/utils/constants';
   import settingsService from '@/service/settings-service';
   import type { EtlTarget, SysItem } from '@/types/database';
@@ -528,8 +549,10 @@
     confirmState.value.open = false;
     action?.();
   };
-  // Phase 1 only offers dialects that are implemented end to end (writer plugin + dialect-aware DDL).
-  const targetTypes = ['HDFS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'];
+  // The target is modelled as a family (HDFS vs RDBMS); the concrete RDBMS dialect is inferred
+  // from the JDBC URL, never chosen here. Keeping the dropdown to families avoids a second source
+  // of truth that can disagree with the URL.
+  const targetTypes = ['HDFS', 'RDBMS'];
   const writerTemplateOptions = ref<{ label: string; value: string }[]>([]);
 
   const headers = computed<DataTableHeader[]>(() => {
@@ -581,6 +604,10 @@
     () => (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WH'
   );
 
+  const isRdbmsTarget = computed(
+    () => (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WR'
+  );
+
   const connectionPlaceholder = computed(() =>
     isHdfsTarget.value ? 'jdbc:hive2://host:10000/default' : 'jdbc:postgresql://host:5432/db'
   );
@@ -622,9 +649,7 @@
   const getTargetTypeColor = (targetType?: string) => {
     const colorMap = {
       HDFS: 'primary',
-      MYSQL: 'success',
-      POSTGRESQL: 'info',
-      SQLSERVER: 'secondary',
+      RDBMS: 'success',
     };
     return colorMap[targetType || ''] || 'secondary';
   };
@@ -668,6 +693,32 @@
       syncConnectConfig();
     }
   );
+
+  // The concrete RDBMS dialect is derived from the JDBC URL, not chosen; surface the resolved
+  // dialect read-only so the operator sees what will actually be used before saving.
+  const detectedDialect = ref<DialectInfo | null>(null);
+  let detectTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const detectDialect = async () => {
+    const url = (connectForm.value.url || '').trim();
+    if (!isRdbmsTarget.value || !url.startsWith('jdbc:')) {
+      detectedDialect.value = null;
+      return;
+    }
+    try {
+      detectedDialect.value = await targetService.detectDialect(url);
+    } catch {
+      detectedDialect.value = null;
+    }
+  };
+
+  const scheduleDetect = () => {
+    clearTimeout(detectTimer);
+    detectTimer = setTimeout(detectDialect, 300);
+  };
+
+  watch(() => connectForm.value.url, scheduleDetect);
+  watch(isRdbmsTarget, scheduleDetect);
 
   const parseConnectConfig = (target: EtlTarget) => {
     connectForm.value = {
@@ -728,6 +779,7 @@
     showConnectJson.value = false;
     showPassword.value = false;
     dialogVisible.value = true;
+    detectDialect();
   };
 
   const openEdit = (item: EtlTarget) => {
@@ -736,6 +788,7 @@
     showConnectJson.value = false;
     showPassword.value = false;
     dialogVisible.value = true;
+    detectDialect();
   };
 
   const save = async () => {
@@ -900,6 +953,22 @@
 
   .field.span-2 {
     grid-column: 1 / -1;
+  }
+
+  .dialect-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .dialect-hint .field-label {
+    margin-bottom: 0;
+  }
+
+  .dialect-alert {
+    margin: 0;
+    width: 100%;
   }
 
   .field-label {

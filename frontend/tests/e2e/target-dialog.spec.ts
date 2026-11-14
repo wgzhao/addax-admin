@@ -72,11 +72,16 @@ test('target dialog keeps its fields readable and validates required input', asy
 
   const typeField = dialog.locator('.field').filter({ hasText: '目标端类型' });
   await typeField.locator('.v-field').click();
-  await page.keyboard.type('POSTGRESQL');
+  await page.keyboard.type('RDBMS');
   await page.keyboard.press('Enter');
-  await expect(typeField).toContainText('POSTGRESQL');
+  await expect(typeField).toContainText('RDBMS');
   await expect(page.locator('#target-default-fs')).toHaveCount(0);
   await expect(page.locator('#target-hdfs-prefix')).toHaveCount(0);
+
+  // The concrete dialect is inferred from the JDBC URL and shown read-only, not chosen.
+  await expect(dialog.locator('.dialect-hint')).toBeVisible();
+  await expect(dialog.locator('.dialect-hint')).toContainText('POSTGRESQL');
+  await expect(dialog.locator('.dialect-hint')).toContainText('postgresqlwriter');
 
   await typeField.locator('.v-field').click();
   await page.keyboard.type('HDFS');
@@ -86,6 +91,7 @@ test('target dialog keeps its fields readable and validates required input', asy
   await expect(page.locator('#target-hdfs-prefix')).toBeVisible();
   await expect(page.locator('#target-driver')).toHaveCount(0);
   await expect(page.locator('#target-driver-path')).toHaveCount(0);
+  await expect(dialog.locator('.dialect-hint')).toHaveCount(0);
 
   // HDFS targets require the writer cluster; the dialog must say so before saving.
   await dialog.getByRole('button', { name: '保存' }).click();

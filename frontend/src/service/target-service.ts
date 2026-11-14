@@ -1,6 +1,14 @@
 import Requests from '@/utils/requests';
 import type { EtlTarget } from '@/types/database';
 
+export interface DialectInfo {
+  family: string;
+  dialect: string;
+  writerPlugin?: string | null;
+  supported: boolean;
+  supportedDialects: string;
+}
+
 class TargetService {
   prefix = '/targets';
 
@@ -26,6 +34,10 @@ class TargetService {
 
   testConnectPayload(data: EtlTarget): Promise<void> {
     return Requests.post(`${this.prefix}/test-connect`, data) as unknown as Promise<void>;
+  }
+
+  detectDialect(url: string): Promise<DialectInfo> {
+    return Requests.post(`${this.prefix}/detect-dialect`, { url }) as unknown as Promise<DialectInfo>;
   }
 }
 
