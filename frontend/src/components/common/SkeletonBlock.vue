@@ -1,5 +1,10 @@
 <template>
-  <div class="skeleton-block" :style="{ minHeight: `${height}px` }" aria-busy="true" aria-live="polite">
+  <div
+    class="skeleton-block"
+    :style="{ minHeight: `${height}px` }"
+    aria-busy="true"
+    aria-live="polite"
+  >
     <v-skeleton-loader type="article" class="ds-skeleton" />
   </div>
 </template>

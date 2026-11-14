@@ -102,7 +102,7 @@
     { title: '错误摘要', key: 'last_error' },
   ];
 
-  const kindLabel = (kind: string | null) => (kind ? JOUR_KIND_META[kind]?.label ?? kind : '-');
+  const kindLabel = (kind: string | null) => (kind ? (JOUR_KIND_META[kind]?.label ?? kind) : '-');
 
   const shortTime = (value?: string | null) => (value ? value.slice(5, 16) : '-');
 

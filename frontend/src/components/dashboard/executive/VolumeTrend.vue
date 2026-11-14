@@ -43,9 +43,7 @@
       </div>
     </template>
 
-    <template #footer>
-      按业务日期汇总；7 日均值为滚动窗口，用于观察趋势而非精确对账。
-    </template>
+    <template #footer> 按业务日期汇总；7 日均值为滚动窗口，用于观察趋势而非精确对账。 </template>
   </SectionCard>
 </template>
 

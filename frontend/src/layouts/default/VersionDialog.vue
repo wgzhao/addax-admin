@@ -36,9 +36,7 @@
             <a :href="APP_DOCS_URL" target="_blank" rel="noopener noreferrer">安装与部署文档</a>
             <a :href="APP_SUPPORT_URL" target="_blank" rel="noopener noreferrer">联系支持</a>
           </div>
-          <div class="version-app-copyright">
-            &copy; {{ year }} {{ APP_COMPANY }}
-          </div>
+          <div class="version-app-copyright">&copy; {{ year }} {{ APP_COMPANY }}</div>
         </div>
       </v-card-text>
       <v-card-actions class="pb-4">

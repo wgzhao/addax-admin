@@ -92,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch, onMounted } from 'vue';
+  import { computed, ref, useTemplateRef, watch, onMounted } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import tableService from '@/service/table-service';
   import { useAuthStore } from '@/stores/auth';
@@ -112,7 +112,7 @@
   const authStore = useAuthStore();
 
   const currentTab = ref(String(route.query.tab || 'info'));
-  const detailRef = ref<{ canLeave: () => boolean } | null>(null);
+  const detailRef = useTemplateRef<{ canLeave: () => boolean }>('detailRef');
 
   const tblname = ref(String(route.query.tblname || ''));
   // undefined means the lifecycle is still unknown; editing must stay disabled until it is resolved.

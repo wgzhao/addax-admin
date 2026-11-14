@@ -74,7 +74,10 @@
 <script setup lang="ts">
   import { computed } from 'vue';
   import type { VEtlWithSource } from '@/types/database';
-  import { inheritedStartAt as inheritedStartAtOf, targetIdentity as targetIdentityOf } from './table-labels';
+  import {
+    inheritedStartAt as inheritedStartAtOf,
+    targetIdentity as targetIdentityOf,
+  } from './table-labels';
 
   defineEmits(['show-placeholder-help', 'show-filter-help']);
 
@@ -98,7 +101,8 @@
     padding: 14px 16px;
     border-radius: 16px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-    background: linear-gradient(
+    background:
+      linear-gradient(
         180deg,
         rgba(var(--v-theme-primary), 0.055),
         rgba(var(--v-theme-primary), 0.01)

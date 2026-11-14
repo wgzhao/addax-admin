@@ -37,9 +37,9 @@ export const FAILURE_CATEGORY_COLORS: Record<FailureCategory, string> = {
   UNKNOWN: 'grey',
 };
 
-export const FAILURE_STAGE_OPTIONS = (
-  Object.keys(FAILURE_STAGE_LABELS) as FailureStage[]
-).map(value => ({ value, title: FAILURE_STAGE_LABELS[value] }));
+export const FAILURE_STAGE_OPTIONS = (Object.keys(FAILURE_STAGE_LABELS) as FailureStage[]).map(
+  value => ({ value, title: FAILURE_STAGE_LABELS[value] })
+);
 
 export const FAILURE_CATEGORY_OPTIONS = (
   Object.keys(FAILURE_CATEGORY_LABELS) as FailureCategory[]

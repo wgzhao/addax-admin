@@ -51,9 +51,7 @@
           <EmptyState
             title="暂无目标端"
             description="当前还没有配置任何目标端。点击下方按钮新增目标端后，即可配置连接、模板键和默认落库策略。"
-            :primary="
-              authStore.canWrite ? { label: '新增目标端', icon: 'mdi-plus' } : undefined
-            "
+            :primary="authStore.canWrite ? { label: '新增目标端', icon: 'mdi-plus' } : undefined"
             @primary="openCreate"
           />
         </template>

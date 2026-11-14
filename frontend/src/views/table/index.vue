@@ -195,8 +195,8 @@
               scope === 'RETIRED'
                 ? '退役采集表会保留在当前历史入口中，统计、流水和日志不会随退役消失。'
                 : scope === 'DORMANT'
-                ? '没有因表停采或采集源停用而暂停的采集定义。'
-                : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
+                  ? '没有因表停采或采集源停用而暂停的采集定义。'
+                  : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
             "
             :primary="
               authStore.canWrite || authStore.hasOperateSources
@@ -605,7 +605,7 @@
     { key: 'endTime', title: '完成时间' },
   ];
 
-  const readStored = <T>(key: string, fallback: T): T => {
+  const readStored = <T,>(key: string, fallback: T): T => {
     try {
       const raw = localStorage.getItem(key);
       return raw ? (JSON.parse(raw) as T) : fallback;
@@ -650,8 +650,8 @@
       typeof query.scope === 'string'
         ? query.scope
         : typeof query.lifecycle === 'string'
-        ? query.lifecycle
-        : 'CURRENT';
+          ? query.lifecycle
+          : 'CURRENT';
     scope.value =
       requestedScope === 'DORMANT' || requestedScope === 'RETIRED' || requestedScope === 'ALL'
         ? requestedScope

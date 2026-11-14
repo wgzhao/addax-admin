@@ -2,9 +2,7 @@
 import Components from 'unplugin-vue-components/vite';
 import Vue from '@vitejs/plugin-vue';
 import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify';
-import Fonts from 'unplugin-fonts/vite';
 import VueRouter from 'unplugin-vue-router/vite';
-import Layouts from "vite-plugin-vue-layouts-next";
 import { loadEnv } from "vite";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
@@ -53,11 +51,6 @@ export default defineConfig(function (_a) {
                 // OS file watch limits after upgrading the routing/layout plugins.
                 watch: !isBuild,
             }),
-            Layouts({
-                layoutsDirs: "src/layouts",
-                pagesDirs: "src/views",
-                defaultLayout: 'Default'
-            }),
             Vue({
                 template: { transformAssetUrls: transformAssetUrls }
             }),
@@ -68,17 +61,6 @@ export default defineConfig(function (_a) {
             }),
             Components({
                 dts: "src/types/components.d.ts",
-            }),
-            Fonts({
-                fontsource: {
-                    families: [
-                        {
-                            name: 'Roboto',
-                            weights: [100, 300, 400, 500, 700, 900],
-                            styles: ['normal', 'italic'],
-                        },
-                    ],
-                },
             }),
         ],
         optimizeDeps: {

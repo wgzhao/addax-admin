@@ -15,7 +15,9 @@
         <span class="step-index">01</span>
         <div>
           <div class="step-title">连接采集源</div>
-          <div class="step-desc">支持 MySQL、PostgreSQL、SQL Server、Oracle、MongoDB、Elasticsearch。</div>
+          <div class="step-desc">
+            支持 MySQL、PostgreSQL、SQL Server、Oracle、MongoDB、Elasticsearch。
+          </div>
         </div>
         <v-btn size="small" color="primary" variant="flat" to="/source?action=create">
           新增采集源

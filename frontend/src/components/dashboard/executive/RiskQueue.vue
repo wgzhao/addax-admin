@@ -1,9 +1,11 @@
 <template>
-  <SectionCard title="风险与待办" subtitle="按严重级别排序，点击可直接下钻" icon="mdi-shield-alert-outline">
+  <SectionCard
+    title="风险与待办"
+    subtitle="按严重级别排序，点击可直接下钻"
+    icon="mdi-shield-alert-outline"
+  >
     <template #actions>
-      <v-btn size="small" variant="text" append-icon="mdi-arrow-right" to="/monitor">
-        全部
-      </v-btn>
+      <v-btn size="small" variant="text" append-icon="mdi-arrow-right" to="/monitor"> 全部 </v-btn>
     </template>
 
     <SkeletonBlock v-if="loading" :height="180" />

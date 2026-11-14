@@ -1,11 +1,5 @@
 <template>
-  <v-dialog
-    :model-value="modelValue"
-    class="ds-dialog-overlay"
-    max-width="480"
-    :retain-focus="false"
-    @update:model-value="value => emit('update:modelValue', value)"
-  >
+  <v-dialog v-model="open" class="ds-dialog-overlay" max-width="480" :retain-focus="false">
     <v-card>
       <v-card-title class="confirm-dialog__title">
         <v-icon :color="toneColor" class="me-2">{{ icon }}</v-icon>
@@ -28,9 +22,10 @@
 <script setup lang="ts">
   import { computed } from 'vue';
 
+  const open = defineModel<boolean>({ required: true });
+
   const props = withDefaults(
     defineProps<{
-      modelValue: boolean;
       title: string;
       message?: string;
       confirmText?: string;
@@ -48,7 +43,6 @@
   );
 
   const emit = defineEmits<{
-    'update:modelValue': [value: boolean];
     confirm: [];
     cancel: [];
   }>();
@@ -60,7 +54,7 @@
 
   const cancel = () => {
     emit('cancel');
-    emit('update:modelValue', false);
+    open.value = false;
   };
 </script>
 

@@ -77,7 +77,7 @@
   const shortDigest = (digest?: string | null) =>
     digest ? `${digest.slice(0, 12)}…${digest.slice(-6)}` : '-';
   const statusLabel = (status: string) =>
-    ({ running: '执行中', succeeded: '成功', failed: '失败' }[status] || status);
+    ({ running: '执行中', succeeded: '成功', failed: '失败' })[status] || status;
   const statusColor = (status: string) =>
     status === 'succeeded' ? 'success' : status === 'failed' ? 'error' : 'info';
 

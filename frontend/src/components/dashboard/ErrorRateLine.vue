@@ -32,7 +32,7 @@
       key: 'error_pct',
       label: '错误行占比 (%)',
       // 当日无采集记录时占比无意义，置 null 让曲线断点而不是落到 0
-      data: (raw.value ?? []).map(r => (r.total_recs > 0 ? r.error_pct ?? 0 : null)),
+      data: (raw.value ?? []).map(r => (r.total_recs > 0 ? (r.error_pct ?? 0) : null)),
       fill: true,
     },
   ]);

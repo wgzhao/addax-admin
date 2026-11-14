@@ -15,7 +15,13 @@
         :aria-label="unreadCount > 0 ? `通知，${unreadCount} 条未读` : '通知'"
         title="通知"
       >
-        <v-badge :content="badgeText" :model-value="unreadCount > 0" color="primary" offset-x="6" offset-y="6">
+        <v-badge
+          :content="badgeText"
+          :model-value="unreadCount > 0"
+          color="primary"
+          offset-x="6"
+          offset-y="6"
+        >
           <v-icon>mdi-bell-outline</v-icon>
         </v-badge>
       </v-btn>
@@ -153,7 +159,9 @@
   // The bell is an exception inbox, not a per-run activity feed. Success
   // messages remain available via "全部" but do not compete with failures.
   const visibleNotifications = computed(() =>
-    onlyAlerts.value ? notifications.value.filter(item => tone(item) !== 'success') : notifications.value
+    onlyAlerts.value
+      ? notifications.value.filter(item => tone(item) !== 'success')
+      : notifications.value
   );
 
   const refresh = async () => {

@@ -86,7 +86,9 @@
 
   .notice-enter-active,
   .notice-leave-active {
-    transition: opacity 0.16s ease-out, transform 0.16s ease-out;
+    transition:
+      opacity 0.16s ease-out,
+      transform 0.16s ease-out;
   }
 
   .notice-enter-from,

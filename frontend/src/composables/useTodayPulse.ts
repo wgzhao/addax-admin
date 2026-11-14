@@ -70,16 +70,16 @@ export const rows = computed<PulseRow[]>(() => {
       const begin = timeToMinutes(item.t_begin_at) ?? start;
       let finish = timeToMinutes(item.t_finish_at);
       if (finish !== null && finish < begin) finish = DAY_MINUTES;
-      const end = running > 0 ? Math.max(begin, nowMinutes) : finish ?? begin;
+      const end = running > 0 ? Math.max(begin, nowMinutes) : (finish ?? begin);
 
       const state: PulseRow['state'] =
         failed > 0
           ? 'failed'
           : running > 0
-          ? 'running'
-          : done >= total && total > 0
-          ? 'done'
-          : 'pending';
+            ? 'running'
+            : done >= total && total > 0
+              ? 'done'
+              : 'pending';
 
       const left = (Math.min(begin, DAY_MINUTES) / DAY_MINUTES) * 100;
       const width = (Math.max(end - begin, 4) / DAY_MINUTES) * 100;

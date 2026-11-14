@@ -55,8 +55,8 @@
 }
 
 .mono-input :deep(textarea) {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
-    monospace;
+  font-family:
+    'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
   font-size: 0.84rem;
   line-height: 1.7;
 }
@@ -79,8 +79,8 @@
 }
 
 .guide-item__key {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
-    monospace;
+  font-family:
+    'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
   font-size: 0.84rem;
   color: rgb(var(--v-theme-primary));
   word-break: break-word;

@@ -20,7 +20,7 @@
           @keydown.up.prevent="move(-1)"
           @keydown.enter.prevent="runActive"
         />
-        <kbd class="palette-kbd">Esc</kbd>
+        <v-kbd class="palette-kbd">Esc</v-kbd>
       </div>
 
       <v-divider />
@@ -53,14 +53,15 @@
         <span>↑↓ 选择</span>
         <span>Enter 打开</span>
         <span>Esc 关闭</span>
-        <span class="palette-shortcut">Ctrl / ⌘ + K</span>
+        <v-hotkey keys="cmd+k" class="palette-shortcut" />
       </div>
     </v-card>
   </v-dialog>
 </template>
 
 <script setup lang="ts">
-  import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+  import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
+  import { useEventListener } from '@vueuse/core';
   import { useRouter } from 'vue-router';
   import tableService from '@/service/table-service';
   import { useAppTheme } from '@/composables/useAppTheme';
@@ -80,7 +81,7 @@
   const open = commandPaletteOpen;
   const keyword = ref('');
   const active = ref(0);
-  const inputRef = ref<HTMLInputElement | null>(null);
+  const inputRef = useTemplateRef<HTMLInputElement>('inputRef');
   const tableResults = ref<{ id: number; label: string; hint: string }[]>([]);
 
   const router = useRouter();
@@ -236,8 +237,7 @@
     }
   });
 
-  onMounted(() => window.addEventListener('keydown', onKeydown));
-  onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+  useEventListener(window, 'keydown', onKeydown);
 </script>
 
 <style scoped>

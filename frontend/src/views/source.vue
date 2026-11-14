@@ -49,9 +49,7 @@
           <EmptyState
             title="暂无采集源"
             description="当前还没有配置任何采集源。点击下方按钮新增采集源后，即可继续维护连接与采集配置。"
-            :primary="
-              authStore.canWrite ? { label: '新增采集源', icon: 'mdi-plus' } : undefined
-            "
+            :primary="authStore.canWrite ? { label: '新增采集源', icon: 'mdi-plus' } : undefined"
             @primary="() => doAction(-1, 'add')"
           />
         </template>
@@ -64,7 +62,9 @@
             items-per-page="20"
           >
             <template #item.dbType="{ item }">
-              <v-chip size="small" color="primary" variant="tonal">{{ typeLabel(item.dbType) }}</v-chip>
+              <v-chip size="small" color="primary" variant="tonal">{{
+                typeLabel(item.dbType)
+              }}</v-chip>
             </template>
 
             <template #item.url="{ item }">
@@ -174,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, onMounted, ref, watch } from 'vue';
+  import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import type { DataTableHeader } from 'vuetify';
   import sourceService from '@/service/source-service';
@@ -190,7 +190,7 @@
 
   const sources = ref([]);
   const isShow = ref(false);
-  const addSourceRef = ref<{ isDirty?: () => boolean } | null>(null);
+  const addSourceRef = useTemplateRef<{ isDirty?: () => boolean }>('addSourceRef');
   const discardOpen = ref(false);
   const isSourceDirty = computed(() => addSourceRef.value?.isDirty?.() ?? false);
   const deleteDialog = ref(false);

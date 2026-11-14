@@ -1,6 +1,9 @@
 <template>
   <div class="page-shell">
-    <PageHeader title="采集任务" subtitle="查看排队中与运行中的采集任务；完成后可在采集表详情查看结果。" />
+    <PageHeader
+      title="采集任务"
+      subtitle="查看排队中与运行中的采集任务；完成后可在采集表详情查看结果。"
+    />
     <v-card flat class="ds-card task-card ds-table-scroll">
       <v-card-text>
         <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="comfortable">

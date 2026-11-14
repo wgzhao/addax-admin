@@ -23,7 +23,7 @@
       {{ warning }}
     </v-alert>
 
-    <v-row class="section-grid stretch-row" dense>
+    <v-row class="section-grid stretch-row" density="compact">
       <v-col cols="12" md="5" class="col-stack">
         <v-card flat class="ds-card table-card stretch-card ds-table-wrap">
           <v-card-text class="ds-card__content section-body">

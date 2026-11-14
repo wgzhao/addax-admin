@@ -152,7 +152,7 @@
         callbacks: props.extraTooltip
           ? {
               footer: items =>
-                items.length > 0 ? props.extraTooltip?.(items[0].dataIndex) ?? [] : [],
+                items.length > 0 ? (props.extraTooltip?.(items[0].dataIndex) ?? []) : [],
             }
           : {},
       },

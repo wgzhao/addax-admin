@@ -30,8 +30,8 @@
                 isMongoSource
                   ? 'MongoDB 查询 JSON，例如 {\'status\':\'paid\'} 或 __max__seq'
                   : isEsSource
-                  ? 'ES Query DSL，例如 {\'term\':{\'status\':\'paid\'}} 或 __max__seq'
-                  : '可选，例如 dt=\'${biz_date_dash}\''
+                    ? 'ES Query DSL，例如 {\'term\':{\'status\':\'paid\'}} 或 __max__seq'
+                    : '可选，例如 dt=\'${biz_date_dash}\''
               "
               hide-details="auto"
             />

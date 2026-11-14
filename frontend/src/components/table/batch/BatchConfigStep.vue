@@ -97,8 +97,8 @@
                   family === 'hdfs'
                     ? '支持多个分区键，其中最多一个业务日期分区；其余使用固定值。'
                     : family === 'rdbms'
-                    ? '配置快照字段与目标表主键策略。'
-                    : '未识别目标端，请先检查目标端配置。'
+                      ? '配置快照字段与目标表主键策略。'
+                      : '未识别目标端，请先检查目标端配置。'
                 }}
               </div>
             </div>
@@ -523,8 +523,8 @@
 
   .src-col {
     color: rgba(var(--v-theme-on-surface), 0.7);
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
-      monospace;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
   }
 
   .arrow-col {
@@ -534,8 +534,8 @@
   }
 
   .dst-col {
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New',
-      monospace;
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
     color: rgb(var(--v-theme-primary));
   }
 

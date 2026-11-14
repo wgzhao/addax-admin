@@ -32,8 +32,7 @@
       : `v${APP_VERSION}`
   );
   const buildTitle = computed(
-    () =>
-      `环境：${APP_ENV_LABEL}\n构建：${APP_BUILD_SHA}\n时间：${APP_BUILD_TIME || '未知'}`
+    () => `环境：${APP_ENV_LABEL}\n构建：${APP_BUILD_SHA}\n时间：${APP_BUILD_TIME || '未知'}`
   );
 </script>
 

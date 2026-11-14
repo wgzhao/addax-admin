@@ -450,7 +450,9 @@
       rgba(var(--v-theme-surface), 0.82)
     );
     text-align: left;
-    transition: transform 160ms ease, border-color 160ms ease;
+    transition:
+      transform 160ms ease,
+      border-color 160ms ease;
   }
 
   .summary-card:hover {
@@ -495,11 +497,8 @@
     padding: 16px;
     border: 1px solid rgba(var(--v-theme-primary), 0.16);
     border-radius: 14px;
-    background: radial-gradient(
-        circle at 90% 10%,
-        rgba(var(--v-theme-primary), 0.12),
-        transparent 42%
-      ),
+    background:
+      radial-gradient(circle at 90% 10%, rgba(var(--v-theme-primary), 0.12), transparent 42%),
       rgba(var(--v-theme-primary), 0.035);
     color: var(--ds-text-2);
     font-size: 0.84rem;
@@ -548,7 +547,9 @@
     background: rgba(var(--v-theme-surface), 0.88);
     color: rgb(var(--v-theme-on-surface));
     text-align: left;
-    transition: transform 150ms ease, box-shadow 150ms ease;
+    transition:
+      transform 150ms ease,
+      box-shadow 150ms ease;
   }
 
   // Why: v-selection-control defaults to flex:1 0, which would eat half the row.
@@ -676,11 +677,8 @@
     gap: 16px;
     padding: 20px 22px 16px;
     border-bottom: 1px solid var(--ds-border-subtle);
-    background: radial-gradient(
-        circle at 90% 0%,
-        rgba(var(--v-theme-primary), 0.12),
-        transparent 40%
-      ),
+    background:
+      radial-gradient(circle at 90% 0%, rgba(var(--v-theme-primary), 0.12), transparent 40%),
       var(--ds-surface-raised);
   }
 

@@ -3,12 +3,11 @@
        instead of the viewport, pushing the footer past the fold and trapping it under the footer. -->
   <Teleport to="body">
     <v-navigation-drawer
-      :model-value="modelValue"
+      v-model="open"
       location="right"
       temporary
       :width="drawerWidth"
       class="failure-drawer"
-      @update:model-value="emit('update:modelValue', $event)"
     >
       <div class="failure-drawer__header">
         <div>
@@ -251,13 +250,12 @@
     LatestFailure,
   } from '@/types/failure';
 
+  const open = defineModel<boolean>({ required: true });
+
   const props = defineProps<{
-    modelValue: boolean;
     tid?: number | null;
     failureId?: number | null;
   }>();
-
-  const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
   const { width: viewportWidth } = useDisplay();
   // Failures carry long summaries and stack traces; a fixed 560px column forced horizontal
@@ -345,7 +343,7 @@
   }
 
   async function load() {
-    if (!props.modelValue) return;
+    if (!open.value) return;
     loading.value = true;
     error.value = '';
     latest.value = null;
@@ -391,13 +389,13 @@
   }
 
   function close() {
-    emit('update:modelValue', false);
+    open.value = false;
   }
 
   watch(
-    () => [props.modelValue, props.tid, props.failureId],
+    () => [open.value, props.tid, props.failureId],
     () => {
-      if (props.modelValue) load();
+      if (open.value) load();
     },
     { immediate: true }
   );

@@ -10,7 +10,14 @@
     <v-btn v-if="retryLabel" size="small" variant="tonal" @click="$emit('retry')">
       {{ retryLabel }}
     </v-btn>
-    <v-btn v-if="helpUrl" size="small" variant="text" :href="helpUrl" target="_blank" rel="noopener">
+    <v-btn
+      v-if="helpUrl"
+      size="small"
+      variant="text"
+      :href="helpUrl"
+      target="_blank"
+      rel="noopener"
+    >
       帮助
     </v-btn>
   </div>

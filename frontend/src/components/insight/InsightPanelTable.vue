@@ -1,5 +1,5 @@
 <template>
-  <v-row dense class="section-grid">
+  <v-row density="compact" class="section-grid">
     <v-col cols="12" md="12">
       <v-card flat class="ds-card table-card section-card">
         <v-card-text class="section-body">

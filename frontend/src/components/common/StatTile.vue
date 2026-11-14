@@ -82,12 +82,7 @@
   const deltaClass = computed(() => {
     if (deltaValue.value === 0) return 'stat-delta--flat';
     const up = deltaValue.value > 0;
-    const good =
-      props.deltaTone === 'up-good'
-        ? up
-        : props.deltaTone === 'down-good'
-        ? !up
-        : up;
+    const good = props.deltaTone === 'up-good' ? up : props.deltaTone === 'down-good' ? !up : up;
     return good ? 'stat-delta--good' : 'stat-delta--bad';
   });
 

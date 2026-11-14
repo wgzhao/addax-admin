@@ -38,92 +38,88 @@
             <EmptyDashboardGuide v-if="isEmptyEnvironment" />
 
             <template v-else>
-              <HealthHero
-              :health-rate="healthRate"
-              :totals="totals"
-              :status="healthStatus"
-            />
+              <HealthHero :health-rate="healthRate" :totals="totals" :status="healthStatus" />
 
-            <KpiRow
-              :today-data="todayData"
-              :total-data="totalData"
-              :avg-time="avgTime"
-              :avg-delta="avgDelta"
-              :volume-delta="volumeDelta"
-              :volume-sparkline="volumeSparkline"
-              :total-days="summary?.totalDays ?? 0"
-              :coverage="coverage"
-              :health-rate="healthRate"
-              :done="totals.done"
-              :total="totals.total"
-              :loading="loading"
-            />
+              <KpiRow
+                :today-data="todayData"
+                :total-data="totalData"
+                :avg-time="avgTime"
+                :avg-delta="avgDelta"
+                :volume-delta="volumeDelta"
+                :volume-sparkline="volumeSparkline"
+                :total-days="summary?.totalDays ?? 0"
+                :coverage="coverage"
+                :health-rate="healthRate"
+                :done="totals.done"
+                :total="totals.total"
+                :loading="loading"
+              />
 
-            <v-row density="comfortable" class="exec-row">
-              <v-col cols="12" lg="7">
-                <TodayPulse compact @show-all="tab = 'today'" />
-              </v-col>
-              <v-col cols="12" lg="5">
-                <RiskQueue
-                  :items="riskItems"
-                  :loading="loading"
-                  :error="riskError"
-                  @retry="refreshAll"
-                />
-              </v-col>
-            </v-row>
+              <v-row density="comfortable" class="exec-row">
+                <v-col cols="12" lg="7">
+                  <TodayPulse compact @show-all="tab = 'today'" />
+                </v-col>
+                <v-col cols="12" lg="5">
+                  <RiskQueue
+                    :items="riskItems"
+                    :loading="loading"
+                    :error="riskError"
+                    @retry="refreshAll"
+                  />
+                </v-col>
+              </v-row>
 
-            <v-row density="comfortable" class="exec-row">
-              <v-col cols="12" lg="7">
-                <VolumeTrend
-                  :series="volumeSeries"
-                  :range-days="rangeDays"
-                  :loading="loading"
-                  :error="volumeError"
-                  @retry="refreshAll"
-                />
-              </v-col>
-              <v-col cols="12" lg="5">
-                <SourceContribution
-                  :items="sourceContribution"
-                  :range-days="rangeDays"
-                  :loading="loading"
-                  :error="volumeError"
-                  @retry="refreshAll"
-                />
-              </v-col>
-            </v-row>
+              <v-row density="comfortable" class="exec-row">
+                <v-col cols="12" lg="7">
+                  <VolumeTrend
+                    :series="volumeSeries"
+                    :range-days="rangeDays"
+                    :loading="loading"
+                    :error="volumeError"
+                    @retry="refreshAll"
+                  />
+                </v-col>
+                <v-col cols="12" lg="5">
+                  <SourceContribution
+                    :items="sourceContribution"
+                    :range-days="rangeDays"
+                    :loading="loading"
+                    :error="volumeError"
+                    @retry="refreshAll"
+                  />
+                </v-col>
+              </v-row>
 
-            <ValueScale
-              :total-data="totalData"
-              :total-days="summary?.totalDays ?? 0"
-              :source-count="summary?.allDbSourceCount ?? 0"
-              :coverage="coverage"
-              :health-rate="healthRate"
-            />
+              <ValueScale
+                :total-data="totalData"
+                :total-days="summary?.totalDays ?? 0"
+                :source-count="summary?.allDbSourceCount ?? 0"
+                :coverage="coverage"
+                :health-rate="healthRate"
+              />
 
-            <SectionCard
-              title="采集源完成率"
-              subtitle="按完成率升序，优先暴露风险源"
-              icon="mdi-database-sync-outline"
-            >
-              <template #actions>
-                <v-btn
-                  v-if="ratios.length > RATIO_PREVIEW"
-                  size="small"
-                  variant="text"
-                  append-icon="mdi-arrow-right"
-                  @click="openRatioDialog"
-                >
-                  查看全部 {{ ratios.length }}
-                </v-btn>
-              </template>
-              <SourceRatioList :ratios="ratios" :limit="RATIO_PREVIEW" />
-              <p v-if="hiddenRatioCount > 0" class="ratio-footnote">
-                按完成率升序，仅显示最低的 {{ RATIO_PREVIEW }} 个，另有
-                {{ hiddenRatioCount }} 个已折叠
-              </p>
-            </SectionCard>
+              <SectionCard
+                title="采集源完成率"
+                subtitle="按完成率升序，优先暴露风险源"
+                icon="mdi-database-sync-outline"
+              >
+                <template #actions>
+                  <v-btn
+                    v-if="ratios.length > RATIO_PREVIEW"
+                    size="small"
+                    variant="text"
+                    append-icon="mdi-arrow-right"
+                    @click="openRatioDialog"
+                  >
+                    查看全部 {{ ratios.length }}
+                  </v-btn>
+                </template>
+                <SourceRatioList :ratios="ratios" :limit="RATIO_PREVIEW" />
+                <p v-if="hiddenRatioCount > 0" class="ratio-footnote">
+                  按完成率升序，仅显示最低的 {{ RATIO_PREVIEW }} 个，另有
+                  {{ hiddenRatioCount }} 个已折叠
+                </p>
+              </SectionCard>
             </template>
           </div>
 

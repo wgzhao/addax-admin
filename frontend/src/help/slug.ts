@@ -1,6 +1,5 @@
 const punctuationPattern = /[ -⁯⸀-⹿\\'!"#$%&()*+,./:;<=>?@[\]^`{|}~]/g;
-const cjkPunctuationPattern =
-  /[　-〿！-／：-＠［-｀｛-･]/g;
+const cjkPunctuationPattern = /[　-〿！-／：-＠［-｀｛-･]/g;
 
 export function slugifyHeading(text: string): string {
   return text

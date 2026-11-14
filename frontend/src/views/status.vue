@@ -160,8 +160,8 @@
         value === null || value === undefined
           ? '—'
           : typeof value === 'object'
-          ? JSON.stringify(value)
-          : String(value),
+            ? JSON.stringify(value)
+            : String(value),
     }));
   });
 
@@ -207,7 +207,8 @@
     ] as const);
     const [clusterResult, queueResult, summaryResult] = results;
     if (clusterResult.status === 'fulfilled') cluster.value = clusterResult.value;
-    if (queueResult.status === 'fulfilled') queue.value = (queueResult.value ?? {}) as Record<string, unknown>;
+    if (queueResult.status === 'fulfilled')
+      queue.value = (queueResult.value ?? {}) as Record<string, unknown>;
     if (summaryResult.status === 'fulfilled') summary.value = summaryResult.value;
 
     const failures = results.filter(result => result.status === 'rejected');
