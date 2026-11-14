@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.alert;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.alert.dto.AlertTestEventRequest;
 import com.wgzhao.addax.admin.alert.model.AlertChannel;
 import com.wgzhao.addax.admin.alert.model.AlertDelivery;

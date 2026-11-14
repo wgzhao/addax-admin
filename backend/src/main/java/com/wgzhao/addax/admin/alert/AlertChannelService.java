@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.alert;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.alert.dto.AlertChannelDto;
 import com.wgzhao.addax.admin.alert.dto.AlertChannelRequest;
 import com.wgzhao.addax.admin.alert.dto.AlertChannelTestResult;
@@ -251,7 +251,7 @@ public class AlertChannelService
         if (node.isTextual()) {
             return AlertConfigMasker.MASK.equals(node.asText());
         }
-        if (node.isContainerNode()) {
+        if (node.isContainer()) {
             List<Boolean> found = new ArrayList<>();
             node.forEach(child -> found.add(containsMask(child)));
             return found.contains(Boolean.TRUE);

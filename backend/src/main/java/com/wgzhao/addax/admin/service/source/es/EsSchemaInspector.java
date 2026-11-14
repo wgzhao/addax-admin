@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.service.source.es;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.dto.SourceFieldMeta;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.service.source.SchemaMode;
@@ -152,7 +152,7 @@ public class EsSchemaInspector
             log.debug("_cat/indices failed ({}), falling back to _mapping", e.getMessage());
         }
         JsonNode mappings = client.get("/_mapping");
-        mappings.fieldNames().forEachRemaining(name -> addIndex(counts, name, null));
+        mappings.propertyNames().forEach(name -> addIndex(counts, name, null));
         return counts;
     }
 
@@ -199,14 +199,14 @@ public class EsSchemaInspector
             log.debug("_alias failed ({}), aliases are omitted", e.getMessage());
             return aliases;
         }
-        root.fields().forEachRemaining(indexEntry -> {
+        root.properties().forEach(indexEntry -> {
             String index = indexEntry.getKey();
             if (index.startsWith("."))
             {
                 return;
             }
             Long count = indices.get(index);
-            indexEntry.getValue().path("aliases").fieldNames().forEachRemaining(alias -> {
+            indexEntry.getValue().path("aliases").propertyNames().forEach(alias -> {
                 Long current = aliases.get(alias);
                 if (current == null && count == null)
                 {
@@ -266,7 +266,7 @@ public class EsSchemaInspector
         MappingInfo info = new MappingInfo();
         boolean anyIndex = false;
         int disabled = 0;
-        var indexFields = response.fields();
+        var indexFields = response.properties().iterator();
         while (indexFields.hasNext())
         {
             var indexEntry = indexFields.next();
@@ -280,13 +280,13 @@ public class EsSchemaInspector
             JsonNode properties = mappings.path("properties");
             if (properties.isObject())
             {
-                properties.fields().forEachRemaining(entry ->
+                properties.properties().forEach(entry ->
                     mergeProperty(info.properties, entry.getKey(), entry.getValue(), info));
             }
             JsonNode runtime = mappings.path("runtime");
             if (runtime.isObject())
             {
-                runtime.fieldNames().forEachRemaining(name -> info.runtimeFields.add(name));
+                runtime.propertyNames().forEach(name -> info.runtimeFields.add(name));
             }
         }
         if (!anyIndex)

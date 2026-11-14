@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -30,7 +31,7 @@ class TargetContractServiceTest
         table.setId(54L);
         table.setTargetDb("odsmd");
         table.setTargetTable("order_statistic");
-        table.setTargetOptions(new ObjectMapper().readTree("""
+        table.setTargetOptions(JsonMapper.builder().build().readTree("""
             {"hdfs":{"partitionBindings":[
               {"name":"logdate","valueType":"BIZ_DATE","format":"yyyyMMdd"}
             ]}}

@@ -1,8 +1,8 @@
 package com.wgzhao.addax.admin.alert.channel;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.alert.AlertChannelProvider;
 import com.wgzhao.addax.admin.alert.AlertChannelType;
 import com.wgzhao.addax.admin.alert.AlertDeliveryResult;
@@ -54,7 +54,7 @@ public class WebhookAlertProvider
             if (!headers.isObject()) {
                 throw new IllegalArgumentException("headers 必须是 JSON 对象");
             }
-            headers.fields().forEachRemaining(entry -> {
+            headers.properties().forEach(entry -> {
                 if (!entry.getValue().isTextual()) {
                     throw new IllegalArgumentException("headers." + entry.getKey() + " 必须是字符串");
                 }
@@ -86,7 +86,7 @@ public class WebhookAlertProvider
             headers.put("Content-Type", "application/json");
             JsonNode headerNode = config.path("headers");
             if (headerNode.isObject()) {
-                headerNode.fields().forEachRemaining(entry -> headers.put(entry.getKey(), entry.getValue().asText()));
+                headerNode.properties().forEach(entry -> headers.put(entry.getKey(), entry.getValue().asText()));
             }
             String body = renderBody(config, message);
             String secret = config.path("hmacSecret").asText("");

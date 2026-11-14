@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service.source;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.dto.TableMetaDto;

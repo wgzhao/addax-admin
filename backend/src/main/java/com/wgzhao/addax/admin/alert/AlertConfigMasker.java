@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.alert;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -69,7 +69,7 @@ public class AlertConfigMasker
     {
         if (node.isObject()) {
             ObjectNode result = objectMapper.createObjectNode();
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            Iterator<Map.Entry<String, JsonNode>> fields = node.properties().iterator();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 String name = entry.getKey();
@@ -97,7 +97,7 @@ public class AlertConfigMasker
     private JsonNode maskHeaders(JsonNode headers)
     {
         ObjectNode result = objectMapper.createObjectNode();
-        headers.fields().forEachRemaining(entry -> {
+        headers.properties().forEach(entry -> {
             if (SENSITIVE_HEADERS.contains(normalize(entry.getKey())) && entry.getValue().isTextual()) {
                 result.put(entry.getKey(), MASK);
             }
@@ -112,7 +112,7 @@ public class AlertConfigMasker
     {
         if (incoming.isObject() && existing.isObject()) {
             ObjectNode result = objectMapper.createObjectNode();
-            Iterator<Map.Entry<String, JsonNode>> fields = incoming.fields();
+            Iterator<Map.Entry<String, JsonNode>> fields = incoming.properties().iterator();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 String name = entry.getKey();
@@ -132,7 +132,7 @@ public class AlertConfigMasker
                 }
             }
             // Keep configured fields the client omitted (e.g. an older form version).
-            existing.fields().forEachRemaining(entry -> {
+            existing.properties().forEach(entry -> {
                 if (!result.has(entry.getKey())) {
                     result.set(entry.getKey(), entry.getValue().deepCopy());
                 }

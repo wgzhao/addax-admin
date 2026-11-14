@@ -1,7 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import cn.hutool.core.date.DateUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,8 +1,9 @@
 package com.wgzhao.addax.admin.service.source.mongo;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.mongodb.ConnectionString;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.service.source.SourceRef;
@@ -122,7 +123,7 @@ public record MongoConnectConfig(
         JsonNode optionsNode = node.get("options");
         if (optionsNode != null && optionsNode.isObject())
         {
-            optionsNode.fields().forEachRemaining(entry ->
+            optionsNode.properties().forEach(entry ->
                 options.put(entry.getKey(), entry.getValue().asText()));
         }
         return new MongoConnectConfig(addresses, database, authDb, options);
@@ -256,7 +257,7 @@ public record MongoConnectConfig(
 
     public JsonNode toJson()
     {
-        ObjectMapper mapper = new ObjectMapper();
+        ObjectMapper mapper = JsonMapper.builder().build();
         ObjectNode node = mapper.createObjectNode();
         var array = node.putArray("address");
         address.forEach(array::add);

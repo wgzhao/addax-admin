@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.service.source.es;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlColumn;
@@ -247,7 +247,7 @@ public class EsFilterBuilder
     {
         if (node.isObject())
         {
-            var fields = node.fields();
+            var fields = node.properties().iterator();
             while (fields.hasNext())
             {
                 Map.Entry<String, JsonNode> entry = fields.next();

@@ -1,9 +1,9 @@
 package com.wgzhao.addax.admin.service.source.es;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.DbType;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -316,7 +316,7 @@ public class EsSourceAdapter
             log.warn("Elasticsearch reader 插件配置必须是 JSON 对象，tid={}", table.getId());
             return;
         }
-        customConfig.fields().forEachRemaining(entry -> {
+        customConfig.properties().forEach(entry -> {
             String key = entry.getKey();
             JsonNode value = entry.getValue();
             switch (key)
@@ -347,7 +347,7 @@ public class EsSourceAdapter
         {
             mergeQuery(readerParameter, customQuery, dateValues);
         }
-        var fields = search.fields();
+        var fields = search.properties().iterator();
         while (fields.hasNext())
         {
             Map.Entry<String, JsonNode> entry = fields.next();

@@ -1,6 +1,6 @@
 package com.wgzhao.addax.admin.service.target;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.JdbcDriverRegistry;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import lombok.RequiredArgsConstructor;
