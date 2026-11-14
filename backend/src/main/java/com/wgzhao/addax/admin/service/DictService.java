@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -530,5 +531,63 @@ public class DictService
         }
         log.info("日历字典 {} 生成完成：{} 年新增 {} 条", dictCode, year, added);
         return added;
+    }
+
+    /**
+     * 列出某个日历字典（1021/1022）下的日期，按日期升序。可选按年份过滤。
+     *
+     * @param dictCode 日历字典编号
+     * @param year 年份，null 表示返回全部
+     * @return 日期明细（item_key = item_value = yyyyMMdd）
+     */
+    public List<SysItem> listCalendarDates(int dictCode, Integer year)
+    {
+        String prefix = year == null ? null : String.valueOf(year);
+        return sysItemRepo.findByDictCode(dictCode).stream()
+            .filter(item -> item.getItemKey() != null && (prefix == null || item.getItemKey().startsWith(prefix)))
+            .sorted(Comparator.comparing(SysItem::getItemKey))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 手工新增一个日历日期（法定节假日后的调休上班日、或漏维护的交易日）。已存在则幂等跳过。
+     *
+     * @param dictCode 日历字典编号
+     * @param dateStr yyyyMMdd 日期字符串
+     * @return 是否实际新增（已存在返回 false）
+     */
+    public boolean addCalendarDate(int dictCode, String dateStr)
+    {
+        // yyyyMMdd 解析失败会抛 DateTimeParseException，由控制器转成 400
+        LocalDate.parse(dateStr, shortSdf);
+        if (sysItemRepo.findByDictCodeAndItemKey(dictCode, dateStr).isPresent()) {
+            return false;
+        }
+        SysItem item = new SysItem();
+        item.setDictCode(dictCode);
+        item.setItemKey(dateStr);
+        item.setItemValue(dateStr);
+        item.setRemark("人工维护");
+        sysItemRepo.save(item);
+        log.info("日历字典 {} 新增单日 {}", dictCode, dateStr);
+        return true;
+    }
+
+    /**
+     * 删除一个日历日期（法定节假日）。不存在时静默忽略。
+     *
+     * @param dictCode 日历字典编号
+     * @param dateStr yyyyMMdd 日期字符串
+     * @return 是否实际删除（不存在返回 false）
+     */
+    public boolean removeCalendarDate(int dictCode, String dateStr)
+    {
+        Optional<SysItem> existing = sysItemRepo.findByDictCodeAndItemKey(dictCode, dateStr);
+        if (existing.isEmpty()) {
+            return false;
+        }
+        sysItemRepo.delete(existing.get());
+        log.info("日历字典 {} 删除单日 {}", dictCode, dateStr);
+        return true;
     }
 }
