@@ -235,6 +235,17 @@ test('collection failures are stored, linked, listed, and cleaned independently 
   await expect(page.getByText('失败详情', { exact: true })).toBeVisible();
   await expect(page.getByText('原始日志', { exact: true })).toBeVisible();
   await expect(page.getByText('执行快照', { exact: true })).toBeVisible();
+
+  // The drawer must use the horizontal space of a desktop screen and stay inside the viewport:
+  // it used to be a fixed 560px column sized against the page content, so long summaries wrapped
+  // and the footer landed below the fold.
+  const viewport = page.viewportSize();
+  const drawerBox = await page.locator('.failure-drawer').boundingBox();
+  expect(drawerBox, 'failure drawer is rendered').not.toBeNull();
+  expect(drawerBox!.width).toBeGreaterThanOrEqual(700);
+  expect(drawerBox!.y + drawerBox!.height).toBeLessThanOrEqual(viewport!.height + 1);
+  const footerBox = await page.locator('.failure-drawer__footer').boundingBox();
+  expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(viewport!.height + 1);
   await page
     .locator('.evidence-row', { hasText: '原始日志' })
     .getByRole('button', { name: '查看' })
