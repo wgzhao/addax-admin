@@ -97,17 +97,6 @@ public class DictService
     }
 
     /**
-     * 获取日志路径
-     *
-     * @return 日志路径
-     */
-    public String getLogPath()
-    {
-        String res = getItemValue(1000, "RUN_LOG", String.class);
-        return res == null ? System.getProperty("user.dir") + "/logs" : res;
-    }
-
-    /**
      * 获得上个业务日期，规则如下：
      * 以切日为界限，如果当前时间在切日时间之前，则业务日期不早于当前时间的最近业务日期，否则为当前时间的业务日期
      * 跨日采集时也做特殊处理
@@ -452,30 +441,17 @@ public class DictService
         return sysItemRepo.existsById(new com.wgzhao.addax.admin.model.SysItemPK(dictCode, itemKey));
     }
 
-    /**
-     * Legacy Hive/HDFS globals. They are kept in {@code sys_item} for one release so a rollback still
-     * finds them, but they are no longer read or editable: the values live on each HDFS target now.
-     */
-    private static final Set<String> LEGACY_TARGET_CONFIG_KEYS = Set.of(
-        "HIVE_SERVER2", "HDFS_PREFIX", "HDFS_STORAGE_FORMAT", "HDFS_COMPRESS_FORMAT",
-        "HDFS_CONFIG", "HIVE_CLI");
-
     public Map<String, Object> getSysConfig()
     {
-        Map<String, Object> result = sysItemRepo.findByDictCode(1000).stream()
+        return sysItemRepo.findByDictCode(1000).stream()
             .collect(java.util.stream.Collectors.toMap(
                 SysItem::getItemKey,
                 SysItem::getItemValue));
-        LEGACY_TARGET_CONFIG_KEYS.forEach(result::remove);
-        return result;
     }
 
     public void saveSysConfig(Map<String, Object> payload)
     {
         for (Map.Entry<String, Object> entry : payload.entrySet()) {
-            if (LEGACY_TARGET_CONFIG_KEYS.contains(entry.getKey())) {
-                continue;
-            }
             findSystemItem(1000, entry.getKey()).ifPresent(item -> {
                 if (item.getItemValue() != entry.getValue()) {
                     item.setItemValue(entry.getValue().toString());

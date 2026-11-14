@@ -94,7 +94,6 @@ public class SystemConfigService
         LocalDate bizDate = DateUtil.parse(bizDateStr, shortSdf).toLocalDateTime().toLocalDate();
         tmp.put("BIZ_DATE_AS_DATE", bizDate);
         tmp.put("CUR_DATETIME", DateUtil.now());
-        tmp.put("LOG_PATH", dictService.getLogPath());
         tmp.put("SWITCH_TIME", dictService.getSwitchTime());
         tmp.put("CONCURRENT_LIMIT", dictService.getConcurrentLimit());
         tmp.put("QUEUE_SIZE", dictService.getQueueSize());

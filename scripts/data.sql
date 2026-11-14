@@ -10,28 +10,22 @@ values  ('admin', 'admin'),
 
 INSERT INTO public.sys_dict (code, name, classification, remark) VALUES
 (1000, '系统配置项开关', null, '系统常用配置项开关'),
-(1011, '短信接收人', 'FR', '统一配送的短信接收人信息'),
 (1021, '交易日表', 'FR', '自动从柜台取最新的交易日表信息'),
 (1022, '工作日历', 'FR', '工作日(含调休)日期表，item_key 为 yyyyMMdd 的业务日期'),
 (1060, '通用运行状态', 'FR', '通用的运行状态字典E,R,N,Y,W'),
 (2011, 'ODS采集类型映射', 'FR', '源表的字段类型映射至HADOOP'),
-(2015, 'ODS采集增加字段', null, 'ODS采集时，额外增加的字段'),
 (5000, 'JOB模板', 'AT', 'JSON的主模板，与5001关联'),
 (5001, 'JOB模板子模块', 'AT', '实际读写数据库的JSON模块'),
 (2010, 'SQL 保留字', null, 'SQL 的关键字，当字段使用了关键字时，需要对其转义');
 
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (1000, 'RUN_LOG', '/var/tmp/log', '运行日志目录'),
-        (1000, 'CONCURRENT_LIMIT', '30', '最大采集并发数量'),
+values  (1000, 'CONCURRENT_LIMIT', '30', '最大采集并发数量'),
         (1000, 'ADDAX', '/opt/app/addax', 'Addax程序目录'),
         (1000, 'QUEUE_SIZE', '40', '采集队列长度'),
         (1000, 'SWITCH_TIME', '16:20', '切日时间'),
         (1000, 'SCHEMA_REFRESH_TIMEOUT', '600', '表结构刷新超时秒数');
 
-
-insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (1011, '11111111111', '1', '初始化，默认记录');
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
 values  (1060, 'E', '运行错误', '2024-13-30');
@@ -84,11 +78,6 @@ values  (2011, 'bigint', 'bigint', '数值型'),
         (2011, 'smallint unsigned', 'int', '无符号整形'),
         (2011, 'mediumint unsigned', 'int', '无符号整形'),
         (2011, 'int unsigned', 'int', '无符号整形');
-
-insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (2015, 'dw_clt_date', 'string', '采集表的具体时间(精确到秒)'),
-        (2015, 'dw_trade_date', 'decimal(10,0)', '数据采集时的交易日期(8位)'),
-        (2015, 'modifier_no', 'string', '备用,一般标注为系统编号');
 
 insert into public.sys_item (dict_code, item_key, item_value, remark)
 values  (5001, 'rR', '{

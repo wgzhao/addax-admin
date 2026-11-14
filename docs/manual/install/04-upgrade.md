@@ -129,7 +129,7 @@ yarn build
 HDFS 目标端的 `connect_config`：
 
 - 只补缺失键，目标端已有的配置不会被覆盖；
-- 旧 `sys_item` 行保留，但系统配置接口和页面不再展示；
+- 迁移完成后删除旧的 `sys_item` 行，系统配置接口和页面不再展示；
 - 目标端缺少 `writer_template_key` 时补 `wH`。
 
 **驱动**：迁移会把旧 `HIVE_SERVER2.driverPath` 一并保留到 HDFS 目标端，因此升级后 Hive 操作通常

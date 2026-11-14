@@ -302,6 +302,28 @@ public class SchemaInitializer
          where type = 'COLLECT' and title = '采集任务完成'
         """;
 
+    /**
+     * Deprecated dictionary rows. The pre-target-scoped Hive/HDFS globals were migrated into each
+     * HDFS target's {@code connect_config} and are no longer read; the SMS-recipient (1011) and
+     * ODS-extra-column (2015) dictionaries have no code reading them anymore. AUTH_SOURCE_GRANT_MIGRATED
+     * is a leftover one-off migration flag left by an uncommitted build. RUN_LOG was only written
+     * into the Redis LOG_PATH key, which nothing ever read — the app log directory is driven by
+     * {@code logging.file.path} / the LOG_DIR env var instead. These rows only confuse the
+     * dictionary admin page, so the migration drops them after the HDFS target migration has run.
+     */
+    private static final String PURGE_DEPRECATED_SYS_ITEMS_SQL = """
+        delete from public.sys_item
+         where (dict_code = 1000 and item_key in ('HIVE_SERVER2', 'HDFS_PREFIX',
+                                                  'HDFS_STORAGE_FORMAT', 'HDFS_COMPRESS_FORMAT',
+                                                  'HDFS_CONFIG', 'HIVE_CLI', 'AUTH_SOURCE_GRANT_MIGRATED',
+                                                  'RUN_LOG'))
+            or dict_code in (1011, 2015)
+        """;
+
+    private static final String PURGE_DEPRECATED_SYS_DICTS_SQL = """
+        delete from public.sys_dict where code in (1011, 2015)
+        """;
+
     private static final String ADD_CALENDAR_COLUMN_SQL =
         "alter table public.etl_source add column if not exists calendar varchar(32)";
 
@@ -836,6 +858,16 @@ public class SchemaInitializer
             }
             migrateTargetConnectKeys(connection);
             migrateHdfsTargetConfig(connection);
+            if (exists(connection, "tables", "sys_item", null))
+            {
+                int purgedItems = statement.executeUpdate(PURGE_DEPRECATED_SYS_ITEMS_SQL);
+                int purgedDicts = statement.executeUpdate(PURGE_DEPRECATED_SYS_DICTS_SQL);
+                if (purgedItems > 0 || purgedDicts > 0)
+                {
+                    log.info("Purged {} deprecated sys_item and {} sys_dict row(s) (legacy Hive/HDFS globals, 1011, 2015)",
+                        purgedItems, purgedDicts);
+                }
+            }
             refreshView(connection, statement);
         }
         if (legacyHiveColumns)
