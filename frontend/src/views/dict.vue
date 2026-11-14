@@ -967,8 +967,7 @@
   "meta": {
     "title": "字典维护",
     "icon": "mdi-book-open-page-variant",
-    "navGroup": "systemManage",
-    "navOrder": 20,
+    "navHidden": true,
     "roles": ["admin"]
   }
 }

@@ -108,7 +108,8 @@
   push('数据洞察', '/data-insight', 'mdi-chart-box-outline');
   if (authStore.canWrite) {
     push('日志管理', '/logs', 'mdi-file-document-outline');
-    push('字典维护', '/dict', 'mdi-book-open-page-variant');
+    push('采集日历', '/calendars', 'mdi-calendar-range');
+    push('类型映射', '/type-mappings', 'mdi-swap-horizontal');
     push('系统配置', '/sys-settings', 'mdi-cog-outline');
   }
 
