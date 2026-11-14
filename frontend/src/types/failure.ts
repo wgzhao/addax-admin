@@ -7,7 +7,8 @@ export type FailureStage =
   | 'COLLECT'
   | 'QUEUE'
   | 'RECOVERY'
-  | 'RECONCILE';
+  | 'RECONCILE'
+  | 'DATA_QUALITY';
 
 export type FailureCategory =
   | 'OOM'
