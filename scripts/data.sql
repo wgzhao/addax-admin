@@ -66,55 +66,9 @@ values  (2011, 'bigint', 'bigint', '数值型'),
         (2011, 'mediumint unsigned', 'int', '无符号整形'),
         (2011, 'int unsigned', 'int', '无符号整形');
 
-insert into public.sys_item (dict_code, item_key, item_value, remark)
-values  (5001, 'rR', '{
-    "name": "${name}",
-    "parameter": {
-        "username": "${username}",
-        "password": "${password}",
-        "column": [${column}],
-        "where": "${where}",
-        "autoPk": "${autoPk}",
-        "splitPk": "${splitPk}",
-        "connection": {
-            "jdbcUrl": [ "${jdbcUrl}" ],
-            "table": [ "${table}" ]
-        },
-        "fetchSize": ${fetchSize}
-    }
-}', '通用关系型数据库读取模板'),
-        (5001, 'wH', '{
-    "name": "hdfswriter",
-    "parameter": {
-      "defaultFS": "hdfs://yytz",
-      "fileType": "${fileType}",
-      "compress": "${compress}",
-      "path": "${path}",
-      "fileName": "addax",
-      "writeMode": "overwrite",
-      "column": ${column},
-      "createPath": true,
-      "haveKerberos": false,
-      "hdfsSitePath": "/etc/hadoop/conf/hdfs-site.xml",
-      "hadoopConfig": {}
-    }
-}', 'HDFS写入模板'),
-        (5000, 'R2H', '{
-  "job": {
-    "content": {
-        "reader": ${reader},
-         "writer": ${writer},
-      "setting": {
-        "speed": {
-          "batchSize": 20480,
-          "bytes": -1,
-          "channel": 1
-        }
-      }
-    }
-  }
-}', '关系型数据库到HDFS的模板');
-
+-- Job templates (R2H/R2R/rR/wH/wR) are seeded at startup by DictService#ensureRdbmsTemplates
+-- from the Java constants, which are the single source of truth for both the defaults and the
+-- placeholder contract.
 
 select insert_dates_for_year(extract('year' from now())::integer, 1021);
 
