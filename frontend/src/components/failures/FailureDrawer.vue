@@ -1,231 +1,239 @@
 <template>
-  <v-navigation-drawer
-    :model-value="modelValue"
-    location="right"
-    temporary
-    width="560"
-    class="failure-drawer"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
-    <div class="failure-drawer__header">
-      <div>
-        <div class="failure-drawer__eyebrow">失败详情</div>
-        <div class="failure-drawer__title">
-          {{ tableLabel || (failure ? `采集表 #${failure.tid}` : '加载中') }}
-        </div>
-      </div>
-      <v-btn icon variant="text" size="small" aria-label="关闭" @click="close">
-        <v-icon>mdi-close</v-icon>
-      </v-btn>
-    </div>
-
-    <v-progress-linear v-if="loading" indeterminate color="primary" />
-
-    <div v-if="error" class="failure-drawer__state">
-      <v-icon size="40" color="error">mdi-alert-circle-outline</v-icon>
-      <div class="failure-drawer__state-title">加载失败</div>
-      <div class="failure-drawer__state-desc">{{ error }}</div>
-    </div>
-
-    <div v-else-if="emptyReason" class="failure-drawer__state">
-      <v-icon size="44" color="warning">mdi-information-outline</v-icon>
-      <div class="failure-drawer__state-title">{{ emptyTitle }}</div>
-      <div class="failure-drawer__state-desc">{{ hint || emptyDesc }}</div>
-      <div class="failure-drawer__actions">
-        <v-btn
-          v-if="resolvedTid"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-table-eye"
-          :to="`/table/detail/${resolvedTid}`"
-        >
-          打开采集表详情
-        </v-btn>
-        <v-btn
-          v-if="resolvedTid"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-format-list-bulleted"
-          :to="`/table/detail/${resolvedTid}?tab=failures`"
-        >
-          查看失败记录
-        </v-btn>
-      </div>
-    </div>
-
-    <template v-else-if="failure">
-      <div class="failure-drawer__body">
-        <div class="failure-drawer__chips">
-          <v-chip size="small" color="error" variant="tonal">
-            {{ stageLabel(failure.stage) }}
-          </v-chip>
-          <v-chip size="small" :color="categoryColor(failure.category)" variant="tonal">
-            {{ categoryLabel(failure.category) }}
-          </v-chip>
-          <v-chip v-if="failure.finalAttempt" size="small" color="warning" variant="tonal">
-            最终失败
-          </v-chip>
-        </div>
-
-        <div class="failure-drawer__summary">{{ failure.summary }}</div>
-
-        <v-alert
-          v-if="hint"
-          type="info"
-          variant="tonal"
-          density="compact"
-          class="mt-3"
-          :text="hint"
-        />
-
-        <div class="failure-drawer__meta">
-          <div>
-            <span>发生时间</span>
-            <strong>{{ failure.occurredAt }}</strong>
-          </div>
-          <div>
-            <span>尝试次数</span>
-            <strong>{{ attemptLabel }}</strong>
-          </div>
-          <div>
-            <span>业务日期</span>
-            <strong>{{ failure.bizDate || '-' }}</strong>
-          </div>
-          <div>
-            <span>运行类型</span>
-            <strong>{{ failure.runType === 'FILLBACK' ? '补数' : '常规' }}</strong>
-          </div>
-          <div>
-            <span>错误类</span>
-            <strong class="mono">{{ failure.errorClass || '-' }}</strong>
-          </div>
-          <div>
-            <span>错误码</span>
-            <strong class="mono">{{ failure.errorCode || '-' }}</strong>
+  <!-- Why: mounted inside page cards, the layout system sizes the drawer against the page content
+       instead of the viewport, pushing the footer past the fold and trapping it under the footer. -->
+  <Teleport to="body">
+    <v-navigation-drawer
+      :model-value="modelValue"
+      location="right"
+      temporary
+      :width="drawerWidth"
+      class="failure-drawer"
+      @update:model-value="emit('update:modelValue', $event)"
+    >
+      <div class="failure-drawer__header">
+        <div>
+          <div class="failure-drawer__eyebrow">失败详情</div>
+          <div class="failure-drawer__title">
+            {{ tableLabel || (failure ? `采集表 #${failure.tid}` : '加载中') }}
           </div>
         </div>
-
-        <div v-if="occurrences.count > 1" class="failure-drawer__occurrence">
-          同类错误共出现 <strong>{{ occurrences.count }}</strong> 次
-          <span v-if="occurrences.firstSeenAt">
-            ，首次 {{ occurrences.firstSeenAt }}，最近 {{ occurrences.lastSeenAt }}
-          </span>
-        </div>
-
-        <div class="failure-drawer__section">
-          <div class="failure-drawer__section-title">证据</div>
-
-          <div class="evidence-row">
-            <v-icon size="18" :color="evidenceColor(evidence.log)">mdi-file-document-outline</v-icon>
-            <div class="evidence-row__text">
-              <strong>原始日志</strong>
-              <span>{{ evidenceText('log') }}</span>
-            </div>
-            <v-btn
-              v-if="evidence.log === 'available'"
-              size="small"
-              variant="tonal"
-              color="primary"
-              :loading="logLoading"
-              @click="openLog"
-            >
-              查看
-            </v-btn>
-          </div>
-
-          <div class="evidence-row">
-            <v-icon size="18" :color="evidenceColor(evidence.execution)">mdi-history</v-icon>
-            <div class="evidence-row__text">
-              <strong>执行快照</strong>
-              <span>{{ evidenceText('execution') }}</span>
-            </div>
-            <v-btn
-              v-if="evidence.execution === 'available' && resolvedTid"
-              size="small"
-              variant="tonal"
-              color="primary"
-              :to="`/table/detail/${resolvedTid}?tab=executions`"
-            >
-              查看
-            </v-btn>
-          </div>
-
-          <div class="evidence-row evidence-row--stack">
-            <v-icon size="18" :color="evidenceColor(evidence.detail)">mdi-code-braces</v-icon>
-            <div class="evidence-row__text">
-              <strong>详细堆栈</strong>
-              <span>{{ evidenceText('detail') }}</span>
-            </div>
-            <v-btn
-              v-if="evidence.detail === 'available' && failure.detail"
-              size="small"
-              variant="text"
-              color="primary"
-              @click="showDetail = !showDetail"
-            >
-              {{ showDetail ? '收起' : '展开' }}
-            </v-btn>
-          </div>
-          <pre v-if="showDetail && failure.detail" class="failure-drawer__detail">{{ failure.detail }}</pre>
-        </div>
-      </div>
-
-      <div class="failure-drawer__footer">
-        <v-btn
-          v-if="resolvedTid"
-          size="small"
-          variant="tonal"
-          prepend-icon="mdi-format-list-bulleted"
-          :to="`/table/detail/${resolvedTid}?tab=failures`"
-        >
-          失败记录
-        </v-btn>
-        <v-btn
-          size="small"
-          variant="text"
-          prepend-icon="mdi-filter-outline"
-          :to="{ path: '/failures', query: { tid: String(failure.tid) } }"
-        >
-          在错误中心查看
-        </v-btn>
-        <v-spacer />
-        <v-btn size="small" variant="text" prepend-icon="mdi-content-copy" @click="copySummary">
-          复制摘要
-        </v-btn>
-      </div>
-    </template>
-
-    <div v-else-if="!loading" class="failure-drawer__state">
-      <v-icon size="40" color="disabled">mdi-help-circle-outline</v-icon>
-      <div class="failure-drawer__state-title">没有可显示的信息</div>
-    </div>
-
-  </v-navigation-drawer>
-
-  <!-- Keep the log dialog outside the drawer: inside it is positioned relative to the drawer and
-       renders as a small floating box instead of a full-width dialog. -->
-  <v-dialog v-model="logDialog" attach="body" max-width="1100" scrollable>
-    <v-card>
-      <v-card-title class="d-flex align-center">
-        原始日志
-        <v-chip v-if="failure?.logName" size="small" variant="tonal" class="ml-3">
-          {{ failure.logName }}
-        </v-chip>
-        <v-spacer />
-        <v-btn icon variant="text" size="small" @click="logDialog = false">
+        <v-btn icon variant="text" size="small" aria-label="关闭" @click="close">
           <v-icon>mdi-close</v-icon>
         </v-btn>
-      </v-card-title>
-      <v-card-text class="log-dialog-body">
-        <v-alert v-if="logError" type="error" variant="tonal">{{ logError }}</v-alert>
-        <pre v-else class="log-dialog-content">{{ logContent }}</pre>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+      </div>
+
+      <v-progress-linear v-if="loading" indeterminate color="primary" />
+
+      <div v-if="error" class="failure-drawer__state">
+        <v-icon size="40" color="error">mdi-alert-circle-outline</v-icon>
+        <div class="failure-drawer__state-title">加载失败</div>
+        <div class="failure-drawer__state-desc">{{ error }}</div>
+      </div>
+
+      <div v-else-if="emptyReason" class="failure-drawer__state">
+        <v-icon size="44" color="warning">mdi-information-outline</v-icon>
+        <div class="failure-drawer__state-title">{{ emptyTitle }}</div>
+        <div class="failure-drawer__state-desc">{{ hint || emptyDesc }}</div>
+        <div class="failure-drawer__actions">
+          <v-btn
+            v-if="resolvedTid"
+            size="small"
+            variant="tonal"
+            prepend-icon="mdi-table-eye"
+            :to="`/table/detail/${resolvedTid}`"
+          >
+            打开采集表详情
+          </v-btn>
+          <v-btn
+            v-if="resolvedTid"
+            size="small"
+            variant="tonal"
+            prepend-icon="mdi-format-list-bulleted"
+            :to="`/table/detail/${resolvedTid}?tab=failures`"
+          >
+            查看失败记录
+          </v-btn>
+        </div>
+      </div>
+
+      <template v-else-if="failure">
+        <div class="failure-drawer__body">
+          <div class="failure-drawer__chips">
+            <v-chip size="small" color="error" variant="tonal">
+              {{ stageLabel(failure.stage) }}
+            </v-chip>
+            <v-chip size="small" :color="categoryColor(failure.category)" variant="tonal">
+              {{ categoryLabel(failure.category) }}
+            </v-chip>
+            <v-chip v-if="failure.finalAttempt" size="small" color="warning" variant="tonal">
+              最终失败
+            </v-chip>
+          </div>
+
+          <div class="failure-drawer__summary">{{ failure.summary }}</div>
+
+          <v-alert
+            v-if="hint"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mt-3"
+            :text="hint"
+          />
+
+          <div class="failure-drawer__meta">
+            <div>
+              <span>发生时间</span>
+              <strong>{{ failure.occurredAt }}</strong>
+            </div>
+            <div>
+              <span>尝试次数</span>
+              <strong>{{ attemptLabel }}</strong>
+            </div>
+            <div>
+              <span>业务日期</span>
+              <strong>{{ failure.bizDate || '-' }}</strong>
+            </div>
+            <div>
+              <span>运行类型</span>
+              <strong>{{ failure.runType === 'FILLBACK' ? '补数' : '常规' }}</strong>
+            </div>
+            <div>
+              <span>错误类</span>
+              <strong class="mono">{{ failure.errorClass || '-' }}</strong>
+            </div>
+            <div>
+              <span>错误码</span>
+              <strong class="mono">{{ failure.errorCode || '-' }}</strong>
+            </div>
+          </div>
+
+          <div v-if="occurrences.count > 1" class="failure-drawer__occurrence">
+            同类错误共出现 <strong>{{ occurrences.count }}</strong> 次
+            <span v-if="occurrences.firstSeenAt">
+              ，首次 {{ occurrences.firstSeenAt }}，最近 {{ occurrences.lastSeenAt }}
+            </span>
+          </div>
+
+          <div class="failure-drawer__section">
+            <div class="failure-drawer__section-title">证据</div>
+
+            <div class="evidence-row">
+              <v-icon size="18" :color="evidenceColor(evidence.log)"
+                >mdi-file-document-outline</v-icon
+              >
+              <div class="evidence-row__text">
+                <strong>原始日志</strong>
+                <span>{{ evidenceText('log') }}</span>
+              </div>
+              <v-btn
+                v-if="evidence.log === 'available'"
+                size="small"
+                variant="tonal"
+                color="primary"
+                :loading="logLoading"
+                @click="openLog"
+              >
+                查看
+              </v-btn>
+            </div>
+
+            <div class="evidence-row">
+              <v-icon size="18" :color="evidenceColor(evidence.execution)">mdi-history</v-icon>
+              <div class="evidence-row__text">
+                <strong>执行快照</strong>
+                <span>{{ evidenceText('execution') }}</span>
+              </div>
+              <v-btn
+                v-if="evidence.execution === 'available' && resolvedTid"
+                size="small"
+                variant="tonal"
+                color="primary"
+                :to="`/table/detail/${resolvedTid}?tab=executions`"
+              >
+                查看
+              </v-btn>
+            </div>
+
+            <div class="evidence-row evidence-row--stack">
+              <v-icon size="18" :color="evidenceColor(evidence.detail)">mdi-code-braces</v-icon>
+              <div class="evidence-row__text">
+                <strong>详细堆栈</strong>
+                <span>{{ evidenceText('detail') }}</span>
+              </div>
+              <v-btn
+                v-if="evidence.detail === 'available' && failure.detail"
+                size="small"
+                variant="text"
+                color="primary"
+                @click="showDetail = !showDetail"
+              >
+                {{ showDetail ? '收起' : '展开' }}
+              </v-btn>
+            </div>
+            <pre v-if="showDetail && failure.detail" class="failure-drawer__detail">{{
+              failure.detail
+            }}</pre>
+          </div>
+        </div>
+
+        <div class="failure-drawer__footer">
+          <v-btn
+            v-if="resolvedTid"
+            size="small"
+            variant="tonal"
+            prepend-icon="mdi-format-list-bulleted"
+            :to="`/table/detail/${resolvedTid}?tab=failures`"
+          >
+            失败记录
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            prepend-icon="mdi-filter-outline"
+            :to="{ path: '/failures', query: { tid: String(failure.tid) } }"
+          >
+            在错误中心查看
+          </v-btn>
+          <v-spacer />
+          <v-btn size="small" variant="text" prepend-icon="mdi-content-copy" @click="copySummary">
+            复制摘要
+          </v-btn>
+        </div>
+      </template>
+
+      <div v-else-if="!loading" class="failure-drawer__state">
+        <v-icon size="40" color="disabled">mdi-help-circle-outline</v-icon>
+        <div class="failure-drawer__state-title">没有可显示的信息</div>
+      </div>
+    </v-navigation-drawer>
+
+    <!-- Keep the log dialog outside the drawer: inside it is positioned relative to the drawer and
+       renders as a small floating box instead of a full-width dialog. -->
+    <v-dialog v-model="logDialog" attach="body" max-width="1100" scrollable>
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          原始日志
+          <v-chip v-if="failure?.logName" size="small" variant="tonal" class="ml-3">
+            {{ failure.logName }}
+          </v-chip>
+          <v-spacer />
+          <v-btn icon variant="text" size="small" @click="logDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-text class="log-dialog-body">
+          <v-alert v-if="logError" type="error" variant="tonal">{{ logError }}</v-alert>
+          <pre v-else class="log-dialog-content">{{ logContent }}</pre>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
+  import { useDisplay } from 'vuetify';
   import failureService from '@/service/failure-service';
   import logService from '@/service/log-service';
   import { notify } from '@/stores/notifier';
@@ -251,6 +259,15 @@
 
   const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
 
+  const { width: viewportWidth } = useDisplay();
+  // Failures carry long summaries and stack traces; a fixed 560px column forced horizontal
+  // squeeze and vertical scroll on desktop, so use most of the screen up to a readable width.
+  const drawerWidth = computed(() => {
+    const width = viewportWidth.value;
+    if (width < 600) return width;
+    return Math.min(920, Math.max(560, Math.round(width * 0.85)));
+  });
+
   const loading = ref(false);
   const error = ref('');
   const latest = ref<LatestFailure | null>(null);
@@ -261,12 +278,18 @@
   const logError = ref('');
   const showDetail = ref(false);
 
-  const failure = computed<Failure | null>(() => detail.value?.failure ?? latest.value?.failure ?? null);
+  const failure = computed<Failure | null>(
+    () => detail.value?.failure ?? latest.value?.failure ?? null
+  );
   const evidence = computed<FailureEvidence>(
-    () => detail.value?.evidence ?? latest.value?.evidence ?? { detail: 'missing', log: 'missing', execution: 'missing' }
+    () =>
+      detail.value?.evidence ??
+      latest.value?.evidence ?? { detail: 'missing', log: 'missing', execution: 'missing' }
   );
   const occurrences = computed<FailureOccurrences>(
-    () => detail.value?.occurrences ?? latest.value?.occurrences ?? { count: 0, firstSeenAt: null, lastSeenAt: null }
+    () =>
+      detail.value?.occurrences ??
+      latest.value?.occurrences ?? { count: 0, firstSeenAt: null, lastSeenAt: null }
   );
   const hint = computed(() => detail.value?.hint ?? latest.value?.hint ?? null);
   const resolvedTid = computed(() => props.tid ?? failure.value?.tid ?? null);
@@ -284,8 +307,10 @@
     return '暂无失败记录';
   });
   const emptyDesc = computed(() => {
-    if (latest.value?.reason === 'PURGED') return '该表没有找到对应的失败记录，可能已按保留策略清理。';
-    if (latest.value?.reason === 'NO_EVIDENCE_FOR_STATE') return '状态为失败，但系统没有找到失败事实。';
+    if (latest.value?.reason === 'PURGED')
+      return '该表没有找到对应的失败记录，可能已按保留策略清理。';
+    if (latest.value?.reason === 'NO_EVIDENCE_FOR_STATE')
+      return '状态为失败，但系统没有找到失败事实。';
     return '该采集表当前没有失败记录。';
   });
   const attemptLabel = computed(() => {
@@ -308,7 +333,8 @@
     const state = evidence.value[kind];
     if (state === 'available') {
       if (kind === 'log') return failure.value?.logName || '可查看';
-      if (kind === 'execution') return failure.value?.executionId ? `执行 #${failure.value.executionId}` : '可查看';
+      if (kind === 'execution')
+        return failure.value?.executionId ? `执行 #${failure.value.executionId}` : '可查看';
       return '可展开查看';
     }
     if (state === 'restricted') return '需要该采集源的操作授权';
@@ -382,12 +408,20 @@
     background: rgb(var(--v-theme-surface));
   }
 
+  /* Why: only the body scrolls, so the close button and footer actions stay reachable. */
+  .failure-drawer :deep(.v-navigation-drawer__content) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .failure-drawer__header {
     display: flex;
+    flex: 0 0 auto;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 20px 20px 12px;
+    padding: 20px 24px 12px;
     border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   }
 
@@ -405,7 +439,9 @@
   }
 
   .failure-drawer__body {
-    padding: 16px 20px;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 24px;
   }
 
   .failure-drawer__chips {
@@ -428,7 +464,7 @@
 
   .failure-drawer__meta {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px 20px;
     margin-top: 16px;
   }
@@ -510,17 +546,20 @@
 
   .failure-drawer__footer {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 8px;
-    padding: 12px 20px 20px;
+    padding: 12px 24px 20px;
     border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
   }
 
   .failure-drawer__state {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    overflow-y: auto;
     padding: 64px 32px;
     text-align: center;
   }
@@ -559,5 +598,11 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  @media (max-width: 700px) {
+    .failure-drawer__meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>
