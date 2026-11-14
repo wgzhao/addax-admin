@@ -70,8 +70,7 @@ public class SettingController
     }
 
 
-    // 获取采集模板，这里主要是三个模板
-    // 采集主模板，关系性数据库读取模板，HDFS写入模板
+    // 获取采集模板：R2H/R2R 主模板 + rR/wH/wR 读写片段
     @GetMapping("/job-templates")
     public ResponseEntity<Map<String, SysItem>> getJobTemplates()
     {

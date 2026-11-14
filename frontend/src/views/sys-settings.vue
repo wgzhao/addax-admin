@@ -323,8 +323,8 @@
   const R2RJobTemplate = ref<string>('');
 
   const templateTabs: Array<{ key: TemplateKey; label: string; doc: string }> = [
-    { key: 'R2H', label: '采集主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
-    { key: 'R2R', label: '关系型主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
+    { key: 'R2H', label: 'RDBMS→HDFS 主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
+    { key: 'R2R', label: 'RDBMS→RDBMS 主模板', doc: 'https://wgzhao.github.io/Addax/latest/' },
     {
       key: 'rR',
       label: 'RDBMS 读取',
