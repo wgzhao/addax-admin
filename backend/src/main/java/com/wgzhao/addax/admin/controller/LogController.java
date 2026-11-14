@@ -13,6 +13,7 @@ import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
 import com.wgzhao.addax.admin.service.FailureService;
+import com.wgzhao.addax.admin.service.ReconcileService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
@@ -45,6 +46,7 @@ public class LogController
     private final CalendarService calendarService;
     private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
+    private final ReconcileService reconcileService;
 
     @GetMapping("/addax")
     public PageResponse<AddaxLog> listAddaxLog(
@@ -180,6 +182,9 @@ public class LogController
             bizDate = calendarService.businessDate(tableService.getSourceCalendar(tid));
         }
         sta.setBizDate(bizDate);
-        return statService.saveOrUpdate(sta);
+        boolean saved = statService.saveOrUpdate(sta);
+        reconcileService.reconcile(tid, executionId, bizDate,
+            dto.totalReadRecords(), dto.totalErrorRecords());
+        return saved;
     }
 }
