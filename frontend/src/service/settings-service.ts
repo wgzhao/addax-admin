@@ -14,6 +14,19 @@ export interface SystemConfig {
   QUEUE_SIZE: number; // 后端返回字符串格式
 }
 
+export interface AddaxCheckItem {
+  key: string;
+  label: string;
+  status: 'ok' | 'fail' | 'skip';
+  message: string;
+  hint: string | null;
+}
+
+export interface AddaxValidationResult {
+  success: boolean;
+  checks: AddaxCheckItem[];
+}
+
 class SettingsService {
   baseUrl = 'settings';
 
@@ -97,6 +110,16 @@ class SettingsService {
       console.error('触发切日调度任务失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 校验 Addax 程序目录（目录/脚本/core.json 静态检查 + 冒烟上报）
+   */
+  async validateAddax(addaxHome: string): Promise<AddaxValidationResult> {
+    const response = await Requests.post<AddaxValidationResult>(`${this.baseUrl}/addax-validate`, {
+      addaxHome,
+    });
+    return response;
   }
 }
 
