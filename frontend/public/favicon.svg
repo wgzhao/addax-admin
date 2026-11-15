@@ -1,6 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Addax Admin">
-  <rect width="32" height="32" rx="8" fill="#176FD6"/>
-  <path d="M9.2 23.2 16 8.4l6.8 14.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M12.1 18.2h7.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
-  <circle cx="16" cy="8.4" r="2.2" fill="#7DD3FC"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="addax-admin-bg" x1="5" y1="2" x2="27" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4573FB"/>
+      <stop offset="1" stop-color="#00D4FF"/>
+    </linearGradient>
+  </defs>
+  <path d="M16 1.5 L28.56 8.75 L28.56 23.25 L16 30.5 L3.44 23.25 L3.44 8.75 Z" fill="url(#addax-admin-bg)"/>
+  <path d="M10.1 23.4 L16 9.6 L21.9 23.4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12.3 18.7 H19.7" fill="none" stroke="#7DD3FC" stroke-width="2.8" stroke-linecap="round"/>
+  <circle cx="16" cy="9.6" r="1.7" fill="#7DD3FC"/>
 </svg>

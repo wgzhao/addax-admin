@@ -1,0 +1,36 @@
+name: 功能建议
+description: 提出新能力或改进建议
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Addax Admin 专注 T+1 ODS 数据落地。提出建议前请先阅读 [产品定位与路线图](https://github.com/wgzhao/addax-admin/blob/master/docs/roadmap.md)，确认不属于「明确不做」的范围。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 描述当前场景与痛点，而不是直接给出实现方案
+      placeholder: 在 ... 场景下，我需要 ...，目前只能 ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 可包含交互、数据模型或替代方案
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 已考虑的替代方案
+    validations:
+      required: false
+  - type: textarea
+    id: scope
+    attributes:
+      label: 影响范围
+      description: 涉及前端、后端、数据库迁移或已有配置的兼容性
+    validations:
+      required: false
