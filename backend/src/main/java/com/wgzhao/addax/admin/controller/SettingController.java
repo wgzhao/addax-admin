@@ -1,7 +1,9 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.dto.AddaxValidationResult;
 import com.wgzhao.addax.admin.model.SysItem;
+import com.wgzhao.addax.admin.service.AddaxValidationService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.scheduler.SchemaRefreshScheduler;
 import com.wgzhao.addax.admin.service.SystemConfigService;
@@ -33,6 +35,7 @@ public class SettingController
     private final SystemConfigService systemConfigService;
     private final SchemaRefreshScheduler schemaRefreshScheduler;
     private final AuditRecorder auditRecorder;
+    private final AddaxValidationService addaxValidationService;
 
     // 获取 dictCode 为 1000 的系统配置项
     @GetMapping("/sys-config")
@@ -102,5 +105,19 @@ public class SettingController
         auditRecorder.success("SWITCH_TIME_TASK_RESCHEDULED", "CONFIG", "WARNING", "SYSTEM_CONFIG",
             "SWITCH_TIME", "switch-time scheduler", null, null);
         return ResponseEntity.ok("Schema refresh task rescheduled");
+    }
+
+    /**
+     * 校验 Addax 程序目录：目录/脚本/core.json 静态检查 + stream→stream 冒烟上报。
+     * 传入 addaxHome 用前端输入框当前值（保存前先验），为空则回退到已保存配置。
+     */
+    @PostMapping("/addax-validate")
+    public ResponseEntity<AddaxValidationResult> validateAddax(@RequestBody(required = false) Map<String, Object> payload)
+    {
+        String home = null;
+        if (payload != null && payload.get("addaxHome") != null) {
+            home = String.valueOf(payload.get("addaxHome"));
+        }
+        return ResponseEntity.ok(addaxValidationService.validate(home));
     }
 }

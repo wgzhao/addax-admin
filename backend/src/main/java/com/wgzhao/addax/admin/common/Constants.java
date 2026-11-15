@@ -15,6 +15,9 @@ public final class Constants
     public static final String DELETED_PLACEHOLDER_PREFIX = "__deleted__";
     public static final String SPECIAL_FILTER_PLACEHOLDER = "__max__";
     public static final long ADDAX_EXECUTE_TIME_OUT_SECONDS = 2 * 60 * 60;
+    // Reserved tid for the addax-directory validation smoke test. The stream→stream job reports
+    // under this tid so the real job-report pipeline can be exercised without touching a real table.
+    public static final long SMOKE_TEST_TID = -1L;
     // 默认的切日时间
     public static final String DEFAULT_SWITCH_TIME = "16:30";
     public static final int HIVE_DECIMAL_MAX_PRECISION = 38;

@@ -83,8 +83,49 @@
                   density="comfortable"
                   hide-details="auto"
                   :rules="[rules.required]"
-                />
+                >
+                  <template #append-inner>
+                    <v-btn
+                      size="small"
+                      variant="flat"
+                      color="primary"
+                      :loading="validatingAddax"
+                      :disabled="validatingAddax"
+                      @click="validateAddax"
+                    >
+                      校验
+                    </v-btn>
+                  </template>
+                </v-text-field>
                 <p class="field-help">调度进程通过该目录调用 Addax 可执行文件。</p>
+
+                <div
+                  v-if="addaxValidation"
+                  class="addax-check"
+                  :class="addaxValidation.success ? 'addax-check--ok' : 'addax-check--fail'"
+                >
+                  <div class="addax-check__head">
+                    <v-icon size="18" :color="addaxValidation.success ? 'success' : 'error'">
+                      {{ addaxValidation.success ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                    </v-icon>
+                    <span>{{ addaxValidation.success ? 'Addax 目录校验通过' : 'Addax 目录校验未通过' }}</span>
+                  </div>
+                  <ul class="addax-check__list">
+                    <li
+                      v-for="item in addaxValidation.checks"
+                      :key="item.key"
+                      class="addax-check__item"
+                      :class="`is-${item.status}`"
+                    >
+                      <v-icon size="16" :color="checkIconColor(item.status)">{{ checkIcon(item.status) }}</v-icon>
+                      <div class="addax-check__body">
+                        <span class="addax-check__label">{{ item.label }}</span>
+                        <span class="addax-check__msg">{{ item.message }}</span>
+                        <span v-if="item.hint" class="addax-check__hint">{{ item.hint }}</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
               </div>
 
               <div class="field">
@@ -311,10 +352,10 @@
 <script setup lang="ts">
   import PageHeader from '@/components/PageHeader.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
-  import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
   import { onBeforeRouteLeave } from 'vue-router';
   import { notify } from '@/stores/notifier';
-  import settingsService from '@/service/settings-service';
+  import settingsService, { AddaxValidationResult } from '@/service/settings-service';
   import { SysItem } from '@/types/database';
 
   type TemplateKey = 'R2H' | 'R2R' | 'rR' | 'wH' | 'wR';
@@ -324,6 +365,9 @@
   const loadError = ref(false);
   const saving = ref(false);
   const validationFailed = ref(false);
+
+  const validatingAddax = ref(false);
+  const addaxValidation = ref<AddaxValidationResult | null>(null);
 
   const settings = ref<any>({});
   const originalSwitchTime = ref<string>('');
@@ -718,6 +762,51 @@
     );
   };
 
+  const validateAddax = async () => {
+    if (validatingAddax.value) return;
+    const home = String(settings.value['ADDAX'] ?? '');
+    if (!home.trim()) {
+      notify('请先填写 Addax 程序目录', 'warning');
+      return;
+    }
+    validatingAddax.value = true;
+    try {
+      const result = await settingsService.validateAddax(home);
+      addaxValidation.value = result;
+      if (result.success) {
+        notify('Addax 目录校验通过', 'success');
+      } else {
+        notify('Addax 目录校验未通过，请查看下方提示', 'error');
+      }
+    } catch (error: any) {
+      notify('校验失败: ' + (error?.message || error), 'error');
+    } finally {
+      validatingAddax.value = false;
+    }
+  };
+
+  const checkIcon = (status: string) => {
+    switch (status) {
+      case 'ok':
+        return 'mdi-check-circle';
+      case 'fail':
+        return 'mdi-alert-circle';
+      default:
+        return 'mdi-minus-circle-outline';
+    }
+  };
+
+  const checkIconColor = (status: string) => {
+    switch (status) {
+      case 'ok':
+        return 'success';
+      case 'fail':
+        return 'error';
+      default:
+        return 'medium-emphasis';
+    }
+  };
+
   const focusFirstError = async () => {
     await new Promise(resolve => setTimeout(resolve, 60));
     const el = document.querySelector<HTMLElement>('.v-input--error, .v-field--error');
@@ -905,6 +994,14 @@
     event.preventDefault();
     event.returnValue = '';
   };
+
+  // 目录输入变化后，上一次的校验结果不再对应当前值，清空避免误导
+  watch(
+    () => settings.value['ADDAX'],
+    () => {
+      addaxValidation.value = null;
+    }
+  );
 
   onMounted(() => {
     loadSettings();
@@ -1143,6 +1240,76 @@
     color: var(--ds-text-3);
     font-size: 12px;
     line-height: 1.5;
+  }
+
+  .addax-check {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--ds-border-default);
+    border-radius: var(--ds-radius-sm);
+    background: rgba(var(--v-theme-on-surface), 0.02);
+  }
+
+  .addax-check--ok {
+    border-color: rgba(var(--v-theme-success), 0.4);
+  }
+
+  .addax-check--fail {
+    border-color: rgba(var(--v-theme-error), 0.4);
+  }
+
+  .addax-check__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .addax-check__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .addax-check__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .addax-check__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .addax-check__label {
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  .addax-check__msg {
+    color: var(--ds-text-2);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .addax-check__hint {
+    color: rgb(var(--v-theme-error));
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .addax-check__item.is-fail .addax-check__label {
+    color: rgb(var(--v-theme-error));
   }
 
   .template-card .setting-head {
