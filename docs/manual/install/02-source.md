@@ -27,7 +27,7 @@ CREATE USER addax_admin WITH PASSWORD 'addax_admin@123';
 CREATE DATABASE addax_admin OWNER addax_admin;
 ```
 
-然后在仓库根目录执行初始化脚本：
+数据库为空时，后端首次启动会自动执行镜像内置的 `schema.sql` 和 `data.sql` 完成初始化，一般不需要手工执行 SQL。需要提前建表或检查脚本内容时，也可以在仓库根目录手工执行：
 
 ```bash
 psql -U addax_admin -d addax_admin -f scripts/schema.sql
@@ -255,6 +255,8 @@ sudo systemctl reload nginx
 ## 本地开发模式
 
 ### 初始化数据库
+
+创建一个空的 `addax_admin` 数据库即可，后端首次启动会自动建表并写入默认数据。需要手工初始化时：
 
 ```bash
 psql -U addax_admin -d addax_admin -f scripts/schema.sql

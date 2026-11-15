@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Release](https://img.shields.io/github/v/release/wgzhao/addax-admin?sort=semver)](https://github.com/wgzhao/addax-admin/releases)
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.2-green.svg)](https://spring.io/projects/spring-boot)
 [![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
 
 Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管理与监控控制台。项目以 Monorepo 的形式组织，包含完整的后端 API 服务与前端管理界面，旨在提供从任务配置、调度执行、运行监控到日志审计的一站式运维体验。
@@ -41,7 +41,7 @@ Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管�
 
 ```text
 addax-admin/
-├── backend/                 # Spring Boot 3 后端服务（API、调度、持久化、队列与租约）
+├── backend/                 # Spring Boot 4 后端服务（API、调度、持久化、队列与租约）
 ├── frontend/                # Vue 3 + Vite + TypeScript + Vuetify 管理界面
 ├── docs/                    # 安装与使用手册、ADR、测试与安全文档
 ├── scripts/                 # 部署与运维脚本（DB 初始化、systemd service 模板等）
@@ -52,7 +52,7 @@ addax-admin/
 
 - Addax Admin Backend：Spring Boot 实现，负责任务持久化（PostgreSQL）、分发逻辑、数据库租约、Redis 选主与心跳、权限与 JWT、调度（cron/周期）等。
 - Addax Admin Frontend：基于 Vue 3 + Vuetify 的单页应用，提供任务配置、ODS 表管理、日志查看、实时监控与告警配置。
-- 数据库初始化：[scripts/schema.sql](scripts/schema.sql) 和 [scripts/data.sql](scripts/data.sql) 提供数据库 schema 与默认数据。
+- 数据库初始化：[scripts/schema.sql](scripts/schema.sql) 和 [scripts/data.sql](scripts/data.sql) 提供数据库 schema 与默认数据，构建时打包进后端 jar，空库由应用首次启动自动初始化。
 
 ---
 
@@ -110,17 +110,21 @@ Addax Admin 支持两种部署模式：
 
 #### 方式一：拉取预构建镜像
 
+> 镜像只在发布时构建，`latest` 指向最新 Release。`master` 分支仍在快速迭代，请勿用于生产部署。
+> 数据库在首次启动时由镜像内置的 `schema.sql` 和 `data.sql` 自动初始化，不需要在宿主机放置 SQL 文件。
+
 ```bash
 # 1. 创建部署目录
 mkdir addax-admin && cd addax-admin
-mkdir -p scripts
 
-# 2. 下载部署文件
-wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/docker-compose.yml
-wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/schema.sql
-wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/data.sql
+# 2. 下载部署文件（RELEASE_TAG 换成要部署的版本，如 v4.5.1）
+RELEASE_TAG=v4.5.1
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
+cp .env.example .env
 
-# 3. 拉取镜像并启动（默认拉取 Docker Hub 上的 wgzhao/addax-admin:latest）
+# 3. 拉取镜像并启动（镜像版本与 RELEASE_TAG 保持一致）
+export VERSION="${RELEASE_TAG#v}"   # 同一 shell 内后续 compose 命令都会沿用
 docker compose -f docker-compose.yml pull
 docker compose -f docker-compose.yml up -d
 
@@ -154,11 +158,9 @@ docker compose up -d --build
 适用于不使用 Docker、已有 Java 21、Maven、Node.js、Yarn、PostgreSQL、Redis 和 Nginx 的环境。
 
 ```bash
-# 1. 创建数据库和用户，然后初始化
+# 1. 创建数据库和用户（空库会由后端首次启动自动初始化）
 psql -U postgres -c "CREATE USER addax_admin WITH PASSWORD 'addax_admin@123';"
 psql -U postgres -c "CREATE DATABASE addax_admin OWNER addax_admin;"
-psql -U addax_admin -d addax_admin -f scripts/schema.sql
-psql -U addax_admin -d addax_admin -f scripts/data.sql
 
 # 2. 构建后端与前端
 cd backend && mvn clean package -DskipTests && cd ..
