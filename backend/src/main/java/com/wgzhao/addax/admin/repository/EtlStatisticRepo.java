@@ -2,7 +2,10 @@ package com.wgzhao.addax.admin.repository;
 
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -90,4 +93,11 @@ public interface EtlStatisticRepo
     List<EtlStatistic> findTop15ByTidOrderByBizDateDesc(long tid);
 
     Optional<EtlStatistic> findTop1ByTidOrderByBizDateDesc(long tid);
+
+    Optional<EtlStatistic> findTop1ByTidOrderByIdDesc(long tid);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("delete from EtlStatistic e where e.tid = :tid")
+    long deleteByTid(@Param("tid") long tid);
 }

@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
@@ -153,6 +154,15 @@ public class LogController
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
+        if (tid == Constants.SMOKE_TEST_TID) {
+            // Smoke-test report from the addax-directory validation. Persist it so the validation
+            // can confirm the report round-tripped, then deletes the row itself. There is no real
+            // table behind this tid, so skip the table/execution checks and every downstream
+            // side effect (reconcile / quality / collection signal).
+            EtlStatistic sta = buildStatistic(dto, tid, null);
+            sta.setBizDate(LocalDate.now());
+            return statService.saveOrUpdate(sta);
+        }
         if (tableService.getTable(tid) == null) {
             log.warn("Rejecting job report for unknown tid {}", tid);
             return false;
@@ -161,17 +171,7 @@ public class LogController
             log.warn("Rejecting job report for execution {} that does not belong to tid {}", executionId, tid);
             return false;
         }
-        EtlStatistic sta = new EtlStatistic();
-        sta.setTid(tid);
-        sta.setExecutionId(executionId);
-        sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
-        sta.setEndAt(LocalDateTime.ofEpochSecond(dto.endTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
-        sta.setTakeSecs(dto.totalCosts());
-        sta.setByteSpeed(dto.byteSpeedPerSecond());
-        sta.setRecSpeed(dto.recordSpeedPerSecond());
-        sta.setTotalRecs(dto.totalReadRecords());
-        sta.setTotalErrors(dto.totalErrorRecords());
-        sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
+        EtlStatistic sta = buildStatistic(dto, tid, executionId);
         // The execution snapshot knows the exact date the run was started for. A fillback run
         // carries a historical date, so deriving the date from "now" would make every fillback
         // overwrite the same etl_statistic row. Fall back to the table calendar only when the
@@ -192,5 +192,21 @@ public class LogController
         dataQualityService.checkRowCountDrift(tid, executionId, bizDate, dto.totalReadRecords());
         collectionSignalService.signalComplete(tid, bizDate, dto.totalReadRecords(), dto.totalErrorRecords());
         return saved;
+    }
+
+    private static EtlStatistic buildStatistic(AddaxReportDto dto, long tid, Long executionId)
+    {
+        EtlStatistic sta = new EtlStatistic();
+        sta.setTid(tid);
+        sta.setExecutionId(executionId);
+        sta.setStartAt(LocalDateTime.ofEpochSecond(dto.startTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
+        sta.setEndAt(LocalDateTime.ofEpochSecond(dto.endTimeStamp(), 0, java.time.ZoneOffset.ofHours(8)));
+        sta.setTakeSecs(dto.totalCosts());
+        sta.setByteSpeed(dto.byteSpeedPerSecond());
+        sta.setRecSpeed(dto.recordSpeedPerSecond());
+        sta.setTotalRecs(dto.totalReadRecords());
+        sta.setTotalErrors(dto.totalErrorRecords());
+        sta.setTotalBytes(dto.byteSpeedPerSecond() * dto.totalCosts());
+        return sta;
     }
 }
