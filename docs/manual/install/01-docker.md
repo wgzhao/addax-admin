@@ -26,21 +26,24 @@ docker compose version
 
 适用于不需要源码和构建工具链的场景。
 
+> 预构建镜像只在发布时构建，`latest` 指向最新 Release，`master` 分支仍在快速迭代，请勿用于生产部署。
+> 数据库在首次启动时由镜像内置的 `schema.sql` 和 `data.sql` 自动初始化，不需要在宿主机放置 SQL 文件，
+> 因此不会再出现镜像与宿主机脚本版本不一致导致的启动失败（`column s.code does not exist`）。
+
 ```bash
 # 1. 创建部署目录
 mkdir addax-admin && cd addax-admin
-mkdir -p scripts
 
-# 2. 下载部署文件
-wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/docker-compose.yml
-wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/schema.sql
-wget -P scripts/ https://raw.githubusercontent.com/wgzhao/addax-admin/master/scripts/data.sql
+# 2. 下载部署文件（RELEASE_TAG 换成要部署的版本，见 GitHub Releases）
+RELEASE_TAG=v4.5.1
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
 
 # 3. 可选：准备环境变量文件
-wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/.env.example
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
 cp .env.example .env
 
-# 4. 拉取镜像并启动
+# 4. 拉取镜像并启动（镜像版本与 RELEASE_TAG 保持一致）
+export VERSION="${RELEASE_TAG#v}"   # 同一 shell 内后续 compose 命令都会沿用
 docker compose -f docker-compose.yml pull
 docker compose -f docker-compose.yml up -d
 
@@ -224,7 +227,9 @@ bind mount：
 复制 `.env.example` 为 `.env` 后按需修改：
 
 ```bash
-wget https://raw.githubusercontent.com/wgzhao/addax-admin/master/.env.example
+# RELEASE_TAG 与部署文件、镜像版本保持一致
+RELEASE_TAG=${RELEASE_TAG:-v4.5.1}
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
 cp .env.example .env
 docker compose up -d
 ```
@@ -234,7 +239,7 @@ docker compose up -d
 | 变量              | 默认值   | 说明                                                             |
 | ----------------- | -------- | ---------------------------------------------------------------- |
 | `DOCKER_REGISTRY` | `wgzhao` | 镜像前缀，最终镜像为 `${DOCKER_REGISTRY}/addax-admin:${VERSION}` |
-| `VERSION`         | `latest` | 镜像版本，对应 GitHub Release tag，如 `4.3.1`                    |
+| `VERSION`         | `latest` | 镜像版本，对应 GitHub Release tag（去掉 `v`），如 `4.5.0`；需与部署文件来源一致 |
 
 ### 数据库配置
 

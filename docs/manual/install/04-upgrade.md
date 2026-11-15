@@ -35,6 +35,8 @@ git pull
 docker compose up -d --build
 ```
 
+v4.5.1 起 `schema.sql` 和 `data.sql` 打包在镜像内：空库由应用启动时自动初始化，已有数据库仍由启动迁移向前升级，不需要手工执行 SQL。旧 compose 文件里的 `docker-entrypoint-initdb.d` 挂载只在数据卷为空时生效，可以保留，也可以删除。
+
 升级后检查：
 
 ```bash

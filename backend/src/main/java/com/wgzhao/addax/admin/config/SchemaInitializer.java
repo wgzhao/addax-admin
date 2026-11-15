@@ -11,6 +11,9 @@ import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,10 +26,11 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Startup schema migration for databases created by an older release.
+ * Startup schema creation and migration.
  *
  * <p>There is no migration framework in this project and {@code scripts/schema.sql} is written by hand for
- * fresh installs, so upgrading an existing database happens here. Everything lives in one ordered pipeline
+ * fresh installs. Both jobs happen here: an empty database is initialized from the scripts bundled in the
+ * jar, and an existing database is upgraded. Everything lives in one ordered pipeline
  * on purpose: the steps below all touch {@code vw_etl_table_with_source} (each release exposes another
  * column through it), and a step that recreates the view before the column it selects exists aborts
  * startup. That is exactly how the 4.2.1 upgrade of a 4.2.0 database failed — the target-options migration
@@ -55,6 +59,15 @@ public class SchemaInitializer
      * Arbitrary but stable key; any instance running this migration contends for the same lock.
      */
     private static final long MIGRATION_LOCK_KEY = 662012001L;
+
+    /**
+     * Fresh-install scripts, bundled from {@code scripts/} at build time. A database initialized from the
+     * jar cannot disagree with the jar about the schema; the previous Docker setup ran them from a host
+     * directory, so an image older than the downloaded {@code schema.sql} failed on startup (issue #125).
+     */
+    private static final String SCHEMA_RESOURCE = "/schema.sql";
+
+    private static final String DATA_RESOURCE = "/data.sql";
 
     private static final String CREATE_AUDIT_EVENT_SQL = """
         create table if not exists public.audit_event (
@@ -720,6 +733,7 @@ public class SchemaInitializer
             try (Statement statement = connection.createStatement())
             {
                 statement.execute("select pg_advisory_xact_lock(" + MIGRATION_LOCK_KEY + ")");
+                initializeEmptyDatabase(connection, statement);
                 upgrade(connection, statement);
                 connection.commit();
                 return null;
@@ -734,6 +748,87 @@ public class SchemaInitializer
                 connection.setAutoCommit(autoCommit);
             }
         });
+    }
+
+    /**
+     * Creates the schema for a database that has no tables yet.
+     *
+     * <p>Runs inside the same transaction and advisory lock as the upgrade, so a failed initialization
+     * leaves an empty database behind and the next start simply retries. Existing databases never take
+     * this path: the upgrade pipeline below is what moves them forward.</p>
+     */
+    private void initializeEmptyDatabase(Connection connection, Statement statement) throws SQLException
+    {
+        if (!isPublicSchemaEmpty(connection))
+        {
+            return;
+        }
+        log.info("Empty database detected, creating the schema from the bundled {}", SCHEMA_RESOURCE);
+        try
+        {
+            executeScript(statement, SCHEMA_RESOURCE);
+            // schema.sql is a pg_dump and clears search_path; data.sql calls a seed function unqualified.
+            statement.execute("set search_path = public");
+            executeScript(statement, DATA_RESOURCE);
+        }
+        finally
+        {
+            resetSessionSettings(connection);
+        }
+        log.info("Bundled schema.sql and data.sql applied");
+    }
+
+    /**
+     * The dump's SET statements are session-scoped and outlive the transaction. Leaking them into a
+     * pooled connection (an empty search_path, suppressed notices, disabled timeouts) would break
+     * unrelated statements later, so put the session back to its defaults once the scripts are done.
+     * A failed script leaves the transaction aborted, where RESET cannot run; the startup failure
+     * already aborts the process and a new pool is built on the next start.
+     */
+    private void resetSessionSettings(Connection connection)
+    {
+        try (Statement reset = connection.createStatement())
+        {
+            reset.execute("reset all");
+        }
+        catch (SQLException e)
+        {
+            log.debug("Could not reset the session settings after database initialization", e);
+        }
+    }
+
+    private boolean isPublicSchemaEmpty(Connection connection) throws SQLException
+    {
+        try (PreparedStatement ps = connection.prepareStatement(
+            "select count(*) from information_schema.tables where table_schema = 'public'");
+            ResultSet rs = ps.executeQuery())
+        {
+            return rs.next() && rs.getLong(1) == 0;
+        }
+    }
+
+    /**
+     * Executes a bundled script through one statement, which PostgreSQL runs as a single simple query and
+     * therefore accepts the whole file including the dollar-quoted function bodies.
+     */
+    private void executeScript(Statement statement, String resource) throws SQLException
+    {
+        String sql;
+        try (InputStream in = SchemaInitializer.class.getResourceAsStream(resource))
+        {
+            if (in == null)
+            {
+                throw new SQLException("Bundled resource " + resource + " is missing from the application jar");
+            }
+            sql = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        catch (IOException e)
+        {
+            throw new SQLException("Failed to read the bundled " + resource, e);
+        }
+        // pg_dump emits psql meta-commands (restrict/unrestrict) for its own safety; they are not SQL
+        // and the script already runs inside the migration transaction that provides the same guarantee.
+        statement.execute(sql.replaceAll("(?m)^[ \\t]*\\\\.*$", ""));
     }
 
     private void upgrade(Connection connection, Statement statement) throws SQLException

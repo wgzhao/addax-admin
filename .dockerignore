@@ -1,0 +1,13 @@
+# Keep the build context to the files the Dockerfile actually copies. Without these excludes a
+# local checkout sends node_modules and target/ into the context, and `COPY frontend/ ./` then
+# overwrites the dependencies installed inside the image with the host's hoisted layout (no vite).
+.git
+.gitignore
+**/node_modules
+frontend/dist
+backend/target
+logs
+screenshots
+scripts/e2e
+scripts/demo
+scripts/backfill

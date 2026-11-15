@@ -12,6 +12,10 @@ WORKDIR /build
 COPY pom.xml /build/pom.xml
 COPY backend /build/backend
 
+# Why: the backend bundles scripts/schema.sql and scripts/data.sql as classpath resources so a fresh
+# database is created by the image itself; keep the same relative layout the pom expects.
+COPY scripts/schema.sql scripts/data.sql /build/scripts/
+
 # Why: keep the original module layout so relativePath (../pom.xml) resolves correctly
 # Install parent POM to local repository (no modules)
 RUN mvn -N -f pom.xml install
@@ -72,8 +76,9 @@ RUN mkdir -p /app/logs /app/drivers /app/config /app/job
 EXPOSE 50601 80
 
 # Simple healthcheck: check backend port and nginx HTTP
+# Why: 127.0.0.1 rather than localhost — nginx listens on IPv4 only, and busybox wget prefers ::1.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD nc -z localhost 50601 && wget --quiet --tries=1 --spider http://localhost/ || exit 1
+  CMD nc -z 127.0.0.1 50601 && wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1
 
 # Start both backend (Spring Boot) and nginx
 # Use a simple shell script as entrypoint to run both processes

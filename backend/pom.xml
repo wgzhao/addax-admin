@@ -173,6 +173,21 @@
 
   <build>
     <finalName>addax-admin-${project.version}</finalName>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- The fresh-install scripts travel inside the jar so the artifact that creates a database is
+           also the artifact that migrates it. Keeping one copy under scripts/ avoids the drift a
+           duplicated copy would introduce; the Dockerfile copies those files into the build context. -->
+      <resource>
+        <directory>${project.basedir}/../scripts</directory>
+        <includes>
+          <include>schema.sql</include>
+          <include>data.sql</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <!-- Why: the default 2.12.4 predates JUnit 5 and silently skips every test in this module. -->
       <plugin>
