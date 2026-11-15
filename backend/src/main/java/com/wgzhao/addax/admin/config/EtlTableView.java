@@ -12,9 +12,10 @@ import java.util.HexFormat;
  * as the view's comment — is what tells a database whether the definition it holds is the current one, so
  * adding a column here is enough for every deployment to pick it up on its next start.</p>
  *
- * <p>{@code scripts/schema.sql} holds a hand-maintained copy for fresh installs; keep that one in sync
- * when this changes. It does not carry the fingerprint, so the first start of a fresh install recreates
- * the view once and every start after that leaves it alone.</p>
+ * <p>{@code scripts/schema.sql} holds a hand-maintained copy for fresh installs (bundled into the jar and
+ * executed by {@link SchemaInitializer} on an empty database); keep that one in sync when this changes.
+ * It does not carry the fingerprint, so the first start of a fresh install recreates the view once and
+ * every start after that leaves it alone.</p>
  */
 public final class EtlTableView
 {

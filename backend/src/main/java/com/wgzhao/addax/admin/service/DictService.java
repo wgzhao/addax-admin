@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.model.SysItem;
 import com.wgzhao.addax.admin.repository.SysItemRepo;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -324,6 +325,11 @@ public class DictService
             item.setRemark(remark);
             sysItemRepo.save(item);
             log.info("Seeded dict item {}.{}", dictCode, itemKey);
+        }
+        catch (DataIntegrityViolationException e)
+        {
+            // Another node inserted the same row between the lookup and the insert; the row exists.
+            log.debug("Dict item {}.{} was seeded concurrently", dictCode, itemKey);
         }
         catch (Exception e)
         {

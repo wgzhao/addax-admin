@@ -12,9 +12,9 @@ services:
       TZ: Asia/Shanghai
     command: ["postgres", "-c", "timezone=Asia/Shanghai"]
     volumes:
+      # Why: the app image carries its own schema.sql/data.sql and initializes an empty database on
+      # startup, so the database can never be shaped by a host file from a different revision.
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./scripts/data.sql:/docker-entrypoint-initdb.d/02-data.sql
     networks:
       - addax-network
     healthcheck:
@@ -90,7 +90,8 @@ services:
     networks:
       - addax-network
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 50601 && wget --quiet --tries=1 --spider http://localhost/ || exit 1"]
+      # Why: nginx listens on IPv4 only; `localhost` resolves to ::1 first in the alpine image.
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 50601 && wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
