@@ -12,7 +12,7 @@ test.describe('brand shell', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Addax Admin/);
     await expect(page.locator('.brand-name').first()).toHaveText('Addax Admin');
-    await expect(page.locator('.brand-sub').first()).toHaveText('数据采集管理平台');
+    await expect(page.locator('.brand-sub').first()).toHaveText('T+1 ODS 采集控制台');
 
     const favicon = page.locator('link[rel="icon"]');
     await expect(favicon).toHaveAttribute('href', '/favicon.svg');

@@ -4,7 +4,7 @@ const pick = (value: string | undefined, fallback: string): string => {
 };
 
 export const APP_NAME = pick(import.meta.env.VITE_APP_NAME, 'Addax Admin');
-export const APP_SUBTITLE = pick(import.meta.env.VITE_APP_SUBTITLE, '数据采集管理平台');
+export const APP_SUBTITLE = pick(import.meta.env.VITE_APP_SUBTITLE, 'T+1 ODS 采集控制台');
 export const APP_COMPANY = pick(import.meta.env.VITE_APP_COMPANY, 'Addax Admin');
 export const APP_LOGO = pick(import.meta.env.VITE_APP_LOGO, '/brand-mark.svg');
 export const APP_LICENSE = pick(import.meta.env.VITE_APP_LICENSE, 'Apache-2.0');

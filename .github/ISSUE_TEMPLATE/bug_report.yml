@@ -1,0 +1,65 @@
+name: Bug 报告
+description: 报告可复现的缺陷或异常行为
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先搜索是否已有相同 Issue；安全问题请按 [SECURITY.md](https://github.com/wgzhao/addax-admin/blob/master/SECURITY.md) 私下报告，不要公开。
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 页脚、系统版本页或 Release 标签
+      placeholder: v4.5.1
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: 部署模式
+      options:
+        - Docker Compose
+        - 主机模式
+        - 本地开发
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 尽量给出最小、确定性的步骤
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 出现 ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 包含错误提示、失败阶段或截图
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志与配置
+      description: 后端日志、浏览器 Console、采集日志片段；请脱敏密码与连接串
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: 补充信息
+      description: 数据库类型、源/目标端、节点数量、是否可稳定复现等
+    validations:
+      required: false

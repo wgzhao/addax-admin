@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安装与使用文档
+    url: https://github.com/wgzhao/addax-admin/blob/master/docs/manual/README.md
+    about: 部署、配置、使用与排障问题请先查阅文档
+  - name: 安全问题
+    url: https://github.com/wgzhao/addax-admin/blob/master/SECURITY.md
+    about: 请勿公开披露安全漏洞

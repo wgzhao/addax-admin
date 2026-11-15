@@ -1,31 +1,69 @@
-# Addax Admin
+<p align="center">
+  <img src="docs/assets/social-preview.png" alt="Addax Admin — 面向 Addax 离线引擎的 T+1 ODS 采集控制台" width="100%">
+</p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Release](https://img.shields.io/github/v/release/wgzhao/addax-admin?sort=semver)](https://github.com/wgzhao/addax-admin/releases)
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.2-green.svg)](https://spring.io/projects/spring-boot)
-[![Vue 3](https://img.shields.io/badge/Vue-3.x-4FC08D.svg)](https://vuejs.org/)
+<p align="center">
+  <strong>让数据采集像水电一样可靠</strong><br>
+  面向 <a href="https://github.com/wgzhao/addax">Addax</a> 离线引擎的 T+1 ODS 采集控制台
+</p>
 
-Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管理与监控控制台。项目以 Monorepo 的形式组织，包含完整的后端 API 服务与前端管理界面，旨在提供从任务配置、调度执行、运行监控到日志审计的一站式运维体验。
+<p align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
+  <a href="https://github.com/wgzhao/addax-admin/releases"><img src="https://img.shields.io/github/v/release/wgzhao/addax-admin?sort=semver" alt="Release"></a>
+  <a href="https://hub.docker.com/r/wgzhao/addax-admin"><img src="https://img.shields.io/docker/pulls/wgzhao/addax-admin?label=docker%20pulls" alt="Docker Pulls"></a>
+  <img src="https://img.shields.io/badge/Java-21-orange.svg" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring%20Boot-4.1.2-green.svg" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/Vue-3.x-4FC08D.svg" alt="Vue 3">
+</p>
 
-核心目标：让数据工程师和运维人员更容易地管理 Addax 作业、观察运行状态、调优并发与重试策略，并在多节点部署下保证高可用与并发控制。
+<p align="center">
+  <a href="#快速开始">快速开始</a> ·
+  <a href="docs/manual/README.md">文档</a> ·
+  <a href="#界面预览">界面预览</a> ·
+  <a href="docs/roadmap.md">路线图</a> ·
+  <a href="https://github.com/wgzhao/addax-admin/releases">发布记录</a> ·
+  <a href="https://hub.docker.com/r/wgzhao/addax-admin">Docker Hub</a>
+</p>
+
+---
+
+## 产品定位
+
+Addax Admin 是 Addax 离线 ETL 引擎的企业级管理与运维控制台，专注 **T+1 ODS 层数据落地**。它在同一个界面里完成采集定义、调度执行、补数回补、数据对账、告警与审计的完整闭环，帮助数据团队回答三个问题：今天的采集是否健康、数据是否落对、出了问题能否快速定位与追溯。
+
+| 适合场景 | 明确不做 |
+| --- | --- |
+| T+1 离线采集与 ODS 落地 | 实时 CDC / 流式同步 |
+| Hive、关系型数据库作为目标端 | 通用 ETL 转换（T 交给下游 Hive / dbt / Spark） |
+| MongoDB、Elasticsearch 等异构源接入 | 通用 DAG 编排平台 |
+| 需要多节点高可用、审计与源级授权的团队 | 通用数据质量平台 |
 
 ---
 
 ## 界面预览
 
-以下为系统界面截图（演示数据），帮助你快速了解界面与功能覆盖：
+![经营总览](screenshots/dashboard-overview.png)
+
+*经营总览：今日采集健康度、KPI、风险与待办、采集量趋势。*
+
+![今日运行](screenshots/dashboard-today.png)
+
+*今日运行：按采集源展开的日切心跳与风险下钻。*
+
+![采集表详情](screenshots/table-detail.png)
+
+*采集表详情：字段映射、执行快照、对账与失败记录集中在一处。*
+
+<details>
+<summary>更多界面截图</summary>
 
 ![Home - light and dark](screenshots/dashboard-overview-split.png)
-![Executive Dashboard](screenshots/dashboard-overview.png)
-![Today Run Pulse](screenshots/dashboard-today.png)
 ![Health](screenshots/dashboard-health.png)
 ![Data Quality](screenshots/dashboard-quality.png)
 ![SLA](screenshots/dashboard-sla.png)
 ![Source Management](screenshots/source.png)
 ![Target Management](screenshots/target.png)
 ![Collection Tables](screenshots/ods-etl.png)
-![Table Detail](screenshots/table-detail.png)
 ![Field Mapping](screenshots/table-field.png)
 ![Execution Snapshots](screenshots/table-execution.png)
 ![Collection Result](screenshots/addax-result.png)
@@ -35,43 +73,96 @@ Addax Admin 是为 Addax ETL 引擎打造的一套现代化、企业级 ETL 管�
 ![Dictionary](screenshots/etl-dict.png)
 ![System Settings](screenshots/sys-setting.png)
 
-如果需要更多页面截图，可直接查看 [screenshots/](screenshots/)。
-
-## 目录结构（简要）
-
-```text
-addax-admin/
-├── backend/                 # Spring Boot 4 后端服务（API、调度、持久化、队列与租约）
-├── frontend/                # Vue 3 + Vite + TypeScript + Vuetify 管理界面
-├── docs/                    # 安装与使用手册、ADR、测试与安全文档
-├── scripts/                 # 部署与运维脚本（DB 初始化、systemd service 模板等）
-└── README.md                # 本文档
-```
-
-## 主要组成
-
-- Addax Admin Backend：Spring Boot 实现，负责任务持久化（PostgreSQL）、分发逻辑、数据库租约、Redis 选主与心跳、权限与 JWT、调度（cron/周期）等。
-- Addax Admin Frontend：基于 Vue 3 + Vuetify 的单页应用，提供任务配置、ODS 表管理、日志查看、实时监控与告警配置。
-- 数据库初始化：[scripts/schema.sql](scripts/schema.sql) 和 [scripts/data.sql](scripts/data.sql) 提供数据库 schema 与默认数据，构建时打包进后端 jar，空库由应用首次启动自动初始化。
+完整截图见 [screenshots/](screenshots/)。
+</details>
 
 ---
 
-## 亮点与特色
+## 核心能力
 
-- 混合并发控制架构：DB 持久化队列 + Redis 选主与任务分发 + 数据库租约，兼顾可靠性、审计能力与故障恢复。
-- 快速批量创建采集表：在 UI 中只需点击几下即可批量新增数百到上千张采集表；并支持一键在目标端（Hive 或关系型数据库）中同步创建表与字段，显著提升大规模数据接入效率。
-- 表结构演化支持：自动探测源端表结构变化（字段类型变更、新增/删除字段等），并可自动同步修改目标表结构；对有分区的表提供历史数据兼容策略，最大限度减少中断与人工干预。
-- MongoDB 采集管理：支持将 MongoDB 集合作为采集源，自动采样推断字段；同一采集源可接入多个数据库，平台管理模式下可随切日刷新同步目标表结构。
-- Elasticsearch 采集管理：支持将索引或别名作为采集源，基于 mapping 与文档采样推断字段；支持 Query DSL 过滤与按目标最大值增量，平台管理模式下可随切日刷新同步目标表结构。
-- 目标契约与显式字段映射：目标表支持平台托管（自动建表与结构演进）和外部管理（只读校验、不执行 DDL）两种模式；源字段与目标字段允许不同名，Reader 输出、Writer 列、DDL、执行快照和错误提示共用同一份一对一映射；批量创建逐表预览并隔离阻断与告警。
-- 动态表名采集：原生支持日表、月表等动态表名模板（如 `t_order_${biz_date_short}`），自动解析业务日期并生成相应的采集任务。
-- 增量采集与智能过滤：支持使用上一次采集结果（例如前一日最大 ID 或指定字段）作为本次增量采集的过滤条件；同时支持自定义过滤表达式，适合复杂增量场景。
-- 补数回补：在采集表详情页按日历选择历史日期（支持多段区间和单日），异步逐日回补并实时查看批次进度；可选日期以系统业务日期为上限，业务日期变量按目标日期注入，不影响正常调度。
-- 告警中心：企业微信、钉钉、飞书、Webhook 与邮件（SMTP）通道在界面维护，支持测试发送、规则路由、投递重试、静默窗口和通道配置加密。
-- 源级授权：admin / user / guest 三角色，普通用户按采集源授予「可操作」权限；角色或密码变更立即使旧令牌失效。
-- 多节点并发与权重：采用 sharing-nothing 架构、Redis 选主与心跳、节点权重设定（`WEIGHT`），实现全局/源级并发控制、任务高可用与负载均衡。
-- 可视化管理：完整的任务配置、字段对比、实时执行进度与历史日志查询，提升运维效率。
-- 企业级安全与可扩展性：JWT + Spring Security 做权限与认证，采用 Spring Data JPA 与模块化前端设计，方便定制与扩展。
+### 采集与建模
+
+- **批量创建采集表**：UI 中几次点击即可批量新增数百到上千张采集表，并一键在目标端（Hive 或关系型数据库）同步创建表与字段。
+- **目标契约与显式字段映射**：目标表支持平台托管（自动建表与结构演进）与外部管理（只读校验、不执行 DDL）两种模式；源字段与目标字段允许不同名，Reader 输出、Writer 列、DDL、执行快照和错误提示共用同一份一对一映射；批量创建逐表预览并隔离阻断与告警。
+- **表结构演化**：自动探测源端字段类型变更、新增/删除字段并同步修改目标表结构；分区表提供历史数据兼容策略，最大限度减少中断与人工干预。
+- **多源接入**：关系型数据库、MongoDB（集合采样推断字段、多库接入）与 Elasticsearch（索引/别名、mapping 与文档采样、Query DSL 过滤）。
+- **动态表名**：原生支持日表、月表等模板（如 `t_order_${biz_date_short}`），自动解析业务日期并生成采集任务。
+
+### 调度与运行
+
+- **增量采集与智能过滤**：支持以上一次采集结果（如前一日最大 ID 或指定字段）作为增量条件，也支持自定义过滤表达式。
+- **补数回补**：在采集表详情页按日历选择历史日期（支持多段区间和单日），异步逐日回补并实时查看批次进度；业务日期变量按目标日期注入，不影响正常调度。
+- **混合并发控制架构**：DB 持久化队列 + Redis 选主与任务分发 + 数据库租约，兼顾可靠性、审计能力与故障恢复。
+- **多节点并发与权重**：sharing-nothing 架构、Redis 选主与心跳、节点权重（`WEIGHT`），实现全局/源级并发控制、任务高可用与负载均衡。
+
+### 可信与治理
+
+- **数据对账**：核对 Addax 上报的读取行数与写入行数（写入 = 读取 − 错误行数），差异进入失败记录并触发告警。
+- **字段级血缘**：按字段名全局搜索，查看字段从哪个源表来、落到哪张 ODS 表。
+- **数据质量断言**：近 7 天非零均值为基线，识别空采与漏采，命中后走告警中心与错误中心。
+- **执行快照**：采集启动时冻结定义、字段映射与上下文，后续配置修改不影响历史结论。
+- **失败事实与错误中心**：记录失败阶段、可执行摘要与堆栈片段，按错误指纹聚合重复失败，日志过期后摘要仍然保留。
+- **就绪信号外发**：采集完成后按需外发 `collection_complete` Webhook，驱动下游调度。
+
+### 企业级能力
+
+- **告警中心**：企业微信、钉钉、飞书、Webhook 与邮件（SMTP）通道在界面维护，支持测试发送、规则路由、投递重试、静默窗口和通道配置加密。
+- **源级授权**：admin / user / guest 三角色，普通用户按采集源授予「可操作」权限；角色或密码变更立即使旧令牌失效。
+- **安全审计**：登录、配置变更、权限拒绝均有审计记录，可导出 CSV。
+- **可扩展**：JWT + Spring Security、Spring Data JPA、前端模块化设计，并提供客户白标配置（产品名、Logo、支持与文档链接）。
+
+---
+
+## 技术架构
+
+| 层 | 技术栈 |
+| --- | --- |
+| 后端 | Java 21、Spring Boot 4.1、Spring Data JPA、Spring Security + JWT、PostgreSQL、Redis |
+| 前端 | Vue 3、TypeScript、Vite、Vuetify、Pinia |
+| 部署 | Docker Compose（应用 + PostgreSQL + Redis），或 Java 21 + Nginx 主机模式 |
+
+```text
+addax-admin/
+├── backend/                 # Spring Boot 后端服务（API、调度、持久化、队列与租约）
+├── frontend/                # Vue 3 + Vite + TypeScript + Vuetify 管理界面
+├── docs/                    # 安装与使用手册、ADR、测试与安全文档
+├── scripts/                 # 部署与运维脚本（DB 初始化、systemd service 模板等）
+└── screenshots/             # 界面截图与仓库视觉资产
+```
+
+数据库初始化脚本 [scripts/schema.sql](scripts/schema.sql) 与 [scripts/data.sql](scripts/data.sql) 会打包进后端 jar，空库由应用首次启动自动初始化。
+
+---
+
+## 快速开始
+
+Addax Admin 只负责管理与调度，不执行实际采集，两种部署模式都需要单独准备 **Addax 采集引擎**。
+
+### Docker 模式（推荐）
+
+前置条件：Docker 20.10+、Docker Compose 2.0+、可访问的 Addax 安装目录。
+
+```bash
+# 1. 创建部署目录并下载部署文件
+mkdir addax-admin && cd addax-admin
+RELEASE_TAG=v4.5.0   # 替换为最新 Release 标签
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
+wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
+cp .env.example .env
+
+# 2. 拉取镜像并启动
+export VERSION="${RELEASE_TAG#v}"
+docker compose -f docker-compose.yml pull
+docker compose -f docker-compose.yml up -d
+```
+
+访问 <http://localhost:50080>，默认账号 `admin`，密码 `admin123`，首次登录后请立即修改密码。
+
+> 镜像仅在发布时构建，`latest` 指向最新 Release；`master` 分支仍在快速迭代，请勿用于生产。国内网络可改用 Quay 备用源：`echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env`。
+
+### 主机模式
+
+适用于已有 Java 21、Maven、Node.js、Yarn、PostgreSQL、Redis 和 Nginx 的环境，编译产物分别部署后端与前端。完整步骤见 [主机模式与本地开发](docs/manual/install/02-source.md#主机模式部署)。
 
 ---
 
@@ -92,104 +183,12 @@ addax-admin/
 
 ---
 
-## 🚀 快速开始
+## 参与贡献
 
-Addax Admin 支持两种部署模式：
-
-- **Docker 模式**：适合快速体验和标准化部署，前后端、PostgreSQL、Redis 由 Docker Compose 管理。
-- **主机模式**：适合已有 Java、PostgreSQL、Redis、Nginx 基础设施的环境，使用编译产物分别部署后端和前端。
-
-两种模式都需要单独准备 **Addax 采集引擎**。Addax Admin 只负责管理和调度，不执行实际采集。
-
-### Docker 模式（推荐）
-
-#### 前置条件
-
-- Docker 20.10+、Docker Compose 2.0+
-- Addax 采集引擎，安装到应用容器可访问的目录
-
-#### 方式一：拉取预构建镜像
-
-> 镜像只在发布时构建，`latest` 指向最新 Release。`master` 分支仍在快速迭代，请勿用于生产部署。
-> 数据库在首次启动时由镜像内置的 `schema.sql` 和 `data.sql` 自动初始化，不需要在宿主机放置 SQL 文件。
-
-```bash
-# 1. 创建部署目录
-mkdir addax-admin && cd addax-admin
-
-# 2. 下载部署文件（RELEASE_TAG 换成要部署的版本，如 v4.5.1）
-RELEASE_TAG=v4.5.1
-wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
-wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
-cp .env.example .env
-
-# 3. 拉取镜像并启动（镜像版本与 RELEASE_TAG 保持一致）
-export VERSION="${RELEASE_TAG#v}"   # 同一 shell 内后续 compose 命令都会沿用
-docker compose -f docker-compose.yml pull
-docker compose -f docker-compose.yml up -d
-
-# 4. 查看状态与日志
-docker compose -f docker-compose.yml ps
-docker compose -f docker-compose.yml logs -f
-```
-
-国内网络无法访问 Docker Hub 时，可以为 Docker 配置镜像加速器，或改用 Quay 备用源：
-
-```bash
-echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env
-docker compose -f docker-compose.yml pull
-docker compose -f docker-compose.yml up -d
-```
-
-#### 方式二：克隆源码本地构建
-
-```bash
-git clone https://github.com/wgzhao/addax-admin.git
-cd addax-admin
-docker compose up -d --build
-```
-
-#### 访问应用
-
-运行成功后访问 <http://localhost:50080>，默认账号 `admin`，密码 `admin123`。首次登录后请立即修改密码。
-
-### 主机模式（编译产物）
-
-适用于不使用 Docker、已有 Java 21、Maven、Node.js、Yarn、PostgreSQL、Redis 和 Nginx 的环境。
-
-```bash
-# 1. 创建数据库和用户（空库会由后端首次启动自动初始化）
-psql -U postgres -c "CREATE USER addax_admin WITH PASSWORD 'addax_admin@123';"
-psql -U postgres -c "CREATE DATABASE addax_admin OWNER addax_admin;"
-
-# 2. 构建后端与前端
-cd backend && mvn clean package -DskipTests && cd ..
-cd frontend && yarn install && yarn build && cd ..
-
-# 3. 部署后端：lib/addax-admin-<version>.jar
-#    bin/service.sh、config/、drivers/、job/、logs/
-#    默认服务端口 50601
-
-# 4. 部署前端：将 frontend/dist 交给 Nginx
-#    并将 /api/v1 反向代理到 50601
-```
-
-后端目录布局、`config/env.sh`、systemd、Nginx 配置和升级步骤见 [主机模式与本地开发](docs/manual/install/02-source.md#主机模式部署)。
-
-完整的 Addax 引擎安装、环境变量、源码构建、本地开发、升级迁移、备份恢复和故障排查见 [安装与使用手册](docs/manual/README.md)。
-
----
-
-## 开发者与贡献指南
-
-欢迎贡献！建议流程：
-
-1. Fork 并新建分支（`feature/xxx` 或 `fix/xxx`）。
-2. 本地开发并保证 lint、type check 和相关测试通过。
-3. 提交并发起 Pull Request，描述变更理由和回归测试步骤。
+欢迎提交 Issue 与 Pull Request。开始之前请阅读 [贡献指南](CONTRIBUTING.md)；安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
 
 ---
 
 ## 许可证
 
-本项目基于 Apache License 2.0（详见 [LICENSE](LICENSE) 文件）。
+本项目基于 Apache License 2.0，详见 [LICENSE](LICENSE)。
