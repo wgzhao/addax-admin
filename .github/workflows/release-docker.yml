@@ -1,11 +1,16 @@
 name: Release Docker Images
 
 on:
-  release:
-    types: [published]
+  # Tag push is the single trigger: publishing a GitHub Release on the same tag
+  # used to fire an identical second build that pushed the same image twice.
   push:
     tags:
       - 'v*'
+
+concurrency:
+  # Never run two builds for the same tag: both would push the same image tags.
+  group: release-docker-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-and-push:
@@ -18,20 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Determine version from tag or release
+      - name: Determine version from tag
         id: version
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "release" ]]; then
-            TAG_NAME="${GITHUB_REF##*/}"
-            # Prefer explicit release tag_name if present
-            if [[ -n "${{ github.event.release.tag_name }}" ]]; then
-              TAG_NAME="${{ github.event.release.tag_name }}"
-            fi
-          else
-            # refs/tags/v1.2.3 -> v1.2.3
-            TAG_NAME="${GITHUB_REF##*/}"
-          fi
-
+          # refs/tags/v1.2.3 -> v1.2.3
+          TAG_NAME="${GITHUB_REF##*/}"
           VERSION="${TAG_NAME#v}"
           echo "Resolved version: ${VERSION} (from tag ${TAG_NAME})"
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
