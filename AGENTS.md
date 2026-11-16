@@ -14,12 +14,13 @@
 - 随意移除功能标志而不搜索所有调用点
 - 提交代码前不运行测试
 
-## 本地测试流程
+## 开发与测试流程
 
 1. `bun build:backend` 编译后端服务
 2. 执行 `/opt/app/addax-admin/service.sh restart` 重启本地的后端服务
 3. 执行 `VITE_API_HOST=http://localhost:50601 bun run dev` 启动前端开发服务器
 4. 访问 `http://localhost:3030` 进行功能测试
+5. 本地 e2e 功能测试通过后， 直接部署到 `wgzhao-pc` 测试环境，前后端均不需要备份， 数据库如果涉及到大幅修改， 则需要备份; 只需要部署，不需要在测试环境做 e2e 测试
 
 ## 架构与设计宗旨
 
@@ -97,6 +98,10 @@ Mono repo 提交策略：
 
 以上流程可由一句 "提交并创建 PR" 触发，不需要用户重复描述细节格式要求。
 
+### Release Notes 规范
+
+发布版本的 GitHub Release notes 必须中英双语：中文完整版在前，`---` 分隔后附英文完整版，章节结构与原英文版一一对应。使用 `gh release edit <tag> --notes-file <file>` 写入。`CHANGELOG.md` 仍保持中文即可。
+
 ## 总结
 
 当需要总结时，把本轮会话的内容做一个总结，写入到 memory 当中，具体要求为:
@@ -105,16 +110,6 @@ Mono repo 提交策略：
 2. 如果文件已存在，则追加内容，不要覆盖原有内容
 3. 然后在 `.memory/index.md` 中添加一个索引，格式为 `[总结标题](./YYYY-MM-DD.md)`
 
-## Agent skills
-
-### Issue tracker
-
-Issues and specs live in GitHub Issues for `wgzhao/addax-admin`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-The five canonical triage roles, label strings equal to their names: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
+## Domain docs
 
 Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

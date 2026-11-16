@@ -57,3 +57,8 @@ skills-lock.json
 /frontend/tests/e2e/accounts-password-confirm.spec.ts
 /frontend/tests/e2e/artifacts/
 /screenshots/
+
+### 本地运行与临时文件 ###
+/logs/
+/alert-channels.md
+/scripts/backfill/
