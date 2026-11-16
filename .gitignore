@@ -18,6 +18,11 @@ HELP.md
 /.nb-gradle/
 node_modules
 
+### Lockfiles: frontend/yarn.lock is authoritative; root lockfiles are legacy noise ###
+/package-lock.json
+/bun.lock
+/yarn.lock
+
 ### VS Code ###
 .vscode/
 *.log
