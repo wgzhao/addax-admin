@@ -70,7 +70,8 @@ Addax Admin 是 Addax 离线 ETL 引擎的企业级管理与运维控制台，�
 ![Addax Job](screenshots/addax-json.png)
 ![Collection Log](screenshots/etl-log.png)
 ![Security Audit](screenshots/audit.png)
-![Dictionary](screenshots/etl-dict.png)
+![Collection Calendar](screenshots/etl-calendar.png)
+![Type Mappings](screenshots/etl-type-mappings.png)
 ![System Settings](screenshots/sys-setting.png)
 
 完整截图见 [screenshots/](screenshots/)。

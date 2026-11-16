@@ -18,6 +18,8 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 async function openDashboard(page: Page, theme: 'light' | 'dark') {
   await page.addInitScript(value => localStorage.setItem('theme', value), theme);
+  // Marketing shots must not carry the first-run checklist of a fresh demo database.
+  await page.addInitScript(() => localStorage.setItem('addax.onboarding.dismissed', '1'));
   await page.goto('/');
   await expect(page.locator('.stat-tile').first()).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.v-window-item--active .pulse-rows')).toBeVisible({
@@ -211,6 +213,13 @@ test.describe('management pages', () => {
   test.use({ viewport: { width: 1920, height: 1200 } });
 
   test('captures the refreshed source, table and detail screenshots', async ({ page }) => {
+    // Injected styles survive navigation; a per-page addStyleTag would be dropped
+    // by every page.goto, leaving the dev chip or footer in later captures.
+    await page.addInitScript(() => {
+      const style = document.createElement('style');
+      style.textContent = '.brand-env { display: none !important } .app-footer { display: none !important }';
+      document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));
+    });
     fs.mkdirSync(screenshotsDir, { recursive: true });
     const shot = (file: string, fullPage = true) =>
       page.screenshot({ path: path.join(screenshotsDir, file), fullPage });
