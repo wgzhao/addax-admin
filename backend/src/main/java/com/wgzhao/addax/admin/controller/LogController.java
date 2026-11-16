@@ -1,7 +1,6 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
-import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
@@ -154,11 +153,12 @@ public class LogController
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
-        if (tid == Constants.SMOKE_TEST_TID) {
-            // Smoke-test report from the addax-directory validation. Persist it so the validation
-            // can confirm the report round-tripped, then deletes the row itself. There is no real
-            // table behind this tid, so skip the table/execution checks and every downstream
-            // side effect (reconcile / quality / collection signal).
+        if (tid < 0) {
+            // Well-known negative tids are reserved for smoke checks (addax-directory validation,
+            // target health check). Persist the report so the caller can confirm it round-tripped;
+            // the caller deletes the row afterwards. There is no real table behind these tids, so
+            // skip the table/execution checks and every downstream side effect (reconcile / quality
+            // / collection signal).
             EtlStatistic sta = buildStatistic(dto, tid, null);
             sta.setBizDate(LocalDate.now());
             return statService.saveOrUpdate(sta);

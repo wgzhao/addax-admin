@@ -102,6 +102,17 @@ MongoDB 和 Elasticsearch 目前只作为采集源，不作为目标端；它们
 Hive JDBC 驱动与关系型驱动统一放在后端节点的 `${APP_HOME}/drivers`，目标端不再配置驱动路径。该驱动
 只供 addax-admin 建表与读取元数据，Addax 的 `hdfswriter` 不需要它。
 
+### 目标端校验
+
+`HDFS` 目标端在「HDFS / Hive 设置」区提供「校验目标端」：清单先列出全部检查项（Addax 程序目录、
+`hdfswriter` 插件、`wH` 写入模板、HiveServer2 连接，以及一次真实的 `streamreader → hdfswriter`
+探针写入），点校验后逐项执行、逐条打勾。HiveServer2 能连通不代表 HDFS 能写，所以写入探针单独跑，
+并使用目标端自己的 `defaultFS`、`hdfsSitePath`、Kerberos、存储/压缩格式，经后端所在的 Addax
+运行时执行。改动任一设置会把清单重置为待校验，避免看到与当前配置不符的旧结论。
+
+探针写入 `<HDFS 前缀>/_addax_admin_check/<目标端编码>`，采用覆盖写入，每个目标端只保留最后一次
+的文件，不进入采集统计。关系型目标端仍只有「测试连接」，只验证 JDBC 连通性。
+
 Oracle、DB2、Sybase、ClickHouse、SQLite 暂未实现，保存目标端或测试连接时会直接报错，不会生成引用不存在 writer 插件的采集任务。
 
 ## 一个采集源可以配多个目标端吗

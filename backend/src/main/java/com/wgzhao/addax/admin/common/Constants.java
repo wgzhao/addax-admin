@@ -18,6 +18,9 @@ public final class Constants
     // Reserved tid for the addax-directory validation smoke test. The stream→stream job reports
     // under this tid so the real job-report pipeline can be exercised without touching a real table.
     public static final long SMOKE_TEST_TID = -1L;
+    // Reserved tid for the target health-check smoke write. Kept apart from SMOKE_TEST_TID so the
+    // two checks can run concurrently without clearing each other's report rows.
+    public static final long TARGET_SMOKE_TEST_TID = -2L;
     // 默认的切日时间
     public static final String DEFAULT_SWITCH_TIME = "16:30";
     public static final int HIVE_DECIMAL_MAX_PRECISION = 38;

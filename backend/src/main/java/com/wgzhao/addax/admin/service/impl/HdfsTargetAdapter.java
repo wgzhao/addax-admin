@@ -4,6 +4,7 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TargetFamily;
@@ -286,7 +287,7 @@ public class HdfsTargetAdapter
         String compressFormat = effectiveCompressFormat(table, settings);
         Map<String, String> values = new HashMap<>();
         values.put("compress", compressFormat);
-        values.put("fileType", storageFormat);
+        values.put("fileType", writerFileType(storageFormat));
         values.put("writeMode", table.getWriteMode());
         values.put("targetDb", table.getTargetDb());
         values.put("targetTable", table.getTargetTable());
@@ -318,6 +319,98 @@ public class HdfsTargetAdapter
     private String effectiveStorageFormat(VwEtlTableWithSource table, HdfsTargetSettings settings)
     {
         return StringUtils.defaultIfBlank(table.getStorageFormat(), settings.storageFormat());
+    }
+
+    /**
+     * Hive DDL spells the plain text format {@code TEXTFILE}; addax's hdfswriter accepts
+     * {@code ORC}/{@code PARQUET}/{@code TEXT} only. The same stored value feeds both paths, so the
+     * writer vocabulary is translated in one place instead of silently failing at run time.
+     */
+    public static String writerFileType(String storageFormat)
+    {
+        String value = StringUtils
+            .defaultIfBlank(storageFormat, HdfsTargetSettings.DEFAULT_STORAGE_FORMAT)
+            .trim().toLowerCase(Locale.ROOT);
+        return "textfile".equals(value) ? "text" : value;
+    }
+
+    /**
+     * Render a self-contained streamreader → hdfswriter job that exercises the target's HDFS
+     * settings through {@link #applyTargetSettings}, i.e. exactly the writer parameter block a
+     * collection run uses. The probe goes under the target's own prefix so the check also proves
+     * the production path is writable, and {@code writeMode=overwrite} keeps it to one file per
+     * target instead of accumulating runs.
+     */
+    public String buildSmokeWriterJob(EtlTarget target)
+    {
+        HdfsTargetSettings settings = settingsFor(target);
+        String storageFormat = settings.storageFormat();
+        String compressFormat = settings.compressFormat();
+        String probePath = smokeProbePath(settings, target);
+
+        ObjectNode writer = objectMapper.createObjectNode();
+        writer.put("name", "hdfswriter");
+        ObjectNode parameter = writer.putObject("parameter");
+        parameter.put("fileName", "addax_check");
+        parameter.put("writeMode", "overwrite");
+        parameter.put("createPath", true);
+        ArrayNode columns = parameter.putArray("column");
+        columns.addObject().put("name", "name").put("type", "string");
+        columns.addObject().put("name", "id").put("type", "long");
+        if ("text".equals(writerFileType(storageFormat)))
+        {
+            parameter.put("fieldDelimiter", "\u0001");
+        }
+
+        String appliedWriter = applyTargetSettings(writer.toString(), settings, storageFormat,
+            compressFormat, probePath);
+        ObjectNode writerNode;
+        try
+        {
+            writerNode = (ObjectNode) objectMapper.readTree(appliedWriter);
+        }
+        catch (Exception e)
+        {
+            throw new ApiException(400, "生成 HDFS 写入探针失败: " + e.getMessage());
+        }
+
+        ObjectNode root = objectMapper.createObjectNode();
+        ObjectNode job = root.putObject("job");
+        ObjectNode setting = job.putObject("setting");
+        setting.putObject("speed").put("byte", -1).put("channel", 1);
+        setting.putObject("errorLimit").put("record", 0).put("percentage", 0.02);
+        ObjectNode content = job.putObject("content");
+        ObjectNode reader = content.putObject("reader");
+        reader.put("name", "streamreader");
+        ObjectNode readerParameter = reader.putObject("parameter");
+        ArrayNode readerColumns = readerParameter.putArray("column");
+        readerColumns.addObject().put("value", "addax-check").put("type", "string");
+        readerColumns.addObject().put("value", 1).put("type", "long");
+        readerParameter.put("sliceRecordCount", 3);
+        content.set("writer", writerNode);
+
+        try
+        {
+            return objectMapper.writeValueAsString(root);
+        }
+        catch (Exception e)
+        {
+            throw new ApiException(400, "生成 HDFS 写入探针失败: " + e.getMessage());
+        }
+    }
+
+    /** Probe directory written by the health check; disclosed to the operator in the result. */
+    public String smokeProbePath(EtlTarget target)
+    {
+        return smokeProbePath(settingsFor(target), target);
+    }
+
+    private String smokeProbePath(HdfsTargetSettings settings, EtlTarget target)
+    {
+        String code = StringUtils.defaultIfBlank(target.getCode(),
+            "target-" + (target.getId() == null ? "unsaved" : target.getId()));
+        String safeCode = code.replaceAll("[^A-Za-z0-9_.-]", "_");
+        return settings.hdfsPrefix() + "/_addax_admin_check/" + safeCode;
     }
 
     private String effectiveCompressFormat(VwEtlTableWithSource table, HdfsTargetSettings settings)
@@ -356,7 +449,7 @@ public class HdfsTargetAdapter
             }
             parameter.put("haveKerberos", settings.enableKerberos());
             parameter.set("hadoopConfig", settings.hadoopConfig());
-            parameter.put("fileType", storageFormat);
+            parameter.put("fileType", writerFileType(storageFormat));
             parameter.put("compress", compressFormat);
             parameter.put("path", path);
             return objectMapper.writeValueAsString(writer);

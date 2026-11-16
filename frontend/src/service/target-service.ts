@@ -9,6 +9,25 @@ export interface DialectInfo {
   supportedDialects: string;
 }
 
+export interface TargetCheckItem {
+  key: string;
+  label: string;
+  status: 'ok' | 'fail' | 'skip';
+  message: string;
+  hint: string | null;
+}
+
+export interface TargetHealthCheckResult {
+  success: boolean;
+  family: string;
+  checks: TargetCheckItem[];
+}
+
+export interface TargetHealthCheckPlan {
+  family: string;
+  items: { key: string; label: string }[];
+}
+
 class TargetService {
   prefix = '/targets';
 
@@ -36,8 +55,35 @@ class TargetService {
     return Requests.post(`${this.prefix}/test-connect`, data) as unknown as Promise<void>;
   }
 
+  /**
+   * 一次跑完整个清单（API/测试用；界面走 plan + item 逐项回填）。
+   */
+  healthCheck(data: EtlTarget): Promise<TargetHealthCheckResult> {
+    return Requests.post(`${this.prefix}/health-check`, data, {
+      timeout: 200_000,
+    }) as unknown as Promise<TargetHealthCheckResult>;
+  }
+
+  healthCheckPlan(data: EtlTarget): Promise<TargetHealthCheckPlan> {
+    return Requests.post(
+      `${this.prefix}/health-check/plan`,
+      data
+    ) as unknown as Promise<TargetHealthCheckPlan>;
+  }
+
+  /**
+   * 单项校验；HDFS 写入探针可能要跑几秒到几十秒，客户端等待窗口与后端超时保持一致。
+   */
+  healthCheckItem(data: EtlTarget, key: string): Promise<TargetCheckItem> {
+    return Requests.post(`${this.prefix}/health-check/items/${encodeURIComponent(key)}`, data, {
+      timeout: 200_000,
+    }) as unknown as Promise<TargetCheckItem>;
+  }
+
   detectDialect(url: string): Promise<DialectInfo> {
-    return Requests.post(`${this.prefix}/detect-dialect`, { url }) as unknown as Promise<DialectInfo>;
+    return Requests.post(`${this.prefix}/detect-dialect`, {
+      url,
+    }) as unknown as Promise<DialectInfo>;
   }
 }
 
