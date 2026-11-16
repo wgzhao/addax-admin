@@ -1,0 +1,19 @@
+[Unit]
+Description=Addax Admin management console
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=@APP_USER@
+WorkingDirectory=@APP_HOME@
+# Why: config/env.sh uses `export` statements, which systemd's EnvironmentFile does not parse;
+# sourcing it through sh keeps service.sh and systemd reading the exact same configuration.
+ExecStart=/bin/sh -c '. @APP_HOME@/config/env.sh && exec @JAVA_BIN@ -Dapp.home=@APP_HOME@ -Dspring.config.location=@APP_HOME@/config/application.properties -Dlogging.file.path=@APP_HOME@/logs -Daddax.drivers.dir=@APP_HOME@/drivers -Dloader.main=com.wgzhao.addax.admin.AdminApplication -cp @JAR_PATH@ org.springframework.boot.loader.launch.PropertiesLauncher'
+Restart=on-failure
+RestartSec=10
+# JVM shutdown hooks exit with 143 after SIGTERM; treat it as a clean stop.
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

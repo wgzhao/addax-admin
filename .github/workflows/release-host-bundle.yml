@@ -1,0 +1,78 @@
+name: Release Host Bundle
+
+# Why: the tar.gz is the artifact for hosts without a build toolchain, and it must be built
+# from the same tag as the Docker image. The release event is a fallback for the case where a
+# GitHub Release is created by hand after the tag push; uploads are idempotent (--clobber).
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-host-bundle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-host-bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Determine version from tag
+        id: version
+        run: |
+          TAG_NAME="${GITHUB_REF##*/}"
+          VERSION="${TAG_NAME#v}"
+          echo "Resolved version: ${VERSION} (from tag ${TAG_NAME})"
+          echo "TAG_NAME=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Yarn
+        run: npm install --global yarn@1.22.22
+
+      - name: Build backend jar
+        run: |
+          mvn -N -f pom.xml install
+          cd backend
+          mvn clean package -DskipTests
+
+      - name: Build frontend assets
+        run: |
+          cd frontend
+          yarn install --frozen-lockfile
+          VITE_APP_BUILD_SHA="${GITHUB_SHA:0:7}" yarn build-only
+
+      - name: Assemble host bundle
+        run: bash scripts/package-host-bundle.sh "${{ steps.version.outputs.VERSION }}" dist
+
+      - name: Upload bundle to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.version.outputs.TAG_NAME }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          # Why: create a draft when the release does not exist yet, so a half-written release
+          # is never visible; the maintainer fills the bilingual notes and publishes it.
+          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release create "$TAG_NAME" --draft --title "$TAG_NAME" --generate-notes
+          fi
+          gh release upload "$TAG_NAME" --clobber \
+            "dist/addax-admin-${VERSION}-host.tar.gz" \
+            "dist/addax-admin-${VERSION}-host.tar.gz.sha256"

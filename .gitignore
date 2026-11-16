@@ -67,3 +67,6 @@ skills-lock.json
 /logs/
 /alert-channels.md
 /scripts/backfill/
+
+### Release bundle output ###
+/dist/

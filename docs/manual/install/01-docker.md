@@ -2,7 +2,7 @@
 
 本项目提供前后端合一的 Docker 镜像，推荐用 Docker Compose 同时启动 Addax Admin、PostgreSQL 和 Redis。
 
-如果已有 Java、PostgreSQL、Redis 和 Nginx 基础设施，也可以使用 [主机模式部署](02-source.md#主机模式部署)，直接部署编译产物。
+如果已有 Java、PostgreSQL、Redis 和 Nginx 基础设施，可以下载 Release 附件中的 [主机部署发行包](02-host.md) 直接安装，或 [从源码构建部署](03-source.md#从源码构建部署)。
 
 ## 前提条件
 
@@ -262,7 +262,7 @@ docker compose up -d
 | `WEIGHT`                                                          | `1.0`                       | 节点并发权重，对应 `node.concurrency.weight` |
 | `ALERT_SECRET_KEY`                                                | 空                          | 告警通道配置加密密钥                         |
 
-更完整的运行参数说明见 [系统配置](03-config.md)。
+更完整的运行参数说明见 [系统配置](04-config.md)。
 
 ## 安全建议
 
@@ -297,7 +297,7 @@ git pull
 docker compose up -d --build
 ```
 
-升级前请先备份数据库，具体步骤和迁移说明见 [升级与迁移](04-upgrade.md)。
+升级前请先备份数据库，具体步骤和迁移说明见 [升级与迁移](05-upgrade.md)。
 
 ## 备份与恢复
 
@@ -347,7 +347,7 @@ deploy:
 
 ## 相关文档
 
-- [源码构建与本地开发](02-source.md)
-- [系统配置](03-config.md)
-- [升级与迁移](04-upgrade.md)
+- [源码构建与本地开发](03-source.md)
+- [系统配置](04-config.md)
+- [升级与迁移](05-upgrade.md)
 - [故障排查](../operations/02-troubleshooting.md)

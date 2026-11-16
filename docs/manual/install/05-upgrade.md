@@ -46,6 +46,25 @@ docker compose logs -f app
 
 确认前端可以登录、采集表列表可以打开、调度和任务中心正常。
 
+## 发行包升级
+
+下载新版本发行包，校验后直接重复执行安装脚本：
+
+```bash
+VERSION=<new-version>
+wget "https://github.com/wgzhao/addax-admin/releases/download/v${VERSION}/addax-admin-${VERSION}-host.tar.gz"
+wget "https://github.com/wgzhao/addax-admin/releases/download/v${VERSION}/addax-admin-${VERSION}-host.tar.gz.sha256"
+sha256sum -c "addax-admin-${VERSION}-host.tar.gz.sha256"
+tar xzf "addax-admin-${VERSION}-host.tar.gz"
+cd "addax-admin-${VERSION}"
+sudo sh deploy/install.sh
+sudo systemctl restart addax-admin    # 或 /opt/app/addax-admin/bin/service.sh restart
+```
+
+`install.sh` 会替换 jar 与前端文件，保留 `config/env.sh`、`config/application.properties`、`drivers/`、
+`job/` 与 `logs/`；旧 jar 备份为 `lib/addax-admin-*.jar.before-<时间戳>`，回滚时改回原文件名并重启即可。
+如果新版本已执行数据库迁移，回滚需要同时恢复升级前的备份。
+
 ## 源码升级
 
 ```bash
@@ -191,5 +210,5 @@ HDFS 目标端的 `connect_config`：
 ## 相关文档
 
 - [Docker 部署](01-docker.md)
-- [系统配置](03-config.md)
+- [系统配置](04-config.md)
 - [故障排查](../operations/02-troubleshooting.md)

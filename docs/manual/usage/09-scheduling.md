@@ -124,7 +124,7 @@ Addax Admin 有两类调度入口：
 
 ## 相关文档
 
-- [系统配置](../install/03-config.md)
+- [系统配置](../install/04-config.md)
 - [MongoDB 采集](10-mongodb.md)
 - [执行监控与日志](../operations/01-monitoring.md)
 - [ADR 0003：一条队列记录对应一个 Addax 进程](../../adr/0003-one-addax-process-per-queue-row.md)

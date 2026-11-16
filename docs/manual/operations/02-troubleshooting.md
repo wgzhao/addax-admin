@@ -259,5 +259,5 @@ docker compose exec redis redis-cli ping
 
 - [执行监控与日志](01-monitoring.md)
 - [常见问题](03-faq.md)
-- [系统配置](../install/03-config.md)
-- [升级与迁移](../install/04-upgrade.md)
+- [系统配置](../install/04-config.md)
+- [升级与迁移](../install/05-upgrade.md)

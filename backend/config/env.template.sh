@@ -1,33 +1,36 @@
 #!/bin/sh
-# config/env.sh 示例
-# 复制本文件为 env.sh，并根据实际环境修改变量
-# 启动脚本会自动加载本文件
+# config/env.sh —— 后端运行环境变量
+#
+# 复制本文件为 config/env.sh（发行包已内置），按实际环境修改后由 bin/service.sh 自动加载。
+# 只改这个文件即可，不要改 jar 内的 application.properties。
 
-# 数据库连接信息
-export DB_HOST="localhost"                                    # 数据库主机
-export DB_PORT="5432"                                         # 数据库端口
-export DB_NAME="addax_admin"                                   # 数据库名称
-export DB_USERNAME="addax_admin"                               # 数据库用户名
-export DB_PASSWORD="password"                                  # 数据库密码
-export DB_DRIVER="org.postgresql.Driver"                       # JDBC 驱动类名
+# 数据库（PostgreSQL）
+export DB_HOST="localhost"
+export DB_PORT="5432"
+export DB_NAME="addax_admin"
+export DB_USERNAME="addax_admin"
+export DB_PASSWORD="password"
 
-export REDIS_HOST="localhost"                                  # Redis 主机
-export REDIS_PORT="6379"                                       # Redis 端口
-export REDIS_PASSWORD=""                                       # Redis 密码（如有）
-export REDIS_DB="0"                                            # Redis 数据库索引
+# Redis
+export REDIS_HOST="localhost"
+export REDIS_PORT="6379"
+export REDIS_PASSWORD=""
+export REDIS_DB="0"
 
-export WEIGHT=0.5                                              # 调度权重, (0-1]
+# 节点并发权重，取值 (0.0, 1.0]，多节点部署时用不同权重分配负载
+export WEIGHT="1.0"
 
-export LOG_DIR="./logs"                                        # 日志目录
-# export JWT_SECRET="替换为随机密钥"                              # 生产环境必须设置
-# 告警通道配置存于数据库（系统管理 → 告警配置），敏感配置使用该密钥加密
-# export ALERT_SECRET_KEY=""                               # 生产环境建议设置为随机长字符串
-# 其他可选环境变量
-# export SERVER_PORT=9090                                      # 服务端口（如需覆盖 application.properties 配置）
-# export SPRING_PROFILES_ACTIVE=prod                           # Spring Boot 激活的 profile
+# 日志目录跟随应用目录；service.sh 会把该值传给 -Dlogging.file.path
+export LOG_DIR="${APP_HOME:-/opt/app/addax-admin}/logs"
 
-# 使用说明：
-# 1. 修改上述变量为你的实际数据库和环境信息。
-# 2. 启动服务时，bin/service.sh 会自动加载本文件。
-# 3. 如需添加更多 Spring Boot 支持的环境变量，可在此文件中继续 export。
+# 生产环境必须设置为独立随机值，deploy/install.sh 首次安装会自动生成。
+# export JWT_SECRET=""
+# export ALERT_SECRET_KEY=""
 
+# 其他可选覆盖
+# export SERVER_PORT="50601"
+# export SPRING_PROFILES_ACTIVE="prod"
+
+# Java 运行时；发行包 install.sh 首次安装时会自动写入 JAVA_HOME 与 PATH
+# export JAVA_HOME="/usr/lib/jvm/java-21-openjdk-amd64"
+# export PATH="$JAVA_HOME/bin:$PATH"

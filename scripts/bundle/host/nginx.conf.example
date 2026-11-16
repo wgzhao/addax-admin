@@ -1,0 +1,54 @@
+# Addax Admin 主机部署 Nginx 示例
+# 复制到 /etc/nginx/conf.d/addax-admin.conf，按需修改 server_name、listen 和 root。
+# root 指向 deploy/install.sh 的 --web-root（默认 /var/www/html/addax-admin-ui）。
+
+server {
+    listen 80;
+    server_name addax-admin.example.com;
+
+    root /var/www/html/addax-admin-ui;
+    index index.html;
+
+    client_max_body_size 100M;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript
+               application/json application/javascript application/xml+rss
+               application/x-javascript;
+
+    # 后端 API：proxy_pass 指向后端的 server.port（默认 50601）
+    location /api/v1/ {
+        proxy_pass http://127.0.0.1:50601;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 补数、目标端校验等接口可能持续数分钟
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 86400s;
+        proxy_read_timeout 86400s;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # 单页应用路由；构建产物文件名带 hash，可以长期缓存
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        root /var/www/html/addax-admin-ui;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /var/www/html/addax-admin-ui;
+    }
+}

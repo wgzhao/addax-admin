@@ -111,5 +111,5 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时
 ## 相关文档
 
 - [目标表结构与字段映射](05-target-contract.md)
-- [升级与迁移](../install/04-upgrade.md)
+- [升级与迁移](../install/05-upgrade.md)
 - [ADR 0002：外部目标契约与字段映射](../../adr/0002-external-target-contract-and-column-mapping.md)
