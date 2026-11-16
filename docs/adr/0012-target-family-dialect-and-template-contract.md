@@ -80,6 +80,6 @@
 
 - **Phase A（目标端族+方言）**：下拉收缩为 `HDFS`/`RDBMS`；新增 `detect-dialect` 端点与只读方言展示；
   更新 `target-dialog` e2e。
-- **Phase B（模板命名+文档）**：`R2H`/`R2R` 标签带方向；更新 `docs/manual/install/03-config.md`。
+- **Phase B（模板命名+文档）**：`R2H`/`R2R` 标签带方向；更新 `docs/manual/install/04-config.md`。
 - **Phase C（占位符契约守卫）**：模板默认值统一到 Java 常量；`updateJobTemplates` 增加占位符校验；
   前端镜像 UX；防漂移单测 + 保存时 JSON 结构校验；更新 e2e 与文档。

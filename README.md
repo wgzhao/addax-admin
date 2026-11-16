@@ -137,7 +137,7 @@ addax-admin/
 
 ## 快速开始
 
-Addax Admin 只负责管理与调度，不执行实际采集，两种部署模式都需要单独准备 **Addax 采集引擎**。
+Addax Admin 只负责管理与调度，不执行实际采集，三种部署模式都需要单独准备 **[Addax 采集引擎](https://github.com/wgzhao/addax/releases)**（程序包可从上游 Releases 下载）。
 
 ### Docker 模式（推荐）
 
@@ -161,9 +161,30 @@ docker compose -f docker-compose.yml up -d
 
 > 镜像仅在发布时构建，`latest` 指向最新 Release；`master` 分支仍在快速迭代，请勿用于生产。国内网络可改用 Quay 备用源：`echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env`。
 
-### 主机模式
+### 主机部署（发行包）
 
-适用于已有 Java 21、Maven、Node.js、Yarn、PostgreSQL、Redis 和 Nginx 的环境，编译产物分别部署后端与前端。完整步骤见 [主机模式与本地开发](docs/manual/install/02-source.md#主机模式部署)。
+适用于已有 Java 21、PostgreSQL、Redis 和 Nginx、但不需要构建工具链的环境。发行包内含预编译的后端 jar、前端静态文件和部署脚本，与 Docker 镜像在同一发布流程中构建。
+
+```bash
+# 1. 从 GitHub Releases 下载发行包并校验（VERSION 换成实际版本，不带 v）
+VERSION=4.6.0
+wget "https://github.com/wgzhao/addax-admin/releases/download/v${VERSION}/addax-admin-${VERSION}-host.tar.gz"
+wget "https://github.com/wgzhao/addax-admin/releases/download/v${VERSION}/addax-admin-${VERSION}-host.tar.gz.sha256"
+sha256sum -c "addax-admin-${VERSION}-host.tar.gz.sha256"
+tar xzf "addax-admin-${VERSION}-host.tar.gz"
+
+# 2. 安装到 /opt/app/addax-admin，前端到 /var/www/html/addax-admin-ui
+cd "addax-admin-${VERSION}"
+sudo sh deploy/install.sh
+
+# 3. 按提示修改 config/env.sh 与 Nginx 配置后启动
+```
+
+包内 `deploy/README.md` 是完整部署说明；仓库版本见 [主机部署（发行包）](docs/manual/install/02-host.md)。
+
+### 从源代码部署
+
+适用于需要二次开发或跟随 `master` 的场景，需要额外的 Maven、Node.js 和 Yarn。完整步骤见 [源码构建与本地开发](docs/manual/install/03-source.md#从源码构建部署)。
 
 ---
 
@@ -171,7 +192,8 @@ docker compose -f docker-compose.yml up -d
 
 - [安装与使用手册](docs/manual/README.md)
 - [Docker 部署](docs/manual/install/01-docker.md)
-- [主机模式与本地开发](docs/manual/install/02-source.md)
+- [主机部署（发行包）](docs/manual/install/02-host.md)
+- [源码构建与本地开发](docs/manual/install/03-source.md)
 - [快速上手](docs/manual/usage/01-quick-start.md)
 - [目标表结构与字段映射](docs/manual/usage/05-target-contract.md)
 - [目标端能力与表属性](docs/manual/usage/06-target-engines.md)

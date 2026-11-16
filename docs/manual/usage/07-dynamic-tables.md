@@ -143,4 +143,4 @@ t_snapshot_20260127140530
 
 - [增量与过滤](08-filtering.md)
 - [调度与并发](09-scheduling.md)
-- [系统配置](../install/03-config.md)
+- [系统配置](../install/04-config.md)

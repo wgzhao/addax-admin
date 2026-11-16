@@ -113,4 +113,4 @@
 
 - [调度与并发](../usage/09-scheduling.md)
 - [故障排查](02-troubleshooting.md)
-- [系统配置](../install/03-config.md)
+- [系统配置](../install/04-config.md)

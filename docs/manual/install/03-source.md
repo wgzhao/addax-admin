@@ -1,8 +1,10 @@
-# 主机模式与本地开发
+# 源码构建与本地开发
 
 如果不使用 Docker，可以把后端 jar 和前端静态文件分别部署到主机。本文也包含二次开发时的本地启动流程。
 
-## 主机模式部署
+如果目标主机不需要构建工具链，优先使用 [主机部署（发行包）](02-host.md)；本文适用于需要从源码构建或参与二次开发的场景。
+
+## 从源码构建部署
 
 适用于已有 Java、PostgreSQL、Redis 和 Nginx 基础设施的环境。
 
@@ -146,33 +148,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 ### 6. 使用 systemd 托管（可选）
 
-如果不想使用 `service.sh` 的 nohup 方式，可以使用 systemd。示例：
-
-```ini
-[Unit]
-Description=Addax Admin
-After=network.target
-
-[Service]
-Type=simple
-User=addax
-WorkingDirectory=/opt/app/addax-admin
-EnvironmentFile=/opt/app/addax-admin/config/env.sh
-ExecStart=/usr/lib/jvm/java-21-openjdk-amd64/bin/java \
-  -Dapp.home=/opt/app/addax-admin \
-  -Dspring.config.location=/opt/app/addax-admin/config/application.properties \
-  -Dlogging.file.path=/opt/app/addax-admin/logs \
-  -Daddax.drivers.dir=/opt/app/addax-admin/drivers \
-  -Dloader.main=com.wgzhao.addax.admin.AdminApplication \
-  -cp /opt/app/addax-admin/lib/addax-admin-<version>.jar \
-  org.springframework.boot.loader.launch.PropertiesLauncher
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-
-替换 `<version>` 后保存为 `/etc/systemd/system/addax-admin.service`：
+如果不想使用 `service.sh` 的 nohup 方式，可以使用仓库里的 [systemd 模板](../../../scripts/bundle/host/addax-admin.service)。模板中的 `@APP_HOME@`、`@JAR_PATH@`、`@APP_USER@`、`@JAVA_BIN@` 需要按实际路径替换，保存为 `/etc/systemd/system/addax-admin.service`：
 
 ```bash
 sudo systemctl daemon-reload
@@ -180,15 +156,15 @@ sudo systemctl enable --now addax-admin
 sudo systemctl status addax-admin
 ```
 
-仓库中的 [`scripts/addax-admin.service`](../../../scripts/addax-admin.service) 是旧模板，使用前需要按实际路径和 jar 版本修改。不要同时用 systemd 和 `service.sh` 启动同一个实例。
+模板通过 `sh -c '. config/env.sh && exec java ...'` 加载配置，因为 `env.sh` 使用 `export` 语句，systemd 的 `EnvironmentFile` 不解析这种写法。不要同时用 systemd 和 `service.sh` 启动同一个实例。
 
 ### 7. 部署前端
 
 把 `frontend/dist/` 部署到 Nginx 静态目录：
 
 ```bash
-sudo mkdir -p /var/www/html/addax-ui
-sudo rsync -a frontend/dist/ /var/www/html/addax-ui/
+sudo mkdir -p /var/www/html/addax-admin-ui
+sudo rsync -a frontend/dist/ /var/www/html/addax-admin-ui/
 ```
 
 Nginx 配置示例：
@@ -198,7 +174,7 @@ server {
     listen 80;
     server_name addax-admin.example.com;
 
-    root /var/www/html/addax-ui;
+    root /var/www/html/addax-admin-ui;
     index index.html;
 
     location /api/v1/ {
@@ -250,7 +226,7 @@ sudo systemctl reload nginx
    /opt/app/addax-admin/bin/service.sh restart
    ```
 
-数据库迁移会在服务启动时自动执行，具体说明见 [升级与迁移](04-upgrade.md)。
+数据库迁移会在服务启动时自动执行，具体说明见 [升级与迁移](05-upgrade.md)。
 
 ## 本地开发模式
 
@@ -307,6 +283,6 @@ Vite 会把 `/api` 请求代理到 `VITE_API_HOST`。如果后端地址不同，
 ## 相关文档
 
 - [Docker 部署](01-docker.md)
-- [系统配置](03-config.md)
-- [升级与迁移](04-upgrade.md)
+- [系统配置](04-config.md)
+- [升级与迁移](05-upgrade.md)
 - [快速上手](../usage/01-quick-start.md)
