@@ -118,6 +118,7 @@
                   variant="text"
                   color="info"
                   class="px-2"
+                  title="仅检测 JDBC 连接；HDFS 写入请进入编辑页点击「校验目标端」"
                   @click="testConnect(item)"
                 >
                   <v-icon size="16" class="mr-1">mdi-connection</v-icon>测试连接
@@ -225,14 +226,26 @@
                 <header class="section-head">
                   <span class="section-index">02</span>
                   <h3>连接信息</h3>
-                  <v-btn
-                    size="x-small"
-                    variant="text"
-                    class="section-toggle"
-                    @click="showConnectJson = !showConnectJson"
-                  >
-                    {{ showConnectJson ? '隐藏连接 JSON' : '查看连接 JSON' }}
-                  </v-btn>
+                  <div class="section-actions">
+                    <v-btn
+                      v-if="isRdbmsTarget"
+                      size="x-small"
+                      variant="text"
+                      prepend-icon="mdi-lan-connect"
+                      :loading="testingTarget"
+                      @click="testConnectPayload"
+                    >
+                      测试连接
+                    </v-btn>
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      class="section-toggle"
+                      @click="showConnectJson = !showConnectJson"
+                    >
+                      {{ showConnectJson ? '隐藏连接 JSON' : '查看连接 JSON' }}
+                    </v-btn>
+                  </div>
                 </header>
                 <div class="field-grid">
                   <div class="field span-2">
@@ -326,7 +339,52 @@
                 <header class="section-head">
                   <span class="section-index">03</span>
                   <h3>HDFS / Hive 设置</h3>
+                  <div class="section-actions">
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      prepend-icon="mdi-lan-connect"
+                      :loading="healthCheckRunning"
+                      @click="runHealthCheck"
+                    >
+                      校验目标端
+                    </v-btn>
+                  </div>
                 </header>
+                <div
+                  v-if="healthCheckItems.length"
+                  class="target-check"
+                  :class="{
+                    'target-check--ok': healthCheckDone && healthCheckSuccess,
+                    'target-check--fail': healthCheckDone && !healthCheckSuccess,
+                  }"
+                >
+                  <div class="target-check__head">
+                    <v-icon size="18" :color="healthCheckHeadColor">
+                      {{ healthCheckHeadIcon }}
+                    </v-icon>
+                    <span>{{ healthCheckTitle }}</span>
+                  </div>
+                  <ul class="target-check__list">
+                    <li
+                      v-for="item in healthCheckItems"
+                      :key="item.key"
+                      class="target-check__item"
+                      :class="`is-${item.status}`"
+                    >
+                      <v-icon size="16" :color="checkIconColor(item.status)">
+                        {{ checkIcon(item.status) }}
+                      </v-icon>
+                      <div class="target-check__body">
+                        <span class="target-check__label">{{ item.label }}</span>
+                        <span v-if="item.message" class="target-check__msg">
+                          {{ item.message }}
+                        </span>
+                        <span v-if="item.hint" class="target-check__hint">{{ item.hint }}</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
                 <div class="field-grid">
                   <div class="field span-2">
                     <label class="field-label" for="target-hive-driver">驱动类名（可选）</label>
@@ -485,14 +543,6 @@
           </v-form>
         </v-card-text>
         <v-card-actions class="ds-dialog-actions">
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-lan-connect"
-            :loading="testingTarget"
-            @click="testConnectPayload"
-          >
-            测试连接
-          </v-btn>
           <v-spacer />
           <v-btn variant="text" @click="dialogVisible = false">取消</v-btn>
           <v-btn color="primary" variant="flat" @click="save">保存</v-btn>
@@ -608,6 +658,46 @@
     () => (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WR'
   );
 
+  // HDFS 校验按清单逐项执行：先列出全部项目（pending），每项完成后立刻回填状态，避免用户
+  // 面对一个转圈按钮干等，也避免“结果在可视化区域之外根本看不到”。
+  type HealthCheckStatus = 'pending' | 'running' | 'ok' | 'fail' | 'skip';
+  interface HealthCheckRow {
+    key: string;
+    label: string;
+    status: HealthCheckStatus;
+    message: string;
+    hint: string | null;
+  }
+  const healthCheckItems = ref<HealthCheckRow[]>([]);
+  const healthCheckRunning = ref(false);
+
+  const healthCheckDone = computed(
+    () =>
+      healthCheckItems.value.length > 0 &&
+      !healthCheckRunning.value &&
+      healthCheckItems.value.every(item => ['ok', 'fail', 'skip'].includes(item.status))
+  );
+  const healthCheckSuccess = computed(
+    () =>
+      healthCheckItems.value.length > 0 &&
+      healthCheckItems.value.every(item => item.status === 'ok' || item.status === 'skip')
+  );
+  const healthCheckTitle = computed(() => {
+    if (!healthCheckItems.value.length) return '';
+    if (healthCheckRunning.value) return '正在校验目标端…';
+    if (!healthCheckDone.value) return '待校验';
+    return healthCheckSuccess.value ? '目标端校验通过' : '目标端校验未通过';
+  });
+  const healthCheckHeadIcon = computed(() => {
+    if (healthCheckRunning.value) return 'mdi-progress-clock';
+    if (!healthCheckDone.value) return 'mdi-clipboard-list-outline';
+    return healthCheckSuccess.value ? 'mdi-check-circle' : 'mdi-alert-circle';
+  });
+  const healthCheckHeadColor = computed(() => {
+    if (!healthCheckDone.value) return 'medium-emphasis';
+    return healthCheckSuccess.value ? 'success' : 'error';
+  });
+
   const connectionPlaceholder = computed(() =>
     isHdfsTarget.value ? 'jdbc:hive2://host:10000/default' : 'jdbc:postgresql://host:5432/db'
   );
@@ -675,6 +765,20 @@
   };
 
   watch(connectForm, syncConnectConfig, { deep: true });
+  // A green tick that no longer describes the visible settings is worse than none: any edit puts
+  // the checklist back to "not checked" while keeping the items visible.
+  watch(
+    connectForm,
+    () => {
+      if (healthCheckRunning.value) return;
+      healthCheckItems.value.forEach(item => {
+        item.status = 'pending';
+        item.message = '';
+        item.hint = null;
+      });
+    },
+    { deep: true }
+  );
   watch(
     () => form.value.targetType,
     t => {
@@ -685,12 +789,14 @@
         form.value.writerTemplateKey = t === 'HDFS' ? 'wH' : 'wR';
       }
       syncConnectConfig();
+      loadHealthCheckPlan();
     }
   );
   watch(
     () => form.value.writerTemplateKey,
     () => {
       syncConnectConfig();
+      loadHealthCheckPlan();
     }
   );
 
@@ -780,6 +886,7 @@
     showPassword.value = false;
     dialogVisible.value = true;
     detectDialect();
+    loadHealthCheckPlan();
   };
 
   const openEdit = (item: EtlTarget) => {
@@ -789,6 +896,7 @@
     showPassword.value = false;
     dialogVisible.value = true;
     detectDialect();
+    loadHealthCheckPlan();
   };
 
   const save = async () => {
@@ -848,6 +956,103 @@
       notify(`连接测试失败: ${e.message || e}`, 'error');
     } finally {
       testingTarget.value = false;
+    }
+  };
+
+  const loadHealthCheckPlan = async () => {
+    if (!isHdfsTarget.value) {
+      healthCheckItems.value = [];
+      return;
+    }
+    if (healthCheckRunning.value) return;
+    try {
+      syncConnectConfig();
+      const plan = await targetService.healthCheckPlan(form.value);
+      healthCheckItems.value = plan.items.map(item => ({
+        key: item.key,
+        label: item.label,
+        status: 'pending' as HealthCheckStatus,
+        message: '',
+        hint: null,
+      }));
+    } catch {
+      // The checklist is an aid, not a precondition for saving: a failed plan request leaves the
+      // section usable and the next click retries it.
+      healthCheckItems.value = [];
+    }
+  };
+
+  // HDFS 目标端的“测试连接”只证明 HiveServer2 可达，证明不了能不能写 HDFS。校验目标端按清单
+  // 逐项执行真实的检查（含一次 HDFS 写入探针），每完成一项立即打勾。
+  const runHealthCheck = async () => {
+    if (healthCheckRunning.value) return;
+    syncConnectConfig();
+    if (!healthCheckItems.value.length) {
+      await loadHealthCheckPlan();
+    }
+    if (!healthCheckItems.value.length) {
+      notify('无法加载校验清单，请重试', 'error');
+      return;
+    }
+    // Snapshot the payload: edits made while the checklist runs must not silently change what the
+    // remaining items are checked against.
+    const payload: EtlTarget = JSON.parse(JSON.stringify(form.value));
+    healthCheckItems.value.forEach(item => {
+      item.status = 'pending';
+      item.message = '';
+      item.hint = null;
+    });
+    healthCheckRunning.value = true;
+    try {
+      for (const item of healthCheckItems.value) {
+        item.status = 'running';
+        try {
+          const result = await targetService.healthCheckItem(payload, item.key);
+          item.status = result.status;
+          item.message = result.message;
+          item.hint = result.hint;
+        } catch (e: any) {
+          item.status = 'fail';
+          item.message = String(e.message || e);
+          item.hint = '检查请求失败，请重试';
+        }
+      }
+      const failed = healthCheckItems.value.find(item => item.status === 'fail');
+      if (failed) {
+        notify(`目标端校验未通过: ${failed.label}`, 'error');
+      } else {
+        notify('目标端校验通过', 'success');
+      }
+    } finally {
+      healthCheckRunning.value = false;
+    }
+  };
+
+  const checkIcon = (status: string) => {
+    switch (status) {
+      case 'ok':
+        return 'mdi-check-circle';
+      case 'fail':
+        return 'mdi-alert-circle';
+      case 'running':
+        return 'mdi-loading';
+      case 'pending':
+        return 'mdi-circle-outline';
+      default:
+        return 'mdi-minus-circle-outline';
+    }
+  };
+
+  const checkIconColor = (status: string) => {
+    switch (status) {
+      case 'ok':
+        return 'success';
+      case 'fail':
+        return 'error';
+      case 'skip':
+        return 'warning';
+      default:
+        return 'medium-emphasis';
     }
   };
 
@@ -935,6 +1140,17 @@
     margin-left: auto;
   }
 
+  .section-head .section-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .section-head .section-actions .section-toggle {
+    margin-left: 0;
+  }
+
   .section-index {
     color: var(--ds-text-3);
     font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -999,6 +1215,95 @@
     font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
     font-size: 12px;
     line-height: 1.5;
+  }
+
+  .target-check {
+    margin-top: 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--ds-border-default);
+    border-radius: var(--ds-radius-sm);
+    background: rgba(var(--v-theme-on-surface), 0.02);
+  }
+
+  .target-check--ok {
+    border-color: rgba(var(--v-theme-success), 0.4);
+  }
+
+  .target-check--fail {
+    border-color: rgba(var(--v-theme-error), 0.4);
+  }
+
+  .target-check__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .target-check__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .target-check__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .target-check__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .target-check__label {
+    color: rgb(var(--v-theme-on-surface));
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+
+  .target-check__msg {
+    color: var(--ds-text-2);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .target-check__hint {
+    color: rgb(var(--v-theme-error));
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .target-check__item.is-fail .target-check__label {
+    color: rgb(var(--v-theme-error));
+  }
+
+  .target-check__item.is-pending .target-check__label {
+    color: var(--ds-text-3);
+  }
+
+  .target-check__item.is-running .target-check__label {
+    color: rgb(var(--v-theme-primary));
+  }
+
+  .target-check__item.is-running .v-icon {
+    animation: target-check-spin 1s linear infinite;
+  }
+
+  @keyframes target-check-spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @media (max-width: 640px) {
