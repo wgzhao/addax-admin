@@ -145,7 +145,7 @@ Addax Admin 只负责管理与调度，不执行实际采集，两种部署模�
 ```bash
 # 1. 创建部署目录并下载部署文件
 mkdir addax-admin && cd addax-admin
-RELEASE_TAG=v4.5.0   # 替换为最新 Release 标签
+RELEASE_TAG=v4.6.0   # 替换为最新 Release 标签
 wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
 wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
 cp .env.example .env

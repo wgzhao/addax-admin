@@ -1,5 +1,50 @@
 # Changelog
 
+## 4.6.0
+
+### Added
+
+- 采集对账（ADR-0010）：新增 `etl_reconcile` 事实表，按「写入 = 读取 - 错误行数」判定 PASS/FAIL，差异记入 `RECONCILE` 失败事实并触发告警；表详情新增「对账」tab，支持按业务日期手动补对账（`POST /reconciles/run`）。
+- 字段级血缘搜索：`GET /lineage/columns` 基于 `etl_column_mapping` 跨采集表搜索字段来源与去向，新增「数据血缘」页面，零迁移。
+- ODS 主动数据质量：以近 7 天非零采集量为基线，0 行判空采、不足基线 5% 判漏采，命中记 `DATA_QUALITY` 失败事实。
+- 采集完成信号外发：`COLLECTION_COMPLETE_WEBHOOK_URL` 启用后，job-report 到达时向下游 POST `collection_complete` 事件，复用告警的 SSRF 防护，失败只记日志。
+- 持久化失败事实：新增 `etl_failure`（阶段、分类、指纹、摘要/详情、执行与日志关联），`FailureRecorder` 覆盖采集、schema、分区、作业模板、目标契约、准备与队列失败；状态列失败抽屉、表详情「失败记录」tab、全局错误中心（筛选、指纹聚合、CSV 导出、管理员清理），并一次性回填近 365 天 `etl_jour` 失败。
+- 目标端健康校验：`POST /targets/health-check` 系列接口按项执行 Addax 目录、hdfswriter 插件、wH 模板、HiveServer2 与真实写入探针；HDFS 目标端弹窗内以渐进式清单逐项展示，编辑配置即重置。
+- Addax 程序目录校验：`POST /settings/addax-validate` 检查目录、`bin/addax.sh` 与 `conf/core.json` 上报地址，并跑一次 stream→stream 冒烟作业；系统设置新增「校验」按钮。
+- 采集日历与类型映射专用管理页（ADR-0011 阶段 1）：覆盖情况、按年日期维护、批量生成、年度交易日刷新与源类型→ODS 类型映射 CRUD。
+- 目标方言由 JDBC URL 推导：新增 `POST /targets/detect-dialect`，目标端只选 HDFS/RDBMS 族，方言只读展示。
+- 作业模板占位符契约：五个模板由 Java 常量播种，保存时校验占位符集合与 JSON 合法性，前端锁定占位符 chips。
+- 仓库品牌刷新：README 重写、社交预览图与生成脚本、六边形 Logo，新增 CONTRIBUTING、SECURITY、issue forms 与 PR 模板。
+- E2E：新增对账、血缘、数据质量、完成信号、Addax 目录校验、空库初始化等脚本。
+
+### Changed
+
+- 后端升级到 Spring Boot 4.1.2 / Hibernate 7.4 / Jackson 3 / springdoc 3.2；PostgreSQL 与 MongoDB 驱动按要求保持旧版。
+- 前端依赖升级到 Vue 3.5.45 / Vuetify 4.3.2 / Vite 8.3.8 / Pinia 4.1 / ESLint 10 / Prettier 3，移除未使用依赖；TypeScript 受 typescript-eslint 上限约束留在 5.9。
+- 移除 `etl_source.code`：启动迁移删除该列与依赖视图，采集源按 `id` 与名称标识，`/sources/check-code` 一并删除。
+- 退役通用字典维护：移除 `/dicts`、`/param` 接口与前端字典编辑页，改为采集日历、类型映射与系统配置；启动迁移清理废弃字典项。
+- 数据库初始化改由应用负责（ADR-0013）：镜像内置 `schema.sql` / `data.sql`，空库首次启动自动建表，docker-compose 不再挂载 initdb 脚本。
+- 失败详情抽屉改为视口自适应宽度（85vw，上限 920px）并固定头尾。
+- 顶栏搜索、主题、通知与账号移入右侧工具区；账号管理移入系统管理菜单，页脚精简。
+- 新增 `SMOKE_TEST_TID`（-1）与健康检查保留 tid（-2），job-report 接受保留负数 tid 并跳过对账/质量/信号副作用。
+
+### Fixed
+
+- 采集状态图标只读最新 `etl_jour` 错误且失败路径无记录的问题（改由失败事实承载）。
+- Docker 镜像与宿主机初始化脚本版本错配导致的启动失败 `column s.code does not exist`（issue #125）。
+- 失败抽屉固定 560px 导致内容与操作按钮超出视口。
+- 顶栏账号按钮样式与导航项不一致、工具区全部挤在左侧。
+- Hive `TEXTFILE` 存储格式未映射为 addax 的 `TEXT` writer 格式，textfile 目标端运行期才失败。
+
+### 升级提示
+
+- **破坏性变更**：`etl_source.code` 由启动迁移删除，旧节点仍会查询该列，必须停止所有节点后再升级，不支持滚动升级；回退只能恢复升级前备份。
+- 首次启动自动创建 `etl_failure`、`etl_reconcile`、`app_migration`，并回填近 365 天失败事实、清理废弃字典项（日志可见 `Purged N deprecated sys_item ...`）。
+- 目标端 `target_type` 现存族名（HDFS/RDBMS），历史 `MYSQL`/`POSTGRESQL`/`SQLSERVER` 仍兼容。
+- 作业模板只允许修改非占位符部分，占位符名不可变更。
+- 采集完成信号默认关闭，需要时设置 `COLLECTION_COMPLETE_WEBHOOK_URL`（内网地址需同时设置 `COLLECTION_COMPLETE_WEBHOOK_ALLOW_PRIVATE_NETWORK`）。
+- Docker 部署请使用与本版本一致的 `docker-compose.yml`，旧 compose 的 initdb 挂载不再使用。
+
 ## 4.5.0
 
 ### Added

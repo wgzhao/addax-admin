@@ -35,7 +35,7 @@ docker compose version
 mkdir addax-admin && cd addax-admin
 
 # 2. 下载部署文件（RELEASE_TAG 换成要部署的版本，见 GitHub Releases）
-RELEASE_TAG=v4.5.1
+RELEASE_TAG=v4.6.0
 wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
 
 # 3. 可选：准备环境变量文件
@@ -228,7 +228,7 @@ bind mount：
 
 ```bash
 # RELEASE_TAG 与部署文件、镜像版本保持一致
-RELEASE_TAG=${RELEASE_TAG:-v4.5.1}
+RELEASE_TAG=${RELEASE_TAG:-v4.6.0}
 wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
 cp .env.example .env
 docker compose up -d

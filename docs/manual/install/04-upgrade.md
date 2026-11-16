@@ -35,7 +35,7 @@ git pull
 docker compose up -d --build
 ```
 
-v4.5.1 起 `schema.sql` 和 `data.sql` 打包在镜像内：空库由应用启动时自动初始化，已有数据库仍由启动迁移向前升级，不需要手工执行 SQL。旧 compose 文件里的 `docker-entrypoint-initdb.d` 挂载只在数据卷为空时生效，可以保留，也可以删除。
+v4.6.0 起 `schema.sql` 和 `data.sql` 打包在镜像内：空库由应用启动时自动初始化，已有数据库仍由启动迁移向前升级，不需要手工执行 SQL。旧 compose 文件里的 `docker-entrypoint-initdb.d` 挂载只在数据卷为空时生效，可以保留，也可以删除。
 
 升级后检查：
 
@@ -61,6 +61,29 @@ cd frontend
 yarn install
 yarn build
 ```
+
+## v4.6.0 升级说明
+
+### 破坏性变更：先停止所有节点
+
+启动迁移会删除 `etl_source.code` 列及其依赖视图，采集源身份改由 `id` 与名称标识。旧版本节点仍会查询该列，因此必须停止所有节点后再启动新版本，**不支持滚动升级**；该迁移不可逆，回退只能恢复升级前备份。
+
+### 数据库变更
+
+首次启动执行一次幂等迁移，无需手工执行 SQL：
+
+- 新建 `etl_failure`、`etl_reconcile`、`app_migration`；
+- 一次性回填近 365 天的 `etl_jour` 失败记录，并清理遗留的「采集任务完成」通知；
+- 删除 `etl_source.code`、依赖视图并重建 `vw_etl_table_with_source`；
+- 清理废弃字典项（`1011`、`2015`、`RUN_LOG`、`1060`、`2010`），日志形如 `Purged N deprecated sys_item ...`。
+
+### 配置变更
+
+- 目标端 `target_type` 改为存储族名（`HDFS`/`RDBMS`），历史 `MYSQL`/`POSTGRESQL`/`SQLSERVER` 值继续兼容；方言由 JDBC URL 推导，界面上不再选择。
+- 作业模板占位符成为固定契约，只能修改非占位符内容；占位符集合不符时保存被拒绝。
+- 采集完成信号默认关闭，需要时设置 `COLLECTION_COMPLETE_WEBHOOK_URL`，内网地址还需设置 `COLLECTION_COMPLETE_WEBHOOK_ALLOW_PRIVATE_NETWORK`。
+- 通用字典维护界面与 `/dicts`、`/param` 接口已移除，改用「系统管理 → 采集日历 / 类型映射 / 系统配置」。
+- Docker 部署文件不再挂载 `docker-entrypoint-initdb.d`，数据库由应用首次启动初始化；旧镜像不要搭配新 compose。
 
 ## v4.5.0 升级说明
 
