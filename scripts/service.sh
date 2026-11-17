@@ -85,6 +85,8 @@ start() {
     done
     echo " Failed"
     stop
+    # Report failure to the caller; stop() succeeding must not mask a failed start
+    return 1
 }
 
 stop() {
@@ -193,4 +195,5 @@ case "$1" in
         exit 1
         ;;
 esac
-exit 0
+# Propagate the action's result (a failed start must not exit 0)
+exit $?
