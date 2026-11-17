@@ -27,8 +27,8 @@
             :key="`${item.title}-${index}`"
             class="top-nav-menu-item"
             :prepend-icon="child.icon || 'mdi-chevron-right'"
+            :to="child.path ? { path: child.path } : undefined"
             slim
-            @click="e => handleNavChildClick(child, e)"
           >
             <v-list-item-title>{{ child.title }}</v-list-item-title>
           </v-list-item>
@@ -49,33 +49,16 @@
 </template>
 
 <script setup lang="ts">
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRoute } from 'vue-router';
   import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from './build-nav';
-  import type { NavChildItem, NavItem } from './build-nav';
+  import type { NavItem } from './build-nav';
 
   defineProps<{ items: NavItem[] }>();
 
   const route = useRoute();
-  const router = useRouter();
 
   const isPathActive = (path?: string) => isPathActiveFor(route.path, path);
   const isMenuActive = (item: NavItem) => isMenuActiveFor(route.path, item);
-
-  // Handles action callbacks or plain route pushes for menu children
-  const handleNavChildClick = (child: NavChildItem, ev?: Event) => {
-    if (child?.onClick) {
-      ev?.stopPropagation();
-      try {
-        child.onClick();
-      } catch (e) {
-        // swallow
-      }
-      return;
-    }
-    if (child?.path) {
-      router.push({ path: child.path });
-    }
-  };
 </script>
 
 <style lang="scss" scoped>

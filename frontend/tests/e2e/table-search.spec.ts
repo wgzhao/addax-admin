@@ -3,12 +3,13 @@ import { test, expect } from '@playwright/test'
 test('table search should return expected source table', async ({ page }) => {
   await page.goto('/')
 
-  const tableMenuLink = page.getByRole('link', { name: '采集表管理' })
-  if (await tableMenuLink.count()) {
-    await tableMenuLink.first().click()
-  } else {
-    await page.getByRole('button', { name: '采集表管理' }).click()
-  }
+  // 采集表管理 lives under the 采集配置 group; the menu opens on hover after 80ms.
+  await page.getByRole('button', { name: '采集配置', exact: true }).hover()
+  const tableMenuItem = page
+    .locator('.top-nav-menu-list:visible .top-nav-menu-item')
+    .filter({ hasText: '采集表管理' })
+  await expect(tableMenuItem).toBeVisible()
+  await tableMenuItem.click()
 
   await expect(page).toHaveURL(/\/table$/)
 

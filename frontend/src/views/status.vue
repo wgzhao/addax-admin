@@ -240,8 +240,8 @@
     "title": "系统状态",
     "icon": "mdi-heart-pulse",
     "requiresAuth": true,
-    "navGroup": "systemManage",
-    "navOrder": 5
+    "navGroup": "collectRun",
+    "navOrder": 40
   }
 }
 </route>

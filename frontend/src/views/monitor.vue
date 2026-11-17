@@ -385,8 +385,8 @@
     "title": "监控与告警",
     "icon": "mdi-monitor-dashboard",
     "requiresAuth": true,
-    "navGroup": "collect",
-    "navOrder": 30
+    "navGroup": "collectRun",
+    "navOrder": 20
   }
 }
 </route>

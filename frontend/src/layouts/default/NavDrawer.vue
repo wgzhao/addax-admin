@@ -37,7 +37,8 @@
             :title="child.title"
             :prepend-icon="child.icon || 'mdi-chevron-right'"
             :active="isPathActive(child.path)"
-            @click="handleChild(child)"
+            :to="child.path ? { path: child.path } : undefined"
+            @click="close"
           />
         </v-list-group>
       </template>
@@ -62,7 +63,7 @@
   import { useRoute, useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
   import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from './build-nav';
-  import type { NavChildItem, NavItem } from './build-nav';
+  import type { NavItem } from './build-nav';
 
   const open = defineModel<boolean>({ required: true });
   defineProps<{ items: NavItem[] }>();
@@ -82,15 +83,6 @@
 
   const close = () => {
     open.value = false;
-  };
-
-  const handleChild = (child: NavChildItem) => {
-    if (child.onClick) {
-      child.onClick();
-    } else if (child.path) {
-      router.push({ path: child.path });
-    }
-    close();
   };
 
   const goCreate = (path: string) => {

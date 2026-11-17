@@ -283,8 +283,8 @@
     "title": "采集任务",
     "icon": "mdi-calendar-clock",
     "requiresAuth": true,
-    "navGroup": "collect",
-    "navOrder": 20
+    "navGroup": "collectRun",
+    "navOrder": 10
   }
 }
 </route>

@@ -90,7 +90,6 @@
   </v-app-bar>
   <NavDrawer v-model="drawerOpen" :items="urls" />
   <!-- End of Topbar -->
-  <SchemaUpdateAllDialog v-model="confirmUpdateAllDialog" />
 </template>
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue';
@@ -99,15 +98,12 @@
   import { useAuthStore } from '@/stores/auth';
   import { useAppTheme } from '@/composables/useAppTheme';
   import { useRouter } from 'vue-router';
-  import tableService from '@/service/table-service';
-  import { notify } from '@/stores/notifier';
   import { buildNavMenu } from './build-nav';
   import type { NavItem } from './build-nav';
   import { toggleCommandPalette } from '@/stores/command-palette';
   import NavCluster from './NavCluster.vue';
   import NavDrawer from './NavDrawer.vue';
   import UserMenu from './UserMenu.vue';
-  import SchemaUpdateAllDialog from './SchemaUpdateAllDialog.vue';
   import NotificationMenu from '@/components/NotificationMenu.vue';
   import { APP_LOGO, APP_NAME, APP_SUBTITLE } from '@/config/branding';
   import { APP_ENV, APP_ENV_LABEL } from '@/config/version';
@@ -131,34 +127,7 @@
   const authStore = useAuthStore();
   const { isDarkTheme, toggleTheme } = useAppTheme();
 
-  // 表结构更新操作（按需）
-  const updateSchemaNeed = async () => {
-    try {
-      const res = await tableService.updateSchema({ mode: 'need' });
-      notify(res || '表结构更新任务已启动', 'success');
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      notify('更新失败: ' + msg, 'error');
-    }
-  };
-
-  // Why: prevent accidental destructive/costly operation by asking user to confirm before running the full update
-  const confirmUpdateAllDialog = ref(false);
-
-  const openConfirmUpdateAll = () => {
-    confirmUpdateAllDialog.value = true;
-  };
-
-  const urls = computed<NavItem[]>(() =>
-    buildNavMenu(
-      router.getRoutes(),
-      {
-        updateSchemaNeed,
-        openConfirmUpdateAll,
-      },
-      authStore.role
-    )
-  );
+  const urls = computed<NavItem[]>(() => buildNavMenu(router.getRoutes(), authStore.role));
 
   const toggleThemeWithLog = () => {
     toggleTheme();

@@ -358,7 +358,7 @@
     "title": "采集源管理",
     "icon": "mdi-database-cog",
     "requiresAuth": true,
-    "navGroup": "source",
+    "navGroup": "collectConfig",
     "navOrder": 10
   }
 }

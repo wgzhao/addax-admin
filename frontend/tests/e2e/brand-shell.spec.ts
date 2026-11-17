@@ -51,7 +51,7 @@ test.describe('brand shell', () => {
 
   test('shows build and environment in the version dialog', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'admin', exact: true }).click();
+    await page.getByRole('button', { name: '账号菜单', exact: true }).click();
     await page.getByText('系统版本', { exact: true }).click();
 
     const dialog = page.locator('.version-dialog-card');
