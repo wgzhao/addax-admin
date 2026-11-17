@@ -58,6 +58,7 @@
             :items="sources"
             :headers="headers"
             :search="searchValue"
+            class="source-table"
             density="comfortable"
             items-per-page="20"
           >
@@ -203,18 +204,37 @@
 
   const headers = computed<DataTableHeader[]>(() => {
     const base: DataTableHeader[] = [
-      { title: 'ID', key: 'id', width: '2%' },
-      { title: '采集源', key: 'name', minWidth: '5%' },
-      { title: '类型', key: 'dbType', width: '6%' },
-      { title: '连接串', key: 'url', minWidth: '15%' },
-      { title: '状态', key: 'enabled', width: '3%' },
-      { title: '表数量', key: 'tableCount', width: '5%' },
-      { title: '有效表数量', key: 'validTableCount', width: '7%' },
-      { title: '采集时间', key: 'startAt', width: '6%' },
-      { title: '采集日历', key: 'calendar', width: '8%' },
+      // The table uses table-layout: fixed (see the style block), so these pixel
+      // widths are exact at every viewport instead of being renegotiated by the
+      // browser, which used to wrap the 表数量 header and the action buttons.
+      // Widths are measured content size plus a few px of slack.
+      // minWidth repeats the width because the table falls back to auto layout
+      // below 1366px, where only min-width stops the browser re-slicing columns.
+      { title: 'ID', key: 'id', width: 68, minWidth: 68 },
+      // Source names are capped at 10 CJK characters; longer ones wrap, so the
+      // column never steals space from the connection string.
+      { title: '采集源', key: 'name', width: 168, minWidth: 168 },
+      { title: '类型', key: 'dbType', width: 136, minWidth: 136 },
+      // The only elastic column: a connection string can carry long hostnames
+      // and parameters, so it takes everything the other columns leave.
+      { title: '连接串', key: 'url', minWidth: 96 },
+      { title: '状态', key: 'enabled', width: 96, minWidth: 96 },
+      { title: '表数量', key: 'tableCount', width: 100, minWidth: 100 },
+      { title: '有效表数量', key: 'validTableCount', width: 132, minWidth: 132 },
+      { title: '采集时间', key: 'startAt', width: 120, minWidth: 120 },
+      { title: '采集日历', key: 'calendar', width: 112, minWidth: 112 },
     ];
     if (authStore.canWrite || authStore.hasOperateSources) {
-      base.push({ title: '操作', key: 'actions', align: 'center', sortable: false, width: '15%' });
+      base.push({
+        title: '操作',
+        key: 'actions',
+        align: 'center',
+        sortable: false,
+        width: 264,
+        minWidth: 264,
+        // Actions stay reachable if a very narrow viewport forces a scroll.
+        fixed: 'end',
+      });
     }
     return base;
   });
@@ -227,8 +247,10 @@
   };
 
   // 空值即自然日，不显示成空白以免看起来像没配置
+  // Keep every label at three characters so the column is sized by its header,
+  // not by one verbose value; the edit dialog spells out the 调休 nuance.
   const calendarLabel = (calendar?: string) => {
-    if (calendar === 'WORK_DAY') return '工作日（含调休）';
+    if (calendar === 'WORK_DAY') return '工作日';
     if (calendar === 'TRADE_DAY') return '交易日';
     return '自然日';
   };
@@ -365,6 +387,17 @@
 </route>
 
 <style scoped>
+  /* Fixed layout honors each column's pixel width verbatim; in auto layout the
+     browser re-slices the widths whenever content or viewport changes. The
+     breakpoint is where the fixed columns plus a readable connection string
+     still fit; below it auto layout plus the columns' min-widths takes over and
+     the table scrolls horizontally with the action column pinned. */
+  @media (min-width: 1366px) {
+    .source-table :deep(table) {
+      table-layout: fixed;
+    }
+  }
+
   .table-url {
     display: inline-block;
     max-width: 100%;
