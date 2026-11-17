@@ -142,8 +142,9 @@ sudo nginx -t && sudo systemctl reload nginx
 
 1. 打开 `http://<host>/`，使用 `admin` / `admin123` 登录并立即修改密码。
 2. 进入「系统配置」，把「Addax 程序目录」设置为后端进程可访问的 Addax 安装路径（例如 `/opt/app/addax`）。
-3. 需要自定义 JDBC 驱动时，把驱动 jar 放入 `/opt/app/addax-admin/drivers/` 后重启后端；目录内 README 提供常用驱动下载地址。
-4. 按 [快速上手](../usage/01-quick-start.md) 创建第一个采集表。
+3. 确认后端用户（`addax`）对 Addax 目录可写，并把 `conf/core.json` 的 `core.server.address` 设为 `http://127.0.0.1:50601/api/v1/log/job-report`，否则采集结果不会回传；随后在「系统配置」点击「校验」做冒烟检查。
+4. 需要自定义 JDBC 驱动时，把驱动 jar 放入 `/opt/app/addax-admin/drivers/` 后重启后端；目录内 README 提供常用驱动下载地址。
+5. 按 [快速上手](../usage/01-quick-start.md) 创建第一个采集表。
 
 ## 8. 升级与回滚
 
