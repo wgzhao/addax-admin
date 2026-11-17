@@ -50,8 +50,8 @@
 
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
-  import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from './build-nav';
-  import type { NavItem } from './build-nav';
+  import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from '@/config/navigation';
+  import type { NavItem } from '@/config/navigation';
 
   defineProps<{ items: NavItem[] }>();
 

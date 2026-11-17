@@ -62,8 +62,8 @@
 <script setup lang="ts">
   import { useRoute, useRouter } from 'vue-router';
   import { useAuthStore } from '@/stores/auth';
-  import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from './build-nav';
-  import type { NavItem } from './build-nav';
+  import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from '@/config/navigation';
+  import type { NavItem } from '@/config/navigation';
 
   const open = defineModel<boolean>({ required: true });
   defineProps<{ items: NavItem[] }>();

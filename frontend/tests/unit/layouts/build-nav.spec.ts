@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavMenu, isMenuActive, isPathActive } from '@/layouts/default/build-nav';
+import { buildNavMenu, isMenuActive, isPathActive } from '@/config/navigation';
 
 // Route-shaped stubs matching what router.getRoutes() returns
 const route = (path: string, meta: Record<string, any> = {}) => ({ path, meta }) as any;

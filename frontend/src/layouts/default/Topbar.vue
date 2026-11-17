@@ -98,8 +98,8 @@
   import { useAuthStore } from '@/stores/auth';
   import { useAppTheme } from '@/composables/useAppTheme';
   import { useRouter } from 'vue-router';
-  import { buildNavMenu } from './build-nav';
-  import type { NavItem } from './build-nav';
+  import { buildNavMenu } from '@/config/navigation';
+  import type { NavItem } from '@/config/navigation';
   import { toggleCommandPalette } from '@/stores/command-palette';
   import NavCluster from './NavCluster.vue';
   import NavDrawer from './NavDrawer.vue';
