@@ -1323,8 +1323,8 @@
     "title": "目标端管理",
     "icon": "mdi-database-export",
     "requiresAuth": true,
-    "navGroup": "target",
-    "navOrder": 10
+    "navGroup": "collectConfig",
+    "navOrder": 20
   }
 }
 </route>

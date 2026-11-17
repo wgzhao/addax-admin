@@ -340,8 +340,8 @@
     "title": "类型映射",
     "icon": "mdi-swap-horizontal",
     "requiresAuth": true,
-    "navGroup": "systemManage",
-    "navOrder": 19,
+    "navGroup": "collectConfig",
+    "navOrder": 40,
     "roles": ["admin"]
   }
 }

@@ -614,8 +614,8 @@
     "title": "采集日历",
     "icon": "mdi-calendar-range",
     "requiresAuth": true,
-    "navGroup": "systemManage",
-    "navOrder": 18,
+    "navGroup": "collectConfig",
+    "navOrder": 50,
     "roles": ["admin"]
   }
 }

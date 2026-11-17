@@ -689,8 +689,8 @@
     "title": "错误中心",
     "icon": "mdi-alert-decagram-outline",
     "requiresAuth": true,
-    "navGroup": "systemManage",
-    "navOrder": 29,
+    "navGroup": "collectRun",
+    "navOrder": 30,
     "roles": ["admin", "user"]
   }
 }

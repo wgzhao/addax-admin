@@ -2557,8 +2557,8 @@
     "title": "告警配置",
     "icon": "mdi-bell-cog-outline",
     "requiresAuth": true,
-    "navGroup": "systemManage",
-    "navOrder": 15,
+    "navGroup": "collectRun",
+    "navOrder": 60,
     "roles": ["admin"]
   }
 }

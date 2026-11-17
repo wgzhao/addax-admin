@@ -36,6 +36,23 @@
       >
         导出本页
       </v-btn>
+      <!-- Why: both modes rewrite table structure globally; keep them next to the
+           table list instead of the top navigation where a hover mis-click could fire them. -->
+      <v-menu v-if="authStore.isAdmin" offset-y>
+        <template #activator="{ props }">
+          <v-btn variant="tonal" prepend-icon="mdi-database-refresh" v-bind="props">
+            结构更新
+          </v-btn>
+        </template>
+        <v-list density="compact">
+          <v-list-item prepend-icon="mdi-update" @click="updateSchema(null)">
+            <v-list-item-title>按需更新表信息</v-list-item-title>
+          </v-list-item>
+          <v-list-item prepend-icon="mdi-alert" @click="confirmUpdateAllDialog = true">
+            <v-list-item-title>强制更新全部表信息</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-btn
         v-if="authStore.canWrite || authStore.hasOperateSources"
         color="primary"
@@ -462,6 +479,8 @@
   />
 
   <FailureDrawer v-model="failureDrawerOpen" :tid="failureTid" />
+
+  <SchemaUpdateAllDialog v-model="confirmUpdateAllDialog" />
 </template>
 
 <script setup lang="ts">
@@ -471,6 +490,7 @@
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import FailureDrawer from '@/components/failures/FailureDrawer.vue';
+  import SchemaUpdateAllDialog from '@/components/table/SchemaUpdateAllDialog.vue';
   import StatusChip from '@/components/common/StatusChip.vue';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
@@ -894,6 +914,7 @@
       });
   }
 
+  const confirmUpdateAllDialog = ref(false);
   const deleteDialogVisible = ref(false);
   const itemToDelete = ref(null);
   const isBatchDelete = ref(false);
@@ -1136,8 +1157,8 @@
     "title": "采集表管理",
     "icon": "mdi-table",
     "requiresAuth": true,
-    "navGroup": "collect",
-    "navOrder": 10
+    "navGroup": "collectConfig",
+    "navOrder": 30
   }
 }
 </route>

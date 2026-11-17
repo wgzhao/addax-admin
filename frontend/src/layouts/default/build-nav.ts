@@ -4,7 +4,6 @@ export interface NavChildItem {
   path?: string;
   title: string;
   icon?: string;
-  onClick?: () => void;
 }
 
 export interface NavItem {
@@ -14,28 +13,23 @@ export interface NavItem {
   children?: NavChildItem[];
 }
 
-export interface NavActions {
-  updateSchemaNeed: () => void;
-  openConfirmUpdateAll: () => void;
-}
+// Why: the top-level groups follow the collection lifecycle (configure -> run -> inspect
+// data -> administer the system). Object-level pages (source/target) live under config so
+// no top-level entry is a dropdown with a single child.
+type NavGroup = 'collectConfig' | 'collectRun' | 'data' | 'systemManage';
 
-type NavGroup = 'source' | 'target' | 'collect' | 'data' | 'systemManage';
-
-const NAV_GROUP_ORDER: NavGroup[] = ['source', 'target', 'collect', 'data', 'systemManage'];
+const NAV_GROUP_ORDER: NavGroup[] = ['collectConfig', 'collectRun', 'data', 'systemManage'];
 
 const NAV_GROUP_TITLE: Record<NavGroup, string> = {
-  source: '源端管理',
-  target: '目标端管理',
-  collect: '采集管理',
+  collectConfig: '采集配置',
+  collectRun: '采集运行',
   data: '数据管理',
   systemManage: '系统管理',
 };
 
-// Aggregate router meta into the topbar navigation tree. Actions are injected
-// for the collect group so this stays a pure function over route records.
+// Aggregate router meta into the topbar navigation tree.
 export function buildNavMenu(
   routes: ReturnType<Router['getRoutes']>,
-  actions: NavActions,
   role: string = 'guest'
 ): NavItem[] {
   const routeMap = new Map<
@@ -110,15 +104,6 @@ export function buildNavMenu(
         title: item.title,
         icon: item.icon,
       }));
-
-    // Attach standalone actions (not routes) to the collect group. Both write to every table, so
-    // they are admin-only until source-scoped writes exist.
-    if (groupKey === 'collect' && role === 'admin') {
-      children.push(
-        { title: '更新表信息 (按需)', icon: 'mdi-update', onClick: actions.updateSchemaNeed },
-        { title: '强制更新全部表信息', icon: 'mdi-alert', onClick: actions.openConfirmUpdateAll }
-      );
-    }
 
     if (children.length > 0) {
       result.push({

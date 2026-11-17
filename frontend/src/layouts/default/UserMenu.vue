@@ -3,7 +3,7 @@
     <template #activator="{ props }">
       <!-- Why: share the topbar nav button metrics; without top-nav-btn the
            global button reset inherits body weight (400) instead of 500 -->
-      <v-btn v-bind="props" class="top-nav-btn" variant="text">{{
+      <v-btn v-bind="props" class="top-nav-btn" variant="text" aria-label="账号菜单">{{
         profileDisplayName || authStore.currentUserName
       }}</v-btn>
     </template>
@@ -33,6 +33,14 @@
         @click="versionDialog = true"
       >
         <v-list-item-title>系统版本</v-list-item-title>
+      </v-list-item>
+      <v-list-item
+        class="top-nav-menu-item"
+        prepend-icon="mdi-help-circle-outline"
+        slim
+        @click="router.push('/help')"
+      >
+        <v-list-item-title>帮助中心</v-list-item-title>
       </v-list-item>
       <v-list-item
         class="top-nav-menu-item"
