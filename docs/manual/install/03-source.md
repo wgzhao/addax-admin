@@ -10,7 +10,7 @@
 
 ### 环境要求
 
-- Java 21
+- Java 21（`JAVA_HOME` 必须指向 Java 21：Maven 按 `JAVA_HOME` 选择编译器，`service.sh` 也用它启动）
 - Maven 3.8+
 - Node.js 20.19+ 或 22.12+，推荐 22 LTS
 - Yarn 1.22+
@@ -44,6 +44,10 @@ psql -U addax_admin -d addax_admin -f scripts/data.sql
 ### 2. 构建产物
 
 ```bash
+# 系统默认 Java 不是 21 时，Maven 会报“无效的目标发行版: 21”，先指向 Java 21
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+export PATH="$JAVA_HOME/bin:$PATH"
+
 # 后端
 cd backend
 mvn clean package -DskipTests
@@ -82,6 +86,8 @@ cd ..
 创建目录并复制文件：
 
 ```bash
+# 创建服务用户（发行包的 install.sh 会自动创建；源码部署需要手工创建）
+sudo useradd --system --shell /usr/sbin/nologin addax 2>/dev/null || true
 sudo mkdir -p /opt/app/addax-admin/{bin,lib,config,drivers,job,logs}
 sudo chown -R addax:addax /opt/app/addax-admin
 
@@ -94,11 +100,18 @@ sudo chmod +x /opt/app/addax-admin/bin/service.sh
 
 `service.sh` 会从 `lib/` 中查找 `addax-admin-*.jar`，并从 `config/env.sh` 加载环境变量。
 
+`service.sh` 必须由 `/opt/app/addax-admin` 的属主（默认 `addax`）执行，否则无法写入 `logs/` 下的 PID 和日志文件；第 5 步统一使用 `sudo -u addax`。如果希望用你自己的账号运行，把上面的 `chown` 目标改成该账号。
+
 ### 4. 配置后端
 
 编辑 `/opt/app/addax-admin/config/env.sh`：
 
 ```bash
+# service.sh 由 sudo -u addax 或 systemd 启动时不会继承终端的 PATH，
+# 必须在这里固定 Java 21，否则会退回系统默认 JDK（常见为 17）导致启动失败
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+export PATH="$JAVA_HOME/bin:$PATH"
+
 export DB_HOST=127.0.0.1
 export DB_PORT=5432
 export DB_NAME=addax_admin
@@ -117,32 +130,22 @@ export JWT_SECRET='替换为随机密钥'
 
 - `JWT_SECRET` 在生产环境必须使用独立随机值；修改后所有旧令牌失效。
 - `WEIGHT` 是节点并发权重，单节点通常保持 `1.0`。
+- `JAVA_HOME` 必须写在 `env.sh` 里：`sudo` 和 systemd 都不会继承你终端里 `export` 的变量。
 - `config/application.properties` 可以保留默认值，环境变量会覆盖其中的数据库和 Redis 配置。
 - Addax 程序目录不在 `env.sh` 中配置，而是登录后进入「系统配置」设置。
 
 ### 5. 启动与停止
 
-确认当前 `java` 是 Java 21：
+`service.sh` 会加载 `env.sh` 中的 `JAVA_HOME`，确认它指向 Java 21 后，以服务用户启动、查看状态和停止：
 
 ```bash
-java -version
+sudo -u addax /opt/app/addax-admin/bin/service.sh start
+sudo -u addax /opt/app/addax-admin/bin/service.sh status
+sudo -u addax /opt/app/addax-admin/bin/service.sh restart
+sudo -u addax /opt/app/addax-admin/bin/service.sh stop
 ```
 
-如果系统默认 Java 不是 21，先把 Java 21 放到 PATH 前面：
-
-```bash
-export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-export PATH="$JAVA_HOME/bin:$PATH"
-```
-
-启动、查看状态和停止：
-
-```bash
-/opt/app/addax-admin/bin/service.sh start
-/opt/app/addax-admin/bin/service.sh status
-/opt/app/addax-admin/bin/service.sh restart
-/opt/app/addax-admin/bin/service.sh stop
-```
+不要用普通用户直接执行 `service.sh start`：写 `logs/` 会因权限不足失败（脚本返回非零退出码）。
 
 后端默认监听 `50601`，日志写入 `LOG_DIR` 和 `logs/`。
 
@@ -194,11 +197,18 @@ server {
 }
 ```
 
-保存后检查并重载：
+把配置保存为 `/etc/nginx/sites-available/addax-admin`，启用后检查并重载：
 
 ```bash
+sudo ln -sf /etc/nginx/sites-available/addax-admin /etc/nginx/sites-enabled/addax-admin
 sudo nginx -t
 sudo systemctl reload nginx
+```
+
+`server_name` 必须与访问时使用的域名一致（用 IP 访问会落到 Nginx 默认站点）。本地验证时可把示例域名写入 `/etc/hosts`：
+
+```text
+127.0.0.1 addax-admin.example.com
 ```
 
 仓库中的 [`frontend/nginx.conf`](../../../frontend/nginx.conf) 是完整示例。如果前端和后端部署在不同主机，把 `proxy_pass` 改成后端主机的 `50601` 地址，并确保网络可达。
@@ -207,8 +217,21 @@ sudo systemctl reload nginx
 
 1. 打开前端地址，使用 `admin` / `admin123` 登录，并立即修改密码。
 2. 进入「系统配置」，把「Addax 程序目录」设置为后端进程可访问的 Addax 安装路径，例如 `/opt/app/addax`。
-3. 配置采集源、目标端，按 [快速上手](../usage/01-quick-start.md) 创建第一张采集表。
-4. 检查后端端口和日志：
+3. 保证后端用户对 Addax 目录可写（`bin/addax.sh` 要可执行、`log/` 要可写）：
+
+   ```bash
+   sudo chown -R addax:addax /opt/app/addax
+   ```
+
+4. 配置 Addax 的上报地址。`/opt/app/addax/conf/core.json` 中的 `core.server.address` 出厂为空，必须指向后端 job-report 接口，否则采集完成上报和对账数据都会缺失：
+
+   ```json
+   "address": "http://127.0.0.1:50601/api/v1/log/job-report"
+   ```
+
+5. 回到「系统配置」点击「校验」，确认程序目录、`bin/addax.sh`、`conf/core.json`、上报地址和冒烟任务全部通过。
+6. 配置采集源、目标端，按 [快速上手](../usage/01-quick-start.md) 创建第一张采集表。
+7. 检查后端端口和日志：
 
    ```bash
    ss -ltnp | grep 50601
@@ -223,7 +246,7 @@ sudo systemctl reload nginx
 4. 重启后端：
 
    ```bash
-   /opt/app/addax-admin/bin/service.sh restart
+   sudo -u addax /opt/app/addax-admin/bin/service.sh restart
    ```
 
 数据库迁移会在服务启动时自动执行，具体说明见 [升级与迁移](05-upgrade.md)。

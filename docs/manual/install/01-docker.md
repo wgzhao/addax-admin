@@ -51,13 +51,17 @@ docker compose -f docker-compose.yml up -d
 docker compose -f docker-compose.yml ps
 ```
 
-> 国内网络无法访问 Docker Hub 时（`registry-1.docker.io` 超时），请先配置 Docker 镜像加速器，或改用 Quay 备用源：
+> 国内网络无法访问 Docker Hub 时（`registry-1.docker.io` 超时），先配置 Docker 镜像加速器：在 `/etc/docker/daemon.json` 中设置 `registry-mirrors`（例如 `["https://docker.1ms.run"]`），然后执行 `sudo systemctl daemon-reload && sudo systemctl restart docker`。
+>
+> 如果只有应用镜像受影响，也可以改用 Quay 备用源：
 >
 > ```bash
 > echo "DOCKER_REGISTRY=quay.io/wgzhao" >> .env
 > docker compose -f docker-compose.yml pull
 > docker compose -f docker-compose.yml up -d
 > ```
+>
+> `DOCKER_REGISTRY` 只作用于 `addax-admin` 镜像，`postgres:15-alpine` 和 `redis:7-alpine` 仍从 Docker Hub 拉取，没有加速器时需要预先导入这两个镜像。
 
 > 方式一不会下载仓库根目录的 `Dockerfile`。如果镜像拉取失败后直接执行 `up -d`，Compose 可能回退到本地构建并报 `Dockerfile: no such file or directory`。应先解决镜像拉取问题，或改用方式二。
 
@@ -119,6 +123,8 @@ services:
       - ./addax:/opt/app/addax # 新增
 ```
 
+把新增的一行加入 `app` 服务已有的 `volumes` 列表，不要新增第二个 `volumes` 键，否则前面的日志、驱动和任务挂载会失效。
+
 ```bash
 # 3. 重启生效
 docker compose up -d
@@ -128,6 +134,17 @@ docker compose up -d
 # 4. 登录后进入「系统配置」，把「Addax 程序目录」设为容器内路径
 /opt/app/addax
 ```
+
+```bash
+# 5. 配置上报地址后重启
+#    编辑 ./addax/conf/core.json，把出厂为空的 core.server.address 改成：
+#    "address": "http://127.0.0.1:50601/api/v1/log/job-report"
+docker compose restart app
+```
+
+`core.server.address` 留空时任务仍能执行，但采集完成事件、读取/写入行数和对账结果不会回传后端。改完后在「系统配置」点击「校验」，确认 `bin/addax.sh`、`conf/core.json`、上报地址通过。
+
+> 冒烟任务使用 Addax 的 `streamreader`，它依赖 `jdk.random` 模块。应用镜像基于 `jre-alpine`，模块集中不含 `jdk.random`，因此冒烟任务会报 `No implementation of the random number generator algorithm "Xoroshiro128PlusPlus"`。该限制只影响冒烟任务，不影响 RDBMS / MongoDB / Elasticsearch 等实际采集插件；其余四项校验通过即可，待 Addax 上游适配后再复测冒烟任务。
 
 > 未安装 Addax 时服务可以正常启动，但提交采集任务会因找不到 `bin/addax.sh` 而失败。
 
@@ -142,7 +159,7 @@ services:
       - /path/to/addax:/opt/app/addax
 ```
 
-挂载路径必须与系统配置中的“Addax 程序目录”一致，默认是 `/opt/app/addax`。
+挂载路径必须与系统配置中的“Addax 程序目录”一致，默认是 `/opt/app/addax`。挂载后同样要按上一步配置 `conf/core.json` 的 `core.server.address`。
 
 ## 服务架构
 

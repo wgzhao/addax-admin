@@ -85,6 +85,11 @@ VITE_API_HOST=http://localhost:50601 yarn dev
 
 Addax 程序目录必须是后端进程所在文件系统内的路径。Docker 部署时要在 `app` 容器内可见，不能指向另一个容器。
 
+除了程序目录，Addax 自身的 `conf/core.json` 还要把 `core.server.address` 指向上报接口，例如
+`http://127.0.0.1:50601/api/v1/log/job-report`。该项出厂为空，留空时任务仍能执行，但读取/写入行数、
+对账结果和完成事件不会回传后端。后端用户还必须对 Addax 目录的 `log/` 有写权限。保存后可用「系统配置」
+里的「校验」做冒烟检查。
+
 ### 执行并发与队列
 
 | 配置项       | 示例  | 说明                                                      |
