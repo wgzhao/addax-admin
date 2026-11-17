@@ -1,6 +1,6 @@
 <template>
   <div class="page-shell monitor-page">
-    <PageHeader title="监控与告警" subtitle="按采集源查看完成情况与异常表。" />
+    <PageHeader title="运行监控" subtitle="按采集源查看完成情况与异常表。" />
     <v-row density="comfortable" class="section-grid">
       <!-- 采集源完成情况 -->
       <v-col cols="12" md="12">
@@ -382,7 +382,7 @@
 <route lang="json">
 {
   "meta": {
-    "title": "监控与告警",
+    "title": "运行监控",
     "icon": "mdi-monitor-dashboard",
     "requiresAuth": true,
     "navGroup": "collectRun",

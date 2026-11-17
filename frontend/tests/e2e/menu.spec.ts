@@ -21,16 +21,16 @@ const menus: MenuCase[] = [
   { title: '类型映射', path: '/type-mappings', group: '采集配置' },
   { title: '采集日历', path: '/calendars', group: '采集配置' },
   { title: '采集任务', path: '/task', group: '采集运行' },
-  { title: '监控与告警', path: '/monitor', group: '采集运行' },
+  { title: '运行监控', path: '/monitor', group: '采集运行' },
   { title: '错误中心', path: '/failures', group: '采集运行' },
   { title: '系统状态', path: '/status', group: '采集运行' },
   { title: '日志管理', path: '/logs', group: '采集运行' },
   { title: '告警配置', path: '/alert-config', group: '采集运行' },
-  { title: '数据洞察', path: '/data-insight', group: '数据管理' },
-  { title: '数据血缘', path: '/lineage', group: '数据管理' },
+  { title: '数据洞察', path: '/data-insight', group: '数据治理' },
+  { title: '数据血缘', path: '/lineage', group: '数据治理' },
   { title: '系统配置', path: '/sys-settings', group: '系统管理' },
-  { title: '安全审计', path: '/audit', group: '系统管理' },
   { title: '账号管理', path: '/accounts', group: '系统管理' },
+  { title: '安全审计', path: '/audit', group: '系统管理' },
 ];
 
 async function openGroup(page: Page, group: string) {
@@ -71,7 +71,7 @@ for (const menu of menus) {
 test('every top-level group has at least two children', async ({ page }) => {
   await page.goto('/');
 
-  for (const group of ['采集配置', '采集运行', '数据管理', '系统管理']) {
+  for (const group of ['采集配置', '采集运行', '数据治理', '系统管理']) {
     const list = await openGroup(page, group);
     const labels = await list.locator('.top-nav-menu-item .v-list-item-title').allInnerTexts();
     expect(labels.length, `${group} should not be a single-child dropdown`).toBeGreaterThan(1);
@@ -116,12 +116,49 @@ test('help center is reachable from the account menu', async ({ page }) => {
   await expect(page).toHaveURL(/\/help/);
 });
 
+test('command palette mirrors the navigation tree', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Control+k');
+
+  const palette = page.locator('.palette');
+  await expect(palette).toBeVisible();
+
+  // Exact order guards against the palette drifting back into its own hand-written list.
+  const labels = await palette.locator('.palette-label').allInnerTexts();
+  expect(labels).toEqual([
+    '首页',
+    '采集源管理',
+    '目标端管理',
+    '采集表管理',
+    '类型映射',
+    '采集日历',
+    '采集任务',
+    '运行监控',
+    '错误中心',
+    '系统状态',
+    '日志管理',
+    '告警配置',
+    '数据洞察',
+    '数据血缘',
+    '系统配置',
+    '账号管理',
+    '安全审计',
+    '新增采集源',
+    '新增目标端',
+    '新增采集表',
+    '切换浅色 / 深色主题',
+  ]);
+
+  const groups = await palette.locator('.palette-group').allInnerTexts();
+  expect(groups).toEqual(['跳转', '采集配置', '采集运行', '数据治理', '系统管理', '操作']);
+});
+
 test('navigation regroup artifact', async ({ page }) => {
   await page.goto('/');
   fs.mkdirSync(artifactDir, { recursive: true });
 
   const snapshot: Record<string, string[]> = {};
-  for (const group of ['采集配置', '采集运行', '数据管理', '系统管理']) {
+  for (const group of ['采集配置', '采集运行', '数据治理', '系统管理']) {
     const list = await openGroup(page, group);
     snapshot[group] = await list.locator('.top-nav-menu-item .v-list-item-title').allInnerTexts();
     // Let the overlay enter transition finish before capturing, otherwise the panel

@@ -67,6 +67,7 @@
   import { useAppTheme } from '@/composables/useAppTheme';
   import { commandPaletteOpen, toggleCommandPalette } from '@/stores/command-palette';
   import { useAuthStore } from '@/stores/auth';
+  import { buildNavMenu } from '@/config/navigation';
 
   interface PaletteItem {
     id: string;
@@ -88,70 +89,84 @@
   const { toggleTheme } = useAppTheme();
   const authStore = useAuthStore();
 
-  const navItems: PaletteItem[] = [];
-  const push = (label: string, path: string, icon: string) =>
-    navItems.push({
-      id: `nav-${path}`,
-      group: '跳转',
-      label,
-      icon,
-      index: 0,
-      run: () => router.push(path),
+  // Why: the palette must show exactly what the top navigation shows for this role;
+  // deriving both from buildNavMenu keeps labels, grouping and permissions in one place.
+  const navItems = computed<PaletteItem[]>(() => {
+    const items: PaletteItem[] = [];
+    buildNavMenu(router.getRoutes(), authStore.role).forEach(entry => {
+      if (entry.children?.length) {
+        entry.children.forEach(child => {
+          if (!child.path) return;
+          items.push({
+            id: `nav-${child.path}`,
+            group: entry.title,
+            label: child.title,
+            icon: child.icon || 'mdi-chevron-right',
+            index: 0,
+            run: () => router.push(child.path!),
+          });
+        });
+        return;
+      }
+      if (entry.path) {
+        items.push({
+          id: `nav-${entry.path}`,
+          group: '跳转',
+          label: entry.title,
+          icon: entry.icon || 'mdi-home',
+          index: 0,
+          run: () => router.push(entry.path!),
+        });
+      }
     });
+    return items;
+  });
 
-  push('首页', '/', 'mdi-home');
-  push('采集源管理', '/source', 'mdi-database-cog');
-  push('目标端管理', '/target', 'mdi-database-export');
-  push('采集表配置', '/table', 'mdi-table');
-  push('采集任务', '/task', 'mdi-calendar-clock');
-  push('监控与告警', '/monitor', 'mdi-monitor-dashboard');
-  push('数据洞察', '/data-insight', 'mdi-chart-box-outline');
-  if (authStore.canWrite) {
-    push('日志管理', '/logs', 'mdi-file-document-outline');
-    push('采集日历', '/calendars', 'mdi-calendar-range');
-    push('类型映射', '/type-mappings', 'mdi-swap-horizontal');
-    push('系统配置', '/sys-settings', 'mdi-cog-outline');
-  }
-
-  const actions: PaletteItem[] = [
-    {
-      id: 'action-source',
-      group: '操作',
-      label: '新增采集源',
-      icon: 'mdi-plus-circle-outline',
-      index: 0,
-      run: () => router.push({ path: '/source', query: { action: 'create' } }),
-    },
-    {
-      id: 'action-target',
-      group: '操作',
-      label: '新增目标端',
-      icon: 'mdi-plus-circle-outline',
-      index: 0,
-      run: () => router.push({ path: '/target', query: { action: 'create' } }),
-    },
-    {
-      id: 'action-table',
-      group: '操作',
-      label: '新增采集表',
-      icon: 'mdi-table-plus',
-      index: 0,
-      run: () => router.push('/table/batch-add'),
-    },
-    {
+  const actions = computed<PaletteItem[]>(() => {
+    const list: PaletteItem[] = [];
+    if (authStore.canWrite) {
+      list.push(
+        {
+          id: 'action-source',
+          group: '操作',
+          label: '新增采集源',
+          icon: 'mdi-plus-circle-outline',
+          index: 0,
+          run: () => router.push({ path: '/source', query: { action: 'create' } }),
+        },
+        {
+          id: 'action-target',
+          group: '操作',
+          label: '新增目标端',
+          icon: 'mdi-plus-circle-outline',
+          index: 0,
+          run: () => router.push({ path: '/target', query: { action: 'create' } }),
+        },
+        {
+          id: 'action-table',
+          group: '操作',
+          label: '新增采集表',
+          icon: 'mdi-table-plus',
+          index: 0,
+          run: () => router.push('/table/batch-add'),
+        }
+      );
+    }
+    list.push({
       id: 'action-theme',
       group: '操作',
       label: '切换浅色 / 深色主题',
       icon: 'mdi-theme-light-dark',
       index: 0,
       run: () => toggleTheme(),
-    },
-  ];
+    });
+    return list;
+  });
 
   const items = computed<PaletteItem[]>(() => {
     const q = keyword.value.trim().toLowerCase();
     const match = (item: PaletteItem) => !q || item.label.toLowerCase().includes(q);
-    const base = [...navItems.filter(match), ...actions.filter(match)];
+    const base = [...navItems.value.filter(match), ...actions.value.filter(match)];
     const tables = tableResults.value.map((row, i) => ({
       id: `table-${row.id}`,
       group: '采集表',

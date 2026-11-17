@@ -10,6 +10,7 @@ export interface NavItem {
   path?: string;
   name?: string;
   title: string;
+  icon?: string;
   children?: NavChildItem[];
 }
 
@@ -23,7 +24,7 @@ const NAV_GROUP_ORDER: NavGroup[] = ['collectConfig', 'collectRun', 'data', 'sys
 const NAV_GROUP_TITLE: Record<NavGroup, string> = {
   collectConfig: '采集配置',
   collectRun: '采集运行',
-  data: '数据管理',
+  data: '数据治理',
   systemManage: '系统管理',
 };
 
@@ -92,7 +93,12 @@ export function buildNavMenu(
 
   const result: NavItem[] = [];
   if (homeRoute) {
-    result.push({ path: homeRoute.path, title: homeRoute.title, name: 'Home' });
+    result.push({
+      path: homeRoute.path,
+      title: homeRoute.title,
+      name: 'Home',
+      icon: homeRoute.icon,
+    });
   }
 
   NAV_GROUP_ORDER.forEach(groupKey => {
