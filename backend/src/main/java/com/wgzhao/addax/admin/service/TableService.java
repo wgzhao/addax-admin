@@ -36,8 +36,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-import static java.lang.Math.max;
-
 /**
  * 采集表信息服务类，负责采集表的增删改查及资源刷新等业务操作
  */
@@ -119,7 +117,7 @@ public class TableService
         }
 
         if (retCode == ColumnService.UPDATE_FAILED) {
-            setFailed(table);
+            setFailed(table.getId(), durationOf(table));
             log.warn("Failed to update columns for table id {}", table.getId());
             return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
         }
@@ -134,7 +132,7 @@ public class TableService
             TargetContractReport report = targetContractService.check(vwTable);
             if (report.blocked())
             {
-                setUpdateSchema(table);
+                setUpdateSchema(table.getId());
                 failureRecorder.record(table.getId(), "目标表契约校验失败: " + report.summary(),
                     FailureEvidence.create()
                         .stage(FailureStage.TARGET_SCHEMA)
@@ -153,7 +151,7 @@ public class TableService
                 return TaskResultDto.failure("Refresh interrupted", 0);
             }
             if (!targetAdapterRegistry.resolve(vwTable).createOrUpdateTable(vwTable)) {
-                setUpdateSchema(table);
+                setUpdateSchema(table.getId());
                 log.warn("Failed to create or update target table for tid {}", table.getId());
                 return TaskResultDto.failure("Failed to create or update target table for tid " + table.getId(), 0);
             }
@@ -174,7 +172,7 @@ public class TableService
             return TaskResultDto.success("Table resources refreshed successfully ", 0);
         }
         else {
-            setFailed(table);
+            setFailed(table.getId(), durationOf(table));
             log.warn("Failed to update job content for tid {}", table.getId());
             return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), 0);
         }
@@ -425,49 +423,49 @@ public class TableService
     }
 
     /**
-     * 设置任务为正在运行状态
+     * 设置任务为正在运行状态。
      *
-     * @param task 任务对象
+     * <p>用条件更新而不是整行 save：调度线程持有的实体可能已过期，整行回写会覆盖并发修改；
+     * 并且停采（X）表允许手工执行/补数，这里不能把 X 改成 R，否则结束时会写成 Y，
+     * 第二天切日重置后又会重新参与自动调度。</p>
+     *
+     * <p>状态写入全部按 id 条件更新，不修改调用方持有的实体：同步执行接口本身带事务，
+     * 实体一旦变脏，提交时 Hibernate 会用整行回写覆盖这里的结果（删掉手动执行就重新调度）。</p>
+     *
+     * @param id 采集表 id
      */
-    public void setRunning(EtlTable task)
+    public void setRunning(long id)
     {
-        task.setStatus(TableStatus.COLLECTING);
-        task.setStartTime(new Timestamp(System.currentTimeMillis()));
-        etlTableRepo.save(task);
+        etlTableRepo.markRunning(id, new Timestamp(System.currentTimeMillis()));
     }
 
     /**
      * 设置任务为已完成状态
      *
-     * @param task 任务对象
+     * @param id       采集表 id
+     * @param duration 本次耗时（秒）
      */
     @Transactional
-    public void setFinished(EtlTable task)
+    public void setFinished(long id, long duration)
     {
-        task.setStatus(TableStatus.COLLECTED);
-        // 重试次数也重置
-        task.setRetryCnt(3);
-        task.setEndTime(new Timestamp(System.currentTimeMillis()));
         // Conditional update (see EtlTableRepo.markFinished): a whole-row save would let a stale
         // executor overwrite a fresher state and would resurrect a row deleted mid-run (merge→INSERT).
         // duration must be part of the same guarded write, otherwise the list page keeps showing 0.
-        etlTableRepo.markFinished(task.getId(), task.getEndTime(), durationOf(task));
+        etlTableRepo.markFinished(id, new Timestamp(System.currentTimeMillis()), duration);
     }
 
     /**
      * 设置任务为失败状态
      *
-     * @param task 任务对象
+     * @param id       采集表 id
+     * @param duration 本次耗时（秒）
      */
     @Transactional
-    public void setFailed(EtlTable task)
+    public void setFailed(long id, long duration)
     {
-        task.setStatus(TableStatus.COLLECT_FAIL);
-        task.setEndTime(new Timestamp(System.currentTimeMillis()));
-        task.setRetryCnt(max(task.getRetryCnt() - 1, 0));
         // Conditional update: never downgrade a 'Y' written by a duplicate executor, and decrement
-        // retryCnt against the row's current value rather than this possibly-stale snapshot.
-        etlTableRepo.markFailed(task.getId(), task.getEndTime(), durationOf(task));
+        // retryCnt against the row's current value rather than a possibly-stale snapshot.
+        etlTableRepo.markFailed(id, new Timestamp(System.currentTimeMillis()), duration);
     }
 
     /**
@@ -513,10 +511,9 @@ public class TableService
         }
     }
 
-    public void setUpdateSchema(EtlTable task)
+    public void setUpdateSchema(long id)
     {
-        task.setStatus(TableStatus.WAIT_SCHEMA);
-        etlTableRepo.save(task);
+        etlTableRepo.markUpdateSchema(id);
     }
 
     /**
