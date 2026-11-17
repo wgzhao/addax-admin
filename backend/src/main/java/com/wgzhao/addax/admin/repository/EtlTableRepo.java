@@ -61,15 +61,44 @@ public interface EtlTableRepo
     void batchUpdateStatusAndFlag(List<Long> ids, String status, int retryCnt);
 
     /**
+     * Mark a table as running. A paused ('X') table keeps its status: manual runs and fillbacks are
+     * allowed on paused tables, and flipping X to R here would make the terminal update write Y and
+     * silently resume automatic scheduling on the next switch.
+     */
+    // Called from the executor outside any service transaction, so the repository method opens its own.
+    @Transactional
+    @Modifying
+    @Query("""
+            UPDATE EtlTable t SET t.status = CASE WHEN t.status = 'X' THEN 'X' ELSE 'R' END,
+                  t.startTime=:startTime
+            WHERE t.id=:id
+        """)
+    int markRunning(@Param("id") long id, @Param("startTime") java.util.Date startTime);
+
+    /**
+     * Mark a table as waiting for a schema refresh. A paused ('X') table keeps its status for the same
+     * reason as {@link #markRunning}: schema refresh never visits paused tables, so 'U' would strand it.
+     */
+    @Transactional
+    @Modifying
+    @Query("""
+            UPDATE EtlTable t SET t.status = CASE WHEN t.status = 'X' THEN 'X' ELSE 'U' END
+            WHERE t.id=:id
+        """)
+    int markUpdateSchema(@Param("id") long id);
+
+    /**
      * Mark a table as collected. Guarded so a stale executor (duplicate run that lost ownership)
      * cannot downgrade a fresher terminal state, and a row deleted mid-run is never re-inserted
      * through a whole-row merge. duration is written here because this terminal update replaced the
      * former whole-row save; without it the last-run elapsed time stayed frozen at its old value.
+     * A paused table keeps 'X' but still records when the manual run finished.
      */
     @Modifying
     @Query("""
-            UPDATE EtlTable t SET t.status='Y', t.retryCnt=3, t.endTime=:endTime, t.duration=:duration
-            WHERE t.id=:id AND t.status NOT IN ('Y','X')
+            UPDATE EtlTable t SET t.status = CASE WHEN t.status = 'X' THEN 'X' ELSE 'Y' END,
+                  t.retryCnt=3, t.endTime=:endTime, t.duration=:duration
+            WHERE t.id=:id AND t.status <> 'Y'
         """)
     int markFinished(@Param("id") long id, @Param("endTime") java.util.Date endTime,
         @Param("duration") long duration);
@@ -77,17 +106,20 @@ public interface EtlTableRepo
     /**
      * Mark a table as failed, decrementing retryCnt against the row's current value. A success
      * written by another (duplicate) executor is never downgraded to failed. duration is written
-     * here for the same reason as {@link #markFinished}.
+     * here for the same reason as {@link #markFinished}. A paused table keeps 'X' and its retry
+     * budget: the budget only governs automatic scheduling, which a paused table does not take part in.
      */
     // The daily refresh calls this outside any service transaction, so the repository method must
     // open its own; otherwise Hibernate rejects the bulk update with TransactionRequiredException.
     @Transactional
     @Modifying
     @Query("""
-            UPDATE EtlTable t SET t.status='E', t.endTime=:endTime,
-                  t.retryCnt = case when t.retryCnt > 0 then t.retryCnt - 1 else 0 end,
+            UPDATE EtlTable t SET t.status = CASE WHEN t.status = 'X' THEN 'X' ELSE 'E' END,
+                  t.endTime=:endTime,
+                  t.retryCnt = case when t.status = 'X' then t.retryCnt
+                                    when t.retryCnt > 0 then t.retryCnt - 1 else 0 end,
                   t.duration=:duration
-            WHERE t.id=:id AND t.status NOT IN ('Y','X')
+            WHERE t.id=:id AND t.status <> 'Y'
         """)
     int markFailed(@Param("id") long id, @Param("endTime") java.util.Date endTime,
         @Param("duration") long duration);

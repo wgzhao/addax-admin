@@ -1180,12 +1180,11 @@ public class TaskQueueManagerV2Impl
             return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), 0);
         }
         try {
-            tableService.setRunning(task);
+            tableService.setRunning(task.getId());
             TaskResultDto logicResult = executeEtlTaskLogic(task, overrideBizDate, queueId, attemptNo,
                 maxAttempts, lease, forceRegenerate);
             long duration = max((System.currentTimeMillis() - startTime) / 1000, 0);
             log.info("Task {}.{}({}) completed, elapsed={}s, result={}", task.getSourceDb(), task.getSourceTable(), tid, duration, logicResult.success());
-            task.setDuration(duration);
             // A run that no longer owns its queue row must not write a table state that belongs to
             // the successor run. stillOwned() also renews the lease, closing the expiry race.
             if (lease != null && !lease.stillOwned()) {
@@ -1194,11 +1193,11 @@ public class TaskQueueManagerV2Impl
                 return TaskResultDto.failure("Ownership lost: " + lease.fenceReason(), duration);
             }
             if (logicResult.success()) {
-                tableService.setFinished(task);
+                tableService.setFinished(task.getId(), duration);
                 return TaskResultDto.success("Success", duration);
             }
             else {
-                tableService.setFailed(task);
+                tableService.setFailed(task.getId(), duration);
                 return TaskResultDto.failure(logicResult.message(), duration);
             }
         }
@@ -1211,8 +1210,7 @@ public class TaskQueueManagerV2Impl
             }
             if (e instanceof TargetContractViolationException contractViolation)
             {
-                task.setDuration(duration);
-                tableService.setUpdateSchema(task);
+                tableService.setUpdateSchema(task.getId());
                 String contractSummary = "Target contract blocked: " + contractViolation.getReport().summary();
                 failureRecorder.record(tid, contractSummary, FailureEvidence.create()
                     .execution(contractViolation.getExecutionId())
@@ -1228,8 +1226,7 @@ public class TaskQueueManagerV2Impl
                 return TaskResultDto.failure(contractSummary, duration);
             }
             log.error("Task {}.{}({}) failed, elapsed={}s", task.getSourceDb(), task.getSourceTable(), tid, duration, e);
-            task.setDuration(duration);
-            tableService.setFailed(task);
+            tableService.setFailed(task.getId(), duration);
             String msg = e.getMessage() == null ? "Internal error" : e.getMessage();
             failureRecorder.record(tid, "Exception: " + msg, FailureEvidence.create()
                 .stage(FailureStage.PREPARE)
