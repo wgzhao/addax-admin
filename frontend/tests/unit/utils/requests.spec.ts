@@ -37,7 +37,7 @@ import router from '@/router';
 
 const pushMock = vi.mocked(router.push);
 const authStore = useAuthStore(pinia);
-const notice = useNotifier().notice;
+const { notices } = useNotifier();
 
 // Capture the interceptor handlers registered when the module loaded. They are
 // extracted before any clearAllMocks() so the captured references stay valid.
@@ -50,7 +50,7 @@ describe('requests interceptors', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authStore.logout();
-    notice.value = { show: false, text: '' };
+    notices.value = [];
   });
 
   describe('request interceptor', () => {
@@ -77,8 +77,9 @@ describe('requests interceptors', () => {
       await flushPromises();
 
       expect(authStore.token).toBeNull();
-      expect(notice.value.text).toBe('登录已过期，请重新登录');
-      expect(notice.value.color).toBe('warning');
+      expect(notices.value).toHaveLength(1);
+      expect(notices.value[0].text).toBe('登录已过期，请重新登录');
+      expect(notices.value[0].color).toBe('warning');
       expect(pushMock).toHaveBeenCalledWith('/login');
     });
 

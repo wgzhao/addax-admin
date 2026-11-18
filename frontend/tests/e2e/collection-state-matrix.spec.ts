@@ -454,10 +454,10 @@ test('collection table state matrix matches lifecycle, source and table boundari
   const uiRow = page.getByRole('row', { name: /matrix_disabled_current_X/ });
   await expect(uiRow).toBeVisible({ timeout: 20_000 });
   await expect(uiRow.getByText('源已停用')).toBeVisible();
-  await expect(uiRow.getByText('X', { exact: true })).toBeVisible();
+  await expect(uiRow.getByText('已排除')).toBeVisible();
 
   await page.locator('.ds-filters__source').click();
-  await expect(page.getByText('MTD_Matrix Disabled Source（已停用）')).toBeVisible();
+  await expect(page.getByText('Matrix Disabled Source（已停用）')).toBeVisible();
   await page.keyboard.press('Escape');
 
   await page.goto(`/table/detail/${uiCase.tid}?tab=info&tblname=matrix_disabled_current_X`);

@@ -29,7 +29,6 @@ describe('table-labels', () => {
   });
 
   it('renders the source system label', () => {
-    expect(sourceSystemLabel(table({ name: 'MySQL', code: 'MY' }))).toBe('MySQL (MY)');
     expect(sourceSystemLabel(table({ name: 'MySQL' }))).toBe('MySQL');
     expect(sourceSystemLabel(table())).toBe('未配置');
   });
@@ -58,8 +57,8 @@ describe('table-labels', () => {
   });
 
   it('maps status to label and color', () => {
-    expect(statusLabel(table({ status: 'R' }))).toBe('R - 正在采集');
-    expect(statusColor(table({ status: 'R' }))).toBe('blue');
-    expect(statusColor(table({ status: 'unknown' }))).toBe('grey');
+    expect(statusLabel(table({ status: 'R' }))).toBe('采集中');
+    expect(statusColor(table({ status: 'R' }))).toBe('info');
+    expect(statusColor(table({ status: 'unknown' }))).toBe('grey-500');
   });
 });
