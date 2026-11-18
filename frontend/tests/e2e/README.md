@@ -57,3 +57,20 @@ yarn e2e tests/e2e/collection-state-matrix.spec.ts tests/e2e/history-snapshot.sp
 
 - `tests/e2e/artifacts/collection-state-matrix.json`
 - `tests/e2e/artifacts/history-snapshot.json`
+
+## 首页采集缺失日历（后端口径）
+
+`dashboard-missing-calendar.spec.ts` 不 mock API：在专用库里落自然日/工作日/交易日三种源，再写入与日历一致的采集统计，断言近 56 天每天的应采/实采/缺失。工作日和交易日源在周末、日历里的节假日不应被算成应采。
+
+```bash
+cd frontend
+# 后端需要连这个库，并用独立 Redis DB 启动（避免抢本地实例的配置与租约）：
+# DB_NAME=addax_admin_missing_cal_e2e REDIS_DB=4 SERVER_PORT=50602 java -jar backend/target/addax-admin-*.jar
+VITE_API_HOST=http://localhost:50602 \
+E2E_DB_NAME=addax_admin_missing_cal_e2e \
+E2E_API_HOST=http://localhost:50602 \
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3030 \
+yarn e2e tests/e2e/dashboard-missing-calendar.spec.ts
+```
+
+制品 `tests/e2e/artifacts/missing-calendar-api.json` 记录锚点、种子规则、每天的期望值与实际返回值。
