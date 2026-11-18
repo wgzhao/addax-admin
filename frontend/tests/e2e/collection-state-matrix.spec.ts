@@ -49,12 +49,12 @@ function seedMatrix(): MatrixCase[] {
         const targetTable = `matrix_target_${source.key}_${lifecycle}_${status}`;
         tables.push(`
           insert into etl_table (
-            source_db, source_table, target_db, target_table, target_options, filter, kind, retry_cnt,
+            source_db, source_table, target_db, target_table, target_options, filter, retry_cnt,
             start_time, end_time, max_runtime, sid, duration, tbl_comment, status, split_pk, auto_pk,
             write_mode, target_id, created_at, updated_at, retired_at, retired_by
           )
           select 'public', '${tableName}', 'public', '${targetTable}',
-                 '{"rdbms":{"createPrimaryKey":true}}'::jsonb, '1=1', 'A', 3,
+                 '{"rdbms":{"createPrimaryKey":true}}'::jsonb, '1=1', 3,
                  now(), now(), 120, s.id, 0, '${source.key}/${lifecycle}/${status}', '${status}',
                  '', true, 'insert', t.id, now(), now(),
                  ${lifecycle === 'retired' ? 'now()' : 'null'},

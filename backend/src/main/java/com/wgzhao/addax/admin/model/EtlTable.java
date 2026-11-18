@@ -71,9 +71,6 @@ public class EtlTable
     @Column(name = "status", length = 1)
     private String status;
 
-    @Column(name = "kind", length = 1)
-    private String kind;
-
     @Column(name = "retry_cnt")
     private Integer retryCnt;
 

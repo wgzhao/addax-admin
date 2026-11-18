@@ -273,7 +273,6 @@ export interface EtlTable {
   autoPk?: boolean; // 是否自动获取切分字段
   filter?: string; // 采集过滤条件，即where条件
   status?: string; // 当前采集状态：N-还没有采集;W-等待采集;E-采集发生错误;R-正在采集;X-不再采集; U-等待表更新
-  kind?: string; // 采集类型:A-自动采集(默认值);M-手工采集;R-实时采集
   retryCnt?: number; // 采集的重试次数
   startTime?: Date; // 本次采集的开始时间
   endTime?: Date; // 本次采集的结束时间

@@ -55,13 +55,13 @@ function seed(): number {
             'wR', true, false, 'snapshot e2e');
 
     insert into etl_table (
-      source_db, source_table, target_db, target_table, target_options, filter, kind, retry_cnt,
+      source_db, source_table, target_db, target_table, target_options, filter, retry_cnt,
       start_time, end_time, max_runtime, sid, duration, tbl_comment, status, split_pk, auto_pk,
       write_mode, start_at, target_id, created_at, updated_at
     )
     select 'public', 'history_e2e_source', 'public', 'history_e2e_target',
            '{"rdbms":{"businessDateColumn":"biz_date","createPrimaryKey":true}}'::jsonb,
-           'updated_at >= 2026-01-01', 'A', 1, now(), now(), 120,
+           'updated_at >= 2026-01-01', 1, now(), now(), 120,
            s.id, 0, 'history snapshot e2e', 'N', '', true, 'insert', null, t.id, now(), now()
     from etl_source s, etl_target t
     where s.name = 'History E2E Source' and t.code = 'HX_TARGET';

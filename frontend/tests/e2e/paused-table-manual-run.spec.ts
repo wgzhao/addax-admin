@@ -75,13 +75,13 @@ function seed(): number {
             'wR', true, false, 'paused manual run e2e');
 
     insert into etl_table (
-      source_db, source_table, target_db, target_table, target_options, filter, kind, retry_cnt,
+      source_db, source_table, target_db, target_table, target_options, filter, retry_cnt,
       start_time, end_time, max_runtime, sid, duration, tbl_comment, status, split_pk, auto_pk,
       write_mode, start_at, target_id, created_at, updated_at
     )
     select 'public', 'paused_e2e_source', 'public', 'paused_e2e_target',
            '{"rdbms":{"businessDateColumn":"biz_date","createPrimaryKey":true}}'::jsonb,
-           '1=1', 'A', 2, now(), null, 120,
+           '1=1', 2, now(), null, 120,
            s.id, 0, 'paused manual run e2e', 'X', '', true, 'insert', null, t.id, now(), now()
     from etl_source s, etl_target t
     where s.name = 'Paused E2E Source' and t.code = 'PZ_TARGET';
@@ -147,6 +147,14 @@ test('manual runs on a paused table record results without resuming automatic sc
   check('status stays paused after success', 'X', afterSuccess.status);
   check('end time recorded on success', true, afterSuccess.endTime !== null);
   check('latest execution succeeded', 'succeeded', latestExecutionStatus(tid));
+
+  // The snapshot no longer carries the retired table kind; its version states that shape.
+  const snapshot = psql(`
+    select snapshot_version, coalesce(config_snapshot->'table'->>'kind', '<absent>')
+    from etl_execution where tid = ${tid} order by id desc limit 1;
+  `).split('|');
+  check('snapshot version', 3, Number(snapshot[0]));
+  check('snapshot table has no kind', '<absent>', snapshot[1]);
 
   // 2. A failed manual run also keeps the pause and does not consume the automatic retry budget.
   setFailureMode(tid, 'table_not_found');

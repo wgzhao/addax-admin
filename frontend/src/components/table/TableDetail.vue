@@ -263,7 +263,6 @@
       autoPk: table.value.autoPk,
       filter: table.value.filter,
       status: table.value.status,
-      kind: table.value.kind,
       retryCnt: table.value.retryCnt,
       startTime: table.value.startTime,
       endTime: table.value.endTime,
