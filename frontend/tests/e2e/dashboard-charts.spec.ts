@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import dayjs from 'dayjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -152,7 +153,7 @@ test.describe('dashboard charts', () => {
         path: endpoint,
         status,
         rows: isList ? body.length : body ? 1 : 0,
-        firstRow: isList ? body[0] : body ?? null,
+        firstRow: isList ? body[0] : (body ?? null),
       });
       expect(status, `${endpoint} should return 200`).toBe(200);
     }
@@ -204,9 +205,7 @@ test.describe('dashboard charts', () => {
 
     for (const tile of [today, total]) {
       expect(tile.value).not.toBe('');
-      expect(Number.isFinite(Number(tile.value)), `${tile.label} value must be numeric`).toBe(
-        true
-      );
+      expect(Number.isFinite(Number(tile.value)), `${tile.label} value must be numeric`).toBe(true);
       expect(Object.keys(UNIT_TO_BYTES)).toContain(tile.unit);
       expect(
         tile.unitFontSize,
@@ -328,6 +327,124 @@ test.describe('dashboard charts', () => {
       path.join(artifactDir, 'dashboard-kpi-tiles.json'),
       JSON.stringify(artifact, null, 2)
     );
+  });
+
+  test('missing calendar keeps seven day columns aligned with weekday headers', async ({
+    page,
+  }) => {
+    // Fixed anchor so the leading/trailing partial weeks are deterministic:
+    // 2026-11-18 is a Wednesday, 56 days back starts on a Thursday.
+    const end = dayjs('2026-11-18');
+    const missingCalendar = Array.from({ length: 56 }, (_, i) => {
+      const date = end.subtract(55 - i, 'day');
+      // The first ten days predate every table; afterwards Mon/Fri/Wed carry 1/10/4 misses.
+      const started = i >= 10;
+      const byWeekday: Record<number, number> = { 1: 1, 3: 4, 5: 10 };
+      const missing = started ? (byWeekday[date.day()] ?? 0) : 0;
+      return {
+        biz_date: date.format('YYYY-MM-DD'),
+        expected: started ? 10 : 0,
+        collected: 10 - missing,
+        missing,
+      };
+    });
+    await page.route('**/api/v1/dashboard/missing-collect-calendar*', route =>
+      route.fulfill({ json: missingCalendar })
+    );
+
+    const readCalendar = async (page: Page) => {
+      const grid = page.locator('.calendar-grid');
+      await expect(grid).toBeVisible({ timeout: 20_000 });
+      return grid.evaluate(el => {
+        const columns = getComputedStyle(el).gridTemplateColumns.split(' ').length;
+        const headers = [...el.querySelectorAll('.calendar-weekday')].map(node =>
+          node.getBoundingClientRect()
+        );
+        const cells = [...el.querySelectorAll('.calendar-cell')].map(node => {
+          const box = node.getBoundingClientRect();
+          return {
+            left: Math.round(box.left),
+            top: Math.round(box.top),
+            width: Math.round(box.width),
+            missing: (node as HTMLElement).dataset.missing ?? null,
+            level: (node as HTMLElement).dataset.level ?? null,
+            background: getComputedStyle(node).backgroundColor,
+          };
+        });
+        const rows = new Map<number, (typeof cells)[number][]>();
+        for (const cell of cells) {
+          rows.set(cell.top, [...(rows.get(cell.top) ?? []), cell]);
+        }
+        const byLevel = new Map<string, string>();
+        for (const cell of cells) {
+          if (cell.level && !byLevel.has(cell.level)) byLevel.set(cell.level, cell.background);
+        }
+        return {
+          columns,
+          headerLefts: headers.map(box => Math.round(box.left)),
+          headerWidth: Math.round(headers[0]?.width ?? 0),
+          cellWidth: cells[0]?.width ?? 0,
+          weeks: [...rows.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([, week]) => week.sort((a, b) => a.left - b.left).map(c => c.missing)),
+          levels: [...rows.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([, week]) => week.sort((a, b) => a.left - b.left).map(c => c.level)),
+          backgroundByLevel: Object.fromEntries(byLevel),
+        };
+      });
+    };
+
+    await page.goto('/');
+    await page.getByRole('tab', { name: '运行健康' }).click();
+    const layout = await readCalendar(page);
+    console.log(JSON.stringify(layout, null, 2));
+
+    // 7 day columns; every rendered week is a full row with the weekday header aligned to it.
+    expect(layout.columns).toBe(7);
+    expect(layout.cellWidth).toBe(layout.headerWidth);
+    expect(layout.weeks).toHaveLength(9);
+    for (const week of layout.weeks) {
+      expect(week).toHaveLength(7);
+    }
+    // 2026-09-24 is Thursday: the first row starts with three empty cells.
+    expect(layout.weeks[0]).toEqual([null, null, null, '0', '0', '0', '0']);
+    // Days before any table exist are "无应采", not "无缺失".
+    expect(layout.levels[0]).toEqual([null, null, null, '-1', '-1', '-1', '-1']);
+    expect(layout.levels[1]).toEqual(['-1', '-1', '-1', '-1', '-1', '-1', '0']);
+    // Every Wednesday column (index 2) carries the 4/10 missing severity.
+    for (const week of layout.weeks.slice(2, 9)) {
+      expect(week[2]).toBe('4');
+    }
+    expect(layout.levels[2]).toEqual(['1', '0', '3', '0', '6', '0', '0']);
+    // Zero missing must read as neutral, never as the first tint of the missing scale.
+    expect(layout.backgroundByLevel['1']).not.toBe(layout.backgroundByLevel['6']);
+    for (const level of ['0', '1', '3', '6']) {
+      expect(layout.backgroundByLevel[level], `level ${level} background`).toBeTruthy();
+    }
+
+    fs.mkdirSync(artifactDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(artifactDir, 'missing-calendar-layout.json'),
+      JSON.stringify({ generatedAt: new Date().toISOString(), theme: 'light', layout }, null, 2)
+    );
+    // The fixed app footer would otherwise paint over the legend in the capture.
+    await page.addStyleTag({ content: '.app-footer { display: none !important; }' });
+    const capture = page.locator('.calendar-wrap');
+    await capture.screenshot({ path: path.join(artifactDir, 'missing-calendar-grid.png') });
+
+    // The same design must hold in dark mode: neutral clean days, red severity ramp.
+    await page.evaluate(() => localStorage.setItem('theme', 'dark'));
+    await page.reload();
+    await page.getByRole('tab', { name: '运行健康' }).click();
+    const darkLayout = await readCalendar(page);
+    expect(darkLayout.levels).toEqual(layout.levels);
+    expect(darkLayout.backgroundByLevel['0']).not.toBe(darkLayout.backgroundByLevel['1']);
+    expect(darkLayout.backgroundByLevel['0']).not.toBe(layout.backgroundByLevel['0']);
+    await page.addStyleTag({ content: '.app-footer { display: none !important; }' });
+    await capture.screenshot({
+      path: path.join(artifactDir, 'missing-calendar-grid-dark.png'),
+    });
   });
 
   test('renders in light theme', async ({ browser }) => {

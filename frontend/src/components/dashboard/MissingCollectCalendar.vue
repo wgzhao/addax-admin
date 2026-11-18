@@ -1,13 +1,13 @@
 <template>
   <DashboardChartCard
     title="采集缺失日历"
-    subtitle="近 8 周，颜色越深缺失越多"
-    :height="300"
+    subtitle="近 8 周，越红缺失越多"
+    :height="340"
     :state="state"
     :error="error"
   >
     <div class="calendar-wrap">
-      <div class="calendar-grid" :style="gridStyle">
+      <div class="calendar-grid">
         <div v-for="weekday in weekdayHeaders" :key="weekday" class="calendar-weekday">
           {{ weekday }}
         </div>
@@ -18,24 +18,31 @@
                 <div
                   v-bind="tooltipProps"
                   class="calendar-cell"
-                  :style="{ backgroundColor: cell.color }"
+                  :data-level="cell.level"
                   :data-missing="cell.missing"
                 />
               </template>
-              <span>{{ cell.bizDate }}：缺失 {{ cell.missing }} / 应采 {{ cell.expected }}</span>
+              <span>{{ cellTooltip(cell) }}</span>
             </v-tooltip>
-            <div v-else class="calendar-cell calendar-cell-empty" />
+            <div v-else class="calendar-cell calendar-cell-placeholder" />
           </div>
         </template>
       </div>
       <div class="calendar-footer">
-        <div class="calendar-scale">
-          <span>缺失少</span>
-          <span
-            class="calendar-scale-bar"
-            :style="{ background: `linear-gradient(90deg, ${ramp.join(',')})` }"
-          />
-          <span>缺失多</span>
+        <div class="calendar-legend">
+          <span class="calendar-legend-item">
+            <span class="calendar-swatch" data-level="0" />
+            无缺失
+          </span>
+          <span class="calendar-legend-item">
+            <span class="calendar-swatch" data-level="-1" />
+            无应采
+          </span>
+          <span class="calendar-legend-item">
+            缺失少
+            <span class="calendar-scale-bar" />
+            缺失多
+          </span>
         </div>
         <v-chip size="x-small" variant="tonal" color="error">
           近 8 周共缺失 {{ totalMissing }} 表·天
@@ -50,15 +57,13 @@
   import dayjs from 'dayjs';
   import DashboardChartCard from './charts/DashboardChartCard.vue';
   import { useChartData } from '@/composables/useChartData';
-  import { useChartTheme } from '@/composables/useChartTheme';
   import { dashboardService } from '@/service/dashboard-service';
 
-  const LIGHT_RAMP = ['#e3effc', '#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95'];
-  const DARK_RAMP = ['#16283d', '#1c4270', '#256abf', '#3987e5', '#6da7ec', '#9ec5f4', '#cde2fb'];
+  // Severity buckets for days that missed something; level 0 is reserved for "nothing missing"
+  // so a clean day never shares a hue with a slightly-missing one.
+  const SEVERITY_LEVELS = 6;
 
   const { raw, state, error } = useChartData(() => dashboardService.fetchMissingCalendar());
-  const { isDark } = useChartTheme();
-  const ramp = computed(() => (isDark.value ? DARK_RAMP : LIGHT_RAMP));
 
   const weekdayHeaders = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -66,7 +71,14 @@
     bizDate: string;
     missing: number;
     expected: number;
-    color: string;
+    /** -1 no tables expected, 0 nothing missing, 1..6 missing severity */
+    level: number;
+  }
+
+  function cellTooltip(cell: Cell): string {
+    if (cell.expected === 0) return `${cell.bizDate}：无应采表`;
+    if (cell.missing === 0) return `${cell.bizDate}：应采 ${cell.expected}，无缺失`;
+    return `${cell.bizDate}：缺失 ${cell.missing} / 应采 ${cell.expected}`;
   }
 
   const rows = computed(() => raw.value ?? []);
@@ -75,45 +87,47 @@
     rows.value.reduce((sum, row) => sum + Math.max(row.missing, 0), 0)
   );
 
-  // 按周（周一为首日）排列成 7 行 × N 列的网格
+  // 按周（周一为首日）切分成 N 行 × 7 列，首尾不足一周的位置留空
   const weeks = computed<(Cell | null)[][]>(() => {
-    const steps = ramp.value;
-    const days: Cell[] = rows.value.map(row => {
-      if (row.expected === 0) {
-        return { bizDate: row.biz_date, missing: 0, expected: 0, color: 'transparent' };
-      }
-      const ratio = Math.min(Math.max(row.missing / row.expected, 0), 1);
-      const step = ratio === 0 ? 0 : Math.max(1, Math.ceil(ratio * (steps.length - 1)));
-      return {
-        bizDate: row.biz_date,
-        missing: row.missing,
-        expected: row.expected,
-        color: steps[Math.min(step, steps.length - 1)],
-      };
-    });
+    const days: Cell[] = rows.value
+      .map(row => {
+        if (row.expected === 0) {
+          return { bizDate: row.biz_date, missing: 0, expected: 0, level: -1 };
+        }
+        const ratio = Math.min(Math.max(row.missing / row.expected, 0), 1);
+        const level =
+          row.missing === 0 ? 0 : Math.min(Math.ceil(ratio * SEVERITY_LEVELS), SEVERITY_LEVELS);
+        return {
+          bizDate: row.biz_date,
+          missing: row.missing,
+          expected: row.expected,
+          level,
+        };
+      })
+      .sort((a, b) => a.bizDate.localeCompare(b.bizDate));
     if (!days.length) return [];
 
-    const grid: (Cell | null)[][] = weekdayHeaders.map(() => []);
+    const result: (Cell | null)[][] = [];
+    let currentWeek: (Cell | null)[] = [];
     const firstDayOffset = (dayjs(days[0].bizDate).day() + 6) % 7; // 周一为 0
     for (let i = 0; i < firstDayOffset; i++) {
-      grid[i].push(null);
+      currentWeek.push(null);
     }
     for (const day of days) {
-      const weekday = (dayjs(day.bizDate).day() + 6) % 7;
-      grid[weekday].push(day);
+      currentWeek.push(day);
+      if (currentWeek.length === 7) {
+        result.push(currentWeek);
+        currentWeek = [];
+      }
     }
-    // 行转列：让每周成为一列
-    const columns: (Cell | null)[][] = [];
-    const columnCount = grid[0].length;
-    for (let c = 0; c < columnCount; c++) {
-      columns.push(weekdayHeaders.map((_, w) => grid[w][c] ?? null));
+    if (currentWeek.length) {
+      while (currentWeek.length < 7) {
+        currentWeek.push(null);
+      }
+      result.push(currentWeek);
     }
-    return columns;
+    return result;
   });
-
-  const gridStyle = computed(() => ({
-    gridTemplateColumns: `auto repeat(${Math.max(weeks.value.length, 1)}, 1fr)`,
-  }));
 </script>
 
 <style scoped>
@@ -128,7 +142,7 @@
 
   .calendar-grid {
     display: grid;
-    grid-template-columns: auto repeat(8, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     grid-auto-rows: 26px;
     gap: 4px;
     align-items: center;
@@ -137,8 +151,7 @@
   .calendar-weekday {
     font-size: 11px;
     color: rgb(var(--v-theme-on-surface-muted));
-    text-align: right;
-    padding-right: 4px;
+    text-align: center;
   }
 
   .calendar-cell {
@@ -148,7 +161,49 @@
     cursor: default;
   }
 
-  .calendar-cell-empty {
+  /* Why: only missing days spend ink; a clean day stays neutral so the eye reads
+     red as "something is missing" instead of "this day has data". */
+  .calendar-cell[data-level='0'],
+  .calendar-swatch[data-level='0'] {
+    background: rgba(var(--v-theme-on-surface), 0.07);
+  }
+
+  .calendar-cell[data-level='-1'],
+  .calendar-swatch[data-level='-1'] {
+    background: transparent;
+  }
+
+  .calendar-cell[data-level='1'],
+  .calendar-swatch[data-level='1'] {
+    background: rgba(var(--v-theme-error), 0.16);
+  }
+
+  .calendar-cell[data-level='2'],
+  .calendar-swatch[data-level='2'] {
+    background: rgba(var(--v-theme-error), 0.3);
+  }
+
+  .calendar-cell[data-level='3'],
+  .calendar-swatch[data-level='3'] {
+    background: rgba(var(--v-theme-error), 0.46);
+  }
+
+  .calendar-cell[data-level='4'],
+  .calendar-swatch[data-level='4'] {
+    background: rgba(var(--v-theme-error), 0.62);
+  }
+
+  .calendar-cell[data-level='5'],
+  .calendar-swatch[data-level='5'] {
+    background: rgba(var(--v-theme-error), 0.78);
+  }
+
+  .calendar-cell[data-level='6'],
+  .calendar-swatch[data-level='6'] {
+    background: rgba(var(--v-theme-error), 1);
+  }
+
+  .calendar-cell-placeholder {
     border-color: transparent;
   }
 
@@ -159,18 +214,36 @@
     justify-content: space-between;
   }
 
-  .calendar-scale {
+  .calendar-legend {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 14px;
     font-size: 11px;
     color: var(--ds-text-3);
   }
 
+  .calendar-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .calendar-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  }
+
   .calendar-scale-bar {
-    width: 120px;
+    width: 96px;
     height: 8px;
     border-radius: 999px;
     border: 1px solid var(--ds-border-subtle);
+    background: linear-gradient(
+      90deg,
+      rgba(var(--v-theme-error), 0.16),
+      rgba(var(--v-theme-error), 1)
+    );
   }
 </style>
