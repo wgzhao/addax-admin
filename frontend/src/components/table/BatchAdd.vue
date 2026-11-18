@@ -389,7 +389,6 @@
     targetOptions: normalizeTargetOptions(),
     filter: '1=1',
     status: 'U',
-    kind: 'A',
     retryCnt: 3,
     sid: null,
     duration: 0,

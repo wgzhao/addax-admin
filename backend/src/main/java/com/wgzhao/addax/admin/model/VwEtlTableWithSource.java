@@ -39,7 +39,6 @@ public class VwEtlTableWithSource
     private String targetSchemaFingerprint;
     private String filter;
     private String status;
-    private String kind;
     private Integer retryCnt;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime startTime;

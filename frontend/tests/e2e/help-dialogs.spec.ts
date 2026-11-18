@@ -28,7 +28,6 @@ const table = {
   maxRuntime: 7200,
   retryCnt: 2,
   status: 'Y',
-  kind: 'A',
   writeMode: 'append',
   splitPk: 'customer_id',
   autoPk: true,

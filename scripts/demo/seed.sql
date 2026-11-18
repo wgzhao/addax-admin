@@ -184,7 +184,7 @@ VALUES
   (1082, 112, 'hr', 'hr_attendance',          '考勤记录',                 'log_event',  0.30,  32, 320, 'X', 1, 'ods_hr', 4);
 
 INSERT INTO etl_table
-  (id, source_db, source_table, target_db, target_table, filter, kind, retry_cnt,
+  (id, source_db, source_table, target_db, target_table, filter, retry_cnt,
    start_time, end_time, max_runtime, sid, duration, tbl_comment, status, split_pk,
    auto_pk, write_mode, start_at, target_id, created_at, updated_at,
    schema_management_mode)
@@ -195,7 +195,6 @@ SELECT
   s.target_db,
   s.source_table,
   '1=1',
-  'A',
   3,
   current_date + src.start_at,
   current_date + src.start_at + make_interval(mins => (s.ord - 1) * 4) + make_interval(secs => s.base_secs),

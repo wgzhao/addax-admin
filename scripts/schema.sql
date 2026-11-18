@@ -24,7 +24,7 @@ SET row_security = off;
 
 CREATE FUNCTION public.fn_etl_table_record_change() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$ declare old_row jsonb; new_row jsonb; changed_fields jsonb; old_values jsonb; new_values jsonb; begin old_row := to_jsonb(old) - 'status' - 'duration' - 'retry_cnt' - 'start_time' - 'end_time' - 'created_at' - 'updated_at' - 'max_runtime' - 'kind'; new_row := to_jsonb(new) - 'status' - 'duration' - 'retry_cnt' - 'start_time' - 'end_time' - 'created_at' - 'updated_at' - 'max_runtime' - 'kind'; select coalesce(jsonb_agg(n.key order by n.key), '[]'::jsonb) into changed_fields from jsonb_each(new_row) n join jsonb_each(old_row) o on o.key = n.key where o.value is distinct from n.value; if changed_fields = '[]'::jsonb then return new; end if; select coalesce(jsonb_object_agg(field_name, old_row -> field_name), '{}'::jsonb), coalesce(jsonb_object_agg(field_name, new_row -> field_name), '{}'::jsonb) into old_values, new_values from jsonb_array_elements_text(changed_fields) as fields(field_name); insert into public.etl_table_change_log (tid, source_db, source_table, target_db, target_table, changed_fields, old_values, new_values, changed_by) values (new.id, new.source_db, new.source_table, new.target_db, new.target_table, changed_fields, old_values, new_values, nullif(current_setting('addax.changed_by', true), '')); return new; end; $$;
+    AS $$ declare old_row jsonb; new_row jsonb; changed_fields jsonb; old_values jsonb; new_values jsonb; begin old_row := to_jsonb(old) - 'status' - 'duration' - 'retry_cnt' - 'start_time' - 'end_time' - 'created_at' - 'updated_at' - 'max_runtime'; new_row := to_jsonb(new) - 'status' - 'duration' - 'retry_cnt' - 'start_time' - 'end_time' - 'created_at' - 'updated_at' - 'max_runtime'; select coalesce(jsonb_agg(n.key order by n.key), '[]'::jsonb) into changed_fields from jsonb_each(new_row) n join jsonb_each(old_row) o on o.key = n.key where o.value is distinct from n.value; if changed_fields = '[]'::jsonb then return new; end if; select coalesce(jsonb_object_agg(field_name, old_row -> field_name), '{}'::jsonb), coalesce(jsonb_object_agg(field_name, new_row -> field_name), '{}'::jsonb) into old_values, new_values from jsonb_array_elements_text(changed_fields) as fields(field_name); insert into public.etl_table_change_log (tid, source_db, source_table, target_db, target_table, changed_fields, old_values, new_values, changed_by) values (new.id, new.source_db, new.source_table, new.target_db, new.target_table, changed_fields, old_values, new_values, nullif(current_setting('addax.changed_by', true), '')); return new; end; $$;
 
 
 --
@@ -744,7 +744,6 @@ CREATE TABLE public.etl_table (
     schema_management_mode character varying(16) DEFAULT 'MANAGED' NOT NULL,
     target_schema_fingerprint character varying(64),
     filter character varying(2000) DEFAULT '1=1'::character varying NOT NULL,
-    kind character(1) DEFAULT 'A'::bpchar,
     retry_cnt integer DEFAULT 3,
     start_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     end_time timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
@@ -821,13 +820,6 @@ COMMENT ON COLUMN public.etl_table.target_options IS '目标端专属属性，�
 --
 
 COMMENT ON COLUMN public.etl_table.filter IS '采集过滤条件，即 where 条件';
-
-
---
--- Name: COLUMN etl_table.kind; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.etl_table.kind IS '采集类型: A - 自动采集(默认值); M - 手工采集; R - 实时采集';
 
 
 --
@@ -1699,7 +1691,6 @@ CREATE VIEW public.vw_etl_table_with_source AS
     t.schema_management_mode,
     t.target_schema_fingerprint,
     t.filter,
-    t.kind,
     t.retry_cnt,
     t.start_time,
     t.end_time,

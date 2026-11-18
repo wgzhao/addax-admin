@@ -32,7 +32,6 @@ public final class EtlTableView
             t.schema_management_mode,
             t.target_schema_fingerprint,
             t.filter,
-            t.kind,
             t.retry_cnt,
             t.start_time,
             t.end_time,

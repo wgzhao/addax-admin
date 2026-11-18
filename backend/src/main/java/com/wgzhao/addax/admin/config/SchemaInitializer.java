@@ -357,6 +357,15 @@ public class SchemaInitializer
         "alter table public.etl_source drop column if exists code";
 
     /**
+     * {@code kind} never drove scheduling: a table was collected on its source calendar whatever its
+     * A/M/R value, and the manual-only case is expressed by the paused status ('X') instead. The column
+     * is removed once every node runs a release that no longer reads it; the view selects it, so the
+     * view is dropped around the drop and recreated at the end of the pipeline.
+     */
+    private static final String DROP_TABLE_KIND_SQL =
+        "alter table public.etl_table drop column if exists kind";
+
+    /**
      * Non-JDBC sources can carry longer names than the original JDBC-oriented columns allowed: a MongoDB
      * collection may be up to 120 bytes, and the change-log tables copy the same values.
      */
@@ -955,6 +964,12 @@ public class SchemaInitializer
             }
             migrateTargetConnectKeys(connection);
             migrateHdfsTargetConfig(connection);
+            if (exists(connection, "columns", "etl_table", "kind"))
+            {
+                statement.execute(EtlTableView.DROP_SQL);
+                statement.execute(DROP_TABLE_KIND_SQL);
+                log.info("Dropped the unused etl_table.kind column");
+            }
             if (exists(connection, "tables", "sys_item", null))
             {
                 int purgedItems = statement.executeUpdate(PURGE_DEPRECATED_SYS_ITEMS_SQL);

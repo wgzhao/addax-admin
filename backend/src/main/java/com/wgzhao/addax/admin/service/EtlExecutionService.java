@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class EtlExecutionService
 {
-    public static final int SNAPSHOT_VERSION = 2;
+    public static final int SNAPSHOT_VERSION = 3;
     public static final String RUNNING = "running";
     public static final String SUCCEEDED = "succeeded";
     public static final String FAILED = "failed";
@@ -132,7 +132,6 @@ public class EtlExecutionService
         tableNode.put("targetCode", table.getTargetCode());
         tableNode.put("targetName", table.getTargetName());
         tableNode.put("filter", table.getFilter());
-        tableNode.put("kind", table.getKind());
         tableNode.put("writeMode", table.getWriteMode());
         tableNode.put("calendar", table.getCalendar());
         tableNode.put("startAt", table.getStartAt());
