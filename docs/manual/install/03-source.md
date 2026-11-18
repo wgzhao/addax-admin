@@ -87,6 +87,8 @@ cd ..
 
 ```bash
 # 创建服务用户（发行包的 install.sh 会自动创建；源码部署需要手工创建）
+# 该账号同时执行 addax.sh 采集作业：HDFS 只允许 hive 写入时，把下面的 addax 换成 hive，
+# 或者直接使用已存在的 hive 账号（跳过 useradd），并保持 chown 与 sudo -u 一致。
 sudo useradd --system --shell /usr/sbin/nologin addax 2>/dev/null || true
 sudo mkdir -p /opt/app/addax-admin/{bin,lib,config,drivers,job,logs}
 sudo chown -R addax:addax /opt/app/addax-admin
@@ -101,6 +103,8 @@ sudo chmod +x /opt/app/addax-admin/bin/service.sh
 `service.sh` 会从 `lib/` 中查找 `addax-admin-*.jar`，并从 `config/env.sh` 加载环境变量。
 
 `service.sh` 必须由 `/opt/app/addax-admin` 的属主（默认 `addax`）执行，否则无法写入 `logs/` 下的 PID 和日志文件；第 5 步统一使用 `sudo -u addax`。如果希望用你自己的账号运行，把上面的 `chown` 目标改成该账号。
+
+运行账号还是目标端权限的前提：后端以该账号启动 `addax.sh`，采集作业写 HDFS 时继承同一账号。很多 HDFS 环境只允许 `hive` 写目标目录，此时应从一开始就用 `hive` 作为服务账号（`useradd` 可跳过、`chown` 与所有 `sudo -u` 都改成 `hive`），否则到运行期才会出现权限不足。
 
 ### 4. 配置后端
 
@@ -217,10 +221,10 @@ sudo systemctl reload nginx
 
 1. 打开前端地址，使用 `admin` / `admin123` 登录，并立即修改密码。
 2. 进入「系统配置」，把「Addax 程序目录」设置为后端进程可访问的 Addax 安装路径，例如 `/opt/app/addax`。
-3. 保证后端用户对 Addax 目录可写（`bin/addax.sh` 要可执行、`log/` 要可写）：
+3. 保证服务账号对 Addax 目录可写（`bin/addax.sh` 要可执行、`log/` 要可写）。账号与前面步骤保持一致：
 
    ```bash
-   sudo chown -R addax:addax /opt/app/addax
+   sudo chown -R addax:addax /opt/app/addax   # 服务账号是 hive 时改成 hive:hive
    ```
 
 4. 配置 Addax 的上报地址。`/opt/app/addax/conf/core.json` 中的 `core.server.address` 出厂为空，必须指向后端 job-report 接口，否则采集完成上报和对账数据都会缺失：

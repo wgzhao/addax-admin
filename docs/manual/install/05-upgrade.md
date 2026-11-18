@@ -65,6 +65,9 @@ sudo systemctl restart addax-admin    # 或 /opt/app/addax-admin/bin/service.sh 
 `job/` 与 `logs/`；旧 jar 备份为 `lib/addax-admin-*.jar.before-<时间戳>`，回滚时改回原文件名并重启即可。
 如果新版本已执行数据库迁移，回滚需要同时恢复升级前的备份。
 
+升级默认沿用已安装的运行账号。需要更换账号（例如 HDFS 改由 `hive` 写入）时，加 `--user <account>`：
+脚本会重新设置应用目录与前端目录的属主并重写 systemd 单元，然后重启服务。
+
 ## 源码升级
 
 ```bash

@@ -72,6 +72,7 @@ sudo sh deploy/install.sh
 
 ```bash
 sudo sh deploy/install.sh --app-home /data/addax-admin --web-root /data/www/addax-admin
+sudo sh deploy/install.sh --user hive       # 指定服务与 Addax 作业的运行账号
 sudo sh deploy/install.sh --no-systemd      # 只用 bin/service.sh 管理进程
 sudo sh deploy/install.sh --no-frontend     # 前后端分离部署，只装后端
 ```
@@ -81,7 +82,24 @@ sudo sh deploy/install.sh --no-frontend     # 前后端分离部署，只装后�
 - 首次安装复制配置模板，并生成随机的 `JWT_SECRET` 与 `ALERT_SECRET_KEY`；
 - 重复执行即为升级：替换 jar 和前端文件，不覆盖 `config/env.sh`、`config/application.properties`，不修改 `drivers/`、`job/`、`logs/`；
 - 旧 jar 保留为 `lib/addax-admin-*.jar.before-<时间戳>`，回滚时改回文件名即可；
-- 有 root 权限时创建 `addax` 用户、写入并启用 systemd 单元，但不会自动启动服务。
+- 有 root 权限时处理运行账号、写入并启用 systemd 单元，但不会自动启动服务。
+
+### 运行账号与 HDFS 权限
+
+`--user`（默认 `addax`）决定后端进程和它拉起的 `addax.sh` 采集作业以哪个系统账号运行。安装输出会打印 `service user`；账号已存在时直接复用，不存在时创建系统账号并打印醒目提示。
+
+这一步是权限前提而不是可选装饰：很多 HDFS 环境只允许 `hive` 账号写目标目录，服务以 `addax` 运行时采集作业也会以 `addax` 写 HDFS，运行期才会暴露权限不足。安装前先确认目标端要求的账号：
+
+```bash
+sudo sh deploy/install.sh --user hive
+```
+
+- 账号已存在：复用，不修改其 shell、home 或组；
+- 账号不存在：以系统账号（`nologin`）创建，并提醒该账号将执行所有采集作业；
+- 升级时同样可以传 `--user` 更换账号：脚本会重新设置应用目录、前端目录的属主并重写 systemd 单元；
+- 非 root 安装会忽略 `--user`，服务以执行安装的当前账号运行，且不安装 systemd 单元。
+
+选定账号还需要对 Addax 程序目录可写，见第 7 步。
 
 不使用 `install.sh` 时，把 `backend/` 整个目录放到目标路径，再按下面步骤配置和启动。
 
@@ -119,12 +137,12 @@ sudo systemctl status addax-admin
 sudo journalctl -u addax-admin -f
 ```
 
-或使用 `service.sh`（二选一，不要同时启用）：
+或使用 `service.sh`（二选一，不要同时启用）。把 `<service-user>` 换成安装时选定的账号（默认 `addax`）：
 
 ```bash
-sudo -u addax /opt/app/addax-admin/bin/service.sh start
-sudo -u addax /opt/app/addax-admin/bin/service.sh status
-sudo -u addax /opt/app/addax-admin/bin/service.sh stop
+sudo -u <service-user> /opt/app/addax-admin/bin/service.sh start
+sudo -u <service-user> /opt/app/addax-admin/bin/service.sh status
+sudo -u <service-user> /opt/app/addax-admin/bin/service.sh stop
 tail -f /opt/app/addax-admin/logs/addax-admin.log
 ```
 
@@ -142,7 +160,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 1. 打开 `http://<host>/`，使用 `admin` / `admin123` 登录并立即修改密码。
 2. 进入「系统配置」，把「Addax 程序目录」设置为后端进程可访问的 Addax 安装路径（例如 `/opt/app/addax`）。
-3. 确认后端用户（`addax`）对 Addax 目录可写，并把 `conf/core.json` 的 `core.server.address` 设为 `http://127.0.0.1:50601/api/v1/log/job-report`，否则采集结果不会回传；随后在「系统配置」点击「校验」做冒烟检查。
+3. 确认服务账号（安装输出中的 `service user`）对 Addax 目录可写，并把 `conf/core.json` 的 `core.server.address` 设为 `http://127.0.0.1:50601/api/v1/log/job-report`，否则采集结果不会回传；随后在「系统配置」点击「校验」做冒烟检查。
 4. 需要自定义 JDBC 驱动时，把驱动 jar 放入 `/opt/app/addax-admin/drivers/` 后重启后端；目录内 README 提供常用驱动下载地址。
 5. 按 [快速上手](../usage/01-quick-start.md) 创建第一个采集表。
 
@@ -158,6 +176,8 @@ sudo systemctl restart addax-admin
 
 升级前建议备份数据库，具体见 [升级与迁移](05-upgrade.md)。回滚时把 `lib/` 下的 `*.jar.before-<时间戳>` 改回 `addax-admin-<old-version>.jar` 并重启；如果新版本已执行数据库迁移，需要同时恢复备份。
 
+升级默认沿用已安装的 `config/env.sh` 和运行账号。需要更换账号时，重复执行 `install.sh` 时加 `--user <account>`，脚本会重新设置目录属主并重写 systemd 单元，然后重启服务。
+
 ## 9. 多节点部署
 
 Addax Admin 采用 sharing-nothing 架构：多个节点连接同一套 PostgreSQL 与 Redis，通过 Redis 选主和心跳协调调度。每个节点重复上述安装步骤，使用不同的 `--app-home` / `--web-root`（或只装后端，多个后端共用一个 Nginx），并通过 `WEIGHT` 设置该节点的并发负载比例。详见 [调度与并发](../usage/09-scheduling.md)。
@@ -172,6 +192,7 @@ Addax Admin 采用 sharing-nothing 架构：多个节点连接同一套 PostgreS
 | `service.sh start` 停在 `Checking port` | 查看 `logs/addax-admin.log`，多为数据库密码或 Redis 连接错误 |
 | 页面打开但接口 502 | 后端未启动或端口不一致；检查 `SERVER_PORT` 与 Nginx `proxy_pass` |
 | 前端 404 / 白屏 | Nginx `root` 未指向安装后的前端目录，或升级时未整体替换 |
+| 采集写 HDFS 报权限不足 | 服务账号（`service user`）没有目标路径写权限；用 `--user hive`（或实际有权限的账号）重装，或在 HDFS 侧授权 |
 | 告警通道密钥无法解密 | `ALERT_SECRET_KEY` 被修改；改回原值或重新保存通道配置 |
 
 ## 相关文档
