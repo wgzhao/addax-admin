@@ -1,5 +1,36 @@
 # Changelog
 
+## 4.7.0
+
+### Added
+
+- 主机部署发行包（ADR-0014）：每个 tag 同时发布 `addax-admin-<version>-host.tar.gz` 与 `.sha256`，内含预编译后端 jar、前端静态文件、`deploy/install.sh`、Nginx 与 systemd 示例，以及 `BUILD-INFO`（版本、commit、构建时间）。重复执行安装脚本即为升级，保留 `config/`、`drivers/`、`job/`、`logs/`，旧 jar 备份为 `.before-<时间戳>`。
+- 顶级导航按采集生命周期重组（PR #135）：采集配置（采集源/目标端/采集表/类型映射/采集日历）、采集运行（任务/运行监控/错误中心/系统状态/日志/告警配置）、数据治理（洞察/血缘）与管理员可见的系统管理；两个全库「更新表信息」动作移入采集表管理页的「结构更新」菜单，帮助中心加入账号菜单。
+- 命令面板改为从导航树生成（PR #136），与菜单的分组、命名和角色过滤保持一致。
+
+### Changed
+
+- `spring.jpa.show-sql` 默认改为关闭，本地开发使用 `SPRING_JPA_SHOW_SQL=true` 覆盖；发行包升级不会覆盖已有的 `config/application.properties`，新模板写到同目录 `.new` 文件。
+- 采集源列表改为固定像素列宽，连接串是唯一弹性列；1280 及更窄视口横向滚动并把操作列固定在右端。
+- 停采表（状态 `X`）的手工执行与补数只记录起止时间、耗用与结果，不再改写为 `R`/`Y`/`E`，也不消耗自动重试预算；文档明确停采表保持停采直到手工恢复。
+- 移除 `etl_table.kind`：该字段从未参与调度，所有表都按采集源日历自动采集，「只手工采集」一直由停采状态 `X` 表达。启动迁移删除该列并重建 `vw_etl_table_with_source`，采集表接口不再返回该字段，新执行快照 `snapshotVersion` 为 3。
+- PostgreSQL JDBC 驱动升级到 42.7.12（GHSA-j92g-9f8w-j867 / CVE-2026-54291），minimatch 固定到 11.0.1（GHSA-g3hv-75wg-m249）。
+- 删除未使用的根目录 `package-lock.json`、`bun.lock`，`frontend/yarn.lock` 为唯一锁文件。
+- Docker 镜像只在推送 tag 时构建，发布 GitHub Release 不再重复触发。
+
+### Fixed
+
+- 表格详情深链 `?tab=logs`、`?tab=job`、`?tab=fillback` 在详情接口返回前被重置到 `info`，导致日志、作业与补数标签无法通过链接直达。
+- 采集状态矩阵与过期单测仍断言旧的状态码文案和通知 store 结构，已与当前界面和 store 对齐。
+
+### 升级提示
+
+- **破坏性变更**：启动迁移删除 `etl_table.kind`，旧版本节点仍映射该列，必须停止所有节点后统一升级，不支持滚动升级；回退只能恢复升级前备份。
+- 历史上被手工执行悄悄解除停采的表无法自动识别，升级后需要人工复查停采名单。
+- 主机部署推荐使用发行包：`deploy/install.sh` 幂等，重复执行即升级；如需回滚，把 `lib/addax-admin-*.jar.before-<时间戳>` 改回原名并重启（若已执行数据库迁移，需同时恢复备份）。
+- `show-sql` 默认值变化只影响新安装；已有安装保留原 `config/application.properties`。
+- Docker 与发行包由同一个 tag 构建；发布 Release 前确认 tag 已推送。
+
 ## 4.6.0
 
 ### Added

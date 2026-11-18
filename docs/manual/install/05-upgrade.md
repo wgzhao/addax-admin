@@ -81,7 +81,7 @@ yarn install
 yarn build
 ```
 
-## v4.6.1 升级说明
+## v4.7.0 升级说明
 
 ### `etl_table.kind` 已移除
 
