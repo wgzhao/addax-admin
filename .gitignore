@@ -70,3 +70,4 @@ skills-lock.json
 
 ### Release bundle output ###
 /dist/
+backend/logs/
