@@ -8,6 +8,10 @@
 </p>
 
 <p align="center">
+  简体中文 · <a href="README_en.md">English</a>
+</p>
+
+<p align="center">
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
   <a href="https://github.com/wgzhao/addax-admin/releases"><img src="https://img.shields.io/github/v/release/wgzhao/addax-admin?sort=semver" alt="Release"></a>
   <a href="https://hub.docker.com/r/wgzhao/addax-admin"><img src="https://img.shields.io/docker/pulls/wgzhao/addax-admin?label=docker%20pulls" alt="Docker Pulls"></a>
@@ -42,39 +46,39 @@ Addax Admin 是 Addax 离线 ETL 引擎的企业级管理与运维控制台，�
 
 ## 界面预览
 
-![经营总览](screenshots/dashboard-overview.png)
+![经营总览](docs/assets/screenshots/dashboard-overview.webp)
 
 *经营总览：今日采集健康度、KPI、风险与待办、采集量趋势。*
 
-![今日运行](screenshots/dashboard-today.png)
+![今日运行](docs/assets/screenshots/dashboard-today.webp)
 
 *今日运行：按采集源展开的日切心跳与风险下钻。*
 
-![采集表详情](screenshots/table-detail.png)
+![采集表详情](docs/assets/screenshots/table-detail.webp)
 
 *采集表详情：字段映射、执行快照、对账与失败记录集中在一处。*
 
 <details>
 <summary>更多界面截图</summary>
 
-![Home - light and dark](screenshots/dashboard-overview-split.png)
-![Health](screenshots/dashboard-health.png)
-![Data Quality](screenshots/dashboard-quality.png)
-![SLA](screenshots/dashboard-sla.png)
-![Source Management](screenshots/source.png)
-![Target Management](screenshots/target.png)
-![Collection Tables](screenshots/ods-etl.png)
-![Field Mapping](screenshots/table-field.png)
-![Execution Snapshots](screenshots/table-execution.png)
-![Collection Result](screenshots/addax-result.png)
-![Addax Job](screenshots/addax-json.png)
-![Collection Log](screenshots/etl-log.png)
-![Security Audit](screenshots/audit.png)
-![Collection Calendar](screenshots/etl-calendar.png)
-![Type Mappings](screenshots/etl-type-mappings.png)
-![System Settings](screenshots/sys-setting.png)
+![Home - light and dark](docs/assets/screenshots/dashboard-overview-split.webp)
+![Health](docs/assets/screenshots/dashboard-health.webp)
+![Data Quality](docs/assets/screenshots/dashboard-quality.webp)
+![SLA](docs/assets/screenshots/dashboard-sla.webp)
+![Source Management](docs/assets/screenshots/source.webp)
+![Target Management](docs/assets/screenshots/target.webp)
+![Collection Tables](docs/assets/screenshots/ods-etl.webp)
+![Field Mapping](docs/assets/screenshots/table-field.webp)
+![Execution Snapshots](docs/assets/screenshots/table-execution.webp)
+![Collection Result](docs/assets/screenshots/addax-result.webp)
+![Addax Job](docs/assets/screenshots/addax-json.webp)
+![Collection Log](docs/assets/screenshots/etl-log.webp)
+![Security Audit](docs/assets/screenshots/audit.webp)
+![Collection Calendar](docs/assets/screenshots/etl-calendar.webp)
+![Type Mappings](docs/assets/screenshots/etl-type-mappings.webp)
+![System Settings](docs/assets/screenshots/sys-setting.webp)
 
-完整截图见 [screenshots/](screenshots/)。
+完整截图见 [docs/assets/screenshots/](docs/assets/screenshots/)。
 </details>
 
 ---
@@ -126,9 +130,9 @@ Addax Admin 是 Addax 离线 ETL 引擎的企业级管理与运维控制台，�
 addax-admin/
 ├── backend/                 # Spring Boot 后端服务（API、调度、持久化、队列与租约）
 ├── frontend/                # Vue 3 + Vite + TypeScript + Vuetify 管理界面
-├── docs/                    # 安装与使用手册、ADR、测试与安全文档
+├── docs/                    # 手册、ADR、测试与安全文档，以及 README 截图（assets/screenshots/）
 ├── scripts/                 # 部署与运维脚本（DB 初始化、systemd service 模板等）
-└── screenshots/             # 界面截图与仓库视觉资产
+└── screenshots/             # 本地 E2E 截图产物（不入库）
 ```
 
 数据库初始化脚本 [scripts/schema.sql](scripts/schema.sql) 与 [scripts/data.sql](scripts/data.sql) 会打包进后端 jar，空库由应用首次启动自动初始化。
@@ -146,7 +150,7 @@ Addax Admin 只负责管理与调度，不执行实际采集，三种部署模�
 ```bash
 # 1. 创建部署目录并下载部署文件
 mkdir addax-admin && cd addax-admin
-RELEASE_TAG=v4.6.0   # 替换为最新 Release 标签
+RELEASE_TAG=v4.7.0   # 替换为最新 Release 标签
 wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/docker-compose.yml"
 wget "https://raw.githubusercontent.com/wgzhao/addax-admin/${RELEASE_TAG}/.env.example"
 cp .env.example .env
@@ -167,7 +171,7 @@ docker compose -f docker-compose.yml up -d
 
 ```bash
 # 1. 从 GitHub Releases 下载发行包并校验（VERSION 换成实际版本，不带 v）
-VERSION=4.6.0
+VERSION=4.7.0
 wget "https://github.com/wgzhao/addax-admin/releases/download/v${VERSION}/addax-admin-${VERSION}-host.tar.gz"
 wget "https://github.com/wgzhao/addax-admin/releases/download/v${VERSION}/addax-admin-${VERSION}-host.tar.gz.sha256"
 sha256sum -c "addax-admin-${VERSION}-host.tar.gz.sha256"
