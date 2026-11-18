@@ -17,7 +17,10 @@ Usage: sh deploy/install.sh [options]
 
   --app-home DIR    application directory (default: /opt/app/addax-admin)
   --web-root DIR    nginx static root (default: /var/www/html/addax-admin-ui)
-  --user NAME       OS user that owns the files (default: addax)
+  --user NAME       OS account that runs the service and owns the files (default: addax).
+                    Existing accounts are reused; missing accounts are created (with a warning).
+                    Addax jobs inherit this account, so pick one that can write your targets
+                    (for HDFS/Hive this is often the hive account).
   --no-systemd      do not install the systemd unit
   --no-frontend     do not deploy the frontend
   -h, --help        show this help
@@ -69,6 +72,19 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+[ -n "$APP_USER" ] || die "--user requires a non-empty account name"
+
+# Why: addax-admin launches addax.sh for every collection, so the service account decides which
+# filesystem permissions the jobs inherit. HDFS/Hive targets frequently only accept the hive
+# account, and a silent default of 'addax' then fails at write time. Make the choice explicit.
+APP_USER_STATE=unknown
+if [ "$(id -u)" -ne 0 ]; then
+  [ "$APP_USER" = "$(id -un)" ] ||
+    say "warning: --user $APP_USER ignored: install.sh is not running as root, so the account cannot be created or switched"
+  APP_USER="$(id -un)"
+  APP_USER_STATE="current user (not root)"
+fi
+
 VERSION="$(sed -n 's/^version=//p' "$BUNDLE_DIR/BUILD-INFO" 2>/dev/null | head -n 1)"
 [ -n "$VERSION" ] || die "BUILD-INFO not found in $BUNDLE_DIR"
 
@@ -108,6 +124,32 @@ JAVA_HOME_DETECTED="$(cd "$(dirname "$JAVA_BIN")/.." && pwd)"
 
 command -v nc >/dev/null 2>&1 ||
   say "warning: 'nc' not found; bin/service.sh uses it for the startup readiness check"
+
+# Resolve the account before touching APP_HOME so a rejected choice leaves no half-installed tree.
+if [ "$(id -u)" -eq 0 ]; then
+  if id -u "$APP_USER" >/dev/null 2>&1; then
+    APP_USER_STATE=existing
+    say "service user : $APP_USER (existing; override with --user NAME)"
+    say "               uid $(id -u "$APP_USER"), primary group $(id -gn "$APP_USER")"
+  else
+    APP_USER_STATE=created
+    say ""
+    say "WARNING: OS user $APP_USER does not exist; creating it as a system account."
+    say "         addax-admin and every Addax job it launches will run as $APP_USER."
+    say "         Pick an account that can write your collection targets - for HDFS/Hive"
+    say "         this is usually the hive account or one that owns the HDFS directories."
+    say ""
+    useradd -r -s /sbin/nologin "$APP_USER" 2>/dev/null ||
+      die "failed to create user $APP_USER"
+    say "service user : $APP_USER (created as a system account)"
+  fi
+  if [ "$(id -u "$APP_USER")" -eq 0 ]; then
+    die "refusing to run addax-admin as root; choose a non-root account with --user NAME"
+  fi
+  APP_GROUP="$(id -gn "$APP_USER")"
+else
+  say "service user : $APP_USER ($APP_USER_STATE; systemd unit is not installed)"
+fi
 
 mkdir -p "$APP_HOME/bin" "$APP_HOME/lib" "$APP_HOME/config" \
   "$APP_HOME/drivers" "$APP_HOME/job" "$APP_HOME/logs"
@@ -171,16 +213,10 @@ if [ "$WITH_FRONTEND" -eq 1 ]; then
 fi
 
 if [ "$(id -u)" -eq 0 ]; then
-  if ! id -u "$APP_USER" >/dev/null 2>&1; then
-    useradd -r -s /sbin/nologin "$APP_USER" 2>/dev/null ||
-      die "failed to create user $APP_USER"
-  fi
-  chown -R "$APP_USER:$APP_USER" "$APP_HOME"
+  chown -R "$APP_USER:$APP_GROUP" "$APP_HOME"
   if [ "$WITH_FRONTEND" -eq 1 ]; then
-    chown -R "$APP_USER:$APP_USER" "$WEB_ROOT"
+    chown -R "$APP_USER:$APP_GROUP" "$WEB_ROOT"
   fi
-else
-  say "note: not running as root; files stay owned by $(id -un) and no systemd unit is installed"
 fi
 
 SERVICE_MODE="bin/service.sh"
@@ -212,10 +248,15 @@ cat <<EOF
 
 addax-admin $VERSION installed
 
-  app home   : $APP_HOME
-  web root   : $WEB_ROOT_SUMMARY
-  config     : $APP_HOME/config/env.sh
-  start mode : $SERVICE_MODE
+  app home     : $APP_HOME
+  web root     : $WEB_ROOT_SUMMARY
+  service user : $APP_USER ($APP_USER_STATE)
+  config       : $APP_HOME/config/env.sh
+  start mode   : $SERVICE_MODE
+
+The service and every Addax job it launches run as $APP_USER.
+If HDFS rejects this account's writes, re-run install.sh with --user <account> (for example
+hive) before starting the service, or grant $APP_USER access to the target paths.
 
 Next steps:
   1. edit $APP_HOME/config/env.sh and set the PostgreSQL / Redis connection

@@ -174,11 +174,14 @@ sha256sum -c "addax-admin-${VERSION}-host.tar.gz.sha256"
 tar xzf "addax-admin-${VERSION}-host.tar.gz"
 
 # 2. 安装到 /opt/app/addax-admin，前端到 /var/www/html/addax-admin-ui
+#    --user 指定服务与 Addax 作业的运行账号；HDFS 只允许 hive 写入时用 --user hive
 cd "addax-admin-${VERSION}"
 sudo sh deploy/install.sh
 
-# 3. 按提示修改 config/env.sh 与 Nginx 配置后启动
+# 3. 按提示修改 config/env.sh、确认输出中的 service user，再配置 Nginx 并启动
 ```
+
+安装输出会打印 `service user`。该账号同时决定 `addax.sh` 采集作业写目标端时的权限，账号已存在时直接复用，不存在时创建并给出提示。
 
 包内 `deploy/README.md` 是完整部署说明；仓库版本见 [主机部署（发行包）](docs/manual/install/02-host.md)。
 
