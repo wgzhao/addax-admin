@@ -151,10 +151,17 @@
 
   // A deep link may point at a tab the current role cannot see; move it to the info tab once the
   // role is known. Waiting for roleLoaded avoids overriding an admin's link with the guest default.
+  // The source id must be known too: canOperateTable is false until the detail request returns,
+  // so resetting on it alone would move every logs/job/fillback deep link back to info.
   watch(
-    () => [authStore.roleLoaded, canOperateTable.value] as const,
-    ([loaded, canOperate]) => {
-      if (loaded && !canOperate && ['logs', 'job', 'fillback'].includes(currentTab.value)) {
+    () => [authStore.roleLoaded, tableSid.value, canOperateTable.value] as const,
+    ([loaded, sid, canOperate]) => {
+      if (
+        loaded &&
+        sid != null &&
+        !canOperate &&
+        ['logs', 'job', 'fillback'].includes(currentTab.value)
+      ) {
         currentTab.value = 'info';
       }
     },
