@@ -1,10 +1,12 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ public class DashboardStatService
 {
     private final JdbcTemplate jdbcTemplate;
     private final SystemConfigService configService;
+    private final CalendarService calendarService;
+    private final EtlTableRepo etlTableRepo;
 
     /**
      * 业务日期锚点，集中一处便于环境调整
@@ -153,9 +157,52 @@ public class DashboardStatService
     {
         int offset = Math.max(days - 1, 0);
         LocalDate bizDate = anchor();
+        LocalDate windowStart = bizDate.minusDays(offset);
+
+        // Why: 期望值必须按每张表所属的采集日历推导。工作日/交易日源在周末和节假日本来就不采，
+        // 按自然日把所有有效表都算成“应采”，会让每个休息日都显示成大面积缺失，真正的漏采被淹没。
+        // 日历种类最多三种，按日历分别统计再按日期合并，比在 SQL 里复制一份日历名到字典编号的映射更稳。
+        Map<LocalDate, long[]> totals = new LinkedHashMap<>();
+        for (LocalDate date = windowStart; !date.isAfter(bizDate); date = date.plusDays(1)) {
+            totals.put(date, new long[] {0, 0});
+        }
+        for (String calendar : etlTableRepo.findCalendarsInUse()) {
+            List<LocalDate> expectedDates = calendarService.businessDatesInWindow(calendar, windowStart, bizDate);
+            if (expectedDates.isEmpty()) {
+                continue;
+            }
+            for (Map<String, Object> row : countDailyCollect(calendar, expectedDates, bizDate)) {
+                long[] slot = totals.get(LocalDate.parse((String) row.get("biz_date")));
+                if (slot == null) {
+                    continue;
+                }
+                slot[0] += ((Number) row.get("expected")).longValue();
+                slot[1] += ((Number) row.get("collected")).longValue();
+            }
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        totals.forEach((date, slot) -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("biz_date", date.toString());
+            row.put("expected", slot[0]);
+            row.put("collected", slot[1]);
+            row.put("missing", Math.max(slot[0] - slot[1], 0));
+            result.add(row);
+        });
+        return result;
+    }
+
+    /**
+     * 一个日历在给定日期集合内的每日应采/实采表数。日期集合来自 {@link CalendarService}，
+     * 所以休息日不会出现在结果里；调用方按日期合并不同日历的分组。
+     */
+    private List<Map<String, Object>> countDailyCollect(String calendar, List<LocalDate> expectedDates,
+        LocalDate bizDate)
+    {
         String sql = """
-            with span as (
-              select generate_series(?::date - ?, ?::date, interval '1 day')::date as biz_date
+            with date_span as (
+              select unnest(?::date[]) as biz_date
             ),
             valid_tables as (
               select id as tid,
@@ -164,33 +211,35 @@ public class DashboardStatService
               where status <> 'X'
                 and coalesce(enabled, false) = true
                 and retired_at is null
+                and coalesce(nullif(calendar, ''), 'NATURAL_DAY') = ?
             ),
             expected as (
-              select s.biz_date, count(*) as expected
-              from span s
-              join valid_tables t on t.created_date <= s.biz_date
-              group by s.biz_date
+              select d.biz_date, count(t.tid) as expected
+              from date_span d
+              left join valid_tables t on t.created_date <= d.biz_date
+              group by d.biz_date
             ),
             actual as (
-              select e.biz_date, count(distinct e.tid) as collected
-              from etl_statistic e
-              join valid_tables t on t.tid = e.tid
-              where e.biz_date > ?::date - ?
-                and e.biz_date <= ?::date
-              group by e.biz_date
+              select d.biz_date, count(distinct s.tid) as collected
+              from date_span d
+              join etl_statistic s on s.biz_date = d.biz_date
+              join valid_tables t on t.tid = s.tid
+              group by d.biz_date
             )
-            select to_char(x.biz_date, 'YYYY-MM-DD') as biz_date,
-                   x.expected,
-                   coalesce(a.collected, 0) as collected,
-                   greatest(x.expected - coalesce(a.collected, 0), 0) as missing
-            from expected x
-            left join actual a on a.biz_date = x.biz_date
-            order by x.biz_date
+            select to_char(d.biz_date, 'YYYY-MM-DD') as biz_date,
+                   e.expected,
+                   coalesce(a.collected, 0) as collected
+            from date_span d
+            join expected e on e.biz_date = d.biz_date
+            left join actual a on a.biz_date = d.biz_date
+            order by d.biz_date
             """;
-        return jdbcTemplate.queryForList(sql,
-            bizDate, offset, bizDate,
-            bizDate,
-            bizDate, days, bizDate);
+        return jdbcTemplate.queryForList(sql, toDateArrayLiteral(expectedDates), bizDate, calendar);
+    }
+
+    private static String toDateArrayLiteral(List<LocalDate> dates)
+    {
+        return dates.stream().map(LocalDate::toString).collect(Collectors.joining(",", "{", "}"));
     }
 
     // 近 12 个月每月的记录数与数据量（GiB），用于双轴图。注意是每月值，非累计值
