@@ -47,6 +47,25 @@ public class StatService
         return jdbcTemplate.queryForObject(sql, Double.class, bizDate);
     }
 
+    /**
+     * PostgreSQL JDBC returns date columns as java.sql.Date, which Jackson renders as a UTC
+     * instant (business date 2026-11-04 becomes 2026-11-03T16:00:00.000Z on a UTC+8 host).
+     * A business date carries no time of day and no timezone, so flatten it to yyyy-MM-dd
+     * before the row leaves the API; the UI and CSV export then show the date as stored.
+     */
+    private static List<Map<String, Object>> flattenDateColumns(List<Map<String, Object>> rows)
+    {
+        for (Map<String, Object> row : rows) {
+            row.replaceAll((key, value) -> {
+                if (value instanceof java.sql.Date date) {
+                    return date.toLocalDate().toString();
+                }
+                return value instanceof LocalDate localDate ? localDate.toString() : value;
+            });
+        }
+        return rows;
+    }
+
     // 最近 12个月的采集累计数据量，单位为 GiB
     public List<Map<String, Object>> statLast12MonthsData()
     {
@@ -307,7 +326,7 @@ public class StatService
             HAVING COUNT(*) = ?
                AND COUNT(DISTINCT total_recs) = 1
             """;
-        return jdbcTemplate.queryForList(sql, days + 3, days);
+        return flattenDateColumns(jdbcTemplate.queryForList(sql, days + 3, days));
     }
 
     // 近 N 天内，数据量无变化的表（基于每日最新记录）
@@ -354,7 +373,7 @@ public class StatService
               AND a.max_recs = a.min_recs
             ORDER BY a.max_recs DESC
             """;
-        return jdbcTemplate.queryForList(sql, offset);
+        return flattenDateColumns(jdbcTemplate.queryForList(sql, offset));
     }
 
     // 近 N 天内，数据变化率小于指定阈值的表（基于每日最新记录）
@@ -404,7 +423,7 @@ public class StatService
               AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) < ?
             ORDER BY change_rate_pct ASC, a.max_recs DESC
             """;
-        return jdbcTemplate.queryForList(sql, offset, thresholdPct);
+        return flattenDateColumns(jdbcTemplate.queryForList(sql, offset, thresholdPct));
     }
 
     // 近 N 天内，数据变化率超过指定阈值的表（基于每日最新记录）
@@ -453,7 +472,7 @@ public class StatService
               AND round(abs(a.max_recs - a.min_recs) * 100.0 / nullif(a.min_recs, 0), 2) > ?
             ORDER BY change_rate_pct DESC, a.max_recs DESC
             """;
-        return jdbcTemplate.queryForList(sql, offset, thresholdPct);
+        return flattenDateColumns(jdbcTemplate.queryForList(sql, offset, thresholdPct));
     }
 
     // 近 N 天内，采集耗时变动率超过指定阈值的表（基于每日最新记录）
@@ -501,7 +520,7 @@ public class StatService
               AND round(abs(a.max_secs - a.min_secs) * 100.0 / nullif(a.min_secs, 0), 2) > ?
             ORDER BY change_rate_pct DESC, a.max_secs DESC
             """;
-        return jdbcTemplate.queryForList(sql, offset, thresholdPct);
+        return flattenDateColumns(jdbcTemplate.queryForList(sql, offset, thresholdPct));
     }
 
     /**
@@ -526,7 +545,7 @@ public class StatService
             rows.addAll(findMissingCollectTables(calendar, expected, windowStart, bizDate));
         }
         rows.sort(MISSING_ORDER);
-        return rows;
+        return flattenDateColumns(rows);
     }
 
     private List<Map<String, Object>> findMissingCollectTables(String calendar, List<LocalDate> expectedDates,

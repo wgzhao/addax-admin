@@ -31,7 +31,7 @@ public interface EtlStatisticRepo
 
     @Query(value = """
         select
-            biz_date,
+            to_char(biz_date, 'YYYY-MM-DD') AS biz_date,
             array_agg(name ORDER BY source_id) AS sources,
             array_agg(total_secs ORDER BY source_id) AS total_secs
         FROM (
@@ -61,7 +61,7 @@ public interface EtlStatisticRepo
 
     @Query(value = """
         select
-                 biz_date,
+                 to_char(biz_date, 'YYYY-MM-DD') AS biz_date,
                  array_agg(name ORDER BY source_id) AS sources,
                  array_agg(total_bytes ORDER BY source_id) AS total_bytes
              FROM (
