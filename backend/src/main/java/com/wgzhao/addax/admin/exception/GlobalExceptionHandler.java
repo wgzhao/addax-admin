@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.util.stream.Collectors;
 
@@ -61,6 +62,18 @@ public class GlobalExceptionHandler
     {
         log.debug("HTTP message not readable: {}", ex.getMessage());
         return new ResponseEntity<>(ApiResponse.error(400, "请求体格式错误"), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Removed or mistyped endpoints are a client-side problem, not an internal
+     * failure; returning 500 made retired routes look like server crashes.
+     */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    @ResponseBody
+    public ResponseEntity<ApiResponse<Object>> handleNoHandler(NoHandlerFoundException ex)
+    {
+        log.debug("No handler: {} {}", ex.getHttpMethod(), ex.getRequestURL());
+        return new ResponseEntity<>(ApiResponse.error(404, "接口不存在"), HttpStatus.NOT_FOUND);
     }
 
     /**

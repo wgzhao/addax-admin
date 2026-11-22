@@ -19,17 +19,6 @@ public interface EtlStatisticRepo
     Optional<EtlStatistic> findByTidAndBizDate(long tid, LocalDate bizDate);
 
     @Query(value = """
-        SELECT s1 FROM EtlStatistic s1
-        WHERE s1.totalErrors > 0
-        AND s1.bizDate = (
-            SELECT MAX(s2.bizDate)
-            FROM EtlStatistic s2
-            WHERE s2.tid = s1.tid
-        )
-        """)
-    List<EtlStatistic> findErrorTask();
-
-    @Query(value = """
         select
             to_char(biz_date, 'YYYY-MM-DD') AS biz_date,
             array_agg(name ORDER BY source_id) AS sources,

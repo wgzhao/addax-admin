@@ -4,10 +4,6 @@
     subtitle="按严重级别排序，点击可直接下钻"
     icon="mdi-shield-alert-outline"
   >
-    <template #actions>
-      <v-btn size="small" variant="text" append-icon="mdi-arrow-right" to="/monitor"> 全部 </v-btn>
-    </template>
-
     <SkeletonBlock v-if="loading" :height="180" />
     <ErrorState v-else-if="error && items.length === 0" :message="error" @retry="$emit('retry')" />
     <div v-else-if="items.length === 0" class="risk-empty">

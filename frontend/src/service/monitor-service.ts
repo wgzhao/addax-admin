@@ -1,60 +1,13 @@
-// 采集监控接口
+// 采集聚合数据：首页「今日运行」与数据治理「数据洞察」共用。
+// 面向前端页面的 运行监控 已下线，接口路径暂时保留以兼容现有调用方。
 import Requests from '@/utils/requests';
 
 class MonitorService {
   prefix = '/monitor';
-  d = [];
-  // 数据源完成情况
+
+  // 数据源完成情况：首页今日运行时间轴
   fetchAccomplishList(): Promise<Array<Map<string, any>>> {
-    // fetch data via api and return
     return Requests.get(this.prefix + '/accomplish') as unknown as Promise<Array<Map<string, any>>>;
-  }
-
-  // 特殊任务提醒：错误、耗时过长、有重试、有拒绝行
-  fetchSpecialTask(): Promise<Array<Map<string, any>>> {
-    return Requests.get(this.prefix + '/special-task') as unknown as Promise<
-      Array<Map<string, any>>
-    >;
-  }
-
-  // 采集拒绝行信息
-  fetchRejectTask(): Promise<Array<Map<string, any>>> {
-    return Requests.get(this.prefix + '/reject-task') as unknown as Promise<
-      Array<Map<string, any>>
-    >;
-  }
-
-  sysRisks(): Promise<Array<Map<string, any>>> {
-    return Requests.get(this.prefix + '/sys-risk') as unknown as Promise<Array<Map<string, any>>>;
-  }
-
-  fieldsChanges(): Promise<Array<Map<string, any>>> {
-    return Requests.get(this.prefix + '/field-change') as unknown as Promise<
-      Array<Map<string, any>>
-    >;
-  }
-
-  // 字段变更 - 分页接口
-  fieldsChangesPaged(
-    page: number,
-    pageSize: number,
-    sortBy?: { sortField?: string | null; sortOrder?: string | null }
-  ): Promise<{ content: Array<Map<string, any>>; totalElements: number }> {
-    const params = {
-      page,
-      pageSize,
-      sortField: sortBy?.sortField,
-      sortOrder: sortBy?.sortOrder,
-    };
-    // 复用同一路径，通过查询参数启用后端分页
-    return Requests.get(this.prefix + '/field-change', params) as unknown as Promise<{
-      content: Array<Map<string, any>>;
-      totalElements: number;
-    }>;
-  }
-
-  smsDetail(): Promise<Array<Map<string, any>>> {
-    return Requests.get(this.prefix + '/sms-detail') as unknown as Promise<Array<Map<string, any>>>;
   }
 
   // 数据洞察：近 15 天数据量无变化

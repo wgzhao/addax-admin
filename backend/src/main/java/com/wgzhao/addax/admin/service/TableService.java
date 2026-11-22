@@ -633,11 +633,6 @@ public class TableService
      *
      * @return 特殊任务列表
      */
-    public List<EtlTable> findSpecialTasks()
-    {
-        return etlTableRepo.findSpecialTasks();
-    }
-
     /**
      * 获取指定数据源和库下的所有表
      */
