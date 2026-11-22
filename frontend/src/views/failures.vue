@@ -31,8 +31,24 @@
       </div>
     </div>
 
-    <v-card flat class="ds-card failures-card">
-      <v-card-text>
+    <AppDataTable
+      v-model:page="page"
+      v-model:items-per-page="pageSize"
+      :mode="mode === 'detail' ? 'server' : 'client'"
+      :headers="mode === 'detail' ? detailHeaders : groupHeaders"
+      :items="mode === 'detail' ? items : groups"
+      :total="total"
+      :loading="loading"
+      :error="error"
+      :items-per-page-options="[10, 20, 50, 100]"
+      :item-value="mode === 'detail' ? 'id' : 'fingerprint'"
+      class="failures-card"
+      :empty-title="mode === 'detail' ? '没有匹配的失败记录' : '没有匹配的聚合错误'"
+      empty-description="调整筛选条件后重新查询；失败详情可直接下钻。"
+      @update:error="error = ''"
+      @update:options="handleTableOptions"
+    >
+      <template #header>
         <div class="failures-filters">
           <v-select
             v-model="filters.sourceId"
@@ -111,7 +127,7 @@
           <v-btn variant="tonal" prepend-icon="mdi-download" @click="exportCsv">导出 CSV</v-btn>
         </div>
 
-        <div class="failures-mode">
+        <div class="failures-mode mb-4">
           <v-btn-toggle v-model="mode" density="compact" mandatory variant="outlined">
             <v-btn value="detail" prepend-icon="mdi-format-list-bulleted">明细</v-btn>
             <v-btn value="grouped" prepend-icon="mdi-group">按错误聚合</v-btn>
@@ -130,99 +146,51 @@
             错误指纹 {{ filters.fingerprint.slice(0, 10) }}…
           </v-chip>
         </div>
+      </template>
 
-        <v-alert v-if="error" type="error" variant="tonal" class="mt-3">{{ error }}</v-alert>
-
-        <v-data-table-server
+      <template #item.occurredAt="{ item }">
+        <span class="text-no-wrap">{{ item.occurredAt }}</span>
+      </template>
+      <template #item.table="{ item }">
+        <div
+          class="table-cell"
+          :title="`${item.sourceDb}.${item.sourceTable} → ${item.targetDb}.${item.targetTable}`"
+        >
+          <strong>{{ item.sourceDb }}.{{ item.sourceTable }}</strong>
+          <span>→ {{ item.targetDb }}.{{ item.targetTable }}</span>
+        </div>
+      </template>
+      <template #item.stage="{ item }">
+        <v-chip size="small" color="error" variant="tonal">
+          {{ stageLabel(item.stage) }}
+        </v-chip>
+      </template>
+      <template #item.category="{ item }">
+        <v-chip size="small" :color="categoryColor(item.category)" variant="tonal">
+          {{ categoryLabel(item.category) }}
+        </v-chip>
+      </template>
+      <template #item.count="{ item }">
+        <v-chip size="small" color="warning" variant="tonal">{{ item.count }}</v-chip>
+      </template>
+      <template #item.summary="{ item }">
+        <span class="summary-cell" :title="item.summary">{{ item.summary }}</span>
+      </template>
+      <template #item.actions="{ item }">
+        <v-btn
           v-if="mode === 'detail'"
-          v-model:page="page"
-          v-model:items-per-page="pageSize"
-          :headers="detailHeaders"
-          :items="items"
-          :items-length="total"
-          :items-per-page-options="[10, 20, 50, 100]"
-          :loading="loading"
-          item-value="id"
-          density="comfortable"
-          class="mt-4"
-          no-data-text="没有匹配的失败记录"
-          @update:options="onOptions"
+          size="small"
+          variant="text"
+          color="primary"
+          @click="openDetail(item.id)"
         >
-          <template #item.occurredAt="{ item }">
-            <span class="text-no-wrap">{{ item.occurredAt }}</span>
-          </template>
-          <template #item.table="{ item }">
-            <div
-              class="table-cell"
-              :title="`${item.sourceDb}.${item.sourceTable} → ${item.targetDb}.${item.targetTable}`"
-            >
-              <strong>{{ item.sourceDb }}.{{ item.sourceTable }}</strong>
-              <span>→ {{ item.targetDb }}.{{ item.targetTable }}</span>
-            </div>
-          </template>
-          <template #item.stage="{ item }">
-            <v-chip size="small" color="error" variant="tonal">
-              {{ stageLabel(item.stage) }}
-            </v-chip>
-          </template>
-          <template #item.category="{ item }">
-            <v-chip size="small" :color="categoryColor(item.category)" variant="tonal">
-              {{ categoryLabel(item.category) }}
-            </v-chip>
-          </template>
-          <template #item.summary="{ item }">
-            <span class="summary-cell" :title="item.summary">{{ item.summary }}</span>
-          </template>
-          <template #item.actions="{ item }">
-            <v-btn size="small" variant="text" color="primary" @click="openDetail(item.id)">
-              查看
-            </v-btn>
-          </template>
-        </v-data-table-server>
-
-        <v-data-table
-          v-else
-          :headers="groupHeaders"
-          :items="groups"
-          :loading="loading"
-          item-value="fingerprint"
-          density="comfortable"
-          class="mt-4"
-          no-data-text="没有匹配的聚合错误"
-        >
-          <template #item.table="{ item }">
-            <div
-              class="table-cell"
-              :title="`${item.sourceDb}.${item.sourceTable} → ${item.targetDb}.${item.targetTable}`"
-            >
-              <strong>{{ item.sourceDb }}.{{ item.sourceTable }}</strong>
-              <span>→ {{ item.targetDb }}.{{ item.targetTable }}</span>
-            </div>
-          </template>
-          <template #item.stage="{ item }">
-            <v-chip size="small" color="error" variant="tonal">
-              {{ stageLabel(item.stage) }}
-            </v-chip>
-          </template>
-          <template #item.category="{ item }">
-            <v-chip size="small" :color="categoryColor(item.category)" variant="tonal">
-              {{ categoryLabel(item.category) }}
-            </v-chip>
-          </template>
-          <template #item.count="{ item }">
-            <v-chip size="small" color="warning" variant="tonal">{{ item.count }}</v-chip>
-          </template>
-          <template #item.summary="{ item }">
-            <span class="summary-cell" :title="item.summary">{{ item.summary }}</span>
-          </template>
-          <template #item.actions="{ item }">
-            <v-btn size="small" variant="text" color="primary" @click="showGroupDetail(item)">
-              明细
-            </v-btn>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+          查看
+        </v-btn>
+        <v-btn v-else size="small" variant="text" color="primary" @click="showGroupDetail(item)">
+          明细
+        </v-btn>
+      </template>
+    </AppDataTable>
 
     <FailureDrawer v-model="drawerOpen" :failure-id="selectedId" />
 
@@ -288,6 +256,7 @@
   import { computed, onMounted, ref, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import PageHeader from '@/components/PageHeader.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import FailureDrawer from '@/components/failures/FailureDrawer.vue';
   import failureService from '@/service/failure-service';
   import sourceService from '@/service/source-service';
@@ -479,6 +448,11 @@
     page.value = options.page;
     pageSize.value = options.itemsPerPage;
     load();
+  }
+
+  // The grouped view is a client table; only the detail view is server-paged.
+  function handleTableOptions(options: { page: number; itemsPerPage: number }) {
+    if (mode.value === 'detail') onOptions(options);
   }
 
   async function exportCsv() {

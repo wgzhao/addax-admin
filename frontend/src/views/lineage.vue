@@ -30,60 +30,60 @@
       </v-card-text>
     </v-card>
 
-    <v-alert v-if="error" type="error" variant="tonal" class="mt-3">{{ error }}</v-alert>
-
-    <v-card flat class="ds-card lineage-card">
-      <v-card-text class="ds-card__content">
+    <AppDataTable
+      :headers="headers"
+      :items="items"
+      :loading="loading"
+      :error="error"
+      class="lineage-card lineage-table"
+      empty-title="输入字段名开始搜索"
+      empty-description="按源字段或目标字段搜索，查看字段从哪张表来、落到哪张 ODS 表。"
+      @update:error="error = ''"
+    >
+      <template #header>
         <div v-if="searched && !loading" class="lineage-summary">
-          共 {{ items.length }} 条字段血缘{{ items.length >= 200 ? '（已达上限，请缩小范围）' : '' }}
+          共 {{ items.length }} 条字段血缘{{
+            items.length >= 200 ? '（已达上限，请缩小范围）' : ''
+          }}
         </div>
-
-        <v-data-table
-          :headers="headers"
-          :items="items"
-          :loading="loading"
-          density="comfortable"
-          no-data-text="输入字段名开始搜索"
-          class="lineage-table"
+      </template>
+      <template #item.column="{ item }">
+        <div class="column-path">
+          <code class="column-name">{{ item.sourceColumn }}</code>
+          <v-icon size="16" class="arrow-icon">mdi-arrow-right</v-icon>
+          <code class="column-name">{{ item.targetColumn }}</code>
+        </div>
+      </template>
+      <template #item.source="{ item }">
+        <div class="table-ref">
+          <span class="table-ref__label">{{ item.sourceName }}</span>
+          <code class="table-ref__name">{{ item.sourceDb }}.{{ item.sourceTable }}</code>
+        </div>
+      </template>
+      <template #item.target="{ item }">
+        <div class="table-ref">
+          <span class="table-ref__label">{{ item.targetName }}</span>
+          <code class="table-ref__name">{{ item.targetDb }}.{{ item.targetTable }}</code>
+        </div>
+      </template>
+      <template #item.actions="{ item }">
+        <v-btn
+          size="small"
+          variant="text"
+          color="primary"
+          :to="`/table/detail/${item.tid}?tab=fields`"
         >
-          <template #item.column="{ item }">
-            <div class="column-path">
-              <code class="column-name">{{ item.sourceColumn }}</code>
-              <v-icon size="16" class="arrow-icon">mdi-arrow-right</v-icon>
-              <code class="column-name">{{ item.targetColumn }}</code>
-            </div>
-          </template>
-          <template #item.source="{ item }">
-            <div class="table-ref">
-              <span class="table-ref__label">{{ item.sourceName }}</span>
-              <code class="table-ref__name">{{ item.sourceDb }}.{{ item.sourceTable }}</code>
-            </div>
-          </template>
-          <template #item.target="{ item }">
-            <div class="table-ref">
-              <span class="table-ref__label">{{ item.targetName }}</span>
-              <code class="table-ref__name">{{ item.targetDb }}.{{ item.targetTable }}</code>
-            </div>
-          </template>
-          <template #item.actions="{ item }">
-            <v-btn
-              size="small"
-              variant="text"
-              color="primary"
-              :to="`/table/detail/${item.tid}?tab=fields`"
-            >
-              查看
-            </v-btn>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+          查看
+        </v-btn>
+      </template>
+    </AppDataTable>
   </div>
 </template>
 
 <script setup lang="ts">
   import { ref } from 'vue';
   import PageHeader from '@/components/PageHeader.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import lineageService, { type ColumnLineage } from '@/service/lineage-service';
 
   const keyword = ref('');

@@ -1,0 +1,71 @@
+/**
+ * CJK typography layer.
+ *
+ * Why: Material's type scale is tuned for Latin glyphs. Chinese characters are
+ * square and optically heavier, so positive tracking reads as loose, and the
+ * non-standard weights used across the console (650/700/750) fall back to
+ * browser-synthesized bold, which makes strokes muddy.
+ *
+ * This file is loaded before overrides.scss; selectors here use `.v-application`
+ * + `:is()` so they still win over Vuetify's single-class utility rules.
+ */
+
+.v-application {
+  /* Keep real weights only: synthesized bold on CJK is visibly blurry. */
+  font-synthesis: none;
+
+  /* Add optical spacing between CJK and Latin/digits in prose. */
+  text-autospace: normal;
+
+  /* Trim full-width punctuation spacing at line start (Chromium). */
+  text-spacing-trim: trim-start;
+}
+
+/* Data surfaces must keep their authored widths: no auto-spacing in fields,
+   tables, code or any monospaced block. */
+.v-application
+  :is(
+    input,
+    textarea,
+    pre,
+    code,
+    kbd,
+    .v-field,
+    .v-data-table,
+    .v-data-table-server,
+    .v-data-table-virtual,
+    .mono,
+    .ds-mono
+  ) {
+  text-autospace: no-autospace;
+  text-spacing-trim: space-all;
+}
+
+/* Zero the Latin tracking Material applies to Chinese UI text. */
+.v-application
+  :is(
+    .v-list-item-title,
+    .v-list-item-subtitle,
+    .v-btn,
+    .v-chip,
+    .v-label,
+    .text-headline-large,
+    .text-headline-medium,
+    .text-headline-small,
+    .text-title-large,
+    .text-title-medium,
+    .text-title-small,
+    .text-body-large,
+    .text-body-medium,
+    .text-body-small,
+    .text-label-large,
+    .text-label-medium,
+    .text-label-small
+  ) {
+  letter-spacing: 0;
+}
+
+.v-application .v-dialog > .v-overlay__content > .v-card > .v-card-text,
+.v-application .v-dialog > .v-overlay__content > form > .v-card > .v-card-text {
+  letter-spacing: 0;
+}

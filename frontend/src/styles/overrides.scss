@@ -1,3 +1,5 @@
+@use './cjk';
+
 html,
 body,
 #app,
@@ -30,15 +32,17 @@ body,
   --ds-text-2: rgb(var(--v-theme-on-surface-variant));
   --ds-text-3: rgb(var(--v-theme-on-surface-muted));
 
-  /* One scale for the whole console: 12 caption / 14 body / 16 section / 18 page */
+  /* One scale for the whole console: 12 caption / 14 body / 15 section / 16 title / 18 page */
   --ds-fs-caption: 12px;
   --ds-fs-body: 14px;
   --ds-fs-section: 15px;
   --ds-fs-title: 16px;
   --ds-fs-page: 18px;
-  --ds-radius-sm: 8px;
-  --ds-radius-md: 12px;
-  --ds-radius-lg: 16px;
+  /* Three radius steps: controls / surfaces / overlays. Keep in sync with
+     $border-radius-root (6px) in settings.scss. */
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 10px;
+  --ds-radius-lg: 14px;
 
   /* Spacing scale: use these instead of ad-hoc pixel values in new surfaces. */
   --ds-space-1: 4px;
@@ -105,7 +109,7 @@ select,
 .v-list-item:focus-visible {
   outline: 2px solid rgb(var(--v-theme-primary)) !important;
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-sm);
 }
 
 /* Why: dialogs focus their surface to trap focus; a ring around the whole card reads as a bug */
@@ -143,7 +147,7 @@ select,
   top: -48px;
   z-index: 3000;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-sm);
   background: rgb(var(--v-theme-primary));
   color: rgb(var(--v-theme-on-primary));
   font-size: 14px;
@@ -238,15 +242,19 @@ select,
   border-bottom-color: var(--ds-border-default) !important;
 }
 
-.v-data-table tbody tr:nth-child(even),
-.v-data-table-server tbody tr:nth-child(even) {
-  background: rgba(var(--v-theme-on-surface), 0.035);
+/* Why: the table already sits inside a bordered card with a tinted header.
+   Zebra stripes added a fourth visible boundary and made dense lists noisy;
+   hover is the only row-level highlight now. */
+.v-data-table tbody tr:hover,
+.v-data-table-server tbody tr:hover,
+.v-data-table-virtual tbody tr:hover {
+  background: rgba(var(--v-theme-on-surface), 0.04);
 }
 
-.v-theme--dark .v-data-table tbody tr:nth-child(even),
-.v-theme--dark .v-data-table-server tbody tr:nth-child(even),
-.v-theme--dark .v-data-table-virtual tbody tr:nth-child(even) {
-  background: rgba(var(--v-theme-surface-overlay), 0.36);
+.v-theme--dark .v-data-table tbody tr:hover,
+.v-theme--dark .v-data-table-server tbody tr:hover,
+.v-theme--dark .v-data-table-virtual tbody tr:hover {
+  background: rgba(var(--v-theme-surface-overlay), 0.5);
 }
 
 .form-section {
@@ -324,7 +332,7 @@ select,
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md);
   background: rgba(var(--v-theme-primary), 0.1);
   color: rgb(var(--v-theme-primary));
   flex: none;
@@ -645,6 +653,24 @@ pre code.hljs {
   z-index: 4;
 }
 
+/* Keep the row identity visible while a wide table scrolls horizontally. */
+.ds-table-sticky-first .v-table__wrapper thead th:first-child,
+.ds-table-sticky-first .v-table__wrapper tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: rgb(var(--v-theme-surface));
+}
+
+.ds-table-sticky-first .v-table__wrapper thead th:first-child {
+  z-index: 4;
+  background: color-mix(
+    in srgb,
+    rgb(var(--v-theme-surface)) 94%,
+    rgb(var(--v-theme-on-surface)) 6%
+  );
+}
+
 @media (max-height: 700px) {
   .ds-table-scroll .v-table__wrapper {
     max-height: var(--ds-table-max-short, calc(100vh - 300px));
@@ -667,7 +693,7 @@ pre code.hljs {
 
 .ds-action-btn-main {
   font-weight: 600 !important;
-  letter-spacing: 0.4px;
+  letter-spacing: 0;
 }
 
 .ds-dialog-overlay .v-card-actions {
@@ -683,7 +709,7 @@ pre code.hljs {
   background: #2a1b1b;
   color: #ffb4ab;
   border: 1px solid #93000a;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-sm);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   font-size: 13px;
   line-height: 1.6;
@@ -702,7 +728,7 @@ pre code.hljs {
 
 .ds-dialog-overlay .v-overlay__content > * {
   border: 1px solid var(--ds-border-strong);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-lg);
   background: rgb(var(--v-theme-surface));
   box-shadow:
     0 24px 72px rgba(0, 0, 0, 0.46),

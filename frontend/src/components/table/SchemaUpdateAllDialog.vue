@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="open" max-width="640">
     <v-card>
-      <v-card-title class="text-h6">请确认：强制更新全部表信息</v-card-title>
+      <v-card-title>请确认：强制更新全部表信息</v-card-title>
       <v-card-text>
         <div>
           警告：该操作会对所有采集表执行强制结构更新，可能耗时很久并产生破坏性变更（例如覆盖现有表结构）。请确保您已备份数据并明确需要执行此操作。

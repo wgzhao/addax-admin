@@ -44,94 +44,84 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
-      <v-card-text class="ds-card__content">
-        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
-        <template v-else-if="targets.length === 0">
-          <EmptyState
-            title="暂无目标端"
-            description="当前还没有配置任何目标端。点击下方按钮新增目标端后，即可配置连接、模板键和默认落库策略。"
-            :primary="authStore.canWrite ? { label: '新增目标端', icon: 'mdi-plus' } : undefined"
-            @primary="openCreate"
-          />
-        </template>
-        <template v-else>
-          <v-data-table
-            :headers="headers"
-            :items="targets"
-            :search="searchValue"
-            :custom-filter="targetFilter"
-            item-value="id"
-            density="comfortable"
-            items-per-page="20"
+    <AppDataTable
+      :headers="headers"
+      :items="targets"
+      :loading="loading"
+      :search="searchValue"
+      :custom-filter="targetFilter"
+      item-value="id"
+      scrollable
+      items-per-page="20"
+      empty-title="暂无目标端"
+      empty-description="当前还没有配置任何目标端。点击下方按钮新增目标端后，即可配置连接、模板键和默认落库策略。"
+      :empty-primary="authStore.canWrite ? { label: '新增目标端', icon: 'mdi-plus' } : null"
+      @empty-primary="openCreate"
+    >
+      <template #item.name="{ item }">
+        <div class="ds-cell-stack">
+          <span class="ds-cell-meta">{{ item.code || '未配置编码' }}</span>
+          <span class="ds-cell-primary">{{ item.name || '-' }}</span>
+        </div>
+      </template>
+
+      <template #item.targetType="{ item }">
+        <v-chip size="small" :color="getTargetTypeColor(item.targetType)" variant="tonal">
+          {{ item.targetType || '-' }}
+        </v-chip>
+      </template>
+
+      <template #item.writerTemplateKey="{ item }">
+        <span class="ds-cell-primary ds-mono-text">{{ item.writerTemplateKey || '-' }}</span>
+      </template>
+
+      <template #item.enabled="{ item }">
+        <v-chip
+          size="small"
+          :color="item.enabled ? 'success' : 'error'"
+          :variant="item.enabled ? 'tonal' : 'outlined'"
+        >
+          {{ item.enabled ? '已启用' : '已停用' }}
+        </v-chip>
+      </template>
+
+      <template #item.isDefault="{ item }">
+        <v-chip
+          size="small"
+          :color="item.isDefault ? 'primary' : 'default'"
+          :variant="item.isDefault ? 'tonal' : 'outlined'"
+        >
+          {{ item.isDefault ? '默认' : '否' }}
+        </v-chip>
+      </template>
+
+      <template #item.action="{ item }">
+        <div v-if="authStore.canWrite" class="ds-action-inline">
+          <v-btn
+            size="small"
+            variant="text"
+            color="primary"
+            class="px-2 ds-action-btn-main"
+            @click="openEdit(item)"
           >
-            <template #item.name="{ item }">
-              <div class="ds-cell-stack">
-                <span class="ds-cell-meta">{{ item.code || '未配置编码' }}</span>
-                <span class="ds-cell-primary">{{ item.name || '-' }}</span>
-              </div>
-            </template>
-
-            <template #item.targetType="{ item }">
-              <v-chip size="small" :color="getTargetTypeColor(item.targetType)" variant="tonal">
-                {{ item.targetType || '-' }}
-              </v-chip>
-            </template>
-
-            <template #item.writerTemplateKey="{ item }">
-              <span class="ds-cell-primary ds-mono-text">{{ item.writerTemplateKey || '-' }}</span>
-            </template>
-
-            <template #item.enabled="{ item }">
-              <v-chip
-                size="small"
-                :color="item.enabled ? 'success' : 'error'"
-                :variant="item.enabled ? 'tonal' : 'outlined'"
-              >
-                {{ item.enabled ? '已启用' : '已停用' }}
-              </v-chip>
-            </template>
-
-            <template #item.isDefault="{ item }">
-              <v-chip
-                size="small"
-                :color="item.isDefault ? 'primary' : 'default'"
-                :variant="item.isDefault ? 'tonal' : 'outlined'"
-              >
-                {{ item.isDefault ? '默认' : '否' }}
-              </v-chip>
-            </template>
-
-            <template #item.action="{ item }">
-              <div v-if="authStore.canWrite" class="ds-action-inline">
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  class="px-2 ds-action-btn-main"
-                  @click="openEdit(item)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
-                </v-btn>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="info"
-                  class="px-2"
-                  title="仅检测 JDBC 连接；HDFS 写入请进入编辑页点击「校验目标端」"
-                  @click="testConnect(item)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-connection</v-icon>测试连接
-                </v-btn>
-                <v-btn size="small" variant="text" color="error" class="px-2" @click="remove(item)">
-                  <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
-                </v-btn>
-              </div>
-            </template>
-          </v-data-table>
-        </template>
-      </v-card-text>
-    </v-card>
+            <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            color="info"
+            class="px-2"
+            title="仅检测 JDBC 连接；HDFS 写入请进入编辑页点击「校验目标端」"
+            @click="testConnect(item)"
+          >
+            <v-icon size="16" class="mr-1">mdi-connection</v-icon>测试连接
+          </v-btn>
+          <v-btn size="small" variant="text" color="error" class="px-2" @click="remove(item)">
+            <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+          </v-btn>
+        </div>
+      </template>
+    </AppDataTable>
 
     <v-dialog
       v-model="dialogVisible"
@@ -563,7 +553,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import EmptyState from '@/components/EmptyState.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';

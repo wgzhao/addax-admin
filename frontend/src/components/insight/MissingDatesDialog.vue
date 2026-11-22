@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="open" max-width="760">
     <v-card>
-      <v-card-title class="text-subtitle-1 font-weight-medium">缺失日期明细</v-card-title>
+      <v-card-title class="font-weight-medium">缺失日期明细</v-card-title>
       <v-card-text>
         <div class="mb-3">目标表：{{ item?.source_db }}.{{ item?.source_table }}</div>
         <div class="mb-3">缺失天数：{{ dates.length }}</div>

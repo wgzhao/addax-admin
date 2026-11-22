@@ -42,93 +42,82 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
-      <v-card-text class="ds-card__content">
-        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
-        <template v-else-if="sources.length === 0">
-          <EmptyState
-            title="暂无采集源"
-            description="当前还没有配置任何采集源。点击下方按钮新增采集源后，即可继续维护连接与采集配置。"
-            :primary="authStore.canWrite ? { label: '新增采集源', icon: 'mdi-plus' } : undefined"
-            @primary="() => doAction(-1, 'add')"
-          />
-        </template>
-        <template v-else>
-          <v-data-table
-            :items="sources"
-            :headers="headers"
-            :search="searchValue"
-            class="source-table"
-            density="comfortable"
-            items-per-page="20"
+    <AppDataTable
+      :items="sources"
+      :headers="headers"
+      :loading="loading"
+      :search="searchValue"
+      class="source-table"
+      scrollable
+      sticky-first-column
+      items-per-page="20"
+      empty-title="暂无采集源"
+      empty-description="当前还没有配置任何采集源。点击下方按钮新增采集源后，即可继续维护连接与采集配置。"
+      :empty-primary="authStore.canWrite ? { label: '新增采集源', icon: 'mdi-plus' } : null"
+      @empty-primary="() => doAction(-1, 'add')"
+    >
+      <template #item.dbType="{ item }">
+        <v-chip size="small" color="primary" variant="tonal">{{ typeLabel(item.dbType) }}</v-chip>
+      </template>
+
+      <template #item.url="{ item }">
+        <span class="ds-cell-primary ds-mono-text ds-white-space-normal table-url">{{
+          item.url || '-'
+        }}</span>
+      </template>
+
+      <template #item.enabled="{ item }">
+        <v-chip size="small" :color="item.enabled ? 'success' : 'grey'" variant="tonal">
+          {{ item.enabled ? '已启用' : '已禁用' }}
+        </v-chip>
+      </template>
+
+      <template #item.startAt="{ item }">
+        <span class="ds-cell-support">{{ item.startAt || '-' }}</span>
+      </template>
+
+      <template #item.calendar="{ item }">
+        <span class="ds-cell-support">{{ calendarLabel(item.calendar) }}</span>
+      </template>
+
+      <template #item.actions="{ item }">
+        <div
+          v-if="authStore.canWrite || authStore.canOperateSource(item.id)"
+          class="ds-action-inline"
+        >
+          <v-btn
+            v-if="authStore.canOperateSource(item.id)"
+            variant="text"
+            color="primary"
+            size="small"
+            class="px-2 ds-action-btn-main"
+            @click="doAction(item.id, 'edit')"
           >
-            <template #item.dbType="{ item }">
-              <v-chip size="small" color="primary" variant="tonal">{{
-                typeLabel(item.dbType)
-              }}</v-chip>
-            </template>
-
-            <template #item.url="{ item }">
-              <span class="ds-cell-primary ds-mono-text ds-white-space-normal table-url">{{
-                item.url || '-'
-              }}</span>
-            </template>
-
-            <template #item.enabled="{ item }">
-              <v-chip size="small" :color="item.enabled ? 'success' : 'grey'" variant="tonal">
-                {{ item.enabled ? '已启用' : '已禁用' }}
-              </v-chip>
-            </template>
-
-            <template #item.startAt="{ item }">
-              <span class="ds-cell-support">{{ item.startAt || '-' }}</span>
-            </template>
-
-            <template #item.calendar="{ item }">
-              <span class="ds-cell-support">{{ calendarLabel(item.calendar) }}</span>
-            </template>
-
-            <template #item.actions="{ item }">
-              <div
-                v-if="authStore.canWrite || authStore.canOperateSource(item.id)"
-                class="ds-action-inline"
-              >
-                <v-btn
-                  v-if="authStore.canOperateSource(item.id)"
-                  variant="text"
-                  color="primary"
-                  size="small"
-                  class="px-2 ds-action-btn-main"
-                  @click="doAction(item.id, 'edit')"
-                >
-                  <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
-                </v-btn>
-                <v-btn
-                  v-if="authStore.canWrite"
-                  variant="text"
-                  color="info"
-                  size="small"
-                  class="px-2"
-                  @click="cloneSource(item)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-content-copy</v-icon>克隆
-                </v-btn>
-                <v-btn
-                  v-if="authStore.canWrite"
-                  variant="text"
-                  color="error"
-                  size="small"
-                  class="px-2"
-                  @click="openDeleteDialog(item.id, item.name)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
-                </v-btn>
-              </div>
-            </template>
-          </v-data-table>
-        </template>
-      </v-card-text>
-    </v-card>
+            <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
+          </v-btn>
+          <v-btn
+            v-if="authStore.canWrite"
+            variant="text"
+            color="info"
+            size="small"
+            class="px-2"
+            @click="cloneSource(item)"
+          >
+            <v-icon size="16" class="mr-1">mdi-content-copy</v-icon>克隆
+          </v-btn>
+          <v-btn
+            v-if="authStore.canWrite"
+            variant="text"
+            color="error"
+            size="small"
+            class="px-2"
+            @click="openDeleteDialog(item.id, item.name)"
+          >
+            <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+          </v-btn>
+        </div>
+      </template>
+    </AppDataTable>
   </div>
 
   <v-dialog
@@ -180,7 +169,7 @@
   import type { DataTableHeader } from 'vuetify';
   import sourceService from '@/service/source-service';
   import AddDataSource from '@/components/source/AddSource.vue';
-  import EmptyState from '@/components/EmptyState.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';
   import { useAuthStore } from '@/stores/auth';

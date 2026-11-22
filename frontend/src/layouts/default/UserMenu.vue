@@ -71,7 +71,7 @@
 
   <v-dialog v-model="profileDialog" max-width="520">
     <v-card>
-      <v-card-title class="text-h6">账号信息</v-card-title>
+      <v-card-title>账号信息</v-card-title>
       <v-card-text>
         <v-list density="compact">
           <v-list-item>

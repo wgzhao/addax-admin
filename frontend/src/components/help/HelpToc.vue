@@ -32,7 +32,7 @@
     color: var(--ds-text-3);
     font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
   }
 
   .help-toc__list {

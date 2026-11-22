@@ -277,7 +277,7 @@
     display: block;
     margin-bottom: 6px;
     font-size: 0.76rem;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
     text-transform: uppercase;
     color: rgba(var(--v-theme-on-surface), 0.56);
   }

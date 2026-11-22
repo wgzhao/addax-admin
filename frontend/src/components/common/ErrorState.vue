@@ -49,7 +49,7 @@
     gap: 12px;
     padding: 14px 16px;
     border: 1px solid rgba(var(--v-theme-error), 0.24);
-    border-radius: 10px;
+    border-radius: var(--ds-radius-md);
     background: rgba(var(--v-theme-error), 0.05);
   }
 
@@ -59,7 +59,7 @@
     justify-content: center;
     width: 34px;
     height: 34px;
-    border-radius: 9px;
+    border-radius: var(--ds-radius-sm);
     background: rgba(var(--v-theme-error), 0.1);
     color: rgb(var(--v-theme-error));
     flex: none;

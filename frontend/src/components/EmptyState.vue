@@ -58,17 +58,23 @@
           </div>
         </div>
 
-        <div class="text-h5 font-weight-medium mt-2">{{ title }}</div>
+        <div class="text-title-large font-weight-medium mt-2">{{ title }}</div>
 
         <div
           v-if="description"
-          class="text-subtitle-1 my-4"
+          class="text-body-large my-4"
           aria-live="polite"
           v-html="description"
         ></div>
 
         <div class="d-flex justify-center flex-wrap actions">
-          <v-btn class="ma-2" :color="primary.color || 'primary'" large @click="$emit('primary')">
+          <v-btn
+            v-if="primary"
+            class="ma-2"
+            :color="primary.color || 'primary'"
+            large
+            @click="$emit('primary')"
+          >
             <v-icon v-if="primary.icon" left>{{ primary.icon }}</v-icon>
             {{ primary.label }}
           </v-btn>
@@ -114,7 +120,7 @@
     illustration: { type: String, default: '' },
     primary: {
       type: Object as () => Action & { color?: string },
-      default: () => ({ label: '创建', icon: 'mdi-plus' }),
+      default: null,
     },
     secondary: { type: Object as () => Action | null, default: null },
     actions: { type: Array as () => Action[], default: () => [] },
@@ -125,7 +131,7 @@
 
 <style scoped>
   .empty-card {
-    border-radius: 12px;
+    border-radius: var(--ds-radius-md);
     max-width: 760px;
     margin: 0 auto;
   }

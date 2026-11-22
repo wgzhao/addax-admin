@@ -4,60 +4,63 @@
       title="采集任务"
       subtitle="查看排队中与运行中的采集任务；完成后可在采集表详情查看结果。"
     />
-    <v-card flat class="ds-card task-card ds-table-scroll">
-      <v-card-text>
-        <v-data-table :items="taskStatus" :headers="headers" item-value="id" density="comfortable">
-          <template #item.status="{ item }">
-            <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
-              {{ getStatusText(item.status) }}
-            </v-chip>
-          </template>
-          <template #item.progress="{ item }">
-            <v-progress-linear
-              :model-value="item.displayProgress ?? item.progress"
-              :buffer-value="item.progress"
-              height="16"
-              color="primary"
-              striped
-              rounded
-              style="min-width: 80px"
-            ></v-progress-linear>
-          </template>
-          <template #item.node_name="{ item }">
-            <span>{{ item.node_name || '-' }}</span>
-          </template>
-          <template #item.action="{ item }">
-            <div class="task-actions">
-              <v-btn
-                v-if="authStore.canOperateSource(item.sid)"
-                size="small"
-                color="primary"
-                :loading="executing.includes(Number(item.id))"
-                @click="executeTask(item)"
-              >
-                采集
-              </v-btn>
-              <v-btn size="small" variant="text" :to="`/table/detail/${item.id}`">详情</v-btn>
-            </div>
-          </template>
-          <template #no-data>
-            <div class="task-empty">
-              <v-icon size="22" color="success">mdi-check-circle-outline</v-icon>
-              <div>
-                <div class="task-empty-title">当前没有排队或运行中的任务</div>
-                <div class="task-empty-sub">任务提交后会实时出现在这里</div>
-              </div>
-              <v-btn size="small" variant="text" to="/table">查看采集表</v-btn>
-            </div>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+    <AppDataTable
+      :items="taskStatus"
+      :headers="headers"
+      item-value="id"
+      scrollable
+      class="task-card"
+    >
+      <template #item.status="{ item }">
+        <v-chip :color="getStatusColor(item.status)" size="small" class="font-weight-bold">
+          {{ getStatusText(item.status) }}
+        </v-chip>
+      </template>
+      <template #item.progress="{ item }">
+        <v-progress-linear
+          :model-value="item.displayProgress ?? item.progress"
+          :buffer-value="item.progress"
+          height="16"
+          color="primary"
+          striped
+          rounded
+          style="min-width: 80px"
+        ></v-progress-linear>
+      </template>
+      <template #item.node_name="{ item }">
+        <span>{{ item.node_name || '-' }}</span>
+      </template>
+      <template #item.action="{ item }">
+        <div class="task-actions">
+          <v-btn
+            v-if="authStore.canOperateSource(item.sid)"
+            size="small"
+            color="primary"
+            :loading="executing.includes(Number(item.id))"
+            @click="executeTask(item)"
+          >
+            采集
+          </v-btn>
+          <v-btn size="small" variant="text" :to="`/table/detail/${item.id}`">详情</v-btn>
+        </div>
+      </template>
+      <template #no-data>
+        <div class="task-empty">
+          <v-icon size="22" color="success">mdi-check-circle-outline</v-icon>
+          <div>
+            <div class="task-empty-title">当前没有排队或运行中的任务</div>
+            <div class="task-empty-sub">任务提交后会实时出现在这里</div>
+          </div>
+          <v-btn size="small" variant="text" to="/table">查看采集表</v-btn>
+        </div>
+      </template>
+    </AppDataTable>
   </div>
 </template>
 
 <script setup lang="ts">
   import PageHeader from '@/components/PageHeader.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import taskService from '@/service/task-service';
   import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
   import type { DataTableHeader } from 'vuetify';

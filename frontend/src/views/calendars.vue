@@ -1,6 +1,9 @@
 <template>
   <div class="calendars-page page-shell ds-management-page">
-    <PageHeader title="采集日历" subtitle="维护交易日历与工作日历的日期集合，控制源端可以采集的日期。" />
+    <PageHeader
+      title="采集日历"
+      subtitle="维护交易日历与工作日历的日期集合，控制源端可以采集的日期。"
+    />
 
     <v-alert
       v-for="warning in coverageWarnings"
@@ -14,108 +17,102 @@
       {{ warning }}
     </v-alert>
 
-    <v-card flat class="ds-card">
-      <v-card-text class="section-body">
-        <div class="section-header">
-          <div>
-            <div class="section-title">日历日期</div>
-            <div class="section-subtitle">
-              交易日历决定业务日期，工作日历决定采集窗口。缺日会让使用该日历的源静默停采。
+    <AppDataTable
+      :items="dates"
+      :headers="dateHeaders"
+      :loading="loading"
+      item-key="itemKey"
+      empty-title="该年份暂无日期"
+      empty-description="可点击「批量生成」按年写入，或「新增日期」手工补单日。"
+      :empty-primary="{ label: '批量生成', icon: 'mdi-calendar-plus' }"
+      @empty-primary="openBatchDialog()"
+    >
+      <template #header>
+        <div class="cal-table-header">
+          <div class="section-header">
+            <div>
+              <div class="section-title">日历日期</div>
+              <div class="section-subtitle">
+                交易日历决定业务日期，工作日历决定采集窗口。缺日会让使用该日历的源静默停采。
+              </div>
             </div>
           </div>
+
+          <v-btn-toggle v-model="selectedCode" mandatory color="primary" variant="outlined" divided>
+            <v-btn v-for="cal in calendars" :key="cal.code" :value="cal.code" class="calendar-tab">
+              {{ cal.name }}
+              <span class="tab-code">（{{ cal.code }}）</span>
+            </v-btn>
+          </v-btn-toggle>
+
+          <div class="toolbar">
+            <v-text-field
+              v-model.number="year"
+              label="年份"
+              type="number"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="year-field"
+              :rules="[yearRule]"
+              @update:model-value="loadDates"
+            />
+            <span class="date-count">{{ dates.length }} 天</span>
+            <v-spacer />
+            <v-btn
+              color="secondary"
+              variant="tonal"
+              size="small"
+              prepend-icon="mdi-calendar-plus"
+              @click="openBatchDialog"
+            >
+              批量生成
+            </v-btn>
+            <v-btn
+              v-if="selectedCode === 1021"
+              color="secondary"
+              variant="tonal"
+              size="small"
+              prepend-icon="mdi-calendar-refresh"
+              @click="openTradeDialog"
+            >
+              年度补全交易日历
+            </v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              size="small"
+              prepend-icon="mdi-plus"
+              @click="openAddDateDialog"
+            >
+              新增日期
+            </v-btn>
+          </div>
         </div>
+      </template>
 
-        <v-btn-toggle v-model="selectedCode" mandatory color="primary" variant="outlined" divided>
-          <v-btn v-for="cal in calendars" :key="cal.code" :value="cal.code" class="calendar-tab">
-            {{ cal.name }}
-            <span class="tab-code">（{{ cal.code }}）</span>
-          </v-btn>
-        </v-btn-toggle>
+      <template #item.itemKey="{ item }">
+        <span class="ds-cell-primary ds-mono-text">{{ item.itemKey }}</span>
+      </template>
 
-        <div class="toolbar">
-          <v-text-field
-            v-model.number="year"
-            label="年份"
-            type="number"
-            variant="outlined"
-            density="compact"
-            hide-details
-            class="year-field"
-            :rules="[yearRule]"
-            @update:model-value="loadDates"
-          />
-          <span class="date-count">{{ dates.length }} 天</span>
-          <v-spacer />
+      <template #item.remark="{ item }">
+        <span class="ds-cell-support">{{ item.remark || '-' }}</span>
+      </template>
+
+      <template #item.actions="{ item }">
+        <div class="ds-action-inline">
           <v-btn
-            color="secondary"
-            variant="tonal"
             size="small"
-            prepend-icon="mdi-calendar-plus"
-            @click="openBatchDialog"
+            variant="text"
+            color="error"
+            class="px-2"
+            @click.stop="deleteDate(item.itemKey)"
           >
-            批量生成
-          </v-btn>
-          <v-btn
-            v-if="selectedCode === 1021"
-            color="secondary"
-            variant="tonal"
-            size="small"
-            prepend-icon="mdi-calendar-refresh"
-            @click="openTradeDialog"
-          >
-            年度补全交易日历
-          </v-btn>
-          <v-btn
-            color="primary"
-            variant="flat"
-            size="small"
-            prepend-icon="mdi-plus"
-            @click="openAddDateDialog"
-          >
-            新增日期
+            <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
           </v-btn>
         </div>
-
-        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
-        <template v-else-if="dates.length === 0">
-          <EmptyState
-            title="该年份暂无日期"
-            description="可点击「批量生成」按年写入，或「新增日期」手工补单日。"
-            :primary="{ label: '批量生成', icon: 'mdi-calendar-plus' }"
-            @primary="openBatchDialog()"
-          />
-        </template>
-        <v-data-table
-          v-else
-          :items="dates"
-          :headers="dateHeaders"
-          item-key="itemKey"
-          density="comfortable"
-        >
-          <template #item.itemKey="{ item }">
-            <span class="ds-cell-primary ds-mono-text">{{ item.itemKey }}</span>
-          </template>
-
-          <template #item.remark="{ item }">
-            <span class="ds-cell-support">{{ item.remark || '-' }}</span>
-          </template>
-
-          <template #item.actions="{ item }">
-            <div class="ds-action-inline">
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                class="px-2"
-                @click.stop="deleteDate(item.itemKey)"
-              >
-                <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
-              </v-btn>
-            </div>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+      </template>
+    </AppDataTable>
 
     <v-dialog v-model="addDateDialog" class="ds-dialog-overlay" max-width="480">
       <v-card>
@@ -292,7 +289,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue';
   import PageHeader from '@/components/PageHeader.vue';
-  import EmptyState from '@/components/EmptyState.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import calendarService from '@/service/calendar-service';
   import { notify } from '@/stores/notifier';
@@ -418,15 +415,19 @@
   };
 
   const deleteDate = (dateStr: string) => {
-    askConfirm('删除日历日期', `将从「${selectedName.value}」删除日期「${dateStr}」。`, async () => {
-      try {
-        await calendarService.removeDate(selectedCode.value, dateStr);
-        notify('日期已删除', 'success');
-        refreshAll();
-      } catch (err: any) {
-        notify('删除失败: ' + (err?.message || err), 'error');
+    askConfirm(
+      '删除日历日期',
+      `将从「${selectedName.value}」删除日期「${dateStr}」。`,
+      async () => {
+        try {
+          await calendarService.removeDate(selectedCode.value, dateStr);
+          notify('日期已删除', 'success');
+          refreshAll();
+        } catch (err: any) {
+          notify('删除失败: ' + (err?.message || err), 'error');
+        }
       }
-    });
+    );
   };
 
   // —— 批量生成 ——
@@ -520,10 +521,11 @@
 </script>
 
 <style scoped>
-  .section-body {
+  .cal-table-header {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    margin-bottom: 16px;
   }
 
   .section-header {

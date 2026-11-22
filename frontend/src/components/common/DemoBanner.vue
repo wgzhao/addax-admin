@@ -16,7 +16,7 @@
     gap: 8px;
     padding: 7px 12px;
     border: 1px solid rgba(var(--v-theme-warning), 0.28);
-    border-radius: 9px;
+    border-radius: var(--ds-radius-sm);
     background: rgba(var(--v-theme-warning), 0.08);
     color: rgb(var(--v-theme-warning));
     font-size: 12px;

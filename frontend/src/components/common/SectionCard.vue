@@ -41,7 +41,7 @@
     flex-direction: column;
     min-width: 0;
     border: 1px solid var(--ds-border-default);
-    border-radius: 12px;
+    border-radius: var(--ds-radius-md);
     background: var(--ds-surface-raised);
   }
 

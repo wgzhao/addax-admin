@@ -636,7 +636,7 @@
   .metric-label {
     color: var(--ds-text-3);
     font-size: 0.67rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -685,7 +685,7 @@
   .drawer-kicker {
     color: var(--ds-text-3);
     font-size: 0.72rem;
-    letter-spacing: 0.06em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -749,7 +749,7 @@
     background: rgba(var(--v-theme-on-surface), 0.035);
     color: var(--ds-text-3);
     font-size: 0.68rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 

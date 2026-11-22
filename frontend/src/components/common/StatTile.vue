@@ -110,7 +110,7 @@
     min-height: 116px;
     padding: 14px 16px 12px;
     border: 1px solid var(--ds-border-default);
-    border-radius: 12px;
+    border-radius: var(--ds-radius-md);
     background: var(--ds-surface-raised);
     transition: border-color var(--ds-duration-fast) var(--ds-ease);
   }

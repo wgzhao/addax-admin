@@ -1,7 +1,7 @@
 <template>
   <v-dialog :model-value="visible" width="500" persistent @update:modelValue="emitClose">
     <v-card>
-      <v-card-title class="text-h6 d-flex align-center">
+      <v-card-title class="d-flex align-center">
         <v-icon class="mr-2" color="primary">mdi-database-sync</v-icon>
         {{ title }}
       </v-card-title>
@@ -21,7 +21,7 @@
         </div>
         <div v-if="results.length > 0" class="mt-3">
           <v-divider class="mb-2"></v-divider>
-          <div class="text-subtitle-2 mb-2">执行结果：</div>
+          <div class="text-title-small mb-2">执行结果：</div>
           <div class="result-container" style="max-height: 200px; overflow-y: auto">
             <v-chip
               v-for="(result, index) in results"

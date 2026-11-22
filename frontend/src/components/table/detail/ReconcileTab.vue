@@ -10,8 +10,6 @@
       </v-btn>
     </div>
 
-    <v-alert v-if="error" type="error" variant="tonal" class="mb-3">{{ error }}</v-alert>
-
     <v-card v-if="canWrite" flat class="ds-card reconcile-run-card mb-4">
       <v-card-text class="reconcile-run-card__content">
         <v-text-field
@@ -29,14 +27,17 @@
       </v-card-text>
     </v-card>
 
-    <v-data-table
+    <AppDataTable
+      bare
       :headers="headers"
       :items="items"
       :loading="loading"
+      :error="error"
       item-value="id"
-      density="comfortable"
-      no-data-text="该采集表暂无对账记录"
       class="reconcile-tab__table"
+      empty-title="该采集表暂无对账记录"
+      empty-description="可在上方发起一次对账，或等待下一次采集完成后自动生成。"
+      @update:error="error = ''"
     >
       <template #item.bizDate="{ item }">
         <span class="text-no-wrap">{{ item.bizDate }}</span>
@@ -64,12 +65,13 @@
       <template #item.message="{ item }">
         <span class="reconcile-tab__msg" :title="item.message || ''">{{ item.message || '-' }}</span>
       </template>
-    </v-data-table>
+    </AppDataTable>
   </div>
 </template>
 
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import { useRoute } from 'vue-router';
   import dayjs from 'dayjs';
   import { notify } from '@/stores/notifier';
