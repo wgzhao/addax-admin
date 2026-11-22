@@ -130,81 +130,68 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
-      <v-card-text class="ds-card__content">
-        <v-alert
-          v-if="error"
-          type="error"
-          variant="tonal"
-          closable
-          class="mb-4"
-          @click:close="error = ''"
-        >
-          {{ error }}
-        </v-alert>
-        <v-data-table-server
-          :headers="headers"
-          :items="events"
-          :items-length="totalItems"
-          :loading="loading"
-          :items-per-page="pageSize"
-          :page="page"
-          item-value="id"
-          density="comfortable"
-          class="audit-table"
-          @update:options="handleTableOptions"
-          @click:row="openDetail"
-        >
-          <template #item.occurredAt="{ item }">
-            <div class="time-cell">
-              <strong>{{ formatDate(item.occurredAt) }}</strong>
-              <span>{{ formatTime(item.occurredAt) }}</span>
-            </div>
-          </template>
-          <template #item.actorUsername="{ item }">
-            <div class="actor-cell">
-              <v-icon size="16" :color="item.actorType === 'SYSTEM' ? 'secondary' : 'primary'">
-                {{
-                  item.actorType === 'SYSTEM' ? 'mdi-robot-outline' : 'mdi-account-circle-outline'
-                }}
-              </v-icon>
-              <span>{{ item.actorUsername || 'SYSTEM' }}</span>
-            </div>
-          </template>
-          <template #item.action="{ item }">
-            <div class="action-cell">
-              <span class="action-code" :title="item.action">{{ actionLabel(item.action) }}</span>
-              <span class="action-resource">
-                {{ item.resourceType || 'API' }}
-                <template v-if="item.resourceId"> · {{ item.resourceId }}</template>
-              </span>
-            </div>
-          </template>
-          <template #item.severity="{ item }">
-            <v-chip size="x-small" variant="tonal" :color="severityColor(item.severity)">
-              {{ item.severity }}
-            </v-chip>
-          </template>
-          <template #item.outcome="{ item }">
-            <div class="outcome-cell">
-              <span class="outcome-dot" :class="`outcome-dot--${item.outcome.toLowerCase()}`" />
-              <span>{{ outcomeLabel(item.outcome) }}</span>
-            </div>
-          </template>
-          <template #item.requestId="{ item }">
-            <code class="request-code" :title="item.requestId || ''">
-              {{ shortId(item.requestId) }}
-            </code>
-          </template>
-          <template #no-data>
-            <EmptyState
-              title="没有匹配的审计事件"
-              description="调整日期、操作者或动作后重新查询。审计查询本身也会被记录。"
-            />
-          </template>
-        </v-data-table-server>
-      </v-card-text>
-    </v-card>
+    <AppDataTable
+      mode="server"
+      :headers="headers"
+      :items="events"
+      :total="totalItems"
+      :loading="loading"
+      :error="error"
+      :items-per-page="pageSize"
+      :page="page"
+      item-value="id"
+      scrollable
+      class="audit-table"
+      @update:error="error = $event"
+      @update:options="handleTableOptions"
+      @click:row="openDetail"
+    >
+      <template #item.occurredAt="{ item }">
+        <div class="time-cell">
+          <strong>{{ formatDate(item.occurredAt) }}</strong>
+          <span>{{ formatTime(item.occurredAt) }}</span>
+        </div>
+      </template>
+      <template #item.actorUsername="{ item }">
+        <div class="actor-cell">
+          <v-icon size="16" :color="item.actorType === 'SYSTEM' ? 'secondary' : 'primary'">
+            {{ item.actorType === 'SYSTEM' ? 'mdi-robot-outline' : 'mdi-account-circle-outline' }}
+          </v-icon>
+          <span>{{ item.actorUsername || 'SYSTEM' }}</span>
+        </div>
+      </template>
+      <template #item.action="{ item }">
+        <div class="action-cell">
+          <span class="action-code" :title="item.action">{{ actionLabel(item.action) }}</span>
+          <span class="action-resource">
+            {{ item.resourceType || 'API' }}
+            <template v-if="item.resourceId"> · {{ item.resourceId }}</template>
+          </span>
+        </div>
+      </template>
+      <template #item.severity="{ item }">
+        <v-chip size="x-small" variant="tonal" :color="severityColor(item.severity)">
+          {{ item.severity }}
+        </v-chip>
+      </template>
+      <template #item.outcome="{ item }">
+        <div class="outcome-cell">
+          <span class="outcome-dot" :class="`outcome-dot--${item.outcome.toLowerCase()}`" />
+          <span>{{ outcomeLabel(item.outcome) }}</span>
+        </div>
+      </template>
+      <template #item.requestId="{ item }">
+        <code class="request-code" :title="item.requestId || ''">
+          {{ shortId(item.requestId) }}
+        </code>
+      </template>
+      <template #no-data>
+        <EmptyState
+          title="没有匹配的审计事件"
+          description="调整日期、操作者或动作后重新查询。审计查询本身也会被记录。"
+        />
+      </template>
+    </AppDataTable>
 
     <v-dialog v-model="detailOpen" max-width="860" scrollable>
       <v-card v-if="selectedEvent">
@@ -308,6 +295,7 @@
   import { computed, reactive, ref } from 'vue';
   import dayjs from 'dayjs';
   import PageHeader from '@/components/PageHeader.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import EmptyState from '@/components/EmptyState.vue';
   import auditService, { type AuditEvent } from '@/service/audit-service';
   import { notify } from '@/stores/notifier';
@@ -523,7 +511,8 @@
   .metric-label {
     color: rgba(var(--v-theme-on-surface), 0.58);
     font-size: 12px;
-    letter-spacing: 0.1em;
+    /* Why: the label is Chinese; Latin tracking only makes the 5-char label look loose. */
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -651,7 +640,7 @@
   .json-label {
     color: rgba(var(--v-theme-on-surface), 0.52);
     font-size: 11px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 

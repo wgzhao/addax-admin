@@ -6,8 +6,17 @@
       </v-btn>
     </PageHeader>
 
-    <v-card flat class="ds-card table-card">
-      <v-card-text class="ds-card__content section-body">
+    <AppDataTable
+      :headers="headers"
+      :items="filtered"
+      :loading="loading"
+      item-key="sourceType"
+      empty-title="暂无映射"
+      empty-description="当前没有可显示的映射。可点击「新增映射」添加源类型到目标类型的映射。"
+      :empty-primary="{ label: '新增映射', icon: 'mdi-plus' }"
+      @empty-primary="openDialog()"
+    >
+      <template #header>
         <div class="section-header">
           <div>
             <div class="section-title">映射列表</div>
@@ -26,60 +35,43 @@
             class="search-field"
           />
         </div>
+      </template>
 
-        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
-        <template v-else-if="filtered.length === 0">
-          <EmptyState
-            title="暂无映射"
-            description="当前没有可显示的映射。可点击「新增映射」添加源类型到目标类型的映射。"
-            :primary="{ label: '新增映射', icon: 'mdi-plus' }"
-            @primary="openDialog()"
-          />
-        </template>
-        <v-data-table
-          v-else
-          :items="filtered"
-          :headers="headers"
-          item-key="sourceType"
-          density="comfortable"
-        >
-          <template #item.sourceType="{ item }">
-            <span class="ds-cell-primary ds-mono-text">{{ item.sourceType }}</span>
-          </template>
+      <template #item.sourceType="{ item }">
+        <span class="ds-cell-primary ds-mono-text">{{ item.sourceType }}</span>
+      </template>
 
-          <template #item.targetType="{ item }">
-            <span class="ds-cell-primary ds-mono-text">{{ item.targetType }}</span>
-          </template>
+      <template #item.targetType="{ item }">
+        <span class="ds-cell-primary ds-mono-text">{{ item.targetType }}</span>
+      </template>
 
-          <template #item.remark="{ item }">
-            <span class="ds-cell-support ds-white-space-normal">{{ item.remark || '-' }}</span>
-          </template>
+      <template #item.remark="{ item }">
+        <span class="ds-cell-support ds-white-space-normal">{{ item.remark || '-' }}</span>
+      </template>
 
-          <template #item.actions="{ item }">
-            <div class="ds-action-inline">
-              <v-btn
-                size="small"
-                variant="text"
-                color="primary"
-                class="px-2 ds-action-btn-main"
-                @click.stop="openDialog(item)"
-              >
-                <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
-              </v-btn>
-              <v-btn
-                size="small"
-                variant="text"
-                color="error"
-                class="px-2"
-                @click.stop="deleteMapping(item.sourceType)"
-              >
-                <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
-              </v-btn>
-            </div>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+      <template #item.actions="{ item }">
+        <div class="ds-action-inline">
+          <v-btn
+            size="small"
+            variant="text"
+            color="primary"
+            class="px-2 ds-action-btn-main"
+            @click.stop="openDialog(item)"
+          >
+            <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            color="error"
+            class="px-2"
+            @click.stop="deleteMapping(item.sourceType)"
+          >
+            <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+          </v-btn>
+        </div>
+      </template>
+    </AppDataTable>
 
     <v-dialog v-model="dialog" class="ds-dialog-overlay" max-width="560">
       <v-card>
@@ -162,7 +154,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue';
   import PageHeader from '@/components/PageHeader.vue';
-  import EmptyState from '@/components/EmptyState.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import typeMappingService from '@/service/type-mapping-service';
   import type { TypeMapping } from '@/service/type-mapping-service';
@@ -251,15 +243,13 @@
     const op = editing.value
       ? typeMappingService.update(model.value.sourceType, payload)
       : typeMappingService.create(payload);
-    op
-      .then(() => {
-        dialog.value = false;
-        notify('映射已保存', 'success');
-        load();
-      })
-      .catch(err => {
-        notify('保存失败: ' + (err?.message || err), 'error');
-      });
+    op.then(() => {
+      dialog.value = false;
+      notify('映射已保存', 'success');
+      load();
+    }).catch(err => {
+      notify('保存失败: ' + (err?.message || err), 'error');
+    });
   };
 
   const deleteMapping = (sourceType: string) => {

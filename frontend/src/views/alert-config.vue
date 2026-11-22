@@ -255,13 +255,14 @@
               </v-btn>
             </div>
 
-            <v-data-table
+            <AppDataTable
+              bare
               :items="rules"
               :headers="ruleHeaders"
               :loading="loading"
-              density="comfortable"
               class="ds-table"
-              no-data-text="还没有告警规则，事件将按默认路由发送到所有启用通道"
+              empty-title="还没有告警规则"
+              empty-description="事件将按默认路由发送到所有启用通道。"
             >
               <template #item.name="{ item }">
                 <div class="cell-stack">
@@ -318,7 +319,7 @@
                   </v-btn>
                 </div>
               </template>
-            </v-data-table>
+            </AppDataTable>
           </div>
         </v-tabs-window-item>
 
@@ -362,16 +363,18 @@
               </v-btn>
             </div>
 
-            <v-data-table-server
+            <AppDataTable
+              bare
+              mode="server"
               :items="deliveries"
               :headers="deliveryHeaders"
-              :items-length="deliveryTotal"
+              :total="deliveryTotal"
               :items-per-page="deliveryPageSize"
               :page="deliveryPage"
               :loading="deliveryLoading"
-              density="comfortable"
               class="ds-table"
-              no-data-text="暂无投递记录"
+              empty-title="暂无投递记录"
+              empty-description="告警事件触发后会在这里留下投递结果。"
               @update:options="loadDeliveries"
             >
               <template #item.createdAt="{ item }">
@@ -420,7 +423,7 @@
                   </v-btn>
                 </div>
               </template>
-            </v-data-table-server>
+            </AppDataTable>
           </div>
         </v-tabs-window-item>
 
@@ -442,13 +445,14 @@
               </v-btn>
             </div>
 
-            <v-data-table
+            <AppDataTable
+              bare
               :items="silences"
               :headers="silenceHeaders"
               :loading="silenceLoading"
-              density="comfortable"
               class="ds-table"
-              no-data-text="暂无静默窗口"
+              empty-title="暂无静默窗口"
+              empty-description="静默期内命中的告警不会发送到外部通道。"
             >
               <template #item.scopeType="{ item }">
                 <span>{{ scopeLabel(item.scopeType, item.scopeValue) }}</span>
@@ -478,7 +482,7 @@
                   删除
                 </v-btn>
               </template>
-            </v-data-table>
+            </AppDataTable>
           </div>
         </v-tabs-window-item>
       </v-tabs-window>
@@ -1295,6 +1299,7 @@
 
 <script setup lang="ts">
   import PageHeader from '@/components/PageHeader.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
   import dayjs from 'dayjs';

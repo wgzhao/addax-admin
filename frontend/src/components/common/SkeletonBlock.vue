@@ -17,6 +17,6 @@
   .skeleton-block {
     width: 100%;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: var(--ds-radius-sm);
   }
 </style>

@@ -291,7 +291,7 @@
     margin-top: 18px;
     height: 46px;
     font-weight: 600;
-    letter-spacing: 0.4px;
+    letter-spacing: 0;
   }
 
   .panel-foot {

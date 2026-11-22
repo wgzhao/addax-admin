@@ -203,231 +203,216 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
-      <v-card-text class="ds-card__content">
-        <template v-if="!loading && totalItems === 0">
-          <EmptyState
-            :title="scope === 'RETIRED' ? '暂无已退役采集表' : '暂无采集表'"
-            :description="
-              scope === 'RETIRED'
-                ? '退役采集表会保留在当前历史入口中，统计、流水和日志不会随退役消失。'
-                : scope === 'DORMANT'
-                  ? '没有因表停采或采集源停用而暂停的采集定义。'
-                  : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
-            "
-            :primary="
-              authStore.canWrite || authStore.hasOperateSources
-                ? { label: '新增采集表', icon: 'mdi-plus' }
-                : undefined
-            "
-            @primary="() => router.push('/table/batch-add')"
+    <AppDataTable
+      v-model="selected"
+      v-model:page="currentPage"
+      v-model:items-per-page="currPageSize"
+      mode="server"
+      :items="table"
+      :headers="visibleHeaders"
+      :items-per-page-options="[15, 20, 25, 30, 50, 100]"
+      :total="totalItems"
+      item-value="id"
+      :loading="loading"
+      :selectable="authStore.canWrite || authStore.hasOperateSources"
+      :item-class="getRowClass"
+      scrollable
+      sticky-first-column
+      :empty-title="scope === 'RETIRED' ? '暂无已退役采集表' : '暂无采集表'"
+      :empty-description="
+        scope === 'RETIRED'
+          ? '退役采集表会保留在当前历史入口中，统计、流水和日志不会随退役消失。'
+          : scope === 'DORMANT'
+            ? '没有因表停采或采集源停用而暂停的采集定义。'
+            : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
+      "
+      :empty-primary="
+        authStore.canWrite || authStore.hasOperateSources
+          ? { label: '新增采集表', icon: 'mdi-plus' }
+          : null
+      "
+      @empty-primary="() => router.push('/table/batch-add')"
+      @update:options="loadItems"
+    >
+      <template #header.status="{ column, getSortIcon }">
+        <div class="v-data-table-header__content">
+          <span>{{ column.title }}</span>
+          <v-icon
+            v-if="column.sortable"
+            class="v-data-table-header__sort-icon"
+            :icon="getSortIcon(column)"
           />
-        </template>
-        <template v-else>
-          <v-data-table-server
-            v-model="selected"
-            v-model:page="currentPage"
-            v-model:items-per-page="currPageSize"
-            density="comfortable"
-            :items="table"
-            :headers="visibleHeaders"
-            :items-per-page-options="[15, 20, 25, 30, 50, 100]"
-            :items-length="totalItems"
-            item-value="id"
-            :loading="loading"
-            :show-select="authStore.canWrite || authStore.hasOperateSources"
-            :item-class="getRowClass"
-            @update:options="loadItems"
+        </div>
+      </template>
+      <template #item.sourceTable="{ item }">
+        <div class="ds-cell-stack">
+          <span class="ds-cell-meta">{{ item.name }}</span>
+          <span
+            class="ds-cell-primary ds-ellipsis"
+            :title="`${item.sourceDb || ''}.${item.sourceTable || ''}`"
           >
-            <template #header.status="{ column, getSortIcon }">
-              <div class="v-data-table-header__content">
-                <span>{{ column.title }}</span>
-                <v-icon
-                  v-if="column.sortable"
-                  class="v-data-table-header__sort-icon"
-                  :icon="getSortIcon(column)"
-                />
-              </div>
-            </template>
-            <template #item.sourceTable="{ item }">
-              <div class="ds-cell-stack">
-                <span class="ds-cell-meta">{{ item.name }}</span>
-                <span
-                  class="ds-cell-primary ds-ellipsis"
-                  :title="`${item.sourceDb || ''}.${item.sourceTable || ''}`"
-                >
-                  <span class="ds-cell-support">{{ item.sourceDb || '' }}.</span
-                  >{{ item.sourceTable || '' }}
-                </span>
-                <v-chip
-                  v-if="item.retiredAt"
-                  size="x-small"
-                  color="grey"
-                  variant="tonal"
-                  class="mt-1"
-                >
-                  已退役 {{ item.retiredBy ? `· ${item.retiredBy}` : '' }}
-                </v-chip>
-                <v-chip
-                  v-else-if="item.enabled === false"
-                  size="x-small"
-                  color="warning"
-                  variant="tonal"
-                  class="mt-1"
-                  title="采集源停用只影响自动调度，仍可查看、编辑和手动执行"
-                >
-                  源已停用
-                </v-chip>
-              </div>
-            </template>
-            <template #item.status="{ item }">
-              <StatusChip :status="item.status" />
-              <!-- Kill icon for running tasks: move to right, match E icon style -->
-              <template v-if="authStore.canOperateSource(item.sid) && item.status === 'R'">
-                <v-tooltip location="top">
-                  <template #activator="{ props }">
-                    <v-icon
-                      v-bind="props"
-                      size="16"
-                      color="error"
-                      class="ml-1 align-middle cursor-pointer"
-                      @click.stop="confirmKill(item)"
-                    >
-                      mdi-close
-                    </v-icon>
-                  </template>
-                  <span>点击中止当前运行任务</span>
-                </v-tooltip>
-              </template>
-              <template
-                v-if="
-                  authStore.canOperateSource(item.sid) &&
-                  (item.status === 'U' || item.status === 'E')
-                "
+            <span class="ds-cell-support">{{ item.sourceDb || '' }}.</span
+            >{{ item.sourceTable || '' }}
+          </span>
+          <v-chip v-if="item.retiredAt" size="x-small" color="grey" variant="tonal" class="mt-1">
+            已退役 {{ item.retiredBy ? `· ${item.retiredBy}` : '' }}
+          </v-chip>
+          <v-chip
+            v-else-if="item.enabled === false"
+            size="x-small"
+            color="warning"
+            variant="tonal"
+            class="mt-1"
+            title="采集源停用只影响自动调度，仍可查看、编辑和手动执行"
+          >
+            源已停用
+          </v-chip>
+        </div>
+      </template>
+      <template #item.status="{ item }">
+        <StatusChip :status="item.status" />
+        <!-- Kill icon for running tasks: move to right, match E icon style -->
+        <template v-if="authStore.canOperateSource(item.sid) && item.status === 'R'">
+          <v-tooltip location="top">
+            <template #activator="{ props }">
+              <v-icon
+                v-bind="props"
+                size="16"
+                color="error"
+                class="ml-1 align-middle cursor-pointer"
+                @click.stop="confirmKill(item)"
               >
-                <v-tooltip location="top">
-                  <template #activator="{ props }">
-                    <v-icon
-                      v-bind="props"
-                      size="16"
-                      color="warning"
-                      class="ml-1 align-middle cursor-pointer"
-                      @click.stop="openFailure(item.id)"
-                    >
-                      mdi-alert-circle-outline
-                    </v-icon>
-                  </template>
-                  <span>查看最近失败详情与历史</span>
-                </v-tooltip>
-              </template>
+                mdi-close
+              </v-icon>
             </template>
-
-            <template #item.targetTable="{ item }">
-              <div class="d-flex align-center py-1">
-                <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
-                <span
-                  class="ds-cell-primary ds-ellipsis"
-                  :title="`${item.targetDb || ''}.${item.targetTable || ''}`"
-                >
-                  <span class="ds-cell-support">{{ item.targetDb || '' }}.</span
-                  >{{ item.targetTable || '' }}
-                </span>
-              </div>
-            </template>
-
-            <template #item.endTime="{ item }">
-              <span class="ds-nowrap">{{ item.endTime }}</span>
-            </template>
-
-            <template #item.action="{ item }">
-              <div class="adjust-start align-center space-between">
-                <v-tooltip
-                  v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
-                  text="发起采集"
-                  location="top"
-                >
-                  <template #activator="{ props: activatorProps }">
-                    <v-icon-btn
-                      color="primary"
-                      size="small"
-                      class="mr-2"
-                      icon="mdi-play-circle"
-                      :aria-label="`发起采集 ${item.sourceTable || item.id}`"
-                      v-bind="activatorProps"
-                      @click="doEtl(item)"
-                    ></v-icon-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip
-                  v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
-                  text="更新表结构"
-                  location="top"
-                >
-                  <template #activator="{ props: activatorProps }">
-                    <v-icon-btn
-                      color="warning"
-                      size="small"
-                      class="mr-2"
-                      icon="mdi-database-refresh"
-                      :aria-label="`更新表结构 ${item.sourceTable || item.id}`"
-                      v-bind="activatorProps"
-                      @click="updateSchema(item)"
-                    ></v-icon-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip
-                  v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
-                  text="退役此采集表"
-                  location="top"
-                >
-                  <template #activator="{ props: activatorProps }">
-                    <v-icon-btn
-                      color="error"
-                      size="small"
-                      class="mr-2"
-                      icon="mdi-delete"
-                      :aria-label="`退役采集表 ${item.sourceTable || item.id}`"
-                      v-bind="activatorProps"
-                      @click="confirmDelete(item)"
-                    ></v-icon-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip
-                  v-else-if="authStore.canOperateSource(item.sid)"
-                  text="恢复采集表"
-                  location="top"
-                >
-                  <template #activator="{ props: activatorProps }">
-                    <v-icon-btn
-                      color="success"
-                      size="small"
-                      class="mr-2"
-                      icon="mdi-backup-restore"
-                      :aria-label="`恢复采集表 ${item.sourceTable || item.id}`"
-                      v-bind="activatorProps"
-                      @click="restoreItem(item)"
-                    ></v-icon-btn>
-                  </template>
-                </v-tooltip>
-                <v-tooltip text="查看详情" location="top">
-                  <template #activator="{ props: open }">
-                    <v-icon-btn
-                      color="secondary"
-                      size="small"
-                      class="mr-2"
-                      icon="mdi-open-in-new"
-                      :aria-label="`查看采集表详情 ${item.sourceTable || item.id}`"
-                      v-bind="open"
-                      @click="viewDetail(item)"
-                    ></v-icon-btn>
-                  </template>
-                </v-tooltip>
-              </div>
-            </template>
-          </v-data-table-server>
+            <span>点击中止当前运行任务</span>
+          </v-tooltip>
         </template>
-      </v-card-text>
-    </v-card>
+        <template
+          v-if="
+            authStore.canOperateSource(item.sid) && (item.status === 'U' || item.status === 'E')
+          "
+        >
+          <v-tooltip location="top">
+            <template #activator="{ props }">
+              <v-icon
+                v-bind="props"
+                size="16"
+                color="warning"
+                class="ml-1 align-middle cursor-pointer"
+                @click.stop="openFailure(item.id)"
+              >
+                mdi-alert-circle-outline
+              </v-icon>
+            </template>
+            <span>查看最近失败详情与历史</span>
+          </v-tooltip>
+        </template>
+      </template>
+
+      <template #item.targetTable="{ item }">
+        <div class="d-flex align-center py-1">
+          <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
+          <span
+            class="ds-cell-primary ds-ellipsis"
+            :title="`${item.targetDb || ''}.${item.targetTable || ''}`"
+          >
+            <span class="ds-cell-support">{{ item.targetDb || '' }}.</span
+            >{{ item.targetTable || '' }}
+          </span>
+        </div>
+      </template>
+
+      <template #item.endTime="{ item }">
+        <span class="ds-nowrap">{{ item.endTime }}</span>
+      </template>
+
+      <template #item.action="{ item }">
+        <div class="adjust-start align-center space-between">
+          <v-tooltip
+            v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
+            text="发起采集"
+            location="top"
+          >
+            <template #activator="{ props: activatorProps }">
+              <v-icon-btn
+                color="primary"
+                size="small"
+                class="mr-2"
+                icon="mdi-play-circle"
+                :aria-label="`发起采集 ${item.sourceTable || item.id}`"
+                v-bind="activatorProps"
+                @click="doEtl(item)"
+              ></v-icon-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip
+            v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
+            text="更新表结构"
+            location="top"
+          >
+            <template #activator="{ props: activatorProps }">
+              <v-icon-btn
+                color="warning"
+                size="small"
+                class="mr-2"
+                icon="mdi-database-refresh"
+                :aria-label="`更新表结构 ${item.sourceTable || item.id}`"
+                v-bind="activatorProps"
+                @click="updateSchema(item)"
+              ></v-icon-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip
+            v-if="authStore.canOperateSource(item.sid) && !item.retiredAt"
+            text="退役此采集表"
+            location="top"
+          >
+            <template #activator="{ props: activatorProps }">
+              <v-icon-btn
+                color="error"
+                size="small"
+                class="mr-2"
+                icon="mdi-delete"
+                :aria-label="`退役采集表 ${item.sourceTable || item.id}`"
+                v-bind="activatorProps"
+                @click="confirmDelete(item)"
+              ></v-icon-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip
+            v-else-if="authStore.canOperateSource(item.sid)"
+            text="恢复采集表"
+            location="top"
+          >
+            <template #activator="{ props: activatorProps }">
+              <v-icon-btn
+                color="success"
+                size="small"
+                class="mr-2"
+                icon="mdi-backup-restore"
+                :aria-label="`恢复采集表 ${item.sourceTable || item.id}`"
+                v-bind="activatorProps"
+                @click="restoreItem(item)"
+              ></v-icon-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip text="查看详情" location="top">
+            <template #activator="{ props: open }">
+              <v-icon-btn
+                color="secondary"
+                size="small"
+                class="mr-2"
+                icon="mdi-open-in-new"
+                :aria-label="`查看采集表详情 ${item.sourceTable || item.id}`"
+                v-bind="open"
+                @click="viewDetail(item)"
+              ></v-icon-btn>
+            </template>
+          </v-tooltip>
+        </div>
+      </template>
+    </AppDataTable>
   </div>
 
   <v-dialog
@@ -455,7 +440,7 @@
     width="480"
   >
     <v-card>
-      <v-card-title class="text-h6">确认退役</v-card-title>
+      <v-card-title>确认退役</v-card-title>
       <v-card-text>{{ deleteConfirmMessage }}</v-card-text>
       <v-card-actions>
         <v-spacer />
@@ -486,7 +471,7 @@
 <script setup lang="ts">
   import { ref, shallowRef, defineAsyncComponent, onMounted, watch, computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import EmptyState from '@/components/EmptyState.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import FailureDrawer from '@/components/failures/FailureDrawer.vue';

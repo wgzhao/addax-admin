@@ -295,7 +295,7 @@
   .palette-group {
     padding: 8px 10px 4px;
     font-size: 11px;
-    letter-spacing: 0.4px;
+    letter-spacing: 0;
     color: var(--ds-text-3);
   }
 

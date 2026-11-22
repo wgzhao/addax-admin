@@ -27,110 +27,94 @@
       </v-card-text>
     </v-card>
 
-    <v-card flat class="ds-card table-card ds-table-wrap ds-table-scroll">
-      <v-card-text class="ds-card__content">
-        <v-skeleton-loader v-if="loading" type="table-row@6" class="ds-skeleton" />
-        <template v-else-if="users.length === 0">
-          <EmptyState
-            title="暂无账号"
-            description="当前还没有配置任何系统账号。点击下方按钮新增账号后，即可继续分配角色与启停状态。"
-            :primary="{ label: '新增账号', icon: 'mdi-plus' }"
-            @primary="openCreateDialog"
-          />
-        </template>
-        <template v-else>
-          <v-data-table
-            :items="users"
-            :headers="headers"
-            :search="searchValue"
-            item-key="username"
-            density="comfortable"
+    <AppDataTable
+      :items="users"
+      :headers="headers"
+      :loading="loading"
+      :search="searchValue"
+      item-key="username"
+      scrollable
+      empty-title="暂无账号"
+      empty-description="当前还没有配置任何系统账号。点击下方按钮新增账号后，即可继续分配角色与启停状态。"
+      :empty-primary="{ label: '新增账号', icon: 'mdi-plus' }"
+      @empty-primary="openCreateDialog"
+    >
+      <template #item.username="{ item }">
+        <div class="ds-cell-stack">
+          <span class="ds-cell-meta">{{ item.username }}</span>
+          <span class="ds-cell-primary">{{ item.displayName || item.username }}</span>
+        </div>
+      </template>
+
+      <template #item.email="{ item }">
+        <span class="ds-cell-support">{{ item.email || '-' }}</span>
+      </template>
+
+      <template #item.lastLoginAt="{ item }">
+        <span class="ds-cell-support">{{ formatTime(item.lastLoginAt) }}</span>
+      </template>
+
+      <template #item.enabled="{ item }">
+        <v-chip
+          size="small"
+          :color="item.enabled ? 'success' : 'error'"
+          :variant="item.enabled ? 'tonal' : 'outlined'"
+        >
+          {{ item.enabled ? '已启用' : '已禁用' }}
+        </v-chip>
+      </template>
+
+      <template #item.authorities="{ item }">
+        <span class="ds-cell-support">{{ formatAuthorities(item.authorities) }}</span>
+      </template>
+
+      <template #item.actions="{ item }">
+        <div class="ds-action-inline">
+          <v-btn
+            v-if="canGrant(item)"
+            size="small"
+            variant="text"
+            color="info"
+            class="px-2"
+            @click="openGrantDialog(item)"
           >
-            <template #item.username="{ item }">
-              <div class="ds-cell-stack">
-                <span class="ds-cell-meta">{{ item.username }}</span>
-                <span class="ds-cell-primary">{{ item.displayName || item.username }}</span>
-              </div>
-            </template>
-
-            <template #item.email="{ item }">
-              <span class="ds-cell-support">{{ item.email || '-' }}</span>
-            </template>
-
-            <template #item.lastLoginAt="{ item }">
-              <span class="ds-cell-support">{{ formatTime(item.lastLoginAt) }}</span>
-            </template>
-
-            <template #item.enabled="{ item }">
-              <v-chip
-                size="small"
-                :color="item.enabled ? 'success' : 'error'"
-                :variant="item.enabled ? 'tonal' : 'outlined'"
-              >
-                {{ item.enabled ? '已启用' : '已禁用' }}
-              </v-chip>
-            </template>
-
-            <template #item.authorities="{ item }">
-              <span class="ds-cell-support">{{ formatAuthorities(item.authorities) }}</span>
-            </template>
-
-            <template #item.actions="{ item }">
-              <div class="ds-action-inline">
-                <v-btn
-                  v-if="canGrant(item)"
-                  size="small"
-                  variant="text"
-                  color="info"
-                  class="px-2"
-                  @click="openGrantDialog(item)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-shield-key-outline</v-icon>授权
-                </v-btn>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  class="px-2 ds-action-btn-main"
-                  @click="openEditDialog(item)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
-                </v-btn>
-                <v-btn
-                  v-if="item.enabled"
-                  size="small"
-                  variant="text"
-                  color="warning"
-                  class="px-2"
-                  @click="toggleEnabled(item, false)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-pause-circle</v-icon>禁用
-                </v-btn>
-                <v-btn
-                  v-else
-                  size="small"
-                  variant="text"
-                  color="success"
-                  class="px-2"
-                  @click="toggleEnabled(item, true)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-play-circle</v-icon>启用
-                </v-btn>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="error"
-                  class="px-2"
-                  @click="removeUser(item)"
-                >
-                  <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
-                </v-btn>
-              </div>
-            </template>
-          </v-data-table>
-        </template>
-      </v-card-text>
-    </v-card>
+            <v-icon size="16" class="mr-1">mdi-shield-key-outline</v-icon>授权
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            color="primary"
+            class="px-2 ds-action-btn-main"
+            @click="openEditDialog(item)"
+          >
+            <v-icon size="16" class="mr-1">mdi-pencil</v-icon>编辑
+          </v-btn>
+          <v-btn
+            v-if="item.enabled"
+            size="small"
+            variant="text"
+            color="warning"
+            class="px-2"
+            @click="toggleEnabled(item, false)"
+          >
+            <v-icon size="16" class="mr-1">mdi-pause-circle</v-icon>禁用
+          </v-btn>
+          <v-btn
+            v-else
+            size="small"
+            variant="text"
+            color="success"
+            class="px-2"
+            @click="toggleEnabled(item, true)"
+          >
+            <v-icon size="16" class="mr-1">mdi-play-circle</v-icon>启用
+          </v-btn>
+          <v-btn size="small" variant="text" color="error" class="px-2" @click="removeUser(item)">
+            <v-icon size="16" class="mr-1">mdi-delete</v-icon>删除
+          </v-btn>
+        </div>
+      </template>
+    </AppDataTable>
 
     <v-dialog
       v-model="dialogVisible"
@@ -277,7 +261,7 @@
   import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
   import userService, { type AccountUser, type SourceGrant } from '@/service/user-service';
   import sourceService from '@/service/source-service';
-  import EmptyState from '@/components/EmptyState.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import ConfirmDialog from '@/components/ConfirmDialog.vue';
   import PageHeader from '@/components/PageHeader.vue';
   import { notify } from '@/stores/notifier';

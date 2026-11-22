@@ -1,7 +1,7 @@
 <template>
   <v-dialog v-model="open" max-width="520">
     <v-card>
-      <v-card-title class="text-subtitle-1 font-weight-medium">确认禁用采集</v-card-title>
+      <v-card-title class="font-weight-medium">确认禁用采集</v-card-title>
       <v-card-text>
         <v-alert type="warning" variant="tonal" border="start" class="mb-4">
           禁用后该表采集状态将置为 X，后续采集将被跳过。

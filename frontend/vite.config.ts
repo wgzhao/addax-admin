@@ -58,7 +58,10 @@ export default defineConfig(({ command, mode }) => {
       // https://github.com/vuetifyjs/vuetify-loader/tree/master/packages/vite-plugin#readme
       Vuetify({
         autoImport: true,
-        styles: 'sass'
+        // Why: the plugin only injects `@use` when configFile is set; with the
+        // bare "sass" string src/styles/settings.scss was silently ignored and
+        // every typography class fell back to Roboto for CJK text.
+        styles: { configFile: 'src/styles/settings.scss' }
       }),
       Components({
         dts: "src/types/components.d.ts",

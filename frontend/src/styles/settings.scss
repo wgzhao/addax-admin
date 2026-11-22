@@ -39,8 +39,8 @@
   // Root size keeps default; body scale is tuned in runtime CSS for finer control
   $font-size-root: 16px,
 
-  // 全局圆角
-  $border-radius-root: 4px,
+  // 全局圆角：与 --ds-radius-sm 对齐，避免 Vuetify 组件停在 4px 而卡片是 10/12px
+  $border-radius-root: 6px,
 
   // Vuetify 4 shadows are now computed; overriding opacity variables is no longer supported
    // (they are not exposed with !default). Remove custom shadow opacities to keep build compatible.

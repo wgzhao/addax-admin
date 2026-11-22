@@ -90,7 +90,8 @@
 
   .hero-kicker {
     font-size: 0.76rem;
-    letter-spacing: 0.08em;
+    /* Why: Chinese label; uppercase is inert and tracking only loosens the glyphs. */
+    letter-spacing: 0;
     text-transform: uppercase;
     color: rgba(var(--v-theme-primary), 0.9);
   }
@@ -113,14 +114,14 @@
   .hero-route {
     min-width: 260px;
     padding: 16px 18px;
-    border-radius: 18px;
+    border-radius: var(--ds-radius-lg);
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
     background: rgba(var(--v-theme-surface), 0.86);
   }
 
   .hero-route__label {
     font-size: 0.76rem;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
     text-transform: uppercase;
     color: rgba(var(--v-theme-on-surface), 0.56);
   }
@@ -143,7 +144,7 @@
 
   .summary-card {
     padding: 14px 16px;
-    border-radius: 16px;
+    border-radius: var(--ds-radius-md);
     border: 1px solid rgba(var(--v-theme-on-surface), 0.08);
     background:
       linear-gradient(
@@ -158,7 +159,7 @@
     display: block;
     margin-bottom: 6px;
     font-size: 0.78rem;
-    letter-spacing: 0.04em;
+    letter-spacing: 0;
     text-transform: uppercase;
     color: rgba(var(--v-theme-on-surface), 0.7);
   }

@@ -44,18 +44,20 @@
       </v-btn>
     </div>
 
-    <v-alert v-if="error" type="error" variant="tonal" class="mb-3">{{ error }}</v-alert>
-
-    <v-data-table-server
+    <AppDataTable
+      bare
+      mode="server"
       :headers="headers"
       :items="items"
-      :items-length="total"
+      :total="total"
       :items-per-page="pageSize"
       :loading="loading"
+      :error="error"
       item-value="id"
-      density="comfortable"
       class="failure-history__table"
-      no-data-text="该采集表暂无失败记录"
+      empty-title="该采集表暂无失败记录"
+      empty-description="调整失败阶段或错误类别后重试。"
+      @update:error="error = ''"
       @update:options="onOptions"
     >
       <template #item.occurredAt="{ item }">
@@ -93,7 +95,7 @@
       <template #item.actions="{ item }">
         <v-btn size="small" variant="text" color="primary" @click="openDetail(item.id)">查看</v-btn>
       </template>
-    </v-data-table-server>
+    </AppDataTable>
 
     <FailureDrawer v-model="drawerOpen" :failure-id="selectedId" />
   </div>
@@ -101,6 +103,7 @@
 
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import FailureDrawer from '@/components/failures/FailureDrawer.vue';
   import failureService from '@/service/failure-service';
   import {

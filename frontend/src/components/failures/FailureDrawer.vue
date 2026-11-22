@@ -426,7 +426,7 @@
   .failure-drawer__eyebrow {
     color: rgba(var(--v-theme-on-surface), 0.6);
     font-size: 12px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
   }
 
   .failure-drawer__title {

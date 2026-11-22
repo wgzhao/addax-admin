@@ -62,7 +62,7 @@
     gap: 10px 14px;
     padding: 8px 10px;
     border: 1px solid var(--ds-border-subtle);
-    border-radius: 10px;
+    border-radius: var(--ds-radius-md);
     background: rgba(var(--v-theme-on-surface), 0.02);
   }
 
@@ -79,7 +79,7 @@
   }
 
   .filter-toggle {
-    border-radius: 8px;
+    border-radius: var(--ds-radius-sm);
   }
 
   .filter-env {

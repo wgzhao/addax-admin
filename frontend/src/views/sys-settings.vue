@@ -1044,7 +1044,7 @@
     color: var(--ds-text-3);
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
     text-transform: uppercase;
   }
 
@@ -1460,7 +1460,7 @@
   .slots-label {
     color: var(--ds-text-3);
     font-size: 11px;
-    letter-spacing: 0.02em;
+    letter-spacing: 0;
   }
 
   .slot-chip {

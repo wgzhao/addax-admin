@@ -4,113 +4,91 @@
     <v-row density="comfortable" class="section-grid">
       <!-- 采集源完成情况 -->
       <v-col cols="12" md="12">
-        <v-card flat :title="accomplishListTable.title" class="mb-4 section-card">
-          <v-card-text class="section-body">
-            <v-data-table
-              :items="data.accomplishList"
-              :headers="accomplishListTable.headers"
-              density="default"
-              :sort-by="accomplishListTable.sortBy"
-              class="elevation-1"
-            />
-          </v-card-text>
-        </v-card>
+        <AppDataTable
+          compact-empty
+          :title="accomplishListTable.title"
+          :items="data.accomplishList"
+          :headers="accomplishListTable.headers"
+          :sort-by="accomplishListTable.sortBy"
+        />
       </v-col>
     </v-row>
 
     <v-row density="comfortable" class="section-grid">
       <!-- 特殊任务提醒 -->
       <v-col cols="12" md="7">
-        <v-card flat :title="specialTaskTable.title" class="mb-4 section-card">
-          <v-card-text class="section-body">
-            <v-data-table
-              :items="data.specialTask"
-              :headers="specialTaskTable.headers"
-              density="default"
-              :sort-by="specialTaskTable.sortBy"
-              class="elevation-1"
-            />
-          </v-card-text>
-        </v-card>
+        <AppDataTable
+          compact-empty
+          :title="specialTaskTable.title"
+          :items="data.specialTask"
+          :headers="specialTaskTable.headers"
+          :sort-by="specialTaskTable.sortBy"
+        />
       </v-col>
 
       <!-- 采集拒绝行信息 -->
       <v-col cols="12" md="5">
         <v-row class="section-grid">
           <v-col cols="12" md="12">
-            <v-card flat :title="rejectTaskTable.title" class="mb-4 section-card">
-              <v-card-text class="section-body">
-                <v-data-table
-                  :items="data.rejectTask"
-                  :headers="rejectTaskTable.headers"
-                  density="default"
-                  :sort-by="rejectTaskTable.sortBy"
-                  class="elevation-1"
-                  hide-no-data
-                  hide-default-footer
-                />
-              </v-card-text>
-            </v-card>
+            <AppDataTable
+              compact-empty
+              :title="rejectTaskTable.title"
+              :items="data.rejectTask"
+              :headers="rejectTaskTable.headers"
+              :sort-by="rejectTaskTable.sortBy"
+              hide-no-data
+              hide-default-footer
+            />
           </v-col>
           <!-- 短信发送情况 -->
           <v-col cols="12" md="12">
-            <v-card flat :title="smsDetailTable.title" class="mb-4 section-card">
-              <v-card-text class="section-body">
-                <v-data-table
-                  :items="data.smsDetail"
-                  :headers="smsDetailTable.headers"
-                  density="default"
-                  :sort-by="smsDetailTable.sortBy"
-                  class="elevation-1"
-                  hide-no-data
-                  hide-default-footer
-                />
-              </v-card-text>
-            </v-card>
+            <AppDataTable
+              compact-empty
+              :title="smsDetailTable.title"
+              :items="data.smsDetail"
+              :headers="smsDetailTable.headers"
+              :sort-by="smsDetailTable.sortBy"
+              hide-no-data
+              hide-default-footer
+            />
           </v-col>
         </v-row>
       </v-col>
 
       <!-- 字段变更提醒（后端分页） -->
       <v-col cols="12" md="12">
-        <v-card flat :title="fieldChangeTable.title" class="mb-4 section-card">
-          <v-card-text class="section-body">
-            <v-data-table-server
-              :items="fieldChangeItems"
-              :headers="fieldChangeTable.headers"
-              density="default"
-              :items-per-page="fieldChangePageSize"
-              :items-length="fieldChangeTotal"
-              :loading="fieldChangeLoading"
-              class="elevation-1"
-              @update:options="loadFieldChangeItems"
-            />
-          </v-card-text>
-        </v-card>
+        <AppDataTable
+          compact-empty
+          mode="server"
+          :title="fieldChangeTable.title"
+          :items="fieldChangeItems"
+          :headers="fieldChangeTable.headers"
+          :total="fieldChangeTotal"
+          :loading="fieldChangeLoading"
+          :items-per-page="fieldChangePageSize"
+          @update:options="loadFieldChangeItems"
+        />
       </v-col>
     </v-row>
 
     <!-- 系统风险检测结果 -->
     <v-col cols="12" md="12">
-      <v-card flat :title="sysRiskTable.title" class="mb-4 section-card">
-        <v-card-text class="section-body">
-          <v-data-table
-            :items="data.sysRisk"
-            :headers="sysRiskTable.headers"
-            density="default"
-            :sort-by="sysRiskTable.sortBy"
-            class="elevation-1"
-            hide-no-data
-            hide-default-footer
-          />
-        </v-card-text>
-      </v-card>
+      <AppDataTable
+        compact-empty
+        :title="sysRiskTable.title"
+        :items="data.sysRisk"
+        :headers="sysRiskTable.headers"
+        :sort-by="sysRiskTable.sortBy"
+        hide-no-data
+        hide-default-footer
+      />
     </v-col>
   </div>
 </template>
 
 <script setup lang="ts">
   import PageHeader from '@/components/PageHeader.vue';
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import { ref, onMounted } from 'vue';
   import type { DataTableHeader } from 'vuetify';
   import { monitorService } from '@/service/monitor-service';

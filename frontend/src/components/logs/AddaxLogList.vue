@@ -1,47 +1,46 @@
 <template>
-  <v-card title="采集日志表" class="ds-table-scroll">
-    <template #text>
-      <v-row v-if="authStore.isAdmin" justify="center" align-content="center">
-        <v-col cols="col-3">
-          <v-text-field
-            v-model="selectedCleanupDate"
-            density="compact"
-            placeholder="1989-09-12"
-            clearable
-          >
-            <template #prepend>
-              <span class="me-2">请输入或者选择要清理的日期(yyyy-MM-dd)</span>
-            </template>
-          </v-text-field>
-        </v-col>
-        <v-col cols="col-2">
-          <v-btn class="mr-2" variant="tonal" @click="quickSelect(1)">保留1个月</v-btn>
-          <v-btn class="mr-2" variant="tonal" @click="quickSelect(3)">保留3个月</v-btn>
-          <v-btn class="mr-2" variant="tonal" @click="quickSelect(6)">保留半年</v-btn>
-          <v-btn class="mr-2" variant="tonal" @click="quickSelect(12)">保留1年</v-btn>
-        </v-col>
-        <v-col cols="col-1">
-          <v-btn color="error" @click="doCleanup">确认清理</v-btn>
-        </v-col>
-      </v-row>
+  <AppDataTable
+    mode="server"
+    title="采集日志表"
+    :items-per-page="currPageSize"
+    :total="totalItems"
+    item-value="id"
+    :items="items"
+    :headers="headers"
+    scrollable
+    empty-title="暂无采集日志"
+    empty-description="该采集表还没有生成日志，或已被清理。"
+    @update:options="loadItems"
+  >
+    <template #header>
+      <div v-if="authStore.isAdmin" class="log-cleanup">
+        <v-text-field
+          v-model="selectedCleanupDate"
+          density="compact"
+          variant="outlined"
+          placeholder="1989-09-12"
+          label="清理早于该日期"
+          clearable
+          hide-details
+          class="log-cleanup__date"
+        />
+        <div class="log-cleanup__quick">
+          <v-btn size="small" variant="tonal" @click="quickSelect(1)">保留1个月</v-btn>
+          <v-btn size="small" variant="tonal" @click="quickSelect(3)">保留3个月</v-btn>
+          <v-btn size="small" variant="tonal" @click="quickSelect(6)">保留半年</v-btn>
+          <v-btn size="small" variant="tonal" @click="quickSelect(12)">保留1年</v-btn>
+        </div>
+        <v-spacer />
+        <v-btn size="small" color="error" variant="flat" @click="doCleanup">确认清理</v-btn>
+      </div>
     </template>
-    <v-card-text>
-      <v-data-table-server
-        :items-per-page="currPageSize"
-        :items-length="totalItems"
-        item-value="id"
-        :items="items"
-        :headers="headers"
-        @update:options="loadItems"
-      >
-        <template #item.log="{ item }">
-          <pre class="truncated-log" :title="item.log" @click="openLog(item)">{{
-            previewText(item.log)
-          }}</pre>
-        </template>
-      </v-data-table-server>
-    </v-card-text>
-  </v-card>
+
+    <template #item.log="{ item }">
+      <pre class="truncated-log" :title="item.log" @click="openLog(item)">{{
+        previewText(item.log)
+      }}</pre>
+    </template>
+  </AppDataTable>
   <div>
     <v-dialog v-model="logDialog" max-width="100%">
       <v-card>
@@ -91,6 +90,7 @@
 </template>
 
 <script setup lang="ts">
+  import AppDataTable from '@/components/common/AppDataTable.vue';
   import logService from '@/service/log-service';
   import { ref, onMounted } from 'vue';
   import { notify } from '@/stores/notifier';
@@ -104,10 +104,10 @@
   const totalItems = ref(0);
   const loading = ref(false);
   const headers = ref([
-    { title: '表 ID', value: 'tid', width: '5%' },
-    { title: '采集时间', value: 'runAt', width: '35%' },
-    { title: '业务日期', value: 'runDate', width: '12%' },
-    { title: '消息', value: 'log', width: '40%' },
+    { title: '表 ID', key: 'tid', width: '5%' },
+    { title: '采集时间', key: 'runAt', width: '35%' },
+    { title: '业务日期', key: 'runDate', width: '12%' },
+    { title: '消息', key: 'log', width: '40%' },
   ]);
 
   const loadItems = ({ page, itemsPerPage }) => {
@@ -185,6 +185,25 @@
 </script>
 
 <style scoped>
+  .log-cleanup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .log-cleanup__date {
+    max-width: 220px;
+  }
+
+  .log-cleanup__quick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .truncated-log {
     display: block;
     max-width: 70%;

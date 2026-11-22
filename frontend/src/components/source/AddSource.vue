@@ -942,7 +942,7 @@
     color: rgb(var(--v-theme-on-surface));
     font-size: var(--ds-fs-caption);
     font-weight: 600;
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
   }
 
   .field-help {
