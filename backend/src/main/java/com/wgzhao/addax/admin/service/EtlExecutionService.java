@@ -18,6 +18,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  * resolving display data from mutable source, target, or table configuration.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EtlExecutionService
 {
@@ -84,6 +86,25 @@ public class EtlExecutionService
         execution.setFinishedAt(LocalDateTime.now());
         execution.setErrorMessage(error);
         executionRepo.save(execution);
+    }
+
+    /**
+     * Close executions that can no longer be running: their queue row was requeued, reached a
+     * terminal state, disappeared, or has an expired lease. Without this, a restart that prevents
+     * the owner from writing its terminal state leaves the execution history showing a run that
+     * never ends.
+     *
+     * @return number of executions closed
+     */
+    @Transactional
+    public int failOrphanedRunningExecutions()
+    {
+        int closed = executionRepo.failOrphanedRunningExecutions(
+            "Interrupted: queue ownership lost (service restart or lease expiry)");
+        if (closed > 0) {
+            log.warn("Marked {} orphaned running execution(s) as failed", closed);
+        }
+        return closed;
     }
 
     public Page<EtlExecution> list(long tid, int page, int pageSize)
