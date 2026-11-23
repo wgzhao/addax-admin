@@ -111,9 +111,29 @@ Doris 目标端是独立的 `DORIS` 类型（writer 模板键 `wD`），不复�
 - 「连接信息」的 JDBC URL 使用 FE 的 MySQL 协议端口（通常 `jdbc:mysql://fe:9030/db`）；
 - 「Doris Stream Load 设置」填写 `loadUrl`（HTTP 端点，通常为 FE 的 8030 端口，每行一个 `host:port`，
   不要带 `http://` 前缀）、`batchSize`、`flushInterval`、`flushQueueLength` 与 `loadProps`；
-- `loadUrl` 与 JDBC 地址是两条独立通路，Addax 执行节点必须同时可达；
-- 当前版本只支持外部表（EXTERNAL）：目标表需由数仓/DBA 创建，平台只做契约校验与 Stream Load 写入，
-  平台建表将在后续版本提供。
+- `loadUrl` 与 JDBC 地址是两条独立通路，Addax 执行节点必须同时可达。
+
+Doris 目标表支持两种结构模式：
+
+- **平台创建并维护（MANAGED）**：平台生成 Doris DDL（`ENGINE=OLAP`），为表显式指定数据模型、键列、分桶，
+  可选动态日期分区；需要 Doris 2.0 及以上。目标库不存在时会先执行 `CREATE DATABASE IF NOT EXISTS`。
+  创建后平台只会补加缺失的值列或放宽值列类型，键列、键模型、分桶和分区不会自动修改。
+- **目标表已存在（EXTERNAL）**：目标表由数仓/DBA 创建，平台只做契约校验与 Stream Load 写入。
+
+表级选项位于采集表的「抽取与存储配置」：
+
+| 配置项     | 默认   | 说明                                                                 |
+| ---------- | ------ | -------------------------------------------------------------------- |
+| 数据模型   | 自动   | 自动：有源端主键（或显式键列）用 `UNIQUE`，否则 `DUPLICATE`。`AGGREGATE` 暂不支持 |
+| 键列       | 源端主键 | 多个用逗号分隔；键列会在建表时排到最前并声明 `NOT NULL`             |
+| 分桶方式   | HASH   | `HASH` 按键列分桶；`RANDOM` 仅限 `DUPLICATE`                          |
+| 分桶数     | AUTO   | `AUTO` 需要 Doris 2.0+；动态分区必须填显式数字                       |
+| 副本数     | 空     | 留空使用 Doris 默认值；小集群（BE 少于 3 个）通常需要显式设为 1      |
+| 分区方式   | 不分区 | `DYNAMIC` 动态日期分区，必须指定一个映射为 DATE/DATETIME 的目标字段  |
+
+快照业务日期列是 `varchar(8)`，默认不进入键列，也不能作为 Doris 分区列；如果需要按天分区，请在字段映射中
+把源端的日期字段映射为 `datetime`，并把它选为动态分区列（它会自动加入键列）。动态分区会按「保留天数」
+创建历史分区，因此 T+1 装载前一天的快照不会落在分区外。
 
 Hive JDBC 驱动与 MySQL/PostgreSQL/SQL Server 驱动一样，放在后端节点的 `${APP_HOME}/drivers` 目录（Docker 为 `/app/drivers`），重启后自动加载。该驱动只供 addax-admin 建表/读取元数据使用，Addax 自身的 `hdfswriter` 不需要。
 

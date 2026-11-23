@@ -2,21 +2,35 @@ package com.wgzhao.addax.admin.service.impl;
 
 import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
+import com.wgzhao.addax.admin.common.DorisTableOptions;
+import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.dto.TargetTableMetadata;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.model.EtlColumn;
+import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
+import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.EtlJourService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
+import com.wgzhao.addax.admin.service.source.SourceAdapter;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
+import com.wgzhao.addax.admin.service.source.SourceRef;
+import com.wgzhao.addax.admin.service.source.SourceTableHints;
 import com.wgzhao.addax.admin.service.target.DorisTargetSettings;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ColumnMeta;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ConnectInfo;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil.DorisDdlException;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil.PlannedColumn;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil.TablePlan;
 import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,16 +43,21 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+
+import static com.wgzhao.addax.admin.common.Constants.DELETED_PLACEHOLDER_PREFIX;
 
 /**
  * Doris target adapter.
@@ -48,9 +67,10 @@ import java.util.stream.Collectors;
  * writer template key ({@code wD}) while keeping {@link TargetFamily#RDBMS}: the table contract,
  * snapshot business-date column, type mapping and R2R job template are the RDBMS ones.</p>
  *
- * <p>Phase 1 supports externally managed target tables only. Platform-managed DDL needs Doris key
- * models, distribution and partition semantics, which are a separate (and product-visible) decision;
- * the adapter fails explicitly instead of emitting MySQL DDL that Doris would reject.</p>
+ * <p>Managed tables are created with Doris DDL: an explicit key model, key columns placed first,
+ * bucketing and an optional dynamic date partition. Unlike RDBMS, a key or bucketing decision cannot
+ * be changed after creation, so an unsupported evolution is reported and skipped instead of emitting
+ * a statement Doris would silently reinterpret.</p>
  */
 @Service
 @Slf4j
@@ -61,11 +81,15 @@ public class DorisTargetAdapter
     public static final String TYPE = "DORIS";
     public static final String WRITER_TEMPLATE_KEY = "wD";
     public static final String WRITER_PLUGIN = "doriswriter";
+    private static final String BUSINESS_DATE_COMMENT = "业务日期";
 
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
+    private final ColumnMappingService columnMappingService;
     private final SystemConfigService configService;
     private final ObjectMapper objectMapper;
+    private final EtlJourService jourService;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
     private final JdbcTargetSupport jdbcTargetSupport;
 
     private final AtomicBoolean pluginMissingWarned = new AtomicBoolean();
@@ -82,14 +106,10 @@ public class DorisTargetAdapter
         return TargetFamily.RDBMS;
     }
 
-    /**
-     * Doris DDL is Phase 2. Until key model, distribution and partition policy are explicit, only an
-     * externally created table can be written safely.
-     */
     @Override
     public boolean supportsManagedSchema()
     {
-        return false;
+        return true;
     }
 
     @Override
@@ -106,7 +126,7 @@ public class DorisTargetAdapter
         // Connectivity is about the JDBC endpoint; loadUrl is a separate HTTP path and is validated
         // when the target is saved and when the writer job is built.
         settings.requireJdbcConfigured(target == null ? null : target.getName());
-        if (!DbUtil.testConnection(settings.url(), settings.username(), settings.password()))
+        if (!DbUtil.testConnection(settings.serverUrl(), settings.username(), settings.password()))
         {
             throw new ApiException(400, "Failed to connect Doris FE");
         }
@@ -127,13 +147,312 @@ public class DorisTargetAdapter
         }
         SchemaManagementMode mode = etlTable.getSchemaManagementMode() == null
             ? SchemaManagementMode.MANAGED : etlTable.getSchemaManagementMode();
-        if (mode != SchemaManagementMode.EXTERNAL)
+        if (mode == SchemaManagementMode.EXTERNAL)
         {
-            throw new ApiException(400, "Doris 目标端当前仅支持外部表（EXTERNAL）：目标表需由数仓/DBA 创建，"
-                + "平台只做契约校验与写入；平台建表将在后续版本提供");
+            // External mode never creates or alters target structure; the contract check owns validation.
+            return true;
         }
-        // External mode never creates or alters target structure; the contract check owns validation.
+        return createOrUpdateManaged(etlTable);
+    }
+
+    /**
+     * Doris managed mode: plan from the column mapping (key model, key columns, bucketing, partition),
+     * then create the table or add columns that appeared in the source. A plan that cannot be rendered
+     * is a failure, not a partial DDL: a Doris key model cannot be repaired by a later ALTER.
+     */
+    private boolean createOrUpdateManaged(VwEtlTableWithSource etlTable)
+    {
+        if (etlTable.getTargetDb() == null || etlTable.getTargetDb().isBlank()
+            || etlTable.getTargetTable() == null || etlTable.getTargetTable().isBlank())
+        {
+            return failPlanning(etlTable, "Doris 目标端必须指定目标库和目标表");
+        }
+        ConnectInfo conn = metadataConnection(etlTable);
+        if (conn == null)
+        {
+            // Same posture as the RDBMS adapter: keep the collection unblocked and make it visible.
+            log.warn("Doris target not configured for table {} ({}.{}), skip create/update",
+                etlTable.getId(), etlTable.getTargetDb(), etlTable.getTargetTable());
+            return true;
+        }
+
+        TablePlan plan;
+        try
+        {
+            List<PlannedColumn> columns = plannedColumns(etlTable);
+            DorisTableOptions options = DorisTableOptions.from(etlTable.getTargetOptions());
+            plan = DorisDdlUtil.planTable(etlTable.getTargetDb(), etlTable.getTargetTable(), columns,
+                options, etlTable.getTblComment());
+        }
+        catch (DorisDdlException e)
+        {
+            return failPlanning(etlTable, e.getMessage());
+        }
+        catch (ApiException e)
+        {
+            return failPlanning(etlTable, e.getMessage());
+        }
+        for (String warning : plan.warnings())
+        {
+            warnTarget(etlTable, warning);
+        }
+
+        String tableRef = DorisDdlUtil.tableRef(etlTable.getTargetDb(), etlTable.getTargetTable());
+        EtlJour createJour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, plan.ddl());
+        try (Connection c = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
+        {
+            if (c == null)
+            {
+                jourService.failJour(createJour, "无法连接 Doris FE");
+                return false;
+            }
+            boolean existed;
+            try
+            {
+                existed = tableExists(c, etlTable.getTargetDb(), etlTable.getTargetTable());
+            }
+            catch (SQLException e)
+            {
+                jourService.failJour(createJour, "无法读取目标表元数据: " + e.getMessage());
+                return false;
+            }
+            try (Statement stmt = c.createStatement())
+            {
+                stmt.execute("CREATE DATABASE IF NOT EXISTS " + DorisDdlUtil.quote(etlTable.getTargetDb()));
+                log.info("create doris target table: {}", plan.ddl());
+                stmt.execute(plan.ddl());
+                jourService.successJour(createJour);
+            }
+            if (existed)
+            {
+                if (!applyColumnDiff(c, etlTable, tableRef, plan))
+                {
+                    return false;
+                }
+                warnOnUnmappedColumns(c, etlTable, plan);
+            }
+            return true;
+        }
+        catch (SQLException e)
+        {
+            log.warn("Failed to create or update Doris table ({}.{})", etlTable.getTargetDb(),
+                etlTable.getTargetTable(), e);
+            jourService.failJour(createJour, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * The target-side columns for the managed model. Source keys come from the source adapter, which
+     * owns the dialect-specific metadata; a non-JDBC source already rendered a target type and that
+     * spelling is kept when it is a Doris type.
+     */
+    private List<PlannedColumn> plannedColumns(VwEtlTableWithSource etlTable)
+    {
+        SourceAdapter sourceAdapter = sourceAdapterRegistry.resolve(etlTable);
+        SourceTableHints hints = sourceAdapter.tableHints(SourceRef.of(etlTable),
+            etlTable.getSourceDb(), etlTable.getSourceTable());
+        Set<String> sourceKeys = new HashSet<>();
+        for (String key : hints.primaryKeys())
+        {
+            if (key != null && !key.isBlank())
+            {
+                sourceKeys.add(key.trim().toLowerCase(Locale.ROOT));
+            }
+        }
+        boolean useProvidedType = !SourceAdapterRegistry.RDBMS_TYPE.equals(sourceAdapter.getType());
+
+        List<PlannedColumn> columns = new ArrayList<>();
+        Map<String, Boolean> seen = new LinkedHashMap<>();
+        for (ColumnMappingService.ResolvedColumnMapping mapping : columnMappingService.resolve(etlTable.getId()))
+        {
+            EtlColumn column = mapping.sourceColumn();
+            String name = mapping.targetColumnName();
+            if (column == null || name == null || name.isBlank())
+            {
+                continue;
+            }
+            String nameKey = name.trim().toLowerCase(Locale.ROOT);
+            if (seen.putIfAbsent(nameKey, Boolean.TRUE) != null)
+            {
+                throw new DorisDdlException(name, "Doris 目标字段名重复: " + name);
+            }
+            String activeName = activeName(column);
+            String activeKey = activeName == null ? null : activeName.toLowerCase(Locale.ROOT);
+            boolean sourceKey = activeKey != null && sourceKeys.contains(activeKey);
+            boolean nullable = !sourceKey && (activeKey == null || !hints.notNull().contains(activeKey));
+            String type = renderColumnType(column, useProvidedType);
+            columns.add(new PlannedColumn(name.trim(), type, nullable, sourceKey,
+                column.getColComment(), "SOURCE"));
+        }
+        String businessDateColumn = normalizeColumn(etlTable.getRdbmsBusinessDateColumn());
+        if (businessDateColumn != null && seen.keySet().stream()
+            .noneMatch(name -> name.equalsIgnoreCase(businessDateColumn)))
+        {
+            columns.add(new PlannedColumn(businessDateColumn, "varchar(8)", false, false,
+                BUSINESS_DATE_COMMENT, "BUSINESS_DATE"));
+        }
+        if (columns.isEmpty())
+        {
+            throw new DorisDdlException(null, "没有可建表的字段映射，无法生成 Doris 表结构");
+        }
+        return columns;
+    }
+
+    private String renderColumnType(EtlColumn column, boolean useProvidedType)
+    {
+        if (useProvidedType)
+        {
+            String provided = DorisDdlUtil.normalizeProvidedType(column.getTargetTypeFull());
+            if (provided != null)
+            {
+                return provided;
+            }
+        }
+        return DorisDdlUtil.renderType(column.getSourceType(),
+            column.getDataLength(),
+            column.getDataPrecision() == null ? 0 : column.getDataPrecision(),
+            column.getDataScale() == null ? 0 : column.getDataScale());
+    }
+
+    /**
+     * Existing managed tables are evolved only in the ways Doris supports: append a value column, or
+     * widen a value column. Key columns and key/distribution changes are reported for a human; Doris
+     * does not expose them as ordinary schema changes.
+     */
+    private boolean applyColumnDiff(Connection c, VwEtlTableWithSource etlTable, String tableRef, TablePlan plan)
+    {
+        Map<String, ColumnMeta> current;
+        try
+        {
+            current = describeColumns(c, etlTable.getTargetDb(), etlTable.getTargetTable());
+        }
+        catch (SQLException e)
+        {
+            warnTarget(etlTable, "无法读取目标表元数据（" + e.getMessage() + "），跳过目标表结构比对");
+            return true;
+        }
+        Set<String> keys = new LinkedHashSet<>();
+        plan.keyColumns().forEach(key -> keys.add(key.toLowerCase(Locale.ROOT)));
+        for (String key : plan.keyColumns())
+        {
+            if (!current.containsKey(key.toLowerCase(Locale.ROOT)))
+            {
+                return failPlanning(etlTable, "目标表缺少键列 " + key
+                    + "；Doris 不支持事后把列加入键列，请人工重建目标表或改用外部表模式");
+            }
+        }
+        for (PlannedColumn column : plan.orderedColumns())
+        {
+            String name = column.name();
+            String key = name.toLowerCase(Locale.ROOT);
+            ColumnMeta cur = current.get(key);
+            if (cur == null)
+            {
+                executeDdl(c, etlTable, DorisDdlUtil.addColumn(tableRef,
+                    DorisDdlUtil.columnDefinition(name, column.type(), false, column.comment())));
+                continue;
+            }
+            boolean sameType = DorisDdlUtil.canonicalType(cur.typeName())
+                .equals(DorisDdlUtil.canonicalType(column.type()));
+            if (keys.contains(key))
+            {
+                if (!sameType)
+                {
+                    warnTarget(etlTable, "键列 " + name + " 的目标类型为 " + cur.typeName()
+                        + "，计划类型为 " + column.type() + "；Doris 不允许修改键列，请人工处理");
+                }
+                continue;
+            }
+            if (sameType)
+            {
+                continue;
+            }
+            boolean familyChanged = !RdbmsDdlUtil.familyOf(cur.typeName())
+                .equals(RdbmsDdlUtil.familyOf(column.type()));
+            boolean widening = RdbmsDdlUtil.isWidening(cur.typeName(), cur.size(), cur.scale(),
+                column.type());
+            if (!familyChanged && !widening)
+            {
+                continue;
+            }
+            if (familyChanged || !widening)
+            {
+                warnTarget(etlTable, "目标列 " + name + " 当前类型 " + cur.typeName() + "，计划类型 "
+                    + column.type() + "；Doris 不支持该自动变更，请人工处理");
+                continue;
+            }
+            executeDdl(c, etlTable, DorisDdlUtil.modifyColumn(tableRef, name, column.type()));
+        }
         return true;
+    }
+
+    /**
+     * A non-nullable target column that is not in the mapping cannot be filled by the Stream Load
+     * column list and makes every subsequent load fail; surface it at structure-sync time.
+     */
+    private void warnOnUnmappedColumns(Connection c, VwEtlTableWithSource etlTable, TablePlan plan)
+    {
+        Set<String> planned = new HashSet<>();
+        plan.orderedColumns().forEach(column -> planned.add(column.name().toLowerCase(Locale.ROOT)));
+        try
+        {
+            for (ColumnMeta meta : describeColumns(c, etlTable.getTargetDb(), etlTable.getTargetTable()).values())
+            {
+                if (!planned.contains(meta.name().toLowerCase(Locale.ROOT)) && !meta.nullable()
+                    && !RdbmsDdlUtil.hasDefault(meta.defaultValue()))
+                {
+                    warnTarget(etlTable, "目标表存在未映射且非空的列 " + meta.name()
+                        + "，Stream Load 无法填充该列，导入会失败；请在目标表设置默认值或人工处理");
+                }
+            }
+        }
+        catch (SQLException e)
+        {
+            log.debug("Failed to inspect unmapped Doris columns for table {}: {}", etlTable.getId(),
+                e.getMessage());
+        }
+    }
+
+    private void executeDdl(Connection conn, VwEtlTableWithSource etlTable, String ddl)
+    {
+        EtlJour jour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, ddl);
+        try (Statement stmt = conn.createStatement())
+        {
+            log.info("apply doris alter: {}", ddl);
+            stmt.execute(ddl);
+            jourService.successJour(jour);
+        }
+        catch (SQLException e)
+        {
+            log.error("Failed to apply Doris alter for {}.{}: {}", etlTable.getTargetDb(),
+                etlTable.getTargetTable(), ddl, e);
+            jourService.failJour(jour, e.getMessage());
+            warnTarget(etlTable, "Doris 目标表变更失败 " + ddl + ": " + e.getMessage());
+        }
+    }
+
+    private boolean failPlanning(VwEtlTableWithSource etlTable, String reason)
+    {
+        EtlJour jour = jourService.addJour(etlTable.getId(), JourKind.UPDATE_TABLE, "-- " + reason);
+        jourService.failJour(jour, reason);
+        log.warn("Doris target table {}: {}", etlTable.getId(), reason);
+        return false;
+    }
+
+    private void warnTarget(VwEtlTableWithSource etlTable, String message)
+    {
+        log.warn("Doris target table {}: {}", etlTable.getId(), message);
+    }
+
+    private String activeName(EtlColumn column)
+    {
+        String name = column.getColumnName();
+        if (name != null && name.startsWith(DELETED_PLACEHOLDER_PREFIX))
+        {
+            return name.substring(DELETED_PLACEHOLDER_PREFIX.length());
+        }
+        return name;
     }
 
     @Override
@@ -144,7 +463,7 @@ public class DorisTargetAdapter
         {
             throw new ApiException(400, "Doris 目标端必须指定目标库和目标表");
         }
-        ConnectInfo conn = jdbcTargetSupport.resolveTargetConnection(etlTable);
+        ConnectInfo conn = metadataConnection(etlTable);
         if (conn == null)
         {
             throw new ApiException(400, "Doris 目标端连接未配置，无法读取目标表元数据");
@@ -187,7 +506,7 @@ public class DorisTargetAdapter
         {
             return null;
         }
-        ConnectInfo conn = jdbcTargetSupport.resolveTargetConnection(table);
+        ConnectInfo conn = metadataConnection(table);
         if (conn == null)
         {
             return null;
@@ -325,7 +644,9 @@ public class DorisTargetAdapter
                 while (rs.next())
                 {
                     String name = rs.getString("column_name");
-                    if (name == null)
+                    // Doris hides implementation columns (__DORIS_DELETE_SIGN__, __DORIS_VERSION__)
+                    // in unique tables; they are not part of the mapping contract.
+                    if (name == null || name.startsWith("__"))
                     {
                         continue;
                     }
@@ -354,6 +675,25 @@ public class DorisTargetAdapter
             }
         }
         return columns;
+    }
+
+    /**
+     * Metadata/DDL connections drop the database path so a managed target can point at a database
+     * that does not exist yet; the DDL creates it. The writer still uses the configured URL.
+     */
+    private ConnectInfo metadataConnection(VwEtlTableWithSource table)
+    {
+        if (table == null || table.getTargetId() == null)
+        {
+            return null;
+        }
+        EtlTarget target = etlTargetRepo.findById(table.getTargetId()).orElse(null);
+        if (target == null)
+        {
+            return null;
+        }
+        DorisTargetSettings settings = settings(target);
+        return new ConnectInfo(settings.serverUrl(), settings.username(), settings.password());
     }
 
     private DorisTargetSettings settings(EtlTarget target)

@@ -100,7 +100,7 @@
 <script setup lang="ts">
   import { computed } from 'vue';
   import type { VEtlWithSource } from '@/types/database';
-  import { targetFamily } from '@/utils/target-options';
+  import { isDorisTarget as isDorisTargetOf, targetFamily } from '@/utils/target-options';
   import { scheduleLabel, statusLabel } from './table-labels';
 
   const props = defineProps<{
@@ -137,10 +137,30 @@
 
   const isEsSource = computed(() => props.table.dbType === 'elasticsearch');
   const isNonRdbmsSource = computed(() => props.table.dbType === 'mongodb' || isEsSource.value);
-  const isDorisTarget = computed(() => {
-    const key = (props.table.targetWriterTemplateKey || '').trim().toUpperCase();
-    const type = (props.table.targetType || '').trim().toUpperCase();
-    return key === 'WD' || type === 'DORIS';
+  const isDorisTarget = computed(() =>
+    isDorisTargetOf(props.table.targetWriterTemplateKey, props.table.targetType)
+  );
+
+  const dorisKeyModelLabel = computed(() => {
+    const labels: Record<string, string> = {
+      AUTO: '自动（源端主键 → UNIQUE，否则 DUPLICATE）',
+      UNIQUE: 'UNIQUE',
+      DUPLICATE: 'DUPLICATE',
+    };
+    return labels[props.table.targetOptions.doris.keyModel || 'AUTO'] || '自动';
+  });
+
+  const dorisDistributionLabel = computed(() => {
+    const doris = props.table.targetOptions.doris;
+    const columns = (doris.distributionColumns || []).join(', ');
+    const target = columns ? `(${columns})` : '（键列）';
+    return `${doris.distributionType || 'HASH'}${doris.distributionType === 'RANDOM' ? '' : target} · ${doris.buckets || 'AUTO'}`;
+  });
+
+  const dorisPartitionLabel = computed(() => {
+    const doris = props.table.targetOptions.doris;
+    if (doris.partitionMode !== 'DYNAMIC') return '不分区';
+    return `动态日期分区（${doris.partitionColumn || '未指定'}，保留 ${doris.partitionStart ?? -30} 天）`;
   });
 
   const overviewItems = computed(() => {
@@ -178,6 +198,22 @@
           value: props.table.targetOptions.rdbms.createPrimaryKey ? '按源端主键创建' : '不创建',
         },
       ];
+      if (isDorisTarget.value) {
+        return [
+          { label: '目标端类型', value: props.table.targetType || 'Doris' },
+          {
+            label: '快照业务日期列',
+            value: props.table.targetOptions.rdbms.businessDateColumn || '不承载日期',
+          },
+          { label: 'Doris 数据模型', value: dorisKeyModelLabel.value },
+          {
+            label: '键列',
+            value: (props.table.targetOptions.doris.keyColumns || []).join(', ') || '源端主键',
+          },
+          { label: '分桶', value: dorisDistributionLabel.value },
+          { label: '分区', value: dorisPartitionLabel.value },
+        ];
+      }
       if (isEsSource.value) {
         return items.filter(
           item =>
@@ -188,10 +224,6 @@
       }
       if (isNonRdbmsSource.value) {
         return items.filter(item => item.label !== '切分字段' && item.label !== '目标表主键');
-      }
-      // Doris is external-only here: the platform does not create its key/DDL.
-      if (isDorisTarget.value) {
-        return items.filter(item => item.label !== '目标表主键');
       }
       return items;
     }

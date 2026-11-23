@@ -79,6 +79,28 @@ public record DorisTargetSettings(
         }
     }
 
+    /**
+     * The JDBC URL without its database path. Metadata and DDL work is database-agnostic (every
+     * query names information_schema or a qualified table), and a managed target may point at a
+     * database that does not exist yet: connecting to it directly would fail with "Unknown database"
+     * before CREATE DATABASE IF NOT EXISTS could run. The writer keeps the configured URL unchanged.
+     */
+    public String serverUrl()
+    {
+        if (url == null || url.isBlank())
+        {
+            return "";
+        }
+        int prefix = MYSQL_URL_PREFIX.length();
+        int slash = url.indexOf('/', prefix);
+        if (slash < 0)
+        {
+            return url;
+        }
+        int query = url.indexOf('?', slash);
+        return query < 0 ? url.substring(0, slash) : url.substring(0, slash) + url.substring(query);
+    }
+
     public void requireWritable(String targetName)
     {
         requireJdbcConfigured(targetName);

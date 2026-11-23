@@ -23,7 +23,34 @@ const DEFAULT_RDBMS_OPTIONS = {
   createPrimaryKey: true,
 };
 
+const DEFAULT_DORIS_OPTIONS = {
+  keyModel: 'AUTO' as const,
+  keyColumns: [] as string[],
+  distributionType: 'HASH' as const,
+  distributionColumns: [] as string[],
+  buckets: 'AUTO',
+  replicationNum: null as number | null,
+  partitionMode: 'NONE' as const,
+  partitionColumn: '',
+  partitionStart: -30,
+  partitionEnd: 3,
+  partitionPrefix: 'p',
+};
+
 export type TargetFamily = 'hdfs' | 'rdbms' | 'unknown';
+
+/**
+ * Doris is an adapter type inside the RDBMS family, not a dialect: its JDBC URL can never tell it
+ * apart from MySQL. The writer key is authoritative; the display type is the fallback.
+ */
+export function isDorisTarget(
+  writerTemplateKey?: string | null,
+  targetType?: string | null
+): boolean {
+  const key = (writerTemplateKey || '').trim().toUpperCase();
+  if (key === 'WD') return true;
+  return (targetType || '').trim().toUpperCase() === 'DORIS';
+}
 
 /**
  * The writer template key is authoritative. target_type is a display label that may lag behind a
@@ -59,9 +86,15 @@ export function normalizeTargetOptions(
       },
     ];
   }
+  const doris = { ...DEFAULT_DORIS_OPTIONS, ...(options?.doris || {}) };
   return {
     hdfs,
     rdbms: { ...DEFAULT_RDBMS_OPTIONS, ...(options?.rdbms || {}) },
+    doris: {
+      ...doris,
+      keyColumns: [...(doris.keyColumns || [])],
+      distributionColumns: [...(doris.distributionColumns || [])],
+    },
   };
 }
 
@@ -78,5 +111,10 @@ export function pickTargetOptions(
   const family = targetFamily(writerTemplateKey, targetType);
   if (family === 'unknown') return {};
   const normalized = normalizeTargetOptions(options);
+  // Doris needs both sections: rdbms carries the shared snapshot business-date column, doris carries
+  // the key/distribution/partition policy that only this adapter understands.
+  if (isDorisTarget(writerTemplateKey, targetType)) {
+    return { rdbms: normalized.rdbms, doris: normalized.doris };
+  }
   return family === 'hdfs' ? { hdfs: normalized.hdfs } : { rdbms: normalized.rdbms };
 }

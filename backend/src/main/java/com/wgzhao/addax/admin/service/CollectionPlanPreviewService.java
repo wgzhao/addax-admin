@@ -3,8 +3,10 @@ package com.wgzhao.addax.admin.service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import com.wgzhao.addax.admin.common.DbType;
+import com.wgzhao.addax.admin.common.DorisTableOptions;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.common.TargetOptions;
+import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.dto.CollectionPlanPreview;
 import com.wgzhao.addax.admin.dto.CollectionSchemaPreview;
 import com.wgzhao.addax.admin.dto.CollectionSchemaPreviewRequest;
@@ -23,9 +25,14 @@ import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.source.SourceField;
 import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.service.source.TypePurpose;
+import com.wgzhao.addax.admin.service.impl.DorisTargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import com.wgzhao.addax.admin.utils.DbUtil;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil.DorisDdlException;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil.PlannedColumn;
+import com.wgzhao.addax.admin.utils.DorisDdlUtil.TablePlan;
 import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -143,14 +150,15 @@ public class CollectionPlanPreviewService
         {
             findings.add(constantUnsupported);
         }
-        List<CollectionPlanPreview.PlannedTargetColumn> planned = planColumns(request, adapter, sourceColumns);
+        List<CollectionPlanPreview.PlannedTargetColumn> planned =
+            planColumns(request, adapter, sourceColumns, findings);
         List<CollectionSchemaPreview.MappingSuggestion> mappings = planned.stream()
             .filter(column -> column.sourceColumnName() != null)
             .map(column -> new CollectionSchemaPreview.MappingSuggestion(
                 column.sourceColumnName(), column.name(), false, sourceType(
                     sourceColumns, column.sourceColumnName()), column.type(), null))
             .toList();
-        String ddl = buildManagedDdl(request, adapter, planned);
+        String ddl = buildManagedDdl(request, adapter, planned, findings);
         String action = actual.exists() ? "UPDATE_TABLE" : "CREATE_TABLE";
         if (actual.exists())
         {
@@ -221,18 +229,23 @@ public class CollectionPlanPreviewService
     }
 
     private List<CollectionPlanPreview.PlannedTargetColumn> planColumns(
-        CollectionSchemaPreviewRequest request, TargetAdapter adapter, List<SourceColumnMetadata> sourceColumns)
+        CollectionSchemaPreviewRequest request, TargetAdapter adapter, List<SourceColumnMetadata> sourceColumns,
+        List<TargetContractReport.Finding> findings)
     {
+        boolean doris = DorisTargetAdapter.TYPE.equalsIgnoreCase(adapter.getType());
         List<CollectionPlanPreview.PlannedTargetColumn> columns = new ArrayList<>();
         int ordinal = 0;
         for (SourceColumnMetadata source : sourceColumns)
         {
+            // A Doris source key drives the key model; the RDBMS createPrimaryKey switch is a separate
+            // option and must not hide the primary key from the Doris planner.
             boolean primaryKey = adapter.getFamily() == TargetFamily.RDBMS
-                && createPrimaryKey(request.targetOptions()) && source.primaryKey();
+                && (doris ? Boolean.TRUE.equals(source.primaryKey())
+                    : createPrimaryKey(request.targetOptions()) && source.primaryKey());
             String targetName = source.suggestedTargetName() == null || source.suggestedTargetName().isBlank()
                 ? source.name() : source.suggestedTargetName();
             columns.add(new CollectionPlanPreview.PlannedTargetColumn(
-                targetName, source.name(), targetType(request, adapter, source),
+                targetName, source.name(), targetType(request, adapter, source, findings),
                 source.nullable(), primaryKey, source.comment(), "SOURCE", ++ordinal));
         }
         if (adapter.getFamily() == TargetFamily.RDBMS)
@@ -250,7 +263,7 @@ public class CollectionPlanPreviewService
     }
 
     private String targetType(CollectionSchemaPreviewRequest request, TargetAdapter adapter,
-        SourceColumnMetadata source)
+        SourceColumnMetadata source, List<TargetContractReport.Finding> findings)
     {
         SourceAdapter sourceAdapter = null;
         if (request.sourceId() != null)
@@ -259,6 +272,37 @@ public class CollectionPlanPreviewService
             if (etlSource != null)
             {
                 sourceAdapter = sourceAdapterRegistry.resolve(etlSource);
+            }
+        }
+        if (DorisTargetAdapter.TYPE.equalsIgnoreCase(adapter.getType()))
+        {
+            // Doris has its own type set; the MySQL-compatible URL must not pick MySQL spellings
+            // such as tinyint(1) or longtext, which Doris rejects.
+            if (sourceAdapter != null && !SourceAdapterRegistry.RDBMS_TYPE.equals(sourceAdapter.getType()))
+            {
+                SourceField field = new SourceField(source.name(), source.type(), source.type(),
+                    source.size(), source.precision(), source.scale(), source.comment(),
+                    source.nullable(), source.primaryKey(), source.suggestedTargetName(),
+                    source.sourceMeta());
+                ColumnTypeMapping mapping = sourceAdapter.mapColumnType(field, TargetFamily.RDBMS,
+                    DbType.MYSQL, TypePurpose.PLANNED_DDL);
+                String provided = DorisDdlUtil.normalizeProvidedType(mapping.targetTypeFull());
+                if (provided != null)
+                {
+                    return provided;
+                }
+            }
+            try
+            {
+                return DorisDdlUtil.renderType(source.type(), source.size(),
+                    source.precision() == null ? source.size() : source.precision(),
+                    source.scale() == null ? 0 : source.scale());
+            }
+            catch (DorisDdlException e)
+            {
+                findings.add(TargetContractReport.Finding.error(
+                    "TARGET_DORIS_TYPE_UNSUPPORTED", source.name(), source.type(), null, e.getMessage()));
+                return "unsupported";
             }
         }
         if (sourceAdapter != null && !SourceAdapterRegistry.RDBMS_TYPE.equals(sourceAdapter.getType()))
@@ -302,8 +346,13 @@ public class CollectionPlanPreviewService
     }
 
     private String buildManagedDdl(CollectionSchemaPreviewRequest request, TargetAdapter adapter,
-        List<CollectionPlanPreview.PlannedTargetColumn> columns)
+        List<CollectionPlanPreview.PlannedTargetColumn> columns,
+        List<TargetContractReport.Finding> findings)
     {
+        if (DorisTargetAdapter.TYPE.equalsIgnoreCase(adapter.getType()))
+        {
+            return buildDorisDdl(request, columns, findings);
+        }
         if (adapter.getFamily() != TargetFamily.RDBMS)
         {
             String partitions = plannedPartitions(request, adapter).isEmpty()
@@ -336,6 +385,49 @@ public class CollectionPlanPreviewService
             return RdbmsDdlUtil.createDatabaseIfNotExists(dialect, request.targetDb()) + ";\n\n" + createTable;
         }
         return createTable;
+    }
+
+    /**
+     * Doris DDL is planned by the same utility the adapter executes, so the drawer shows the exact
+     * statement that create/update will run.
+     */
+    private String buildDorisDdl(CollectionSchemaPreviewRequest request,
+        List<CollectionPlanPreview.PlannedTargetColumn> columns,
+        List<TargetContractReport.Finding> findings)
+    {
+        if (columns.stream().anyMatch(column -> "unsupported".equalsIgnoreCase(column.type())))
+        {
+            // The per-column finding already blocks the plan; do not render a statement with a
+            // placeholder type.
+            return null;
+        }
+        List<PlannedColumn> planned = columns.stream()
+            .map(column -> new PlannedColumn(column.name(), column.type(), column.nullable(),
+                Boolean.TRUE.equals(column.primaryKey()), column.comment(), column.role()))
+            .toList();
+        try
+        {
+            TablePlan plan = DorisDdlUtil.planTable(request.targetDb(), request.targetTable(), planned,
+                DorisTableOptions.from(request.targetOptions()), null);
+            for (String warning : plan.warnings())
+            {
+                findings.add(TargetContractReport.Finding.warning(
+                    "TARGET_DORIS_PLAN_WARNING", null, null, null, warning));
+            }
+            return plan.ddl();
+        }
+        catch (DorisDdlException e)
+        {
+            findings.add(TargetContractReport.Finding.error(
+                "TARGET_DORIS_DDL_UNSUPPORTED", e.column(), null, null, e.getMessage()));
+            return null;
+        }
+        catch (ApiException e)
+        {
+            findings.add(TargetContractReport.Finding.error(
+                "TARGET_DORIS_OPTION_INVALID", null, null, null, e.getMessage()));
+            return null;
+        }
     }
 
     private DbType targetDialect(Long targetId)

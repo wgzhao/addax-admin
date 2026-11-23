@@ -262,8 +262,10 @@ public class RdbmsSourceAdapter implements SourceAdapter
     public SourceTableHints tableHints(SourceRef source, String database, String table)
     {
         DbType dialect = DbUtil.getDbType(source.url());
-        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER)
-            && database != null && !database.isBlank() ? database : null;
+        boolean catalogDialect = dialect == DbType.MYSQL || dialect == DbType.SQLSERVER;
+        String catalog = catalogDialect && database != null && !database.isBlank() ? database : null;
+        String schema = dialect == DbType.POSTGRESQL && database != null && !database.isBlank()
+            ? database : null;
         try (Connection connection = DbUtil.getConnection(source.url(), source.username(), source.password()))
         {
             if (connection == null)
@@ -271,7 +273,7 @@ public class RdbmsSourceAdapter implements SourceAdapter
                 return SourceTableHints.EMPTY;
             }
             List<String> pk = new ArrayList<>();
-            try (ResultSet rs = connection.getMetaData().getPrimaryKeys(catalog, null, table))
+            try (ResultSet rs = connection.getMetaData().getPrimaryKeys(catalog, schema, table))
             {
                 while (rs.next())
                 {
@@ -282,7 +284,20 @@ public class RdbmsSourceAdapter implements SourceAdapter
                     }
                 }
             }
-            return new SourceTableHints(pk, Set.of(), Map.of());
+            // DDL needs to know which columns are NOT NULL: a key column cannot be nullable.
+            Set<String> notNull = new HashSet<>();
+            try (ResultSet rs = connection.getMetaData().getColumns(catalog, schema, table, null))
+            {
+                while (rs.next())
+                {
+                    String name = rs.getString("COLUMN_NAME");
+                    if (name != null && "NO".equalsIgnoreCase(rs.getString("IS_NULLABLE")))
+                    {
+                        notNull.add(name.toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+            return new SourceTableHints(pk, notNull, Map.of());
         }
         catch (SQLException e)
         {

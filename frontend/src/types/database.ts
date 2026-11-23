@@ -251,9 +251,26 @@ export interface RdbmsTargetOptions {
   createPrimaryKey?: boolean; // create the target primary key from the source one, default true
 }
 
+// Doris owns decisions that cannot be changed after CREATE TABLE: the key model, key columns,
+// bucketing and partition. They live per table, next to (not inside) the shared rdbms snapshot option.
+export interface DorisTargetOptions {
+  keyModel?: 'AUTO' | 'UNIQUE' | 'DUPLICATE' | 'AGGREGATE';
+  keyColumns?: string[]; // empty means the mapped source primary key
+  distributionType?: 'HASH' | 'RANDOM';
+  distributionColumns?: string[]; // empty means the key columns
+  buckets?: string; // 'AUTO' or a number as text, as stored by the backend
+  replicationNum?: number | null;
+  partitionMode?: 'NONE' | 'DYNAMIC';
+  partitionColumn?: string;
+  partitionStart?: number;
+  partitionEnd?: number;
+  partitionPrefix?: string;
+}
+
 export interface EtlTargetOptions {
   hdfs: HdfsTargetOptions;
   rdbms: RdbmsTargetOptions;
+  doris: DorisTargetOptions;
 }
 
 // 采集表信息 etl_table

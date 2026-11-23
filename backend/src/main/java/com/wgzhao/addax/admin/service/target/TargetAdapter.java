@@ -31,8 +31,8 @@ public interface TargetAdapter
     }
 
     /**
-     * Whether the platform may create and evolve target tables. Doris returns false until its key
-     * model and distribution policy are explicit; EXTERNAL mode remains available.
+     * Whether the platform may create and evolve target tables. EXTERNAL mode is always available for
+     * an adapter that supports its contract check; this flag only governs managed DDL.
      */
     default boolean supportsManagedSchema()
     {

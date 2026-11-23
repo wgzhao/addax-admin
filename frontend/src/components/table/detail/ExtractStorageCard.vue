@@ -200,6 +200,155 @@
           </div>
         </v-col>
 
+        <template v-if="isDorisTarget">
+          <v-col cols="12">
+            <div class="field-block">
+              <div class="field-label">Doris 表模型</div>
+              <p class="field-hint">
+                键模型、键列、分桶与分区在表创建后不可修改；键列留空时使用源端主键，分桶列留空时使用键列。
+                平台管理模式只对不存在的目标表执行建档，存量表只做契约校验。
+              </p>
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">数据模型</div>
+              <v-select
+                v-model="table.targetOptions.doris.keyModel"
+                variant="outlined"
+                density="comfortable"
+                :items="dorisKeyModels"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">键列（可选）</div>
+              <v-text-field
+                v-model="keyColumnsText"
+                variant="outlined"
+                density="comfortable"
+                placeholder="留空使用源端主键，多个用逗号分隔"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">分桶方式</div>
+              <v-select
+                v-model="table.targetOptions.doris.distributionType"
+                variant="outlined"
+                density="comfortable"
+                :items="dorisDistributionTypes"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">分桶数</div>
+              <v-combobox
+                v-model="table.targetOptions.doris.buckets"
+                variant="outlined"
+                density="comfortable"
+                :items="['AUTO', '5', '10', '20', '32']"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">分桶列（可选）</div>
+              <v-text-field
+                v-model="distributionColumnsText"
+                variant="outlined"
+                density="comfortable"
+                placeholder="留空使用键列"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">副本数</div>
+              <v-text-field
+                v-model.number="table.targetOptions.doris.replicationNum"
+                type="number"
+                min="1"
+                max="10"
+                variant="outlined"
+                density="comfortable"
+                placeholder="留空使用 Doris 默认值"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">分区方式</div>
+              <v-select
+                v-model="table.targetOptions.doris.partitionMode"
+                variant="outlined"
+                density="comfortable"
+                :items="dorisPartitionModes"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col cols="12" md="3">
+            <div class="field-block">
+              <div class="field-label">动态分区列</div>
+              <v-text-field
+                v-model="table.targetOptions.doris.partitionColumn"
+                variant="outlined"
+                density="comfortable"
+                :disabled="table.targetOptions.doris.partitionMode !== 'DYNAMIC'"
+                placeholder="DATE/DATETIME 目标字段"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col v-if="table.targetOptions.doris.partitionMode === 'DYNAMIC'" cols="6" md="2">
+            <div class="field-block">
+              <div class="field-label">保留天数</div>
+              <v-text-field
+                v-model.number="table.targetOptions.doris.partitionStart"
+                type="number"
+                max="-1"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col v-if="table.targetOptions.doris.partitionMode === 'DYNAMIC'" cols="6" md="2">
+            <div class="field-block">
+              <div class="field-label">预建天数</div>
+              <v-text-field
+                v-model.number="table.targetOptions.doris.partitionEnd"
+                type="number"
+                min="0"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+          <v-col v-if="table.targetOptions.doris.partitionMode === 'DYNAMIC'" cols="12" md="2">
+            <div class="field-block">
+              <div class="field-label">分区名前缀</div>
+              <v-text-field
+                v-model="table.targetOptions.doris.partitionPrefix"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+              />
+            </div>
+          </v-col>
+        </template>
+
         <v-col v-if="!isNonRdbmsSource" cols="12" md="4">
           <div class="field-block field-block--switch">
             <div class="field-label">切分策略</div>
@@ -222,9 +371,9 @@
 
 <script setup lang="ts">
   import { HDFS_COMPRESS_FORMATS } from '@/utils';
-  import { targetFamily } from '@/utils/target-options';
+  import { isDorisTarget as isDorisTargetOf, targetFamily } from '@/utils/target-options';
   import type { HdfsPartitionBinding, VEtlWithSource } from '@/types/database';
-  import { computed } from 'vue';
+  import { computed, watch } from 'vue';
 
   defineEmits(['show-filter-help']);
 
@@ -247,14 +396,59 @@
   const isMongoSource = computed(() => table.value.dbType === 'mongodb');
   const isEsSource = computed(() => table.value.dbType === 'elasticsearch');
   const isNonRdbmsSource = computed(() => isMongoSource.value || isEsSource.value);
-  // Doris is external-only in this phase; it owns neither DDL nor a platform-created key.
-  const isDorisTarget = computed(() => {
-    const key = (props.writerTemplateKey ?? table.value.targetWriterTemplateKey ?? '')
-      .trim()
-      .toUpperCase();
-    const type = (props.targetType ?? table.value.targetType ?? '').trim().toUpperCase();
-    return key === 'WD' || type === 'DORIS';
+  // Doris keeps its own key/distribution/partition policy; the display type disambiguates the
+  // MySQL-protocol JDBC URL, which can never identify Doris on its own.
+  const isDorisTarget = computed(() =>
+    isDorisTargetOf(
+      props.writerTemplateKey ?? table.value.targetWriterTemplateKey,
+      props.targetType ?? table.value.targetType
+    )
+  );
+
+  const dorisKeyModels = [
+    { title: '自动（有源端主键用 UNIQUE，否则 DUPLICATE）', value: 'AUTO' },
+    { title: 'UNIQUE（按主键去重/更新）', value: 'UNIQUE' },
+    { title: 'DUPLICATE（追加写入）', value: 'DUPLICATE' },
+  ];
+  const dorisDistributionTypes = [
+    { title: 'HASH（按键列分桶）', value: 'HASH' },
+    { title: 'RANDOM（仅 DUPLICATE）', value: 'RANDOM' },
+  ];
+  const dorisPartitionModes = [
+    { title: '不分区', value: 'NONE' },
+    { title: '动态日期分区', value: 'DYNAMIC' },
+  ];
+
+  const splitNames = (value: string) =>
+    value
+      .split(',')
+      .map(name => name.trim())
+      .filter(Boolean);
+
+  const keyColumnsText = computed({
+    get: () => (table.value.targetOptions.doris.keyColumns || []).join(', '),
+    set: value => {
+      table.value.targetOptions.doris.keyColumns = splitNames(value || '');
+    },
   });
+  const distributionColumnsText = computed({
+    get: () => (table.value.targetOptions.doris.distributionColumns || []).join(', '),
+    set: value => {
+      table.value.targetOptions.doris.distributionColumns = splitNames(value || '');
+    },
+  });
+
+  // Doris dynamic partitions require an explicit bucket count.
+  watch(
+    () => table.value.targetOptions.doris.partitionMode,
+    mode => {
+      if (mode === 'DYNAMIC' && (!table.value.targetOptions.doris.buckets
+        || table.value.targetOptions.doris.buckets === 'AUTO')) {
+        table.value.targetOptions.doris.buckets = '10';
+      }
+    }
+  );
+
   const partitionBindings = computed(() => table.value.targetOptions.hdfs.partitionBindings || []);
 
   // Why: the target contract rejects more than one BIZ_DATE partition.
