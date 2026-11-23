@@ -324,8 +324,7 @@ public class CollectionPlanPreviewService
             dialect, tableRef, definitions, primaryKeys, null);
         if (dialect == DbType.MYSQL && request.targetDb() != null && !request.targetDb().isBlank())
         {
-            return "CREATE DATABASE IF NOT EXISTS " + RdbmsDdlUtil.quoteIdent(dialect, request.targetDb())
-                + " DEFAULT CHARSET utf8mb4;\n\n" + createTable;
+            return RdbmsDdlUtil.createDatabaseIfNotExists(dialect, request.targetDb()) + ";\n\n" + createTable;
         }
         return createTable;
     }

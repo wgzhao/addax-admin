@@ -142,9 +142,12 @@ public final class RdbmsDdlUtil
         switch (dialect)
         {
             case MYSQL:
+                // Charset and collation are deliberately inherited from the target database: that is
+                // the DBA's policy. Naming a charset here also silently picked its default collation
+                // instead of the database's, so omitting both clauses is the only way to inherit both.
                 StringBuilder sb = new StringBuilder();
                 sb.append("CREATE TABLE IF NOT EXISTS ").append(tableRef).append(" (\n")
-                    .append(body).append("\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                    .append(body).append("\n) ENGINE=InnoDB");
                 if (tableComment != null && !tableComment.isBlank())
                 {
                     sb.append(" COMMENT='").append(normalizeComment(tableComment)).append("'");
@@ -156,6 +159,21 @@ public final class RdbmsDdlUtil
             default:
                 return "CREATE TABLE IF NOT EXISTS " + tableRef + " (\n" + body + "\n)";
         }
+    }
+
+    /**
+     * MySQL has no schema above the database, so the platform creates a missing target database. That
+     * database is the only object the platform fully owns here; an explicit Unicode default gives the
+     * tables inheriting from it a deterministic baseline. An existing database is never altered.
+     */
+    public static String createDatabaseIfNotExists(DbType dialect, String database)
+    {
+        if (dialect != DbType.MYSQL)
+        {
+            throw new IllegalArgumentException("Unsupported dialect for database creation: " + dialect);
+        }
+        return "CREATE DATABASE IF NOT EXISTS " + quoteIdent(dialect, database)
+            + " DEFAULT CHARACTER SET utf8mb4";
     }
 
     public static String addColumn(DbType dialect, String tableRef, String columnDef)
@@ -443,7 +461,8 @@ public final class RdbmsDdlUtil
                     case SQLSERVER:
                         return n > 4000 ? "nvarchar(max)" : "nvarchar(" + n + ")";
                     default:
-                        // utf8mb4 caps a single varchar column at 16383 characters; above that use text.
+                        // Conservative 4-byte-charset bound (65535 / 4). A narrower inherited charset
+                        // could fit more, but degrading to text above the bound is always safe.
                         return n > 16383 ? "text" : "varchar(" + n + ")";
                 }
             }

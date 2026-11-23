@@ -18,6 +18,25 @@
 - PostgreSQL / SQL Server 请显式配置 `update`，依赖主键或唯一键。
 - 目标表没有主键/唯一键时，目标表结构同步会向服务日志写入警告，因为重复执行会插入重复数据。
 
+### 字符集与排序规则（MySQL）
+
+新建表不指定 `DEFAULT CHARSET` / `COLLATE`，字符集和排序规则都继承目标库的默认设置；平台不会修改已有库或已有表的字符集。
+
+- 目标库不存在时，平台创建该库，库默认字符集固定为 `utf8mb4`。这条只对平台新建的库生效。
+- 目标库默认不是 Unicode（如 `latin1`、`gbk`）时，含非 ASCII 的源数据可能写入失败（严格模式报 `1366`），或在非严格模式下静默变成 `?`。目标表结构同步会在服务日志中记录一条告警。
+- 需要其他字符集时，在建库或改库时指定，而不是依赖平台：
+
+  ```sql
+  -- 新建库；平台不会覆盖已存在的库
+  CREATE DATABASE ods DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+  -- 已有库；只影响之后新建的表，已存在的表不变
+  ALTER DATABASE ods DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+  ```
+
+- 也可以只调整 server 级 `character_set_server` / `collation_server`，由库和表逐级继承。
+- 源 `varchar` 超过 16383 字符时降级为 `text`；这是按 4 字节字符集估算的保守上界，实际字符集更窄时也不会出错。
+
 ### 表结构演化
 
 自动同步新增列与“容量变大”的类型变更，例如：
@@ -40,7 +59,7 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时
 - SQL Server 列注释不落地。
 - 跨方言的 `enum`/`set` 退化为字符串列。
 - 源端 `DEFAULT` 仅在类型演化时重述，建表时不复制。
-- 宽字符集下的宽主键（如 `utf8mb4 varchar(1000)`）可能超过 InnoDB 3072 字节索引上限。
+- 主键列的实际字节宽度由目标表的有效字符集决定，超过 InnoDB 3072 字节索引上限时建表会失败（如 `utf8mb4` 下的 `varchar(1000)` 主键）。
 
 ## 目标端表属性（阶段二）
 
@@ -113,3 +132,4 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时
 - [目标表结构与字段映射](05-target-contract.md)
 - [升级与迁移](../install/05-upgrade.md)
 - [ADR 0002：外部目标契约与字段映射](../../adr/0002-external-target-contract-and-column-mapping.md)
+- [ADR 0016：MySQL 目标表继承库级字符集与排序规则](../../adr/0016-mysql-target-charset-inheritance.md)
