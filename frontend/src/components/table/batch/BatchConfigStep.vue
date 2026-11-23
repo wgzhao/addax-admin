@@ -36,10 +36,7 @@
             <v-select
               v-model="schemaManagementMode"
               class="target-field"
-              :items="[
-                { title: '平台创建并维护', value: 'MANAGED' },
-                { title: '目标表已存在，仅校验', value: 'EXTERNAL' },
-              ]"
+              :items="schemaModeItems"
               label="目标表结构管理"
               density="comfortable"
               variant="outlined"
@@ -86,6 +83,15 @@
           >
             提交前会逐表读取目标元数据并要求确认字段映射；目标表不存在或目标结构不兼容时不会保存。
           </v-alert>
+          <v-alert
+            v-if="isDorisTarget"
+            type="warning"
+            variant="tonal"
+            density="comfortable"
+            class="mt-3"
+          >
+            Doris 目标端当前仅支持外部表（EXTERNAL）：目标表需由数仓/DBA 创建，平台只做契约校验与写入。
+          </v-alert>
         </section>
 
         <section class="stage-panel">
@@ -97,7 +103,9 @@
                   family === 'hdfs'
                     ? '支持多个分区键，其中最多一个业务日期分区；其余使用固定值。'
                     : family === 'rdbms'
-                      ? '配置快照字段与目标表主键策略。'
+                      ? isDorisTarget
+                        ? 'Doris 仅做外部表校验；可配置快照业务日期字段。'
+                        : '配置快照字段与目标表主键策略。'
                       : '未识别目标端，请先检查目标端配置。'
                 }}
               </div>
@@ -230,7 +238,11 @@
                 采集源不支持常量列，因此不能由平台注入业务日期。如需该列，请在字段映射中把索引里的日期字段映射到目标业务日期列。
               </v-alert>
             </v-col>
-            <v-col v-if="sourceDbType !== 'elasticsearch'" cols="12" md="6">
+            <v-col
+              v-if="sourceDbType !== 'elasticsearch' && !isDorisTarget"
+              cols="12"
+              md="6"
+            >
               <v-switch
                 v-model="options.rdbms.createPrimaryKey"
                 inset
@@ -317,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { computed, watch } from 'vue';
   import { targetFamily } from '@/utils/target-options';
   import type { EtlTableView, EtlTargetOptions, HdfsPartitionBinding } from '@/types/database';
 
@@ -345,10 +357,35 @@
     () => props.targets.find(t => t.value === props.targetId)?.label || '未选择目标端'
   );
 
-  const family = computed(() => {
-    const picked = props.targets.find(t => t.value === props.targetId);
-    return targetFamily(picked?.writerTemplateKey, picked?.targetType);
+  const pickedTarget = computed(() => props.targets.find(t => t.value === props.targetId));
+
+  const family = computed(() =>
+    targetFamily(pickedTarget.value?.writerTemplateKey, pickedTarget.value?.targetType)
+  );
+
+  // Doris is an explicit adapter type inside the RDBMS family; platform-managed DDL is not available
+  // yet, so the wizard must not offer it.
+  const isDorisTarget = computed(() => {
+    const key = (pickedTarget.value?.writerTemplateKey || '').trim().toUpperCase();
+    return key === 'WD' || (pickedTarget.value?.targetType || '').trim().toUpperCase() === 'DORIS';
   });
+
+  const schemaModeItems = computed(() =>
+    isDorisTarget.value
+      ? [{ title: '目标表已存在，仅校验', value: 'EXTERNAL' }]
+      : [
+          { title: '平台创建并维护', value: 'MANAGED' },
+          { title: '目标表已存在，仅校验', value: 'EXTERNAL' },
+        ]
+  );
+
+  watch(
+    isDorisTarget,
+    doris => {
+      if (doris) schemaManagementMode.value = 'EXTERNAL';
+    },
+    { immediate: true }
+  );
 
   const targetNameKey = (name: string) => (family.value === 'hdfs' ? name.toLowerCase() : name);
   const duplicateSet = computed(() => new Set(props.duplicateTargetNames.map(targetNameKey)));

@@ -365,7 +365,8 @@ export interface VEtlWithSource extends EtlTable {
   remark?: string; // 系统备注信息
   enabled?: boolean; // 是否有效
   targetType?: string;
-  // Authoritative routing key of the target (`wH` Hive/HDFS, `wR` RDBMS); targetType is display-only.
+  // Authoritative routing key of the target (`wH` Hive/HDFS, `wR` RDBMS, `wD` Doris); targetType is
+  // display-only except for DORIS, where it disambiguates the MySQL-protocol JDBC URL.
   targetWriterTemplateKey?: string;
   targetCode?: string;
   targetName?: string;
