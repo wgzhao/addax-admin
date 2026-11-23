@@ -56,6 +56,8 @@ public class RdbmsTargetAdapter
 {
     private static final String DEFAULT_WRITER_TEMPLATE_KEY = "wR";
     private static final String BUSINESS_DATE_COMMENT = "业务日期";
+    private static final Set<String> UNICODE_CHARSETS = Set.of(
+        "utf8mb4", "utf8mb3", "utf8", "ucs2", "utf16", "utf32");
 
     private final EtlTargetRepo etlTargetRepo;
     private final DictService dictService;
@@ -289,8 +291,7 @@ public class RdbmsTargetAdapter
                 // (which does `create database if not exists`) means creating the database here.
                 if (dialect == DbType.MYSQL && etlTable.getTargetDb() != null && !etlTable.getTargetDb().isBlank())
                 {
-                    String createDb = "CREATE DATABASE IF NOT EXISTS " + RdbmsDdlUtil.quoteIdent(dialect, etlTable.getTargetDb())
-                        + " DEFAULT CHARSET utf8mb4";
+                    String createDb = RdbmsDdlUtil.createDatabaseIfNotExists(dialect, etlTable.getTargetDb());
                     log.info("create rdbms target database: {}", createDb);
                     stmt.execute(createDb);
                 }
@@ -298,6 +299,9 @@ public class RdbmsTargetAdapter
                 stmt.execute(createSql);
                 jourService.successJour(etlJour);
             }
+            // The table inherits its charset from the database, so a non-Unicode default only shows up
+            // as a runtime write failure; surface it on the structure sync instead.
+            warnOnNonUnicodeTargetCharset(c, dialect, etlTable);
             if (!metadataOk)
             {
                 return true;
@@ -948,6 +952,48 @@ public class RdbmsTargetAdapter
         // Structural warnings have no table of their own; the failed DDLs also land in etl_jour and
         // etl_failure, so the application log keeps the operator-facing breadcrumb.
         log.warn("RDBMS target table {}: {}", etlTable.getId(), message);
+    }
+
+    /**
+     * Tables inherit charset/collation from the target database, so a non-Unicode default means
+     * non-ASCII source data either fails (strict mode) or is silently replaced (non-strict). Only the
+     * effective table charset matters; report it once per structure sync. Best effort: metadata
+     * privileges or an older server must not break the refresh.
+     */
+    private void warnOnNonUnicodeTargetCharset(Connection c, DbType dialect, VwEtlTableWithSource etlTable)
+    {
+        if (dialect != DbType.MYSQL)
+        {
+            return;
+        }
+        String sql = "SELECT col.CHARACTER_SET_NAME FROM information_schema.TABLES t "
+            + "LEFT JOIN information_schema.COLLATIONS col ON col.COLLATION_NAME = t.TABLE_COLLATION "
+            + "WHERE t.TABLE_SCHEMA = ? AND t.TABLE_NAME = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql))
+        {
+            ps.setString(1, etlTable.getTargetDb());
+            ps.setString(2, etlTable.getTargetTable());
+            try (ResultSet rs = ps.executeQuery())
+            {
+                if (!rs.next())
+                {
+                    return;
+                }
+                String charset = rs.getString(1);
+                if (charset == null || charset.isBlank()
+                    || UNICODE_CHARSETS.contains(charset.toLowerCase(Locale.ROOT)))
+                {
+                    return;
+                }
+                warnTarget(etlTable, "目标表字符集为 " + charset
+                    + "（继承自目标库/表设置），不是 Unicode；源数据含非 ASCII 字符时可能写入失败或乱码，"
+                    + "请在目标库设置 Unicode 默认字符集或为该表指定字符集");
+            }
+        }
+        catch (SQLException e)
+        {
+            log.debug("Failed to read charset for RDBMS target table {}: {}", etlTable.getId(), e.getMessage());
+        }
     }
 
     private String activeName(EtlColumn column)
