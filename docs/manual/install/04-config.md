@@ -106,6 +106,15 @@ HiveServer2 地址、HDFS 目录前缀、`defaultFS`、存储/压缩格式都属
 - 在「HDFS / Hive 设置」填写 `defaultFS`、HDFS 目录前缀、`hdfsSitePath`、存储与压缩格式；
 - 保存后点击「测试连接」确认。
 
+Doris 目标端是独立的 `DORIS` 类型（writer 模板键 `wD`），不复用 MySQL 方言：
+
+- 「连接信息」的 JDBC URL 使用 FE 的 MySQL 协议端口（通常 `jdbc:mysql://fe:9030/db`）；
+- 「Doris Stream Load 设置」填写 `loadUrl`（HTTP 端点，通常为 FE 的 8030 端口，每行一个 `host:port`，
+  不要带 `http://` 前缀）、`batchSize`、`flushInterval`、`flushQueueLength` 与 `loadProps`；
+- `loadUrl` 与 JDBC 地址是两条独立通路，Addax 执行节点必须同时可达；
+- 当前版本只支持外部表（EXTERNAL）：目标表需由数仓/DBA 创建，平台只做契约校验与 Stream Load 写入，
+  平台建表将在后续版本提供。
+
 Hive JDBC 驱动与 MySQL/PostgreSQL/SQL Server 驱动一样，放在后端节点的 `${APP_HOME}/drivers` 目录（Docker 为 `/app/drivers`），重启后自动加载。该驱动只供 addax-admin 建表/读取元数据使用，Addax 自身的 `hdfswriter` 不需要。
 
 平台用**隔离类加载器**加载 `drivers/`，不会把驱动 jar 加入应用主类路径。因此 HDP/Cloudera 的 Hive
@@ -114,13 +123,14 @@ Hive JDBC 驱动与 MySQL/PostgreSQL/SQL Server 驱动一样，放在后端节�
 
 ### 作业模板
 
-系统配置中维护五类 Addax 作业模板：
+系统配置中维护以下 Addax 作业模板：
 
 - RDBMS→HDFS 主模板 `R2H`
 - RDBMS→RDBMS 主模板 `R2R`
 - RDBMS 读取模板 `rR`
 - HDFS 写入模板 `wH`
 - RDBMS 写入模板 `wR`
+- Doris Stream Load 写入模板 `wD`
 
 模板由平台在创建或更新采集任务时渲染。除非明确了解模板变量含义，否则不要修改。模板编辑器中可以看到当前 JSON 内容，保存前请先备份。
 
