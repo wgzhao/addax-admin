@@ -82,10 +82,22 @@ public class AlertRuleService
         catch (IllegalArgumentException ex) {
             throw new ApiException(400, "不支持的事件类型: " + request.eventType());
         }
+        // Recovery targets whoever received the failure, so a recovery rule could
+        // never influence routing; only legacy rows may keep this type.
+        if (creating && eventType == AlertEventType.COLLECT_RECOVERY) {
+            throw new ApiException(400, "采集恢复的接收方由原失败事件的投递记录决定，请用采集失败规则收窄通道");
+        }
         AlertSeverity severity = AlertSeverity.parse(request.severity(), eventType.defaultSeverity());
         String scopeType = request.scopeType() == null ? "ALL" : request.scopeType().trim().toUpperCase(Locale.ROOT);
         if (!SCOPE_TYPES.contains(scopeType)) {
             throw new ApiException(400, "规则范围只支持 ALL/SOURCE/TABLE");
+        }
+        // SECURITY, SYSTEM, SCHEDULE and DAILY events carry no source/table
+        // context, so a scoped rule of these types would silently never match.
+        if ((eventType == AlertEventType.SECURITY || eventType == AlertEventType.SYSTEM
+            || eventType == AlertEventType.SCHEDULE || eventType == AlertEventType.DAILY)
+            && !"ALL".equals(scopeType)) {
+            throw new ApiException(400, "安全告警、系统告警、调度告警与每日汇总不带数据源上下文，范围只能是 ALL");
         }
         String scopeValue = request.scopeValue() == null ? null : request.scopeValue().trim();
         if ("ALL".equals(scopeType)) {

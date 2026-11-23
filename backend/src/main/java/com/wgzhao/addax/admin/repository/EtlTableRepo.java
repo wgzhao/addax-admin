@@ -39,7 +39,7 @@ public interface EtlTableRepo
               AND COALESCE(NULLIF((SELECT s.calendar FROM EtlSource s WHERE s.id = t.sid), ''), 'NATURAL_DAY')
                   in (:calendars)
         """)
-    void resetEtlFlagsForCalendars(@Param("calendars") List<String> calendars);
+    int resetEtlFlagsForCalendars(@Param("calendars") List<String> calendars);
 
     @Modifying
     @Query(value = """
@@ -205,6 +205,18 @@ public interface EtlTableRepo
                 WHERE t.status <> 'X' AND s.enabled = true AND t.retiredAt is null
         """)
     List<EtlTable> findCanRefreshTables();
+
+    /**
+     * Tables a business date still owes work for: enabled source, not paused, not
+     * retired, and the source calendar covers that date. Used to decide whether a
+     * day's automatic batch is finished.
+     */
+    @Query("""
+            SELECT t FROM EtlTable t JOIN EtlSource s ON t.sid = s.id
+            WHERE t.retiredAt IS NULL AND s.enabled = true AND t.status <> 'X'
+              AND COALESCE(NULLIF(s.calendar, ''), 'NATURAL_DAY') IN (:calendars)
+        """)
+    List<EtlTable> findDueCandidates(@Param("calendars") List<String> calendars);
 
     /**
      * Target databases a source has used on one target endpoint, most recently touched first. The

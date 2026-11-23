@@ -1,7 +1,13 @@
 import Requests from '@/utils/requests';
 
 export type AlertChannelType = 'WECOM' | 'DINGTALK' | 'FEISHU' | 'WEBHOOK' | 'EMAIL';
-export type AlertEventType = 'COLLECT_FAILURE' | 'COLLECT_RECOVERY' | 'SECURITY' | 'SYSTEM';
+export type AlertEventType =
+  | 'COLLECT_FAILURE'
+  | 'COLLECT_RECOVERY'
+  | 'SECURITY'
+  | 'SYSTEM'
+  | 'SCHEDULE'
+  | 'DAILY';
 export type AlertSeverity = 'P1' | 'P2' | 'P3';
 export type AlertScopeType = 'ALL' | 'SOURCE' | 'TABLE';
 

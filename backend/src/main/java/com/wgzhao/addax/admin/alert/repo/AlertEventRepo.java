@@ -6,10 +6,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface AlertEventRepo extends JpaRepository<AlertEvent, Long>, JpaSpecificationExecutor<AlertEvent>
 {
     Optional<AlertEvent> findFirstByEventKeyAndStatusInOrderByIdDesc(
         String eventKey, Collection<AlertEventStatus> statuses);
+
+    List<AlertEvent> findByEventTypeAndStatusIn(String eventType, Collection<AlertEventStatus> statuses);
 }

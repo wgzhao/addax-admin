@@ -1020,12 +1020,16 @@
                 v-model="ruleFormView.eventType"
                 data-testid="rule-event-type"
                 :items="eventTypeOptions"
+                :item-props="eventTypeItemProps"
                 item-title="title"
                 item-value="value"
                 variant="outlined"
                 density="comfortable"
                 hide-details="auto"
               />
+              <p class="field-help" data-testid="rule-event-type-help">
+                {{ currentRuleEventMeta.hint }}
+              </p>
             </div>
             <div class="field">
               <label class="field-label">级别</label>
@@ -1043,9 +1047,11 @@
               <label class="field-label">范围</label>
               <v-select
                 v-model="ruleFormView.scopeType"
-                :items="scopeOptions"
+                data-testid="rule-scope"
+                :items="ruleScopeOptions"
                 item-title="title"
                 item-value="value"
+                :disabled="!currentRuleEventMeta.scoped"
                 variant="outlined"
                 density="comfortable"
                 hide-details="auto"
@@ -1333,12 +1339,81 @@
     title: CHANNEL_META[value].label,
   }));
 
-  const eventTypeOptions: Array<{ value: AlertEventType; title: string }> = [
-    { value: 'COLLECT_FAILURE', title: '采集失败' },
-    { value: 'COLLECT_RECOVERY', title: '采集恢复' },
-    { value: 'SECURITY', title: '安全告警' },
-    { value: 'SYSTEM', title: '系统告警' },
-  ];
+  // Event types are not interchangeable: only collection events carry a source
+  // and table, and recovery bypasses rules entirely, so the form explains the
+  // semantics instead of offering dead combinations.
+  const EVENT_TYPE_META: Record<
+    AlertEventType,
+    {
+      label: string;
+      short: string;
+      hint: string;
+      defaultSeverity: AlertSeverity;
+      scoped: boolean;
+      selectable: boolean;
+    }
+  > = {
+    COLLECT_FAILURE: {
+      label: '采集失败',
+      short: '采集任务重试后最终失败',
+      hint: '采集任务重试全部失败时触发；可按数据源或采集表收窄。默认 P1。',
+      defaultSeverity: 'P1',
+      scoped: true,
+      selectable: true,
+    },
+    COLLECT_RECOVERY: {
+      label: '采集恢复',
+      short: '失败恢复，接收方沿用原告警',
+      hint: '采集失败恢复时触发；接收方由原失败事件的投递记录决定，规则不参与路由。',
+      defaultSeverity: 'P2',
+      scoped: true,
+      selectable: false,
+    },
+    SECURITY: {
+      label: '安全告警',
+      short: '登录失败暴增、CRITICAL 审计事件',
+      hint: '安全审计异常：窗口内登录失败次数超阈值，或出现 CRITICAL 级审计事件。无数据源上下文，范围仅「全部」。默认 P1。',
+      defaultSeverity: 'P1',
+      scoped: false,
+      selectable: true,
+    },
+    SYSTEM: {
+      label: '系统告警',
+      short: '调度失败、日历耗尽等运维事件',
+      hint: '与单个采集无关的运维事件：调度扫描失败、采集日历耗尽、测试告警。无数据源上下文，范围仅「全部」。默认 P2。',
+      defaultSeverity: 'P2',
+      scoped: false,
+      selectable: true,
+    },
+    SCHEDULE: {
+      label: '调度告警',
+      short: '切日刷新失败或超时',
+      hint: '调度可靠性故障：切日表结构刷新失败、超时或队列清理失败。无数据源上下文，范围仅「全部」。默认 P1。',
+      defaultSeverity: 'P1',
+      scoped: false,
+      selectable: true,
+    },
+    DAILY: {
+      label: '每日汇总',
+      short: '当日采集完成、未完成或无任务',
+      hint: '每个业务日一条信息类汇总：批次全部完成、结束但有失败，或当日无采集任务。默认 P3；只有为本类型建立启用规则后才会外发。',
+      defaultSeverity: 'P3',
+      scoped: false,
+      selectable: true,
+    },
+  };
+
+  const eventTypeOptions = (Object.keys(EVENT_TYPE_META) as AlertEventType[]).map(value => ({
+    value,
+    title: EVENT_TYPE_META[value].label,
+    subtitle: EVENT_TYPE_META[value].short,
+    disabled: !EVENT_TYPE_META[value].selectable,
+  }));
+
+  const eventTypeItemProps = (item: { subtitle?: string; disabled?: boolean }) => ({
+    subtitle: item.subtitle,
+    disabled: item.disabled,
+  });
 
   const severityOptions: Array<{ value: AlertSeverity; title: string }> = [
     { value: 'P1', title: 'P1 · 紧急' },
@@ -1425,7 +1500,7 @@
     value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '—';
 
   const eventTypeLabel = (value: string | null | undefined) =>
-    eventTypeOptions.find(item => item.value === value)?.title || value || '—';
+    (value && EVENT_TYPE_META[value as AlertEventType]?.label) || value || '—';
 
   const severityColor = (value: string | null | undefined) => {
     if (value === 'P1') return 'error';
@@ -1855,6 +1930,24 @@
     groupWindowSecs: 60,
     enabled: true,
   });
+
+  const currentRuleEventMeta = computed(() => EVENT_TYPE_META[ruleForm.eventType]);
+  const ruleScopeOptions = computed(() =>
+    currentRuleEventMeta.value.scoped
+      ? scopeOptions
+      : scopeOptions.filter(item => item.value === 'ALL')
+  );
+
+  // Keep the form honest when switching to a type that has no source context.
+  watch(
+    () => ruleForm.eventType,
+    () => {
+      if (!currentRuleEventMeta.value.scoped) {
+        ruleForm.scopeType = 'ALL';
+        ruleForm.scopeValue = '';
+      }
+    }
+  );
 
   const openRuleCreate = () => {
     editingRule.value = null;

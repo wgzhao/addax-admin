@@ -1,5 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.dto.DayCutOutcome;
+import com.wgzhao.addax.admin.dto.TableRefreshStats;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.dto.FillbackProgressDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
@@ -39,6 +41,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,6 +70,8 @@ public class TaskService
     private final MasterElectionService electionService;
     private final EtlJobQueueService jobQueueService;
     private final TargetAdapterRegistry targetAdapterRegistry;
+    private final DayCutAlerter dayCutAlerter;
+    private final DailyBatchService dailyBatchService;
 
     /**
      * 执行指定采集源下的所有采集任务，将任务加入队列
@@ -85,11 +91,20 @@ public class TaskService
 
     /**
      * 处理非ETL任务（如judge任务）
+     *
+     * <p>Returns the run's outcome instead of swallowing it. The previous signature
+     * was void: every exception and timeout ended up in a log line, the scheduler
+     * then reported success and cleared its retry flag, and no alert could be
+     * produced because there was nothing to report.</p>
      */
-    public void updateParams()
+    public DayCutOutcome updateParams()
     {
         // 在切日时间，开始重置所有采集任务的 flag 字段设置为 'N'，以便重新采集
         log.info("开始执行每日参数更新和任务重置...");
+
+        LocalDate bizDate = LocalDate.now();
+        Instant startedAt = Instant.now();
+        int timeout = configService.getSchemaRefreshTimeoutSeconds();
 
         // Schema refresh mutates shared state (flags, queue truncation). It may be triggered from
         // several places (master cron, manual endpoint), so gate on the master role first and then
@@ -97,26 +112,32 @@ public class TaskService
         // described a lock that was never written anywhere.
         if (!electionService.isMaster()) {
             log.warn("updateParams 仅允许 master 节点执行，本节点非 master，忽略本次触发");
-            return;
+            return DayCutOutcome.skipped(bizDate, startedAt, timeout, "本节点不是 master");
         }
-        int timeout = configService.getSchemaRefreshTimeoutSeconds();
         String lockToken = redisLockService.tryLock(Constants.SCHEMA_REFRESH_LOCK_KEY, Duration.ofSeconds(timeout + 60L));
         if (lockToken == null) {
             log.warn("schema refresh 锁被占用（{}），说明已有刷新在进行中，跳过本次刷新", Constants.SCHEMA_REFRESH_LOCK_KEY);
-            return;
+            return DayCutOutcome.skipped(bizDate, startedAt, timeout, "已有刷新在进行中");
         }
         // Cutoff for queue cleanup below: rows created after this instant (including enqueues made
         // by other nodes while this refresh runs) must survive the truncation.
         Instant refreshStartedAt = Instant.now();
         log.info("已获取 schema refresh 锁：正在更新参数与刷新表结构，期间新任务将被延迟入队。已经在执行的任务不受影响。");
 
+        AtomicReference<DayCutOutcome.Stage> stage = new AtomicReference<>(DayCutOutcome.Stage.RESET_FLAGS);
+        AtomicInteger resetTables = new AtomicInteger();
         ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "updateParams-worker");
             t.setDaemon(true);
             return t;
         });
 
-        Future<?> future = null;
+        Future<TableRefreshStats> future = null;
+        TableRefreshStats stats = null;
+        boolean timedOut = false;
+        String error = null;
+        boolean queueMonitorRestarted = false;
+        boolean markerWritten = false;
         try {
             // Stop the queue monitor to prevent new queued tasks from being dispatched while we refresh.
             // Note: running tasks are not interrupted.
@@ -124,52 +145,62 @@ public class TaskService
 
             // Submit refresh job and wait with timeout
             future = executor.submit(() -> {
-                try {
-                    // Reset flags so tasks become eligible after refresh
-                    tableService.resetAllFlags();
-                    // Reload system configuration
-                    configService.loadConfig();
+                // The closing business date's table statuses are about to be reset, so its
+                // batch summary has to be decided before resetAllFlags() overwrites them.
+                dailyBatchService.reportClosingIfNeeded(bizDate.minusDays(1));
 
-                    // Refresh schema / resources for all tables. This checks source schema and updates target metadata when changed.
-                    tableService.refreshAllTableResources();
+                // Reset flags so tasks become eligible after refresh
+                stage.set(DayCutOutcome.Stage.RESET_FLAGS);
+                resetTables.set(tableService.resetAllFlags());
+                // Reload system configuration
+                stage.set(DayCutOutcome.Stage.LOAD_CONFIG);
+                configService.loadConfig();
 
-                    // Clean etl_job_queue history up to the refresh start: terminal rows and stale
-                    // auto-scheduled pending rows of the previous period. Manual submits / fillbacks
-                    // (pending rows carrying a payload) and rows enqueued during the refresh window
-                    // are kept.
-                    queueManager.truncateQueueExceptRunningTasksBefore(refreshStartedAt);
-                }
-                catch (Exception e) {
-                    // Let outer handler deal with logging
-                    throw new RuntimeException(e);
-                }
+                // Refresh schema / resources for all tables. This checks source schema and updates target metadata when changed.
+                stage.set(DayCutOutcome.Stage.REFRESH_SCHEMA);
+                TableRefreshStats refreshed = tableService.refreshAllTableResources();
+
+                // Clean etl_job_queue history up to the refresh start: terminal rows and stale
+                // auto-scheduled pending rows of the previous period. Manual submits / fillbacks
+                // (pending rows carrying a payload) and rows enqueued during the refresh window
+                // are kept.
+                stage.set(DayCutOutcome.Stage.TRUNCATE_QUEUE);
+                queueManager.truncateQueueExceptRunningTasksBefore(refreshStartedAt);
+                return refreshed;
             });
 
             try {
-                future.get(timeout, TimeUnit.SECONDS);
+                stats = future.get(timeout, TimeUnit.SECONDS);
                 log.info("参数更新与表结构刷新完成");
-                markSchemaRefreshDone();
+                markerWritten = markSchemaRefreshDone();
             }
             catch (TimeoutException te) {
+                timedOut = true;
+                error = "刷新超过 " + timeout + " 秒仍未完成，已中止";
                 log.error("参数更新/表结构刷新超时（>{}s），将中止刷新并释放锁", timeout);
                 // try to cancel the running task
                 future.cancel(true);
             }
             catch (ExecutionException ee) {
-                log.error("参数更新/表结构刷新发生异常", ee.getCause());
+                Throwable cause = ee.getCause() == null ? ee : ee.getCause();
+                error = cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
+                log.error("参数更新/表结构刷新发生异常", cause);
             }
             catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
+                error = "刷新被中断";
                 log.warn("updateParams 被中断");
             }
         }
         catch (Exception e) {
+            error = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
             log.error("更新参数或刷新表结构过程中发生错误", e);
         }
         finally {
             // Always restart the queue monitor and release the lock if we acquired it
             try {
                 queueManager.startQueueMonitor();
+                queueMonitorRestarted = true;
             }
             catch (Exception e) {
                 log.warn("重启队列监控器时发生错误", e);
@@ -187,6 +218,13 @@ public class TaskService
             }
             executor.shutdownNow();
         }
+
+        DayCutOutcome outcome = new DayCutOutcome(bizDate, startedAt,
+            System.currentTimeMillis() - startedAt.toEpochMilli(), timeout, stage.get(),
+            !timedOut && error == null, timedOut, error, false, null, resetTables.get(),
+            stats == null ? TableRefreshStats.empty() : stats, queueMonitorRestarted, markerWritten);
+        dayCutAlerter.report(outcome);
+        return outcome;
     }
 
     /**
@@ -194,16 +232,17 @@ public class TaskService
      * A newly elected master checks this marker after the switch time to decide whether a
      * catch-up refresh is needed (see SchemaRefreshScheduler).
      */
-    private void markSchemaRefreshDone()
+    private boolean markSchemaRefreshDone()
     {
         try {
             stringRedisTemplate.opsForValue().set(
                 Constants.SCHEMA_REFRESH_DONE_KEY_PREFIX + configService.getBizDate(),
                 electionService.getInstanceId(), Duration.ofDays(2));
-
+            return true;
         }
         catch (Exception e) {
             log.warn("Failed to record schema refresh completion marker", e);
+            return false;
         }
     }
 

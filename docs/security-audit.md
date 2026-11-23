@@ -38,3 +38,11 @@ JSON 字符串会先解析再脱敏。不要绕过 `AuditRecorder` 直接写入�
 安全告警走统一的告警子系统：事件写入 `alert_event`，按规则路由到已启用的通道。告警通道在
 「系统管理 → 告警配置」中维护；未启用任何通道时事件记录为 `SKIPPED_NO_CHANNEL`，不会静默回退到
 环境变量。详见 [ADR 0005](../adr/0005-alerting-channels.md)。
+
+`SECURITY` 事件由 `AuditAlertScheduler` 按扫描周期（默认 5 分钟）产生，触发条件：
+
+- 同一账号与来源 IP 在窗口内登录失败次数达到 `audit.alerts.failed-login-threshold`（默认 5 次）；
+  同一账号/IP 的告警 30 分钟内只发一次。
+- 窗口内出现 `CRITICAL` 级审计事件，按动作汇总为一条告警；每 5 分钟最多一条。
+
+安全告警不带数据源上下文，告警规则的范围只能是「全部」。

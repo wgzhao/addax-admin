@@ -6,6 +6,8 @@ import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
 import com.wgzhao.addax.admin.dto.TableListCriteria;
+import com.wgzhao.addax.admin.dto.TableRefreshOutcome;
+import com.wgzhao.addax.admin.dto.TableRefreshStats;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
@@ -86,19 +88,29 @@ public class TableService
      */
     public TaskResultDto refreshTableResources(EtlTable table)
     {
+        return refreshTableResourcesDetailed(table).result();
+    }
+
+    /**
+     * Same refresh, but keeps the failure kind so a whole-round summary can count
+     * source outages separately from schema and job-template failures.
+     */
+    private TableRefreshOutcome refreshTableResourcesDetailed(EtlTable table)
+    {
         boolean columnsUpdated = false;
         if (table == null) {
-            return TaskResultDto.failure("Table is null", 0);
+            return fail(TableRefreshOutcome.FailureKind.INVALID_TABLE, "Table is null");
         }
         // Check for thread interruption early to allow cooperative cancellation
         if (Thread.currentThread().isInterrupted()) {
             log.info("refreshTableResources interrupted before starting for table {}", table.getId());
-            return TaskResultDto.failure("Refresh interrupted", 0);
+            return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
         }
         VwEtlTableWithSource vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null);
         if (vwTable == null) {
             log.warn("Table view not found for tid {}", table.getId());
-            return TaskResultDto.failure("Table view not found for tid " + table.getId(), 0);
+            return fail(TableRefreshOutcome.FailureKind.VIEW_MISSING,
+                "Table view not found for tid " + table.getId());
         }
 
         String sourceTable = vwTable.getSourceTable();
@@ -114,7 +126,7 @@ public class TableService
         // cooperative check before long-running column update
         if (Thread.currentThread().isInterrupted()) {
             log.info("refreshTableResources interrupted before updating columns for table {}", table.getId());
-            return TaskResultDto.failure("Refresh interrupted", 0);
+            return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
         }
         int retCode = columnService.updateTableColumnsV2(vwTable);
 
@@ -122,13 +134,15 @@ public class TableService
             // A transient source outage must not mark the table as a collection failure: the previous
             // job template can still run, and the next refresh will try the source again.
             log.warn("Source database unavailable for table {}, skip this refresh round", table.getId());
-            return TaskResultDto.failure("Source database unavailable for table id " + table.getId(), 0);
+            return fail(TableRefreshOutcome.FailureKind.SOURCE_UNAVAILABLE,
+                "Source database unavailable for table id " + table.getId());
         }
 
         if (retCode == ColumnService.UPDATE_FAILED) {
             setFailed(table.getId(), durationOf(table));
             log.warn("Failed to update columns for table id {}", table.getId());
-            return TaskResultDto.failure("Failed to update columns for table id " + table.getId(), 0);
+            return fail(TableRefreshOutcome.FailureKind.COLUMNS_FAILED,
+                "Failed to update columns for table id " + table.getId());
         }
 
         columnsUpdated = retCode != ColumnService.UPDATE_NO_CHANGE;
@@ -148,7 +162,8 @@ public class TableService
                         .errorClass("TargetContractViolation")
                         .detail(report.summary())
                         .bizDate(configService.getBizDateAsDate()));
-                return TaskResultDto.failure("目标表契约校验失败: " + report.summary(), 0);
+                return fail(TableRefreshOutcome.FailureKind.TARGET_CONTRACT_BLOCKED,
+                    "目标表契约校验失败: " + report.summary());
             }
             table.setTargetSchemaFingerprint(report.fingerprint());
             etlTableRepo.save(table);
@@ -157,12 +172,13 @@ public class TableService
         {
             if (Thread.currentThread().isInterrupted()) {
                 log.info("refreshTableResources interrupted before creating/updating target table for {}", table.getId());
-                return TaskResultDto.failure("Refresh interrupted", 0);
+                return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
             }
             if (!targetAdapterRegistry.resolve(vwTable).createOrUpdateTable(vwTable)) {
                 setUpdateSchema(table.getId());
                 log.warn("Failed to create or update target table for tid {}", table.getId());
-                return TaskResultDto.failure("Failed to create or update target table for tid " + table.getId(), 0);
+                return fail(TableRefreshOutcome.FailureKind.TARGET_DDL_FAILED,
+                    "Failed to create or update target table for tid " + table.getId());
             }
         }
         if (!columnsUpdated && !targetSchemaChanged)
@@ -173,18 +189,26 @@ public class TableService
         // 2. 更新任务文件
         if (Thread.currentThread().isInterrupted()) {
             log.info("refreshTableResources interrupted before updating job content for {}", table.getId());
-            return TaskResultDto.failure("Refresh interrupted", 0);
+            return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
         }
         TaskResultDto result = jobContentService.updateJob(vwTable);
         if (result.success()) {
             setNotCollectIfDue(table);
-            return TaskResultDto.success("Table resources refreshed successfully ", 0);
+            return new TableRefreshOutcome(
+                TaskResultDto.success("Table resources refreshed successfully ", 0),
+                TableRefreshOutcome.FailureKind.NONE);
         }
         else {
             setFailed(table.getId(), durationOf(table));
             log.warn("Failed to update job content for tid {}", table.getId());
-            return TaskResultDto.failure("Failed to update job content for tid " + table.getId(), 0);
+            return fail(TableRefreshOutcome.FailureKind.JOB_CONTENT_FAILED,
+                "Failed to update job content for tid " + table.getId());
         }
+    }
+
+    private static TableRefreshOutcome fail(TableRefreshOutcome.FailureKind kind, String message)
+    {
+        return new TableRefreshOutcome(TaskResultDto.failure(message, 0), kind);
     }
 
     /**
@@ -248,30 +272,67 @@ public class TableService
 
     /**
      * 刷新所有采集表的资源
+     *
+     * <p>Returns the round's counts instead of swallowing per-table failures: a
+     * partial refresh is otherwise invisible outside the log, and the day-cut
+     * event has to report how many tables were skipped and why.</p>
      */
-    public void refreshAllTableResources()
+    public TableRefreshStats refreshAllTableResources()
     {
         List<EtlTable> tables = etlTableRepo.findCanRefreshTables();
+        int success = 0;
+        int failed = 0;
+        int sourceUnavailable = 0;
+        int waitSchemaToNotCollect = 0;
+        List<TableRefreshStats.Failure> failures = new ArrayList<>();
         for (EtlTable table : tables) {
             // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
             if (Thread.currentThread().isInterrupted()) {
                 log.info("refreshAllTableResources interrupted, stopping at table {}", table.getId());
                 break;
             }
+            boolean wasWaitSchema = TableStatus.WAIT_SCHEMA.equals(table.getStatus());
             try {
-                refreshTableResources(table);
+                TableRefreshOutcome outcome = refreshTableResourcesDetailed(table);
+                if (outcome.failure() == TableRefreshOutcome.FailureKind.SOURCE_UNAVAILABLE) {
+                    sourceUnavailable++;
+                }
+                if (!outcome.result().success()) {
+                    failed++;
+                    failures.add(new TableRefreshStats.Failure(table.getId(), table.getSourceDb(),
+                        table.getSourceTable(), outcome.result().message()));
+                    continue;
+                }
+                success++;
+                // A 'U' row leaves the "waiting for schema" state only when the business
+                // period actually owes it a collection; on a rest day it legitimately stays.
+                if (wasWaitSchema && TableStatus.NOT_COLLECT.equals(table.getStatus())) {
+                    waitSchemaToNotCollect++;
+                }
             }
             catch (Exception e) {
+                failed++;
+                String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                failures.add(new TableRefreshStats.Failure(table.getId(), table.getSourceDb(),
+                    table.getSourceTable(), reason));
                 log.error("Failed to refresh resources for table {}", table.getId(), e);
             }
         }
+        TableRefreshStats stats = new TableRefreshStats(tables.size(), success, failed,
+            sourceUnavailable, waitSchemaToNotCollect, failures);
+        log.info("Table resource refresh finished: total={}, success={}, failed={}, sourceUnavailable={}, uToN={}",
+            stats.total(), stats.success(), stats.failed(), stats.sourceUnavailable(),
+            stats.waitSchemaToNotCollect());
+        return stats;
     }
 
     @Async
     public void refreshAllTableResourcesAsyncWithNotify(String username)
     {
-        refreshAllTableResources();
-        notifyUser(username, "表信息更新完成", "已完成全部采集表资源刷新。", "TABLE_REFRESH");
+        TableRefreshStats stats = refreshAllTableResources();
+        notifyUser(username, "表信息更新完成",
+            String.format("已完成全部采集表资源刷新：成功 %d 个，失败 %d 个。", stats.success(), stats.failed()),
+            "TABLE_REFRESH");
     }
 
     @Async
@@ -624,7 +685,7 @@ public class TableService
      * 周末会一直显示未采集、看板成功率跟着掉，而且没有任何一次采集能把它们改回来。</p>
      */
     @Transactional
-    public void resetAllFlags()
+    public int resetAllFlags()
     {
         LocalDate today = LocalDate.now();
         List<String> dueCalendars = new ArrayList<>();
@@ -638,9 +699,9 @@ public class TableService
         }
         if (dueCalendars.isEmpty()) {
             log.info("今天不是任何日历的业务日，不重置任何表的采集状态");
-            return;
+            return 0;
         }
-        etlTableRepo.resetEtlFlagsForCalendars(dueCalendars);
+        return etlTableRepo.resetEtlFlagsForCalendars(dueCalendars);
     }
 
     /**

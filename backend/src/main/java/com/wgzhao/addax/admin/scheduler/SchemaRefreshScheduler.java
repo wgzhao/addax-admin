@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.scheduler;
 
 import com.wgzhao.addax.admin.common.Constants;
+import com.wgzhao.addax.admin.dto.DayCutOutcome;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
@@ -99,9 +100,20 @@ public class SchemaRefreshScheduler
     {
         log.info("Schema refresh triggered");
         try {
-            taskService.updateParams();
-            log.info("Schema refresh finished successfully");
-            retryScheduled = false;
+            DayCutOutcome outcome = taskService.updateParams();
+            if (outcome.skipped()) {
+                // Another run holds the lock or this node lost the master role mid-flight;
+                // a retry would only collide with the run that is already in progress.
+                log.info("Schema refresh skipped: {}", outcome.skipReason());
+                return;
+            }
+            if (outcome.success()) {
+                log.info("Schema refresh finished successfully");
+                retryScheduled = false;
+                return;
+            }
+            log.error("Schema refresh failed at stage {}, timedOut={}", outcome.stage(), outcome.timedOut());
+            scheduleRetry();
         }
         catch (Exception e) {
             log.error("Schema refresh failed", e);
