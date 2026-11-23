@@ -85,12 +85,13 @@
           </v-alert>
           <v-alert
             v-if="isDorisTarget"
-            type="warning"
+            type="info"
             variant="tonal"
             density="comfortable"
             class="mt-3"
           >
-            Doris 目标端当前仅支持外部表（EXTERNAL）：目标表需由数仓/DBA 创建，平台只做契约校验与写入。
+            平台建表会生成 Doris DDL（ENGINE=OLAP、键模型、分桶、可选动态分区），键模型和分桶创建后不可修改；
+            选择「目标表已存在」时只做契约校验与写入，不改动表结构。
           </v-alert>
         </section>
 
@@ -104,7 +105,7 @@
                     ? '支持多个分区键，其中最多一个业务日期分区；其余使用固定值。'
                     : family === 'rdbms'
                       ? isDorisTarget
-                        ? 'Doris 仅做外部表校验；可配置快照业务日期字段。'
+                        ? 'Doris 需要显式数据模型、分桶与（可选）日期分区；键列默认取源端主键。'
                         : '配置快照字段与目标表主键策略。'
                       : '未识别目标端，请先检查目标端配置。'
                 }}
@@ -253,7 +254,118 @@
               />
             </v-col>
           </v-row>
-          <v-alert v-else type="warning" variant="tonal" density="comfortable">
+          <v-row v-if="family === 'rdbms' && isDorisTarget" density="comfortable" class="mt-1">
+            <v-col cols="12">
+              <div class="binding-head">
+                <span>Doris 表模型</span>
+                <span class="binding-caption">
+                  键列留空时使用每张表映射后的源端主键；分桶列默认取键列。
+                </span>
+              </div>
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="options.doris.keyModel"
+                :items="dorisKeyModels"
+                label="数据模型"
+                density="comfortable"
+                variant="outlined"
+                hide-details="auto"
+              />
+            </v-col>
+            <v-col cols="12" md="2">
+              <v-combobox
+                v-model="options.doris.buckets"
+                :items="['AUTO', '5', '10', '20', '32']"
+                label="分桶数"
+                :rules="[rules.buckets]"
+                density="comfortable"
+                variant="outlined"
+                hide-details="auto"
+              />
+            </v-col>
+            <v-col cols="12" md="3">
+              <v-select
+                v-model="options.doris.distributionType"
+                :items="dorisDistributionTypes"
+                label="分桶方式"
+                density="comfortable"
+                variant="outlined"
+                hide-details="auto"
+              />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model.number="options.doris.replicationNum"
+                label="副本数（留空使用 Doris 默认值）"
+                type="number"
+                min="1"
+                max="10"
+                density="comfortable"
+                variant="outlined"
+                hide-details="auto"
+              />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-select
+                v-model="options.doris.partitionMode"
+                :items="dorisPartitionModes"
+                label="分区方式"
+                density="comfortable"
+                variant="outlined"
+                hide-details="auto"
+              />
+            </v-col>
+            <template v-if="options.doris.partitionMode === 'DYNAMIC'">
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="options.doris.partitionColumn"
+                  label="动态分区列"
+                  hint="必须是映射为 DATE/DATETIME 的目标字段"
+                  persistent-hint
+                  density="comfortable"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col cols="6" md="1">
+                <v-text-field
+                  v-model.number="options.doris.partitionStart"
+                  label="保留天数"
+                  type="number"
+                  max="-1"
+                  density="comfortable"
+                  variant="outlined"
+                  hide-details="auto"
+                />
+              </v-col>
+              <v-col cols="6" md="1">
+                <v-text-field
+                  v-model.number="options.doris.partitionEnd"
+                  label="预建天数"
+                  type="number"
+                  min="0"
+                  density="comfortable"
+                  variant="outlined"
+                  hide-details="auto"
+                />
+              </v-col>
+              <v-col cols="12" md="2">
+                <v-text-field
+                  v-model="options.doris.partitionPrefix"
+                  label="分区名前缀"
+                  density="comfortable"
+                  variant="outlined"
+                  hide-details="auto"
+                />
+              </v-col>
+            </template>
+          </v-row>
+          <v-alert
+            v-if="family !== 'hdfs' && family !== 'rdbms'"
+            type="warning"
+            variant="tonal"
+            density="comfortable"
+          >
             当前目标端类型无法识别，无法配置目标端专属属性。请先在目标端管理中修正目标端。
           </v-alert>
         </section>
@@ -330,7 +442,7 @@
 
 <script setup lang="ts">
   import { computed, watch } from 'vue';
-  import { targetFamily } from '@/utils/target-options';
+  import { isDorisTarget as isDorisTargetOf, targetFamily } from '@/utils/target-options';
   import type { EtlTableView, EtlTargetOptions, HdfsPartitionBinding } from '@/types/database';
 
   const props = defineProps<{
@@ -363,28 +475,40 @@
     targetFamily(pickedTarget.value?.writerTemplateKey, pickedTarget.value?.targetType)
   );
 
-  // Doris is an explicit adapter type inside the RDBMS family; platform-managed DDL is not available
-  // yet, so the wizard must not offer it.
-  const isDorisTarget = computed(() => {
-    const key = (pickedTarget.value?.writerTemplateKey || '').trim().toUpperCase();
-    return key === 'WD' || (pickedTarget.value?.targetType || '').trim().toUpperCase() === 'DORIS';
-  });
-
-  const schemaModeItems = computed(() =>
-    isDorisTarget.value
-      ? [{ title: '目标表已存在，仅校验', value: 'EXTERNAL' }]
-      : [
-          { title: '平台创建并维护', value: 'MANAGED' },
-          { title: '目标表已存在，仅校验', value: 'EXTERNAL' },
-        ]
+  // Doris is an explicit adapter type inside the RDBMS family; it now supports managed DDL, with
+  // EXTERNAL kept for tables owned by the warehouse team.
+  const isDorisTarget = computed(() =>
+    isDorisTargetOf(pickedTarget.value?.writerTemplateKey, pickedTarget.value?.targetType)
   );
 
+  const schemaModeItems = [
+    { title: '平台创建并维护', value: 'MANAGED' },
+    { title: '目标表已存在，仅校验', value: 'EXTERNAL' },
+  ];
+
+  const dorisKeyModels = [
+    { title: '自动（有源端主键用 UNIQUE，否则 DUPLICATE）', value: 'AUTO' },
+    { title: 'UNIQUE（按主键去重/更新）', value: 'UNIQUE' },
+    { title: 'DUPLICATE（追加写入）', value: 'DUPLICATE' },
+  ];
+  const dorisDistributionTypes = [
+    { title: 'HASH（按键列分桶）', value: 'HASH' },
+    { title: 'RANDOM（仅 DUPLICATE）', value: 'RANDOM' },
+  ];
+  const dorisPartitionModes = [
+    { title: '不分区', value: 'NONE' },
+    { title: '动态日期分区', value: 'DYNAMIC' },
+  ];
+
+  // Doris dynamic partitions require an explicit bucket count; a default of 10 keeps the option
+  // usable instead of blocking the wizard on a value the operator did not think about.
   watch(
-    isDorisTarget,
-    doris => {
-      if (doris) schemaManagementMode.value = 'EXTERNAL';
-    },
-    { immediate: true }
+    () => [options.value.doris.partitionMode, options.value.doris.buckets] as const,
+    ([mode, buckets]) => {
+      if (mode === 'DYNAMIC' && (!buckets || buckets === 'AUTO')) {
+        options.value.doris.buckets = '10';
+      }
+    }
   );
 
   const targetNameKey = (name: string) => (family.value === 'hdfs' ? name.toLowerCase() : name);
@@ -423,6 +547,8 @@
 
   const rules = {
     required: (value: any) => !!value || '此字段为必填项',
+    buckets: (value: any) =>
+      value === 'AUTO' || /^[1-9]\d*$/.test(String(value ?? '')) || '分桶数必须是 AUTO 或正整数',
   };
 
   const PREVIEW_LIMIT = 8;
@@ -462,6 +588,12 @@
 
   .binding-mode {
     width: 150px;
+  }
+
+  .binding-caption {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: rgba(var(--v-theme-on-surface), 0.62);
   }
 
   .binding-empty {
