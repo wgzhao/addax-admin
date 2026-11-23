@@ -46,6 +46,13 @@ routes.push({
   redirect: '/status',
 });
 
+// 运行监控 was retired: business progress lives on the dashboard, failures in the
+// error centre and infrastructure in system status. Keep old bookmarks working.
+routes.push({
+  path: '/monitor',
+  redirect: '/',
+});
+
 routes.push({
   path: '/:pathMatch(.*)*',
   name: 'NotFound',

@@ -99,11 +99,11 @@ test.describe('AppDataTable', () => {
     await page.screenshot({ path: path.join(artifactDir, 'failures.png') });
   });
 
-  test('monitor renders all six sections through the shared surface', async ({ page }) => {
-    await page.goto('/monitor');
-    await expect(page.getByRole('heading', { name: '运行监控' })).toBeVisible();
-    await expect(page.getByTestId('app-data-table')).toHaveCount(6, { timeout: 20_000 });
-    await page.screenshot({ path: path.join(artifactDir, 'monitor.png') });
+  test('schema changes uses the shared server table surface', async ({ page }) => {
+    await page.goto('/schema-changes');
+    await expect(page.getByRole('heading', { name: '表结构变更' })).toBeVisible();
+    await expect(page.getByTestId('app-data-table')).toBeVisible({ timeout: 20_000 });
+    await page.screenshot({ path: path.join(artifactDir, 'schema-changes.png') });
   });
 
   test('embedded detail tabs reuse the shared surface', async ({ page }) => {

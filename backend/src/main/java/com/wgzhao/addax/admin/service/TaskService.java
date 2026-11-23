@@ -264,12 +264,6 @@ public class TaskService
             clearedCount, status.get("queueSize"));
     }
 
-    // 特殊任务提醒
-    public List<EtlTable> findAllSpecialTask()
-    {
-        return tableService.findSpecialTasks();
-    }
-
     public TaskResultDto submitTask(long tableId)
     {
         TaskResultDto contractFailure = checkExternalContract(tableId);

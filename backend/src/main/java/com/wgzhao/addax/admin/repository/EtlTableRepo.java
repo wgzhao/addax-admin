@@ -41,16 +41,6 @@ public interface EtlTableRepo
         """)
     void resetEtlFlagsForCalendars(@Param("calendars") List<String> calendars);
 
-    @Query(value = """
-        select t
-        from EtlTable t
-        where (t.status='E' or t.duration>=1200 or t.retryCnt<3)
-          and t.status <> 'X'
-          and t.retiredAt is null
-        order by t.duration desc
-        """)
-    List<EtlTable> findSpecialTasks();
-
     @Modifying
     @Query(value = """
                 update EtlTable t
