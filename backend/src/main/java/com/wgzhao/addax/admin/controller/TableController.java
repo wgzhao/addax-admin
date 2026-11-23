@@ -13,6 +13,8 @@ import com.wgzhao.addax.admin.dto.ColumnMappingDto;
 import com.wgzhao.addax.admin.dto.ColumnMappingInput;
 import com.wgzhao.addax.admin.dto.ExternalCollectionCreateRequest;
 import com.wgzhao.addax.admin.dto.PageResponse;
+import com.wgzhao.addax.admin.dto.TableListCriteria;
+import com.wgzhao.addax.admin.dto.TableListRequest;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -46,6 +48,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -101,36 +104,20 @@ public class TableController
     private final AuditSanitizer auditSanitizer;
 
     /**
-     * 分页查询采集表
+     * 分页查询采集表。所有过滤条件都是可选的，条件之间是 AND 关系，互不覆盖。
      *
-     * @param page 页码（查询参数），默认 0
-     * @param pageSize 每页记录数（查询参数），默认 10，-1 表示不分页
-     * @param q 查询关键字（查询参数），可选
-    * @param statuses 状态列表（查询参数，逗号分隔），可选
-     * @param sortField 排序字段（查询参数），可选
-     * @param sortOrder 排序顺序（查询参数），可选
+     * @param request 查询参数集合（分页、关键字、结构化过滤、排序）
      * @return 采集表分页结果
      */
     @GetMapping("")
-    public ResponseEntity<PageResponse<VwEtlTableWithSource>> listTables(
-        @RequestParam(value = "page", defaultValue = "0") int page,
-        @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
-        @RequestParam(value = "q", required = false) String q,
-        @RequestParam(value = "statuses", required = false) String statuses,
-        @RequestParam(value = "sourceId", required = false) Integer sourceId,
-        @RequestParam(value = "scope", required = false) String scope,
-        @RequestParam(value = "lifecycle", required = false) String lifecycle,
-        @RequestParam(value = "sortField", required = false) String sortField,
-        @RequestParam(value = "sortOrder", required = false) String sortOrder)
+    public ResponseEntity<PageResponse<VwEtlTableWithSource>> listTables(@ModelAttribute TableListRequest request)
     {
-        if (page < 0) {
-            page = 0;
-        }
-        if (pageSize == -1) {
-            pageSize = Integer.MAX_VALUE;
-        }
+        int page = Math.max(request.getPage(), 0);
+        int pageSize = request.getPageSize() == -1
+            ? Integer.MAX_VALUE
+            : (request.getPageSize() <= 0 ? 10 : request.getPageSize());
 
-        String requestedScope = scope != null ? scope : lifecycle;
+        String requestedScope = request.getScope() != null ? request.getScope() : request.getLifecycle();
         String normalizedScope = requestedScope == null ? "CURRENT" : requestedScope.toUpperCase();
         if (normalizedScope.equals("ACTIVE")) {
             // Keep old bookmarks working; ACTIVE previously meant non-retired tables.
@@ -142,29 +129,91 @@ public class TableController
             && !normalizedScope.equals("ALL")) {
             throw new ApiException(400, "scope must be CURRENT, DORMANT, RETIRED, or ALL");
         }
-        List<String> statusList = parseStatuses(statuses);
-        if (sourceId != null && !authzService.canReadSource(sourceId)) {
-            throw new ApiException(403, "无权访问该采集源");
+
+        List<Integer> sourceIds = parseSourceIds(request);
+        for (Integer sid : sourceIds) {
+            if (!authzService.canReadSource(sid)) {
+                throw new ApiException(403, "无权访问该采集源");
+            }
         }
-        Page<VwEtlTableWithSource> result;
-        result = tableService.findTables(
-            page, pageSize, q, statusList, sourceId, sortField, sortOrder, normalizedScope,
-            authzService.readableSourceIds());
+        List<String> schemaModes = parseCsv(request.getSchemaModes(), true);
+        for (String mode : schemaModes) {
+            if (!mode.equals(SchemaManagementMode.MANAGED.name())
+                && !mode.equals(SchemaManagementMode.EXTERNAL.name())) {
+                throw new ApiException(400, "schemaModes must be MANAGED or EXTERNAL");
+            }
+        }
+
+        TableListCriteria criteria = new TableListCriteria(
+            page,
+            pageSize,
+            trimToNull(request.getQ()),
+            parseCsv(request.getStatuses(), true),
+            normalizedScope,
+            sourceIds,
+            parseCsv(request.getDbTypes(), false),
+            request.getSourceEnabled(),
+            parseIntsCsv(request.getTargetIds(), "targetIds"),
+            parseCsv(request.getTargetTypes(), true),
+            trimToNull(request.getTargetDbContains()),
+            request.getTargetEnabled(),
+            parseCsv(request.getWriteModes(), false),
+            schemaModes,
+            trimToNull(request.getTblCommentContains()),
+            request.getEndTimeFrom(), request.getEndTimeTo(),
+            request.getCreatedFrom(), request.getCreatedTo(),
+            request.getUpdatedFrom(), request.getUpdatedTo(),
+            request.getSortField(), request.getSortOrder());
+
+        Page<VwEtlTableWithSource> result =
+            tableService.findTables(criteria, authzService.readableSourceIds());
         return ResponseEntity.ok(PageResponse.from(result));
     }
 
-    private List<String> parseStatuses(String statuses)
+    private List<Integer> parseSourceIds(TableListRequest request)
     {
-        if (statuses == null || statuses.isBlank()) {
+        List<Integer> sourceIds = parseIntsCsv(request.getSourceIds(), "sourceIds");
+        if (sourceIds.isEmpty() && request.getSourceId() != null && !request.getSourceId().isBlank()) {
+            // Legacy single-value parameter used by old bookmarks and dashboard drill-downs.
+            sourceIds = parseIntsCsv(request.getSourceId(), "sourceId");
+        }
+        return sourceIds;
+    }
+
+    private List<Integer> parseIntsCsv(String raw, String fieldName)
+    {
+        List<Integer> values = new ArrayList<>();
+        for (String token : parseCsv(raw, false)) {
+            try {
+                values.add(Integer.valueOf(token));
+            }
+            catch (NumberFormatException e) {
+                throw new ApiException(400, fieldName + " must be a comma-separated list of integers");
+            }
+        }
+        return values;
+    }
+
+    private List<String> parseCsv(String raw, boolean uppercase)
+    {
+        if (raw == null || raw.isBlank()) {
             return List.of();
         }
-        return List.of(statuses.split(","))
+        return List.of(raw.split(","))
             .stream()
             .map(String::trim)
             .filter(s -> !s.isEmpty())
-            .map(String::toUpperCase)
+            .map(s -> uppercase ? s.toUpperCase() : s)
             .distinct()
             .collect(Collectors.toList());
+    }
+
+    private static String trimToNull(String value)
+    {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     /**
