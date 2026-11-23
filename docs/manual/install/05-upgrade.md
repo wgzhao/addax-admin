@@ -84,6 +84,20 @@ yarn install
 yarn build
 ```
 
+## v4.8.0 升级说明
+
+### 无数据库迁移
+
+本轮版本没有结构变更，替换 jar 与前端文件后重启即可，可直接滚动升级；仍建议升级前备份数据库。
+
+### 运行监控页与相关接口已移除
+
+运行监控页的功能已由总览、错误中心与系统状态覆盖，页面与菜单移除，`/monitor` 书签重定向首页；「表结构变更」迁入数据治理（`/schema-changes`）。后端保留 `/monitor/accomplish` 与 `/monitor/insight/*`，以下接口移除并返回 404：special-task、reject-task、sys-risk、sms-detail、no-table-change，以及旧版通知与告警读取接口。
+
+### 界面排版变化
+
+全站排版、表格样式与圆角 token 统一，功能与数据不变。
+
 ## v4.7.0 升级说明
 
 ### `etl_table.kind` 已移除

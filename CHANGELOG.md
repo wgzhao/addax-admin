@@ -1,5 +1,37 @@
 # Changelog
 
+## 4.8.0
+
+### Added
+
+- 数据治理新增「表结构变更」页（`/schema-changes`）：按关键词、变更类型与日期筛选，服务端排序分页，可直接跳转采集表详情；后端新增 `/schema-changes` 接口。
+- 前端表格层 `AppDataTable`：统一客户端、服务端与虚拟滚动三种数据源、加载/错误/空状态、首列吸附与紧凑空态，23 处表格实例完成迁移。
+- 主机发行包安装脚本支持 `--user <account>` 指定服务运行账号（同时是 Addax 作业账号）：安装时打印并确认账号，复用已有账号，缺失时警告后创建系统账号，拒绝 `--user root`，非 root 执行时忽略并提示；所有权变更改用账号主组，不再假设组名与用户名相同。
+- 英文版 README（`README_en.md`）与语言切换；README 截图改为 WebP，图片体积下降 64%。
+- 连续可用性测试报告（`docs/testing/continuous-availability.md`）：覆盖采集进行中重启后端、kill -9 单表与多表场景。
+- E2E：表结构变更、缺采日历（真实数据库，含工作日/交易日日历、节假日与调休）、洞察日期格式、排版与 AppDataTable。
+
+### Changed
+
+- 运行监控页下线：`/monitor` 书签重定向首页，菜单移除；「表结构变更」迁入数据治理。后端保留 `/monitor/accomplish`（首页今日时间线）与 `/monitor/insight/*`，移除 special-task、reject-task、sys-risk、sms-detail、no-table-change 及旧通知/告警读取接口，未知路径返回 404。无需数据库迁移；`risk_log` 仍写入但已无读取方。
+- 全站排版与表格视觉统一：启用此前未生效的 Vuetify SASS 配置，中文标签零字距并启用 `text-autospace`，替换已移除的 MD2 `text-h*` 类，圆角 token 统一为 6/10/14，表格改为 hover 而非斑马纹。
+- 业务日期响应统一为 `yyyy-MM-dd`：数据洞察五个查询与首页最近 5 天图表不再返回带时区的 UTC 时间戳。
+- README 截图迁到 `docs/assets/screenshots/*.webp`，旧的 `screenshots/*.png` 原始链接失效。
+
+### Fixed
+
+- 后端重启中断采集：关闭 JPA/Redis 前等待 worker 写入队列与执行的终态，重启后按 30s 退避重试而不是等 120s 租约清扫；master 租约清扫时对账孤儿 `running` 执行；master 锁改在 `ContextClosedEvent` 释放，避免 Redis 连接关闭后锁残留 30s 延迟重新选举。
+- 缺采日历按各采集源日历判定：工作日/交易日采集源在休息日不再被计为缺采（生产此前周末显示 356 张缺失），无期望的日期显示为空心格。
+- 缺采日历前端按周行渲染并改为三态配色（无期望 / 无缺失 / 缺失严重度），表头与日期对齐。
+- 洞察表与首页图表的业务日期不再因 UTC 偏移显示为前一天并附带时间。
+
+### 升级提示
+
+- 本轮**没有数据库迁移**，可直接滚动升级，不需要像 4.7.0 那样停止所有节点；升级前仍建议备份数据库。
+- **接口不兼容**：`/monitor` 书签跳转首页；special-task、reject-task、sys-risk、sms-detail、no-table-change 与旧通知/告警读取接口已移除并返回 404。
+- 全站排版与表格样式改变，功能不变；如做截图比对，以本版本截图为准。
+- 主机安装可传 `--user <account>` 更换服务账号（HDFS 需要 `hive` 写入时）；默认仍为 `addax`，升级时传该参数会重新 chown `app`/`web` 目录并重写 systemd 单元。
+
 ## 4.7.0
 
 ### Added
