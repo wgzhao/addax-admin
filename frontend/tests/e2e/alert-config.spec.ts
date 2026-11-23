@@ -544,8 +544,40 @@ test('alert channel, rule, delivery retry and paused-channel semantics end to en
     const ruleDialog = page.getByTestId('rule-dialog');
     await expect(ruleDialog).toBeVisible();
     await ruleDialog.getByTestId('rule-name').locator('input').fill(ruleName);
+    // The form must explain each event type and refuse dead combinations:
+    // recovery never routes through rules, and SECURITY/SYSTEM carry no source.
+    await expect(ruleDialog.getByTestId('rule-event-type-help')).toContainText(
+      '采集任务重试全部失败'
+    );
     await ruleDialog.getByTestId('rule-event-type').click();
-    await page.getByRole('option', { name: '系统告警' }).click();
+    await expect(
+      page.getByRole('option').filter({ hasText: '采集恢复' })
+    ).toHaveClass(/v-list-item--disabled/);
+    await page.getByRole('option').filter({ hasText: '安全告警' }).click();
+    await expect(ruleDialog.getByTestId('rule-event-type-help')).toContainText(
+      '登录失败次数超阈值'
+    );
+    await expect(
+      ruleDialog.getByTestId('rule-scope').locator('input[role="combobox"]')
+    ).toHaveValue('全部');
+    await expect(ruleDialog.getByTestId('rule-scope')).toHaveClass(/v-input--disabled/);
+    await ruleDialog.getByTestId('rule-event-type').click();
+    await page.getByRole('option').filter({ hasText: '调度告警' }).click();
+    await expect(ruleDialog.getByTestId('rule-event-type-help')).toContainText(
+      '切日表结构刷新失败'
+    );
+    await expect(ruleDialog.getByTestId('rule-scope')).toHaveClass(/v-input--disabled/);
+    await ruleDialog.getByTestId('rule-event-type').click();
+    await page.getByRole('option').filter({ hasText: '每日汇总' }).click();
+    await expect(ruleDialog.getByTestId('rule-event-type-help')).toContainText(
+      '只有为本类型建立启用规则'
+    );
+    await expect(ruleDialog.getByTestId('rule-scope')).toHaveClass(/v-input--disabled/);
+    await ruleDialog.getByTestId('rule-event-type').click();
+    await page.getByRole('option').filter({ hasText: '系统告警' }).click();
+    await expect(ruleDialog.getByTestId('rule-event-type-help')).toContainText(
+      '调度扫描失败'
+    );
     await ruleDialog.getByTestId('rule-channels').click();
     await page.getByRole('option').filter({ hasText: channelName }).first().click();
     await page.keyboard.press('Escape');
@@ -622,6 +654,56 @@ test('alert channel, rule, delivery retry and paused-channel semantics end to en
     expect(sourceRule.ok()).toBeTruthy();
     createdRules.push((await sourceRule.json()).id);
 
+    const scopedSecurityRule = await request.post('/api/v1/alert-rules', {
+      headers,
+      data: {
+        name: `E2E Rule SECURITY-SCOPED ${runId}`,
+        eventType: 'SECURITY',
+        severity: 'P2',
+        scopeType: 'SOURCE',
+        scopeValue: 'sales',
+        channelIds: [channel.id],
+        cooldownSecs: 0,
+        groupWindowSecs: 0,
+        enabled: true,
+      },
+    });
+    expect(scopedSecurityRule.status()).toBe(400);
+
+    for (const eventType of ['SCHEDULE', 'DAILY']) {
+      const scoped = await request.post('/api/v1/alert-rules', {
+        headers,
+        data: {
+          name: `E2E Rule ${eventType}-SCOPED ${runId}`,
+          eventType,
+          severity: 'P2',
+          scopeType: 'SOURCE',
+          scopeValue: 'sales',
+          channelIds: [channel.id],
+          cooldownSecs: 0,
+          groupWindowSecs: 0,
+          enabled: true,
+        },
+      });
+      expect(scoped.status(), `${eventType} scoped rule must be rejected`).toBe(400);
+    }
+
+    const recoveryRule = await request.post('/api/v1/alert-rules', {
+      headers,
+      data: {
+        name: `E2E Rule RECOVERY ${runId}`,
+        eventType: 'COLLECT_RECOVERY',
+        severity: 'P2',
+        scopeType: 'ALL',
+        scopeValue: null,
+        channelIds: [channel.id],
+        cooldownSecs: 0,
+        groupWindowSecs: 0,
+        enabled: true,
+      },
+    });
+    expect(recoveryRule.status()).toBe(400);
+
     const sourceMatchEvent = await (
       await request.post('/api/v1/alert-events/test', {
         headers,
@@ -670,6 +752,94 @@ test('alert channel, rule, delivery retry and paused-channel semantics end to en
         status: delivery.status,
       })),
       defaultRoute: defaultRouteDeliveries.map(delivery => ({
+        channelId: delivery.channelId,
+        status: delivery.status,
+      })),
+    };
+
+    // ── daily summary is opt-in, not part of the default route ────────────
+    // Failure types fall back to every enabled channel; a once-a-day summary
+    // must not, otherwise enabling one channel spams it daily.
+    const unsubscribedDaily = await (
+      await request.post('/api/v1/alert-events/test', {
+        headers,
+        data: { eventType: 'DAILY', message: `E2E daily unsubscribed ${runId}` },
+      })
+    ).json();
+    expect(unsubscribedDaily.status).toBe('RESOLVED');
+    expect(unsubscribedDaily.eventType).toBe('DAILY');
+    const unsubscribedDelivery = await waitForDelivery(
+      request,
+      adminToken,
+      unsubscribedDaily.id,
+      delivery => delivery.status === 'SKIPPED_NO_CHANNEL',
+      10_000
+    );
+    expect(unsubscribedDelivery.responseBody || '').toContain('未订阅');
+
+    const dailyRule = await request.post('/api/v1/alert-rules', {
+      headers,
+      data: {
+        name: `E2E Rule DAILY ${runId}`,
+        eventType: 'DAILY',
+        severity: 'P3',
+        scopeType: 'ALL',
+        scopeValue: null,
+        channelIds: [channel.id],
+        cooldownSecs: 0,
+        groupWindowSecs: 0,
+        enabled: true,
+      },
+    });
+    expect(dailyRule.ok()).toBeTruthy();
+    createdRules.push((await dailyRule.json()).id);
+
+    const subscribedDaily = await (
+      await request.post('/api/v1/alert-events/test', {
+        headers,
+        data: { eventType: 'DAILY', message: `E2E daily subscribed ${runId}` },
+      })
+    ).json();
+    const subscribedDelivery = await waitForDelivery(
+      request,
+      adminToken,
+      subscribedDaily.id,
+      delivery => delivery.status === 'SENT',
+      20_000
+    );
+    expect(subscribedDelivery.channelId).toBe(channel.id);
+
+    // Failure types keep the default route: with no SCHEDULE rule the event must
+    // still reach every enabled channel, unlike the opt-in DAILY summary.
+    const scheduleEvent = await (
+      await request.post('/api/v1/alert-events/test', {
+        headers,
+        data: { eventType: 'SCHEDULE', message: `E2E schedule default route ${runId}` },
+      })
+    ).json();
+    const scheduleDeliveries = await waitForDeliveries(
+      request,
+      adminToken,
+      scheduleEvent.id,
+      deliveries =>
+        deliveries.length === 2 && deliveries.every(delivery => delivery.status === 'SENT')
+    );
+    expect(
+      scheduleDeliveries.map(delivery => delivery.channelId).sort((a, b) => a - b)
+    ).toEqual([channel.id, channelB.id].sort((a, b) => a - b));
+
+    artifact.dailyOptIn = {
+      unsubscribed: {
+        eventStatus: unsubscribedDaily.status,
+        deliveryStatus: unsubscribedDelivery.status,
+        reason: unsubscribedDelivery.responseBody,
+      },
+      subscribed: {
+        eventStatus: subscribedDaily.status,
+        deliveryStatus: subscribedDelivery.status,
+        channelId: subscribedDelivery.channelId,
+      },
+      scheduleDefaultRoute: scheduleDeliveries.map(delivery => ({
         channelId: delivery.channelId,
         status: delivery.status,
       })),
