@@ -223,6 +223,11 @@
               <TakeSecsHistogram />
             </v-col>
           </v-row>
+          <v-row>
+            <v-col cols="12">
+              <SourceDurationTable />
+            </v-col>
+          </v-row>
         </v-tabs-window-item>
       </v-tabs-window>
     </v-container>
@@ -255,6 +260,7 @@
   import SourceContributionArea from '@/components/dashboard/SourceContributionArea.vue';
   import SlowTableBar from '@/components/dashboard/SlowTableBar.vue';
   import TakeSecsHistogram from '@/components/dashboard/TakeSecsHistogram.vue';
+  import SourceDurationTable from '@/components/dashboard/SourceDurationTable.vue';
   import { useExecutiveDashboard } from '@/composables/useExecutiveDashboard';
   import { loadTodayPulse } from '@/composables/useTodayPulse';
 

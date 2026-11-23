@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import { monitorService } from '@/service/monitor-service';
 import settingsService from '@/service/settings-service';
+import { formatSeconds } from '@/utils/chart-colors';
 
 interface Row {
   sid?: number;
@@ -13,6 +14,8 @@ interface Row {
   no_run_cnt?: number | string;
   t_begin_at?: string | null;
   t_finish_at?: string | null;
+  y_take_secs?: number | string | null;
+  t_take_secs?: number | string | null;
 }
 
 export interface PulseRow {
@@ -27,6 +30,8 @@ export interface PulseRow {
   barStyle: Record<string, string>;
   timeLabel: string;
   timeTitle: string;
+  durationSecs: number | null;
+  durationDelta: number | null;
 }
 
 const DAY_MINUTES = 24 * 60;
@@ -92,6 +97,24 @@ export const rows = computed<PulseRow[]>(() => {
               ?.slice(0, 5)}`
           : (item.start_at || '--:--').slice(0, 5);
 
+      // Why: the API reports a missing T/T-1 batch as null now; 0 used to mean "no data",
+      // which made an empty batch indistinguishable from a zero-second one.
+      const todaySecs = toNumber(item.t_take_secs);
+      const previousSecs = toNumber(item.y_take_secs);
+      const durationSecs = todaySecs > 0 ? todaySecs : null;
+      const durationDelta =
+        durationSecs !== null && previousSecs > 0
+          ? Math.round(((durationSecs - previousSecs) / previousSecs) * 1000) / 10
+          : null;
+      const durationHint =
+        durationSecs === null
+          ? ''
+          : ` · 批次耗时 ${formatSeconds(durationSecs)}${
+              durationDelta === null
+                ? ''
+                : `（较上次 ${durationDelta > 0 ? '+' : ''}${durationDelta.toFixed(1)}%）`
+            }`;
+
       return {
         key: `${item.sid ?? fullName}-${item.start_at}`,
         name,
@@ -105,7 +128,9 @@ export const rows = computed<PulseRow[]>(() => {
         timeLabel,
         timeTitle: `${fullName} · 计划 ${item.start_at || '--'} · 已采 ${done}/${total}${
           failed ? ` · 失败 ${failed}` : ''
-        }`,
+        }${durationHint}`,
+        durationSecs,
+        durationDelta,
       };
     })
     .sort((a, b) => a.startPct - b.startPct);
