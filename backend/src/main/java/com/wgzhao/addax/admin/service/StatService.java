@@ -6,6 +6,8 @@ import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -187,7 +189,7 @@ public class StatService
                                  max(e.end_at)                                       as y_finish_at,
                                  null                                                as t_finish_at,
                                  extract(epoch from max(e.end_at) - min(e.start_at)) as y_take_secs,
-                                 0                                                   as t_take_secs
+                                 null                                                as t_take_secs
                           from etl_statistic e
                                    left join vw_etl_table_with_source s
                                              on e.tid = s.id
@@ -203,7 +205,7 @@ public class StatService
                                  min(e.start_at)                                     as t_begin_at,
                                  null                                                as y_finish_at,
                                  max(e.end_at)                                       as t_finish_at,
-                                 0                                                   as y_take_secs,
+                                 null                                                as y_take_secs,
                                  extract(epoch from max(e.end_at) - min(e.start_at)) as t_take_secs
                           from etl_statistic e
                                    left join vw_etl_table_with_source s
@@ -232,6 +234,152 @@ public class StatService
             """;
         return jdbcTemplate.queryForList(sql, configService.getBizDateAsDate().plusDays(-1),
             configService.getBizDateAsDate());
+    }
+
+    /**
+     * Per-source batch duration for the latest business date, plus what the UI needs to compare it
+     * with the previous batch.
+     *
+     * <p>The duration is wall-clock: from the first table's start to the last table's end within one
+     * business date, not the sum of {@code take_secs}. That is what an operator experiences as
+     * "when did this source finish". A batch that is still collecting is returned too, but flagged
+     * {@code in_progress} and left without a delta so a partial span is never compared with a
+     * complete one; it also stays out of the trend.</p>
+     */
+    public List<Map<String, Object>> statSourceLatestDurations(int history)
+    {
+        int rowWindow = Math.max(history, 1) + 1;
+        String sql = """
+            with source_meta as (
+                select v.sid,
+                       min(v.name) as source_name,
+                       count(*) as total_tables,
+                       coalesce(bool_or(v.status = 'R'), false) as running
+                from vw_etl_table_with_source v
+                where v.enabled = true
+                  and v.status <> 'X'
+                  and v.retired_at is null
+                  and v.sid is not null
+                group by v.sid
+            ),
+            batches as (
+                select v.sid,
+                       e.biz_date,
+                       min(e.start_at) as begin_at,
+                       max(e.end_at) as finish_at,
+                       extract(epoch from max(e.end_at) - min(e.start_at))::bigint as take_secs,
+                       count(*) as table_count
+                from etl_statistic e
+                join vw_etl_table_with_source v on v.id = e.tid
+                where v.enabled = true
+                  and v.status <> 'X'
+                  and v.retired_at is null
+                  and v.sid is not null
+                  and e.start_at is not null
+                  and e.end_at is not null
+                group by v.sid, e.biz_date
+            ),
+            ranked as (
+                select b.*,
+                       row_number() over (partition by b.sid order by b.biz_date desc) as rn
+                from batches b
+            )
+            select m.sid,
+                   m.source_name,
+                   m.total_tables,
+                   m.running,
+                   to_char(r.biz_date, 'YYYY-MM-DD') as biz_date,
+                   to_char(r.begin_at, 'YYYY-MM-DD HH24:MI:SS') as begin_at,
+                   to_char(r.finish_at, 'YYYY-MM-DD HH24:MI:SS') as finish_at,
+                   r.take_secs,
+                   r.table_count,
+                   r.rn
+            from source_meta m
+            left join ranked r on r.sid = m.sid and r.rn <= ?
+            order by m.sid, r.biz_date
+            """;
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, rowWindow);
+        String today = LocalDate.now().toString();
+
+        Map<Integer, Map<String, Object>> result = new LinkedHashMap<>();
+        Map<Integer, List<Map<String, Object>>> batches = new HashMap<>();
+        for (Map<String, Object> row : rows) {
+            Object rawSid = row.get("sid");
+            if (rawSid == null) {
+                continue;
+            }
+            int sid = ((Number) rawSid).intValue();
+            result.computeIfAbsent(sid, key -> {
+                Map<String, Object> init = new LinkedHashMap<>();
+                init.put("sid", sid);
+                init.put("source_name", row.get("source_name"));
+                init.put("total_tables", row.get("total_tables"));
+                init.put("running", Boolean.TRUE.equals(row.get("running")));
+                init.put("biz_date", null);
+                init.put("begin_at", null);
+                init.put("finish_at", null);
+                init.put("take_secs", null);
+                init.put("table_count", null);
+                init.put("in_progress", false);
+                init.put("prev_biz_date", null);
+                init.put("prev_take_secs", null);
+                init.put("delta_pct", null);
+                init.put("trend_secs", List.of());
+                return init;
+            });
+            if (row.get("biz_date") != null) {
+                batches.computeIfAbsent(sid, key -> new ArrayList<>()).add(row);
+            }
+        }
+
+        for (Map.Entry<Integer, Map<String, Object>> item : result.entrySet()) {
+            List<Map<String, Object>> list = batches.get(item.getKey());
+            if (list == null || list.isEmpty()) {
+                continue;
+            }
+            Map<String, Object> entry = item.getValue();
+            Map<String, Object> latest = list.get(list.size() - 1);
+            // Why: the batch date comes from the source's calendar and can lag the wall clock
+            // (trade-day dictionary, pre-cutover hours), so match on the run being active and
+            // having started or finished today instead of comparing with the global biz date.
+            boolean ranToday = String.valueOf(latest.get("begin_at")).startsWith(today)
+                || String.valueOf(latest.get("finish_at")).startsWith(today);
+            boolean inProgress = Boolean.TRUE.equals(entry.get("running")) && ranToday;
+            entry.put("biz_date", latest.get("biz_date"));
+            entry.put("begin_at", latest.get("begin_at"));
+            entry.put("finish_at", latest.get("finish_at"));
+            entry.put("take_secs", latest.get("take_secs"));
+            entry.put("table_count", latest.get("table_count"));
+            entry.put("in_progress", inProgress);
+
+            Map<String, Object> prev = list.size() >= 2 ? list.get(list.size() - 2) : null;
+            if (prev != null) {
+                entry.put("prev_biz_date", prev.get("biz_date"));
+                entry.put("prev_take_secs", prev.get("take_secs"));
+            }
+            // Why: comparing a half-finished batch with a complete one reports a huge false
+            // improvement, so the delta waits until the batch is done.
+            if (!inProgress && prev != null) {
+                long take = toSeconds(latest.get("take_secs"));
+                long prevTake = toSeconds(prev.get("take_secs"));
+                if (prevTake > 0) {
+                    entry.put("delta_pct", Math.round((take - prevTake) * 1000.0 / prevTake) / 10.0);
+                }
+            }
+
+            List<Long> trend = new ArrayList<>();
+            int to = inProgress ? list.size() - 1 : list.size();
+            for (int i = Math.max(0, to - history); i < to; i++) {
+                trend.add(toSeconds(list.get(i).get("take_secs")));
+            }
+            entry.put("trend_secs", trend);
+        }
+        return new ArrayList<>(result.values());
+    }
+
+    private static long toSeconds(Object value)
+    {
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     public Double statAllTotalData()
