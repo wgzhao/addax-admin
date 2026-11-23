@@ -23,6 +23,7 @@ public final class TargetOptions
 {
     public static final String HDFS = "hdfs";
     public static final String RDBMS = "rdbms";
+    public static final String DORIS = "doris";
 
     private TargetOptions()
     {
