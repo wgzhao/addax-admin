@@ -64,6 +64,7 @@
   import { useEventListener } from '@vueuse/core';
   import { useRouter } from 'vue-router';
   import tableService from '@/service/table-service';
+  import { defaultFilters } from '@/components/table/filter-fields';
   import { useAppTheme } from '@/composables/useAppTheme';
   import { commandPaletteOpen, toggleCommandPalette } from '@/stores/command-palette';
   import { useAuthStore } from '@/stores/auth';
@@ -205,7 +206,10 @@
     }
     timer = setTimeout(async () => {
       try {
-        const page = await tableService.fetchTableList(0, 6, q);
+        const page = await tableService.fetchTableList(0, 6, {
+          ...defaultFilters(),
+          q,
+        });
         tableResults.value = (page.content || []).map(row => ({
           id: row.id,
           label: `${row.sourceDb ? row.sourceDb + '.' : ''}${row.sourceTable || row.id}`,
