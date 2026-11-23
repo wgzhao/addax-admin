@@ -69,12 +69,23 @@ A rule matches on event type and scope:
 | `SOURCE` | events whose payload `sourceDb` equals the rule value |
 | `TABLE` | events whose collection id equals the rule value, or whose `sourceDb.sourceTable` / `sourceTable` matches |
 
+`SECURITY`, `SYSTEM`, `SCHEDULE` and `DAILY` events carry no source context, so
+only `ALL`-scope rules can match them; the API rejects other scopes for those
+types. Recovery events do not consult rules at all — their audience is fixed by
+the failure's deliveries.
+
 Matching rules select their channel lists; the effective severity is the most
 severe level among matching rules. **When no enabled rule matches, the event is
 sent to every enabled channel.** Rules are a narrowing mechanism, not a second
 enable switch. Without the default route, a new installation would have to
 discover and create a rule before its first channel did anything, and an
 operator would see a configured channel that silently receives nothing.
+
+`DAILY` is the single exception: when no enabled rule of that type exists, the
+event is still recorded but every delivery is `SKIPPED_NO_CHANNEL` with the
+reason "信息类事件未订阅". A once-a-day informational message must not be
+broadcast to every channel by the default route. Failure types keep the default
+route, because a missed failure is worse than an unexpected recipient.
 
 Recovery events go only to the channels that the original failure targeted
 (`PENDING`, `SENDING`, `SENT`, `FAILED`, `DEAD` deliveries), never to a newly
@@ -84,6 +95,42 @@ the failure.
 `alert_rule.channel_ids` is JSONB in phase 1. Deleting a channel removes its id
 from every rule and every escalation list. A future phase may split this into an
 `alert_rule_channel` table if per-channel rule settings appear.
+
+## Scheduler and daily-summary events
+
+The day cut (flag reset, configuration reload, per-table schema refresh, queue
+cleanup) is the operation every collection depends on, and it used to fail
+silently: `updateParams` caught every exception and timeout, returned void, so
+the scheduler reported success, its retry branch was dead code, and the only
+evidence was a log line. It now returns a `DayCutOutcome` (stage, duration,
+timeout, reset count, refresh counts and per-table failures, queue-monitor state,
+completion marker) and writes:
+
+- `SCHEDULE:DAYCUT:<bizDate>` (P1, FIRING) when a stage failed or timed out. A
+  later fully successful run resolves it; the retry (one attempt, five minutes)
+  increments `fire_count` instead of creating a second event.
+- `SCHEDULE:DAYCUT_TABLES:<bizDate>` (P2, FIRING) when the run completed but
+  some tables could not be refreshed, or tables remain in `U`. Partial table
+  failure counts as a successful day cut: the completion marker is written and
+  there is no automatic re-run (repeated DDL is worse than a human deciding).
+  These tables do not collect until someone fixes them and refreshes.
+- An audit record (`DAILY_REFRESH_COMPLETED`) for every completed run, including
+  the all-good case. Success is not an alert: it is not routed to any channel.
+
+`U` (waiting for schema update) tables are part of the refresh set — `'X'` and
+disabled sources are the only exclusions — and a successful refresh moves them
+back to `N` when the business period owes them a collection. The day-cut report
+carries the `U → N` count and the number still waiting.
+
+`DAILY:BATCH:<bizDate>` (P3, recorded as a resolved point-in-time fact) is
+produced once per business date, whenever the automatic batch reaches a terminal
+state: no active automatic queue row for that date, no due table in
+`N/W/R`, and no failed table still holding retry budget. Tables in `U` are
+terminal but counted as failures. The summary distinguishes all-success,
+finished-with-failures, and a day with no due tables. If the period closes
+before it ever becomes terminal, the day cut reports it before resetting flags,
+because the statuses that describe it are about to be overwritten. A Redis
+marker per business date keeps the message unique across master failover.
 
 ## Phase 1 scope
 
@@ -111,8 +158,8 @@ Explicitly deferred:
   event. Per-table storm aggregation is phase 2.
 - Acknowledgment and escalation. `ack_required`, `escalate_after_secs` and
   `escalation_channel_ids` are persisted but not consumed.
-- Missing partition, SLA breach, queue backlog, node offline, schema drift and
-  daily digest publishers.
+- Missing partition, SLA breach, queue backlog, node offline and schema drift
+  publishers. Scheduler liveness and queue backlog will reuse `SCHEDULE`.
 - Per-user subscriptions. Routing is scope-based.
 
 ## Channel configuration and secrets

@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -96,7 +97,7 @@ public class AlertDispatcher
             "<h2>" + AlertMessageFactory.escapeHtml(title) + "</h2><p>" + AlertMessageFactory.escapeHtml(reason) + "</p>",
             data, Map.of());
         recordEvent(eventKey, AlertEventType.COLLECT_FAILURE, "TABLE", String.valueOf(tid),
-            sourceDb, payload, now, AlertSeverity.P1);
+            sourceDb, payload, now, AlertSeverity.P1, false);
         return true;
     }
 
@@ -163,15 +164,16 @@ public class AlertDispatcher
         Optional<AlertSilence> silence = silenceService.findActiveFor("TABLE", String.valueOf(tid),
             sourceDb, sourceTable);
         publishDeliveries(recovery, channels.stream().map(AlertChannel::getId).toList(), sourceDb,
-            silence.orElse(null));
+            silence.orElse(null), null);
         return true;
     }
 
     @Transactional
     public boolean publishSecurity(String message)
     {
-        return publishGlobal(AlertEventType.SECURITY, "SECURITY", message, "安全告警",
-            "red", "安全审计检测到需要关注的事件");
+        return publishGlobal(AlertEventType.SECURITY, "SECURITY:GLOBAL:" + shortHash(message),
+            "安全告警 · SECURITY", message, "red", "安全审计检测到需要关注的事件",
+            AlertSeverity.P1, Map.of(), false);
     }
 
     /**
@@ -182,8 +184,62 @@ public class AlertDispatcher
     @Transactional
     public boolean publishSystem(String message)
     {
-        return publishGlobal(AlertEventType.SYSTEM, "SYSTEM", message, "系统告警",
-            "orange", "系统运行检测到需要关注的事件");
+        return publishGlobal(AlertEventType.SYSTEM, "SYSTEM:GLOBAL:" + shortHash(message),
+            "系统告警 · SYSTEM", message, "orange", "系统运行检测到需要关注的事件",
+            AlertSeverity.P2, Map.of(), false);
+    }
+
+    /**
+     * Scheduler-domain failure (day-cut refresh, scheduler liveness). The key must be
+     * stable for one condition: a retry has to increment fire_count on the same open
+     * event instead of creating a new one, so callers pass an explicit suffix rather
+     * than letting the message text decide identity.
+     */
+    @Transactional
+    public boolean publishSchedule(String keySuffix, String title, String message,
+        AlertSeverity severity, Map<String, String> data)
+    {
+        return publishGlobal(AlertEventType.SCHEDULE, "SCHEDULE:" + keySuffix, title, message,
+            "orange", "调度告警", severity, data, false);
+    }
+
+    /**
+     * Informational summary of a business day. Two deliberate differences from every
+     * failure type: it is stored as a resolved point-in-time fact (it reports what
+     * happened, not an ongoing condition), and it is delivered only when an enabled
+     * DAILY rule exists. Without that exception a once-a-day message would be pushed
+     * to every enabled channel through the default route.
+     */
+    @Transactional
+    public boolean publishDaily(String keySuffix, String title, String message, Map<String, String> data)
+    {
+        return publishGlobal(AlertEventType.DAILY, "DAILY:" + keySuffix, title, message,
+            "blue", "每日汇总", AlertSeverity.P3, data, true);
+    }
+
+    /**
+     * Resolves open SCHEDULE events whose key starts with {@code prefix}, except the
+     * keys named in {@code keepKeys}. A later fully successful refresh supersedes an
+     * earlier failure; the old event must not stay FIRING forever.
+     */
+    @Transactional
+    public int resolveOpenScheduleEvents(String prefix, Set<String> keepKeys)
+    {
+        List<AlertEvent> open = eventRepo.findByEventTypeAndStatusIn(AlertEventType.SCHEDULE.name(),
+            List.of(AlertEventStatus.FIRING, AlertEventStatus.SILENCED));
+        Instant now = Instant.now();
+        int resolved = 0;
+        for (AlertEvent event : open) {
+            if (!event.getEventKey().startsWith(prefix) || keepKeys.contains(event.getEventKey())) {
+                continue;
+            }
+            event.setStatus(AlertEventStatus.RESOLVED);
+            event.setResolvedAt(now);
+            event.setLastSeen(now);
+            eventRepo.save(event);
+            resolved++;
+        }
+        return resolved;
     }
 
     @Transactional
@@ -240,53 +296,51 @@ public class AlertDispatcher
             "<h2>" + AlertMessageFactory.escapeHtml(title) + "</h2><p>" + AlertMessageFactory.escapeHtml(body) + "</p>",
             data, Map.of());
         String eventKey = type.name() + ":TEST:" + UUID.randomUUID();
-        AlertEvent event = recordEvent(eventKey, type, scopeType, scopeValue, sourceDb, payload, now,
-            type.defaultSeverity());
         // A test is a point-in-time fact, not an ongoing condition; leaving it FIRING
         // would clutter the event list with events that can never resolve.
-        if (event.getStatus() == AlertEventStatus.FIRING) {
-            event.setStatus(AlertEventStatus.RESOLVED);
-            event.setResolvedAt(now);
-            eventRepo.save(event);
-        }
-        return event;
+        return recordEvent(eventKey, type, scopeType, scopeValue, sourceDb, payload, now,
+            type.defaultSeverity(), true);
     }
 
-    private boolean publishGlobal(AlertEventType type, String keyPrefix, String message,
-        String headline, String color, String category)
+    private boolean publishGlobal(AlertEventType type, String eventKey, String title,
+        String message, String color, String category, AlertSeverity severity,
+        Map<String, String> extraData, boolean resolvedFact)
     {
-        String eventKey = type.name() + ":GLOBAL:" + shortHash(message);
         lock(eventKey);
         Instant now = Instant.now();
-        Optional<AlertEvent> open = eventRepo.findFirstByEventKeyAndStatusInOrderByIdDesc(
-            eventKey, List.of(AlertEventStatus.FIRING, AlertEventStatus.SILENCED));
-        if (open.isPresent()) {
-            AlertEvent event = open.get();
-            event.setLastSeen(now);
-            event.setFireCount(event.getFireCount() + 1);
-            eventRepo.save(event);
-            return false;
+        if (!resolvedFact) {
+            Optional<AlertEvent> open = eventRepo.findFirstByEventKeyAndStatusInOrderByIdDesc(
+                eventKey, List.of(AlertEventStatus.FIRING, AlertEventStatus.SILENCED));
+            if (open.isPresent()) {
+                AlertEvent event = open.get();
+                event.setLastSeen(now);
+                event.setFireCount(event.getFireCount() + 1);
+                eventRepo.save(event);
+                return false;
+            }
         }
         String body = message == null ? "" : message;
-        String title = headline + " · " + keyPrefix;
-        String markdown = "## <font color=\"" + color + "\"> " + headline + "</font>\n"
+        String markdown = "## <font color=\"" + color + "\"> " + title + "</font>\n"
             + "**时间**: " + TIME_FORMAT.format(now) + "\n"
             + "**主机**: " + messageFactory.hostname() + "\n"
             + "---------------------------------\n"
             + "**告警内容**: " + body;
-        String text = "【" + headline + "】" + body;
+        String text = "【" + title + "】" + body;
         ObjectNode data = objectMapper.createObjectNode();
         data.put("category", category);
         data.put("message", body);
+        if (extraData != null) {
+            extraData.forEach((key, value) -> data.put(key, nullToEmpty(value)));
+        }
         JsonNode payload = messageFactory.payload(title, markdown, text,
             "<h2>" + AlertMessageFactory.escapeHtml(title) + "</h2><p>" + AlertMessageFactory.escapeHtml(body) + "</p>",
             data, Map.of());
-        recordEvent(eventKey, type, "ALL", null, null, payload, now, type.defaultSeverity());
+        recordEvent(eventKey, type, "ALL", null, null, payload, now, severity, resolvedFact);
         return true;
     }
 
     private AlertEvent recordEvent(String eventKey, AlertEventType type, String scopeType, String scopeValue,
-        String sourceDb, JsonNode payload, Instant now, AlertSeverity severity)
+        String sourceDb, JsonNode payload, Instant now, AlertSeverity severity, boolean resolvedFact)
     {
         AlertEvent event = new AlertEvent();
         event.setEventKey(eventKey);
@@ -309,18 +363,27 @@ public class AlertDispatcher
         if (silence.isPresent()) {
             event.setStatus(AlertEventStatus.SILENCED);
         }
+        // A silenced fact keeps SILENCED: the muting decision is the fact an
+        // operator needs to see, and resolving it would hide that it was muted.
+        if (resolvedFact && silence.isEmpty()) {
+            event.setStatus(AlertEventStatus.RESOLVED);
+            event.setResolvedAt(now);
+        }
         eventRepo.save(event);
-        publishDeliveries(event, route.channelIds(), sourceDb, silence.orElse(null));
+        // Informational types are opt-in: the default "no rule means every channel"
+        // route must not turn a once-a-day summary into a daily broadcast.
+        boolean informationalUnsubscribed = type == AlertEventType.DAILY && !route.matchedRule();
+        if (informationalUnsubscribed) {
+            publishDeliveries(event, List.of(), sourceDb, silence.orElse(null),
+                "信息类事件未订阅：请为「每日汇总」建立启用规则后再外发");
+            return event;
+        }
+        publishDeliveries(event, route.channelIds(), sourceDb, silence.orElse(null), null);
         return event;
     }
 
-    private void publishDeliveries(AlertEvent event, List<Long> channelIds, String sourceDb)
-    {
-        publishDeliveries(event, channelIds, sourceDb, null);
-    }
-
     private void publishDeliveries(AlertEvent event, List<Long> channelIds, String sourceDb,
-        AlertSilence silence)
+        AlertSilence silence, String skipReason)
     {
         Map<Long, AlertChannel> channels = new LinkedHashMap<>();
         if (channelIds != null) {
@@ -328,9 +391,15 @@ public class AlertDispatcher
         }
         if (channels.isEmpty()) {
             AlertDelivery skipped = baseDelivery(event, null, null, AlertDeliveryStatus.SKIPPED_NO_CHANNEL);
-            skipped.setResponseBody(silence == null
-                ? "告警已暂停：没有已启用且被规则选中的通道"
-                : "告警已静默：" + nullToEmpty(silence.getReason()));
+            if (silence != null) {
+                skipped.setResponseBody("告警已静默：" + nullToEmpty(silence.getReason()));
+            }
+            else if (skipReason != null) {
+                skipped.setResponseBody(skipReason);
+            }
+            else {
+                skipped.setResponseBody("告警已暂停：没有已启用且被规则选中的通道");
+            }
             deliveryRepo.save(skipped);
             log.warn("Alert event {} has no deliverable channel; recorded as SKIPPED_NO_CHANNEL", event.getEventKey());
             return;

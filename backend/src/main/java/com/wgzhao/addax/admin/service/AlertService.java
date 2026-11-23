@@ -1,9 +1,13 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.alert.AlertDispatcher;
+import com.wgzhao.addax.admin.alert.AlertSeverity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Compatibility facade for the collection and audit code paths.
@@ -75,6 +79,48 @@ public class AlertService
         }
         catch (Exception ex) {
             log.error("发布安全告警事件失败", ex);
+        }
+    }
+
+    /**
+     * Scheduler-domain failure (day-cut refresh, scheduler liveness). The key suffix
+     * identifies the condition, not the message text: a retry must increment the
+     * existing open event instead of creating another one.
+     */
+    public void sendScheduleAlert(String keySuffix, String title, String message,
+        AlertSeverity severity, Map<String, String> data)
+    {
+        try {
+            alertDispatcher.publishSchedule(keySuffix, title, message, severity, data);
+        }
+        catch (Exception ex) {
+            log.error("发布调度告警事件失败 key={}", keySuffix, ex);
+        }
+    }
+
+    /**
+     * Informational daily summary. Delivered only when a DAILY rule exists; the
+     * dispatcher owns that rule check.
+     */
+    public void sendDailySummary(String keySuffix, String title, String message, Map<String, String> data)
+    {
+        try {
+            alertDispatcher.publishDaily(keySuffix, title, message, data);
+        }
+        catch (Exception ex) {
+            log.error("发布每日汇总事件失败 key={}", keySuffix, ex);
+        }
+    }
+
+    /** Resolves superseded day-cut events; returns how many were closed. */
+    public int resolveScheduleEvents(String prefix, Set<String> keepKeys)
+    {
+        try {
+            return alertDispatcher.resolveOpenScheduleEvents(prefix, keepKeys);
+        }
+        catch (Exception ex) {
+            log.error("事件恢复失败 prefix={}", prefix, ex);
+            return 0;
         }
     }
 }
