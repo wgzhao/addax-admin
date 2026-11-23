@@ -109,16 +109,44 @@ Doris 的复杂性在数据模型，放在表级，与 `target_options.hdfs` 对
 ## 分阶段落地
 
 - **Phase 1（MVP，先拿到写入性能）**：新增 `DORIS` 类型、`wD` 模板、Stream Load writer、目标端 Doris 连接段；仅支持 `EXTERNAL` 目标表模式（表由数仓或 DBA 管理，平台做契约校验与写入，不做 DDL）；用真实 Doris 实例完成 E2E。
-- **Phase 2（MANAGED 表结构）**：Doris DDL、key model/distribution/partition 表级选项、演化规则与失败提示；schema preview 增加 Doris 预览。
+- **Phase 2（MANAGED 表结构）**：Doris DDL、key model/distribution/partition 表级选项、演化规则与失败提示；schema preview 增加 Doris 预览。已实现，见下节。
 - **Phase 3（可选）**：健康检查补插件/模板/HTTP 探测；若后续支持 StarRocks（`starrockswriter` 参数形状相同），再抽「Stream Load 系」共享实现，现在不提前抽象。
+
+## Phase 2 实现决议（2026-11-23）
+
+Phase 2 的开放问题在实现时收敛为以下口径，未新增 `TargetFamily`：
+
+- **表级选项**：`etl_table.target_options.doris`，与 `rdbms` 并列（业务日期列仍由 `rdbms.businessDateColumn` 承载）：
+  `keyModel`、`keyColumns`、`distributionType`、`distributionColumns`、`buckets`、`replicationNum`、
+  `partitionMode`、`partitionColumn`、`partitionStart`、`partitionEnd`、`partitionPrefix`。
+- **默认数据模型**：`AUTO`。映射后的源端主键存在（或显式配置了键列）时用 `UNIQUE`，否则用 `DUPLICATE`；
+  `UNIQUE` 无键列直接失败。`AGGREGATE` 需要为每个值列指定聚合函数，平台没有该信息，显式拒绝。
+- **键列**：必须位于表定义的最前面，平台按 key 顺序重排字段；键列声明为 `NOT NULL`，源端可空时给出提示。
+  TEXT/STRING/BINARY/JSON/FLOAT/DOUBLE 不能作为键列，遇到即显式失败而不是让 Doris 拒绝 DDL。
+- **业务日期列**：仍是 `varchar(8)`，默认不进入键列，与 RDBMS 语义一致；跨天重跑覆盖/追加的后果沿用现有提示。
+  它不能作为 Doris 分区列（分区列必须是 DATE/DATETIME）。
+- **分桶**：默认 `HASH(键列) BUCKETS AUTO`，要求 Doris 2.0+；`RANDOM` 仅限 `DUPLICATE`，且必须有显式分桶数
+  （未配置时按 10）。
+- **分区**：`NONE`（默认）或 `DYNAMIC`。动态分区必须显式指定一个映射为 DATE/DATETIME 的目标字段，
+  自动加入键列，使用 `PARTITION BY RANGE(col) ()` + `dynamic_partition.*` 属性；预建/保留天数和前缀可配置，
+  并开启 `create_history_partition`，使建表当时的保留窗口（`partitionStart`）立即有分区，T+1 首日装载不会落在分区外。
+  业务日期列（varchar）不满足 Doris 的分区类型要求，因此“按快照业务日期自动分区”不在本阶段。
+- **副本数**：`replicationNum` 可选；不填则完全交给 Doris 默认值，避免在小集群上隐式失败或隐式降副本。
+- **演化规则**：存量表只做三类动作——补加缺失的值列、放宽值列类型（varchar 变长 / 整数升位 / decimal 扩精度）、
+  其余变更告警并跳过。键列缺失、键列类型变化、键模型或分桶漂移不做自动修复；键列缺失直接让本次结构同步失败。
+  未映射且非空无默认值的列会告警，因为它会让 Stream Load 失败。
+- **最小版本**：Doris 2.0（`BUCKETS AUTO` 与动态分区属性）；更早版本需显式分桶并自行验证动态分区。
+- **模式默认值**：Doris 的 MANAGED 与 EXTERNAL 均开放；向导默认仍与其它目标族一致（MANAGED），
+  外部表由数仓维护时选择 EXTERNAL。
+- **loadUrl**：维持 Phase 1 约定（FE 8030 或 BE 8040 的 HTTP 端点），未强制与 JDBC 地址同源。
+- **验证**：在 Doris 4.0.4（3 BE）测试集群上用真实 Addax `doriswriter` 跑通建表、装载、重跑幂等、
+  补列/放宽、键列变更告警、DUPLICATE 追加与动态分区（54 项检查全过）。
 
 ## 待定决策
 
-1. 默认数据模型：`UNIQUE KEY`（可重跑、upsert）还是 `DUPLICATE KEY`（纯追加）？影响数据正确性。
-2. 业务日期是否进入 key、是否作为分区键？决定同日重跑是否重复以及分区管理方式。
-3. 支持的最低 Doris 版本：类型、`AUTO BUCKETS`、dynamic partition、schema change 能力随版本变化。
-4. `EXTERNAL` 是否作为 Doris 的默认表结构模式；`MANAGED` 是否在 Phase 2 才开放。
-5. `loadUrl` 约定使用 FE 8030（由 FE 转发 BE）还是 BE 8040（直连），以及是否要求与 JDBC 地址同源。
+Phase 2 实现时已收敛，见「Phase 2 实现决议」：默认数据模型为 `AUTO`（源端主键 → `UNIQUE`，否则 `DUPLICATE`）；
+业务日期列默认不进 key、不能作为分区列；最低版本 Doris 2.0；`MANAGED` 在 Phase 2 开放且与 `EXTERNAL` 并存；
+`loadUrl` 维持 Phase 1 约定。
 
 ## 风险
 
