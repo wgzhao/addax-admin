@@ -87,6 +87,15 @@ public class CollectionPlanPreviewService
         {
             return externalPreview(request);
         }
+        if (!targetAdapterRegistry.resolve(toTable(request)).supportsManagedSchema())
+        {
+            TargetContractReport.Finding finding = TargetContractReport.Finding.error(
+                "TARGET_MANAGED_UNSUPPORTED", null, "EXTERNAL", "MANAGED",
+                "该目标端当前仅支持外部表（EXTERNAL）：目标表需由数仓/DBA 创建，平台只做契约校验与写入");
+            return build(request, ERROR, "BLOCKED", finding.message(), List.of(),
+                TargetTableMetadata.missing(), List.of(), List.of(), List.of(), null, null,
+                List.of(finding));
+        }
         return managedPreview(request);
     }
 

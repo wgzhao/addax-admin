@@ -201,7 +201,7 @@
                     <v-select
                       id="target-template"
                       v-model="form.writerTemplateKey"
-                      :items="writerTemplateOptions"
+                      :items="writerTemplateChoices"
                       item-title="label"
                       item-value="value"
                       variant="outlined"
@@ -218,7 +218,7 @@
                   <h3>连接信息</h3>
                   <div class="section-actions">
                     <v-btn
-                      v-if="isRdbmsTarget"
+                      v-if="isRdbmsTarget || isDorisTarget"
                       size="x-small"
                       variant="text"
                       prepend-icon="mdi-lan-connect"
@@ -251,7 +251,10 @@
                       :rules="[requiredRule]"
                     />
                   </div>
-                  <div v-if="isRdbmsTarget && detectedDialect" class="field span-2 dialect-hint">
+                  <div
+                    v-if="(isRdbmsTarget || isDorisTarget) && detectedDialect"
+                    class="field span-2 dialect-hint"
+                  >
                     <span class="field-label">识别到的方言</span>
                     <v-chip
                       v-if="detectedDialect.supported"
@@ -320,6 +323,79 @@
                       hide-details
                       readonly
                       class="config-preview"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              <section v-if="isDorisTarget" class="form-section">
+                <header class="section-head">
+                  <span class="section-index">03</span>
+                  <h3>Doris Stream Load 设置</h3>
+                </header>
+                <div class="field-grid">
+                  <div class="field span-2">
+                    <label class="field-label" for="target-doris-load-url">
+                      loadUrl <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <v-textarea
+                      id="target-doris-load-url"
+                      v-model="connectForm.dorisLoadUrl"
+                      placeholder="fe1:8030&#10;fe2:8030"
+                      hint="每行一个 host:port；Stream Load 的 HTTP 端点，通常为 FE 的 8030 端口，不要带 http:// 前缀"
+                      variant="outlined"
+                      density="compact"
+                      rows="3"
+                      hide-details="auto"
+                      :rules="[loadUrlRule]"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-doris-batch-size">batchSize</label>
+                    <v-text-field
+                      id="target-doris-batch-size"
+                      v-model.number="connectForm.dorisBatchSize"
+                      type="number"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-doris-flush-interval">
+                      flushInterval (ms)
+                    </label>
+                    <v-text-field
+                      id="target-doris-flush-interval"
+                      v-model.number="connectForm.dorisFlushInterval"
+                      type="number"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                    />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" for="target-doris-flush-queue">flushQueueLength</label>
+                    <v-text-field
+                      id="target-doris-flush-queue"
+                      v-model.number="connectForm.dorisFlushQueueLength"
+                      type="number"
+                      variant="outlined"
+                      density="compact"
+                      hide-details="auto"
+                    />
+                  </div>
+                  <div class="field span-2">
+                    <label class="field-label" for="target-doris-load-props">loadProps (JSON)</label>
+                    <v-textarea
+                      id="target-doris-load-props"
+                      v-model="connectForm.dorisLoadProps"
+                      placeholder='{ "format": "csv" }'
+                      variant="outlined"
+                      density="compact"
+                      rows="3"
+                      hide-details="auto"
+                      :rules="[jsonObjectRule]"
                     />
                   </div>
                 </div>
@@ -589,10 +665,10 @@
     confirmState.value.open = false;
     action?.();
   };
-  // The target is modelled as a family (HDFS vs RDBMS); the concrete RDBMS dialect is inferred
-  // from the JDBC URL, never chosen here. Keeping the dropdown to families avoids a second source
-  // of truth that can disagree with the URL.
-  const targetTypes = ['HDFS', 'RDBMS'];
+  // HDFS / RDBMS are families; the concrete RDBMS dialect is inferred from the JDBC URL. Doris is a
+  // deliberate exception: its URL is indistinguishable from MySQL, and its writer is Stream Load, so
+  // it is an explicit adapter type with its own template key.
+  const targetTypes = ['HDFS', 'RDBMS', 'DORIS'];
   const writerTemplateOptions = ref<{ label: string; value: string }[]>([]);
 
   const headers = computed<DataTableHeader[]>(() => {
@@ -635,17 +711,44 @@
     hadoopConfig: '{}',
     storageFormat: 'orc',
     compressFormat: 'snappy',
+    dorisLoadUrl: '',
+    dorisBatchSize: 2048,
+    dorisFlushInterval: 3000,
+    dorisFlushQueueLength: 1,
+    dorisLoadProps: '{}',
   });
 
   const storageFormats = HDFS_STORAGE_FORMATS;
   const compressFormats = HDFS_COMPRESS_FORMATS;
 
-  const isHdfsTarget = computed(
-    () => (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WH'
-  );
+  // The writer key is authoritative, but a legacy row may still carry only target_type. This mirrors
+  // TargetTypeResolver: WH/WR/WD first, then the display type.
+  const targetKind = computed<'hdfs' | 'rdbms' | 'doris' | null>(() => {
+    const key = (form.value.writerTemplateKey || '').trim().toUpperCase();
+    if (key === 'WH') return 'hdfs';
+    if (key === 'WR') return 'rdbms';
+    if (key === 'WD') return 'doris';
+    const type = (form.value.targetType || '').trim().toUpperCase();
+    if (['HDFS', 'HIVE'].includes(type)) return 'hdfs';
+    if (type === 'DORIS') return 'doris';
+    if (['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'].includes(type)) return 'rdbms';
+    return null;
+  });
 
-  const isRdbmsTarget = computed(
-    () => (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WR'
+  const isHdfsTarget = computed(() => targetKind.value === 'hdfs');
+  const isRdbmsTarget = computed(() => targetKind.value === 'rdbms');
+  const isDorisTarget = computed(() => targetKind.value === 'doris');
+
+  // wD is a Doris-only contract: showing it for an RDBMS/HDFS target lets the operator fill
+  // Stream Load fields that a later save would have to discard. The type is the way in; selecting
+  // DORIS sets wD automatically.
+  const writerTemplateChoices = computed(() =>
+    writerTemplateOptions.value.filter(
+      option =>
+        option.value !== 'wD' ||
+        isDorisTarget.value ||
+        (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WD'
+    )
   );
 
   // HDFS 校验按清单逐项执行：先列出全部项目（pending），每项完成后立刻回填状态，避免用户
@@ -689,10 +792,26 @@
   });
 
   const connectionPlaceholder = computed(() =>
-    isHdfsTarget.value ? 'jdbc:hive2://host:10000/default' : 'jdbc:postgresql://host:5432/db'
+    isHdfsTarget.value
+      ? 'jdbc:hive2://host:10000/default'
+      : isDorisTarget.value
+        ? 'jdbc:mysql://fe:9030/db'
+        : 'jdbc:postgresql://host:5432/db'
   );
 
   const requiredRule = (value: any) => !!(value && String(value).trim()) || '必填项';
+  const loadUrlRule = (value: string) => {
+    const endpoints = parseLoadUrl(value);
+    if (!endpoints.length) return '至少配置一个 loadUrl';
+    const invalid = endpoints.find(endpoint => {
+      if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) return true;
+      const colon = endpoint.lastIndexOf(':');
+      if (colon <= 0) return true;
+      const port = endpoint.slice(colon + 1);
+      return !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535;
+    });
+    return invalid ? `端点格式不正确: ${invalid}（应为 host:port）` : true;
+  };
   const jsonObjectRule = (value: string) => {
     const text = (value || '').trim();
     if (!text) return true;
@@ -703,6 +822,12 @@
       return 'JSON 格式不正确';
     }
   };
+
+  const parseLoadUrl = (value: string): string[] =>
+    (value || '')
+      .split(/[,;\n]/)
+      .map(item => item.trim())
+      .filter(Boolean);
 
   const parseHadoopConfig = (value: string): Record<string, unknown> => {
     const text = (value || '').trim();
@@ -730,6 +855,7 @@
     const colorMap = {
       HDFS: 'primary',
       RDBMS: 'success',
+      DORIS: 'info',
     };
     return colorMap[targetType || ''] || 'secondary';
   };
@@ -750,6 +876,13 @@
       payload.hadoopConfig = parseHadoopConfig(connectForm.value.hadoopConfig);
       payload.storageFormat = connectForm.value.storageFormat || 'orc';
       payload.compressFormat = connectForm.value.compressFormat || 'snappy';
+    }
+    if (isDorisTarget.value) {
+      payload.loadUrl = parseLoadUrl(connectForm.value.dorisLoadUrl);
+      payload.batchSize = Number(connectForm.value.dorisBatchSize) || 2048;
+      payload.flushInterval = Number(connectForm.value.dorisFlushInterval) || 3000;
+      payload.flushQueueLength = Number(connectForm.value.dorisFlushQueueLength) || 1;
+      payload.loadProps = parseHadoopConfig(connectForm.value.dorisLoadProps);
     }
     form.value.connectConfig = JSON.stringify(payload);
   };
@@ -773,9 +906,11 @@
     () => form.value.targetType,
     t => {
       // Follow the family while the key is still one of the derived defaults; a custom writer
-      // template key is left alone.
+      // template key is left alone. Doris is a pair with wD and has no custom-key escape hatch.
       const current = (form.value.writerTemplateKey || '').trim().toUpperCase();
-      if (!current || current === 'WH' || current === 'WR') {
+      if (t === 'DORIS') {
+        form.value.writerTemplateKey = 'wD';
+      } else if (!current || ['WH', 'WR', 'WD'].includes(current)) {
         form.value.writerTemplateKey = t === 'HDFS' ? 'wH' : 'wR';
       }
       syncConnectConfig();
@@ -784,7 +919,22 @@
   );
   watch(
     () => form.value.writerTemplateKey,
-    () => {
+    key => {
+      // Keep the pair coherent in both directions. wD is reserved for Doris and the backend rejects
+      // a mismatch, so selecting it must move the target type too instead of leaving a form whose
+      // visible Doris fields a later save would silently drop.
+      const normalized = (key || '').trim().toUpperCase();
+      const type = (form.value.targetType || '').trim().toUpperCase();
+      if (normalized === 'WD' && type !== 'DORIS') {
+        form.value.targetType = 'DORIS';
+      } else if (normalized === 'WH' && !['HDFS', 'HIVE'].includes(type)) {
+        form.value.targetType = 'HDFS';
+      } else if (
+        normalized === 'WR' &&
+        !['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'].includes(type)
+      ) {
+        form.value.targetType = 'RDBMS';
+      }
       syncConnectConfig();
       loadHealthCheckPlan();
     }
@@ -797,12 +947,13 @@
 
   const detectDialect = async () => {
     const url = (connectForm.value.url || '').trim();
-    if (!isRdbmsTarget.value || !url.startsWith('jdbc:')) {
+    if (!(isRdbmsTarget.value || isDorisTarget.value) || !url.startsWith('jdbc:')) {
       detectedDialect.value = null;
       return;
     }
     try {
-      detectedDialect.value = await targetService.detectDialect(url);
+      // Doris shares the MySQL URL; the explicit target type is what keeps the hint honest.
+      detectedDialect.value = await targetService.detectDialect(url, form.value.targetType);
     } catch {
       detectedDialect.value = null;
     }
@@ -815,6 +966,7 @@
 
   watch(() => connectForm.value.url, scheduleDetect);
   watch(isRdbmsTarget, scheduleDetect);
+  watch(isDorisTarget, scheduleDetect);
 
   const parseConnectConfig = (target: EtlTarget) => {
     connectForm.value = {
@@ -830,6 +982,11 @@
       hadoopConfig: '{}',
       storageFormat: 'orc',
       compressFormat: 'snappy',
+      dorisLoadUrl: '',
+      dorisBatchSize: 2048,
+      dorisFlushInterval: 3000,
+      dorisFlushQueueLength: 1,
+      dorisLoadProps: '{}',
     };
     if (!target.connectConfig) {
       syncConnectConfig();
@@ -851,6 +1008,18 @@
         : '{}';
       connectForm.value.storageFormat = obj.storageFormat || 'orc';
       connectForm.value.compressFormat = obj.compressFormat || 'snappy';
+      const loadUrl = obj.loadUrl;
+      connectForm.value.dorisLoadUrl = Array.isArray(loadUrl)
+        ? loadUrl.join('\n')
+        : typeof loadUrl === 'string'
+          ? loadUrl
+          : '';
+      connectForm.value.dorisBatchSize = Number(obj.batchSize) || 2048;
+      connectForm.value.dorisFlushInterval = Number(obj.flushInterval) || 3000;
+      connectForm.value.dorisFlushQueueLength = Number(obj.flushQueueLength) || 1;
+      connectForm.value.dorisLoadProps = obj.loadProps
+        ? JSON.stringify(obj.loadProps, null, 2)
+        : '{}';
     } catch {
       notify('connectConfig 不是有效 JSON，已重置连接表单', 'warning');
     }
@@ -892,6 +1061,15 @@
   const save = async () => {
     const { valid } = await targetForm.value.validate();
     if (!valid) return;
+    // Keep the adapter type and writer template key a pair; the backend rejects a mismatch.
+    // wD is the explicit user intent, so promote the type rather than discarding the key.
+    if (
+      form.value.targetType === 'DORIS' ||
+      (form.value.writerTemplateKey || '').trim().toUpperCase() === 'WD'
+    ) {
+      form.value.targetType = 'DORIS';
+      form.value.writerTemplateKey = 'wD';
+    }
     syncConnectConfig();
     try {
       if (form.value.id) {

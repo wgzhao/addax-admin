@@ -13,6 +13,7 @@ import java.sql.SQLException;
 
 import java.util.Locale;
 
+import static com.wgzhao.addax.admin.common.Constants.DORIS_TARGET_TYPES;
 import static com.wgzhao.addax.admin.common.Constants.HDFS_TARGET_TYPES;
 import static com.wgzhao.addax.admin.common.Constants.RDBMS_TARGET_TYPES;
 
@@ -125,7 +126,15 @@ public class TargetTypeResolver
         {
             return "RDBMS";
         }
+        if ("WD".equals(writerKey))
+        {
+            return "DORIS";
+        }
         String targetType = normalize(target.getTargetType());
+        if (DORIS_TARGET_TYPES.contains(targetType))
+        {
+            return "DORIS";
+        }
         if (HDFS_TARGET_TYPES.contains(targetType))
         {
             return "HDFS";
@@ -181,7 +190,15 @@ public class TargetTypeResolver
         {
             return "RDBMS";
         }
+        if ("WD".equals(writerKey))
+        {
+            return "DORIS";
+        }
         String targetType = normalize(route.targetType());
+        if (DORIS_TARGET_TYPES.contains(targetType))
+        {
+            return "DORIS";
+        }
         if (HDFS_TARGET_TYPES.contains(targetType))
         {
             return "HDFS";

@@ -80,9 +80,10 @@ class TargetService {
     }) as unknown as Promise<TargetCheckItem>;
   }
 
-  detectDialect(url: string): Promise<DialectInfo> {
+  detectDialect(url: string, targetType?: string): Promise<DialectInfo> {
     return Requests.post(`${this.prefix}/detect-dialect`, {
       url,
+      targetType: targetType || '',
     }) as unknown as Promise<DialectInfo>;
   }
 }

@@ -35,10 +35,10 @@ export function targetFamily(
 ): TargetFamily {
   const key = (writerTemplateKey || '').trim().toUpperCase();
   if (key === 'WH') return 'hdfs';
-  if (key === 'WR') return 'rdbms';
+  if (key === 'WR' || key === 'WD') return 'rdbms';
   const type = (targetType || '').trim().toUpperCase();
   if (type === 'HDFS' || type === 'HIVE') return 'hdfs';
-  if (['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'].includes(type)) return 'rdbms';
+  if (['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER', 'DORIS'].includes(type)) return 'rdbms';
   return 'unknown';
 }
 

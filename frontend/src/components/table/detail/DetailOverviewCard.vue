@@ -137,6 +137,11 @@
 
   const isEsSource = computed(() => props.table.dbType === 'elasticsearch');
   const isNonRdbmsSource = computed(() => props.table.dbType === 'mongodb' || isEsSource.value);
+  const isDorisTarget = computed(() => {
+    const key = (props.table.targetWriterTemplateKey || '').trim().toUpperCase();
+    const type = (props.table.targetType || '').trim().toUpperCase();
+    return key === 'WD' || type === 'DORIS';
+  });
 
   const overviewItems = computed(() => {
     const items = [
@@ -183,6 +188,10 @@
       }
       if (isNonRdbmsSource.value) {
         return items.filter(item => item.label !== '切分字段' && item.label !== '目标表主键');
+      }
+      // Doris is external-only here: the platform does not create its key/DDL.
+      if (isDorisTarget.value) {
+        return items.filter(item => item.label !== '目标表主键');
       }
       return items;
     }

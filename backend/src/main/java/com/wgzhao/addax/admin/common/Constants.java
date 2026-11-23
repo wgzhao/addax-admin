@@ -69,6 +69,11 @@ public final class Constants
     public static final Set<String> HDFS_TARGET_TYPES = Set.of("HDFS", "HIVE");
     public static final Set<String> RDBMS_TARGET_TYPES = Set.of(
         "RDBMS", "MYSQL", "POSTGRESQL", "SQLSERVER");
+    /**
+     * Doris is a distinct adapter type, not an RDBMS dialect: its JDBC URL is indistinguishable from
+     * MySQL, while its writer is Stream Load. It keeps the RDBMS family.
+     */
+    public static final Set<String> DORIS_TARGET_TYPES = Set.of("DORIS");
 
     private Constants()
     {

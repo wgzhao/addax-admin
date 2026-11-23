@@ -139,7 +139,7 @@ public class TargetController
     @PostMapping("/detect-dialect")
     public ResponseEntity<EtlTargetService.DialectInfo> detectDialect(@RequestBody Map<String, String> body)
     {
-        return ResponseEntity.ok(etlTargetService.detectDialect(body.get("url")));
+        return ResponseEntity.ok(etlTargetService.detectDialect(body.get("url"), body.get("targetType")));
     }
 
     private java.util.Map<String, Object> targetSnapshot(EtlTarget target)

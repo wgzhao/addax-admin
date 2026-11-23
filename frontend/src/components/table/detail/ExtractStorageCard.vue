@@ -184,7 +184,7 @@
           </v-col>
         </template>
 
-        <v-col v-else-if="!isEsSource" cols="12" md="4">
+        <v-col v-else-if="!isEsSource && !isDorisTarget" cols="12" md="4">
           <div class="field-block field-block--switch">
             <div class="field-label">目标表主键</div>
             <div class="switch-shell">
@@ -247,6 +247,14 @@
   const isMongoSource = computed(() => table.value.dbType === 'mongodb');
   const isEsSource = computed(() => table.value.dbType === 'elasticsearch');
   const isNonRdbmsSource = computed(() => isMongoSource.value || isEsSource.value);
+  // Doris is external-only in this phase; it owns neither DDL nor a platform-created key.
+  const isDorisTarget = computed(() => {
+    const key = (props.writerTemplateKey ?? table.value.targetWriterTemplateKey ?? '')
+      .trim()
+      .toUpperCase();
+    const type = (props.targetType ?? table.value.targetType ?? '').trim().toUpperCase();
+    return key === 'WD' || type === 'DORIS';
+  });
   const partitionBindings = computed(() => table.value.targetOptions.hdfs.partitionBindings || []);
 
   // Why: the target contract rejects more than one BIZ_DATE partition.
