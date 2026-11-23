@@ -16,7 +16,6 @@ import com.wgzhao.addax.admin.repository.EtlTargetRepo;
 import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
-import com.wgzhao.addax.admin.service.RiskLogService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.source.SourceAdapter;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
@@ -64,7 +63,6 @@ public class RdbmsTargetAdapter
     private final SystemConfigService configService;
     private final ObjectMapper objectMapper;
     private final EtlJourService jourService;
-    private final RiskLogService riskLogService;
     private final RdbmsWriterPlugins rdbmsWriterPlugins;
     private final SourceAdapterRegistry sourceAdapterRegistry;
 
@@ -212,13 +210,13 @@ public class RdbmsTargetAdapter
         {
             log.warn("RDBMS target dialect {} is not supported for table {} ({}.{}), skip create/update",
                 dialect, etlTable.getId(), etlTable.getTargetDb(), etlTable.getTargetTable());
-            recordRisk(etlTable, "不支持的目标方言 " + dialect + "，Phase 1 仅支持 "
+            warnTarget(etlTable, "不支持的目标方言 " + dialect + "，Phase 1 仅支持 "
                 + rdbmsWriterPlugins.supportedDialectsText() + "，已跳过目标表结构同步");
             return false;
         }
         if (requiresExplicitDatabase(dialect) && (etlTable.getTargetDb() == null || etlTable.getTargetDb().isBlank()))
         {
-            recordRisk(etlTable, "目标方言 " + dialect + " 需要明确的目标库/模式名，当前为空，已跳过目标表结构同步");
+            warnTarget(etlTable, "目标方言 " + dialect + " 需要明确的目标库/模式名，当前为空，已跳过目标表结构同步");
             return false;
         }
         String tableRef = RdbmsDdlUtil.tableRef(dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
@@ -257,7 +255,7 @@ public class RdbmsTargetAdapter
         {
             // The physical column exists but the source only has a deleted placeholder for it, so the
             // snapshot date cannot be fed without colliding on the column name.
-            recordRisk(etlTable, "目标表已存在同名的日期列 " + bizDateColumn
+            warnTarget(etlTable, "目标表已存在同名的日期列 " + bizDateColumn
                 + "，但源端该列已被标记删除，快照业务日期无法自动写入，请人工处理");
         }
         List<String> primaryKeys = createPrimaryKey
@@ -283,7 +281,7 @@ public class RdbmsTargetAdapter
             catch (SQLException e)
             {
                 metadataOk = false;
-                recordRisk(etlTable, "无法读取目标表元数据（" + e.getMessage() + "），跳过目标表结构比对");
+                warnTarget(etlTable, "无法读取目标表元数据（" + e.getMessage() + "），跳过目标表结构比对");
             }
             try (Statement stmt = c.createStatement())
             {
@@ -313,7 +311,7 @@ public class RdbmsTargetAdapter
                     {
                         // The column can be added but not folded into an existing primary key, so a
                         // same-day re-run may duplicate rows until a human widens the key.
-                        recordRisk(etlTable, "目标表已存在，快照业务日期列 " + bizDateColumn
+                        warnTarget(etlTable, "目标表已存在，快照业务日期列 " + bizDateColumn
                             + " 已补加但不会加入已有主键；同一天重复执行可能产生重复数据，请人工确认或改用 preSql 清理当日数据");
                     }
                 }
@@ -329,7 +327,7 @@ public class RdbmsTargetAdapter
             catch (SQLException e)
             {
                 // A metadata/DDL failure must not fail the whole refresh, but it must be visible.
-                recordRisk(etlTable, "目标表结构比对失败（" + e.getMessage() + "），跳过本次比对");
+                warnTarget(etlTable, "目标表结构比对失败（" + e.getMessage() + "），跳过本次比对");
             }
             return true;
         }
@@ -555,7 +553,7 @@ public class RdbmsTargetAdapter
                 }
                 if (pk.contains(key))
                 {
-                    recordRisk(etlTable, "目标表主键列 " + name + " 需要变更类型，已跳过以避免破坏主键约束，请人工处理");
+                    warnTarget(etlTable, "目标表主键列 " + name + " 需要变更类型，已跳过以避免破坏主键约束，请人工处理");
                     continue;
                 }
                 // Restate the old DEFAULT only when the type family is unchanged: a default that was
@@ -563,7 +561,7 @@ public class RdbmsTargetAdapter
                 String defaultValue = cur.defaultValue();
                 if (familyChanged && RdbmsDdlUtil.hasDefault(defaultValue))
                 {
-                    recordRisk(etlTable, "列 " + name + " 类型变更，原默认值已不再重述，请人工确认是否需要重新设置");
+                    warnTarget(etlTable, "列 " + name + " 类型变更，原默认值已不再重述，请人工确认是否需要重新设置");
                     defaultValue = null;
                 }
                 else if (dialect == DbType.MYSQL && RdbmsDdlUtil.hasDefault(defaultValue)
@@ -571,7 +569,7 @@ public class RdbmsTargetAdapter
                 {
                     // MySQL MODIFY COLUMN restates the whole column; an expression we cannot quote back
                     // (e.g. DEFAULT (uuid())) is dropped, so make that visible instead of silent.
-                    recordRisk(etlTable, "列 " + name + " 改写类型时无法重述默认值 " + defaultValue
+                    warnTarget(etlTable, "列 " + name + " 改写类型时无法重述默认值 " + defaultValue
                         + "，默认值已丢失，请人工确认是否需要重新设置");
                 }
                 ddl = RdbmsDdlUtil.modifyColumn(dialect, tableRef, name, typeExpr, c.getColComment(),
@@ -636,7 +634,7 @@ public class RdbmsTargetAdapter
         Set<String> pk = targetPrimaryKeys(conn, dialect, etlTable.getTargetDb(), etlTable.getTargetTable());
         if (pk.isEmpty())
         {
-            recordRisk(etlTable, "目标表 " + etlTable.getTargetDb() + "." + etlTable.getTargetTable()
+            warnTarget(etlTable, "目标表 " + etlTable.getTargetDb() + "." + etlTable.getTargetTable()
                 + " 未定义主键/唯一键，writeMode=" + mode + " 会退化为普通插入，重复执行可能产生重复数据");
         }
     }
@@ -656,13 +654,13 @@ public class RdbmsTargetAdapter
         String notAKeyColumn = "（该列是分区式属性，不参与主键）";
         if (createPrimaryKey && !primaryKeys.isEmpty())
         {
-            recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
+            warnTarget(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
                 + "，目标主键只按源端主键（" + String.join(", ", primaryKeys) + "）生成；"
                 + "不同日期会因主键相同而互相覆盖，跨天采集请关闭主键创建或改用 preSql 清理当日数据");
         }
         else
         {
-            recordRisk(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
+            warnTarget(etlTable, "已配置业务日期列 " + bizDateColumn + notAKeyColumn
                 + "，目标表没有可用唯一键，请确认任务模板用 preSql 按日清理（或自行建唯一键），"
                 + "否则同一天的重复执行会追加重复数据");
         }
@@ -831,7 +829,7 @@ public class RdbmsTargetAdapter
         {
             log.error("Failed to apply alter for {}.{}: {}", etlTable.getTargetDb(), etlTable.getTargetTable(), ddl, e);
             jourService.failJour(jour, e.getMessage());
-            recordRisk(etlTable, "Failed to apply alter " + ddl + " on " + etlTable.getTargetDb() + "."
+            warnTarget(etlTable, "Failed to apply alter " + ddl + " on " + etlTable.getTargetDb() + "."
                 + etlTable.getTargetTable() + ": " + e.getMessage());
         }
     }
@@ -938,21 +936,18 @@ public class RdbmsTargetAdapter
 
     private void failJour(EtlJour jour, VwEtlTableWithSource etlTable, String reason)
     {
+        // The failed journal row plus its failure fact is the durable record; the application log
+        // keeps the same message for operators reading logs directly.
         jourService.failJour(jour, reason);
-        recordRisk(etlTable, "Failed to create/update RDBMS target table " + etlTable.getTargetDb() + "."
-            + etlTable.getTargetTable() + ": " + reason);
+        log.warn("Failed to create/update RDBMS target table {}.{}: {}",
+            etlTable.getTargetDb(), etlTable.getTargetTable(), reason);
     }
 
-    private void recordRisk(VwEtlTableWithSource etlTable, String message)
+    private void warnTarget(VwEtlTableWithSource etlTable, String message)
     {
-        try
-        {
-            riskLogService.recordRisk("RdbmsTargetAdapter", "ERROR", message, etlTable.getId());
-        }
-        catch (Exception e)
-        {
-            log.warn("Failed to record risk log: {}", e.getMessage());
-        }
+        // Structural warnings have no table of their own; the failed DDLs also land in etl_jour and
+        // etl_failure, so the application log keeps the operator-facing breadcrumb.
+        log.warn("RDBMS target table {}: {}", etlTable.getId(), message);
     }
 
     private String activeName(EtlColumn column)

@@ -49,7 +49,6 @@ public class ColumnService
     private final ColumnMappingService columnMappingService;
     private final EtlJourService jourService;
     private final SourceAdapterRegistry sourceAdapterRegistry;
-    private final RiskLogService riskLogService;
     private final VwEtlTableWithSourceRepo viewRepo;
     private final SchemaChangeLogService schemaChangeLogService;
     private final AlertService alertService;
@@ -352,9 +351,8 @@ public class ColumnService
                     {
                         // A schema-on-read sample is not a schema: a rare field can be absent from
                         // this refresh without having been dropped. Keep the existing mapping.
-                        riskLogService.recordRisk("ColumnService", "WARN",
-                            "源字段 " + oc.getColumnName() + " 未出现在本次采样中，已保留原映射",
-                            etlTable.getId());
+                        log.warn("Source field {} of table {} is missing from this sample; existing mapping kept",
+                            oc.getColumnName(), etlTable.getId());
                         continue;
                     }
                     // 源表中不存在该列 -> 删除占位
