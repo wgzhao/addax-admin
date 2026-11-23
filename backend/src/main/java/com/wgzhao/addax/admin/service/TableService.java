@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.dto.BatchTableStatusDto;
+import com.wgzhao.addax.admin.dto.TableListCriteria;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
@@ -13,7 +14,6 @@ import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.VwEtlTableWithSourceRepo;
 import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
-import com.wgzhao.addax.admin.utils.QueryUtil;
 import jakarta.persistence.EntityManager;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.AllArgsConstructor;
@@ -22,7 +22,7 @@ import org.apache.commons.text.StringSubstitutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * 采集表信息服务类，负责采集表的增删改查及资源刷新等业务操作
@@ -59,6 +60,14 @@ public class TableService
     private final TargetContractService targetContractService;
     private final CollectionScopeService collectionScopeService;
     private final FailureRecorder failureRecorder;
+
+    /**
+     * Columns the collection-table list may sort by. Sorting straight from a request parameter let
+     * any entity property through, including ones the list never exposes.
+     */
+    private static final Set<String> SORTABLE_FIELDS = Set.of(
+        "id", "name", "sourceTable", "targetTable", "filter", "status", "duration",
+        "endTime", "startTime", "createdAt", "updatedAt");
 
     /**
      * Target databases this source most recently used on the given endpoint. Used by the batch
@@ -331,40 +340,46 @@ public class TableService
         Integer sourceId, String sortField, String sortOrder, String scope,
         Collection<Integer> allowedSourceIds)
     {
-        Pageable pageable = PageRequest.of(page, pageSize, QueryUtil.generateSort(sortField, sortOrder));
+        TableListCriteria criteria = new TableListCriteria(
+            page, pageSize, q, statuses == null ? List.of() : statuses, scope,
+            sourceId == null ? List.of() : List.of(sourceId),
+            List.of(), null, List.of(), List.of(), null, null,
+            List.of(), List.of(), null,
+            null, null, null, null, null, null,
+            sortField, sortOrder);
+        return findTables(criteria, allowedSourceIds);
+    }
+
+    /**
+     * Filtered list of collection tables. Every dimension is optional; unset values are ignored, so
+     * conditions compose instead of overriding each other.
+     */
+    public Page<VwEtlTableWithSource> findTables(TableListCriteria criteria, Collection<Integer> allowedSourceIds)
+    {
+        Pageable pageable = PageRequest.of(criteria.page(), criteria.pageSize(),
+            generateTableSort(criteria.sortField(), criteria.sortOrder()));
         if (allowedSourceIds != null && allowedSourceIds.isEmpty()) {
             return Page.empty(pageable);
         }
-        String normalizedScope = scope == null ? "CURRENT" : scope.toUpperCase();
-        Specification<VwEtlTableWithSource> spec = (root, query, cb) -> {
-            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
-            if (allowedSourceIds != null) {
-                predicates.add(root.get("sid").in(allowedSourceIds));
-            }
-            if ("CURRENT".equals(normalizedScope)) {
-                predicates.add(cb.isNull(root.get("retiredAt")));
-            }
-            else if ("DORMANT".equals(normalizedScope)) {
-                predicates.add(cb.isNull(root.get("retiredAt")));
-                predicates.add(cb.or(
-                    cb.isFalse(root.get("enabled")),
-                    cb.equal(root.get("status"), TableStatus.EXCLUDE_COLLECT)));
-            }
-            else if ("RETIRED".equals(normalizedScope)) {
-                predicates.add(cb.isNotNull(root.get("retiredAt")));
-            }
-            if (statuses != null && !statuses.isEmpty()) {
-                predicates.add(root.get("status").in(statuses));
-            }
-            if (sourceId != null) {
-                predicates.add(cb.equal(root.get("sid"), sourceId));
-            }
-            if (q != null && !q.isBlank()) {
-                predicates.add(cb.like(root.get("filterColumn"), "%" + q.trim().toUpperCase() + "%"));
-            }
-            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
-        };
-        return vwEtlTableWithSourceRepo.findAll(spec, pageable);
+        return vwEtlTableWithSourceRepo.findAll(
+            TableSpecifications.byCriteria(criteria, allowedSourceIds), pageable);
+    }
+
+    /**
+     * Sorts the list by an allowlisted column and always appends {@code id} as the tiebreaker, so a
+     * page does not silently repeat or skip rows when the chosen column has duplicates.
+     */
+    static Sort generateTableSort(String sortField, String sortOrder)
+    {
+        if (sortField == null || !SORTABLE_FIELDS.contains(sortField)) {
+            return Sort.by(Sort.Direction.DESC, "id");
+        }
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortOrder)
+            ? Sort.Direction.ASC : Sort.Direction.DESC;
+        if ("id".equals(sortField)) {
+            return Sort.by(direction, "id");
+        }
+        return Sort.by(direction, sortField).and(Sort.by(Sort.Direction.DESC, "id"));
     }
 
     /**

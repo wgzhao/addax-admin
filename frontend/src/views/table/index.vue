@@ -26,6 +26,17 @@
             </template>
             <v-list-item-title>{{ col.title }}</v-list-item-title>
           </v-list-item>
+          <v-divider class="my-1" />
+          <v-list-subheader>分组</v-list-subheader>
+          <v-list-item @click="toggleGroupBySource">
+            <template #prepend>
+              <v-icon size="18">
+                {{ groupBySource ? 'mdi-checkbox-marked' : 'mdi-checkbox-blank-outline' }}
+              </v-icon>
+            </template>
+            <v-list-item-title>按采集源分组</v-list-item-title>
+            <v-list-item-subtitle>按采集源排序，并用分隔线隔开不同源</v-list-item-subtitle>
+          </v-list-item>
         </v-list>
       </v-menu>
       <v-btn
@@ -68,11 +79,11 @@
       <v-card-text class="ds-card__content">
         <div class="ds-filters">
           <v-text-field
-            v-model="search"
+            v-model="filters.q"
             class="ds-filters__keyword"
             density="compact"
             label="关键字"
-            placeholder="表名 / 编码 / 分区字段"
+            placeholder="源表 / 目标表 / 目标端 / 注释"
             prepend-inner-icon="mdi-magnify"
             single-line
             variant="outlined"
@@ -88,7 +99,7 @@
                 v-bind="menuProps"
                 :class="[
                   'ds-filters__status',
-                  { 'ds-filters__status--active': runStatuses.length },
+                  { 'ds-filters__status--active': filters.statuses.length },
                 ]"
                 variant="outlined"
                 height="40"
@@ -103,14 +114,14 @@
               <v-list-item
                 v-for="option in TABLE_STATUS_OPTIONS"
                 :key="option.value"
-                :active="runStatuses.includes(option.value)"
+                :active="filters.statuses.includes(option.value)"
                 role="menuitemcheckbox"
-                :aria-checked="runStatuses.includes(option.value)"
+                :aria-checked="filters.statuses.includes(option.value)"
                 @click="toggleStatus(option.value)"
               >
                 <template #prepend>
                   <v-checkbox-btn
-                    :model-value="runStatuses.includes(option.value)"
+                    :model-value="filters.statuses.includes(option.value)"
                     density="compact"
                     tabindex="-1"
                     aria-hidden="true"
@@ -118,9 +129,9 @@
                 </template>
                 <v-list-item-title>{{ option.label }}</v-list-item-title>
               </v-list-item>
-              <template v-if="runStatuses.length">
+              <template v-if="filters.statuses.length">
                 <v-divider class="my-1" />
-                <v-list-item @click="runStatuses = []">
+                <v-list-item @click="filters.statuses = []">
                   <template #prepend>
                     <v-icon size="18">mdi-filter-remove-outline</v-icon>
                   </template>
@@ -130,7 +141,7 @@
             </v-list>
           </v-menu>
           <v-select
-            v-model="sourceId"
+            v-model="sourceSingle"
             class="ds-filters__source"
             :items="sourceOptions"
             item-title="label"
@@ -144,7 +155,7 @@
             label="采集源"
           />
           <v-select
-            v-model="scope"
+            v-model="filters.scope"
             class="ds-filters__scope"
             :items="SCOPE_OPTIONS"
             item-title="label"
@@ -154,19 +165,50 @@
             single-line
             hide-details
             label="管理范围"
-            @update:model-value="searchTable"
           />
+          <v-menu v-model="filterPanelOpen" :close-on-content-click="false" offset-y>
+            <template #activator="{ props: menuProps }">
+              <v-btn
+                v-bind="menuProps"
+                :class="[
+                  'ds-filters__status',
+                  { 'ds-filters__status--active': activeCount },
+                ]"
+                variant="outlined"
+                height="40"
+                title="按更多条件筛选"
+              >
+                <v-icon size="18" class="mr-2">mdi-filter-cog-outline</v-icon>
+                <span class="ds-filters__status-label">筛选</span>
+                <v-chip v-if="activeCount" size="x-small" color="primary" class="ml-2">
+                  {{ activeCount }}
+                </v-chip>
+              </v-btn>
+            </template>
+            <TableFilterPanel
+              :sources="sourceOptions"
+              :targets="targetOptions"
+              @close="filterPanelOpen = false"
+            />
+          </v-menu>
           <div class="filter-actions">
             <v-btn color="primary" variant="flat" @click="searchTable">查询</v-btn>
             <v-btn variant="text" @click="resetFilters">重置</v-btn>
           </div>
         </div>
 
+        <TableFilterChips
+          :sources="sourceOptions"
+          :targets="targetOptions"
+          :total="totalItems"
+          @cleared="searchTable"
+        />
+
         <div
           v-if="
             (authStore.canWrite || authStore.hasOperateSources) &&
             selected.length > 0 &&
-            scope !== 'RETIRED'
+            filters.scope !== 'RETIRED'
           "
           class="ds-bulk-bar"
         >
@@ -215,23 +257,33 @@
       item-value="id"
       :loading="loading"
       :selectable="authStore.canWrite || authStore.hasOperateSources"
-      :item-class="getRowClass"
+      :row-props="rowProps"
       scrollable
       sticky-first-column
-      :empty-title="scope === 'RETIRED' ? '暂无已退役采集表' : '暂无采集表'"
+      :empty-title="
+        activeCount
+          ? '没有匹配的采集表'
+          : filters.scope === 'RETIRED'
+            ? '暂无已退役采集表'
+            : '暂无采集表'
+      "
       :empty-description="
-        scope === 'RETIRED'
-          ? '退役采集表会保留在当前历史入口中，统计、流水和日志不会随退役消失。'
-          : scope === 'DORMANT'
-            ? '没有因表停采或采集源停用而暂停的采集定义。'
-            : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
+        activeCount
+          ? '当前筛选条件下没有匹配结果，可以放宽条件或清除筛选。'
+          : filters.scope === 'RETIRED'
+            ? '退役采集表会保留在当前历史入口中，统计、流水和日志不会随退役消失。'
+            : filters.scope === 'DORMANT'
+              ? '没有因表停采或采集源停用而暂停的采集定义。'
+              : '当前还没有配置任何采集表。点击下方按钮新增采集表后，即可继续批量采集、调度与结构维护。'
       "
       :empty-primary="
-        authStore.canWrite || authStore.hasOperateSources
-          ? { label: '新增采集表', icon: 'mdi-plus' }
-          : null
+        activeCount
+          ? { label: '清除筛选', icon: 'mdi-filter-remove-outline' }
+          : authStore.canWrite || authStore.hasOperateSources
+            ? { label: '新增采集表', icon: 'mdi-plus' }
+            : null
       "
-      @empty-primary="() => router.push('/table/batch-add')"
+      @empty-primary="onEmptyPrimary"
       @update:options="loadItems"
     >
       <template #header.status="{ column, getSortIcon }">
@@ -246,7 +298,11 @@
       </template>
       <template #item.sourceTable="{ item }">
         <div class="ds-cell-stack">
-          <span class="ds-cell-meta">{{ item.name }}</span>
+          <span
+            class="ds-cell-meta"
+            :class="{ 'ds-cell-meta--group': groupStartIds.has(item.id) }"
+            >{{ item.name }}</span
+          >
           <span
             class="ds-cell-primary ds-ellipsis"
             :title="`${item.sourceDb || ''}.${item.sourceTable || ''}`"
@@ -311,15 +367,31 @@
       </template>
 
       <template #item.targetTable="{ item }">
-        <div class="d-flex align-center py-1">
-          <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
-          <span
-            class="ds-cell-primary ds-ellipsis"
-            :title="`${item.targetDb || ''}.${item.targetTable || ''}`"
-          >
-            <span class="ds-cell-support">{{ item.targetDb || '' }}.</span
-            >{{ item.targetTable || '' }}
+        <div class="ds-cell-stack">
+          <!-- The target endpoint used to be visible only on the detail page; show it here so a
+               list row answers "where does this land" without a click. -->
+          <span class="ds-cell-meta ds-target-line">
+            <v-chip
+              size="x-small"
+              :color="targetFamilyColor(item.targetType)"
+              variant="tonal"
+            >
+              {{ targetFamilyLabel(item.targetType) }}
+            </v-chip>
+            <span class="ds-ellipsis" :title="item.targetName || '未指定目标端'">
+              {{ item.targetName || '未指定目标端' }}
+            </span>
           </span>
+          <div class="d-flex align-center py-1">
+            <v-icon size="14" color="disabled" class="mr-2">mdi-arrow-right</v-icon>
+            <span
+              class="ds-cell-primary ds-ellipsis"
+              :title="`${item.targetDb || ''}.${item.targetTable || ''}`"
+            >
+              <span class="ds-cell-support">{{ item.targetDb || '' }}.</span
+              >{{ item.targetTable || '' }}
+            </span>
+          </div>
         </div>
       </template>
 
@@ -477,6 +549,14 @@
   import FailureDrawer from '@/components/failures/FailureDrawer.vue';
   import SchemaUpdateAllDialog from '@/components/table/SchemaUpdateAllDialog.vue';
   import StatusChip from '@/components/common/StatusChip.vue';
+  import TableFilterChips from '@/components/table/TableFilterChips.vue';
+  import TableFilterPanel from '@/components/table/TableFilterPanel.vue';
+  import {
+    buildFilterChips,
+    targetFamilyColor,
+    targetFamilyLabel,
+  } from '@/components/table/filter-fields';
+  import { filtersToQuery, queryToFilters, useTableFilters } from '@/composables/useTableFilters';
   import { debounce } from '@/utils/debounce';
   import { createSort } from '@/utils/';
   import { buildCsv, downloadCsv } from '@/utils/csv';
@@ -484,6 +564,7 @@
   import { statusMeta } from '@/utils/chart-colors';
   import tableService from '@/service/table-service';
   import taskService from '@/service/task-service';
+  import targetService from '@/service/target-service';
   import sourceService from '@/service/source-service';
   import { notify } from '@/stores/notifier';
   import taskCenter from '@/stores/task-center';
@@ -498,8 +579,8 @@
   const authStore = useAuthStore();
 
   const table = ref([]);
-  const search = ref('');
   const selected = ref([]);
+  const { filters, reset: resetFilterState } = useTableFilters();
   const currPageSize = ref(15);
   const totalItems = ref(0);
   const loading = ref(true);
@@ -521,26 +602,43 @@
     Fillback,
   };
 
-  function getRowClass(item: any) {
-    return selected.value.includes(item.id) ? 'selected-row' : '';
+  // Vuetify 4 replaced `item-class` with `row-props`; the old prop was silently ignored.
+  function rowProps({ item }: { item: any }) {
+    const classes: string[] = [];
+    if (selected.value.includes(item.id)) classes.push('selected-row');
+    if (groupStartIds.value.has(item.id)) classes.push('source-group-start');
+    return classes.length ? { class: classes.join(' ') } : {};
   }
 
   function resetFilters() {
-    search.value = '';
-    runStatuses.value = [];
-    sourceId.value = null;
-    scope.value = 'CURRENT';
+    resetFilterState();
     searchTable();
+  }
+
+  function onEmptyPrimary() {
+    if (activeCount.value) {
+      resetFilters();
+      return;
+    }
+    router.push('/table/batch-add');
   }
 
   // Why: single letters carry the meaning, so muted greys must still meet a
   // readable contrast in both themes; hue alone no longer disambiguates rows
   const statusLabel = (status: string) => statusMeta(status).label;
 
-  const runStatuses = ref<string[]>([]);
-  const sourceId = ref<number | null>(null);
   const sourceOptions = ref<any[]>([]);
-  const scope = ref<'CURRENT' | 'DORMANT' | 'RETIRED' | 'ALL'>('CURRENT');
+  const targetOptions = ref<{ value: number; label: string }[]>([]);
+  const filterPanelOpen = ref(false);
+
+  // The toolbar keeps a single-select for the most common case; the panel offers multi-select.
+  const sourceSingle = computed({
+    get: () => filters.sourceIds[0] ?? null,
+    set: (value: number | null) => {
+      filters.sourceIds = value == null ? [] : [value];
+    },
+  });
+
   const SCOPE_OPTIONS = [
     { label: '当前定义', value: 'CURRENT' },
     { label: '暂停中', value: 'DORMANT' },
@@ -548,21 +646,29 @@
     { label: '全部', value: 'ALL' },
   ];
 
+  const activeChips = computed(() =>
+    buildFilterChips(filters, {
+      sourceNames: new Map(sourceOptions.value.map(item => [item.value, item.label])),
+      targetNames: new Map(targetOptions.value.map(item => [item.value, item.label])),
+    })
+  );
+  const activeCount = computed(() => activeChips.value.length);
+
   // Show the dictionary meaning, never the internal status code.
   const statusFilterLabel = computed(() => {
-    const labels = runStatuses.value.map(statusLabel);
+    const labels = filters.statuses.map(statusLabel);
     if (!labels.length) return '状态';
     if (labels.length <= 3) return labels.join('、');
     return `${labels.slice(0, 3).join('、')} +${labels.length - 3}`;
   });
   const statusFilterTitle = computed(() =>
-    runStatuses.value.length ? runStatuses.value.map(statusLabel).join('，') : '按状态筛选'
+    filters.statuses.length ? filters.statuses.map(statusLabel).join('，') : '按状态筛选'
   );
 
   function toggleStatus(code: string) {
-    runStatuses.value = runStatuses.value.includes(code)
-      ? runStatuses.value.filter(item => item !== code)
-      : [...runStatuses.value, code];
+    filters.statuses = filters.statuses.includes(code)
+      ? filters.statuses.filter(item => item !== code)
+      : [...filters.statuses, code];
   }
 
   // 优化后的 Headers 配置：精简列数，合并表达
@@ -631,36 +737,42 @@
     localStorage.setItem(COLUMNS_KEY, JSON.stringify(hiddenKeys.value));
   };
 
+  // Grouping, not per-source colour: there can be dozens of sources, but a single separator plus
+  // a source-ordered list distinguishes them without an unscalable palette.
+  const GROUP_KEY = 'ds.table.groupBySource';
+  const groupBySource = ref<boolean>(readStored<boolean>(GROUP_KEY, false));
+
+  const groupStartIds = computed(() => {
+    const ids = new Set<number>();
+    if (!groupBySource.value) return ids;
+    let previous: string | null = null;
+    for (const item of table.value as any[]) {
+      if (item.name !== previous) {
+        ids.add(item.id);
+        previous = item.name;
+      }
+    }
+    return ids;
+  });
+
+  const toggleGroupBySource = () => {
+    groupBySource.value = !groupBySource.value;
+    localStorage.setItem(GROUP_KEY, JSON.stringify(groupBySource.value));
+    searchTable();
+  };
+
   const currentPage = ref(1);
 
   const writeQuery = () => {
-    const query: Record<string, string> = {};
-    if (search.value) query.q = search.value;
-    if (runStatuses.value.length) query.status = runStatuses.value.join(',');
-    if (sourceId.value != null) query.source = String(sourceId.value);
-    if (scope.value !== 'CURRENT') query.scope = scope.value;
+    const query: Record<string, string> = { ...filtersToQuery(filters) };
     if (currentPage.value > 1) query.page = String(currentPage.value);
     if (currPageSize.value !== 15) query.size = String(currPageSize.value);
     if (route.query.action) query.action = String(route.query.action);
     router.replace({ path: route.path, query }).catch(() => {});
   };
 
-  const readQuery = () => {
-    const query = route.query;
-    search.value = typeof query.q === 'string' ? query.q : '';
-    runStatuses.value =
-      typeof query.status === 'string' && query.status ? query.status.split(',') : [];
-    sourceId.value = query.source ? Number(query.source) : null;
-    const requestedScope =
-      typeof query.scope === 'string'
-        ? query.scope
-        : typeof query.lifecycle === 'string'
-          ? query.lifecycle
-          : 'CURRENT';
-    scope.value =
-      requestedScope === 'DORMANT' || requestedScope === 'RETIRED' || requestedScope === 'ALL'
-        ? requestedScope
-        : 'CURRENT';
+  const readQuery = (query = route.query) => {
+    Object.assign(filters, queryToFilters(query));
     currentPage.value = Number(query.page) > 0 ? Number(query.page) : 1;
     currPageSize.value = Number(query.size) > 0 ? Number(query.size) : 15;
   };
@@ -673,6 +785,7 @@
     const rows = table.value.map(row => ({
       序号: row.id,
       源库表: `${row.sourceDb || ''}.${row.sourceTable || ''}`,
+      目标端: row.targetName || '未指定目标端',
       目标库表: `${row.targetDb || ''}.${row.targetTable || ''}`,
       过滤规则: row.filter || '',
       状态: statusLabel(row.status),
@@ -800,17 +913,18 @@
     if (sortParam.sortField != null) {
       currentSortParam.value = sortBy;
     }
+    // Grouping needs source-ordered rows. Choosing any other column implicitly turns it off,
+    // otherwise the separator lines would run through a list that is no longer source-ordered.
+    if (groupBySource.value && sortParam.sortField && sortParam.sortField !== 'name') {
+      groupBySource.value = false;
+      localStorage.setItem(GROUP_KEY, 'false');
+    }
+    const effectiveSort = groupBySource.value
+      ? { sortField: 'name', sortOrder: 'asc' }
+      : sortParam;
 
     tableService
-      .fetchTableList(
-        page - 1,
-        itemsPerPage,
-        search.value,
-        runStatuses.value,
-        sourceId.value,
-        sortParam,
-        scope.value
-      )
+      .fetchTableList(page - 1, itemsPerPage, filters, effectiveSort)
       .then(res => {
         table.value = res.content;
         totalItems.value = res.totalElements;
@@ -830,6 +944,31 @@
   };
   const searchTable = debounce(_searchCore, 400);
 
+  // Panel and toolbar filters apply immediately (ADR-0017); the keyword still waits for Enter/查询.
+  watch(
+    () => JSON.stringify({ ...filters, q: '' }),
+    () => searchTable()
+  );
+
+  // Browser back/forward and external links re-hydrate the filters. Comparison happens on the
+  // canonical query form, so a reordered selection does not look like a different filter set.
+  watch(
+    () => route.query,
+    query => {
+      const incoming = queryToFilters(query);
+      if (
+        JSON.stringify(filtersToQuery(incoming)) === JSON.stringify(filtersToQuery(filters))
+      ) {
+        return;
+      }
+      Object.assign(filters, incoming);
+      currentPage.value = Number(query.page) > 0 ? Number(query.page) : 1;
+      currPageSize.value = Number(query.size) > 0 ? Number(query.size) : 15;
+      _searchCore();
+    },
+    { deep: true }
+  );
+
   async function loadSources() {
     try {
       const res = await sourceService.list();
@@ -840,6 +979,20 @@
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       notify('加载采集源失败: ' + msg, 'error');
+    }
+  }
+
+  async function loadTargets() {
+    try {
+      // enabledOnly=false: filtering by a disabled endpoint is a routine cleanup task.
+      const res = await targetService.list(false);
+      targetOptions.value = res.map((t: any) => ({
+        value: t.id,
+        label: `${t.name}${t.enabled === false ? '（已停用）' : ''}`,
+      }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      notify('加载目标端失败: ' + msg, 'error');
     }
   }
 
@@ -867,6 +1020,7 @@
 
   onMounted(() => {
     loadSources();
+    loadTargets();
     openCreateFromQuery();
   });
 
@@ -1062,6 +1216,23 @@
 
   .ds-nowrap {
     white-space: nowrap;
+  }
+
+  .ds-target-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  /* Source grouping: one neutral separator per source block, so no per-source palette. */
+  .source-group-start td {
+    border-top: 1px solid rgba(var(--v-theme-on-surface), 0.24);
+  }
+
+  .ds-cell-meta--group {
+    color: rgb(var(--v-theme-on-surface));
+    font-weight: 600;
   }
 
   /* Why: fixed layout keeps the short columns at their known sizes and lets the

@@ -185,13 +185,33 @@ select,
   color: var(--ds-text-2) !important;
 }
 
-.selected-row {
-  background-color: rgba(var(--v-theme-primary), 0.08) !important;
-  border-left: 3px solid rgb(var(--v-theme-primary)) !important;
+/* Why: `border-left` on a `tr` is not painted under `border-collapse` in Chrome/Safari, and an
+   8% tint of the primary colour is indistinguishable from a hover state on a light surface. Tint
+   the cells instead, and draw the accent bar with an inset shadow, which renders everywhere. */
+.selected-row > td {
+  background-color: rgba(var(--v-theme-primary), 0.14) !important;
 }
 
-.v-theme--dark .selected-row {
-  background-color: rgba(var(--v-theme-primary), 0.18) !important;
+.selected-row > td:first-child {
+  /* The first cell is sticky, so it must stay opaque or scrolled content shows through. */
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-primary)) 14%,
+    rgb(var(--v-theme-surface))
+  ) !important;
+  box-shadow: inset 3px 0 0 rgb(var(--v-theme-primary));
+}
+
+.v-theme--dark .selected-row > td {
+  background-color: rgba(var(--v-theme-primary), 0.22) !important;
+}
+
+.v-theme--dark .selected-row > td:first-child {
+  background-color: color-mix(
+    in srgb,
+    rgb(var(--v-theme-primary)) 22%,
+    rgb(var(--v-theme-surface))
+  ) !important;
 }
 
 .v-data-table .v-data-table th,

@@ -13,6 +13,10 @@ import type {
   TargetContractReport,
 } from '@/types/database';
 import type { Page } from '@/types';
+import type { TableFilters } from '@/components/table/filter-fields';
+
+const asList = (values: (string | number)[]): string | undefined =>
+  values.length ? values.join(',') : undefined;
 
 class TableService {
   prefix: string = '/tables';
@@ -21,20 +25,32 @@ class TableService {
   fetchTableList(
     page: number,
     pageSize: number,
-    q: string,
-    runStatuses?: string[],
-    sourceId?: number | null,
-    sortBy?: any,
-    scope: 'CURRENT' | 'DORMANT' | 'RETIRED' | 'ALL' = 'CURRENT'
+    filters: TableFilters,
+    sortBy?: any
   ): Promise<Page<VEtlWithSource>> {
     // `sortBy` 应该是一个包含 sortField 和 sortOrder 的对象
     const params: any = {
       page: page,
       pageSize: pageSize,
-      q: q,
-      statuses: runStatuses && runStatuses.length > 0 ? runStatuses.join(',') : undefined,
-      sourceId: sourceId,
-      scope,
+      q: filters.q.trim() || undefined,
+      statuses: asList(filters.statuses),
+      scope: filters.scope,
+      sourceIds: asList(filters.sourceIds),
+      dbTypes: asList(filters.dbTypes),
+      sourceEnabled: filters.sourceEnabled === 'ANY' ? undefined : filters.sourceEnabled,
+      targetIds: asList(filters.targetIds),
+      targetTypes: asList(filters.targetTypes),
+      targetDbContains: filters.targetDb.trim() || undefined,
+      targetEnabled: filters.targetEnabled === 'ANY' ? undefined : filters.targetEnabled,
+      writeModes: asList(filters.writeModes),
+      schemaModes: asList(filters.schemaModes),
+      tblCommentContains: filters.comment.trim() || undefined,
+      endTimeFrom: filters.endFrom || undefined,
+      endTimeTo: filters.endTo || undefined,
+      createdFrom: filters.createdFrom || undefined,
+      createdTo: filters.createdTo || undefined,
+      updatedFrom: filters.updatedFrom || undefined,
+      updatedTo: filters.updatedTo || undefined,
       sortField: sortBy?.sortField,
       sortOrder: sortBy?.sortOrder,
     };
