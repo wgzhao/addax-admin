@@ -53,6 +53,34 @@ public class DictService
         }
         """;
 
+    /**
+     * Doris writes through Stream Load, not JDBC. The template therefore carries the HTTP endpoints
+     * and flush knobs and must not inherit the RDBMS {@code writeMode} parameter. {@code preSql} and
+     * {@code postSql} inside doriswriter still run through JDBC on the FE endpoint.
+     */
+    private static final String DEFAULT_DORIS_WRITER_TEMPLATE = """
+        {
+            "name": "doriswriter",
+            "parameter": {
+                "username": "${username}",
+                "password": "${password}",
+                "column": [${column}],
+                "batchSize": ${batchSize},
+                "flushInterval": ${flushInterval},
+                "flushQueueLength": ${flushQueueLength},
+                "loadUrl": [${loadUrl}],
+                "connection": {
+                    "jdbcUrl": "${jdbcUrl}",
+                    "database": "${targetDb}",
+                    "table": [ "${targetTable}" ]
+                },
+                "loadProps": ${loadProps},
+                "preSql": [],
+                "postSql": []
+            }
+        }
+        """;
+
     private static final String DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE = """
         {
           "job": {
@@ -135,7 +163,8 @@ public class DictService
         "R2R", DEFAULT_RDBMS2RDBMS_JOB_TEMPLATE,
         "rR", DEFAULT_RDBMS_READER_TEMPLATE,
         "wH", DEFAULT_HDFS_WRITER_TEMPLATE,
-        "wR", DEFAULT_RDBMS_WRITER_TEMPLATE);
+        "wR", DEFAULT_RDBMS_WRITER_TEMPLATE,
+        "wD", DEFAULT_DORIS_WRITER_TEMPLATE);
 
     private static final java.util.regex.Pattern PLACEHOLDER =
         java.util.regex.Pattern.compile("\\$\\{([^{}]+)}");
@@ -293,6 +322,10 @@ public class DictService
         {
             return DEFAULT_RDBMS_WRITER_TEMPLATE;
         }
+        if ("wD".equalsIgnoreCase(key))
+        {
+            return DEFAULT_DORIS_WRITER_TEMPLATE;
+        }
         return res;
     }
 
@@ -308,6 +341,7 @@ public class DictService
         ensureItem(5001, "rR", DEFAULT_RDBMS_READER_TEMPLATE, "通用关系型数据库读取模板");
         ensureItem(5001, "wH", DEFAULT_HDFS_WRITER_TEMPLATE, "HDFS写入模板");
         ensureItem(5001, "wR", DEFAULT_RDBMS_WRITER_TEMPLATE, "通用关系型数据库写入模板");
+        ensureItem(5001, "wD", DEFAULT_DORIS_WRITER_TEMPLATE, "Doris Stream Load 写入模板");
     }
 
     private void ensureItem(int dictCode, String itemKey, String itemValue, String remark)

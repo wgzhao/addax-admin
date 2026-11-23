@@ -51,6 +51,14 @@ public class TargetAdapterRegistry
         return getByType(targetTypeResolver.resolveAdapterType(target));
     }
 
+    /**
+     * Resolve before a collection definition is saved, when only {@code target_id} exists.
+     */
+    public TargetAdapter resolveForTargetId(Long targetId)
+    {
+        return getByType(targetTypeResolver.resolveAdapterTypeByTargetId(targetId));
+    }
+
     public TargetAdapter getByType(String type)
     {
         TargetAdapter adapter = adaptersByType.get(normalize(type));

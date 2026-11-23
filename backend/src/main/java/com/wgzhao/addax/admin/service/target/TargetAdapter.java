@@ -31,6 +31,15 @@ public interface TargetAdapter
     }
 
     /**
+     * Whether the platform may create and evolve target tables. Doris returns false until its key
+     * model and distribution policy are explicit; EXTERNAL mode remains available.
+     */
+    default boolean supportsManagedSchema()
+    {
+        return true;
+    }
+
+    /**
      * Test the connection described by the target payload (saved or unsaved).
      */
     default void testConnection(EtlTarget target)

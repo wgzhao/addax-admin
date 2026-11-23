@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import static com.wgzhao.addax.admin.common.Constants.DORIS_TARGET_TYPES;
 import static com.wgzhao.addax.admin.common.Constants.HDFS_TARGET_TYPES;
 import static com.wgzhao.addax.admin.common.Constants.RDBMS_TARGET_TYPES;
 
@@ -167,9 +168,22 @@ public class EtlTargetService
      */
     public DialectInfo detectDialect(String url)
     {
+        return detectDialect(url, null);
+    }
+
+    /**
+     * Doris shares the MySQL JDBC URL, so it can only be identified by the explicitly selected
+     * target type. Everything else still follows the URL-driven dialect rule.
+     */
+    public DialectInfo detectDialect(String url, String targetType)
+    {
         if (url == null || url.isBlank())
         {
             throw new ApiException(400, "JDBC URL is required");
+        }
+        if (DORIS_TARGET_TYPES.contains(normalizeType(targetType)))
+        {
+            return new DialectInfo("RDBMS", "DORIS", "doriswriter", true, "");
         }
         DbType dialect = DbUtil.getDbType(url.trim());
         if (HDFS_TARGET_TYPES.contains(dialect.name()))
@@ -225,6 +239,7 @@ public class EtlTargetService
         }
         target.setTargetType(normalizeType(target.getTargetType()));
         target.setWriterTemplateKey(inferWriterKey(target));
+        requireConsistentDorisKey(target);
         if (target.getEnabled() == null) {
             target.setEnabled(true);
         }
@@ -269,6 +284,10 @@ public class EtlTargetService
             return key.trim();
         }
         String type = normalizeType(target.getTargetType());
+        if (DORIS_TARGET_TYPES.contains(type))
+        {
+            return "wD";
+        }
         if (HDFS_TARGET_TYPES.contains(type))
         {
             return "wH";
@@ -278,6 +297,20 @@ public class EtlTargetService
             return "wR";
         }
         return key;
+    }
+
+    /**
+     * Doris and its writer template are a pair. A {@code DORIS + wR} row would route to the RDBMS
+     * adapter and silently write through JDBC, so reject the mismatch instead of inferring a fix.
+     */
+    private void requireConsistentDorisKey(EtlTarget target)
+    {
+        boolean dorisType = DORIS_TARGET_TYPES.contains(normalizeType(target.getTargetType()));
+        boolean dorisKey = "WD".equals(normalizeType(target.getWriterTemplateKey()));
+        if (dorisType != dorisKey)
+        {
+            throw new ApiException(400, "Doris 目标端必须使用 writer 模板键 wD，且 wD 只能用于 DORIS 类型");
+        }
     }
 
     private String normalizeType(String targetType)

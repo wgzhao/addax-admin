@@ -391,6 +391,7 @@ public final class RdbmsDdlUtil
                 return "integer";
             case "int8":
             case "serial8":
+            case "largeint": // Doris
                 return "bigint";
             case "int2":
                 return "smallint";
@@ -398,13 +399,17 @@ public final class RdbmsDdlUtil
                 return "boolean";
             case "numeric":
             case "number":
+            case "decimalv3": // Doris
                 return "decimal";
             case "float4":
                 return "real";
             case "float8":
                 return "double";
             case "datetime":
+            case "datetimev2": // Doris
                 return "timestamp";
+            case "datev2": // Doris
+                return "date";
             case "bytea":
             case "blob":
             case "longblob":

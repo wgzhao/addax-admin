@@ -11,6 +11,7 @@ import com.wgzhao.addax.admin.model.EtlColumn;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
+import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +35,7 @@ public class CollectionPlanCommitService
     private final ColumnMappingService mappingService;
     private final ExternalCollectionService externalCollectionService;
     private final CollectionScopeService collectionScopeService;
+    private final TargetAdapterRegistry targetAdapterRegistry;
 
     public List<CollectionPlanCommitResult> commit(List<CollectionPlanCommitItem> items)
     {
@@ -90,6 +92,11 @@ public class CollectionPlanCommitService
     private CollectionPlanCommitResult commitManaged(CollectionPlanCommitItem item)
     {
         EtlTable table = item.table();
+        if (!targetAdapterRegistry.resolveForTargetId(table.getTargetId()).supportsManagedSchema())
+        {
+            return CollectionPlanCommitResult.failed(null, table.getSourceTable(), table.getTargetTable(),
+                "该目标端当前仅支持外部表（EXTERNAL）；平台建表尚未开放");
+        }
         table.setSchemaManagementMode(SchemaManagementMode.MANAGED);
         table.setStatus(TableStatus.WAIT_SCHEMA);
         if (table.getDuration() == null)

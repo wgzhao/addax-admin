@@ -23,6 +23,9 @@ import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.service.source.SourceTableHints;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
+import com.wgzhao.addax.admin.service.target.JdbcTargetSupport;
+import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ColumnMeta;
+import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ConnectInfo;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import com.wgzhao.addax.admin.utils.RdbmsDdlUtil;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +70,7 @@ public class RdbmsTargetAdapter
     private final EtlJourService jourService;
     private final RdbmsWriterPlugins rdbmsWriterPlugins;
     private final SourceAdapterRegistry sourceAdapterRegistry;
+    private final JdbcTargetSupport jdbcTargetSupport;
 
     @Override
     public String getType()
@@ -368,33 +372,7 @@ public class RdbmsTargetAdapter
             : "";
         String sql = String.format("SELECT MAX(%s) FROM %s%s",
             RdbmsDdlUtil.quoteIdent(dialect, columnName), tableRef, where);
-        try (Connection c = DbUtil.getConnection(conn.url(), conn.username(), conn.password()))
-        {
-            if (c == null)
-            {
-                return null;
-            }
-            try (PreparedStatement stmt = c.prepareStatement(sql))
-            {
-                if (scopeByBusinessDate)
-                {
-                    stmt.setString(1, partValue);
-                }
-                try (ResultSet rs = stmt.executeQuery())
-                {
-                    if (rs.next())
-                    {
-                        return rs.getObject(1);
-                    }
-                }
-            }
-        }
-        catch (SQLException e)
-        {
-            log.warn("Failed to get max value for RDBMS target {}.{} on column {}", table.getTargetDb(),
-                table.getTargetTable(), columnName, e);
-        }
-        return null;
+        return jdbcTargetSupport.maxValue(conn, sql, scopeByBusinessDate ? partValue : null);
     }
 
     @Override
@@ -840,102 +818,26 @@ public class RdbmsTargetAdapter
 
     private boolean tableExists(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
-        // MySQL and SQL Server treat the "database" as the JDBC catalog; other dialects scope by schema.
-        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
-            ? db : null;
-        try (ResultSet rs = conn.getMetaData().getTables(
-            catalog,
-            metadataSchema(conn, dialect), table, new String[] {"TABLE"}))
-        {
-            return rs.next();
-        }
-    }
-
-    /**
-     * Metadata lookups must use the same namespace as the DDL: SQL Server always writes to dbo, and
-     * PostgreSQL resolves through the connection's current schema. A mismatch would either hide the
-     * table or mix in a same-named table in another schema that the DDL never touches.
-     */
-    private String metadataSchema(Connection conn, DbType dialect) throws SQLException
-    {
-        if (dialect == DbType.SQLSERVER)
-        {
-            return "dbo";
-        }
-        if (dialect == DbType.POSTGRESQL)
-        {
-            return conn.getSchema();
-        }
-        return null;
+        return jdbcTargetSupport.tableExists(conn, jdbcTargetSupport.catalog(dialect, db),
+            jdbcTargetSupport.metadataSchema(conn, dialect), table);
     }
 
     private Map<String, ColumnMeta> describeColumns(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
-        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
-            ? db : null;
-        Map<String, ColumnMeta> cols = new LinkedHashMap<>();
-        try (ResultSet rs = conn.getMetaData().getColumns(
-            catalog,
-            metadataSchema(conn, dialect), table, null))
-        {
-            while (rs.next())
-            {
-                String name = rs.getString("COLUMN_NAME");
-                if (name == null)
-                {
-                    continue;
-                }
-                cols.put(name.toLowerCase(Locale.ROOT), new ColumnMeta(
-                    name,
-                    rs.getString("TYPE_NAME"),
-                    rs.getInt("COLUMN_SIZE"),
-                    rs.getInt("DECIMAL_DIGITS"),
-                    !"NO".equalsIgnoreCase(rs.getString("IS_NULLABLE")),
-                    rs.getString("COLUMN_DEF"),
-                    "YES".equalsIgnoreCase(rs.getString("IS_AUTOINCREMENT"))));
-            }
-        }
-        return cols;
+        return jdbcTargetSupport.describeColumns(conn, jdbcTargetSupport.catalog(dialect, db),
+            jdbcTargetSupport.metadataSchema(conn, dialect), table);
     }
 
     private Set<String> targetUniqueKeys(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
-        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
-            ? db : null;
-        Set<String> keys = new HashSet<>();
-        try (ResultSet rs = conn.getMetaData().getIndexInfo(
-            catalog, metadataSchema(conn, dialect), table, false, false))
-        {
-            while (rs.next())
-            {
-                String name = rs.getString("COLUMN_NAME");
-                if (name != null && !rs.getBoolean("NON_UNIQUE"))
-                {
-                    keys.add(name.toLowerCase(Locale.ROOT));
-                }
-            }
-        }
-        return keys;
+        return jdbcTargetSupport.targetUniqueKeys(conn, jdbcTargetSupport.catalog(dialect, db),
+            jdbcTargetSupport.metadataSchema(conn, dialect), table);
     }
 
     private Set<String> targetPrimaryKeys(Connection conn, DbType dialect, String db, String table) throws SQLException
     {
-        String catalog = (dialect == DbType.MYSQL || dialect == DbType.SQLSERVER) && db != null && !db.isBlank()
-            ? db : null;
-        Set<String> pk = new HashSet<>();
-        try (ResultSet rs = conn.getMetaData().getPrimaryKeys(
-            catalog, metadataSchema(conn, dialect), table))
-        {
-            while (rs.next())
-            {
-                String name = rs.getString("COLUMN_NAME");
-                if (name != null)
-                {
-                    pk.add(name.toLowerCase(Locale.ROOT));
-                }
-            }
-        }
-        return pk;
+        return jdbcTargetSupport.targetPrimaryKeys(conn, jdbcTargetSupport.catalog(dialect, db),
+            jdbcTargetSupport.metadataSchema(conn, dialect), table);
     }
 
     private void failJour(EtlJour jour, VwEtlTableWithSource etlTable, String reason)
@@ -1008,39 +910,7 @@ public class RdbmsTargetAdapter
 
     private ConnectInfo resolveTargetConnection(VwEtlTableWithSource table)
     {
-        if (table == null || table.getTargetId() == null)
-        {
-            return null;
-        }
-        EtlTarget target = etlTargetRepo.findById(table.getTargetId()).orElse(null);
-        if (target == null || target.getConnectConfig() == null || target.getConnectConfig().isBlank())
-        {
-            return null;
-        }
-        try
-        {
-            JsonNode node = objectMapper.readTree(target.getConnectConfig());
-            String url = text(node, "url");
-            if (url == null || url.isBlank())
-            {
-                return null;
-            }
-            return new ConnectInfo(url, text(node, "username"), text(node, "password"));
-        }
-        catch (Exception e)
-        {
-            log.warn("Invalid connect_config for target {}: {}", table.getTargetId(), e.getMessage());
-            return null;
-        }
-    }
-
-    private record ConnectInfo(String url, String username, String password)
-    {
-    }
-
-    private record ColumnMeta(String name, String typeName, int size, int scale, boolean nullable,
-        String defaultValue, boolean autoIncrement)
-    {
+        return jdbcTargetSupport.resolveTargetConnection(table);
     }
 
     private record SourceMeta(Map<String, String> columnTypes, Set<String> notNull, List<String> primaryKeys)
@@ -1050,33 +920,11 @@ public class RdbmsTargetAdapter
 
     private String getRdbmsWriteColumns(VwEtlTableWithSource table, DbType dialect)
     {
-        List<ColumnMappingService.ResolvedColumnMapping> mappings = columnMappingService.resolve(table.getId());
         List<String> columns = new ArrayList<>();
-        for (ColumnMappingService.ResolvedColumnMapping mapping : mappings) {
-            String columnName = mapping.targetColumnName();
-            if (columnName == null || columnName.isBlank()) {
-                continue;
-            }
+        for (String columnName : jdbcTargetSupport.writeColumns(table))
+        {
             // ${column} is expanded inside a JSON array, so every entry must be a complete JSON string.
             columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, columnName)) + '"');
-        }
-        // Snapshot mode: the reader injects the business date literal last, so the writer must carry the
-        // column in the same position for the positional mapping to line up. When the source already has
-        // a column with that name the reader does not inject one, so do not repeat it here either.
-        String bizDateColumn = normalizeColumn(table.getRdbmsBusinessDateColumn());
-        if (bizDateColumn != null && mappings.stream()
-            .noneMatch(mapping -> bizDateColumn.equalsIgnoreCase(mapping.targetColumnName())))
-        {
-            // The reader must inject one literal column for this writer column. An engine without
-            // constant columns (Elasticsearch) would make the positional lists disagree and write
-            // every following value into the wrong field.
-            SourceAdapter sourceAdapter = sourceAdapterRegistry.resolve(table);
-            if (!sourceAdapter.capabilities().constantColumns())
-            {
-                throw new ApiException(400, "采集源 " + sourceAdapter.getType()
-                    + " 不支持注入常量列，快照业务日期列 " + bizDateColumn + " 必须来自源字段映射");
-            }
-            columns.add('"' + RdbmsDdlUtil.jsonEscape(RdbmsDdlUtil.quoteIdent(dialect, bizDateColumn)) + '"');
         }
         return String.join(", ", columns);
     }
