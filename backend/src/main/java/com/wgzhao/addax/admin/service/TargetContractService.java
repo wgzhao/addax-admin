@@ -41,7 +41,6 @@ public class TargetContractService
 {
     private final TargetAdapterRegistry targetAdapterRegistry;
     private final ColumnMappingService columnMappingService;
-    private final RiskLogService riskLogService;
 
     public TargetContractReport check(VwEtlTableWithSource table)
     {
@@ -178,14 +177,8 @@ public class TargetContractService
         String status = findings.stream().anyMatch(f -> ERROR.equals(f.severity()))
             ? ERROR
             : findings.isEmpty() ? READY : WARNING;
-        if (table.getId() != null)
-        {
-            for (TargetContractReport.Finding finding : findings)
-            {
-                riskLogService.recordRisk("TargetContractService", finding.severity(),
-                    "目标契约检查: " + finding.message(), table.getId());
-            }
-        }
+        // Findings travel with the report to the UI; failed contracts are also recorded as failure
+        // facts by the callers that block a run, so nothing is persisted twice here.
         return new TargetContractReport(status, LocalDateTime.now(), fingerprint, target, findings);
     }
 

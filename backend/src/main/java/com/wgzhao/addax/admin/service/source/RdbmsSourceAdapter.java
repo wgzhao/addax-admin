@@ -12,7 +12,6 @@ import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.DictService;
-import com.wgzhao.addax.admin.service.RiskLogService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.collection.IdentifierPolicy;
 import com.wgzhao.addax.admin.utils.DbUtil;
@@ -46,7 +45,6 @@ public class RdbmsSourceAdapter implements SourceAdapter
 {
     private final SystemConfigService configService;
     private final DictService dictService;
-    private final RiskLogService riskLogService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -407,9 +405,8 @@ public class RdbmsSourceAdapter implements SourceAdapter
             {
                 if (context.lastEtlDate() != null)
                 {
-                    riskLogService.recordRisk("JobContentService", "WARN",
-                        "无法获取目标表(" + table.getTargetDb() + "." + table.getTargetTable()
-                            + ")最大值，使用默认过滤 1=1", table.getId());
+                    log.warn("Cannot read target max value for {}.{}; falling back to filter 1=1 (table {})",
+                        table.getTargetDb(), table.getTargetTable(), table.getId());
                 }
                 where = "1=1";
             }

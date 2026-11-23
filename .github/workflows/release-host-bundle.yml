@@ -2,7 +2,8 @@ name: Release Host Bundle
 
 # Why: the tar.gz is the artifact for hosts without a build toolchain, and it must be built
 # from the same tag as the Docker image. The release event is a fallback for the case where a
-# GitHub Release is created by hand after the tag push; uploads are idempotent (--clobber).
+# GitHub Release is created by hand after the tag push, so it only builds when the tag run left
+# no bundle on the release.
 on:
   push:
     tags:
@@ -18,7 +19,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    # Why: the tag push already builds and uploads the bundle; publishing the release afterwards
+    # must not rebuild it. Only a release without a bundle (for example one created by hand for an
+    # old tag) needs the fallback build.
+    runs-on: ubuntu-latest
+    outputs:
+      needed: ${{ steps.assets.outputs.needed }}
+    steps:
+      - name: Check whether the bundle already exists
+        id: assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          needed=true
+          if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+            asset="addax-admin-${TAG_NAME#v}-host.tar.gz"
+            existing=$(gh release view "$TAG_NAME" --json assets --jq '.assets[].name' || true)
+            if printf '%s\n' "$existing" | grep -qx "$asset"; then
+              needed=false
+            fi
+          fi
+          echo "Build needed: ${needed}"
+          echo "needed=${needed}" >> "$GITHUB_OUTPUT"
+
   build-host-bundle:
+    needs: check
+    if: needs.check.outputs.needed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

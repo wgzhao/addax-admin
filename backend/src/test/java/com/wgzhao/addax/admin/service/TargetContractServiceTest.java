@@ -24,8 +24,7 @@ class TargetContractServiceTest
         TargetAdapterRegistry registry = mock(TargetAdapterRegistry.class);
         TargetAdapter adapter = mock(TargetAdapter.class);
         ColumnMappingService mappings = mock(ColumnMappingService.class);
-        RiskLogService risks = mock(RiskLogService.class);
-        TargetContractService service = new TargetContractService(registry, mappings, risks);
+        TargetContractService service = new TargetContractService(registry, mappings);
 
         VwEtlTableWithSource table = new VwEtlTableWithSource();
         table.setId(54L);

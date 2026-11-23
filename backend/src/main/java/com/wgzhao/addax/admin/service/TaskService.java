@@ -62,7 +62,6 @@ public class TaskService
     private final ExecutionManager executionManager;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
-    private final RiskLogService riskLogService;
     private final RedisLockService redisLockService;
     private final MasterElectionService electionService;
     private final EtlJobQueueService jobQueueService;
@@ -412,8 +411,7 @@ public class TaskService
             // is judged by its own business date column rather than by a leftover partition attribute.
             if (!targetAdapterRegistry.resolve(tableView).hasDateDimension(tableView)) {
                 String reason = "该表没有可用的日期维度（HDFS 分区字段或 RDBMS 快照业务日期列），不支持补数";
-                riskLogService.recordRisk("Fillback", "WARN",
-                    tableLabel + ": " + reason, tid);
+                log.warn("Fillback rejected for {}: {}", tableLabel, reason);
                 details.add(new FillbackResultDto.Detail(tid, tableLabel, List.of(), 0, true, reason));
                 continue;
             }

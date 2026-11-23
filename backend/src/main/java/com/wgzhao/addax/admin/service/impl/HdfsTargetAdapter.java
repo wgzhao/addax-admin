@@ -20,7 +20,6 @@ import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
-import com.wgzhao.addax.admin.service.RiskLogService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.target.HdfsConnectionManager;
 import com.wgzhao.addax.admin.service.target.HdfsTargetSettings;
@@ -63,7 +62,6 @@ public class HdfsTargetAdapter
     private final ColumnMappingService columnMappingService;
     private final EtlJourService jourService;
     private final SystemConfigService configService;
-    private final RiskLogService riskLogService;
     private final StringRedisTemplate redisTemplate;
     private final EtlTargetRepo etlTargetRepo;
     private final HdfsConnectionManager connectionManager;
@@ -642,14 +640,6 @@ public class HdfsTargetAdapter
                 catch (SQLException ex) {
                     log.error("Failed to apply alter for {}.{}: {}", etlTable.getTargetDb(), etlTable.getTargetTable(), ddl, ex);
                     jourService.failJour(j, ex.getMessage());
-                    // 记录到风险日志表，提示用户后续人工处理
-                    try {
-                        String msg = String.format("Failed to apply alter %s on %s.%s: %s", ddl, etlTable.getTargetDb(), etlTable.getTargetTable(), ex.getMessage());
-                        riskLogService.recordRisk("TargetServiceWithHiveImpl", "ERROR", msg, etlTable.getId());
-                    }
-                    catch (Exception logEx) {
-                        log.warn("Failed to record risk log for alter failure: {}", logEx.getMessage());
-                    }
                     // continue trying next statements; optionally could break depending on config
                 }
             }
