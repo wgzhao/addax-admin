@@ -41,6 +41,11 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # index.html 是唯一不带内容哈希的入口；若被长缓存，浏览器会继续加载旧 bundle。
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate" always;
+    }
+
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         root /var/www/html/addax-admin-ui;
         expires 1y;
