@@ -3,6 +3,8 @@ package com.wgzhao.addax.admin.redis;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,7 @@ public class MasterElectionService
     private final String instanceId;
 
     private volatile boolean master = false;
+    private volatile boolean stopped = false;
     private final ScheduledExecutorService electionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "master-election");
         t.setDaemon(true);
@@ -73,15 +76,37 @@ public class MasterElectionService
         log.info("Master election started, instanceId={}", instanceId);
     }
 
+    /**
+     * ContextClosedEvent is published before Spring stops SmartLifecycle beans, so the shared Redis
+     * connection factory is still usable here. Releasing the lock from {@code @PreDestroy} is too
+     * late: the listener container has already stopped the factory, the release script fails, and
+     * the lock survives until its 30s TTL — delaying master re-election after every restart.
+     */
+    @EventListener(ContextClosedEvent.class)
+    public void onContextClosed()
+    {
+        shutdownElection();
+    }
+
     @PreDestroy
     public void stop()
     {
+        shutdownElection();
+    }
+
+    private synchronized void shutdownElection()
+    {
+        if (stopped) {
+            return;
+        }
+        stopped = true;
         if (electionFuture != null) {
             electionFuture.cancel(false);
         }
         electionScheduler.shutdownNow();
         // Release lock if we are master so a new master can be elected faster
         if (master) {
+            master = false;
             releaseMasterLock();
         }
     }

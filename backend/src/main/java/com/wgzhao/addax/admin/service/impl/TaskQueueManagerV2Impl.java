@@ -130,6 +130,8 @@ public class TaskQueueManagerV2Impl
     private static final int RENEW_FAILURE_TOLERANCE = 3;
     private static final int LEASE_SWEEP_INTERVAL_SECONDS = 10;
     private static final int HEARTBEAT_INTERVAL_SECONDS = 15;
+    // Bounded wait for interrupted workers to persist their terminal state during shutdown.
+    private static final int SHUTDOWN_WORKER_GRACE_SECONDS = 10;
     private static final int PENDING_JOB_PEEK_LIMIT = 200;
     // Redis channel for task assignment: master → worker
     private static final String TASK_ASSIGN_CHANNEL_PREFIX = "addax:task:assign:";
@@ -1583,6 +1585,9 @@ public class TaskQueueManagerV2Impl
                 log.info("Recovered {} expired leases, triggering dispatch", recovered);
                 triggerDispatchAsync();
             }
+            // Requeued/terminal rows no longer have an owner, so their executions cannot still be
+            // running. Close them here as well; a crash (no graceful shutdown) has no other hook.
+            executionService.failOrphanedRunningExecutions();
         }
         catch (Exception e) {
             log.warn("Lease recovery failed", e);
@@ -1596,6 +1601,19 @@ public class TaskQueueManagerV2Impl
         heartbeatService.removeHeartbeat();
         scheduler.shutdownNow();
         workerPool.shutdownNow();
+        // Interrupted workers must finish writing their terminal state before Spring closes the
+        // EntityManagerFactory. Otherwise the failure write is fenced, the execution row is left
+        // 'running' forever, and the queue row waits for the 120s lease sweep instead of the 30s
+        // backoff. The lease renewer keeps running while we wait so a slow worker is not fenced.
+        try {
+            if (!workerPool.awaitTermination(SHUTDOWN_WORKER_GRACE_SECONDS, TimeUnit.SECONDS)) {
+                log.warn("Worker pool did not stop within {}s; in-flight executions are left to lease recovery",
+                    SHUTDOWN_WORKER_GRACE_SECONDS);
+            }
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
         leaseScheduler.shutdownNow();
         log.info("Task queue manager stopped");
     }

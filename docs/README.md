@@ -24,6 +24,7 @@
 
 - [安全审计记录](security-audit.md)
 - [采集状态矩阵](testing/collection-state-matrix.md)
+- [连续可用性测试：采集进行中重启后端](testing/continuous-availability.md)
 
 ## 维护约定
 
