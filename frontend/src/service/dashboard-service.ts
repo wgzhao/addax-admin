@@ -11,6 +11,7 @@ import type {
   RecsBytesRow,
   SlowTableRow,
   SourceContributionRow,
+  SourceDurationRow,
   TableStatusDistRow,
   TakeSecsHistogram,
 } from '@/types/dashboard';
@@ -61,6 +62,11 @@ class DashboardService {
   // 近 N 天平均耗时最长的采集任务
   fetchSlowTopTables(params?: { days?: number; limit?: number }): Promise<SlowTableRow[]> {
     return Requests.get(`${this.prefix}/slow-top-tables`, params);
+  }
+
+  // 各采集源最近一次批次耗时（墙钟口径）与上一次对比
+  fetchSourceDurations(params?: { limit?: number }): Promise<SourceDurationRow[]> {
+    return Requests.get(`${this.prefix}/source-durations`, params);
   }
 
   // 近 N 天采集耗时分布直方图

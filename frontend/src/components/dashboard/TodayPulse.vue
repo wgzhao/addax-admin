@@ -87,7 +87,17 @@
               />
               <span v-if="nowPct !== null" class="pulse-now" :style="{ left: `${nowPct}%` }" />
             </div>
-            <div class="pulse-time" :title="row.timeTitle">{{ row.timeLabel }}</div>
+            <div class="pulse-time" :title="row.timeTitle">
+              <span class="pulse-time__range">{{ row.timeLabel }}</span>
+              <span
+                v-if="row.durationSecs !== null"
+                class="pulse-time__duration"
+                :class="{ 'pulse-time__duration--slow': isSlower(row) }"
+              >
+                {{ formatSeconds(row.durationSecs) }}
+                <v-icon v-if="isSlower(row)" size="11">mdi-arrow-up-bold</v-icon>
+              </span>
+            </div>
           </div>
           <div v-if="!visibleRows.length" class="pulse-empty pulse-empty--inline">
             没有未完成的采集源
@@ -100,13 +110,17 @@
 
 <script setup lang="ts">
   import { computed, ref } from 'vue';
-  import { useTodayPulse } from '@/composables/useTodayPulse';
+  import { useTodayPulse, type PulseRow } from '@/composables/useTodayPulse';
+  import { formatSeconds } from '@/utils/chart-colors';
 
   withDefaults(defineProps<{ compact?: boolean }>(), { compact: false });
   defineEmits<{ 'show-all': [] }>();
 
   const { loading, rows, counts, switchLabel, cutoverPct, ticks, nowPct } = useTodayPulse();
   const onlyUnfinished = ref(false);
+
+  // 40% matches the 数据洞察 time-change threshold, so a slowdown is flagged the same way everywhere
+  const isSlower = (row: PulseRow) => (row.durationDelta ?? 0) >= 40;
 
   const visibleRows = computed(() =>
     onlyUnfinished.value ? rows.value.filter(row => row.state !== 'done') : rows.value
@@ -382,10 +396,28 @@
   }
 
   .pulse-time {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
     font-size: 12px;
     color: var(--ds-text-2);
     text-align: right;
     font-variant-numeric: tabular-nums;
+  }
+
+  .pulse-time__duration {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    color: var(--ds-text-3);
+    white-space: nowrap;
+  }
+
+  .pulse-time__duration--slow {
+    color: rgb(var(--v-theme-error));
+    font-weight: 600;
   }
 
   .pulse-empty {

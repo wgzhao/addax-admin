@@ -74,6 +74,23 @@ export interface SourceContributionRow {
   gib: number;
 }
 
+export interface SourceDurationRow {
+  sid: number;
+  source_name: string;
+  total_tables: number;
+  running: boolean;
+  biz_date: string | null;
+  begin_at: string | null;
+  finish_at: string | null;
+  take_secs: number | null;
+  table_count: number | null;
+  in_progress: boolean;
+  prev_biz_date: string | null;
+  prev_take_secs: number | null;
+  delta_pct: number | null;
+  trend_secs: number[];
+}
+
 export interface SlowTableRow {
   tid: number;
   source_db: string;

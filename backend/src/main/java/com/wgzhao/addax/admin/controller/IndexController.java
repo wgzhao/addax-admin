@@ -52,6 +52,19 @@ public class IndexController
     }
 
     /**
+     * 各采集源最近一次批次耗时、上一次批次耗时与近几次批次的耗时趋势
+     *
+     * @param limit 返回的历史批次数量上限
+     * @return 采集源耗时列表
+     */
+    @GetMapping("/source-durations")
+    public ResponseEntity<List<Map<String, Object>>> sourceDurations(
+        @RequestParam(value = "limit", defaultValue = "7") int limit)
+    {
+        return ResponseEntity.ok(statService.statSourceLatestDurations(Math.max(1, Math.min(limit, 30))));
+    }
+
+    /**
      * 获取最近5天采集耗时对比
      *
      * @return 耗时数据列表

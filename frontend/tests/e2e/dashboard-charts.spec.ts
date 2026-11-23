@@ -73,6 +73,7 @@ const API_ENDPOINTS = [
   '/api/v1/dashboard/last-30d-source-contribution',
   '/api/v1/dashboard/slow-top-tables?days=30&limit=10',
   '/api/v1/dashboard/take-secs-histogram?days=30',
+  '/api/v1/dashboard/source-durations?limit=7',
 ];
 
 // 收集控制台错误，返回读取函数
