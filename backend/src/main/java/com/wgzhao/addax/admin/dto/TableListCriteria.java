@@ -24,6 +24,8 @@ public record TableListCriteria(
     Boolean targetEnabled,
     List<String> writeModes,
     List<String> schemaModes,
+    Integer durationFrom,
+    Integer durationTo,
     String tblCommentContains,
     LocalDate endTimeFrom,
     LocalDate endTimeTo,
