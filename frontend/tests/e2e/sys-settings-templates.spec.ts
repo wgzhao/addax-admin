@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { apiLogin } from './helpers/auth';
 
-test('系统配置补全表结构刷新超时与 R2R/wR 模板', async ({ page, request }) => {
+test('系统配置补全表结构刷新超时与 R2R/wR/wD 模板', async ({ page, request }) => {
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await apiLogin(request);
@@ -12,7 +12,7 @@ test('系统配置补全表结构刷新超时与 R2R/wR 模板', async ({ page, 
   // 运行参数补上了表结构刷新超时。
   await expect(page.locator('#cfg-schema-refresh-timeout')).toBeVisible();
 
-  // 作业模板编辑器包含五个 tab：RDBMS→HDFS 主模板、RDBMS→RDBMS 主模板、RDBMS 读取、HDFS 写入、RDBMS 写入。
+  // 作业模板编辑器包含六个 tab：RDBMS→HDFS 主模板、RDBMS→RDBMS 主模板、RDBMS 读取、HDFS 写入、RDBMS 写入、Doris 写入。
   await expect(page.getByRole('heading', { name: '作业模板' })).toBeVisible();
   for (const label of [
     'RDBMS→HDFS 主模板',
@@ -20,6 +20,7 @@ test('系统配置补全表结构刷新超时与 R2R/wR 模板', async ({ page, 
     'RDBMS 读取',
     'HDFS 写入',
     'RDBMS 写入',
+    'Doris 写入',
   ]) {
     await expect(page.locator('.editor-tab', { hasText: label })).toBeVisible();
   }
@@ -29,9 +30,13 @@ test('系统配置补全表结构刷新超时与 R2R/wR 模板', async ({ page, 
   await expect(page.locator('textarea.editor-input')).toHaveValue(/job/);
   await page.locator('.editor-tab', { hasText: 'RDBMS 写入' }).click();
   await expect(page.locator('textarea.editor-input')).toHaveValue(/name/);
+  // Doris 写入（wD）随 Doris 目标端上线，内容来自后端种子模板。
+  await page.locator('.editor-tab', { hasText: 'Doris 写入' }).click();
+  await expect(page.locator('textarea.editor-input')).toHaveValue(/doriswriter/);
+  await expect(page.getByText('6 / 6 已配置')).toBeVisible();
 
   await test.info().attach('sys-settings-templates-summary', {
-    body: 'SCHEMA_REFRESH_TIMEOUT 可见，作业模板五个 tab 齐备且可切换',
+    body: 'SCHEMA_REFRESH_TIMEOUT 可见，作业模板六个 tab（含 Doris 写入 wD）齐备且可切换',
     contentType: 'text/plain',
   });
 });
