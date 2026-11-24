@@ -787,6 +787,12 @@ public class TableService
         if (routeChanged(existing, etl)) {
             collectionScopeService.assertRouteUnique(etl, etl.getId());
         }
+        else {
+            // The controller saves the whole request body, so the internal key columns have to be
+            // recomputed here; otherwise this update would null them and drop the row out of the
+            // partial unique indexes.
+            collectionScopeService.applyRouteKeys(etl);
+        }
         setChangedBy(username);
         return etlTableRepo.save(etl);
     }

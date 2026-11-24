@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.repository.EtlTableRepo;
 import com.wgzhao.addax.admin.repository.EtlTargetRepo;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 import static com.wgzhao.addax.admin.common.Constants.DORIS_TARGET_TYPES;
@@ -44,6 +46,7 @@ public class EtlTargetService
     private final TargetAdapterRegistry targetAdapterRegistry;
     private final RdbmsWriterPlugins rdbmsWriterPlugins;
     private final ObjectMapper objectMapper;
+    private final CollectionScopeService collectionScopeService;
 
     public List<EtlTarget> listAll(Boolean enabledOnly)
     {
@@ -118,6 +121,11 @@ public class EtlTargetService
     public EtlTarget update(Long id, EtlTarget target)
     {
         EtlTarget existed = getById(id);
+        // The identifier policy comes from the target type and writer template. Changing either one
+        // rewrites the stored route keys, all inside this transaction so a conflict rolls the change
+        // back instead of leaving keys that disagree with the policy.
+        String previousType = upper(existed.getTargetType());
+        String previousWriter = upper(existed.getWriterTemplateKey());
         existed.setCode(target.getCode());
         existed.setName(target.getName());
         existed.setTargetType(target.getTargetType());
@@ -136,7 +144,17 @@ public class EtlTargetService
         if (Boolean.TRUE.equals(saved.getIsDefault())) {
             etlTargetRepo.clearDefaultExcept(saved.getId());
         }
+        boolean policyChanged = !Objects.equals(previousType, upper(saved.getTargetType()))
+            || !Objects.equals(previousWriter, upper(saved.getWriterTemplateKey()));
+        if (policyChanged) {
+            collectionScopeService.refreshTargetKeys(id);
+        }
         return saved;
+    }
+
+    private static String upper(String value)
+    {
+        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
     }
 
     public void delete(Long id)
