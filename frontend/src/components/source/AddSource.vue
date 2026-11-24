@@ -175,6 +175,7 @@
                   density="compact"
                   hide-details="auto"
                 />
+                <p class="field-hint">账号和密码请填写在下方的独立字段，不要写进连接串</p>
               </div>
 
               <template v-else-if="isMongo">

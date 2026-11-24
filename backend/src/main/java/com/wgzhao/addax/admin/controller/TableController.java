@@ -15,6 +15,7 @@ import com.wgzhao.addax.admin.dto.ExternalCollectionCreateRequest;
 import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.dto.TableListCriteria;
 import com.wgzhao.addax.admin.dto.TableListRequest;
+import com.wgzhao.addax.admin.dto.TableView;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -110,7 +111,7 @@ public class TableController
      * @return 采集表分页结果
      */
     @GetMapping("")
-    public ResponseEntity<PageResponse<VwEtlTableWithSource>> listTables(@ModelAttribute TableListRequest request)
+    public ResponseEntity<PageResponse<TableView>> listTables(@ModelAttribute TableListRequest request)
     {
         int page = Math.max(request.getPage(), 0);
         int pageSize = request.getPageSize() == -1
@@ -169,7 +170,7 @@ public class TableController
 
         Page<VwEtlTableWithSource> result =
             tableService.findTables(criteria, authzService.readableSourceIds());
-        return ResponseEntity.ok(PageResponse.from(result));
+        return ResponseEntity.ok(PageResponse.from(result.map(TableView::from)));
     }
 
     private Integer validateDuration(Integer value, String fieldName)
@@ -233,14 +234,14 @@ public class TableController
      * @return 采集表详情
      */
     @GetMapping("/{tableId}")
-    public ResponseEntity<VwEtlTableWithSource> getTable(@PathVariable("tableId") long tableId)
+    public ResponseEntity<TableView> getTable(@PathVariable("tableId") long tableId)
     {
         VwEtlTableWithSource table = tableService.findOneTableInfo(tableId);
         if (table == null) {
             throw new ApiException(404, "Table not found");
         }
         authzService.requireSourceRead(table.getSid());
-        return ResponseEntity.ok(table);
+        return ResponseEntity.ok(TableView.from(table));
     }
 
     /**
@@ -265,13 +266,13 @@ public class TableController
 
     @PostMapping("/{tableId}/restore")
     @Transactional
-    public ResponseEntity<VwEtlTableWithSource> restoreTable(@PathVariable("tableId") long tableId)
+    public ResponseEntity<TableView> restoreTable(@PathVariable("tableId") long tableId)
     {
         authzService.requireTableOperate(tableId);
         EtlTable before = etlTableRepo.findById(tableId)
             .orElseThrow(() -> new ApiException(404, "Table not found"));
         tableService.restoreTable(tableId);
-        VwEtlTableWithSource after = tableService.findOneTableInfo(tableId);
+        TableView after = TableView.from(tableService.findOneTableInfo(tableId));
         auditRecorder.success("TABLE_RESTORED", "COLLECTION_DEFINITION", "WARNING", "ETL_TABLE",
             tableId, before.getSourceTable(), before, after);
         return ResponseEntity.ok(after);
@@ -632,7 +633,7 @@ public class TableController
      * @return 表视图列表
      */
     @GetMapping("/view")
-    public ResponseEntity<List<VwEtlTableWithSource>> listTableViews(@RequestParam Map<String, String> params)
+    public ResponseEntity<List<TableView>> listTableViews(@RequestParam Map<String, String> params)
     {
         return ResponseEntity.ok(new ArrayList<>());
     }

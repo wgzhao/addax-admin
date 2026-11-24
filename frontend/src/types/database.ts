@@ -181,7 +181,7 @@ export interface EtlStatistic {
 export interface EtlSource {
   id: number; // 采集源ID，自增主键
   name: string; // 采集源名称
-  url: string; // 采集源JDBC连接串
+  url: string; // 采集源JDBC连接串（纯地址，账号密码走独立字段）
   username?: string; // 采集源连接的账号
   pass?: string; // 采集源连接的密码
   startAt?: string; // 采集的定时启动时间点
@@ -373,9 +373,7 @@ export interface CollectableTable {
 export interface VEtlWithSource extends EtlTable {
   targetOptions: EtlTargetOptions;
   name: string; // 采集源名称
-  url: string; // 采集源JDBC连接串
-  username?: string; // 采集源连接的账号
-  pass?: string; // 采集源连接的密码
+  url?: string; // 采集源连接串（地址元数据；账号与结构化配置不随表 API 返回）
   sourceStartAt?: string; // 采集源的定时启动时间点(HH:mm[:ss])
   prerequisite?: string; // 能否开始采集的先决条件
   preScript?: string; // 标志符合条件后的前置脚本

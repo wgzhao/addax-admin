@@ -54,7 +54,7 @@ public class AuditRepository
             trimTo(event.severity(), 16),
             trimTo(event.resourceType(), 64),
             trimTo(event.resourceId(), 128),
-            trimTo(event.resourceName(), 255),
+            trimTo(sanitizer.sanitizeText(event.resourceName()), 255),
             trimTo(event.outcome(), 16),
             trimTo(event.httpMethod(), 8),
             trimTo(event.requestPath(), 512),
@@ -65,8 +65,8 @@ public class AuditRepository
             json(after),
             json(changedFields),
             trimTo(event.errorCode(), 64),
-            trimTo(event.errorMessage(), 1000),
-            json(event.metadata() == null ? java.util.Map.of() : event.metadata())
+            trimTo(sanitizer.sanitizeText(event.errorMessage()), 1000),
+            json(sanitizer.sanitize(event.metadata() == null ? java.util.Map.of() : event.metadata()))
         );
         return id == null ? -1 : id;
     }
