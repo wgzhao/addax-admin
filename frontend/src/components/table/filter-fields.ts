@@ -9,15 +9,14 @@ export interface TableFilters {
   statuses: string[];
   scope: ScopeValue;
   sourceIds: number[];
-  dbTypes: string[];
   sourceEnabled: Tristate;
   targetIds: number[];
-  targetTypes: string[];
   targetDb: string;
   targetEnabled: Tristate;
   writeModes: string[];
   schemaModes: string[];
-  comment: string;
+  durationFrom: string;
+  durationTo: string;
   endFrom: string;
   endTo: string;
   createdFrom: string;
@@ -32,15 +31,14 @@ export function defaultFilters(): TableFilters {
     statuses: [],
     scope: 'CURRENT',
     sourceIds: [],
-    dbTypes: [],
     sourceEnabled: 'ANY',
     targetIds: [],
-    targetTypes: [],
     targetDb: '',
     targetEnabled: 'ANY',
     writeModes: [],
     schemaModes: [],
-    comment: '',
+    durationFrom: '',
+    durationTo: '',
     endFrom: '',
     endTo: '',
     createdFrom: '',
@@ -49,39 +47,6 @@ export function defaultFilters(): TableFilters {
     updatedTo: '',
   };
 }
-
-/**
- * Families are UI sugar over concrete target_type values: the backend filters on target_type only,
- * because target_type already carries the family (ADR-0012 validates the pair at save time).
- */
-export const TARGET_FAMILIES: { value: string; label: string; types: string[] }[] = [
-  { value: 'HDFS', label: 'HDFS', types: ['HDFS', 'HIVE'] },
-  { value: 'RDBMS', label: 'RDBMS', types: ['RDBMS', 'MYSQL', 'POSTGRESQL', 'SQLSERVER'] },
-  { value: 'DORIS', label: 'Doris', types: ['DORIS'] },
-];
-
-export const TARGET_TYPE_OPTIONS = [
-  { value: 'HDFS', label: 'HDFS' },
-  { value: 'HIVE', label: 'Hive' },
-  { value: 'RDBMS', label: 'RDBMS' },
-  { value: 'MYSQL', label: 'MySQL' },
-  { value: 'POSTGRESQL', label: 'PostgreSQL' },
-  { value: 'SQLSERVER', label: 'SQL Server' },
-  { value: 'DORIS', label: 'Doris' },
-];
-
-export const SOURCE_DB_TYPE_OPTIONS = [
-  { value: 'mysql', label: 'MySQL' },
-  { value: 'postgresql', label: 'PostgreSQL' },
-  { value: 'oracle', label: 'Oracle' },
-  { value: 'sqlserver', label: 'SQL Server' },
-  { value: 'hive', label: 'Hive' },
-  { value: 'db2', label: 'DB2' },
-  { value: 'sqlite', label: 'SQLite' },
-  { value: 'sybase', label: 'Sybase' },
-  { value: 'clickhouse', label: 'ClickHouse' },
-  { value: 'rdbms', label: '其他 RDBMS' },
-];
 
 export const WRITE_MODE_OPTIONS = [
   { value: 'overwrite', label: '覆盖 overwrite' },
@@ -123,15 +88,13 @@ export function targetFamilyColor(type?: string | null): string {
 export type ChipKey =
   | 'statuses'
   | 'sourceIds'
-  | 'dbTypes'
   | 'sourceEnabled'
   | 'targetIds'
-  | 'targetTypes'
   | 'targetDb'
   | 'targetEnabled'
   | 'writeModes'
   | 'schemaModes'
-  | 'comment'
+  | 'duration'
   | 'end'
   | 'created'
   | 'updated'
@@ -171,9 +134,6 @@ export function buildFilterChips(filters: TableFilters, lookups: ChipLookups): F
       text: filters.sourceIds.map(id => lookups.sourceNames.get(id) ?? `#${id}`).join('、'),
     });
   }
-  if (filters.dbTypes.length) {
-    chips.push({ key: 'dbTypes', label: '源库类型', text: filters.dbTypes.join('、') });
-  }
   if (filters.sourceEnabled !== 'ANY') {
     chips.push({
       key: 'sourceEnabled',
@@ -187,9 +147,6 @@ export function buildFilterChips(filters: TableFilters, lookups: ChipLookups): F
       label: '目标端',
       text: filters.targetIds.map(id => lookups.targetNames.get(id) ?? `#${id}`).join('、'),
     });
-  }
-  if (filters.targetTypes.length) {
-    chips.push({ key: 'targetTypes', label: '目标类型', text: filters.targetTypes.join('、') });
   }
   if (filters.targetDb.trim()) {
     chips.push({ key: 'targetDb', label: '目标库', text: filters.targetDb.trim() });
@@ -207,8 +164,12 @@ export function buildFilterChips(filters: TableFilters, lookups: ChipLookups): F
   if (filters.schemaModes.length) {
     chips.push({ key: 'schemaModes', label: '结构管理', text: filters.schemaModes.join('、') });
   }
-  if (filters.comment.trim()) {
-    chips.push({ key: 'comment', label: '表注释', text: filters.comment.trim() });
+  if (filters.durationFrom || filters.durationTo) {
+    chips.push({
+      key: 'duration',
+      label: '耗时(s)',
+      text: `${filters.durationFrom || '不限'} ~ ${filters.durationTo || '不限'} 秒`,
+    });
   }
   if (filters.endFrom || filters.endTo) {
     chips.push({
@@ -245,17 +206,11 @@ export function clearFilterChip(filters: TableFilters, key: ChipKey): void {
     case 'sourceIds':
       filters.sourceIds = [];
       break;
-    case 'dbTypes':
-      filters.dbTypes = [];
-      break;
     case 'sourceEnabled':
       filters.sourceEnabled = 'ANY';
       break;
     case 'targetIds':
       filters.targetIds = [];
-      break;
-    case 'targetTypes':
-      filters.targetTypes = [];
       break;
     case 'targetDb':
       filters.targetDb = '';
@@ -269,8 +224,9 @@ export function clearFilterChip(filters: TableFilters, key: ChipKey): void {
     case 'schemaModes':
       filters.schemaModes = [];
       break;
-    case 'comment':
-      filters.comment = '';
+    case 'duration':
+      filters.durationFrom = '';
+      filters.durationTo = '';
       break;
     case 'end':
       filters.endFrom = '';

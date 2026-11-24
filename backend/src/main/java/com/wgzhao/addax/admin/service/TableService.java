@@ -405,7 +405,7 @@ public class TableService
             page, pageSize, q, statuses == null ? List.of() : statuses, scope,
             sourceId == null ? List.of() : List.of(sourceId),
             List.of(), null, List.of(), List.of(), null, null,
-            List.of(), List.of(), null,
+            List.of(), List.of(), null, null, null,
             null, null, null, null, null, null,
             sortField, sortOrder);
         return findTables(criteria, allowedSourceIds);

@@ -33,6 +33,11 @@ public class TableListRequest
     private Boolean targetEnabled;
     private String writeModes;
     private String schemaModes;
+    /**
+     * Last-run duration bounds in seconds; both inclusive.
+     */
+    private Integer durationFrom;
+    private Integer durationTo;
     private String tblCommentContains;
     private LocalDate endTimeFrom;
     private LocalDate endTimeTo;

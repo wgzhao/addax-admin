@@ -46,6 +46,7 @@ final class TableSpecifications
             addEqual(predicates, cb, root.get("targetEnabled"), criteria.targetEnabled());
             addIn(predicates, root, cb, "writeMode", criteria.writeModes());
             addIn(predicates, root, cb, "schemaManagementMode", toSchemaModes(criteria.schemaModes()));
+            addIntRange(predicates, cb, root.get("duration"), criteria.durationFrom(), criteria.durationTo());
             addContains(predicates, cb, root.get("targetDb"), criteria.targetDbContains());
             addContains(predicates, cb, root.get("tblComment"), criteria.tblCommentContains());
             addContains(predicates, cb, root.get("filterColumn"), criteria.q());
@@ -113,6 +114,17 @@ final class TableSpecifications
     {
         if (raw != null && !raw.isBlank()) {
             predicates.add(cb.like(cb.upper(path), likePattern(raw), LIKE_ESCAPE));
+        }
+    }
+
+    private static void addIntRange(List<Predicate> predicates, CriteriaBuilder cb,
+        Expression<Integer> path, Integer from, Integer to)
+    {
+        if (from != null) {
+            predicates.add(cb.greaterThanOrEqualTo(path, from));
+        }
+        if (to != null) {
+            predicates.add(cb.lessThanOrEqualTo(path, to));
         }
     }
 

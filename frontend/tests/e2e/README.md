@@ -21,6 +21,14 @@ cd frontend
 E2E_USERNAME=admin E2E_PASSWORD=admin123 yarn e2e
 ```
 
+Specs that seed through `psql` also need the database credentials; without them psql falls back to
+the OS user role (`ai`) and fails with `role "ai" does not exist`:
+
+```bash
+PGHOST=127.0.0.1 PGUSER=addax_admin PGPASSWORD='addax_admin@123' \
+E2E_USERNAME=admin E2E_PASSWORD=admin123 yarn e2e tests/e2e/table-advanced-filter.spec.ts
+```
+
 `playwright.config.ts` 使用了 `setup` project：
 
 - 先执行 `auth.setup.ts` 登录并写入 `tests/e2e/.auth/user.json`

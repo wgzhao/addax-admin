@@ -159,6 +159,8 @@ public class TableController
             request.getTargetEnabled(),
             parseCsv(request.getWriteModes(), false),
             schemaModes,
+            validateDuration(request.getDurationFrom(), "durationFrom"),
+            validateDuration(request.getDurationTo(), "durationTo"),
             trimToNull(request.getTblCommentContains()),
             request.getEndTimeFrom(), request.getEndTimeTo(),
             request.getCreatedFrom(), request.getCreatedTo(),
@@ -168,6 +170,14 @@ public class TableController
         Page<VwEtlTableWithSource> result =
             tableService.findTables(criteria, authzService.readableSourceIds());
         return ResponseEntity.ok(PageResponse.from(result));
+    }
+
+    private Integer validateDuration(Integer value, String fieldName)
+    {
+        if (value != null && value < 0) {
+            throw new ApiException(400, fieldName + " must not be negative");
+        }
+        return value;
     }
 
     private List<Integer> parseSourceIds(TableListRequest request)
