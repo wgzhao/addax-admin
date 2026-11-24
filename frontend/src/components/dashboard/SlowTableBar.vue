@@ -13,12 +13,15 @@
       y-title="耗时"
       :value-formatter="formatSeconds"
       :tooltip-after="tooltipAfter"
+      selectable
+      @select="openTable"
     />
   </DashboardChartCard>
 </template>
 
 <script setup lang="ts">
   import { computed } from 'vue';
+  import { useRouter } from 'vue-router';
   import DashboardChartCard from './charts/DashboardChartCard.vue';
   import DashboardBarChart from './charts/DashboardBarChart.vue';
   import type { SlowTableRow } from '@/types/dashboard';
@@ -29,6 +32,7 @@
 
   const { raw, state, error } = useChartData(() => dashboardService.fetchSlowTopTables());
   const { resolve } = useChartTheme();
+  const router = useRouter();
 
   const rows = computed<SlowTableRow[]>(() => raw.value ?? []);
 
@@ -48,13 +52,25 @@
     },
   ]);
 
+  const openTable = (index: number) => {
+    const row = rows.value[index];
+    if (!row) return;
+    // Pass the identity through so the detail header renders before the snapshot loads.
+    router.push({
+      path: `/table/detail/${row.tid}`,
+      query: { tab: 'info', tblname: `${row.source_db}.${row.source_table}` },
+    });
+  };
+
   const tooltipAfter = (items: { dataIndex: number }[]): string[] => {
     const row = rows.value[items[0]?.dataIndex ?? -1];
     if (!row) return [];
     return [
+      `表：${row.source_db}.${row.source_table}`,
       `最大耗时：${formatSeconds(row.max_secs)}`,
       `累计耗时：${formatSeconds(row.total_secs)} / ${row.days} 天`,
       `源：${row.source_name}`,
+      '点击条形进入表详情',
     ];
   };
 </script>

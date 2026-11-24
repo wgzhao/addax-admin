@@ -22,9 +22,12 @@
       markers?: ValueMarker[];
       tickFontSize?: number;
       tooltipAfter?: (items: TooltipItem<'bar'>[]) => string[];
+      selectable?: boolean;
     }>(),
-    { horizontal: false, stacked: false, beginAtZero: true, tickFontSize: 11 }
+    { horizontal: false, stacked: false, beginAtZero: true, tickFontSize: 11, selectable: false }
   );
+
+  const emit = defineEmits<{ select: [index: number] }>();
 
   const Bar = loadChartComponent('Bar', chart => {
     chart.Chart.register(
@@ -120,6 +123,20 @@
           callbacks: props.tooltipAfter ? { footer: props.tooltipAfter } : {},
         },
         ...(props.markers?.length ? { valueMarker: { markers: props.markers } } : {}),
+      },
+      // Why: charts are canvas elements, so navigation needs an explicit hit
+      // test; hover also needs to signal that bars are clickable.
+      onClick: (_event, elements) => {
+        if (props.selectable && elements.length > 0) {
+          emit('select', elements[0].index);
+        }
+      },
+      onHover: (event, elements) => {
+        if (!props.selectable) return;
+        const target = event.native?.target as HTMLElement | null | undefined;
+        if (target) {
+          target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+        }
       },
     };
   });
