@@ -329,12 +329,11 @@ public class JobContentService
     }
 
     /**
-     * 根据数据源 ID 异步更新相关的采集任务
+     * 根据数据源 ID 更新相关的采集任务
      *
      * @param sid 数据源 ID
      */
     // 根据数据源 ID 更新相关的任务
-    @Async
     public void updateJobBySourceId(int sid)
     {
         vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNotAndRetiredAtIsNull(
@@ -342,6 +341,12 @@ public class JobContentService
             .forEach(this::updateJob);
     }
 
+    /**
+     * The event is published from an {@code afterCommit} callback, where the request transaction is
+     * already committed but still bound to the thread: a write from there is rolled back on cleanup.
+     * Running the handler on the async executor gives the refresh its own transaction.
+     */
+    @Async
     @EventListener
     public void handleSourceUpdatedEvent(SourceUpdatedEvent event)
     {
