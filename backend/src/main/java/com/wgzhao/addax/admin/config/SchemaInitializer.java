@@ -550,6 +550,7 @@ public class SchemaInitializer
             config_snapshot jsonb not null,
             job_digest varchar(64),
             report_token varchar(64),
+            report_received_at timestamp without time zone,
             error_message text
         )
         """;
@@ -565,7 +566,8 @@ public class SchemaInitializer
             add column if not exists target_table varchar(255),
             add column if not exists target_code varchar(50),
             add column if not exists target_name varchar(200),
-            add column if not exists report_token varchar(64)
+            add column if not exists report_token varchar(64),
+            add column if not exists report_received_at timestamp without time zone
         """;
 
     private static final String CREATE_EXECUTION_INDEXES_SQL = """

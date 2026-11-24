@@ -128,6 +128,17 @@ public class EtlExecutionService
             .filter(execution -> execution.getTid() != null && execution.getTid() == tid);
     }
 
+    /**
+     * Claim the single report this attempt may submit. Callers must run inside the transaction that
+     * persists the report: a rollback releases the claim, so a failed report can be retried, while a
+     * committed claim blocks replays for good.
+     */
+    @Transactional
+    public boolean claimReport(long executionId)
+    {
+        return executionRepo.claimReport(executionId) > 0;
+    }
+
     private JsonNode buildSnapshot(VwEtlTableWithSource table,
         List<ColumnMappingService.ResolvedColumnMapping> mappings, String job,
         LocalDate bizDate, TargetContractReport contractReport)

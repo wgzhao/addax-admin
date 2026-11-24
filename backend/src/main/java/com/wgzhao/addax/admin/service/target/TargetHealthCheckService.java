@@ -267,7 +267,9 @@ public class TargetHealthCheckService
                     String.join(" ", cmdArgs).replace(reportToken, "***"));
             }
             finally {
-                jobReportTokenService.revokeSmokeToken(reportToken);
+                // Do not revoke the token here: process exit does not guarantee that the report POST
+                // has been processed, and this check does not read the report. The token is one-shot
+                // and expires on its own, so a late report is harmless.
                 etlStatisticRepo.deleteByTid(Constants.TARGET_SMOKE_TEST_TID);
             }
 

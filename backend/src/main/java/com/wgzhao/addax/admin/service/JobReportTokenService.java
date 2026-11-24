@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service;
  *
  * <p>Addax reports over its own HTTP client and cannot carry a JWT, so the report is authenticated
  * by a per-attempt token embedded in the {@code jobName} JVM property. Production attempts get the
- * token from {@code etl_execution.report_token}; smoke checks register a short-lived token in Redis
+ * token from {@code etl_execution.report_token} and are gated once by
+ * {@code etl_execution.report_received_at}; smoke checks register a short-lived token in Redis
  * because they do not create an execution row.</p>
  */
 @Service
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Service;
 public class JobReportTokenService
 {
     private static final Duration SMOKE_TOKEN_TTL = Duration.ofMinutes(10);
-    private static final Duration CONSUMED_TTL = Duration.ofDays(7);
 
     private final StringRedisTemplate redisTemplate;
 
@@ -83,13 +83,4 @@ public class JobReportTokenService
         return Boolean.TRUE.equals(redisTemplate.delete(key));
     }
 
-    /**
-     * Claim the one report this execution is allowed to submit. Returns false when a report was
-     * already accepted, which blocks replaying a captured token against historical statistics.
-     */
-    public boolean consumeExecutionReport(long executionId)
-    {
-        String key = Constants.JOB_REPORT_CONSUMED_KEY_PREFIX + executionId;
-        return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, "1", CONSUMED_TTL));
-    }
 }

@@ -19,20 +19,23 @@ carried in the `jobName` that the backend already passes to the child JVM.
 - A production report is accepted only when all of these hold:
   - an execution id is present and belongs to the reported `tid`;
   - the token matches the execution's token in constant time;
-  - this is the first accepted report for that execution. The claim is a Redis
-    `SET NX` key with a seven-day TTL, which blocks replaying a captured token against historical
-    statistics.
-- The token is annotated `@JsonIgnore` on the entity: `GET /tables/{id}/executions` is readable by
-  every authenticated role and must not hand out report credentials.
+  - the execution started less than 24 hours ago. A captured token must not revive an old attempt
+    whose real report never arrived;
+  - this is the first accepted report for that execution. The claim is a conditional update of
+    `etl_execution.report_received_at` (`WHERE report_received_at IS NULL`) executed in the same
+    transaction as the statistics and their side effects. A rollback releases the claim, so a
+    transient failure is retryable; a commit blocks replays permanently, with no TTL to outlive.
+- The token and the receipt timestamp are annotated `@JsonIgnore` on the entity:
+  `GET /tables/{id}/executions` is readable by every authenticated role and must not hand out report
+  credentials or internal receipt state.
 - A tokenless execution (created before this change) is accepted only while its queue row is still
   `running`. This is the compatibility window for an Addax process launched by a node that has not
   been upgraded yet; new attempts never take this path.
 - Smoke checks use the reserved negative tids and have no execution row. The caller registers a
   one-shot token in Redis (`-tid:token`, ten-minute TTL) before launching Addax; the report endpoint
-  consumes it. Reports for negative tids without a registered token are rejected.
-- A Redis failure does not reject a token-verified production report; the token still proves
-  authorship, only replay protection is degraded. A Redis failure does reject a smoke report,
-  because there is nothing else to verify.
+  consumes it. Reports for negative tids without a registered token are rejected. The target
+  health-check smoke does not revoke its token: process exit does not prove the HTTP report has been
+  handled, the check does not read the report, and the TTL prevents the token from lingering.
 
 ## Consequences
 
@@ -42,7 +45,13 @@ carried in the `jobName` that the backend already passes to the child JVM.
 - The token is visible in the Addax process command line on the worker host. That is the same trust
   boundary as the process itself; a host-local attacker can already read the job file and the
   credentials in it.
-- The startup migration adds the column idempotently; existing executions keep a null token and are
-  governed by the queue-row check.
+- The startup migration adds both columns idempotently; existing executions keep a null token and a
+  null receipt and are governed by the queue-row check.
+- Reports are handled in one transaction. If persistence or a side effect throws, the HTTP call
+  fails and the durable claim rolls back; a retry is treated as a fresh report rather than a
+  duplicate. Addax itself does not retry, so the retry path is for an operator or a future reporter.
+- The 24-hour window is anchored on `started_at`, not on the business date, so fillbacks and long
+  delayed queues are unaffected. A table whose `max_runtime` exceeds 24 hours would reject its own
+  report; that is accepted as a pathological configuration.
 - `GET /log/addax/{tid}` is moved to `requireTableOperate` in the same change: raw log summaries are
   operational reads, matching the log list filter and `GET /log/addax/{id}/content` (ADR-0008).

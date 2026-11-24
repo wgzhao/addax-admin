@@ -30,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -142,15 +143,22 @@ public class LogController
      * @param dto 作业报告数据
      * @return 是否成功
      */
+    /** Reports are only meaningful while the attempt is recent; an old token must not revive it. */
+    private static final Duration REPORT_VALIDITY = Duration.ofHours(24);
+
     @PostMapping(value = "/job-report", consumes = "application/json")
+    @Transactional
     public boolean jobReport(@RequestBody AddaxReportDto dto)
     {
-        log.debug("job report: {}", dto);
         ReportJobName jobName = parseReportJobName(dto.jobName());
         if (jobName == null) {
-            log.error("Invalid jobName format: {}", dto.jobName());
+            // Never log the raw jobName: a valid one carries the report token.
+            log.error("Invalid job report jobName (length={})",
+                dto.jobName() == null ? 0 : dto.jobName().length());
             return false;
         }
+        log.debug("job report: tid={}, executionId={}, readRecords={}, errorRecords={}",
+            jobName.tid(), jobName.executionId(), dto.totalReadRecords(), dto.totalErrorRecords());
         if (jobName.tid() < 0) {
             return acceptSmokeReport(dto, jobName);
         }
@@ -164,8 +172,19 @@ public class LogController
         if (!verifyReportAuthorship(execution, jobName.token())) {
             return false;
         }
+        if (!isReportWindowOpen(execution)) {
+            log.warn("Rejecting job report for execution {}: outside the {}h validity window",
+                execution.getId(), REPORT_VALIDITY.toHours());
+            return false;
+        }
         if (tableService.getTable(jobName.tid()) == null) {
             log.warn("Rejecting job report for unknown tid {}", jobName.tid());
+            return false;
+        }
+        // Durable one-shot gate. It lives in this transaction on purpose: a failure below rolls the
+        // claim back so a retry can still persist the facts, while a commit blocks replays for good.
+        if (!executionService.claimReport(execution.getId())) {
+            log.warn("Rejecting duplicate job report for execution {}", execution.getId());
             return false;
         }
         EtlStatistic sta = buildStatistic(dto, jobName.tid(), execution.getId());
@@ -230,9 +249,9 @@ public class LogController
     }
 
     /**
-     * A report is accepted only when it carries the token of this exact attempt and has not been
-     * accepted before. Executions created before tokens existed fall back to a live queue row: they
-     * can only be reports from an in-flight run that started on a node running the previous build.
+     * Authorship only. One-shot semantics are enforced later by the durable claim in
+     * {@link #jobReport}, so this method stays free of side effects and safe to call before the
+     * transaction's business writes.
      */
     private boolean verifyReportAuthorship(EtlExecution execution, String token)
     {
@@ -241,17 +260,6 @@ public class LogController
             if (!JobReportTokenService.matches(expected, token)) {
                 log.warn("Rejecting job report for execution {}: report token mismatch", execution.getId());
                 return false;
-            }
-            try {
-                if (!jobReportTokenService.consumeExecutionReport(execution.getId())) {
-                    log.warn("Rejecting duplicate job report for execution {}", execution.getId());
-                    return false;
-                }
-            }
-            catch (Exception e) {
-                // A Redis outage must not drop every statistic; the token still proves authorship.
-                log.warn("Cannot record report consumption for execution {}: {}",
-                    execution.getId(), e.getMessage());
             }
             return true;
         }
@@ -263,6 +271,12 @@ public class LogController
         log.warn("Accepting legacy tokenless job report for execution {} (queue row {} is running)",
             execution.getId(), execution.getJobQueueId());
         return true;
+    }
+
+    private static boolean isReportWindowOpen(EtlExecution execution)
+    {
+        LocalDateTime startedAt = execution.getStartedAt();
+        return startedAt == null || startedAt.plus(REPORT_VALIDITY).isAfter(LocalDateTime.now());
     }
 
     /**

@@ -37,8 +37,6 @@ public final class Constants
     // report endpoint consumes it. Without a token the anonymous report endpoint would accept
     // arbitrary negative-tid statistics.
     public static final String JOB_REPORT_SMOKE_TOKEN_PREFIX = "etl:job-report:smoke:";
-    // One report per execution: the first accepted report claims this key, replays are dropped.
-    public static final String JOB_REPORT_CONSUMED_KEY_PREFIX = "etl:job-report:consumed:";
     public static final String DEFAULT_PART_FORMAT = "yyyyMMdd";
     public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT);
     // Default SQL reserved keywords (used as fallback and baseline). Stored in upper-case.
