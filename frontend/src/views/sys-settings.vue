@@ -218,7 +218,7 @@
             <div class="setting-heading">
               <h2>作业模板</h2>
               <p>
-                采集任务文件由主模板拼装 RDBMS 读取与 HDFS 写入子模板，支持
+                采集任务文件由主模板拼装 RDBMS 读取与 HDFS/Doris 写入子模板，支持
                 <code>${reader}</code>、<code>${writer}</code> 变量。占位符在执行时由调度器替换，
                 校验时按合法插槽处理。
               </p>
@@ -358,7 +358,7 @@
   import settingsService, { AddaxValidationResult } from '@/service/settings-service';
   import { SysItem } from '@/types/database';
 
-  type TemplateKey = 'R2H' | 'R2R' | 'rR' | 'wH' | 'wR';
+  type TemplateKey = 'R2H' | 'R2R' | 'rR' | 'wH' | 'wR' | 'wD';
 
   const form = ref<any>(null);
   const loading = ref(true);
@@ -376,6 +376,7 @@
   const rRJobTemplate = ref<string>('');
   const wHJobTemplate = ref<string>('');
   const wRJobTemplate = ref<string>('');
+  const wDJobTemplate = ref<string>('');
   const R2HJobTemplate = ref<string>('');
   const R2RJobTemplate = ref<string>('');
 
@@ -397,6 +398,11 @@
       label: 'RDBMS 写入',
       doc: 'https://wgzhao.github.io/Addax/latest/writer/rdbmswriter/',
     },
+    {
+      key: 'wD',
+      label: 'Doris 写入',
+      doc: 'https://wgzhao.github.io/Addax/latest/writer/doriswriter/',
+    },
   ];
 
   const templateRefs: Record<TemplateKey, typeof R2HJobTemplate> = {
@@ -405,6 +411,7 @@
     rR: rRJobTemplate,
     wH: wHJobTemplate,
     wR: wRJobTemplate,
+    wD: wDJobTemplate,
   };
 
   // The ${...} names are a hard contract with the job generator. The baseline is the template as
@@ -444,6 +451,7 @@
         rRJobTemplate.value,
         wHJobTemplate.value,
         wRJobTemplate.value,
+        wDJobTemplate.value,
       ],
     });
 
@@ -520,10 +528,15 @@
       index: '03',
       label: '作业模板',
       meta: `${
-        [R2HJobTemplate, R2RJobTemplate, rRJobTemplate, wHJobTemplate, wRJobTemplate].filter(
-          item => item.value.trim()
-        ).length
-      } / 5 已配置`,
+        [
+          R2HJobTemplate,
+          R2RJobTemplate,
+          rRJobTemplate,
+          wHJobTemplate,
+          wRJobTemplate,
+          wDJobTemplate,
+        ].filter(item => item.value.trim()).length
+      } / 6 已配置`,
     },
   ]);
 
@@ -832,10 +845,18 @@
       const rRTemplate = templates.value.get('rR');
       const wHTemplate = templates.value.get('wH');
       const wRTemplate = templates.value.get('wR');
+      const wDTemplate = templates.value.get('wD');
       const r2hTemplate = templates.value.get('R2H');
       const r2rTemplate = templates.value.get('R2R');
 
-      if (!rRTemplate || !wHTemplate || !wRTemplate || !r2hTemplate || !r2rTemplate) {
+      if (
+        !rRTemplate ||
+        !wHTemplate ||
+        !wRTemplate ||
+        !wDTemplate ||
+        !r2hTemplate ||
+        !r2rTemplate
+      ) {
         notify('作业模板配置缺失，请刷新后重试', 'error');
         return;
       }
@@ -870,6 +891,12 @@
           itemKey: 'wR',
           itemValue: wRJobTemplate.value,
           remark: wRTemplate.remark,
+        },
+        {
+          dictCode: wDTemplate.dictCode,
+          itemKey: 'wD',
+          itemValue: wDJobTemplate.value,
+          remark: wDTemplate.remark,
         },
       ];
 
@@ -916,6 +943,7 @@
     rRJobTemplate.value = saved.templates[2];
     wHJobTemplate.value = saved.templates[3];
     wRJobTemplate.value = saved.templates[4];
+    wDJobTemplate.value = saved.templates[5];
     validationFailed.value = false;
     form.value?.resetValidation?.();
     notify('已撤销未保存的修改', 'info');
@@ -938,6 +966,7 @@
       rRJobTemplate.value = templates.value.get('rR')?.itemValue || '';
       wHJobTemplate.value = templates.value.get('wH')?.itemValue || '';
       wRJobTemplate.value = templates.value.get('wR')?.itemValue || '';
+      wDJobTemplate.value = templates.value.get('wD')?.itemValue || '';
       R2HJobTemplate.value = templates.value.get('R2H')?.itemValue || '';
       R2RJobTemplate.value = templates.value.get('R2R')?.itemValue || '';
 
