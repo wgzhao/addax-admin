@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.controller;
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.CollectableTableDto;
 import com.wgzhao.addax.admin.dto.DbConnectDto;
+import com.wgzhao.addax.admin.dto.SourceView;
 import com.wgzhao.addax.admin.dto.TableMetaDto;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.common.CalendarType;
@@ -64,7 +65,7 @@ public class SourceController
      * @return 数据源列表
      */
     @GetMapping("")
-    public ResponseEntity<List<EtlSource>> list()
+    public ResponseEntity<List<SourceView>> list()
     {
         return ResponseEntity.ok(visibleSources(sourceService.findAll()));
     }
@@ -75,18 +76,20 @@ public class SourceController
      * @return 有效的数据源列表
      */
     @GetMapping("/enabled")
-    public ResponseEntity<List<EtlSource>> listEnabled()
+    public ResponseEntity<List<SourceView>> listEnabled()
     {
         return ResponseEntity.ok(visibleSources(sourceService.findEnabledSources()));
     }
 
-    private List<EtlSource> visibleSources(List<EtlSource> sources)
+    private List<SourceView> visibleSources(List<EtlSource> sources)
     {
         Set<Integer> allowed = authzService.readableSourceIds();
-        if (allowed == null) {
-            return sources;
+        if (allowed != null) {
+            sources = sources.stream().filter(source -> allowed.contains(source.getId())).toList();
         }
-        return sources.stream().filter(source -> allowed.contains(source.getId())).toList();
+        return sources.stream()
+            .map(source -> SourceView.of(source, authzService.canViewOperationalSource(source.getId())))
+            .toList();
     }
 
     /**
@@ -97,7 +100,7 @@ public class SourceController
      */
     @PostMapping("")
     @Transactional
-    public ResponseEntity<EtlSource> createSource(@RequestBody EtlSource etlSource)
+    public ResponseEntity<SourceView> createSource(@RequestBody EtlSource etlSource)
     {
         if (etlSource.getId() > 0) {
             throw new ApiException(400, "Source ID must not be provided when creating a new source");
@@ -108,7 +111,7 @@ public class SourceController
         EtlSource saved = sourceService.create(etlSource);
         auditRecorder.success("SOURCE_CREATED", "CONFIG", "WARNING", "ETL_SOURCE",
             saved.getId(), saved.getName(), null, saved);
-        return ResponseEntity.status(201).body(saved);
+        return ResponseEntity.status(201).body(SourceView.of(saved, true));
     }
 
     /**
@@ -173,12 +176,13 @@ public class SourceController
      * @return 数据源对象
      */
     @GetMapping("/{id}")
-    public ResponseEntity<EtlSource> get(
+    public ResponseEntity<SourceView> get(
         @PathVariable int id)
     {
         authzService.requireSourceRead(id);
         return sourceService.findById(id)
-            .map(ResponseEntity::ok)
+            .map(source -> ResponseEntity.ok(
+                SourceView.of(source, authzService.canViewOperationalSource(id))))
             .orElseThrow(() -> new ApiException(404, "Source not found"));
     }
 

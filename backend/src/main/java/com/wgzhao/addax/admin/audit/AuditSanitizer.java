@@ -41,6 +41,15 @@ public class AuditSanitizer
         }
     }
 
+    /**
+     * Redacts inline secrets from a plain string (resource names, error messages). These columns are
+     * free text and can carry a JDBC URL with userinfo or a "password=..." fragment.
+     */
+    public String sanitizeText(String value)
+    {
+        return redactText(value);
+    }
+
     public JsonNode changedFields(JsonNode before, JsonNode after)
     {
         ArrayNode fields = JsonNodeFactory.instance.arrayNode();
