@@ -2,10 +2,12 @@ package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.alert.AlertDispatcher;
 import com.wgzhao.addax.admin.alert.AlertSeverity;
+import com.wgzhao.addax.admin.alert.model.AlertEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -112,15 +114,31 @@ public class AlertService
         }
     }
 
-    /** Resolves superseded day-cut events; returns how many were closed. */
-    public int resolveScheduleEvents(String prefix, Set<String> keepKeys)
+    /** Resolves superseded day-cut events; returns the events that were closed. */
+    public List<AlertEvent> resolveScheduleEvents(String prefix, Set<String> keepKeys)
     {
         try {
             return alertDispatcher.resolveOpenScheduleEvents(prefix, keepKeys);
         }
         catch (Exception ex) {
             log.error("事件恢复失败 prefix={}", prefix, ex);
-            return 0;
+            return List.of();
+        }
+    }
+
+    /**
+     * Tells the channels that received a schedule failure that the condition is
+     * gone. Delivery goes only to that original audience, so a recovery can never
+     * introduce a new channel.
+     */
+    public void sendScheduleRecovery(String keySuffix, String title, String message,
+        Map<String, String> data, List<AlertEvent> resolvedEvents)
+    {
+        try {
+            alertDispatcher.publishScheduleRecovery(keySuffix, title, message, data, resolvedEvents);
+        }
+        catch (Exception ex) {
+            log.error("发布调度恢复事件失败 key={}", keySuffix, ex);
         }
     }
 }
