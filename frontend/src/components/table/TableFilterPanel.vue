@@ -4,38 +4,7 @@
       <section class="filter-group">
         <h4 class="filter-group__title">目标端</h4>
         <div class="filter-group__row">
-          <span class="filter-group__label">目标族</span>
-          <div class="filter-group__families">
-            <v-chip
-              v-for="family in TARGET_FAMILIES"
-              :key="family.value"
-              size="small"
-              :color="isFamilyActive(family) ? 'primary' : undefined"
-              :variant="isFamilyActive(family) ? 'flat' : 'outlined'"
-              @click="toggleFamily(family)"
-            >
-              {{ family.label }}
-            </v-chip>
-          </div>
-        </div>
-        <div class="filter-group__row">
-          <span class="filter-group__label">目标类型</span>
-          <v-select
-            v-model="filters.targetTypes"
-            :items="TARGET_TYPE_OPTIONS"
-            item-title="label"
-            item-value="value"
-            multiple
-            chips
-            closable-chips
-            density="compact"
-            variant="outlined"
-            hide-details
-            placeholder="不限"
-          />
-        </div>
-        <div class="filter-group__row">
-          <span class="filter-group__label">目标端点</span>
+          <span class="filter-group__label">目标端</span>
           <v-select
             v-model="filters.targetIds"
             :items="targets"
@@ -78,22 +47,6 @@
           <v-select
             v-model="filters.sourceIds"
             :items="sources"
-            item-title="label"
-            item-value="value"
-            multiple
-            chips
-            closable-chips
-            density="compact"
-            variant="outlined"
-            hide-details
-            placeholder="不限"
-          />
-        </div>
-        <div class="filter-group__row">
-          <span class="filter-group__label">源库类型</span>
-          <v-select
-            v-model="filters.dbTypes"
-            :items="SOURCE_DB_TYPE_OPTIONS"
             item-title="label"
             item-value="value"
             multiple
@@ -150,15 +103,36 @@
           />
         </div>
         <div class="filter-group__row">
-          <span class="filter-group__label">表注释</span>
-          <v-text-field
-            v-model="filters.comment"
-            density="compact"
-            variant="outlined"
-            hide-details
-            clearable
-            placeholder="包含"
-          />
+          <span class="filter-group__label">耗时(s)</span>
+          <div class="filter-group__range">
+            <v-text-field
+              v-model="filters.durationFrom"
+              type="number"
+              min="0"
+              step="1"
+              label="最短"
+              suffix="秒"
+              density="compact"
+              variant="outlined"
+              hide-details
+              clearable
+              @click:clear="filters.durationFrom = ''"
+            />
+            <span class="filter-group__tilde">~</span>
+            <v-text-field
+              v-model="filters.durationTo"
+              type="number"
+              min="0"
+              step="1"
+              label="最长"
+              suffix="秒"
+              density="compact"
+              variant="outlined"
+              hide-details
+              clearable
+              @click:clear="filters.durationTo = ''"
+            />
+          </div>
         </div>
       </section>
 
@@ -167,13 +141,19 @@
         <div v-for="range in DATE_RANGES" :key="range.key" class="filter-group__row">
           <span class="filter-group__label">{{ range.label }}</span>
           <div class="filter-group__range">
+            <!-- No placeholder: native date inputs ignore it, and an empty field must read as
+                 "not set" rather than as a value. The muted empty class does that; chips and the
+                 clear icon confirm which ranges the user actually picked. -->
             <v-text-field
               v-model="filters[range.from]"
               type="date"
               density="compact"
               variant="outlined"
               hide-details
-              placeholder="起"
+              clearable
+              :aria-label="`${range.label}起始日期`"
+              :class="filters[range.from] ? 'filter-date--filled' : 'filter-date--empty'"
+              @click:clear="filters[range.from] = ''"
             />
             <span class="filter-group__tilde">~</span>
             <v-text-field
@@ -182,7 +162,10 @@
               density="compact"
               variant="outlined"
               hide-details
-              placeholder="止"
+              clearable
+              :aria-label="`${range.label}结束日期`"
+              :class="filters[range.to] ? 'filter-date--filled' : 'filter-date--empty'"
+              @click:clear="filters[range.to] = ''"
             />
           </div>
         </div>
@@ -200,9 +183,6 @@
 <script setup lang="ts">
   import {
     SCHEMA_MODE_OPTIONS,
-    SOURCE_DB_TYPE_OPTIONS,
-    TARGET_FAMILIES,
-    TARGET_TYPE_OPTIONS,
     TRISTATE_OPTIONS,
     WRITE_MODE_OPTIONS,
   } from '@/components/table/filter-fields';
@@ -227,18 +207,6 @@
     { key: 'created', label: '创建时间', from: 'createdFrom', to: 'createdTo' },
     { key: 'updated', label: '更新时间', from: 'updatedFrom', to: 'updatedTo' },
   ] as const;
-
-  function isFamilyActive(family: { types: string[] }): boolean {
-    return family.types.every(type => filters.targetTypes.includes(type));
-  }
-
-  function toggleFamily(family: { types: string[] }): void {
-    if (isFamilyActive(family)) {
-      filters.targetTypes = filters.targetTypes.filter(type => !family.types.includes(type));
-      return;
-    }
-    filters.targetTypes = Array.from(new Set([...filters.targetTypes, ...family.types]));
-  }
 </script>
 
 <style scoped>
@@ -283,12 +251,6 @@
     color: rgb(var(--v-theme-on-surface-variant));
   }
 
-  .filter-group__families {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
   .filter-group__range {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -298,6 +260,18 @@
 
   .filter-group__tilde {
     color: rgb(var(--v-theme-on-surface-variant));
+  }
+
+  /* The browser's empty date text inherits the input color, so a chosen date and "yyyy/mm/dd"
+     look identical. Mute the empty state and make a chosen date heavier. */
+  .filter-date--empty :deep(input) {
+    color: rgb(var(--v-theme-on-surface-variant));
+    font-weight: 400;
+  }
+
+  .filter-date--filled :deep(input) {
+    color: rgb(var(--v-theme-on-surface));
+    font-weight: 600;
   }
 
   .filter-panel__actions {

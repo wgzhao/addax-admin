@@ -46,15 +46,14 @@ export function queryToFilters(query: LocationQuery): TableFilters {
       : 'CURRENT';
   // `source` is the historical single-value key; it now accepts a comma-separated list.
   result.sourceIds = parseIds(query.source);
-  result.dbTypes = splitCsv(query.dbTypes).map(item => item.toLowerCase());
   result.sourceEnabled = parseTristate(query.sourceEnabled);
   result.targetIds = parseIds(query.targets);
-  result.targetTypes = splitCsv(query.targetTypes).map(item => item.toUpperCase());
   result.targetDb = firstText(query.targetDb);
   result.targetEnabled = parseTristate(query.targetEnabled);
   result.writeModes = splitCsv(query.writeModes);
   result.schemaModes = splitCsv(query.schemaModes).map(item => item.toUpperCase());
-  result.comment = firstText(query.comment);
+  result.durationFrom = firstText(query.durationFrom);
+  result.durationTo = firstText(query.durationTo);
   result.endFrom = firstText(query.endFrom);
   result.endTo = firstText(query.endTo);
   result.createdFrom = firstText(query.createdFrom);
@@ -77,19 +76,17 @@ export function filtersToQuery(input: TableFilters): Record<string, string> {
   if (input.sourceIds.length) {
     query.source = [...input.sourceIds].sort((a, b) => a - b).join(',');
   }
-  if (input.dbTypes.length) query.dbTypes = [...input.dbTypes].sort().join(',');
   if (input.sourceEnabled !== 'ANY') query.sourceEnabled = input.sourceEnabled;
   if (input.targetIds.length) {
     query.targets = [...input.targetIds].sort((a, b) => a - b).join(',');
   }
-  if (input.targetTypes.length) query.targetTypes = [...input.targetTypes].sort().join(',');
   const targetDb = input.targetDb.trim();
   if (targetDb) query.targetDb = targetDb;
   if (input.targetEnabled !== 'ANY') query.targetEnabled = input.targetEnabled;
   if (input.writeModes.length) query.writeModes = [...input.writeModes].sort().join(',');
   if (input.schemaModes.length) query.schemaModes = [...input.schemaModes].sort().join(',');
-  const comment = input.comment.trim();
-  if (comment) query.comment = comment;
+  if (input.durationFrom) query.durationFrom = input.durationFrom;
+  if (input.durationTo) query.durationTo = input.durationTo;
   if (input.endFrom) query.endFrom = input.endFrom;
   if (input.endTo) query.endTo = input.endTo;
   if (input.createdFrom) query.createdFrom = input.createdFrom;
