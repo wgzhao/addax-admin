@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import tools.jackson.databind.JsonNode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -93,6 +94,22 @@ public class EtlExecution
 
     @Column(name = "job_digest", length = 64)
     private String jobDigest;
+
+    /**
+     * One-time secret embedded in the addax {@code jobName} so a report can be tied to this attempt.
+     * Never serialize it: the execution list is readable by every authenticated role.
+     */
+    @JsonIgnore
+    @Column(name = "report_token", length = 64)
+    private String reportToken;
+
+    /**
+     * Set when a report is accepted for this attempt. This is the durable one-shot gate: unlike a
+     * Redis TTL it never expires, so a captured token cannot be replayed into historical statistics.
+     */
+    @JsonIgnore
+    @Column(name = "report_received_at")
+    private LocalDateTime reportReceivedAt;
 
     @Column(name = "error_message")
     private String errorMessage;

@@ -33,6 +33,10 @@ public final class Constants
     // Redis key prefix recording a successful schema refresh per business date (yyyyMMdd suffix).
     // A master that comes up after the switch time without this marker runs a catch-up refresh.
     public static final String SCHEMA_REFRESH_DONE_KEY_PREFIX = "schema:refresh:done:";
+    // One-time tokens for addax smoke runs: the test registers the token before launch and the
+    // report endpoint consumes it. Without a token the anonymous report endpoint would accept
+    // arbitrary negative-tid statistics.
+    public static final String JOB_REPORT_SMOKE_TOKEN_PREFIX = "etl:job-report:smoke:";
     public static final String DEFAULT_PART_FORMAT = "yyyyMMdd";
     public static final DateTimeFormatter shortSdf = DateTimeFormatter.ofPattern(DEFAULT_PART_FORMAT);
     // Default SQL reserved keywords (used as fallback and baseline). Stored in upper-case.

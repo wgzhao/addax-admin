@@ -106,6 +106,7 @@
 
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useRoute } from 'vue-router';
   import router from '@/router';
   import { useAuthStore } from '@/stores/auth';
   import { authService } from '@/service/auth-service';
@@ -126,6 +127,7 @@
   });
 
   const loading = ref<boolean>(false);
+  const route = useRoute();
   const authStore = useAuthStore();
 
   function required(v: string): boolean | string {
@@ -143,7 +145,16 @@
         // Resolve the role before navigating; the first route may depend on it (for example a
         // scoped user is redirected away from the cross-source dashboard).
         await authStore.loadCurrentUser();
-        await router.push({ path: '/' });
+        // The guard stores the full target (filters, page, tab) in ?redirect=; only a same-origin
+        // absolute path is honored, otherwise a crafted link could bounce the user off-site.
+        const rawRedirect = route.query.redirect;
+        const redirect =
+          typeof rawRedirect === 'string' &&
+          rawRedirect.startsWith('/') &&
+          !rawRedirect.startsWith('//')
+            ? rawRedirect
+            : '/';
+        await router.push(redirect);
       } else {
         const msg = res && res.message ? res.message : '登录失败';
         notify(msg, 'error');

@@ -867,6 +867,9 @@ public class TaskQueueManagerV2Impl
         // Source whose running counter was reserved at start; drives the finally decrement so a
         // deleted table or a max_concurrency change mid-run cannot leak the counter.
         Integer countedSourceSid = null;
+        // Both early exits below (lost ownership, pending kill) return before the increment; the
+        // finally block must only release a count this run actually took.
+        boolean capacityReserved = false;
         final long jobId = job.getId();
 
         try {
@@ -890,6 +893,7 @@ public class TaskQueueManagerV2Impl
             // below are symmetric by construction: any exception between here and the finally block
             // releases what was reserved.
             runningTaskCount.incrementAndGet();
+            capacityReserved = true;
             task = tableService.getTable(job.getTid());
             if (task == null) {
                 throw new IllegalStateException("Task not found tid=" + job.getTid());
@@ -983,7 +987,7 @@ public class TaskQueueManagerV2Impl
                 lease.stop();
             }
 
-            int afterGlobal = runningTaskCount.decrementAndGet();
+            int afterGlobal = capacityReserved ? runningTaskCount.decrementAndGet() : runningTaskCount.get();
 
             // Release the source reservation taken at start (countedSourceSid), even if the table
             // or its source view disappeared mid-run — no re-fetch, no skipped decrement.
@@ -1385,13 +1389,22 @@ public class TaskQueueManagerV2Impl
             }
             String logName = String.format("%s.%s_%d_%s.log", task.getTargetDb(), task.getTargetTable(), taskId, bizDateStr);
             String addaxScript = Path.of(dictService.getAddaxHome(), "bin", "addax.sh").toString();
-            String jobName = taskId + ":" + execution.getId();
+            // The third segment is the one-time report credential; the report endpoint runs outside
+            // authentication and would otherwise accept forged statistics for any tid.
+            String reportToken = execution.getReportToken();
+            String jobName = taskId + ":" + execution.getId()
+                + (reportToken == null ? "" : ":" + reportToken);
             // Date variables are frozen into the job JSON at generation time; the file on disk is
             // the record of what this run uses. Only the job name and log file name still travel
             // to the child JVM.
             String jvmProps = buildJvmProps(jobName, logName);
             List<String> cmdArgs = List.of(addaxScript, "-p", jvmProps, tempFile.getAbsolutePath());
+            // The command is persisted in etl_jour and written to logs; keep the one-time report
+            // credential out of both.
             String cmd = toCommandString(cmdArgs);
+            if (reportToken != null) {
+                cmd = cmd.replace(reportToken, "***");
+            }
             TaskResultDto addaxResult = executeAddax(cmdArgs, cmd, task, execution, logName,
                 task.getMaxRuntime() == null ? ADDAX_EXECUTE_TIME_OUT_SECONDS : task.getMaxRuntime(), lease,
                 attemptNo, maxAttempts, forceRegenerate);
@@ -1486,6 +1499,13 @@ public class TaskQueueManagerV2Impl
             logContent = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("Failed to read Addax log: {}", path, e);
+        }
+        // Addax logs its report payload at INFO, which includes jobName and therefore the one-time
+        // token. It has usually been consumed by now, but a failed report would leave it usable to
+        // anyone who can read the stored log.
+        String reportToken = execution.getReportToken();
+        if (logContent != null && reportToken != null) {
+            logContent = logContent.replace(reportToken, "***");
         }
         Long logId = logContent == null ? null : addaxLogService.insertLog(tid, executionId, logContent);
         if (logContent == null) {

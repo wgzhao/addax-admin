@@ -48,4 +48,17 @@ public interface EtlExecutionRepo
            )
         """, nativeQuery = true)
     int failOrphanedRunningExecutions(@Param("reason") String reason);
+
+    /**
+     * Durable one-shot gate for the job report. The conditional update makes two concurrent reports
+     * race on the row lock: the loser sees the marker and is rejected, and a rollback releases it.
+     */
+    @Modifying(flushAutomatically = true)
+    @Query(value = """
+        UPDATE etl_execution
+           SET report_received_at = now()
+         WHERE id = :id
+           AND report_received_at IS NULL
+        """, nativeQuery = true)
+    int claimReport(@Param("id") long id);
 }

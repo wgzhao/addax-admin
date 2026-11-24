@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -72,6 +73,10 @@ public class EtlExecutionService
         execution.setStartedAt(LocalDateTime.now());
         execution.setSnapshotVersion(SNAPSHOT_VERSION);
         execution.setJobDigest(job == null ? null : sha256(job));
+        // The report arrives on a separate HTTP request with no authenticated identity. A per-attempt
+        // token carried in addax's jobName is the only thing that proves the caller is the process
+        // this execution launched.
+        execution.setReportToken(UUID.randomUUID().toString().replace("-", ""));
         execution.setConfigSnapshot(buildSnapshot(table, mappings, job, bizDate, contractReport));
         return executionRepo.save(execution);
     }
@@ -114,25 +119,24 @@ public class EtlExecutionService
     }
 
     /**
-     * Business date captured when the execution started.
-     *
-     * @param executionId execution id
-     * @return the execution's business date, or empty when the execution no longer exists
+     * Resolve the execution a job report names, but only when it belongs to the reported table.
+     * Callers still have to verify the report token; the join alone does not prove authorship.
      */
-    public Optional<LocalDate> findBizDate(long executionId)
+    public Optional<EtlExecution> findReportTarget(long executionId, long tid)
     {
-        return executionRepo.findById(executionId).map(EtlExecution::getBizDate);
+        return executionRepo.findById(executionId)
+            .filter(execution -> execution.getTid() != null && execution.getTid() == tid);
     }
 
     /**
-     * A job report must name an execution that belongs to the table it reports on; otherwise an
-     * arbitrary caller can write statistics for any tid.
+     * Claim the single report this attempt may submit. Callers must run inside the transaction that
+     * persists the report: a rollback releases the claim, so a failed report can be retried, while a
+     * committed claim blocks replays for good.
      */
-    public boolean belongsTo(long executionId, long tid)
+    @Transactional
+    public boolean claimReport(long executionId)
     {
-        return executionRepo.findById(executionId)
-            .map(execution -> execution.getTid() != null && execution.getTid() == tid)
-            .orElse(false);
+        return executionRepo.claimReport(executionId) > 0;
     }
 
     private JsonNode buildSnapshot(VwEtlTableWithSource table,

@@ -10,6 +10,7 @@ import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlTarget;
 import com.wgzhao.addax.admin.repository.EtlStatisticRepo;
 import com.wgzhao.addax.admin.service.DictService;
+import com.wgzhao.addax.admin.service.JobReportTokenService;
 import com.wgzhao.addax.admin.service.impl.HdfsTargetAdapter;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +74,7 @@ public class TargetHealthCheckService
     private final DictService dictService;
     private final EtlStatisticRepo etlStatisticRepo;
     private final ObjectMapper objectMapper;
+    private final JobReportTokenService jobReportTokenService;
 
     /** 检查清单：前端据此先渲染所有检查项，再逐项请求结果。 */
     public TargetHealthCheckPlan plan(EtlTarget target)
@@ -250,9 +252,10 @@ public class TargetHealthCheckService
             Files.writeString(jobFile, job, StandardCharsets.UTF_8);
 
             Path script = Path.of(dictService.getAddaxHome(), "bin", "addax.sh");
+            String reportToken = jobReportTokenService.issueSmokeToken(Constants.TARGET_SMOKE_TEST_TID);
             List<String> cmdArgs = List.of(
                 script.toString(),
-                "-p", "-DjobName=" + Constants.TARGET_SMOKE_TEST_TID
+                "-p", "-DjobName=" + Constants.TARGET_SMOKE_TEST_TID + ":" + reportToken
                     + " -Dlog.file.name=" + SMOKE_LOG_NAME,
                 jobFile.toAbsolutePath().toString());
 
@@ -261,9 +264,12 @@ public class TargetHealthCheckService
             try {
                 Process process = CommandExecutor.startProcess(cmdArgs);
                 result = CommandExecutor.waitForProcessWithResult(process, SMOKE_TIMEOUT_SECONDS,
-                    String.join(" ", cmdArgs));
+                    String.join(" ", cmdArgs).replace(reportToken, "***"));
             }
             finally {
+                // Do not revoke the token here: process exit does not guarantee that the report POST
+                // has been processed, and this check does not read the report. The token is one-shot
+                // and expires on its own, so a late report is harmless.
                 etlStatisticRepo.deleteByTid(Constants.TARGET_SMOKE_TEST_TID);
             }
 

@@ -73,6 +73,7 @@ public class AddaxValidationService
     private final EtlStatisticRepo etlStatisticRepo;
     private final ObjectMapper objectMapper;
     private final Environment environment;
+    private final JobReportTokenService jobReportTokenService;
 
     /**
      * @param addaxHomeInput 前端输入框当前值；为空时回退到已保存的 ADDAX 配置
@@ -202,12 +203,23 @@ public class AddaxValidationService
         // Establish a clean baseline so any existing tid=-1 row cannot be mistaken for this run's report
         etlStatisticRepo.deleteByTid(Constants.SMOKE_TEST_TID);
 
+        String reportToken;
+        try {
+            reportToken = jobReportTokenService.issueSmokeToken(Constants.SMOKE_TEST_TID);
+        }
+        catch (Exception e) {
+            return new AddaxCheckItem("smokeTest", "冒烟上报", "fail",
+                "无法登记上报令牌: " + e.getMessage(), "检查 Redis 连接后重试");
+        }
+
         Path jobFile = resolveJobFile(dir);
         List<String> cmdArgs = List.of(
             script.toString(),
-            "-p", "-DjobName=" + Constants.SMOKE_TEST_TID + " -Dlog.file.name=" + SMOKE_LOG_NAME,
+            "-p", "-DjobName=" + Constants.SMOKE_TEST_TID + ":" + reportToken
+                + " -Dlog.file.name=" + SMOKE_LOG_NAME,
             jobFile.toString());
-        String cmd = String.join(" ", cmdArgs);
+        // Never persist or print the one-time report credential.
+        String cmd = String.join(" ", cmdArgs).replace(reportToken, "***");
 
         TaskResultDto result;
         try {
@@ -218,7 +230,16 @@ public class AddaxValidationService
             result = TaskResultDto.failure(e.getMessage(), 0);
         }
 
-        Optional<EtlStatistic> reported = findSmokeReport();
+        // findSmokeReport() polls: the report POST can still be in flight when the process exits, so
+        // the token must stay valid until the poll gives up. It is one-shot, and the TTL bounds the
+        // window even if this revoke is skipped.
+        Optional<EtlStatistic> reported;
+        try {
+            reported = findSmokeReport();
+        }
+        finally {
+            jobReportTokenService.revokeSmokeToken(reportToken);
+        }
         etlStatisticRepo.deleteByTid(Constants.SMOKE_TEST_TID);
 
         if (jobFile.toAbsolutePath().toString().contains("addax-smoke")) {

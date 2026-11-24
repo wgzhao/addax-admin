@@ -314,6 +314,21 @@ public class EtlJobQueueService
         return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
     }
 
+    /**
+     * Whether this queue row is still the live attempt. Used by the report endpoint as the
+     * compatibility check for executions created before report tokens existed.
+     */
+    public boolean isRunning(Long jobId)
+    {
+        if (jobId == null) {
+            return false;
+        }
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT count(1) FROM public.etl_job_queue WHERE id=? AND status='running'",
+            Integer.class, jobId);
+        return count != null && count > 0;
+    }
+
     // Renew lease for a running, claimed job. Returns true if the lease was renewed.
     @Transactional
     public boolean renewLease(long jobId, String instanceId, int leaseSeconds)
