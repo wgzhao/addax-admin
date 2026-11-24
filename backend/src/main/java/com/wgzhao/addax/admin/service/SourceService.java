@@ -120,13 +120,14 @@ public class SourceService
         boolean scheduleChanged = !Objects.equals(existing.getStartAt(), etlSource.getStartAt());
         boolean calendarChanged = !Objects.equals(existing.getCalendar(), etlSource.getCalendar());
 
-        // 更新该采集源下所有采集任务的模板，这里主要考虑到可能调整了采集源的连接参数
-        // 如果连接串，账号，密码三者没变更，则不要更新任务模板
-        String existPos = existing.getUrl() + existing.getUsername() + existing.getPass();
-        String newPos = etlSource.getUrl() + etlSource.getUsername() + etlSource.getPass();
-        // Structured connection options live in connect_config for non-JDBC engines; a change there
-        // must refresh job templates even when the display URL is unchanged.
-        boolean connectionChanged = !Objects.equals(existPos, newPos)
+        // Compare the connection fields individually: concatenating them lets a value boundary shift
+        // hide a real change (url "ab" + user "c" equals url "a" + user "bc"), which would skip the
+        // job-template refresh.
+        boolean connectionChanged = !Objects.equals(existing.getUrl(), etlSource.getUrl())
+            || !Objects.equals(existing.getUsername(), etlSource.getUsername())
+            || !Objects.equals(existing.getPass(), etlSource.getPass())
+            // Structured connection options live in connect_config for non-JDBC engines; a change there
+            // must refresh job templates even when the display URL is unchanged.
             || !Objects.equals(existing.getConnectConfig(), etlSource.getConnectConfig());
 
         etlSourceRepo.save(etlSource);
