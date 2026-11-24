@@ -1,6 +1,7 @@
 package com.wgzhao.addax.admin.service;
 
 import com.wgzhao.addax.admin.alert.AlertSeverity;
+import com.wgzhao.addax.admin.alert.model.AlertEvent;
 import com.wgzhao.addax.admin.audit.AuditRecorder;
 import com.wgzhao.addax.admin.dto.DayCutOutcome;
 import com.wgzhao.addax.admin.dto.TableRefreshStats;
@@ -16,10 +17,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Turns a day-cut outcome into the three facts the subsystem now keeps apart:
- * an audit record for every completed run, a SCHEDULE failure event that stays
- * open until a later run succeeds, and a P2 notice for tables a successful run
- * could not refresh. Alerting never propagates into the refresh itself.
+ * Turns a day-cut outcome into the facts the subsystem now keeps apart: an audit
+ * record for every completed run, a SCHEDULE failure event that stays open until
+ * a later run succeeds, a P2 notice for tables a successful run could not
+ * refresh, and a recovery notice to the channels that saw the failure. A clean
+ * run with nothing open is silent. Alerting never propagates into the refresh
+ * itself.
  */
 @Service
 @RequiredArgsConstructor
@@ -63,7 +66,14 @@ public class DayCutAlerter
         if (outcome.success()) {
             boolean tableProblems = refresh.failed() > 0 || remainingWaitSchema > 0;
             if (!tableProblems) {
-                alertService.resolveScheduleEvents(DAYCUT_KEY_PREFIX, Set.of());
+                List<AlertEvent> resolved = alertService.resolveScheduleEvents(DAYCUT_KEY_PREFIX, Set.of());
+                // A clean day cut is silent, but a run that clears an earlier failure
+                // must tell the channels that saw that failure, otherwise recovery is
+                // only visible to whoever happens to watch the events page.
+                if (!resolved.isEmpty()) {
+                    alertService.sendScheduleRecovery("DAYCUT_RECOVERY:" + date,
+                        "切日刷新已恢复 · " + date, recoveryMessage(outcome), data, resolved);
+                }
                 return;
             }
             String tableKey = "SCHEDULE:DAYCUT_TABLES:" + date;
@@ -104,6 +114,16 @@ public class DayCutAlerter
         text.append("影响：未完成刷新的表不会自动建/改目标表，相关采集可能失败或继续写入旧结构，需人工处理。");
         appendFailureList(text, refresh);
         return text.toString();
+    }
+
+    private String recoveryMessage(DayCutOutcome outcome)
+    {
+        TableRefreshStats refresh = outcome.refresh();
+        return "重试后切日刷新已成功完成。\n"
+            + "表状态重置：" + outcome.resetTables() + " 张\n"
+            + "表结构刷新：成功 " + refresh.success() + "，失败 " + refresh.failed()
+            + "（计划 " + refresh.total() + " 张）\n"
+            + "耗时：" + (outcome.durationMs() / 1000) + " 秒";
     }
 
     private String tableFailureMessage(TableRefreshStats refresh, int remainingWaitSchema)

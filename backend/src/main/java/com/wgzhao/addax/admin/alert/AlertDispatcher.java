@@ -24,6 +24,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -220,15 +221,16 @@ public class AlertDispatcher
     /**
      * Resolves open SCHEDULE events whose key starts with {@code prefix}, except the
      * keys named in {@code keepKeys}. A later fully successful refresh supersedes an
-     * earlier failure; the old event must not stay FIRING forever.
+     * earlier failure; the old event must not stay FIRING forever. Returned events are
+     * the ones just closed, so the caller can find who saw the failure.
      */
     @Transactional
-    public int resolveOpenScheduleEvents(String prefix, Set<String> keepKeys)
+    public List<AlertEvent> resolveOpenScheduleEvents(String prefix, Set<String> keepKeys)
     {
         List<AlertEvent> open = eventRepo.findByEventTypeAndStatusIn(AlertEventType.SCHEDULE.name(),
             List.of(AlertEventStatus.FIRING, AlertEventStatus.SILENCED));
         Instant now = Instant.now();
-        int resolved = 0;
+        List<AlertEvent> resolved = new ArrayList<>();
         for (AlertEvent event : open) {
             if (!event.getEventKey().startsWith(prefix) || keepKeys.contains(event.getEventKey())) {
                 continue;
@@ -237,9 +239,72 @@ public class AlertDispatcher
             event.setResolvedAt(now);
             event.setLastSeen(now);
             eventRepo.save(event);
-            resolved++;
+            resolved.add(event);
         }
         return resolved;
+    }
+
+    /**
+     * Announces that a schedule condition really recovered. Only the channels that
+     * received the failure are targeted, so a recovery never reaches a new audience;
+     * a failure that was never delivered anywhere has nobody to notify.
+     */
+    @Transactional
+    public boolean publishScheduleRecovery(String keySuffix, String title, String message,
+        Map<String, String> data, List<AlertEvent> failures)
+    {
+        if (failures == null || failures.isEmpty()) {
+            return false;
+        }
+        Set<Long> channelIds = new LinkedHashSet<>();
+        Instant firstSeen = null;
+        int fireCount = 0;
+        for (AlertEvent failure : failures) {
+            channelIds.addAll(deliveryRepo.findChannelIdsByEventId(failure.getId(), FIRING_DELIVERY_STATUSES));
+            if (failure.getFirstSeen() != null
+                && (firstSeen == null || failure.getFirstSeen().isBefore(firstSeen))) {
+                firstSeen = failure.getFirstSeen();
+            }
+            fireCount += failure.getFireCount();
+        }
+        List<AlertChannel> channels = channelRepo.findAllById(channelIds).stream()
+            .filter(AlertChannel::isEnabled).toList();
+        Instant now = Instant.now();
+        String body = message == null ? "" : message;
+        ObjectNode payloadData = objectMapper.createObjectNode();
+        if (data != null) {
+            data.forEach(payloadData::put);
+        }
+        payloadData.put("alertedAt", firstSeen == null ? "" : TIME_FORMAT.format(firstSeen));
+        payloadData.put("fireCount", fireCount);
+        String markdown = "## <font color=\"green\"> " + title + "</font>\n"
+            + "**时间**: " + TIME_FORMAT.format(now) + "\n"
+            + "**主机**: " + messageFactory.hostname() + "\n"
+            + (firstSeen == null ? "" : "**原失败告警时间**: " + TIME_FORMAT.format(firstSeen) + "\n")
+            + "**告警次数**: " + fireCount + "\n"
+            + "---------------------------------\n"
+            + "**告警内容**: " + body;
+        String text = "【" + title + "】" + body;
+        JsonNode payload = messageFactory.payload(title, markdown, text,
+            "<h2>" + AlertMessageFactory.escapeHtml(title) + "</h2><p>"
+                + AlertMessageFactory.escapeHtml(body) + "</p>", payloadData, Map.of());
+
+        AlertEvent recovery = new AlertEvent();
+        recovery.setEventKey("SCHEDULE:" + keySuffix);
+        recovery.setEventType(AlertEventType.SCHEDULE.name());
+        recovery.setSeverity(AlertSeverity.P2.name());
+        recovery.setScopeType("ALL");
+        recovery.setScopeValue(null);
+        recovery.setFirstSeen(now);
+        recovery.setLastSeen(now);
+        recovery.setFireCount(1);
+        recovery.setStatus(AlertEventStatus.RESOLVED);
+        recovery.setResolvedAt(now);
+        recovery.setPayload(payload);
+        eventRepo.save(recovery);
+        AlertSilence silence = silenceService.findActiveFor("ALL", null, null, null).orElse(null);
+        publishDeliveries(recovery, channels.stream().map(AlertChannel::getId).toList(), null, silence, null);
+        return true;
     }
 
     @Transactional

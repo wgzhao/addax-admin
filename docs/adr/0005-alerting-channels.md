@@ -115,7 +115,12 @@ completion marker) and writes:
   there is no automatic re-run (repeated DDL is worse than a human deciding).
   These tables do not collect until someone fixes them and refreshes.
 - An audit record (`DAILY_REFRESH_COMPLETED`) for every completed run, including
-  the all-good case. Success is not an alert: it is not routed to any channel.
+  the all-good case. A clean run with nothing open sends no message. A clean run
+  that closes an earlier `SCHEDULE:DAYCUT` failure also publishes
+  `SCHEDULE:DAYCUT_RECOVERY:<bizDate>` (P2, recorded as a RESOLVED fact) so the
+  operators who saw the failure learn that the retry succeeded. That recovery is
+  delivered only to the channels that received the failure delivery — never
+  through rule routing, so it cannot introduce a new audience.
 
 `U` (waiting for schema update) tables are part of the refresh set — `'X'` and
 disabled sources are the only exclusions — and a successful refresh moves them
