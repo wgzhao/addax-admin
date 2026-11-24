@@ -36,8 +36,11 @@ exact). An index on the raw text would either miss duplicates or reject valid ca
   connections inside its transaction. The backfill computes each key through
   `CollectionScopeService`, skips a row whose key would collide with another active definition, and
   logs the conflict instead of failing the launch.
-- A source connection edit re-runs the probe and rewrites the source's keys on the async refresh
-  thread; a source server that changes its case rule is the only way the source-side key can drift.
+- A source connection edit invalidates the source's cached identifier policy (the cache key is the
+  source id, URL and database name, so an edit that keeps the URL would otherwise reuse the old
+  answer) and rewrites the source's keys on the async refresh thread. A source server that changes
+  its case rule without any edit is the only remaining way the source-side key can drift, and the
+  60-second cache TTL bounds that window.
 - Changing a target's type or writer template changes its identifier policy, so the target update
   rewrites every key of that target inside its transaction. A conflict rolls the target change back
   with a 409 instead of leaving keys that disagree with the policy used to compare them.

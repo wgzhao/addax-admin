@@ -372,6 +372,20 @@ public class CollectionScopeService
     }
 
     /**
+     * Drop the cached identifier policies of a source. The cache key is the source id, URL and
+     * database name; an edit that leaves the URL unchanged can still point at a server whose case
+     * rule or collation differs, and that answer must not be reused.
+     */
+    public void invalidateSourcePolicy(int sid)
+    {
+        String prefix = sid + "\u0000";
+        if (policyCache.keySet().removeIf(key -> key.startsWith(prefix)))
+        {
+            log.info("Invalidated identifier policy cache for source {}", sid);
+        }
+    }
+
+    /**
      * Recompute keys after a source connection change, because the live identifier policy (mysql
      * {@code lower_case_table_names}, sqlserver collation) can change with the server. Runs on the
      * async refresh thread; a row whose new key conflicts keeps its previous key and is logged.
@@ -383,6 +397,7 @@ public class CollectionScopeService
         {
             return;
         }
+        invalidateSourcePolicy(sid);
         for (EtlTable row : tableRepo.findBySid(sid))
         {
             if (row.getRetiredAt() != null)

@@ -6,6 +6,7 @@ import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.model.EtlSource;
 import com.wgzhao.addax.admin.repository.EtlSourceRepo;
 import com.wgzhao.addax.admin.scheduler.CollectionScheduler;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.service.source.SourceAccessException;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.source.SourceRef;
@@ -53,6 +54,8 @@ public class SourceService
     private final StringRedisTemplate redisTemplate;
 
     private final SourceAdapterRegistry sourceAdapterRegistry;
+
+    private final CollectionScopeService collectionScopeService;
 
     /**
      * 获取有效数据源数量
@@ -134,6 +137,10 @@ public class SourceService
 
         // 连接源的修改，仅需要一个节点去更新任务模板即可，其他节点通过 Redis 消息通知来更新
         if (connectionChanged) {
+            // The live case rule can follow the connection (mysql lower_case_table_names, sqlserver
+            // collation). Drop the cached policy now so requests after this save already see the new
+            // answer; the async refresh below probes again for the stored keys.
+            collectionScopeService.invalidateSourcePolicy(etlSource.getId());
             SourceUpdatedEvent sourceUpdatedEvent = new SourceUpdatedEvent(this, etlSource.getId(), true);
             runAfterCommit(() -> {
                 try {
