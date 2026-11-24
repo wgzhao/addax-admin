@@ -1,12 +1,14 @@
 package com.wgzhao.addax.admin.controller;
 
 import com.wgzhao.addax.admin.audit.AuditRecorder;
+import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.dto.AddaxLogDto;
 import com.wgzhao.addax.admin.dto.AddaxReportDto;
 import com.wgzhao.addax.admin.dto.ApiResponse;
 import com.wgzhao.addax.admin.dto.PageResponse;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.AddaxLog;
+import com.wgzhao.addax.admin.model.EtlExecution;
 import com.wgzhao.addax.admin.model.EtlStatistic;
 import com.wgzhao.addax.admin.service.AddaxLogService;
 import com.wgzhao.addax.admin.service.AuthzService;
@@ -14,7 +16,9 @@ import com.wgzhao.addax.admin.service.CalendarService;
 import com.wgzhao.addax.admin.service.CollectionSignalService;
 import com.wgzhao.addax.admin.service.DataQualityService;
 import com.wgzhao.addax.admin.service.EtlExecutionService;
+import com.wgzhao.addax.admin.service.EtlJobQueueService;
 import com.wgzhao.addax.admin.service.FailureService;
+import com.wgzhao.addax.admin.service.JobReportTokenService;
 import com.wgzhao.addax.admin.service.ReconcileService;
 import com.wgzhao.addax.admin.service.StatService;
 import com.wgzhao.addax.admin.service.SystemConfigService;
@@ -51,6 +55,8 @@ public class LogController
     private final ReconcileService reconcileService;
     private final DataQualityService dataQualityService;
     private final CollectionSignalService collectionSignalService;
+    private final EtlJobQueueService jobQueueService;
+    private final JobReportTokenService jobReportTokenService;
 
     @GetMapping("/addax")
     public PageResponse<AddaxLog> listAddaxLog(
@@ -90,7 +96,7 @@ public class LogController
         catch (NumberFormatException e) {
             throw new ApiException(400, "Invalid tid");
         }
-        authzService.requireTableRead(tableId);
+        authzService.requireTableOperate(tableId);
         return ApiResponse.success(addaxLogService.getLogEntry(tid));
     }
 
@@ -140,58 +146,152 @@ public class LogController
     public boolean jobReport(@RequestBody AddaxReportDto dto)
     {
         log.debug("job report: {}", dto);
-        long tid;
-        Long executionId = null;
-        try {
-            String[] parts = dto.jobName().split(":", 2);
-            tid = Long.parseLong(parts[0]);
-            if (parts.length == 2) {
-                executionId = Long.parseLong(parts[1]);
-            }
-        }
-        catch (NumberFormatException e) {
+        ReportJobName jobName = parseReportJobName(dto.jobName());
+        if (jobName == null) {
             log.error("Invalid jobName format: {}", dto.jobName());
             return false;
         }
-        if (tid < 0) {
-            // Well-known negative tids are reserved for smoke checks (addax-directory validation,
-            // target health check). Persist the report so the caller can confirm it round-tripped;
-            // the caller deletes the row afterwards. There is no real table behind these tids, so
-            // skip the table/execution checks and every downstream side effect (reconcile / quality
-            // / collection signal).
-            EtlStatistic sta = buildStatistic(dto, tid, null);
-            sta.setBizDate(LocalDate.now());
-            return statService.saveOrUpdate(sta);
+        if (jobName.tid() < 0) {
+            return acceptSmokeReport(dto, jobName);
         }
-        if (tableService.getTable(tid) == null) {
-            log.warn("Rejecting job report for unknown tid {}", tid);
+        EtlExecution execution = executionService.findReportTarget(jobName.executionId(), jobName.tid())
+            .orElse(null);
+        if (execution == null) {
+            log.warn("Rejecting job report for execution {} that does not belong to tid {}",
+                jobName.executionId(), jobName.tid());
             return false;
         }
-        if (executionId != null && !executionService.belongsTo(executionId, tid)) {
-            log.warn("Rejecting job report for execution {} that does not belong to tid {}", executionId, tid);
+        if (!verifyReportAuthorship(execution, jobName.token())) {
             return false;
         }
-        EtlStatistic sta = buildStatistic(dto, tid, executionId);
+        if (tableService.getTable(jobName.tid()) == null) {
+            log.warn("Rejecting job report for unknown tid {}", jobName.tid());
+            return false;
+        }
+        EtlStatistic sta = buildStatistic(dto, jobName.tid(), execution.getId());
         // The execution snapshot knows the exact date the run was started for. A fillback run
         // carries a historical date, so deriving the date from "now" would make every fillback
-        // overwrite the same etl_statistic row. Fall back to the table calendar only when the
-        // report does not carry an execution id (legacy callers).
-        LocalDate bizDate = executionId == null
-            ? null
-            : executionService.findBizDate(executionId).orElse(null);
+        // overwrite the same etl_statistic row.
+        LocalDate bizDate = execution.getBizDate();
         if (bizDate == null) {
-            // The table's own calendar decides it: a source collecting on workdays or trading days
-            // is stamped with a date the global business date does not match on the morning after a
-            // holiday, and the missing-collection report reads this column back.
-            bizDate = calendarService.businessDate(tableService.getSourceCalendar(tid));
+            // Defensive: biz_date is NOT NULL in the schema. The table's own calendar decides it,
+            // because a source collecting on workdays or trading days is stamped with a date the
+            // global business date does not match on the morning after a holiday.
+            bizDate = calendarService.businessDate(tableService.getSourceCalendar(jobName.tid()));
         }
         sta.setBizDate(bizDate);
         boolean saved = statService.saveOrUpdate(sta);
-        reconcileService.reconcile(tid, executionId, bizDate,
+        reconcileService.reconcile(jobName.tid(), execution.getId(), bizDate,
             dto.totalReadRecords(), dto.totalErrorRecords());
-        dataQualityService.checkRowCountDrift(tid, executionId, bizDate, dto.totalReadRecords());
-        collectionSignalService.signalComplete(tid, bizDate, dto.totalReadRecords(), dto.totalErrorRecords());
+        dataQualityService.checkRowCountDrift(jobName.tid(), execution.getId(), bizDate,
+            dto.totalReadRecords());
+        collectionSignalService.signalComplete(jobName.tid(), bizDate,
+            dto.totalReadRecords(), dto.totalErrorRecords());
         return saved;
+    }
+
+    /**
+     * Parsed addax {@code jobName}. Production attempts are {@code tid:executionId:token}; smoke
+     * attempts are {@code -tid:token} because they have no execution row.
+     */
+    private record ReportJobName(long tid, Long executionId, String token)
+    {
+    }
+
+    private static ReportJobName parseReportJobName(String jobName)
+    {
+        if (jobName == null || jobName.isBlank()) {
+            return null;
+        }
+        String[] parts = jobName.split(":", 3);
+        long tid;
+        try {
+            tid = Long.parseLong(parts[0].trim());
+        }
+        catch (NumberFormatException e) {
+            return null;
+        }
+        if (tid < 0) {
+            String token = parts.length >= 2 && !parts[1].isBlank() ? parts[1] : null;
+            return new ReportJobName(tid, null, token);
+        }
+        if (parts.length < 2) {
+            return null;
+        }
+        long executionId;
+        try {
+            executionId = Long.parseLong(parts[1].trim());
+        }
+        catch (NumberFormatException e) {
+            return null;
+        }
+        String token = parts.length >= 3 && !parts[2].isBlank() ? parts[2] : null;
+        return new ReportJobName(tid, executionId, token);
+    }
+
+    /**
+     * A report is accepted only when it carries the token of this exact attempt and has not been
+     * accepted before. Executions created before tokens existed fall back to a live queue row: they
+     * can only be reports from an in-flight run that started on a node running the previous build.
+     */
+    private boolean verifyReportAuthorship(EtlExecution execution, String token)
+    {
+        String expected = execution.getReportToken();
+        if (expected != null) {
+            if (!JobReportTokenService.matches(expected, token)) {
+                log.warn("Rejecting job report for execution {}: report token mismatch", execution.getId());
+                return false;
+            }
+            try {
+                if (!jobReportTokenService.consumeExecutionReport(execution.getId())) {
+                    log.warn("Rejecting duplicate job report for execution {}", execution.getId());
+                    return false;
+                }
+            }
+            catch (Exception e) {
+                // A Redis outage must not drop every statistic; the token still proves authorship.
+                log.warn("Cannot record report consumption for execution {}: {}",
+                    execution.getId(), e.getMessage());
+            }
+            return true;
+        }
+        if (!jobQueueService.isRunning(execution.getJobQueueId())) {
+            log.warn("Rejecting tokenless job report for execution {}: queue row is not running",
+                execution.getId());
+            return false;
+        }
+        log.warn("Accepting legacy tokenless job report for execution {} (queue row {} is running)",
+            execution.getId(), execution.getJobQueueId());
+        return true;
+    }
+
+    /**
+     * Negative tids are reserved for smoke checks (addax-directory validation, target health check).
+     * They have no table or execution behind them, so the token registered by the caller in Redis is
+     * the only proof that this is a legitimate probe; downstream side effects are skipped.
+     */
+    private boolean acceptSmokeReport(AddaxReportDto dto, ReportJobName jobName)
+    {
+        if (jobName.tid() != Constants.SMOKE_TEST_TID
+            && jobName.tid() != Constants.TARGET_SMOKE_TEST_TID) {
+            log.warn("Rejecting job report for unregistered negative tid {}", jobName.tid());
+            return false;
+        }
+        boolean verified;
+        try {
+            verified = jobReportTokenService.consumeSmokeToken(jobName.tid(), jobName.token());
+        }
+        catch (Exception e) {
+            log.warn("Cannot verify smoke report token for tid {}: {}", jobName.tid(), e.getMessage());
+            return false;
+        }
+        if (!verified) {
+            log.warn("Rejecting unverifiable smoke job report for tid {}", jobName.tid());
+            return false;
+        }
+        EtlStatistic sta = buildStatistic(dto, jobName.tid(), null);
+        sta.setBizDate(LocalDate.now());
+        return statService.saveOrUpdate(sta);
     }
 
     private static EtlStatistic buildStatistic(AddaxReportDto dto, long tid, Long executionId)

@@ -177,6 +177,7 @@ CREATE TABLE public.etl_execution (
     snapshot_version integer DEFAULT 1 NOT NULL,
     config_snapshot jsonb NOT NULL,
     job_digest character varying(64),
+    report_token character varying(64),
     error_message text
 );
 
