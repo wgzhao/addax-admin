@@ -82,6 +82,11 @@ Authorization is enforced on the server, not in the UI.
   guest read access. Write endpoints resolve the table to its `sid` and require OPERATE.
 - Logs are the exception: guest has no log access, and a user sees only logs from sources they
   operate. The log list is filtered in SQL so pagination stays correct.
+- Failure facts are split the same way: the summary, stage, category and route are metadata and
+  readable by every authenticated role, while the raw `detail` and the linked log stay operational
+  and are replaced by `restricted` markers for callers without OPERATE. Summaries are recorded
+  through `AuditSanitizer.sanitizeText` so the metadata-level surface cannot carry an embedded
+  credential. This is why `/failures` endpoints require read rather than operate.
 - Batch operations validate every id and reject the whole batch if any id is outside the caller's
   OPERATE scope.
 - Table updates validate both the current `sid` and the requested `sid`, so a table cannot be moved

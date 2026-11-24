@@ -1,5 +1,6 @@
 package com.wgzhao.addax.admin.service;
 
+import com.wgzhao.addax.admin.audit.AuditSanitizer;
 import com.wgzhao.addax.admin.common.FailureCategory;
 import com.wgzhao.addax.admin.model.EtlFailure;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -39,13 +40,15 @@ public class FailureRecorder
 
     private final EtlFailureRepo failureRepo;
     private final VwEtlTableWithSourceRepo tableViewRepo;
+    private final AuditSanitizer sanitizer;
     private final TransactionTemplate requiresNew;
 
     public FailureRecorder(EtlFailureRepo failureRepo, VwEtlTableWithSourceRepo tableViewRepo,
-        PlatformTransactionManager transactionManager)
+        AuditSanitizer sanitizer, PlatformTransactionManager transactionManager)
     {
         this.failureRepo = failureRepo;
         this.tableViewRepo = tableViewRepo;
+        this.sanitizer = sanitizer;
         this.requiresNew = new TransactionTemplate(transactionManager);
         // A failure must survive the rollback of the operation that produced it.
         this.requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -63,7 +66,9 @@ public class FailureRecorder
     {
         FailureEvidence ev = evidence == null ? FailureEvidence.create() : evidence;
         try {
-            String normalized = normalizeSummary(summary);
+            // Summaries are metadata read by every authenticated role; error text can embed a JDBC URL
+            // with userinfo, so redact before the row becomes readable.
+            String normalized = sanitizer.sanitizeText(normalizeSummary(summary));
             String stage = ev.stage();
             String errorClass = trimTo(ev.errorClass(), 200);
             String fingerprint = fingerprint(tid, stage, errorClass, normalized, ev.legacyJourId());
