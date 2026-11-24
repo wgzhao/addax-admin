@@ -18,6 +18,10 @@
 | 用户名 / 密码 | 源端凭据；MongoDB/Elasticsearch 必须同时填写或同时留空        |
 | 备注          | 用途、负责人或维护注意事项                                    |
 
+账号和密码必须填写在「用户名 / 密码」字段，不要写进 JDBC 连接串。连接串请保持为纯地址，例如
+`jdbc:mysql://db-host:3306/orders`；写成 `jdbc:mysql://user:pass@db-host/orders` 会把凭据一起带进
+采集源列表、采集表列表和审计记录。
+
 ### MongoDB 采集源
 
 连接类型选择 `MongoDB` 后，界面会隐藏 JDBC 地址，改为填写：

@@ -110,8 +110,9 @@ well.
 Guest read-only is meaningless while read endpoints expose secrets. Before or together with this
 model:
 
-- `VwEtlTableWithSource.pass` must not be serialized; `GET /tables` currently returns every source
-  password in plaintext.
+- `GET /tables` and `GET /sources` now serialize explicit response DTOs (ADR-0020): the source URL is
+  metadata and returned to every role, while the account and structured connection config are
+  returned only to OPERATE holders.
 - `GET /targets` must return a sanitized view for non-admin callers. It currently returns
   `connect_config`, which contains the HiveServer2 password. The non-secret HDFS writer defaults
   (`defaultFS`, `hdfsPrefix`, storage/compression format) remain visible because the add-table flow
