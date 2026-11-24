@@ -763,12 +763,16 @@
 
   const currentPage = ref(1);
 
-  const writeQuery = () => {
+  // Filter edits replace the entry so the back button does not walk through every keystroke; page and
+  // size changes push, because "back to the previous page" is exactly what the browser button means
+  // to a user reading a table.
+  const writeQuery = (pushHistory = false) => {
     const query: Record<string, string> = { ...filtersToQuery(filters) };
     if (currentPage.value > 1) query.page = String(currentPage.value);
     if (currPageSize.value !== 15) query.size = String(currPageSize.value);
     if (route.query.action) query.action = String(route.query.action);
-    router.replace({ path: route.path, query }).catch(() => {});
+    const navigate = pushHistory ? router.push : router.replace;
+    navigate({ path: route.path, query }).catch(() => {});
   };
 
   const readQuery = (query = route.query) => {
@@ -780,6 +784,11 @@
   // Restore filters from the URL before the table mounts, so returning from a
   // detail page keeps the same slice of data instead of refetching page one.
   readQuery();
+
+  // Last slice that actually came back from the server. Comparing against it (rather than against
+  // the v-model refs, which Vuetify may update before emitting update:options) is what tells a real
+  // page/size navigation apart from a reload caused by the URL itself.
+  const lastLoaded = ref({ page: currentPage.value, size: currPageSize.value });
 
   function exportCurrentPage() {
     const rows = table.value.map(row => ({
@@ -905,8 +914,18 @@
     sortBy: any;
   }
 
-  const loadItems = ({ page, itemsPerPage, sortBy }: LoadItemsOptions) => {
+  const loadItems = (
+    { page, itemsPerPage, sortBy }: LoadItemsOptions,
+    history: 'push' | 'replace' = 'push'
+  ) => {
     loading.value = true;
+    const sliceChanged =
+      page !== lastLoaded.value.page || itemsPerPage !== lastLoaded.value.size;
+    if (history === 'replace') {
+      // A URL-driven reload owns the slice immediately, so a second update:options emission for the
+      // same page cannot look like a navigation and push a duplicate history entry.
+      lastLoaded.value = { page, size: itemsPerPage };
+    }
     currentPage.value = page;
     currPageSize.value = itemsPerPage;
     const sortParam = createSort(sortBy);
@@ -928,8 +947,11 @@
       .then(res => {
         table.value = res.content;
         totalItems.value = res.totalElements;
+        lastLoaded.value = { page, size: itemsPerPage };
         loading.value = false;
-        writeQuery();
+        // A page/size change is a navigation; a reload triggered by the URL itself must not add
+        // another identical entry to the history stack.
+        writeQuery(history === 'push' && sliceChanged);
       })
       .catch(error => {
         const msg = error instanceof Error ? error.message : String(error);
@@ -940,7 +962,10 @@
 
   const _searchCore = () => {
     selected.value = [];
-    loadItems({ page: 1, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value });
+    loadItems(
+      { page: 1, itemsPerPage: currPageSize.value, sortBy: currentSortParam.value },
+      'replace'
+    );
   };
   const searchTable = debounce(_searchCore, 400);
 
@@ -950,21 +975,29 @@
     () => searchTable()
   );
 
-  // Browser back/forward and external links re-hydrate the filters. Comparison happens on the
-  // canonical query form, so a reordered selection does not look like a different filter set.
+  // Browser back/forward and external links re-hydrate the filters and the page slice. Comparison
+  // happens on the canonical query form, so a reordered selection does not look like a different
+  // filter set; page/size are compared separately because two history entries can differ only by
+  // page, and the reload must keep the incoming slice instead of resetting to page one.
   watch(
     () => route.query,
     query => {
       const incoming = queryToFilters(query);
-      if (
-        JSON.stringify(filtersToQuery(incoming)) === JSON.stringify(filtersToQuery(filters))
-      ) {
+      const incomingPage = Number(query.page) > 0 ? Number(query.page) : 1;
+      const incomingSize = Number(query.size) > 0 ? Number(query.size) : 15;
+      const sameFilters =
+        JSON.stringify(filtersToQuery(incoming)) === JSON.stringify(filtersToQuery(filters));
+      if (sameFilters && incomingPage === currentPage.value && incomingSize === currPageSize.value) {
         return;
       }
       Object.assign(filters, incoming);
-      currentPage.value = Number(query.page) > 0 ? Number(query.page) : 1;
-      currPageSize.value = Number(query.size) > 0 ? Number(query.size) : 15;
-      _searchCore();
+      currentPage.value = incomingPage;
+      currPageSize.value = incomingSize;
+      selected.value = [];
+      loadItems(
+        { page: incomingPage, itemsPerPage: incomingSize, sortBy: currentSortParam.value },
+        'replace'
+      );
     },
     { deep: true }
   );
