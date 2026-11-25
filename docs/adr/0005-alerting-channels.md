@@ -127,6 +127,29 @@ disabled sources are the only exclusions — and a successful refresh moves them
 back to `N` when the business period owes them a collection. The day-cut report
 carries the `U → N` count and the number still waiting.
 
+## Cluster state consistency
+
+The running counters live in memory on each node and the queue lives in the
+database, so a lost increment, a crashed worker or a stuck lease sweep leaves
+them disagreeing with no error anywhere. The master runs a periodic check and
+publishes `SYSTEM:STATE:CONSISTENCY` (P2, FIRING) when:
+
+- an alive worker reports a negative global `running` count;
+- an alive worker reports a negative per-source running count (carried in a
+  dedicated heartbeat field; the per-source map used for dispatch still only
+  contains positive values, because a negative there would over-allocate);
+- a `running` queue row keeps a lease more than two minutes past expiry, which
+  means the sweep is not reclaiming it;
+- the number of `running` queue rows differs from the sum of heartbeat `running`
+  values on two consecutive checks (a single mismatch is normal while a job
+  starts or finishes between 15-second heartbeats).
+
+The event key is stable, so every check increments `fire_count` instead of
+creating a new event. When a later check is clean the open event is resolved
+without a recovery broadcast: the event list records the resolution, and an
+infrastructure blip does not need to reach a channel. The check runs only on the
+master, because every node sees the same queue.
+
 `DAILY:BATCH:<bizDate>` (P3, recorded as a resolved point-in-time fact) is
 produced once per business date, whenever the automatic batch reaches a terminal
 state: no active automatic queue row for that date, no due table in
