@@ -23,6 +23,9 @@ class SourceService {
   }
   // 查询单个数据源
   get(id: number): Promise<EtlSource> {
+    if (!Number.isFinite(id) || id <= 0) {
+      return Promise.reject(new Error('采集源 ID 无效'));
+    }
     return Requests.get(`${this.prefix}/${id}`) as unknown as Promise<EtlSource>;
   }
 

@@ -1,26 +1,10 @@
 <template>
   <v-form ref="form" fast-fail class="add-source-form" @submit.prevent="save">
-    <v-card class="add-source-card">
+    <v-card class="add-source-card source-editor-card">
       <div class="ds-dialog-head source-dialog-head">
         <span class="ds-dialog-icon"><v-icon size="20">mdi-database-cog-outline</v-icon></span>
         <div class="ds-dialog-heading">
           <h2 class="ds-dialog-title">{{ dialogTitle }}</h2>
-          <p class="ds-dialog-subtitle">{{ dialogSubtitle }}</p>
-          <div v-if="showContext" class="source-context" aria-label="采集源摘要">
-            <span class="source-context__code">{{ sourceItem.name }}</span>
-            <span class="source-context__divider" aria-hidden="true" />
-            <span
-              class="source-context__state"
-              :class="{ 'source-context__state--off': sourceItem.enabled === false }"
-            >
-              <span class="source-context__dot" aria-hidden="true" />
-              {{ sourceItem.enabled === false ? '调度已停用' : '调度已启用' }}
-            </span>
-            <span class="source-context__item">
-              <v-icon size="14">mdi-clock-outline</v-icon>
-              {{ scheduleSummary }}
-            </span>
-          </div>
         </div>
         <v-btn icon="mdi-close" variant="text" size="small" aria-label="关闭" @click="close" />
       </div>
@@ -29,7 +13,7 @@
 
       <v-card-text class="ds-dialog-body add-source-body">
         <div class="dialog-grid">
-          <section class="source-section">
+          <section id="section-basic" class="source-section">
             <header class="section-head">
               <span class="source-section__icon">
                 <v-icon size="16">mdi-card-account-details-outline</v-icon>
@@ -117,7 +101,7 @@
             </div>
           </section>
 
-          <section class="source-section source-section--connection">
+          <section id="section-connection" class="source-section source-section--connection">
             <header class="section-head">
               <span class="source-section__icon">
                 <v-icon size="16">mdi-lan-connect</v-icon>
@@ -126,14 +110,6 @@
                 <h3>连接信息</h3>
                 <p>数据库地址与访问凭据</p>
               </div>
-              <v-chip
-                v-if="connectionFamily"
-                size="x-small"
-                variant="tonal"
-                class="connection-family"
-              >
-                {{ connectionFamily }}
-              </v-chip>
               <v-btn
                 class="connection-test"
                 variant="tonal"
@@ -330,7 +306,7 @@
             </div>
           </section>
 
-          <section class="source-section source-section--wide">
+          <section id="section-remark" class="source-section source-section--wide">
             <header class="section-head">
               <span class="source-section__icon">
                 <v-icon size="16">mdi-text-box-outline</v-icon>
@@ -354,10 +330,6 @@
       </v-card-text>
 
       <v-card-actions class="ds-dialog-actions">
-        <span class="ds-dialog-actions__state" :class="{ 'is-dirty': dirty }">
-          <span class="ds-dialog-actions__dot" aria-hidden="true" />
-          {{ actionStateText }}
-        </span>
         <v-spacer />
         <v-btn variant="text" @click="close">取消</v-btn>
         <v-btn
@@ -522,44 +494,6 @@
     if (props.mode === 'edit') return '编辑采集源';
     if (props.mode === 'detail') return '采集源详情';
     return '新增采集源';
-  });
-
-  const dialogSubtitle = computed(() => {
-    if (props.mode === 'edit') return '调整运行参数与数据库连接，保存后立即生效。';
-    if (props.mode === 'detail') return '查看采集源连接与调度配置。';
-    return '先定义采集源身份，再配置连接与运行策略。';
-  });
-
-  const showContext = computed(() => props.mode !== 'add' && sourceItem.value.id > 0);
-
-  const calendarLabel = computed(() => {
-    if (sourceItem.value.calendar === 'WORK_DAY') return '工作日';
-    if (sourceItem.value.calendar === 'TRADE_DAY') return '交易日';
-    return '自然日';
-  });
-
-  const scheduleSummary = computed(
-    () => `${sourceItem.value.startAt || '系统时间'} · ${calendarLabel.value}`
-  );
-
-  const connectionFamily = computed(() => {
-    if (sourceItem.value.dbType === 'mongodb' || connectType.value === 'MONGODB') return 'MongoDB';
-    if (sourceItem.value.dbType === 'elasticsearch' || connectType.value === 'ELASTICSEARCH')
-      return 'Elasticsearch';
-    const url = String(sourceItem.value.url || '').toLowerCase();
-    if (url.startsWith('jdbc:postgresql:')) return 'PostgreSQL';
-    if (url.startsWith('jdbc:mysql:')) return 'MySQL';
-    if (url.startsWith('jdbc:hive2:')) return 'Hive';
-    if (url.startsWith('jdbc:oracle:')) return 'Oracle';
-    if (url.startsWith('jdbc:sqlserver:')) return 'SQL Server';
-    return url.startsWith('jdbc:') ? 'JDBC' : '';
-  });
-
-  const actionStateText = computed(() => {
-    if (dirty.value) return '有未保存的修改';
-    if (props.mode === 'add') return '填写完成后创建采集源';
-    if (props.mode === 'detail') return '当前配置仅供查看';
-    return '修改后保存立即生效';
   });
 
   const submitDisabled = computed(() => props.mode === 'edit' && !dirty.value);
@@ -728,7 +662,11 @@
       return;
     }
 
-    if (props.sid != -1) {
+    if (props.sid == null || props.sid === -1 || !Number.isFinite(props.sid)) {
+      return;
+    }
+
+    if (props.sid > 0) {
       sourceService
         .get(Number(props.sid))
         .then(resp => {
@@ -1102,5 +1040,397 @@
     .source-section {
       animation: none;
     }
+  }
+
+  /* The editor is a focused configuration workbench, not a collection of equal cards. */
+  .source-editor-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .source-editor-card .source-dialog-head {
+    flex: none;
+    padding: 16px 22px 14px;
+    background: var(--ds-surface-raised);
+    border-bottom: 1px solid var(--ds-border-subtle);
+  }
+
+  .source-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+  }
+
+  .source-header-mode {
+    color: var(--ds-text-3);
+    font-size: var(--ds-fs-caption);
+  }
+
+  .source-editor-card .add-source-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+
+  .editor-layout {
+    display: grid;
+    grid-template-columns: 176px minmax(0, 1fr) 216px;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .editor-nav,
+  .editor-summary {
+    min-width: 0;
+    padding: 22px 16px;
+    background: var(--ds-surface-variant);
+  }
+
+  .editor-nav {
+    border-right: 1px solid var(--ds-border-subtle);
+  }
+
+  .editor-summary {
+    border-left: 1px solid var(--ds-border-subtle);
+  }
+
+  .editor-nav__eyebrow,
+  .editor-summary__eyebrow {
+    margin-bottom: 12px;
+    color: var(--ds-text-3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .editor-nav__item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 38px;
+    gap: 9px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--ds-radius-sm);
+    background: transparent;
+    color: var(--ds-text-2);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--ds-fs-caption);
+    text-align: left;
+    transition:
+      background var(--ds-duration-fast) var(--ds-ease),
+      color var(--ds-duration-fast) var(--ds-ease);
+  }
+
+  .editor-nav__item:hover,
+  .editor-nav__item:focus-visible,
+  .editor-nav__item.is-active {
+    background: rgba(var(--v-theme-primary), 0.1);
+    color: rgb(var(--v-theme-primary));
+    outline: none;
+  }
+
+  .editor-nav__item + .editor-nav__item {
+    margin-top: 4px;
+  }
+
+  .editor-nav__soon {
+    margin-left: auto;
+    color: var(--ds-text-3);
+    font-size: 10px;
+  }
+
+  .editor-nav__hint {
+    margin-top: 24px;
+    padding: 12px 10px;
+    border-top: 1px solid var(--ds-border-default);
+    color: var(--ds-text-3);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .editor-main {
+    min-width: 0;
+    overflow: auto;
+    scroll-behavior: smooth;
+  }
+
+  .editor-main .dialog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 18px;
+    padding: 22px 24px 26px;
+  }
+
+  .editor-main .source-section {
+    margin: 0 0 18px;
+    padding: 18px;
+    border: 1px solid var(--ds-border-subtle);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface-raised);
+  }
+
+  .editor-main .source-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .editor-main .source-section--wide {
+    grid-column: 1 / -1;
+  }
+
+  .editor-main .source-section--deferred {
+    background: var(--ds-surface-variant);
+  }
+
+  .editor-main .field-grid {
+    gap: 16px 18px;
+  }
+
+  .connection-parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 8px;
+    color: var(--ds-text-2);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+    font-size: 11px;
+  }
+
+  .connection-parts span {
+    display: inline-flex;
+    gap: 5px;
+  }
+
+  .connection-parts b {
+    color: var(--ds-text-3);
+    font-family: inherit;
+    font-weight: 500;
+  }
+
+  .editor-summary__name {
+    overflow-wrap: anywhere;
+    color: rgb(var(--v-theme-on-surface));
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .editor-summary__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    color: var(--ds-status-success);
+    font-size: var(--ds-fs-caption);
+    font-weight: 600;
+  }
+
+  .editor-summary__status.is-off {
+    color: var(--ds-text-3);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .editor-summary__facts {
+    margin: 24px 0 0;
+  }
+
+  .editor-summary__facts div {
+    padding: 11px 0;
+    border-top: 1px solid var(--ds-border-default);
+  }
+
+  .editor-summary__facts dt {
+    color: var(--ds-text-3);
+    font-size: 11px;
+  }
+
+  .editor-summary__facts dd {
+    margin: 3px 0 0;
+    color: rgb(var(--v-theme-on-surface));
+    font-size: var(--ds-fs-caption);
+    font-weight: 600;
+  }
+
+  .editor-summary__note {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin-top: 22px;
+    color: var(--ds-text-3);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .source-editor-card .ds-dialog-actions {
+    flex: none;
+    min-height: 58px;
+    padding: 10px 22px;
+    background: var(--ds-surface-raised);
+  }
+
+  @media (max-width: 1100px) {
+    .editor-layout {
+      grid-template-columns: 156px minmax(0, 1fr);
+    }
+
+    .editor-summary {
+      display: none;
+    }
+  }
+
+  @media (max-width: 700px) {
+    .source-editor-card {
+      height: calc(100vh - 16px);
+      max-height: calc(100vh - 16px);
+    }
+
+    .source-editor-card .source-dialog-head {
+      padding: 14px;
+    }
+
+    .source-header-mode {
+      display: none;
+    }
+
+    .editor-layout {
+      display: block;
+    }
+
+    .editor-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 10px;
+      overflow-x: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--ds-border-subtle);
+    }
+
+    .editor-nav__eyebrow,
+    .editor-nav__hint,
+    .editor-nav__soon {
+      display: none;
+    }
+
+    .editor-nav__item,
+    .editor-nav__item + .editor-nav__item {
+      flex: 0 0 auto;
+      width: auto;
+      min-height: 34px;
+      margin-top: 0;
+      padding: 7px 9px;
+    }
+
+    .editor-main {
+      height: calc(100% - 51px);
+    }
+
+    .editor-main .dialog-grid {
+      display: block;
+      padding: 14px;
+    }
+
+    .editor-main .source-section {
+      padding: 14px;
+    }
+
+    .source-editor-card .ds-dialog-actions {
+      padding: 9px 14px;
+    }
+  }
+
+  /* Keep the editor surface quiet: the form is the only primary object in this dialog. */
+  .source-editor-card .source-dialog-head {
+    padding: 16px 22px 14px;
+    background: var(--ds-surface-raised);
+    border-bottom: 1px solid var(--ds-border-subtle);
+  }
+
+  .source-editor-card .add-source-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 !important;
+    overflow: auto;
+  }
+
+  .source-editor-card .dialog-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 18px;
+    padding: 22px 24px 26px;
+  }
+
+  .source-editor-drawer :deep(.v-navigation-drawer__content) {
+    overflow: hidden;
+  }
+
+  .source-editor-drawer .source-editor-card {
+    width: 100%;
+  }
+
+  .source-editor-drawer .dialog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .source-editor-drawer .source-section--wide {
+    grid-column: auto;
+  }
+
+  .source-editor-card .source-section {
+    margin: 0;
+    padding: 18px;
+    border: 1px solid var(--ds-border-subtle);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface-raised);
+  }
+
+  .source-editor-card .source-section--wide {
+    grid-column: 1 / -1;
+  }
+
+  .source-editor-card .ds-dialog-actions {
+    flex: none;
+    min-height: 58px;
+    padding: 10px 22px;
+    background: var(--ds-surface-raised);
+  }
+
+  @media (max-width: 700px) {
+    .source-editor-card .source-dialog-head {
+      padding: 14px;
+    }
+
+    .source-editor-card .dialog-grid {
+      display: block;
+      padding: 14px;
+    }
+
+    .source-editor-card .source-section {
+      margin-bottom: 14px;
+      padding: 14px;
+    }
+  }
+
+  .source-editor-card .section-heading p,
+  .source-editor-card .field-help,
+  .source-editor-card .field-hint,
+  .source-editor-card .connection-footnote {
+    display: none;
   }
 </style>

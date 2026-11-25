@@ -23,9 +23,9 @@ const NAV_GROUP_ORDER: NavGroup[] = ['collectConfig', 'collectRun', 'data', 'sys
 
 const NAV_GROUP_TITLE: Record<NavGroup, string> = {
   collectConfig: '采集配置',
-  collectRun: '采集运行',
+  collectRun: '运行监控',
   data: '数据治理',
-  systemManage: '系统管理',
+  systemManage: '系统配置',
 };
 
 // Aggregate router meta into the topbar navigation tree.

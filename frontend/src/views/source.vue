@@ -120,13 +120,13 @@
     </AppDataTable>
   </div>
 
-  <v-dialog
+  <v-navigation-drawer
     v-model="isShow"
-    class="ds-dialog-overlay"
-    scrim="rgba(2, 6, 23, 0.62)"
-    max-width="1120"
-    width="min(1120px, calc(100vw - 32px))"
-    scrollable
+    location="right"
+    temporary
+    width="min(640px, 100vw)"
+    class="source-editor-drawer"
+    scrim="rgba(2, 6, 23, 0.48)"
     :persistent="isSourceDirty"
   >
     <AddDataSource
@@ -135,7 +135,7 @@
       @save="handleSave"
       @close-dialog="requestClose"
     />
-  </v-dialog>
+  </v-navigation-drawer>
 
   <ConfirmDialog
     v-model="discardOpen"

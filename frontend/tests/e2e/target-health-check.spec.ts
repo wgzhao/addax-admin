@@ -23,7 +23,7 @@ test('HDFS target health check runs a real write probe and reports each check', 
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.goto('/target?action=create');
 
-  const dialog = page.getByRole('dialog');
+  const dialog = page.locator('.target-editor-drawer');
   await expect(dialog).toBeVisible();
   const code = `E2E_HC_${Date.now()}`;
 

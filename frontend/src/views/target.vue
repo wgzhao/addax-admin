@@ -123,20 +123,20 @@
       </template>
     </AppDataTable>
 
-    <v-dialog
+    <v-navigation-drawer
       v-model="dialogVisible"
-      class="ds-dialog-overlay"
-      scrim="rgba(2, 6, 23, 0.62)"
-      max-width="880"
-      persistent
-      scrollable
+      location="right"
+      temporary
+      width="min(640px, 100vw)"
+      class="target-editor-drawer"
+      scrim="rgba(2, 6, 23, 0.48)"
+      :persistent="true"
     >
-      <v-card>
+      <v-card class="target-editor-card">
         <div class="ds-dialog-head">
           <span class="ds-dialog-icon"><v-icon size="20">mdi-server-network</v-icon></span>
           <div class="ds-dialog-heading">
             <h2 class="ds-dialog-title">{{ form.id ? '编辑目标端' : '新增目标端' }}</h2>
-            <p class="ds-dialog-subtitle">维护写入模板、连接参数与默认落库策略。</p>
           </div>
           <v-btn
             icon="mdi-close"
@@ -152,7 +152,6 @@
             <div class="dialog-grid">
               <section class="form-section">
                 <header class="section-head">
-                  <span class="section-index">01</span>
                   <h3>基本信息</h3>
                 </header>
                 <div class="field-grid">
@@ -214,7 +213,6 @@
 
               <section class="form-section">
                 <header class="section-head">
-                  <span class="section-index">02</span>
                   <h3>连接信息</h3>
                   <div class="section-actions">
                     <v-btn
@@ -328,9 +326,8 @@
                 </div>
               </section>
 
-              <section v-if="isDorisTarget" class="form-section">
+              <section v-if="isDorisTarget" class="form-section form-section--wide">
                 <header class="section-head">
-                  <span class="section-index">03</span>
                   <h3>Doris Stream Load 设置</h3>
                 </header>
                 <div class="field-grid">
@@ -375,7 +372,9 @@
                     />
                   </div>
                   <div class="field">
-                    <label class="field-label" for="target-doris-flush-queue">flushQueueLength</label>
+                    <label class="field-label" for="target-doris-flush-queue"
+                      >flushQueueLength</label
+                    >
                     <v-text-field
                       id="target-doris-flush-queue"
                       v-model.number="connectForm.dorisFlushQueueLength"
@@ -386,7 +385,9 @@
                     />
                   </div>
                   <div class="field span-2">
-                    <label class="field-label" for="target-doris-load-props">loadProps (JSON)</label>
+                    <label class="field-label" for="target-doris-load-props"
+                      >loadProps (JSON)</label
+                    >
                     <v-textarea
                       id="target-doris-load-props"
                       v-model="connectForm.dorisLoadProps"
@@ -401,9 +402,8 @@
                 </div>
               </section>
 
-              <section v-if="isHdfsTarget" class="form-section">
+              <section v-if="isHdfsTarget" class="form-section form-section--wide">
                 <header class="section-head">
-                  <span class="section-index">03</span>
                   <h3>HDFS / Hive 设置</h3>
                   <div class="section-actions">
                     <v-btn
@@ -567,10 +567,9 @@
                 </div>
               </section>
 
-              <section class="form-section">
+              <section class="form-section form-section--wide">
                 <header class="section-head">
-                  <span class="section-index">04</span>
-                  <h3>状态与备注</h3>
+                  <h3>其他设置</h3>
                 </header>
                 <div class="field-grid">
                   <div class="field span-2">
@@ -614,7 +613,7 @@
           <v-btn color="primary" variant="flat" @click="save">保存</v-btn>
         </v-card-actions>
       </v-card>
-    </v-dialog>
+    </v-navigation-drawer>
 
     <ConfirmDialog
       v-model="confirmState.open"
@@ -1481,6 +1480,98 @@
 
     .field.span-2 {
       grid-column: auto;
+    }
+  }
+
+  /* The target editor is a focused form surface: supporting status belongs to the list or result views. */
+  .target-editor-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .target-editor-card .ds-dialog-head {
+    flex: none;
+    padding: 16px 22px 14px;
+    background: var(--ds-surface-raised);
+    border-bottom: 1px solid var(--ds-border-subtle);
+  }
+
+  .target-editor-card .ds-dialog-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 22px 24px 26px !important;
+    overflow: auto;
+  }
+
+  .target-editor-card .dialog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+  }
+
+  .target-editor-drawer :deep(.v-navigation-drawer__content) {
+    overflow: hidden;
+  }
+
+  .target-editor-drawer .target-editor-card {
+    width: 100%;
+  }
+
+  .target-editor-drawer .dialog-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .target-editor-drawer .form-section--wide {
+    grid-column: auto;
+  }
+
+  .target-editor-card .form-section--wide {
+    grid-column: 1 / -1;
+  }
+
+  .target-editor-card .section-head {
+    padding-bottom: 10px;
+  }
+
+  .target-editor-card .ds-dialog-actions {
+    flex: none;
+    min-height: 58px;
+    padding: 10px 22px;
+    background: var(--ds-surface-raised);
+  }
+
+  @media (max-width: 760px) {
+    .target-editor-card {
+      height: calc(100vh - 16px);
+      max-height: calc(100vh - 16px);
+    }
+
+    .target-editor-card .ds-dialog-head {
+      padding: 14px;
+    }
+
+    .target-editor-card .ds-dialog-body {
+      padding: 14px !important;
+    }
+
+    .target-editor-card .dialog-grid {
+      display: block;
+    }
+
+    .target-editor-card .form-section {
+      margin-bottom: 18px;
+    }
+
+    .target-editor-card .form-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .target-editor-card .ds-dialog-actions {
+      padding: 9px 14px;
     }
   }
 </style>

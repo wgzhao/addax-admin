@@ -16,14 +16,6 @@
           <div class="executive-overview">
             <DemoBanner v-if="APP_IS_DEMO" />
 
-            <OnboardingChecklist
-              v-if="!isEmptyEnvironment"
-              :source-count="summary?.allDbSourceCount ?? 0"
-              :table-count="summary?.tableCount ?? 0"
-              :done-count="totals.done"
-              :loading="loading"
-            />
-
             <FilterBar
               v-if="!isEmptyEnvironment"
               v-model="rangeDays"
@@ -38,6 +30,20 @@
             <EmptyDashboardGuide v-if="isEmptyEnvironment" />
 
             <template v-else>
+              <v-row density="comfortable" class="exec-row">
+                <v-col cols="12" lg="5">
+                  <RiskQueue
+                    :items="riskItems"
+                    :loading="loading"
+                    :error="riskError"
+                    @retry="refreshAll"
+                  />
+                </v-col>
+                <v-col cols="12" lg="7">
+                  <TodayPulse compact @show-all="tab = 'today'" />
+                </v-col>
+              </v-row>
+
               <HealthHero :health-rate="healthRate" :totals="totals" :status="healthStatus" />
 
               <KpiRow
@@ -54,20 +60,6 @@
                 :total="totals.total"
                 :loading="loading"
               />
-
-              <v-row density="comfortable" class="exec-row">
-                <v-col cols="12" lg="7">
-                  <TodayPulse compact @show-all="tab = 'today'" />
-                </v-col>
-                <v-col cols="12" lg="5">
-                  <RiskQueue
-                    :items="riskItems"
-                    :loading="loading"
-                    :error="riskError"
-                    @retry="refreshAll"
-                  />
-                </v-col>
-              </v-row>
 
               <v-row density="comfortable" class="exec-row">
                 <v-col cols="12" lg="7">
@@ -240,7 +232,6 @@
   import FilterBar from '@/components/common/FilterBar.vue';
   import ErrorState from '@/components/common/ErrorState.vue';
   import SectionCard from '@/components/common/SectionCard.vue';
-  import OnboardingChecklist from '@/components/onboarding/OnboardingChecklist.vue';
   import EmptyDashboardGuide from '@/components/onboarding/EmptyDashboardGuide.vue';
   import DemoBanner from '@/components/common/DemoBanner.vue';
   import { APP_IS_DEMO } from '@/config/branding';

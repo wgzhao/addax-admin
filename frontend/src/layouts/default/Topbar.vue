@@ -250,8 +250,9 @@
   }
 
   .topbar-bar :deep(.top-nav-btn--active) {
-    background: rgb(var(--v-theme-primary)) !important;
-    color: rgb(var(--v-theme-on-primary)) !important;
+    background: rgba(var(--v-theme-primary), 0.1) !important;
+    color: rgb(var(--v-theme-primary)) !important;
+    font-weight: 650;
   }
 
   .topbar-bar :deep(.top-nav-btn--active .v-btn__overlay) {
