@@ -4,6 +4,8 @@
       <v-menu
         v-if="item.children"
         :min-width="0"
+        location="bottom start"
+        :offset="8"
         open-on-hover
         open-on-click
         :open-delay="80"
@@ -17,6 +19,7 @@
             :variant="isMenuActive(item) ? 'flat' : 'text'"
             :color="isMenuActive(item) ? 'primary' : undefined"
             append-icon="mdi-chevron-down"
+            :aria-current="isMenuActive(item) ? 'page' : undefined"
           >
             {{ item.title }}
           </v-btn>
@@ -28,6 +31,8 @@
             class="top-nav-menu-item"
             :prepend-icon="child.icon || 'mdi-chevron-right'"
             :to="child.path ? { path: child.path } : undefined"
+            :active="isPathActive(child.path)"
+            :aria-current="isPathActive(child.path) ? 'page' : undefined"
             slim
           >
             <v-list-item-title>{{ child.title }}</v-list-item-title>
@@ -40,6 +45,7 @@
         :class="{ 'top-nav-btn--active': isPathActive(item.path) }"
         :variant="isPathActive(item.path) ? 'flat' : 'text'"
         :color="isPathActive(item.path) ? 'primary' : undefined"
+        :aria-current="isPathActive(item.path) ? 'page' : undefined"
         :to="{ path: item.path }"
       >
         {{ item.title }}
@@ -50,7 +56,10 @@
 
 <script setup lang="ts">
   import { useRoute } from 'vue-router';
-  import { isMenuActive as isMenuActiveFor, isPathActive as isPathActiveFor } from '@/config/navigation';
+  import {
+    isMenuActive as isMenuActiveFor,
+    isPathActive as isPathActiveFor,
+  } from '@/config/navigation';
   import type { NavItem } from '@/config/navigation';
 
   defineProps<{ items: NavItem[] }>();

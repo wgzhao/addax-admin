@@ -4,13 +4,21 @@
 
 :deep(.top-nav-menu-list) {
   min-width: 0;
-  width: max-content;
-  max-width: 240px;
+  width: 208px;
+  padding: 8px;
+  border: 1px solid var(--ds-border-default);
+  box-shadow: var(--ds-shadow-md);
 }
 
 :deep(.top-nav-menu-item) {
   min-height: 34px;
+  border-radius: var(--ds-radius-sm);
   --v-list-prepend-gap: 18px;
+}
+
+:deep(.top-nav-menu-item.v-list-item--active) {
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.1);
 }
 
 :deep(.top-nav-menu-item .v-list-item__prepend) {
@@ -38,6 +46,6 @@
 
 :deep(.user-nav-menu-list) {
   min-width: 0;
-  width: max-content;
+  width: 208px;
   max-width: 260px;
 }

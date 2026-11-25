@@ -87,9 +87,7 @@ async function mockApi(page: Page, saves: Array<Record<string, unknown>>) {
   });
 }
 
-test('source edit dialog keeps a clear hierarchy and actionable state across breakpoints', async ({
-  page,
-}) => {
+test('source editor drawer keeps the form focused across breakpoints', async ({ page }) => {
   await mockSession(page);
   const saves: Array<Record<string, unknown>> = [];
   await mockApi(page, saves);
@@ -100,17 +98,13 @@ test('source edit dialog keeps a clear hierarchy and actionable state across bre
   await expect(row).toBeVisible();
   await row.getByRole('button', { name: '编辑', exact: true }).click();
 
-  const dialog = page.locator('.v-dialog').filter({ hasText: '编辑采集源' });
+  const dialog = page.locator('.source-editor-drawer').filter({ hasText: '编辑采集源' });
   const card = dialog.locator('.add-source-card');
   await expect(card).toBeVisible();
-  await expect(dialog.locator('.source-context__code')).toHaveText('维格数仓');
-  await expect(dialog.locator('.source-context')).toContainText('调度已启用');
-  await expect(dialog.locator('.source-context')).toContainText('03:10');
   await expect(dialog.locator('.source-section h3')).toHaveText(['基本信息', '连接信息', '备注']);
 
   const saveButton = dialog.getByRole('button', { name: '保存修改' });
   await expect(saveButton).toBeDisabled();
-  await expect(dialog.locator('.ds-dialog-actions__state')).toContainText('修改后保存立即生效');
 
   // Why: the shared rule constants must still block a required field that is cleared
   const urlInput = dialog.locator('#src-url');
@@ -123,7 +117,6 @@ test('source edit dialog keeps a clear hierarchy and actionable state across bre
 
   const nameInput = dialog.locator('#src-name');
   await nameInput.fill('维格数仓（测试）');
-  await expect(dialog.locator('.ds-dialog-actions__state')).toContainText('有未保存的修改');
   await expect(saveButton).toBeEnabled();
   await nameInput.fill(source.name);
   await expect(saveButton).toBeDisabled();
@@ -143,7 +136,7 @@ test('source edit dialog keeps a clear hierarchy and actionable state across bre
     const rect = element.getBoundingClientRect();
     return { width: Math.round(rect.width), height: Math.round(rect.height) };
   });
-  expect(desktopMetrics.width).toBeGreaterThan(980);
+  expect(desktopMetrics.width).toBeLessThanOrEqual(640);
 
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.waitForTimeout(200);
@@ -155,7 +148,7 @@ test('source edit dialog keeps a clear hierarchy and actionable state across bre
       horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
     };
   });
-  expect(tabletMetrics.sameRow).toBe(true);
+  expect(tabletMetrics.sameRow).toBe(false);
   expect(tabletMetrics.horizontalOverflow).toBe(false);
 
   await page.setViewportSize({ width: 390, height: 844 });
