@@ -145,10 +145,19 @@ public class WorkerHeartbeatService
 
         ConcurrentHashMap<Integer, AtomicInteger> srcMap = sourceRunningTaskCount;
         Map<Integer, Integer> sourceRunning = new java.util.HashMap<>();
+        // Negative counters are reported separately: dispatch only consumes positive per-source
+        // counts, and a negative value there would over-allocate capacity. The consistency check
+        // still needs to see them, because filtering them out here is what hid the capacity bug.
+        Map<Integer, Integer> sourceRunningNegative = new java.util.HashMap<>();
         if (srcMap != null) {
             srcMap.forEach((sid, counter) -> {
                 int cnt = counter.get();
-                if (cnt > 0) sourceRunning.put(sid, cnt);
+                if (cnt > 0) {
+                    sourceRunning.put(sid, cnt);
+                }
+                else if (cnt < 0) {
+                    sourceRunningNegative.put(sid, cnt);
+                }
             });
         }
 
@@ -160,6 +169,7 @@ public class WorkerHeartbeatService
             concurrentLimit,
             weight,
             sourceRunning,
+            sourceRunningNegative,
             Instant.now()
         );
     }
@@ -185,6 +195,8 @@ public class WorkerHeartbeatService
         int concurrentLimit,
         double weight,
         Map<Integer, Integer> sourceRunning,
+        /** Per-source counters below zero; null for heartbeats written by an older build. */
+        Map<Integer, Integer> sourceRunningNegative,
         Instant lastSeen
     ) {}
 }

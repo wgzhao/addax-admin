@@ -138,13 +138,20 @@ public class SourceController
         // 校验采集时间与切日时间的距离，更新时如果不满足规则则直接失败并返回提示
         validateStartAt(etlSource.getStartAt());
         etlSource.setCalendar(normalizeCalendar(etlSource.getCalendar()));
+        // Capture the comparison before save(): findById() and save() share the persistence context,
+        // so merge() updates the managed instance `existing` points at and a later comparison would
+        // always look unchanged.
+        boolean connectionConfigChanged = !java.util.Objects.equals(existing.getUrl(), etlSource.getUrl())
+            || !java.util.Objects.equals(existing.getUsername(), etlSource.getUsername());
+        boolean passwordChanged = !java.util.Objects.equals(existing.getPass(), etlSource.getPass());
         sourceService.save(etlSource);
+        // Explicit flag: the before/after snapshots redact the password, so a password rotation is
+        // otherwise indistinguishable from an unchanged credential in the audit row.
+        java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("connectionChanged", connectionConfigChanged || passwordChanged);
+        metadata.put("passwordChanged", passwordChanged);
         auditRecorder.success("SOURCE_UPDATED", "CONFIG", "WARNING", "ETL_SOURCE",
-            id, etlSource.getName(), before, sourceSnapshot(etlSource),
-            java.util.Map.of("connectionChanged",
-                !java.util.Objects.equals(existing.getUrl(), etlSource.getUrl())
-                    || !java.util.Objects.equals(existing.getUsername(), etlSource.getUsername())
-                    || !java.util.Objects.equals(existing.getPass(), etlSource.getPass())));
+            id, etlSource.getName(), before, sourceSnapshot(etlSource), metadata);
 
         return ResponseEntity.ok(1);
     }
