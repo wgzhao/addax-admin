@@ -5,6 +5,7 @@ import com.wgzhao.addax.admin.dto.CreateUserDTO;
 import com.wgzhao.addax.admin.dto.CurrentUserDto;
 import com.wgzhao.addax.admin.dto.SourceGrantDto;
 import com.wgzhao.addax.admin.dto.SourceGrantInput;
+import com.wgzhao.addax.admin.dto.UpdateProfileDTO;
 import com.wgzhao.addax.admin.dto.UpdateUserDTO;
 import com.wgzhao.addax.admin.dto.UserAdminDto;
 import com.wgzhao.addax.admin.service.AuthzService;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -79,6 +81,17 @@ public class UserController
         return saved;
     }
 
+    @PutMapping("/me")
+    @Transactional
+    public CurrentUserDto updateCurrentProfile(@RequestBody UpdateProfileDTO dto)
+    {
+        CurrentUserDto before = userAdminService.currentUser();
+        CurrentUserDto after = userAdminService.updateCurrentProfile(dto);
+        auditRecorder.success("USER_PROFILE_UPDATED", "ACCOUNT", "WARNING", "USER",
+            after.username(), after.username(), profileFields(before), profileFields(after));
+        return after;
+    }
+
     @PutMapping("/{username}")
     @Transactional
     public UserAdminDto updateUser(@PathVariable String username, @RequestBody UpdateUserDTO dto)
@@ -121,6 +134,15 @@ public class UserController
         auditRecorder.success("USER_DISABLED", "ACCOUNT", "CRITICAL", "USER",
             username, username, before, updated);
         return updated;
+    }
+
+    private Map<String, Object> profileFields(CurrentUserDto user)
+    {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("displayName", user.displayName());
+        fields.put("email", user.email());
+        fields.put("remark", user.remark());
+        return fields;
     }
 
     private UserAdminDto findUser(String username)

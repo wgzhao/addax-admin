@@ -14,7 +14,7 @@ describe('buildNavMenu', () => {
       route('/', { title: '首页' }),
     ];
     const menu = buildNavMenu(routes);
-    expect(menu.map(i => i.title)).toEqual(['首页', '采集配置', '采集运行']);
+    expect(menu.map(i => i.title)).toEqual(['首页', '采集配置', '运行监控']);
     const configGroup = menu.find(i => i.title === '采集配置');
     expect(configGroup?.children?.map(c => c.title)).toEqual(['目标端', '采集源', '采集表']);
   });
@@ -41,7 +41,7 @@ describe('buildNavMenu', () => {
       }),
     ];
     expect(buildNavMenu(routes, 'user').map(i => i.title)).toEqual(['首页']);
-    expect(buildNavMenu(routes, 'admin').map(i => i.title)).toEqual(['首页', '系统管理']);
+    expect(buildNavMenu(routes, 'admin').map(i => i.title)).toEqual(['首页', '系统配置']);
   });
 });
 

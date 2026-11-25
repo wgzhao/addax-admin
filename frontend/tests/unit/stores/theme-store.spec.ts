@@ -64,14 +64,15 @@ describe('theme store', () => {
     expect(store.hasUserPreference).toBe(true);
   });
 
-  it('resets to system theme and clears the saved key', () => {
+  it('follows the system theme after resetToSystemTheme', () => {
     localStorage.setItem('theme', 'dark');
     stubSystemTheme(true);
     const store = useThemeStore();
     store.initTheme();
     store.resetToSystemTheme();
     expect(store.theme).toBe('dark');
+    expect(store.preference).toBe('system');
     expect(store.hasUserPreference).toBe(false);
-    expect(localStorage.getItem('theme')).toBeNull();
+    expect(localStorage.getItem('theme')).toBe('system');
   });
 });

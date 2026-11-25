@@ -20,17 +20,17 @@ const menus: MenuCase[] = [
   { title: '采集表管理', path: '/table', group: '采集配置' },
   { title: '类型映射', path: '/type-mappings', group: '采集配置' },
   { title: '采集日历', path: '/calendars', group: '采集配置' },
-  { title: '采集任务', path: '/task', group: '采集运行' },
-  { title: '错误中心', path: '/failures', group: '采集运行' },
-  { title: '系统状态', path: '/status', group: '采集运行' },
-  { title: '日志管理', path: '/logs', group: '采集运行' },
-  { title: '告警配置', path: '/alert-config', group: '采集运行' },
+  { title: '采集任务', path: '/task', group: '运行监控' },
+  { title: '错误中心', path: '/failures', group: '运行监控' },
+  { title: '系统状态', path: '/status', group: '运行监控' },
+  { title: '日志管理', path: '/logs', group: '运行监控' },
+  { title: '告警配置', path: '/alert-config', group: '运行监控' },
   { title: '数据洞察', path: '/data-insight', group: '数据治理' },
   { title: '数据血缘', path: '/lineage', group: '数据治理' },
   { title: '表结构变更', path: '/schema-changes', group: '数据治理' },
-  { title: '系统配置', path: '/sys-settings', group: '系统管理' },
-  { title: '账号管理', path: '/accounts', group: '系统管理' },
-  { title: '安全审计', path: '/audit', group: '系统管理' },
+  { title: '系统配置', path: '/sys-settings', group: '系统配置' },
+  { title: '账号管理', path: '/accounts', group: '系统配置' },
+  { title: '安全审计', path: '/audit', group: '系统配置' },
 ];
 
 async function openGroup(page: Page, group: string) {
@@ -71,7 +71,7 @@ for (const menu of menus) {
 test('every top-level group has at least two children', async ({ page }) => {
   await page.goto('/');
 
-  for (const group of ['采集配置', '采集运行', '数据治理', '系统管理']) {
+  for (const group of ['采集配置', '运行监控', '数据治理', '系统配置']) {
     const list = await openGroup(page, group);
     const labels = await list.locator('.top-nav-menu-item .v-list-item-title').allInnerTexts();
     expect(labels.length, `${group} should not be a single-child dropdown`).toBeGreaterThan(1);
@@ -82,7 +82,7 @@ test('every top-level group has at least two children', async ({ page }) => {
 test('system management is administration only', async ({ page }) => {
   await page.goto('/');
 
-  const list = await openGroup(page, '系统管理');
+  const list = await openGroup(page, '系统配置');
   const labels = await list.locator('.top-nav-menu-item .v-list-item-title').allInnerTexts();
   expect(labels).toEqual(['系统配置', '账号管理', '安全审计']);
 });
@@ -99,7 +99,7 @@ test('destructive structure refresh lives on the table page, not in navigation',
   await expect(page.getByText('强制更新全部表信息')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  for (const group of ['采集配置', '采集运行']) {
+  for (const group of ['采集配置', '运行监控']) {
     const list = await openGroup(page, group);
     await expect(list.locator('.top-nav-menu-item', { hasText: '更新表信息' })).toHaveCount(0);
     await page.mouse.move(0, 0);
@@ -146,11 +146,12 @@ test('command palette mirrors the navigation tree', async ({ page }) => {
     '新增采集源',
     '新增目标端',
     '新增采集表',
+    '我的账号',
     '切换浅色 / 深色主题',
   ]);
 
   const groups = await palette.locator('.palette-group').allInnerTexts();
-  expect(groups).toEqual(['跳转', '采集配置', '采集运行', '数据治理', '系统管理', '操作']);
+  expect(groups).toEqual(['跳转', '采集配置', '运行监控', '数据治理', '系统配置', '操作']);
 });
 
 test('navigation regroup artifact', async ({ page }) => {
@@ -158,7 +159,7 @@ test('navigation regroup artifact', async ({ page }) => {
   fs.mkdirSync(artifactDir, { recursive: true });
 
   const snapshot: Record<string, string[]> = {};
-  for (const group of ['采集配置', '采集运行', '数据治理', '系统管理']) {
+  for (const group of ['采集配置', '运行监控', '数据治理', '系统配置']) {
     const list = await openGroup(page, group);
     snapshot[group] = await list.locator('.top-nav-menu-item .v-list-item-title').allInnerTexts();
     // Let the overlay enter transition finish before capturing, otherwise the panel

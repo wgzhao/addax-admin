@@ -52,6 +52,8 @@ public class SecurityConfiguration
                 .requestMatchers(HttpMethod.POST,
                     "/user-notifications/*/read",
                     "/user-notifications/read-all").authenticated()
+                // 本人只能改描述性资料；角色、启停、密码仍走各自的管理员/改密接口。
+                .requestMatchers(HttpMethod.PUT, "/users/me").authenticated()
                 // 源级写操作：放行到控制器，由 AuthzService 按 OPERATE 授权校验。
                 .requestMatchers(HttpMethod.POST,
                     "/sources/test-connect",

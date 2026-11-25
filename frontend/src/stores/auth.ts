@@ -8,6 +8,7 @@ export const useAuthStore = defineStore('auth', {
     token: '' as string | null, // 存储用户的 Token
     username: '' as string | null, // 存储用户名
     role: 'guest' as Role,
+    displayName: '' as string,
     grants: {} as Record<number, GrantLevel>,
     roleLoaded: false,
   }),
@@ -18,9 +19,13 @@ export const useAuthStore = defineStore('auth', {
       // The old role belongs to the previous session; reset it so the router guard re-reads
       // /users/me before deciding where the new session may go.
       this.role = 'guest';
+      this.displayName = '';
       this.grants = {};
       this.roleLoaded = false;
       localStorage.setItem('authToken', token); // 持久化存储
+    },
+    setDisplayName(displayName: string) {
+      this.displayName = displayName;
     },
     setUserName(username: string) {
       this.username = username;
@@ -38,12 +43,14 @@ export const useAuthStore = defineStore('auth', {
       }
       // The persisted token says nothing about the current role; always re-read it.
       this.role = 'guest';
+      this.displayName = '';
       this.grants = {};
       this.roleLoaded = false;
     },
     async loadCurrentUser() {
       if (!this.token) {
         this.role = 'guest';
+        this.displayName = '';
         this.grants = {};
         this.roleLoaded = true;
         return;
@@ -53,11 +60,13 @@ export const useAuthStore = defineStore('auth', {
         const { default: userService } = await import('@/service/user-service');
         const me = await userService.me();
         this.role = highestRole(me.authorities);
+        this.displayName = me.displayName || '';
         this.grants = Object.fromEntries(
           (me.grants || []).map(grant => [grant.sourceId, grant.accessLevel])
         ) as Record<number, GrantLevel>;
       } catch {
         this.role = 'guest';
+        this.displayName = '';
         this.grants = {};
       } finally {
         this.roleLoaded = true;
@@ -68,6 +77,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null;
       this.username = null;
       this.role = 'guest';
+      this.displayName = '';
       this.grants = {};
       this.roleLoaded = false;
       localStorage.removeItem('authToken');

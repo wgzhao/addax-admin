@@ -154,6 +154,14 @@
       );
     }
     list.push({
+      id: 'action-account',
+      group: '操作',
+      label: '我的账号',
+      icon: 'mdi-account-circle-outline',
+      index: 0,
+      run: () => router.push('/account'),
+    });
+    list.push({
       id: 'action-theme',
       group: '操作',
       label: '切换浅色 / 深色主题',

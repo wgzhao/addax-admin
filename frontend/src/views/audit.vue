@@ -309,6 +309,7 @@
     AUTH_LOGIN_SUCCESS: '登录成功',
     AUTH_LOGIN_FAILED: '登录失败',
     AUTH_PASSWORD_CHANGED: '修改密码',
+    USER_PROFILE_UPDATED: '更新个人资料',
     TABLE_COLUMN_MAPPINGS_UPDATED: '更新字段映射',
     TASK_QUEUE_CONFIGURED: '配置任务队列',
     TASK_QUEUE_RESET: '重置任务队列',

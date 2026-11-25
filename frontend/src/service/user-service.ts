@@ -44,6 +44,15 @@ class UserService {
     return Requests.get(`${this.prefix}/me`) as unknown as Promise<AccountUser>;
   }
 
+  // Self-service: descriptive fields only. The endpoint ignores anything else by design.
+  updateMe(payload: {
+    displayName?: string;
+    email?: string;
+    remark?: string;
+  }): Promise<AccountUser> {
+    return Requests.put(`${this.prefix}/me`, payload) as unknown as Promise<AccountUser>;
+  }
+
   grants(username: string): Promise<SourceGrant[]> {
     return Requests.get(
       `${this.prefix}/${encodeURIComponent(username)}/grants`
