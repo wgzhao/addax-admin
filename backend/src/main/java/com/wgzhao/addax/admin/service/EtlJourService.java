@@ -121,6 +121,21 @@ public class EtlJourService
     }
 
     /**
+     * 只把操作流水标记为失败，不写失败事实。
+     *
+     * <p>目标端准备阶段使用：适配器把失败原因返回给调用方，由调用方按最具体的阶段记录唯一一条
+     * 失败事实，避免“分区失败”和“准备失败”各记一条。</p>
+     */
+    @Transactional
+    public void failJourOnly(EtlJour jour, String errorMsg)
+    {
+        jour.setStatus(false);
+        jour.setErrorMsg(errorMsg);
+        jour.setDuration(Duration.between(jour.getStartAt(), LocalDateTime.now()).toSeconds());
+        etlJourRepo.save(jour);
+    }
+
+    /**
      * 保存流水对象
      *
      * @param etlJour 流水对象

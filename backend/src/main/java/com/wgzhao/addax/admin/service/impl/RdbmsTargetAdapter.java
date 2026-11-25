@@ -22,6 +22,7 @@ import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.service.source.SourceTableHints;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
+import com.wgzhao.addax.admin.service.target.TargetPreparationResult;
 import com.wgzhao.addax.admin.service.target.RdbmsWriterPlugins;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ColumnMeta;
@@ -376,9 +377,10 @@ public class RdbmsTargetAdapter
     }
 
     @Override
-    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate)
+    public TargetPreparationResult prepareBeforeRun(long taskId, Long executionId,
+        VwEtlTableWithSource table, LocalDate bizDate)
     {
-        return true;
+        return TargetPreparationResult.ok();
     }
 
     @Override

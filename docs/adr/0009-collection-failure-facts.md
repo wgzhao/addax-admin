@@ -114,7 +114,7 @@ Notes:
 
 | Stage | Meaning | Source |
 | --- | --- | --- |
-| `PREPARE` | target preparation before the run | `prepareBeforeRun` false |
+| `PREPARE` | target preparation failed without a more specific stage | `prepareBeforeRun` result |
 | `SOURCE_SCHEMA` | source columns could not be fetched | `ColumnService` |
 | `TARGET_SCHEMA` | target table DDL/contract failed | target adapters, contract check |
 | `PARTITION` | target partition missing or creation failed | `HdfsTargetAdapter` |
@@ -150,7 +150,8 @@ recording must never change a collection outcome or roll back the caller.
 `EtlJourService.failJour` gains an evidence-aware overload and delegates to the recorder, so every
 existing `failJour` call site produces a fact without touching its logic. `executeAddax` passes the
 log id, exit code and attempt context through the same overload instead of mutating `EtlJour` fields
-directly.
+directly. `failJourOnly` updates the journal without a fact and exists solely for the target
+preparation path, where the caller owns the single fact (see "One logical failure, one fact").
 
 Coverage matrix to close during implementation:
 
@@ -159,12 +160,18 @@ Coverage matrix to close during implementation:
 | addax non-zero / timeout / SIGKILL | `etl_jour` + log | record with `log_id`, exit code, stage `COLLECT` |
 | addax launch `IOException` | `etl_jour`, no log | record stage `COLLECT`, code `NO_LOG` |
 | contract blocked | execution finished, no failure row | record stage `TARGET_SCHEMA` |
-| target `prepareBeforeRun` false | execution finished | record stage `PREPARE` |
+| target preparation failure | execution finished, adapter returns stage/reason | record one fact at the most specific stage (`PARTITION` for partition work, otherwise `PREPARE`) |
 | job template missing / exception | execution finished or nothing | record stage `JOB_TEMPLATE`; add catch in `JobContentService.updateJob` |
 | source column fetch failure | `etl_jour` `UPDATE_COLUMN` | record stage `SOURCE_SCHEMA` |
 | target DDL / partition failure | `etl_jour` `UPDATE_TABLE`/`PARTITION` | record stage `TARGET_SCHEMA`/`PARTITION` |
 | queue retries exhausted | `etl_job_queue.last_error` | record stage `QUEUE` with final attempt |
 | admin JVM dies mid-run | table stuck in `R`, no fact | follow-up: startup reconciliation fails the stale execution and records stage `RECOVERY` |
+
+One logical failure produces exactly one fact. Target adapters journal the failed operation but do
+not record a failure fact; `prepareBeforeRun` returns `TargetPreparationResult` with the stage,
+summary, detail and error class, and the queue manager records that single fact. An adapter must
+never report the same failure once at its specific stage and again as a generic `PREPARE` row:
+the generic copy carries no diagnosis but sorts above the real cause in the error center.
 
 Extract the addax error summarizer from `TaskQueueManagerV2Impl` into a shared utility so the
 recorder and the existing result message use one implementation.

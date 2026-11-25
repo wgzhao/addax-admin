@@ -6,6 +6,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
+import com.wgzhao.addax.admin.common.FailureStage;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.TargetFamily;
 import com.wgzhao.addax.admin.common.TargetOptions;
@@ -24,6 +25,8 @@ import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.target.HdfsConnectionManager;
 import com.wgzhao.addax.admin.service.target.HdfsTargetSettings;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
+import com.wgzhao.addax.admin.service.target.TargetPreparationResult;
+import com.wgzhao.addax.admin.utils.FailureText;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -165,7 +168,8 @@ public class HdfsTargetAdapter
         return values;
     }
 
-    private boolean addPartitions(long taskId, VwEtlTableWithSource table, List<PartitionValue> partitions)
+    private TargetPreparationResult addPartitions(long taskId, Long executionId,
+        VwEtlTableWithSource table, List<PartitionValue> partitions)
     {
         String spec = partitions.stream()
             .map(partition -> "`" + partition.name().replace("`", "``") + "`='"
@@ -173,28 +177,31 @@ public class HdfsTargetAdapter
             .collect(java.util.stream.Collectors.joining(", "));
         String sql = String.format("ALTER TABLE `%s`.`%s` ADD IF NOT EXISTS PARTITION (%s)",
             table.getTargetDb(), table.getTargetTable(), spec);
-        EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
+        EtlJour etlJour = jourService.addJour(taskId, executionId, JourKind.PARTITION, sql);
         try (Connection connection = connectFor(table);
             Statement statement = connection.createStatement())
         {
             statement.execute(sql);
             jourService.successJour(etlJour);
-            return true;
+            return TargetPreparationResult.ok();
         }
         catch (SQLException e)
         {
-            jourService.failJour(etlJour, e.getMessage());
-            return false;
+            String summary = "创建分区失败: " + e.getMessage();
+            jourService.failJourOnly(etlJour, summary);
+            return TargetPreparationResult.failed(FailureStage.PARTITION, summary,
+                FailureText.stackTrace(e), e.getClass().getSimpleName());
         }
     }
 
-    private boolean partitionExists(long taskId, VwEtlTableWithSource table, List<PartitionValue> partitions)
+    private TargetPreparationResult partitionExists(long taskId, Long executionId,
+        VwEtlTableWithSource table, List<PartitionValue> partitions)
     {
         String expected = partitions.stream()
             .map(partition -> partition.name() + "=" + partition.value())
             .collect(java.util.stream.Collectors.joining("/"));
         String sql = String.format("SHOW PARTITIONS `%s`.`%s`", table.getTargetDb(), table.getTargetTable());
-        EtlJour etlJour = jourService.addJour(taskId, JourKind.PARTITION, sql);
+        EtlJour etlJour = jourService.addJour(taskId, executionId, JourKind.PARTITION, sql);
         try (Connection connection = connectFor(table);
             Statement statement = connection.createStatement();
             var rs = statement.executeQuery(sql))
@@ -203,16 +210,21 @@ public class HdfsTargetAdapter
             {
                 if (expected.equalsIgnoreCase(rs.getString(1))) {
                     jourService.successJour(etlJour);
-                    return true;
+                    return TargetPreparationResult.ok();
                 }
             }
-            jourService.failJour(etlJour, "分区不存在: " + expected);
-            return false;
+            String summary = "分区不存在: " + expected;
+            jourService.failJourOnly(etlJour, summary);
+            return TargetPreparationResult.failed(FailureStage.PARTITION, summary,
+                "EXTERNAL 模式下平台不创建分区，请确认上游作业已产出 " + expected + " 分区",
+                "PartitionMissing");
         }
         catch (SQLException e)
         {
-            jourService.failJour(etlJour, e.getMessage());
-            return false;
+            String summary = "检查分区失败: " + e.getMessage();
+            jourService.failJourOnly(etlJour, summary);
+            return TargetPreparationResult.failed(FailureStage.PARTITION, summary,
+                FailureText.stackTrace(e), e.getClass().getSimpleName());
         }
     }
 
@@ -249,21 +261,23 @@ public class HdfsTargetAdapter
     }
 
     @Override
-    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate)
+    public TargetPreparationResult prepareBeforeRun(long taskId, Long executionId,
+        VwEtlTableWithSource table, LocalDate bizDate)
     {
         if (table == null) {
-            return false;
+            return TargetPreparationResult.failed(FailureStage.PREPARE,
+                "目标端准备失败: 采集表为空", null, "TargetTableMissing");
         }
         List<PartitionValue> partitions = resolvePartitionValues(table, bizDate);
         if (partitions.isEmpty())
         {
-            return true;
+            return TargetPreparationResult.ok();
         }
         if ("EXTERNAL".equalsIgnoreCase(table.getPartitionCreationMode()))
         {
-            return partitionExists(taskId, table, partitions);
+            return partitionExists(taskId, executionId, table, partitions);
         }
-        return addPartitions(taskId, table, partitions);
+        return addPartitions(taskId, executionId, table, partitions);
     }
 
     @Override
