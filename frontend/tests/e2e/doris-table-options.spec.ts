@@ -129,7 +129,7 @@ test('Doris table detail exposes the managed model and persists it with the rdbm
   const saves: Record<string, any>[] = [];
   await mockApi(page, payload => saves.push(payload));
 
-  await page.goto(`/table/detail/${tableId}?tab=info&tblname=ods.customer_order`);
+  await page.goto(`/table/detail/${tableId}?tab=info`);
   await expect(page.getByRole('heading', { name: '执行配置' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Doris 数据模型', { exact: true })).toBeVisible();
   await expect(page.getByText('源端主键', { exact: true })).toBeVisible();

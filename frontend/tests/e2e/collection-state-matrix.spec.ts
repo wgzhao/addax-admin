@@ -460,7 +460,7 @@ test('collection table state matrix matches lifecycle, source and table boundari
   await expect(page.getByText('Matrix Disabled Source（已停用）')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.goto(`/table/detail/${uiCase.tid}?tab=info&tblname=matrix_disabled_current_X`);
+  await page.goto(`/table/detail/${uiCase.tid}?tab=info`);
   await expect(page.getByRole('alert').getByText('采集源已停用')).toBeVisible();
   await expect(page.getByRole('button', { name: '编辑配置' })).toBeVisible();
 

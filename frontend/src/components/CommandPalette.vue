@@ -186,7 +186,7 @@
       run: () =>
         router.push({
           path: `/table/detail/${row.id}`,
-          query: { tab: 'info', tblname: row.label },
+          query: { tab: 'info' },
         }),
     }));
     const list = [...base, ...tables];

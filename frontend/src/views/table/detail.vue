@@ -119,7 +119,9 @@
   const currentTab = ref(String(route.query.tab || 'info'));
   const detailRef = useTemplateRef<{ canLeave: () => boolean }>('detailRef');
 
-  const tblname = ref(String(route.query.tblname || ''));
+  // Derived from the detail response below: callers such as the failure center deep-link here
+  // without an identity parameter, and a caller-supplied title could disagree with the table.
+  const tblname = ref('');
   // undefined means the lifecycle is still unknown; editing must stay disabled until it is resolved.
   const retiredAt = ref<string | null | undefined>(undefined);
   const retiredBy = ref<string | null>(null);
@@ -171,7 +173,9 @@
   const handleTabChange = (nextTab: unknown) => {
     const target = String(nextTab);
     if (target === currentTab.value) return;
-    if (!detailRef.value?.canLeave()) return;
+    // Tabs render lazily, so a deep link to another tab leaves the info editor unmounted; an
+    // unmounted editor holds no unsaved edits and must not block the switch.
+    if (detailRef.value && !detailRef.value.canLeave()) return;
     currentTab.value = target;
   };
 
@@ -179,6 +183,7 @@
     tableService
       .fetchTableDetail(Number(tid))
       .then(table => {
+        tblname.value = [table.sourceDb, table.sourceTable].filter(Boolean).join('.');
         tableSid.value = table.sid ?? null;
         retiredAt.value = table.retiredAt || null;
         retiredBy.value = table.retiredBy || null;
