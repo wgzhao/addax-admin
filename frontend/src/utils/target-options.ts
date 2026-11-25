@@ -72,19 +72,30 @@ export function targetFamily(
 /**
  * The API can return a null bag for rows written before the target_options migration and a partial bag
  * for older clients, so the UI always works on a fully populated object.
+ *
+ * The partition defaults are for a new table. An existing row whose bag says "no partition name and
+ * no bindings" is a non-partitioned table; merging the product default into it would have turned a
+ * filter-only edit into a partitioned definition whose Hive table can never accept a partition.
  */
 export function normalizeTargetOptions(
   options?: Partial<EtlTargetOptions> | null
 ): EtlTargetOptions {
-  const hdfs = { ...DEFAULT_HDFS_OPTIONS, ...(options?.hdfs || {}) };
-  if (!hdfs.partitionBindings?.length && hdfs.partName) {
+  const storedHdfs = options?.hdfs;
+  const hdfs = { ...DEFAULT_HDFS_OPTIONS, ...(storedHdfs || {}) };
+  if (Array.isArray(storedHdfs?.partitionBindings)) {
+    // An explicit list (including an empty one) is authoritative.
+    hdfs.partitionBindings = storedHdfs.partitionBindings;
+  } else if (storedHdfs && typeof storedHdfs.partName === 'string' && storedHdfs.partName.trim()) {
+    // Legacy rows carried the partition only as partName/partFormat.
     hdfs.partitionBindings = [
       {
-        name: hdfs.partName,
+        name: storedHdfs.partName.trim(),
         valueType: 'BIZ_DATE',
-        format: hdfs.partFormat || 'yyyyMMdd',
+        format: storedHdfs.partFormat || 'yyyyMMdd',
       },
     ];
+  } else if (storedHdfs) {
+    hdfs.partitionBindings = [];
   }
   const doris = { ...DEFAULT_DORIS_OPTIONS, ...(options?.doris || {}) };
   return {
@@ -116,5 +127,15 @@ export function pickTargetOptions(
   if (isDorisTarget(writerTemplateKey, targetType)) {
     return { rdbms: normalized.rdbms, doris: normalized.doris };
   }
-  return family === 'hdfs' ? { hdfs: normalized.hdfs } : { rdbms: normalized.rdbms };
+  if (family === 'hdfs') {
+    const hdfs = { ...normalized.hdfs };
+    if (!hdfs.partitionBindings?.length) {
+      // The backend derives a partition from a legacy partName when the list is empty, so a
+      // non-partitioned table must persist a blank name and no creation mode.
+      hdfs.partName = '';
+      delete hdfs.partitionCreationMode;
+    }
+    return { hdfs };
+  }
+  return { rdbms: normalized.rdbms };
 }
