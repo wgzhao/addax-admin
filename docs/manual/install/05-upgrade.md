@@ -185,7 +185,7 @@ yarn build
 2. 重建 `vw_etl_table_with_source` 视图。
 3. 删除旧的 5 个列。
 
-迁移完成后，目标端专属属性统一存放在 `etl_table.target_options`（jsonb）。全新安装直接以 `scripts/schema.sql` 为准，不需要执行额外迁移。
+迁移完成后，目标端专属属性统一存放在 `etl_table.target_options`（jsonb）。全新安装由迁移链 `V0001__baseline.sql` 直接建出当前结构，不需要执行额外迁移。
 
 如果升级日志中出现迁移失败：
 

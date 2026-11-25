@@ -135,7 +135,7 @@ addax-admin/
 └── screenshots/             # 本地 E2E 截图产物（不入库）
 ```
 
-数据库初始化脚本 [scripts/schema.sql](scripts/schema.sql) 与 [scripts/data.sql](scripts/data.sql) 会打包进后端 jar，空库由应用首次启动自动初始化。
+数据库结构由打包进后端 jar 的编号迁移链 [db/migration](backend/src/main/resources/db/migration)（`V0001__baseline.sql`、`V0002__seed_reference_data.sql` …）管理：空库首次启动按顺序执行，已有数据库按 `schema_migration` 记录增量升级。
 
 ---
 

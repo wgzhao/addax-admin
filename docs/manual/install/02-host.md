@@ -60,7 +60,7 @@ CREATE USER addax_admin WITH PASSWORD '替换为实际密码';
 CREATE DATABASE addax_admin OWNER addax_admin;
 ```
 
-空库由应用首次启动时自动初始化；需要提前建表时，可手工执行包内 `deploy/sql/schema.sql` 与 `deploy/sql/data.sql`。
+空库由应用首次启动时按迁移链自动初始化；需要提前建表时，可按版本顺序执行包内 `deploy/sql/V*.sql`。
 
 ## 3. 安装
 

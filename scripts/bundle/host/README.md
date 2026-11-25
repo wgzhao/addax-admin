@@ -99,8 +99,8 @@ CREATE USER addax_admin WITH PASSWORD '替换为实际密码';
 CREATE DATABASE addax_admin OWNER addax_admin;
 ```
 
-数据库为空时，后端首次启动会自动执行内置的 `schema.sql` 和 `data.sql`；需要由 DBA 提前建表时，
-可以手工执行 `deploy/sql/schema.sql` 与 `deploy/sql/data.sql`。
+数据库为空时，后端首次启动会按版本顺序执行内置迁移链；需要由 DBA 提前建表时，
+可以按版本顺序执行 `deploy/sql/V*.sql`。
 
 编辑 `config/env.sh`：
 

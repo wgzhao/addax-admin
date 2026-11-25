@@ -31,7 +31,7 @@
 
 ### 启动时报 `column s.code does not exist` / 视图创建失败
 
-v4.6.0 之前，PostgreSQL 容器是用宿主机挂载的 `scripts/schema.sql` 初始化的。部署文件如果来自 `master`，数据库结构就会比镜像新，镜像重建视图时找不到自己的列，启动失败。v4.6.0 起 `schema.sql` 和 `data.sql` 打包在镜像内，空库由应用自己初始化，不再依赖宿主机文件。
+v4.6.0 之前，PostgreSQL 容器是用宿主机挂载的 `scripts/schema.sql` 初始化的。部署文件如果来自 `master`，数据库结构就会比镜像新，镜像重建视图时找不到自己的列，启动失败。v4.6.0 起 `schema.sql` 和 `data.sql` 打包在镜像内，空库由应用自己初始化，不再依赖宿主机文件；当前版本已改为打包在镜像内的编号迁移链 `db/migration/V*.sql`。
 
 旧版本的恢复方式：换用与镜像一致的 Release tag，或升级到 v4.6.0 及以后。上面这次失败的初始化不包含业务数据，可以清空数据卷后重新初始化；已有数据时不要使用 `down -v`，新版本启动时会自动迁移已有库。
 
@@ -88,7 +88,7 @@ docker compose logs app | tail -100
    ```
 
 3. 检查 `DB_HOST`、`DB_PORT`、`DB_NAME`、`DB_USERNAME`、`DB_PASSWORD`。
-4. 确认数据库为空时应用有建表权限（v4.6.0 起由应用首次启动自动初始化）；手工部署时确认 `scripts/schema.sql` 和 `scripts/data.sql` 已执行。
+4. 确认数据库为空时应用有建表权限（v4.6.0 起由应用首次启动自动初始化）；手工部署时确认 `db/migration/V*.sql` 已按版本顺序执行。
 
 ### 数据库权限不足
 

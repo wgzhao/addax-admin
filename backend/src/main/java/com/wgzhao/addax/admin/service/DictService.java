@@ -33,7 +33,7 @@ import static com.wgzhao.addax.admin.common.Constants.shortSdf;
 public class DictService
 {
     // Built-in fallbacks so RDBMS targets work on existing deployments that predate the
-    // wR / R2R dict rows. Fresh installs seed the same content via scripts/data.sql.
+    // wR / R2R dict rows. Fresh installs seed the same content via db/migration/V0002__seed_reference_data.sql.
     private static final String DEFAULT_RDBMS_WRITER_TEMPLATE = """
         {
             "name": "${name}",
@@ -331,7 +331,7 @@ public class DictService
 
     /**
      * Idempotently seed the built-in RDBMS templates. The Java constants are the single source of truth;
-     * seeding the dict rows (instead of duplicating them in scripts/data.sql) keeps fresh and existing
+     * seeding the dict rows (instead of duplicating them in the seed migration) keeps fresh and existing
      * installs identical and lets operators edit the templates afterwards.
      */
     public void ensureRdbmsTemplates()

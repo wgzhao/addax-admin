@@ -135,7 +135,7 @@ addax-admin/
 └── screenshots/             # local E2E artifacts (not committed)
 ```
 
-The database init scripts [scripts/schema.sql](scripts/schema.sql) and [scripts/data.sql](scripts/data.sql) are packaged into the backend jar; an empty database initializes itself on first startup.
+The schema is managed by a numbered migration chain packaged into the backend jar ([db/migration](backend/src/main/resources/db/migration)): an empty database replays it on first startup, and an existing database is upgraded by the versions recorded in `schema_migration`.
 
 ---
 
