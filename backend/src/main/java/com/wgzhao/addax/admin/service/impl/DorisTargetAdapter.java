@@ -26,6 +26,7 @@ import com.wgzhao.addax.admin.service.target.JdbcTargetSupport;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ColumnMeta;
 import com.wgzhao.addax.admin.service.target.JdbcTargetSupport.ConnectInfo;
 import com.wgzhao.addax.admin.service.target.TargetAdapter;
+import com.wgzhao.addax.admin.service.target.TargetPreparationResult;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import com.wgzhao.addax.admin.utils.DorisDdlUtil;
 import com.wgzhao.addax.admin.utils.DorisDdlUtil.DorisDdlException;
@@ -524,10 +525,11 @@ public class DorisTargetAdapter
     }
 
     @Override
-    public boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate)
+    public TargetPreparationResult prepareBeforeRun(long taskId, Long executionId,
+        VwEtlTableWithSource table, LocalDate bizDate)
     {
         // External Doris tables own their partitions; dynamic partition handles the date dimension.
-        return true;
+        return TargetPreparationResult.ok();
     }
 
     @Override

@@ -68,8 +68,14 @@ public interface TargetAdapter
 
     /**
      * 执行任务前的目标端准备动作（如分区创建）。
+     *
+     * <p>失败时返回带阶段和原因的结果，由调用方记录唯一一条失败事实。适配器自己只更新
+     * etl_jour 操作日志，不再另写失败事实，否则一次逻辑失败会变成两条记录。</p>
+     *
+     * @param executionId 当前执行 ID，用于把准备阶段的流水和失败事实关联到同一次执行
      */
-    boolean prepareBeforeRun(long taskId, VwEtlTableWithSource table, LocalDate bizDate);
+    TargetPreparationResult prepareBeforeRun(long taskId, Long executionId,
+        VwEtlTableWithSource table, LocalDate bizDate);
 
     /**
      * 生成目标端 writer 模板片段。

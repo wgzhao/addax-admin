@@ -31,6 +31,7 @@ import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.TableService;
 import com.wgzhao.addax.admin.service.TargetContractService;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
+import com.wgzhao.addax.admin.service.target.TargetPreparationResult;
 import com.wgzhao.addax.admin.service.TaskQueueManager;
 import com.wgzhao.addax.admin.service.UserNotificationService;
 import com.wgzhao.addax.admin.utils.CommandExecutor;
@@ -1070,19 +1071,26 @@ public class TaskQueueManagerV2Impl
             bizDateStr = overrideBizDate.format(dtf);
         }
         try {
-            boolean prepareResult = targetAdapterRegistry.resolve(tableView).prepareBeforeRun(taskId, tableView, executionBizDate);
-            if (!prepareResult) {
-                executionService.finish(execution, false, "Target preparation failed");
-                failureRecorder.record(taskId, "Target preparation failed", FailureEvidence.create()
+            TargetPreparationResult preparation = targetAdapterRegistry.resolve(tableView)
+                .prepareBeforeRun(taskId, execution.getId(), tableView, executionBizDate);
+            if (!preparation.success()) {
+                // One logical failure, one fact: the adapter returns the most specific stage and
+                // reason, and this is the only place that records it. Recording a generic PREPARE
+                // duplicate here would sort above the real cause in the error center.
+                String summary = preparation.summary() == null || preparation.summary().isBlank()
+                    ? "Target preparation failed" : preparation.summary();
+                executionService.finish(execution, false, summary);
+                failureRecorder.record(taskId, summary, FailureEvidence.create()
                     .execution(execution.getId())
                     .queue(queueId)
-                    .stage(FailureStage.PREPARE)
-                    .errorClass("TargetPreparationFailed")
+                    .stage(preparation.stage() == null ? FailureStage.PREPARE : preparation.stage())
+                    .errorClass(preparation.errorClass())
+                    .detail(preparation.detail())
                     .attempt(attemptNo, maxAttempts)
                     .finalAttempt(isFinalAttempt(attemptNo, maxAttempts))
                     .runType(forceRegenerate ? "FILLBACK" : "NORMAL")
                     .bizDate(executionBizDate));
-                return TaskResultDto.failure("Target preparation failed", 0);
+                return TaskResultDto.failure(summary, 0);
             }
 
             File tempFile;
