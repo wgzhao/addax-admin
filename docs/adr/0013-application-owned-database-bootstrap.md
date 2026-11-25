@@ -56,3 +56,9 @@ create view public.vw_etl_table_with_source as ...
 - `scripts/e2e/empty-database-init-e2e.sh`：空库上并发启动两个实例，只有一个执行初始化；校验表结构、
   种子数据、视图指纹、登录与新增采集源 API；重启不重复初始化、不重复写种子行。
 - `scripts/e2e/schema-upgrade-e2e.sh --state fresh`：以当前 `scripts/schema.sql` 建库后升级路径行为不变。
+
+## Superseded in part
+
+ADR-0022 replaced the `schema.sql`/`data.sql` bootstrap with a numbered migration chain. The
+history and rationale above still explain why the application owns the schema, but the scripts now
+live in `db/migration` and are applied through `schema_migration`.

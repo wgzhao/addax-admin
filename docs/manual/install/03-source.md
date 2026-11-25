@@ -29,15 +29,16 @@ CREATE USER addax_admin WITH PASSWORD 'addax_admin@123';
 CREATE DATABASE addax_admin OWNER addax_admin;
 ```
 
-数据库为空时，后端首次启动会自动执行镜像内置的 `schema.sql` 和 `data.sql` 完成初始化，一般不需要手工执行 SQL。需要提前建表或检查脚本内容时，也可以在仓库根目录手工执行：
+数据库为空时，后端首次启动会按版本顺序执行镜像内置的迁移链完成初始化，一般不需要手工执行 SQL。需要提前建表或检查脚本内容时，也可以在仓库根目录按版本顺序手工执行：
 
 ```bash
-psql -U addax_admin -d addax_admin -f scripts/schema.sql
-psql -U addax_admin -d addax_admin -f scripts/data.sql
+psql -U addax_admin -d addax_admin -f backend/src/main/resources/db/migration/V0001__baseline.sql
+psql -U addax_admin -d addax_admin -f backend/src/main/resources/db/migration/V0002__seed_reference_data.sql
 ```
 
-- `scripts/schema.sql`：表结构、视图与索引
-- `scripts/data.sql`：默认管理员和基础数据
+- `V0001__baseline.sql`：表结构、视图与索引
+- `V0002__seed_reference_data.sql`：默认管理员和基础数据
+- 更高版本按编号顺序执行；已执行版本记录在 `schema_migration`
 
 默认账号为 `admin`，默认密码为 `admin123`。
 
@@ -262,8 +263,8 @@ sudo systemctl reload nginx
 创建一个空的 `addax_admin` 数据库即可，后端首次启动会自动建表并写入默认数据。需要手工初始化时：
 
 ```bash
-psql -U addax_admin -d addax_admin -f scripts/schema.sql
-psql -U addax_admin -d addax_admin -f scripts/data.sql
+psql -U addax_admin -d addax_admin -f backend/src/main/resources/db/migration/V0001__baseline.sql
+psql -U addax_admin -d addax_admin -f backend/src/main/resources/db/migration/V0002__seed_reference_data.sql
 ```
 
 ### 启动后端

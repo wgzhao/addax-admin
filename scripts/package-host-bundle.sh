@@ -61,8 +61,7 @@ install -m 644 "$TEMPLATES/README.md" "$PKG/deploy/README.md"
 install -m 755 "$TEMPLATES/install.sh" "$PKG/deploy/install.sh"
 install -m 644 "$TEMPLATES/nginx.conf.example" "$PKG/deploy/nginx.conf.example"
 install -m 644 "$TEMPLATES/addax-admin.service" "$PKG/deploy/addax-admin.service"
-install -m 644 "$REPO_ROOT/scripts/schema.sql" "$PKG/deploy/sql/schema.sql"
-install -m 644 "$REPO_ROOT/scripts/data.sql" "$PKG/deploy/sql/data.sql"
+install -m 644 "$REPO_ROOT"/backend/src/main/resources/db/migration/*.sql "$PKG/deploy/sql/"
 install -m 644 "$REPO_ROOT/LICENSE" "$PKG/LICENSE"
 
 {

@@ -125,7 +125,7 @@ Oracle、DB2、Sybase、ClickHouse、SQLite 在保存目标端或测试连接时
 2. 重建 `vw_etl_table_with_source` 视图。
 3. 删除旧的 5 列。
 
-全新安装直接以 `scripts/schema.sql` 为准。
+全新安装由迁移链 `V0001__baseline.sql` 直接建出当前结构。
 
 ## 相关文档
 

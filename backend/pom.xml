@@ -174,18 +174,10 @@
   <build>
     <finalName>addax-admin-${project.version}</finalName>
     <resources>
+      <!-- The migration chain in src/main/resources/db/migration is the single source of truth for
+           the schema: the artifact that creates a database is the same one that migrates it. -->
       <resource>
         <directory>src/main/resources</directory>
-      </resource>
-      <!-- The fresh-install scripts travel inside the jar so the artifact that creates a database is
-           also the artifact that migrates it. Keeping one copy under scripts/ avoids the drift a
-           duplicated copy would introduce; the Dockerfile copies those files into the build context. -->
-      <resource>
-        <directory>${project.basedir}/../scripts</directory>
-        <includes>
-          <include>schema.sql</include>
-          <include>data.sql</include>
-        </includes>
       </resource>
     </resources>
     <plugins>

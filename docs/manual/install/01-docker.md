@@ -27,7 +27,7 @@ docker compose version
 适用于不需要源码和构建工具链的场景。
 
 > 预构建镜像只在发布时构建，`latest` 指向最新 Release，`master` 分支仍在快速迭代，请勿用于生产部署。
-> 数据库在首次启动时由镜像内置的 `schema.sql` 和 `data.sql` 自动初始化，不需要在宿主机放置 SQL 文件，
+> 数据库在首次启动时由镜像内置的迁移链 `db/migration/V*.sql` 按版本顺序自动初始化，不需要在宿主机放置 SQL 文件，
 > 因此不会再出现镜像与宿主机脚本版本不一致导致的启动失败（`column s.code does not exist`）。
 
 ```bash

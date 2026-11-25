@@ -12,7 +12,7 @@ services:
       TZ: Asia/Shanghai
     command: ["postgres", "-c", "timezone=Asia/Shanghai"]
     volumes:
-      # Why: the app image carries its own schema.sql/data.sql and initializes an empty database on
+      # Why: the app image carries its own migration chain and initializes an empty database on
       # startup, so the database can never be shaped by a host file from a different revision.
       - postgres_data:/var/lib/postgresql/data
     networks:
