@@ -50,7 +50,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,8 +68,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -159,8 +156,11 @@ public class TaskQueueManagerV2Impl
     private final CalendarService calendarService;
 
     // Local concurrency counters (worker-side)
-    private final AtomicInteger runningTaskCount = new AtomicInteger(0);
-    private final ConcurrentHashMap<Integer, AtomicInteger> sourceRunningTaskCount = new ConcurrentHashMap<>();
+    private final WorkerCapacity capacity = new WorkerCapacity();
+
+    // Lease timing shared with JobRunLease so startup validation cannot disagree with runtime.
+    private static final JobRunLease.Settings LEASE_SETTINGS =
+        new JobRunLease.Settings(DEFAULT_LEASE_SECONDS, RENEW_INTERVAL_SECONDS, RENEW_FAILURE_TOLERANCE);
 
     private final ExecutorService workerPool = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "etl-worker");
@@ -193,7 +193,7 @@ public class TaskQueueManagerV2Impl
     // SWRR state: master-only, tracks accumulated weight per worker between dispatch cycles
     private final ConcurrentHashMap<String, Double> swrrCurrentWeight = new ConcurrentHashMap<>();
     // Master-side worker capacity ledger between heartbeat snapshots
-    private final ConcurrentHashMap<String, WorkerLedger> workerLedgers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, WorkerCapacityLedger> workerLedgers = new ConcurrentHashMap<>();
     // Lease renewals run on their own pool: a busy dispatch pool must never delay a renew past the
     // lease TTL, which would fence a healthy run and let another worker duplicate it.
     private final ScheduledExecutorService leaseScheduler = Executors.newScheduledThreadPool(2, r -> {
@@ -220,7 +220,8 @@ public class TaskQueueManagerV2Impl
         this.instanceId = electionService.getInstanceId();
 
         // Bind live counters into heartbeat service so it can report accurate state
-        heartbeatService.bind(this.concurrentLimit, this.concurrencyWeight, runningTaskCount, sourceRunningTaskCount);
+        heartbeatService.bind(this.concurrentLimit, this.concurrencyWeight,
+            capacity.runningCounter(), capacity.sourceRunningCounters());
 
         // Subscribe to our personal task-assignment channel (worker side)
         if (!subscribeToAssignmentChannel()) {
@@ -495,9 +496,9 @@ public class TaskQueueManagerV2Impl
         // depend on heartbeat freshness alone.
         List<WorkerSlot> slots = workers.stream()
             .map(w -> {
-                WorkerLedger ledger = workerLedgers.compute(w.instanceId(), (id, existing) -> {
+                WorkerCapacityLedger ledger = workerLedgers.compute(w.instanceId(), (id, existing) -> {
                     if (existing == null) {
-                        return new WorkerLedger(w);
+                        return new WorkerCapacityLedger(w);
                     }
                     existing.reconcile(w);
                     return existing;
@@ -688,143 +689,6 @@ public class TaskQueueManagerV2Impl
     {
     }
 
-    /** Worker capacity snapshot backed by the master's authoritative ledger. */
-    private static final class WorkerSlot
-    {
-        final WorkerLedger ledger;
-        int slots;
-
-        WorkerSlot(WorkerLedger ledger)
-        {
-            this.ledger = ledger;
-            this.slots = ledger.availableSlots();
-        }
-
-        String instanceId()
-        {
-            return ledger.instanceId();
-        }
-
-        double weight()
-        {
-            return ledger.weight();
-        }
-
-        int running()
-        {
-            return ledger.running();
-        }
-
-        int heartbeatRunning()
-        {
-            return ledger.heartbeatRunning();
-        }
-
-        int concurrentLimit()
-        {
-            return ledger.concurrentLimit();
-        }
-
-        int sourceRunning(int sid)
-        {
-            return ledger.sourceRunning(sid);
-        }
-
-        void reserve(Integer sid)
-        {
-            ledger.reserve(sid);
-        }
-    }
-
-    private static final class WorkerLedger
-    {
-        private WorkerHeartbeatService.WorkerInfo heartbeat;
-        private Instant heartbeatSeenAt;
-        private int reservedRunning;
-        private final Map<Integer, Integer> reservedSourceRunning = new HashMap<>();
-        private final Deque<Reservation> reservations = new ArrayDeque<>();
-
-        WorkerLedger(WorkerHeartbeatService.WorkerInfo heartbeat)
-        {
-            this.heartbeat = heartbeat;
-            this.heartbeatSeenAt = heartbeat.lastSeen();
-        }
-
-        synchronized void reconcile(WorkerHeartbeatService.WorkerInfo info)
-        {
-            if (heartbeatSeenAt != null && !info.lastSeen().isAfter(heartbeatSeenAt)) {
-                return;
-            }
-            heartbeat = info;
-            heartbeatSeenAt = info.lastSeen();
-            while (!reservations.isEmpty() && !reservations.peekFirst().reservedAt().isAfter(heartbeatSeenAt)) {
-                Reservation reservation = reservations.removeFirst();
-                reservedRunning = Math.max(0, reservedRunning - 1);
-                if (reservation.sid() != null) {
-                    reservedSourceRunning.computeIfPresent(reservation.sid(), (k, v) -> v <= 1 ? null : v - 1);
-                }
-            }
-        }
-
-        synchronized String instanceId()
-        {
-            return heartbeat.instanceId();
-        }
-
-        synchronized double weight()
-        {
-            return heartbeat.weight();
-        }
-
-        synchronized int concurrentLimit()
-        {
-            return heartbeat.concurrentLimit();
-        }
-
-        synchronized int heartbeatRunning()
-        {
-            return heartbeat.running();
-        }
-
-        synchronized int running()
-        {
-            return heartbeat.running() + reservedRunning;
-        }
-
-        synchronized int availableSlots()
-        {
-            return Math.max(0, concurrentLimit() - running());
-        }
-
-        synchronized int sourceRunning(int sid)
-        {
-            return heartbeat.sourceRunning().getOrDefault(sid, 0)
-                + reservedSourceRunning.getOrDefault(sid, 0);
-        }
-
-        /** Cluster-level accounting: per-source total across this worker (heartbeat + reservations). */
-        synchronized Map<Integer, Integer> sourceRunningSnapshot()
-        {
-            Map<Integer, Integer> snapshot = new HashMap<>(reservedSourceRunning);
-            heartbeat.sourceRunning().forEach((sid, count) -> snapshot.merge(sid, count, Integer::sum));
-            return snapshot;
-        }
-
-        synchronized void reserve(Integer sid)
-        {
-            Reservation reservation = new Reservation(sid, Instant.now());
-            reservations.addLast(reservation);
-            reservedRunning++;
-            if (sid != null) {
-                reservedSourceRunning.merge(sid, 1, Integer::sum);
-            }
-        }
-    }
-
-    private record Reservation(Integer sid, Instant reservedAt)
-    {
-    }
-
     /**
      * Deferred enqueue while the monitor is stopped. explicitBizDate is only set for fillbacks:
      * normal enqueues resolve the business date against the config at flush time, because the
@@ -861,15 +725,12 @@ public class TaskQueueManagerV2Impl
     {
         long start = System.currentTimeMillis();
         TaskResultDto taskResultDto = null;
-        RunLease lease = null;
+        JobRunLease lease = null;
         // 声明在 try 外,异常分支(notifyFinalFailure)也需要引用
         EtlTable task = null;
-        // Source whose running counter was reserved at start; drives the finally decrement so a
-        // deleted table or a max_concurrency change mid-run cannot leak the counter.
-        Integer countedSourceSid = null;
-        // Both early exits below (lost ownership, pending kill) return before the increment; the
-        // finally block must only release a count this run actually took.
-        boolean capacityReserved = false;
+        // Both counters released in the finally block are tied to this token, so an early exit
+        // before the reservation cannot decrement a count this run never took.
+        WorkerCapacity.Token capacityToken = null;
         final long jobId = job.getId();
 
         try {
@@ -892,22 +753,20 @@ public class TaskQueueManagerV2Impl
             // Reserve capacity now that this run is committed. Increments and the finally decrements
             // below are symmetric by construction: any exception between here and the finally block
             // releases what was reserved.
-            runningTaskCount.incrementAndGet();
-            capacityReserved = true;
+            capacityToken = capacity.reserve();
             task = tableService.getTable(job.getTid());
             if (task == null) {
                 throw new IllegalStateException("Task not found tid=" + job.getTid());
             }
             VwEtlTableWithSource sourceView = tableService.getTableView(task.getId());
             if (sourceView != null && sourceView.getMaxConcurrency() != null && sourceView.getMaxConcurrency() > 0) {
-                sourceRunningTaskCount.computeIfAbsent(task.getSid(), k -> new AtomicInteger(0)).incrementAndGet();
-                countedSourceSid = task.getSid();
+                capacity.countSource(capacityToken, task.getSid());
             }
 
             // Tie the local addax process to this row's lease. The renewer keeps the database lease
             // alive and refreshes the wrapper's heartbeat file; when ownership cannot be confirmed
             // it fences, and CommandExecutor kills the process tree before a successor can start.
-            lease = new RunLease(job.getId());
+            lease = new JobRunLease(job.getId(), instanceId, jobQueueService, leaseScheduler, LEASE_SETTINGS);
             lease.start();
 
             taskResultDto = executeEtlTaskWithConcurrencyControl(
@@ -987,16 +846,9 @@ public class TaskQueueManagerV2Impl
                 lease.stop();
             }
 
-            int afterGlobal = capacityReserved ? runningTaskCount.decrementAndGet() : runningTaskCount.get();
-
-            // Release the source reservation taken at start (countedSourceSid), even if the table
-            // or its source view disappeared mid-run — no re-fetch, no skipped decrement.
-            if (countedSourceSid != null) {
-                sourceRunningTaskCount.computeIfPresent(countedSourceSid, (k, v) -> {
-                    v.decrementAndGet();
-                    return v.get() <= 0 ? null : v;
-                });
-            }
+            // One token releases exactly what this run reserved, including the source slot, even if
+            // the table or its source view disappeared mid-run — no re-fetch, no skipped decrement.
+            int afterGlobal = capacityToken != null ? capacity.release(capacityToken) : capacity.running();
 
             // Guarded: countPending() is a DB round-trip, only pay for it when debug is enabled
             if (log.isDebugEnabled()) {
@@ -1012,131 +864,6 @@ public class TaskQueueManagerV2Impl
 
             // Trigger next dispatch cycle on master
             triggerDispatchAsync();
-        }
-    }
-
-    /**
-     * Ownership heartbeat for one queue row.
-     *
-     * <p>Renewal is what keeps the row ours. When it fails definitively (the row was released and
-     * possibly reclaimed) or repeatedly (the database is unreachable), the run is fenced: it never
-     * writes table state, and its addax process is destroyed before the lease can expire, so the
-     * next owner of the row cannot overlap with it.</p>
-     */
-    private final class RunLease
-    {
-        private final long jobId;
-        private final Path leaseFile;
-        private final AtomicReference<String> fenceReason = new AtomicReference<>();
-        private final AtomicInteger consecutiveFailures = new AtomicInteger();
-        private volatile ScheduledFuture<?> renewer;
-        // Set once the process has exited and we are about to write the terminal queue state.
-        // A renewal that races that write must not fence a run that just finished successfully.
-        private volatile boolean done;
-
-        RunLease(long jobId) throws IOException
-        {
-            this.jobId = jobId;
-            this.leaseFile = ProcessGuard.newLeaseFile(jobId);
-            // The wrapper must see a fresh heartbeat before it starts the child.
-            ProcessGuard.touchLease(leaseFile);
-        }
-
-        void start()
-        {
-            renewer = leaseScheduler.scheduleAtFixedRate(this::renew,
-                RENEW_INTERVAL_SECONDS, RENEW_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        }
-
-        String fenceReason()
-        {
-            return fenceReason.get();
-        }
-
-        Path leaseFile()
-        {
-            return leaseFile;
-        }
-
-        private void renew()
-        {
-            if (done || fenceReason.get() != null) {
-                return;
-            }
-            try {
-                if (!jobQueueService.renewLease(jobId, instanceId, DEFAULT_LEASE_SECONDS)) {
-                    if (!done) {
-                        fence("queue row is no longer owned by " + instanceId);
-                    }
-                    return;
-                }
-                if (done) {
-                    return;
-                }
-                ProcessGuard.touchLease(leaseFile);
-                consecutiveFailures.set(0);
-            }
-            catch (Exception e) {
-                if (done) {
-                    return;
-                }
-                int failures = consecutiveFailures.incrementAndGet();
-                if (failures >= RENEW_FAILURE_TOLERANCE) {
-                    fence("lease renewal failed " + failures + " times: " + e.getMessage());
-                }
-                else {
-                    log.warn("Lease renewal {}/{} failed for jobId={}: {}",
-                        failures, RENEW_FAILURE_TOLERANCE, jobId, e.getMessage());
-                }
-            }
-        }
-
-        /**
-         * Final ownership check before table state is written. Successful renewal also means the
-         * wrapper's heartbeat file stays fresh while the process is finishing.
-         */
-        boolean stillOwned()
-        {
-            if (fenceReason.get() != null) {
-                return false;
-            }
-            try {
-                if (!jobQueueService.renewLease(jobId, instanceId, DEFAULT_LEASE_SECONDS)) {
-                    fence("queue row is no longer owned by " + instanceId);
-                    return false;
-                }
-                ProcessGuard.touchLease(leaseFile);
-                return true;
-            }
-            catch (Exception e) {
-                fence("ownership check failed: " + e.getMessage());
-                return false;
-            }
-        }
-
-        /** The process finished; stop renewing while the terminal queue update is written. */
-        void finish()
-        {
-            done = true;
-            if (renewer != null) {
-                renewer.cancel(false);
-            }
-        }
-
-        void stop()
-        {
-            done = true;
-            if (renewer != null) {
-                renewer.cancel(false);
-            }
-            ProcessGuard.deleteLease(leaseFile);
-        }
-
-        private void fence(String reason)
-        {
-            if (fenceReason.compareAndSet(null, reason)) {
-                log.warn("Fencing run of jobId={}: {}", jobId, reason);
-            }
         }
     }
 
@@ -1178,7 +905,7 @@ public class TaskQueueManagerV2Impl
     }
 
     private TaskResultDto executeEtlTaskWithConcurrencyControl(EtlTable task, LocalDate overrideBizDate,
-        Long queueId, int attemptNo, int maxAttempts, RunLease lease, boolean forceRegenerate)
+        Long queueId, int attemptNo, int maxAttempts, JobRunLease lease, boolean forceRegenerate)
     {
         long tid = task.getId();
         long startTime = System.currentTimeMillis();
@@ -1259,7 +986,7 @@ public class TaskQueueManagerV2Impl
     }
 
     private TaskResultDto executeEtlTaskLogic(EtlTable task, LocalDate overrideBizDate, Long queueId, int attemptNo,
-        int maxAttempts, RunLease lease, boolean forceRegenerate)
+        int maxAttempts, JobRunLease lease, boolean forceRegenerate)
     {
         long taskId = task.getId();
         log.info("Executing task: taskId={}, destDB={}, tableName={}", taskId, task.getTargetDb(), task.getTargetTable());
@@ -1452,7 +1179,7 @@ public class TaskQueueManagerV2Impl
     }
 
     private TaskResultDto executeAddax(List<String> commandArgs, String commandForLog, EtlTable task,
-        EtlExecution execution, String logName, long maxRuntimeSeconds, RunLease lease,
+        EtlExecution execution, String logName, long maxRuntimeSeconds, JobRunLease lease,
         int attemptNo, int maxAttempts, boolean fillback)
     {
         long tid = task.getId();
@@ -1765,7 +1492,7 @@ public class TaskQueueManagerV2Impl
     {
         Map<String, Object> status = new HashMap<>();
         status.put("pendingInDatabase", jobQueueService.countPending());
-        status.put("runningTasks", runningTaskCount.get());
+        status.put("runningTasks", capacity.running());
         status.put("isMaster", electionService.isMaster());
         status.put("masterInstanceId", electionService.getMasterInstanceId());
         return status;
