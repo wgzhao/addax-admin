@@ -19,11 +19,10 @@ routes.forEach(route => {
   }
 });
 
+// Password maintenance moved into the account page; keep old bookmarks working.
 routes.push({
   path: '/change-password',
-  name: 'ChangePassword',
-  component: () => import('@/views/change-password.vue'),
-  meta: { layout: 'default', navHidden: true },
+  redirect: '/account',
 });
 
 routes.push({

@@ -3,6 +3,7 @@ package com.wgzhao.addax.admin.service;
 import com.wgzhao.addax.admin.common.Roles;
 import com.wgzhao.addax.admin.dto.CreateUserDTO;
 import com.wgzhao.addax.admin.dto.CurrentUserDto;
+import com.wgzhao.addax.admin.dto.UpdateProfileDTO;
 import com.wgzhao.addax.admin.dto.UpdateUserDTO;
 import com.wgzhao.addax.admin.dto.UserAdminDto;
 import com.wgzhao.addax.admin.exception.ApiException;
@@ -197,6 +198,37 @@ public class UserAdminService
         userAuthStateService.bumpAuthVersion(normalizedUsername);
         authzService.invalidateGrants(normalizedUsername);
         return updated;
+    }
+
+    /**
+     * Self-service profile edit. Deliberately narrower than {@link #updateUser}: the account may
+     * only change descriptive fields, and the auth version is not bumped so editing a display name
+     * does not sign the user out.
+     */
+    @Transactional
+    public CurrentUserDto updateCurrentProfile(UpdateProfileDTO dto)
+    {
+        String username = currentUsername();
+        if (username == null || username.isBlank()) {
+            throw new ApiException(404, "当前登录账号不存在");
+        }
+        JdbcUserDetailsManager manager = getUserManager();
+        if (!manager.userExists(username)) {
+            throw new ApiException(404, "账号不存在");
+        }
+
+        UserAdminDto before = toUserAdminDto(username);
+        String displayName = dto.displayName() == null
+            ? before.displayName()
+            : normalizeDisplayName(dto.displayName(), username);
+        String email = dto.email() == null ? before.email() : blankToNull(dto.email());
+        String remark = dto.remark() == null ? before.remark() : blankToNull(dto.remark());
+        validateProfile(displayName, email, remark);
+
+        jdbcTemplate.update(
+            "update users set display_name = ?, email = ?, remark = ? where username = ?",
+            displayName, email, remark, username);
+        return currentUser();
     }
 
     @Transactional
