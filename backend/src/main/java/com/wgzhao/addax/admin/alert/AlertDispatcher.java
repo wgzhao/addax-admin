@@ -191,6 +191,44 @@ public class AlertDispatcher
     }
 
     /**
+     * A recurring infrastructure condition discovered by a periodic check (cluster state
+     * consistency). The suffix names the condition, not the message: a changing counter must
+     * increment fire_count on the same open event instead of creating a new one every check.
+     */
+    @Transactional
+    public boolean publishSystemCondition(String keySuffix, String title, String message,
+        Map<String, String> data)
+    {
+        return publishGlobal(AlertEventType.SYSTEM, "SYSTEM:" + keySuffix, title, message,
+            "orange", "系统一致性", AlertSeverity.P2, data, false);
+    }
+
+    /**
+     * Closes the open SYSTEM condition, if any. Unlike schedule recovery this sends no message:
+     * the event list shows the resolution, and an infrastructure blip does not need a broadcast.
+     */
+    @Transactional
+    public int resolveOpenSystemEvents(String keySuffix)
+    {
+        String eventKey = "SYSTEM:" + keySuffix;
+        List<AlertEvent> open = eventRepo.findByEventTypeAndStatusIn(AlertEventType.SYSTEM.name(),
+            List.of(AlertEventStatus.FIRING, AlertEventStatus.SILENCED));
+        Instant now = Instant.now();
+        int resolved = 0;
+        for (AlertEvent event : open) {
+            if (!eventKey.equals(event.getEventKey())) {
+                continue;
+            }
+            event.setStatus(AlertEventStatus.RESOLVED);
+            event.setResolvedAt(now);
+            event.setLastSeen(now);
+            eventRepo.save(event);
+            resolved++;
+        }
+        return resolved;
+    }
+
+    /**
      * Scheduler-domain failure (day-cut refresh, scheduler liveness). The key must be
      * stable for one condition: a retry has to increment fire_count on the same open
      * event instead of creating a new one, so callers pass an explicit suffix rather
