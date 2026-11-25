@@ -115,6 +115,19 @@ public class EtlTable
     private JsonNode writerPluginConfig;
 
     /**
+     * Normalized route identity used by the partial unique indexes. The service checks compare
+     * identifiers with the source/target dialect policy; these columns store that same normalization
+     * so the database can reject concurrent duplicates the service check cannot see. Internal only.
+     */
+    @JsonIgnore
+    @Column(name = "source_route_key", length = 400)
+    private String sourceRouteKey;
+
+    @JsonIgnore
+    @Column(name = "target_slot_key", length = 300)
+    private String targetSlotKey;
+
+    /**
      * 表级调度时间点（每天的 HH:mm），为空表示继承 etl_source.start_at
      */
     @Column(name = "start_at")

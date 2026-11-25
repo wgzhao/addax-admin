@@ -16,6 +16,7 @@ import com.wgzhao.addax.admin.service.source.SourceRef;
 import com.wgzhao.addax.admin.utils.DbUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.sql.Connection;
@@ -44,6 +45,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CollectionScopeService
 {
     private static final long POLICY_TTL_MS = 60_000;
+
+    /**
+     * Separator for the stored route keys. A unit separator cannot appear in a real database or
+     * table name, so two key fragments can never collide by shifting a character across the
+     * boundary. NUL would be the obvious choice but PostgreSQL text cannot store it.
+     */
+    private static final char KEY_SEPARATOR = '\u001f';
 
     private final EtlTableRepo tableRepo;
     private final EtlSourceRepo sourceRepo;
@@ -134,6 +142,7 @@ public class CollectionScopeService
         String sourceKey = sourceKey(sourcePolicy, table.getSourceDb(), table.getSourceTable());
         String targetDbKey = targetPolicy.key(table.getTargetDb().trim());
         String targetTableKey = targetPolicy.key(table.getTargetTable().trim());
+        setRouteKeys(table, sourcePolicy, targetPolicy);
 
         for (EtlTable row : tableRepo.findBySid(table.getSid()))
         {
@@ -178,6 +187,7 @@ public class CollectionScopeService
         String sourceKey = sourceKey(sourcePolicy, table.getSourceDb(), table.getSourceTable());
         String targetDbKey = targetPolicy.key(table.getTargetDb());
         String targetTableKey = targetPolicy.key(table.getTargetTable());
+        setRouteKeys(table, sourcePolicy, targetPolicy);
 
         for (EtlTable row : tableRepo.findBySid(table.getSid()))
         {
@@ -223,6 +233,7 @@ public class CollectionScopeService
         String sourceKey = sourceKey(sourcePolicy, table.getSourceDb(), table.getSourceTable());
         String targetDbKey = targetPolicy.key(table.getTargetDb());
         String targetTableKey = targetPolicy.key(table.getTargetTable());
+        setRouteKeys(table, sourcePolicy, targetPolicy);
 
         for (EtlTable row : tableRepo.findBySid(table.getSid()))
         {
@@ -294,6 +305,122 @@ public class CollectionScopeService
         IdentifierPolicy policy = IdentifierPolicy.forTarget(target);
         return target.getId() + "\u0000" + policy.key(trim(table.getTargetDb()))
             + "\u0000" + policy.key(trim(table.getTargetTable()));
+    }
+
+    /**
+     * Recompute the stored route keys for an edit that did not change the route. The client sends the
+     * whole table entity, so without this the internal key columns would be written back as null and
+     * the partial unique indexes would stop seeing the row.
+     */
+    public void applyRouteKeys(EtlTable table)
+    {
+        EtlTarget target = resolveTarget(table.getTargetId(), false);
+        table.setTargetId(target.getId());
+        EtlSource source = sourceRepo.findById(table.getSid())
+            .orElseThrow(() -> new ApiException(400, "采集源不存在: " + table.getSid()));
+        setRouteKeys(table, sourcePolicy(source, table.getSourceDb()), IdentifierPolicy.forTarget(target));
+    }
+
+    private void setRouteKeys(EtlTable table, IdentifierPolicy sourcePolicy, IdentifierPolicy targetPolicy)
+    {
+        RouteKeys keys = routeKeys(table, sourcePolicy, targetPolicy);
+        table.setSourceRouteKey(keys.sourceRouteKey());
+        table.setTargetSlotKey(keys.targetSlotKey());
+    }
+
+    private record RouteKeys(String sourceRouteKey, String targetSlotKey)
+    {
+    }
+
+    private RouteKeys routeKeys(EtlTable table, IdentifierPolicy sourcePolicy, IdentifierPolicy targetPolicy)
+    {
+        String targetDbKey = targetPolicy.key(trim(table.getTargetDb()));
+        String sourceRouteKey = targetDbKey + KEY_SEPARATOR
+            + sourcePolicy.key(table.getSourceDb()) + KEY_SEPARATOR + sourcePolicy.key(table.getSourceTable());
+        String targetSlotKey = targetDbKey + KEY_SEPARATOR + targetPolicy.key(trim(table.getTargetTable()));
+        return new RouteKeys(sourceRouteKey, targetSlotKey);
+    }
+
+    /**
+     * Rewrite the stored keys after the target's identifier policy changed (target type or writer
+     * template). Called inside the target update transaction, so a conflict rolls the change back
+     * instead of leaving rows whose keys disagree with the policy used to compare them.
+     */
+    public void refreshTargetKeys(long targetId)
+    {
+        EtlTarget target = targetRepo.findById(targetId)
+            .orElseThrow(() -> new ApiException(404, "目标端不存在: " + targetId));
+        IdentifierPolicy targetPolicy = IdentifierPolicy.forTarget(target);
+        for (EtlTable row : tableRepo.findByTargetId(targetId))
+        {
+            EtlSource source = sourceRepo.findById(row.getSid()).orElse(null);
+            if (source == null)
+            {
+                continue;
+            }
+            RouteKeys keys = routeKeys(row, sourcePolicy(source, row.getSourceDb()), targetPolicy);
+            try
+            {
+                tableRepo.updateRouteKeys(row.getId(), keys.sourceRouteKey(), keys.targetSlotKey());
+            }
+            catch (DataIntegrityViolationException e)
+            {
+                throw new ApiException(409, "目标端类型变更会使采集路由冲突（采集表 ID "
+                    + row.getId() + "），请先调整采集表");
+            }
+        }
+    }
+
+    /**
+     * Drop the cached identifier policies of a source. The cache key is the source id, URL and
+     * database name; an edit that leaves the URL unchanged can still point at a server whose case
+     * rule or collation differs, and that answer must not be reused.
+     */
+    public void invalidateSourcePolicy(int sid)
+    {
+        String prefix = sid + "\u0000";
+        if (policyCache.keySet().removeIf(key -> key.startsWith(prefix)))
+        {
+            log.info("Invalidated identifier policy cache for source {}", sid);
+        }
+    }
+
+    /**
+     * Recompute keys after a source connection change, because the live identifier policy (mysql
+     * {@code lower_case_table_names}, sqlserver collation) can change with the server. Runs on the
+     * async refresh thread; a row whose new key conflicts keeps its previous key and is logged.
+     */
+    public void refreshSourceKeys(int sid)
+    {
+        EtlSource source = sourceRepo.findById(sid).orElse(null);
+        if (source == null)
+        {
+            return;
+        }
+        invalidateSourcePolicy(sid);
+        for (EtlTable row : tableRepo.findBySid(sid))
+        {
+            if (row.getRetiredAt() != null)
+            {
+                continue;
+            }
+            try
+            {
+                EtlTarget target = resolveTarget(row.getTargetId(), false);
+                RouteKeys keys = routeKeys(row, sourcePolicy(source, row.getSourceDb()),
+                    IdentifierPolicy.forTarget(target));
+                tableRepo.updateRouteKeys(row.getId(), keys.sourceRouteKey(), keys.targetSlotKey());
+            }
+            catch (DataIntegrityViolationException e)
+            {
+                log.error("Route key refresh for table {} conflicts with another definition; keeping the previous key",
+                    row.getId());
+            }
+            catch (RuntimeException e)
+            {
+                log.warn("Failed to refresh the route key for table {}: {}", row.getId(), e.getMessage());
+            }
+        }
     }
 
     public EtlTarget resolveTarget(Long targetId, boolean requireEnabled)

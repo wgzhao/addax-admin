@@ -764,7 +764,9 @@ CREATE TABLE public.etl_table (
     retired_at timestamp without time zone,
     retired_by character varying(100),
     reader_plugin_config jsonb,
-    writer_plugin_config jsonb
+    writer_plugin_config jsonb,
+    source_route_key character varying(400),
+    target_slot_key character varying(300)
 );
 
 
@@ -1965,6 +1967,20 @@ CREATE INDEX idx_etl_table_status_id_sid ON public.etl_table USING btree (status
 --
 
 CREATE INDEX idx_etl_table_sid_target ON public.etl_table USING btree (sid, target_id);
+
+
+--
+-- Name: uk_etl_table_active_source_route; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_etl_table_active_source_route ON public.etl_table USING btree (sid, target_id, source_route_key) WHERE ((retired_at IS NULL) AND (source_route_key IS NOT NULL));
+
+
+--
+-- Name: uk_etl_table_active_target_slot; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uk_etl_table_active_target_slot ON public.etl_table USING btree (sid, target_id, target_slot_key) WHERE ((retired_at IS NULL) AND (target_slot_key IS NOT NULL));
 
 
 --

@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.wgzhao.addax.admin.service.collection.CollectionScopeService;
 import com.wgzhao.addax.admin.service.source.ReaderJobContext;
 import com.wgzhao.addax.admin.service.source.SourceAdapter;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
@@ -62,6 +63,7 @@ public class JobContentService
     private final ObjectMapper objectMapper;
     private final CalendarService calendarService;
     private final SourceAdapterRegistry sourceAdapterRegistry;
+    private final CollectionScopeService collectionScopeService;
 
     /**
      * 获取指定采集表的采集任务模板内容
@@ -351,6 +353,9 @@ public class JobContentService
     public void handleSourceUpdatedEvent(SourceUpdatedEvent event)
     {
         if (event.isConnectionChanged()) {
+            // A new server can answer the identifier-policy probe differently (mysql
+            // lower_case_table_names, sqlserver collation), so the stored route keys follow the edit.
+            collectionScopeService.refreshSourceKeys(event.getSourceId());
             updateJobBySourceId(event.getSourceId());
         }
     }

@@ -17,6 +17,36 @@ public interface EtlTableRepo
 
     long countByTargetId(Long targetId);
 
+    List<EtlTable> findByTargetId(Long targetId);
+
+    /**
+     * Rows the startup backfill still has to key. A null target cannot be keyed; the schema migration
+     * fills it from the default target before this runs.
+     */
+    @Query("""
+            select t.id from EtlTable t
+             where t.targetId is not null
+               and (t.sourceRouteKey is null or t.targetSlotKey is null)
+             order by t.id
+        """)
+    List<Long> findIdsMissingRouteKeys();
+
+    /**
+     * Update only the stored route keys. A refresh must never write a whole detached entity back:
+     * a concurrent status or schema change would be lost.
+     */
+    @Modifying
+    @Transactional
+    @Query("""
+            update EtlTable t
+               set t.sourceRouteKey = :sourceRouteKey, t.targetSlotKey = :targetSlotKey
+             where t.id = :id
+               and (t.sourceRouteKey is null or t.targetSlotKey is null
+                    or t.sourceRouteKey <> :sourceRouteKey or t.targetSlotKey <> :targetSlotKey)
+        """)
+    int updateRouteKeys(@Param("id") Long id, @Param("sourceRouteKey") String sourceRouteKey,
+        @Param("targetSlotKey") String targetSlotKey);
+
     @Query(value = """
         select count(t.id) from VwEtlTableWithSource t
         where t.status not in ( 'X' ,'U')
