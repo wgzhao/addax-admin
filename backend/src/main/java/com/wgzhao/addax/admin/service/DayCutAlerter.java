@@ -139,7 +139,7 @@ public class DayCutAlerter
             .append(" 张表刷新失败");
         if (refresh.incrementalPositionMissing() > 0) {
             text.append("，其中 ").append(refresh.incrementalPositionMissing())
-                .append(" 张因无法读取目标端增量位点被置为 U（需补齐目标分区或检查业务日期绑定）");
+                .append(" 张因无法确定目标端增量位点（分区无数据且无历史水位）被置为 U（需补齐目标分区或检查业务日期绑定）");
         }
         if (refresh.skippedSourceDown() > 0) {
             text.append("，另有 ").append(refresh.skippedSourceDown()).append(" 张因源不可达跳过");
