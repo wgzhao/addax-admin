@@ -10,6 +10,8 @@ import com.wgzhao.addax.admin.service.AuthzService;
 import com.wgzhao.addax.admin.service.EtlTargetService;
 import com.wgzhao.addax.admin.service.target.TargetHealthCheckService;
 import lombok.RequiredArgsConstructor;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ public class TargetController
     private final TargetHealthCheckService targetHealthCheckService;
     private final AuthzService authzService;
     private final AuditRecorder auditRecorder;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("")
     public ResponseEntity<List<EtlTargetView>> listTargets(@RequestParam(value = "enabledOnly", required = false) Boolean enabledOnly)
@@ -64,10 +67,34 @@ public class TargetController
     {
         EtlTarget before = etlTargetService.getById(id);
         java.util.Map<String, Object> beforeSnapshot = targetSnapshot(before);
+        // Read the value before update(): the service mutates the managed entity that `before`
+        // points at, so reading it afterwards would compare the new password with itself.
+        String beforePassword = passwordIn(before.getConnectConfig());
         EtlTarget saved = etlTargetService.update(id, target);
+        // Explicit flag: connect_config is sanitized in the snapshots, so an operator cannot tell a
+        // rotated target password from an untouched one without diffing redacted JSON.
+        java.util.Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("passwordChanged",
+            !java.util.Objects.equals(beforePassword, passwordIn(saved.getConnectConfig())));
         auditRecorder.success("TARGET_UPDATED", "CONFIG", "WARNING", "ETL_TARGET",
-            id, saved.getName(), beforeSnapshot, targetSnapshot(saved));
+            id, saved.getName(), beforeSnapshot, targetSnapshot(saved), metadata);
         return ResponseEntity.ok(saved);
+    }
+
+    private String passwordIn(String connectConfig)
+    {
+        if (connectConfig == null || connectConfig.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode node = objectMapper.readTree(connectConfig);
+            JsonNode value = node == null ? null : node.get("password");
+            return value == null || value.isNull() ? null : value.asText();
+        }
+        catch (Exception e) {
+            // An unreadable config must not turn into a credential claim either way.
+            return null;
+        }
     }
 
     @DeleteMapping("/{id}")
