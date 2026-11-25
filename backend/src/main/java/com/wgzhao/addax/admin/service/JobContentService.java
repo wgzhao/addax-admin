@@ -8,6 +8,7 @@ import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.exception.IncrementalPositionUnavailableException;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -310,8 +311,22 @@ public class JobContentService
             }
         }
 
+        // A day-cut/manual refresh template must not silently degrade to "read the whole table" when
+        // the target MAX cannot be read: that turns an incremental table into a full reload and still
+        // reports success. First collection never reaches the lookup (no last ETL date), and a fillback
+        // may legitimately have no target data for its window, so only the refresh path is strict.
+        boolean strictMaxLookup = overrideLastEtlDate == null;
         ReaderJobContext context = new ReaderJobContext(dateValues, lastEtlDate, partValue, mappings,
-            (column, part) -> targetAdapter.getMaxValue(table, column, part));
+            (column, part) -> {
+                Object maxValue = targetAdapter.getMaxValue(table, column, part);
+                if (maxValue == null && strictMaxLookup) {
+                    throw new IncrementalPositionUnavailableException(
+                        "无法读取目标端增量位点（列 " + column + "，业务日期 " + part
+                            + "）：目标端查询无结果也无缓存值。已拒绝生成会把整表重读一遍的任务模板，"
+                            + "请检查目标表分区/业务日期列绑定或目标端连通性。", null);
+                }
+                return maxValue;
+            });
         ObjectNode reader = adapter.buildReaderJob(table, context);
         if (reader.get("parameter") instanceof ObjectNode parameter)
         {

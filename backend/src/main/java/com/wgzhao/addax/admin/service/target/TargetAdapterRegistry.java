@@ -59,6 +59,27 @@ public class TargetAdapterRegistry
         return getByType(targetTypeResolver.resolveAdapterTypeByTargetId(targetId));
     }
 
+    /**
+     * Opens round-scoped resources in every adapter (one Hive session per endpoint for HDFS) so a
+     * full refresh does not pay a cold connection + warm-up for every incremental table.
+     */
+    public void beginRefreshRound()
+    {
+        adaptersByType.values().forEach(TargetAdapter::beginRefreshRound);
+    }
+
+    public void endRefreshRound()
+    {
+        adaptersByType.values().forEach(adapter -> {
+            try {
+                adapter.endRefreshRound();
+            }
+            catch (RuntimeException e) {
+                log.warn("Failed to release round resources for adapter {}", adapter.getType(), e);
+            }
+        });
+    }
+
     public TargetAdapter getByType(String type)
     {
         TargetAdapter adapter = adaptersByType.get(normalize(type));

@@ -21,6 +21,7 @@ import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
+import com.wgzhao.addax.admin.service.RefreshTiming;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.target.HdfsConnectionManager;
 import com.wgzhao.addax.admin.service.target.HdfsTargetSettings;
@@ -783,6 +784,17 @@ public class HdfsTargetAdapter
 
     public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
+        long stageStart = System.nanoTime();
+        try {
+            return lookupMaxValue(table, columnName, partValue);
+        }
+        finally {
+            RefreshTiming.add(RefreshTiming.Stage.MAX_VALUE, System.nanoTime() - stageStart);
+        }
+    }
+
+    private Object lookupMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    {
         String datePartition = TargetOptions.hdfsPartitionBindings(table.getTargetOptions()).stream()
             .filter(binding -> "BIZ_DATE".equalsIgnoreCase(binding.valueType()))
             .map(TargetOptions.HdfsPartitionBinding::name)
@@ -791,12 +803,45 @@ public class HdfsTargetAdapter
         if (StringUtils.isEmpty(datePartition)) {
             return null;
         }
+        String redisKey = "target:max:" + table.getId() + ":" + columnName;
+        Object sqlMax;
+        try {
+            sqlMax = queryMaxValue(table, columnName, datePartition, partValue);
+        }
+        catch (SQLException first) {
+            // A shared round session can die mid-round. Retry once on a fresh connection instead of
+            // reporting a missing MAX value for every remaining incremental table of this target.
+            connectionManager.invalidate(targetFor(table));
+            try {
+                sqlMax = queryMaxValue(table, columnName, datePartition, partValue);
+            }
+            catch (SQLException second) {
+                log.error("Failed to get max value for {}.{}", table.getTargetDb(), table.getTargetTable(), second);
+                return cachedMaxValue(redisKey);
+            }
+        }
+        if (sqlMax == null) {
+            return cachedMaxValue(redisKey);
+        }
+        try {
+            redisTemplate.opsForValue().set(redisKey, sqlMax.toString());
+        }
+        catch (Exception e) {
+            log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
+        }
+        return sqlMax;
+    }
+
+    /**
+     * @return the target MAX, or null when the partition holds no rows yet (SQL NULL) or the max is 0
+     */
+    private Object queryMaxValue(VwEtlTableWithSource table, String columnName, String datePartition,
+        String partValue) throws SQLException
+    {
         String tableName = String.format("`%s`.`%s`", table.getTargetDb(), table.getTargetTable());
         String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'",
             columnName, tableName, datePartition, partValue);
         log.info("getMaxValue sql: {}", sql);
-
-        String redisKey = "target:max:" + table.getId() + ":" + columnName;
         try (Connection conn = connectFor(table);
             Statement stmt = conn.createStatement();
             var rs = stmt.executeQuery(sql)) {
@@ -807,44 +852,31 @@ public class HdfsTargetAdapter
             if (sqlMax instanceof Number && ((Number) sqlMax).longValue() == 0L) {
                 sqlMax = null;
             }
-            // If sqlMax is null or zero, try to read from redis cache
-            if (sqlMax == null) {
-                try {
-                    Object cached = redisTemplate.opsForValue().get(redisKey);
-                    if (cached != null) {
-                       return cached;
-                    }
-                }
-                catch (Exception e) {
-                    log.warn("Failed to read max value from redis for key {}: {}", redisKey, e.getMessage());
-                }
-                // return sqlMax (which may be null or 0)
-                return sqlMax;
-            }
-
-            // sqlMax is a valid value: update redis and return
-            try {
-                redisTemplate.opsForValue().set(redisKey, sqlMax.toString());
-            }
-            catch (Exception e) {
-                log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
-            }
             return sqlMax;
         }
-        catch (SQLException e) {
-            log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
-            // on SQL failure, try to read redis as a fallback
-            try {
-                Object cached = redisTemplate.opsForValue().get(redisKey);
-                if (cached != null) {
-                    return cached;
-                }
-            }
-            catch (Exception ex) {
-                log.warn("Failed to read max value from redis for key {} after sql failure: {}", redisKey, ex.getMessage());
-            }
+    }
+
+    private Object cachedMaxValue(String redisKey)
+    {
+        try {
+            return redisTemplate.opsForValue().get(redisKey);
+        }
+        catch (Exception e) {
+            log.warn("Failed to read max value from redis for key {}: {}", redisKey, e.getMessage());
             return null;
         }
+    }
+
+    @Override
+    public void beginRefreshRound()
+    {
+        connectionManager.beginRound();
+    }
+
+    @Override
+    public void endRefreshRound()
+    {
+        connectionManager.endRound();
     }
 
     private String getHdfsWriteColumns(VwEtlTableWithSource table)

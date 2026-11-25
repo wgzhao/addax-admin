@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
+import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -304,10 +305,10 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId)
     {
-        TaskResultDto contractFailure = checkExternalContract(tableId);
-        if (contractFailure != null)
+        TaskResultDto rejection = checkSubmittable(tableId);
+        if (rejection != null)
         {
-            return contractFailure;
+            return rejection;
         }
         if (queueManager.isRefreshing()) {
             log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
@@ -323,10 +324,10 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId, String username)
     {
-        TaskResultDto contractFailure = checkExternalContract(tableId);
-        if (contractFailure != null)
+        TaskResultDto rejection = checkSubmittable(tableId);
+        if (rejection != null)
         {
-            return contractFailure;
+            return rejection;
         }
         if (queueManager.isRefreshing()) {
             log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
@@ -352,9 +353,24 @@ public class TaskService
         }
     }
 
-    private TaskResultDto checkExternalContract(long tableId)
+    /**
+     * A table waiting for a schema refresh ('U') may still hold the template that was stored before
+     * its incremental position became unreadable, and that template reads the whole table. Manual
+     * submission is refused for it; fillback regenerates the template for its exact date and is not
+     * blocked by this.
+     */
+    private TaskResultDto checkSubmittable(long tableId)
     {
         VwEtlTableWithSource table = tableService.getTableView(tableId);
+        if (table != null && TableStatus.WAIT_SCHEMA.equals(table.getStatus()))
+        {
+            return TaskResultDto.failure("该表等待表结构更新（U），请先执行「更新表结构」后再提交", 0);
+        }
+        return checkExternalContract(table);
+    }
+
+    private TaskResultDto checkExternalContract(VwEtlTableWithSource table)
+    {
         if (table == null || table.getSchemaManagementMode() != SchemaManagementMode.EXTERNAL)
         {
             return null;

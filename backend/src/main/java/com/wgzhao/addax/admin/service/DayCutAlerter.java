@@ -56,6 +56,8 @@ public class DayCutAlerter
         data.put("refreshSuccess", String.valueOf(refresh.success()));
         data.put("refreshFailed", String.valueOf(refresh.failed()));
         data.put("sourceUnavailable", String.valueOf(refresh.sourceUnavailable()));
+        data.put("skippedSourceDown", String.valueOf(refresh.skippedSourceDown()));
+        data.put("incrementalPositionMissing", String.valueOf(refresh.incrementalPositionMissing()));
         data.put("waitSchemaToNotCollect", String.valueOf(refresh.waitSchemaToNotCollect()));
         data.put("remainingWaitSchema", String.valueOf(remainingWaitSchema));
 
@@ -106,7 +108,11 @@ public class DayCutAlerter
         text.append("表状态重置：").append(outcome.resetTables()).append(" 张\n");
         TableRefreshStats refresh = outcome.refresh();
         text.append("表结构刷新：成功 ").append(refresh.success())
-            .append("，失败 ").append(refresh.failed()).append("（计划 ").append(refresh.total()).append(" 张）\n");
+            .append("，失败 ").append(refresh.failed());
+        if (refresh.skippedSourceDown() > 0) {
+            text.append("，源不可达跳过 ").append(refresh.skippedSourceDown());
+        }
+        text.append("（计划 ").append(refresh.total()).append(" 张）\n");
         text.append("队列监控已恢复：").append(outcome.queueMonitorRestarted() ? "是" : "否").append("\n");
         text.append(outcome.doneMarkerWritten()
             ? "完成标记已写入：是\n"
@@ -131,14 +137,26 @@ public class DayCutAlerter
         StringBuilder text = new StringBuilder();
         text.append("切日刷新已按计划完成，但有 ").append(refresh.failed())
             .append(" 张表刷新失败");
+        if (refresh.incrementalPositionMissing() > 0) {
+            text.append("，其中 ").append(refresh.incrementalPositionMissing())
+                .append(" 张因无法读取目标端增量位点被置为 U（需补齐目标分区或检查业务日期绑定）");
+        }
+        if (refresh.skippedSourceDown() > 0) {
+            text.append("，另有 ").append(refresh.skippedSourceDown()).append(" 张因源不可达跳过");
+        }
         if (remainingWaitSchema > 0) {
-            text.append("，").append(remainingWaitSchema).append(" 张表仍为 U（等待更新）");
+            text.append("，全库共 ").append(remainingWaitSchema).append(" 张表处于 U（等待更新）");
         }
         text.append("。这些表本次不会参与自动采集，需人工处理后再执行「更新表结构」。\n");
         text.append("本轮共刷新 ").append(refresh.total()).append(" 张表，成功 ")
-            .append(refresh.success()).append(" 张，其中源不可达 ")
-            .append(refresh.sourceUnavailable()).append(" 张，U 恢复为 N ")
-            .append(refresh.waitSchemaToNotCollect()).append(" 张。");
+            .append(refresh.success()).append(" 张，失败 ").append(refresh.failed()).append(" 张");
+        if (refresh.skippedSourceDown() > 0) {
+            text.append("，因源不可达跳过 ").append(refresh.skippedSourceDown()).append(" 张");
+        }
+        if (refresh.sourceUnavailable() > 0) {
+            text.append("（源不可达合计 ").append(refresh.sourceUnavailable()).append(" 张）");
+        }
+        text.append("，U 恢复为 N ").append(refresh.waitSchemaToNotCollect()).append(" 张。");
         appendFailureList(text, refresh);
         return text.toString();
     }
