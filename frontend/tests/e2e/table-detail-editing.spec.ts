@@ -184,7 +184,7 @@ test('basic detail starts read-only and validates before an explicit save', asyn
   await mockSession(page);
   const saves: Record<string, unknown>[] = [];
   await mockApi(page, { onSave: payload => saves.push(payload) });
-  await page.goto('/table/detail/101?tab=info&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=info');
 
   await expect(page.getByRole('heading', { name: '执行配置' })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: '编辑配置' })).toBeVisible();
@@ -258,7 +258,7 @@ test('retired table is read-only end to end', async ({ page }) => {
       retiredBy: 'admin',
     },
   });
-  await page.goto('/table/detail/101?tab=info&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=info');
 
   await expect(page.getByText('该采集表已退役')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: '编辑配置' })).toHaveCount(0);
@@ -270,7 +270,7 @@ test('current table keeps addax job editing available', async ({ page }) => {
   await mockSession(page);
   const jobSaves: string[] = [];
   await mockApi(page, { onJobSave: payload => jobSaves.push(payload) });
-  await page.goto('/table/detail/101?tab=job&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=job');
 
   await expect(page.getByText('采集作业配置')).toBeVisible({ timeout: 15_000 });
   const editButton = page.getByRole('button', { name: '编辑', exact: true });
@@ -309,7 +309,7 @@ test('current table keeps addax job editing available', async ({ page }) => {
 test('addax job code panel follows the theme and stays readable', async ({ page }) => {
   await mockSession(page);
   await mockApi(page);
-  await page.goto('/table/detail/101?tab=job&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=job');
 
   const shell = page.locator('.code-shell__body');
   await expect(shell).toBeVisible({ timeout: 15_000 });
@@ -386,7 +386,7 @@ test('retired table hides addax job editing and never writes it', async ({ page 
     },
     onJobSave: payload => jobSaves.push(payload),
   });
-  await page.goto('/table/detail/101?tab=job&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=job');
 
   await expect(page.getByText('该采集表已退役')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('采集作业配置')).toBeVisible();
@@ -423,7 +423,7 @@ test('retired table hides addax job editing and never writes it', async ({ page 
 test('loading and failure states never expose an editable empty form', async ({ page }) => {
   await mockSession(page);
   await mockApi(page, { delayMs: 1200 });
-  await page.goto('/table/detail/101?tab=info&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=info');
 
   await expect(page.getByTestId('detail-loading')).toBeVisible();
   await expect(page.getByRole('button', { name: '保存更改' })).toHaveCount(0);
@@ -436,7 +436,7 @@ test('responsive layout keeps summary compact and guards long identity text', as
   await mockApi(page);
 
   await page.setViewportSize({ width: 1024, height: 768 });
-  await page.goto('/table/detail/101?tab=info&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=info');
   await expect(page.getByRole('heading', { name: '执行配置' })).toBeVisible({ timeout: 15_000 });
   const summaryCards = page.locator('.summary-card');
   const first = await summaryCards.nth(0).boundingBox();

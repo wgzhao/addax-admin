@@ -121,7 +121,7 @@ test('saving a non-partitioned table keeps the product partition defaults out', 
   const saves: Record<string, any>[] = [];
   await mockApi(page, payload => saves.push(payload));
 
-  await page.goto(`/table/detail/${tableId}?tab=info&tblname=ods.ods_db_permissions_t_permission_detail_0db`);
+  await page.goto(`/table/detail/${tableId}?tab=info`);
   await expect(page.getByRole('heading', { name: '执行配置' })).toBeVisible({ timeout: 15_000 });
 
   await page.getByRole('button', { name: '编辑配置' }).click();

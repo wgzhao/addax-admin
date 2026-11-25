@@ -1041,7 +1041,7 @@
   const viewDetail = (item: any) => {
     const routeLocation = {
       path: `/table/detail/${item.id}`,
-      query: { tab: 'info', tblname: `${item.sourceDb}.${item.sourceTable}` },
+      query: { tab: 'info' },
     };
     // Resolve the router location to an href and open it in a new tab.
     // Prevent the new window from accessing window.opener for security reasons.

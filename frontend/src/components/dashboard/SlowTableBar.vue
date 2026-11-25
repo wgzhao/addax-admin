@@ -55,10 +55,9 @@
   const openTable = (index: number) => {
     const row = rows.value[index];
     if (!row) return;
-    // Pass the identity through so the detail header renders before the snapshot loads.
     router.push({
       path: `/table/detail/${row.tid}`,
-      query: { tab: 'info', tblname: `${row.source_db}.${row.source_table}` },
+      query: { tab: 'info' },
     });
   };
 

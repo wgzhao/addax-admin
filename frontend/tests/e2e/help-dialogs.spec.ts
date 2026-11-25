@@ -77,7 +77,7 @@ async function preparePage(page: Page) {
       body: JSON.stringify(body),
     });
   });
-  await page.goto('/table/detail/101?tab=info&tblname=crm_prod.customer_profile');
+  await page.goto('/table/detail/101?tab=info');
   await expect(page.getByRole('heading', { name: '执行配置' })).toBeVisible({ timeout: 15_000 });
 }
 
