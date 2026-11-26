@@ -7,6 +7,7 @@ import com.wgzhao.addax.admin.dto.FillbackRequestDto;
 import com.wgzhao.addax.admin.dto.FillbackResultDto;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.exception.IncrementalPositionUnavailableException;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.service.AlertService;
@@ -169,7 +170,14 @@ public class TaskController
     public ResponseEntity<Map<String, Object>> updateJob(@PathVariable long taskId)
     {
         authzService.requireTableOperate(taskId);
-        jobContentService.updateJob(tableService.getTableView(taskId));
+        try {
+            jobContentService.updateJob(tableService.getTableView(taskId));
+        }
+        catch (IncrementalPositionUnavailableException e) {
+            // The table is now waiting for update (the status write committed on its own
+            // transaction); tell the caller why instead of a generic 500.
+            throw new ApiException(409, e.getMessage());
+        }
         auditRecorder.success("TABLE_JOB_REGENERATED", "SCHEDULING", "WARNING", "ETL_TABLE",
             taskId, null, null, null);
         return ResponseEntity.ok(Map.of("success", true, "message", "success"));

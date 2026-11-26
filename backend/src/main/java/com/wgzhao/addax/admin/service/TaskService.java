@@ -9,6 +9,7 @@ import com.wgzhao.addax.admin.dto.TargetContractReport;
 import com.wgzhao.addax.admin.common.Constants;
 import com.wgzhao.addax.admin.common.JourKind;
 import com.wgzhao.addax.admin.common.SchemaManagementMode;
+import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.exception.ApiException;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlJour;
@@ -16,6 +17,7 @@ import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
 import com.wgzhao.addax.admin.redis.MasterElectionService;
 import com.wgzhao.addax.admin.redis.RedisLockService;
+import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
 import com.wgzhao.addax.admin.service.target.TargetAdapterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +72,7 @@ public class TaskService
     private final MasterElectionService electionService;
     private final EtlJobQueueService jobQueueService;
     private final TargetAdapterRegistry targetAdapterRegistry;
+    private final SourceAdapterRegistry sourceAdapterRegistry;
     private final DayCutAlerter dayCutAlerter;
     private final DailyBatchService dailyBatchService;
 
@@ -304,10 +307,10 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId)
     {
-        TaskResultDto contractFailure = checkExternalContract(tableId);
-        if (contractFailure != null)
+        TaskResultDto rejection = checkSubmittable(tableId);
+        if (rejection != null)
         {
-            return contractFailure;
+            return rejection;
         }
         if (queueManager.isRefreshing()) {
             log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
@@ -323,10 +326,10 @@ public class TaskService
 
     public TaskResultDto submitTask(long tableId, String username)
     {
-        TaskResultDto contractFailure = checkExternalContract(tableId);
-        if (contractFailure != null)
+        TaskResultDto rejection = checkSubmittable(tableId);
+        if (rejection != null)
         {
-            return contractFailure;
+            return rejection;
         }
         if (queueManager.isRefreshing()) {
             log.info("当前正在更新参数/刷新表结构，拒绝直接提交任务：tableId={}", tableId);
@@ -352,9 +355,24 @@ public class TaskService
         }
     }
 
-    private TaskResultDto checkExternalContract(long tableId)
+    /**
+     * A table waiting for a schema refresh ('U') may still hold the template that was stored before
+     * its incremental position became unreadable, and that template reads the whole table. Manual
+     * submission is refused for it; fillback regenerates the template for its exact date and is not
+     * blocked by this.
+     */
+    private TaskResultDto checkSubmittable(long tableId)
     {
         VwEtlTableWithSource table = tableService.getTableView(tableId);
+        if (table != null && TableStatus.WAIT_SCHEMA.equals(table.getStatus()))
+        {
+            return TaskResultDto.failure("该表等待表结构更新（U），请先执行「更新表结构」后再提交", 0);
+        }
+        return checkExternalContract(table);
+    }
+
+    private TaskResultDto checkExternalContract(VwEtlTableWithSource table)
+    {
         if (table == null || table.getSchemaManagementMode() != SchemaManagementMode.EXTERNAL)
         {
             return null;
@@ -445,6 +463,22 @@ public class TaskService
 
             String tableLabel = tableView.getTargetDb() + "." + tableView.getTargetTable();
 
+            // A water-mark filter cannot attribute rows to a day: the reader predicate is only
+            // "col > position", with no upper bound, so filling back an older date pours everything
+            // collected since that date (through today) into that date's partition, and every later
+            // date then reads nothing. The gap is not lost - the next scheduled run writes it into
+            // the current partition - but per-day history needs a filter with a date column.
+            if (sourceAdapterRegistry.resolve(tableView).isIncrementalFilter(tableView.getFilter())) {
+                String reason = "该表使用增量水位过滤（" + tableView.getFilter().trim()
+                    + "），补采无法按天归属数据：补采某天会把那天至今天的全部数据写入该天分区，"
+                    + "之后的日期将采不到数据。断档数据不会丢失，下一次正常调度会把新增数据写入当天分区；"
+                    + "若业务必须按天回溯，请先把过滤条件改为含日期列的条件再补采";
+                log.warn("Fillback rejected for {}: {}", tableLabel, reason);
+                details.add(new FillbackResultDto.Detail(tid, tableLabel, List.of(), 0, true, reason));
+                skipped += targetDates.size();
+                continue;
+            }
+
             // Tables without a date dimension cannot be fillbacked: multiple dates would overwrite each
             // other. Ask the target adapter instead of reading Hive columns directly, so an RDBMS target
             // is judged by its own business date column rather than by a leftover partition attribute.
@@ -452,6 +486,7 @@ public class TaskService
                 String reason = "该表没有可用的日期维度（HDFS 分区字段或 RDBMS 快照业务日期列），不支持补数";
                 log.warn("Fillback rejected for {}: {}", tableLabel, reason);
                 details.add(new FillbackResultDto.Detail(tid, tableLabel, List.of(), 0, true, reason));
+                skipped += targetDates.size();
                 continue;
             }
 

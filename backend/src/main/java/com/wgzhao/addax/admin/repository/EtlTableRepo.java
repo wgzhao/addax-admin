@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
@@ -98,8 +99,12 @@ public interface EtlTableRepo
     /**
      * Mark a table as waiting for a schema refresh. A paused ('X') table keeps its status for the same
      * reason as {@link #markRunning}: schema refresh never visits paused tables, so 'U' would strand it.
+     *
+     * <p>The status is a fact about the table, not part of the caller's work: a controller that
+     * propagates the error to the client rolls its transaction back, and the mark must survive that.
+     * It therefore commits on its own transaction instead of joining the caller's.</p>
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Modifying
     @Query("""
             UPDATE EtlTable t SET t.status = CASE WHEN t.status = 'X' THEN 'X' ELSE 'U' END

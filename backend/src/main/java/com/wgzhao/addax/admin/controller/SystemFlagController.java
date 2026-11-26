@@ -43,9 +43,11 @@ public class SystemFlagController
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("切日刷新失败（阶段：" + outcome.stage() + "）：" + outcome.error());
         }
+        String suffix = outcome.refresh().skippedSourceDown() > 0
+            ? String.format("、源不可达跳过 %d 张", outcome.refresh().skippedSourceDown()) : "";
         return ResponseEntity.ok(String.format(
-            "切日刷新完成：重置 %d 张表，刷新成功 %d 张、失败 %d 张，耗时 %d 秒。",
-            outcome.resetTables(), outcome.refresh().success(), outcome.refresh().failed(),
+            "切日刷新完成：重置 %d 张表，刷新成功 %d 张、失败 %d 张%s，耗时 %d 秒。",
+            outcome.resetTables(), outcome.refresh().success(), outcome.refresh().failed(), suffix,
             outcome.durationMs() / 1000));
     }
 

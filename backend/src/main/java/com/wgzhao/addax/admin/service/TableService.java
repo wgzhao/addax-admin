@@ -10,6 +10,7 @@ import com.wgzhao.addax.admin.dto.TableRefreshOutcome;
 import com.wgzhao.addax.admin.dto.TableRefreshStats;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.exception.IncrementalPositionUnavailableException;
 import com.wgzhao.addax.admin.model.EtlJobQueue;
 import com.wgzhao.addax.admin.model.EtlTable;
 import com.wgzhao.addax.admin.model.VwEtlTableWithSource;
@@ -35,7 +36,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -106,7 +110,10 @@ public class TableService
             log.info("refreshTableResources interrupted before starting for table {}", table.getId());
             return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
         }
-        VwEtlTableWithSource vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null);
+        VwEtlTableWithSource vwTable;
+        long stageStart = System.nanoTime();
+        vwTable = vwEtlTableWithSourceRepo.findById(table.getId()).orElse(null);
+        RefreshTiming.add(RefreshTiming.Stage.VIEW, System.nanoTime() - stageStart);
         if (vwTable == null) {
             log.warn("Table view not found for tid {}", table.getId());
             return fail(TableRefreshOutcome.FailureKind.VIEW_MISSING,
@@ -128,7 +135,9 @@ public class TableService
             log.info("refreshTableResources interrupted before updating columns for table {}", table.getId());
             return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
         }
+        stageStart = System.nanoTime();
         int retCode = columnService.updateTableColumnsV2(vwTable);
+        RefreshTiming.add(RefreshTiming.Stage.SOURCE_COLUMNS, System.nanoTime() - stageStart);
 
         if (retCode == ColumnService.UPDATE_SOURCE_UNAVAILABLE) {
             // A transient source outage must not mark the table as a collection failure: the previous
@@ -150,36 +159,43 @@ public class TableService
             || Objects.equals(vwTable.getStatus(), TableStatus.WAIT_SCHEMA);
         SchemaManagementMode schemaMode = table.getSchemaManagementMode() == null
             ? SchemaManagementMode.MANAGED : table.getSchemaManagementMode();
-        if (schemaMode == SchemaManagementMode.EXTERNAL)
-        {
-            TargetContractReport report = targetContractService.check(vwTable);
-            if (report.blocked())
+        stageStart = System.nanoTime();
+        try {
+            if (schemaMode == SchemaManagementMode.EXTERNAL)
             {
-                setUpdateSchema(table.getId());
-                failureRecorder.record(table.getId(), "目标表契约校验失败: " + report.summary(),
-                    FailureEvidence.create()
-                        .stage(FailureStage.TARGET_SCHEMA)
-                        .errorClass("TargetContractViolation")
-                        .detail(report.summary())
-                        .bizDate(configService.getBizDateAsDate()));
-                return fail(TableRefreshOutcome.FailureKind.TARGET_CONTRACT_BLOCKED,
-                    "目标表契约校验失败: " + report.summary());
+                TargetContractReport report = targetContractService.check(vwTable);
+                if (report.blocked())
+                {
+                    setUpdateSchema(table.getId());
+                    failureRecorder.record(table.getId(), "目标表契约校验失败: " + report.summary(),
+                        FailureEvidence.create()
+                            .stage(FailureStage.TARGET_SCHEMA)
+                            .errorClass("TargetContractViolation")
+                            .detail(report.summary())
+                            .bizDate(configService.getBizDateAsDate()));
+                    return fail(TableRefreshOutcome.FailureKind.TARGET_CONTRACT_BLOCKED,
+                        "目标表契约校验失败: " + report.summary());
+                }
+                table.setTargetSchemaFingerprint(report.fingerprint());
+                etlTableRepo.save(table);
             }
-            table.setTargetSchemaFingerprint(report.fingerprint());
-            etlTableRepo.save(table);
+            else if (targetSchemaChanged)
+            {
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("refreshTableResources interrupted before creating/updating target table for {}", table.getId());
+                    return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
+                }
+                if (!targetAdapterRegistry.resolve(vwTable).createOrUpdateTable(vwTable)) {
+                    setUpdateSchema(table.getId());
+                    log.warn("Failed to create or update target table for tid {}", table.getId());
+                    return fail(TableRefreshOutcome.FailureKind.TARGET_DDL_FAILED,
+                        "Failed to create or update target table for tid " + table.getId());
+                }
+            }
         }
-        else if (targetSchemaChanged)
+        finally
         {
-            if (Thread.currentThread().isInterrupted()) {
-                log.info("refreshTableResources interrupted before creating/updating target table for {}", table.getId());
-                return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
-            }
-            if (!targetAdapterRegistry.resolve(vwTable).createOrUpdateTable(vwTable)) {
-                setUpdateSchema(table.getId());
-                log.warn("Failed to create or update target table for tid {}", table.getId());
-                return fail(TableRefreshOutcome.FailureKind.TARGET_DDL_FAILED,
-                    "Failed to create or update target table for tid " + table.getId());
-            }
+            RefreshTiming.add(RefreshTiming.Stage.TARGET, System.nanoTime() - stageStart);
         }
         if (!columnsUpdated && !targetSchemaChanged)
         {
@@ -191,7 +207,21 @@ public class TableService
             log.info("refreshTableResources interrupted before updating job content for {}", table.getId());
             return fail(TableRefreshOutcome.FailureKind.INTERRUPTED, "Refresh interrupted");
         }
-        TaskResultDto result = jobContentService.updateJob(vwTable);
+        stageStart = System.nanoTime();
+        TaskResultDto result;
+        try {
+            result = jobContentService.updateJob(vwTable);
+        }
+        catch (IncrementalPositionUnavailableException e) {
+            // The stored template (if there is one) would read the whole table. Mark the table as
+            // waiting for update so the scheduler does not dispatch it, instead of leaving it runnable.
+            setUpdateSchema(table.getId());
+            log.warn("Refusing to generate a full-reload template for tid {}: {}", table.getId(), e.getMessage());
+            return fail(TableRefreshOutcome.FailureKind.INCREMENTAL_POSITION_MISSING, e.getMessage());
+        }
+        finally {
+            RefreshTiming.add(RefreshTiming.Stage.JOB, System.nanoTime() - stageStart);
+        }
         if (result.success()) {
             setNotCollectIfDue(table);
             return new TableRefreshOutcome(
@@ -273,6 +303,12 @@ public class TableService
     /**
      * 刷新所有采集表的资源
      *
+     * <p>Tables are walked one source at a time. A source that cannot be reached is discovered
+     * once per round instead of once per table: a connect attempt costs up to 3 retries behind a
+     * 10s connect timeout, so a dead source with N tables used to burn ~30s×N and push the whole
+     * round past its timeout budget. Its remaining tables are held back and reported as skipped,
+     * and every other source still gets its turn.</p>
+     *
      * <p>Returns the round's counts instead of swallowing per-table failures: a
      * partial refresh is otherwise invisible outside the log, and the day-cut
      * event has to report how many tables were skipped and why.</p>
@@ -280,50 +316,172 @@ public class TableService
     public TableRefreshStats refreshAllTableResources()
     {
         List<EtlTable> tables = etlTableRepo.findCanRefreshTables();
-        int success = 0;
-        int failed = 0;
-        int sourceUnavailable = 0;
-        int waitSchemaToNotCollect = 0;
-        List<TableRefreshStats.Failure> failures = new ArrayList<>();
-        for (EtlTable table : tables) {
-            // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
-            if (Thread.currentThread().isInterrupted()) {
-                log.info("refreshAllTableResources interrupted, stopping at table {}", table.getId());
-                break;
-            }
-            boolean wasWaitSchema = TableStatus.WAIT_SCHEMA.equals(table.getStatus());
-            try {
-                TableRefreshOutcome outcome = refreshTableResourcesDetailed(table);
-                if (outcome.failure() == TableRefreshOutcome.FailureKind.SOURCE_UNAVAILABLE) {
-                    sourceUnavailable++;
+        RefreshRound round = new RefreshRound();
+        // Targets may keep one connection per endpoint for the round: a HiveServer2 session warms
+        // its metastore/partition cache on first use, so reusing it is the difference between a
+        // ~10s and a ~1-2s MAX lookup for every incremental table.
+        targetAdapterRegistry.beginRefreshRound();
+        try {
+            refreshSources(tables, round);
+        }
+        finally {
+            targetAdapterRegistry.endRefreshRound();
+        }
+        return finishRound(round, tables.size());
+    }
+
+    private void refreshSources(List<EtlTable> tables, RefreshRound round)
+    {
+        for (Map.Entry<Integer, List<EtlTable>> source : groupBySource(tables).entrySet()) {
+            List<EtlTable> group = source.getValue();
+            boolean sourceDown = false;
+            for (int i = 0; i < group.size(); i++) {
+                EtlTable table = group.get(i);
+                // cooperative cancellation: if current thread interrupted or refresh flag cleared, stop
+                if (Thread.currentThread().isInterrupted()) {
+                    log.info("refreshAllTableResources interrupted, stopping at table {}", table.getId());
+                    return;
                 }
-                if (!outcome.result().success()) {
-                    failed++;
-                    failures.add(new TableRefreshStats.Failure(table.getId(), table.getSourceDb(),
-                        table.getSourceTable(), outcome.result().message()));
+                if (sourceDown) {
+                    // The source failed to connect earlier in this round; retrying it per table
+                    // would only repeat the same bounded-but-slow connect sequence.
+                    round.skippedSourceDown++;
+                    round.sourceUnavailable++;
                     continue;
                 }
-                success++;
-                // A 'U' row leaves the "waiting for schema" state only when the business
-                // period actually owes it a collection; on a rest day it legitimately stays.
-                if (wasWaitSchema && TableStatus.NOT_COLLECT.equals(table.getStatus())) {
-                    waitSchemaToNotCollect++;
+                boolean wasWaitSchema = TableStatus.WAIT_SCHEMA.equals(table.getStatus());
+                try {
+                    TableRefreshOutcome outcome;
+                    RefreshTiming.begin();
+                    try {
+                        outcome = refreshTableResourcesDetailed(table);
+                    }
+                    finally {
+                        round.recordTiming(table.getId(), RefreshTiming.snapshot());
+                        RefreshTiming.end();
+                    }
+                    if (!outcome.result().success()) {
+                        round.failed++;
+                        round.failures.add(new TableRefreshStats.Failure(table.getId(), table.getSourceDb(),
+                            table.getSourceTable(), outcome.result().message()));
+                        if (outcome.failure() == TableRefreshOutcome.FailureKind.INCREMENTAL_POSITION_MISSING) {
+                            round.incrementalPositionMissing++;
+                        }
+                        if (outcome.failure() == TableRefreshOutcome.FailureKind.SOURCE_UNAVAILABLE) {
+                            sourceDown = true;
+                            round.sourceUnavailable++;
+                            int remaining = group.size() - i - 1;
+                            if (remaining > 0) {
+                                log.warn("Source {} unavailable at table {}, skipping the remaining {} table(s) this round",
+                                    source.getKey(), table.getId(), remaining);
+                            }
+                            else {
+                                log.warn("Source {} unavailable at table {}", source.getKey(), table.getId());
+                            }
+                        }
+                        continue;
+                    }
+                    round.success++;
+                    // A 'U' row leaves the "waiting for schema" state only when the business
+                    // period actually owes it a collection; on a rest day it legitimately stays.
+                    if (wasWaitSchema && TableStatus.NOT_COLLECT.equals(table.getStatus())) {
+                        round.waitSchemaToNotCollect++;
+                    }
+                }
+                catch (Exception e) {
+                    round.failed++;
+                    String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                    round.failures.add(new TableRefreshStats.Failure(table.getId(), table.getSourceDb(),
+                        table.getSourceTable(), reason));
+                    log.error("Failed to refresh resources for table {}", table.getId(), e);
                 }
             }
-            catch (Exception e) {
-                failed++;
-                String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-                failures.add(new TableRefreshStats.Failure(table.getId(), table.getSourceDb(),
-                    table.getSourceTable(), reason));
-                log.error("Failed to refresh resources for table {}", table.getId(), e);
-            }
         }
-        TableRefreshStats stats = new TableRefreshStats(tables.size(), success, failed,
-            sourceUnavailable, waitSchemaToNotCollect, failures);
-        log.info("Table resource refresh finished: total={}, success={}, failed={}, sourceUnavailable={}, uToN={}",
+    }
+
+    /**
+     * Group by source, keeping first-appearance order. Grouping is what makes a source outage
+     * detectable once per round; nothing in a refresh depends on the order of two different sources.
+     */
+    private static Map<Integer, List<EtlTable>> groupBySource(List<EtlTable> tables)
+    {
+        Map<Integer, List<EtlTable>> grouped = new LinkedHashMap<>();
+        for (EtlTable table : tables) {
+            grouped.computeIfAbsent(table.getSid(), ignored -> new ArrayList<>()).add(table);
+        }
+        return grouped;
+    }
+
+    private static TableRefreshStats finishRound(RefreshRound round, int total)
+    {
+        TableRefreshStats stats = new TableRefreshStats(total, round.success, round.failed,
+            round.sourceUnavailable, round.skippedSourceDown, round.incrementalPositionMissing,
+            round.waitSchemaToNotCollect, round.failures);
+        log.info("Table resource refresh finished: total={}, success={}, failed={}, sourceUnavailable={}, "
+                + "skippedSourceDown={}, uToN={}",
             stats.total(), stats.success(), stats.failed(), stats.sourceUnavailable(),
-            stats.waitSchemaToNotCollect());
+            stats.skippedSourceDown(), stats.waitSchemaToNotCollect());
+        long maxValueNanos = round.stageNanos.getOrDefault(RefreshTiming.Stage.MAX_VALUE, 0L);
+        log.info("Refresh stage totals: tables={}, view={}ms, source={}ms, target={}ms, "
+                + "job={}ms (contains maxValue), maxValue={}ms over {} table(s), avgMaxValue={}ms",
+            total,
+            round.stageMs(RefreshTiming.Stage.VIEW), round.stageMs(RefreshTiming.Stage.SOURCE_COLUMNS),
+            round.stageMs(RefreshTiming.Stage.TARGET), round.stageMs(RefreshTiming.Stage.JOB),
+            maxValueNanos / 1_000_000, round.maxLookupTables,
+            round.maxLookupTables == 0 ? 0 : maxValueNanos / 1_000_000 / round.maxLookupTables);
         return stats;
+    }
+
+    /** Counters for one refresh round. */
+    private static final class RefreshRound
+    {
+        private int success;
+        private int failed;
+        /** Tables not refreshed because of a source outage: the failed attempt plus the skipped ones. */
+        private int sourceUnavailable;
+        /** Tables never attempted because an earlier table on the same source could not connect. */
+        private int skippedSourceDown;
+        /** Subset of {@code failed}: earlier-collected tables denied a template for lack of a MAX position. */
+        private int incrementalPositionMissing;
+        private int waitSchemaToNotCollect;
+        private final List<TableRefreshStats.Failure> failures = new ArrayList<>();
+        private final Map<RefreshTiming.Stage, Long> stageNanos = new EnumMap<>(RefreshTiming.Stage.class);
+        private int maxLookupTables;
+
+        /**
+         * Accumulates one table's per-stage cost and logs it, so a slow table can be traced back to
+         * its source connection, the target DDL or the target MAX lookup. MAX_VALUE is a subset of JOB
+         * and is left out of the total to avoid counting it twice.
+         */
+        private void recordTiming(long tid, Map<RefreshTiming.Stage, Long> stages)
+        {
+            long maxValue = stages.getOrDefault(RefreshTiming.Stage.MAX_VALUE, 0L);
+            long total = 0;
+            for (Map.Entry<RefreshTiming.Stage, Long> entry : stages.entrySet()) {
+                stageNanos.merge(entry.getKey(), entry.getValue(), Long::sum);
+                if (entry.getKey() != RefreshTiming.Stage.MAX_VALUE) {
+                    total += entry.getValue();
+                }
+            }
+            if (maxValue > 0) {
+                maxLookupTables++;
+            }
+            log.info("Refresh timing tid={} total={}ms view={}ms source={}ms target={}ms job={}ms maxValue={}ms",
+                tid, total / 1_000_000,
+                stageMs(stages, RefreshTiming.Stage.VIEW), stageMs(stages, RefreshTiming.Stage.SOURCE_COLUMNS),
+                stageMs(stages, RefreshTiming.Stage.TARGET), stageMs(stages, RefreshTiming.Stage.JOB),
+                maxValue / 1_000_000);
+        }
+
+        private long stageMs(RefreshTiming.Stage stage)
+        {
+            return stageNanos.getOrDefault(stage, 0L) / 1_000_000;
+        }
+
+        private static long stageMs(Map<RefreshTiming.Stage, Long> stages, RefreshTiming.Stage stage)
+        {
+            return stages.getOrDefault(stage, 0L) / 1_000_000;
+        }
     }
 
     @Async

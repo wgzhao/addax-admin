@@ -16,6 +16,7 @@ import com.wgzhao.addax.admin.repository.EtlTargetRepo;
 import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
+import com.wgzhao.addax.admin.service.RefreshTiming;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.source.SourceAdapter;
 import com.wgzhao.addax.admin.service.source.SourceAdapterRegistry;
@@ -350,6 +351,17 @@ public class RdbmsTargetAdapter
 
     @Override
     public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    {
+        long stageStart = System.nanoTime();
+        try {
+            return lookupMaxValue(table, columnName, partValue);
+        }
+        finally {
+            RefreshTiming.add(RefreshTiming.Stage.MAX_VALUE, System.nanoTime() - stageStart);
+        }
+    }
+
+    private Object lookupMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
         if (table == null || columnName == null || columnName.isBlank())
         {

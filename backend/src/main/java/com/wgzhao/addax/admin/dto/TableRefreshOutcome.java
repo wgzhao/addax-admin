@@ -17,6 +17,8 @@ public record TableRefreshOutcome(TaskResultDto result, FailureKind failure)
         COLUMNS_FAILED,
         TARGET_CONTRACT_BLOCKED,
         TARGET_DDL_FAILED,
-        JOB_CONTENT_FAILED
+        JOB_CONTENT_FAILED,
+        /** The target MAX position of an already-collected table could not be read. */
+        INCREMENTAL_POSITION_MISSING
     }
 }

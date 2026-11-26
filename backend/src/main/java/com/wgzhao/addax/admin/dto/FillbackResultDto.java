@@ -9,7 +9,9 @@ import java.util.List;
  * @param batchId       id shared by every queue row of this submission, used to poll progress
  * @param submittedAt   time the submission was accepted
  * @param totalEnqueued number of tasks successfully enqueued
- * @param skipped       number of tasks skipped (already pending/running)
+ * @param skipped       number of tasks not enqueued, either because the table already had a
+ *                      pending/running task or because the table was rejected outright (its whole
+ *                      date range counts), so the total always adds up to tables x dates
  * @param details       per-table breakdown
  */
 public record FillbackResultDto(

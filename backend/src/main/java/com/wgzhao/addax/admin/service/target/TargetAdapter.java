@@ -67,6 +67,23 @@ public interface TargetAdapter
     Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue);
 
     /**
+     * Called once before a refresh round walks every table. An adapter that pays a per-call
+     * connection or warm-up cost may open one connection per endpoint here and reuse it until
+     * {@link #endRefreshRound()}. Default: nothing to prepare.
+     */
+    default void beginRefreshRound()
+    {
+    }
+
+    /**
+     * Called after the refresh round, on the same thread, even when the round failed or was
+     * interrupted. Every connection opened by {@link #beginRefreshRound()} must be closed here.
+     */
+    default void endRefreshRound()
+    {
+    }
+
+    /**
      * 执行任务前的目标端准备动作（如分区创建）。
      *
      * <p>失败时返回带阶段和原因的结果，由调用方记录唯一一条失败事实。适配器自己只更新

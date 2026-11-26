@@ -21,6 +21,7 @@ import com.wgzhao.addax.admin.service.ColumnMappingService;
 import com.wgzhao.addax.admin.service.ColumnService;
 import com.wgzhao.addax.admin.service.DictService;
 import com.wgzhao.addax.admin.service.EtlJourService;
+import com.wgzhao.addax.admin.service.RefreshTiming;
 import com.wgzhao.addax.admin.service.SystemConfigService;
 import com.wgzhao.addax.admin.service.target.HdfsConnectionManager;
 import com.wgzhao.addax.admin.service.target.HdfsTargetSettings;
@@ -239,7 +240,7 @@ public class HdfsTargetAdapter
         try (Connection connection = connectFor(etlTable);
             Statement statement = connection.createStatement())
         {
-            if (!hiveTableExists(statement, etlTable.getTargetDb(), etlTable.getTargetTable()))
+            if (!hiveTableExists(statement, etlTable))
             {
                 return TargetTableMetadata.missing();
             }
@@ -256,6 +257,7 @@ public class HdfsTargetAdapter
         }
         catch (SQLException e)
         {
+            invalidateOnConnectionError(etlTable, e);
             throw new RuntimeException("读取 Hive 目标表元数据失败: " + e.getMessage(), e);
         }
     }
@@ -584,7 +586,7 @@ public class HdfsTargetAdapter
             Statement stmt = conn.createStatement()) {
             stmt.execute(createDbSql);
             // 1) Check whether table exists before creation
-            boolean existedBefore = hiveTableExists(stmt, etlTable.getTargetDb(), etlTable.getTargetTable());
+            boolean existedBefore = hiveTableExists(stmt, etlTable);
             // Ensure DB and table exist (no-op if already there)
             stmt.execute(createTableSql);
             jourService.successJour(etlJour);
@@ -654,6 +656,7 @@ public class HdfsTargetAdapter
                 catch (SQLException ex) {
                     log.error("Failed to apply alter for {}.{}: {}", etlTable.getTargetDb(), etlTable.getTargetTable(), ddl, ex);
                     jourService.failJour(j, ex.getMessage());
+                    invalidateOnConnectionError(etlTable, ex);
                     // continue trying next statements; optionally could break depending on config
                 }
             }
@@ -662,7 +665,27 @@ public class HdfsTargetAdapter
         catch (SQLException e) {
             log.warn("Failed to create or update hive table ({}.{}) ", etlTable.getTargetDb(), etlTable.getTargetTable(), e);
             jourService.failJour(etlJour, e.getMessage());
+            invalidateOnConnectionError(etlTable, e);
             return false;
+        }
+    }
+
+    /**
+     * A refresh round shares one session per target, so a broken session must be dropped the moment
+     * the failure is a transport error; otherwise every remaining table of that target in the round
+     * reuses it and fails for the same reason. Only SQLState 08 (connection exception) counts: a
+     * rejected DDL keeps a healthy session, and reconnecting would cost another Hive warm-up.
+     */
+    private void invalidateOnConnectionError(VwEtlTableWithSource table, SQLException error)
+    {
+        for (Throwable cause = error; cause != null; cause = cause.getCause())
+        {
+            if (cause instanceof SQLException sql
+                && sql.getSQLState() != null && sql.getSQLState().startsWith("08"))
+            {
+                connectionManager.invalidate(targetFor(table));
+                return;
+            }
         }
     }
 
@@ -738,23 +761,28 @@ public class HdfsTargetAdapter
      * written with mixed case must be looked up case-insensitively; otherwise the preview says the
      * target is missing while the write path already points at the same table.
      */
-    private boolean hiveTableExists(Statement stmt, String db, String table)
+    private boolean hiveTableExists(Statement stmt, VwEtlTableWithSource table) throws SQLException
     {
-        if (hiveTableExistsLike(stmt, db, table))
+        String db = table.getTargetDb();
+        String name = table.getTargetTable();
+        if (hiveTableExistsLike(stmt, db, name))
         {
             return true;
         }
-        String lower = table.toLowerCase(Locale.ROOT);
-        if (!lower.equals(table) && hiveTableExistsLike(stmt, db, lower))
+        String lower = name.toLowerCase(Locale.ROOT);
+        if (!lower.equals(name) && hiveTableExistsLike(stmt, db, lower))
         {
             return true;
         }
         // Fallback for a metastore that preserved a mixed-case name: compare the actual listing.
+        // A failure here is propagated rather than reported as "table missing": a broker/metastore
+        // error is not evidence about the table, and treating it as missing sends the caller into a
+        // CREATE that fails for an unrelated reason.
         try (var rs = stmt.executeQuery(String.format("SHOW TABLES IN `%s`", db)))
         {
             while (rs.next())
             {
-                if (table.equalsIgnoreCase(rs.getString(1)))
+                if (name.equalsIgnoreCase(rs.getString(1)))
                 {
                     return true;
                 }
@@ -762,12 +790,13 @@ public class HdfsTargetAdapter
         }
         catch (SQLException e)
         {
-            log.error("Failed to check hive table existence for {}.{} ", db, table, e);
+            log.error("Failed to check hive table existence for {}.{} ", db, name, e);
+            throw e;
         }
         return false;
     }
 
-    private boolean hiveTableExistsLike(Statement stmt, String db, String table)
+    private boolean hiveTableExistsLike(Statement stmt, String db, String table) throws SQLException
     {
         String escaped = table.replace("'", "''");
         try (var rs = stmt.executeQuery(String.format("SHOW TABLES IN `%s` LIKE '%s'", db, escaped)))
@@ -777,11 +806,22 @@ public class HdfsTargetAdapter
         catch (SQLException e)
         {
             log.debug("Failed to check hive table existence for {}.{}: {}", db, table, e.getMessage());
-            return false;
+            throw e;
         }
     }
 
     public Object getMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
+    {
+        long stageStart = System.nanoTime();
+        try {
+            return lookupMaxValue(table, columnName, partValue);
+        }
+        finally {
+            RefreshTiming.add(RefreshTiming.Stage.MAX_VALUE, System.nanoTime() - stageStart);
+        }
+    }
+
+    private Object lookupMaxValue(VwEtlTableWithSource table, String columnName, String partValue)
     {
         String datePartition = TargetOptions.hdfsPartitionBindings(table.getTargetOptions()).stream()
             .filter(binding -> "BIZ_DATE".equalsIgnoreCase(binding.valueType()))
@@ -791,12 +831,89 @@ public class HdfsTargetAdapter
         if (StringUtils.isEmpty(datePartition)) {
             return null;
         }
+        String redisKey = "target:max:" + table.getId() + ":" + columnName;
+        // The key holds the table's high-water mark: the largest value already collected, whichever
+        // business-date partition it was read from. The partition-scoped SQL is only a cheap way to
+        // read that mark, so the two sources are combined by MAX and never by preference for one of
+        // them. A day the table was not collected leaves its partition empty while the mark itself
+        // is still the correct place to resume from; conversely a refresh that looks at an older
+        // partition (an etl_statistic that did not advance, a fillback of a historical date) must
+        // not drag the mark backwards, or the next run re-collects rows the target already holds.
+        Object cached = cachedMaxValue(redisKey);
+        Object sqlMax;
+        try {
+            sqlMax = queryMaxValue(table, columnName, datePartition, partValue);
+        }
+        catch (SQLException first) {
+            // A shared round session can die mid-round. Retry once on a fresh connection instead of
+            // reporting a missing MAX value for every remaining incremental table of this target.
+            connectionManager.invalidate(targetFor(table));
+            try {
+                sqlMax = queryMaxValue(table, columnName, datePartition, partValue);
+            }
+            catch (SQLException second) {
+                log.error("Failed to get max value for {}.{}", table.getTargetDb(), table.getTargetTable(), second);
+                return cached;
+            }
+        }
+        Object watermark = higherWatermark(sqlMax, cached);
+        if (watermark == null) {
+            return null;
+        }
+        if (cached == null || !cached.toString().equals(watermark.toString())) {
+            try {
+                redisTemplate.opsForValue().set(redisKey, watermark.toString());
+            }
+            catch (Exception e) {
+                log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
+            }
+        }
+        return watermark;
+    }
+
+    /**
+     * The reader filter compares against a single position, so the water mark may only move forward.
+     * The comparison mirrors {@link RdbmsSourceAdapter#buildIncrementalPredicate}: a value that parses
+     * as a long is compared numerically and rendered unquoted, anything else is compared as a string
+     * and rendered quoted. Comparing with different rules than the rendered predicate would let a
+     * "larger" cached value produce a "smaller" comparison.
+     */
+    private Object higherWatermark(Object sqlMax, Object cached)
+    {
+        if (sqlMax == null) {
+            return cached;
+        }
+        if (cached == null) {
+            return sqlMax;
+        }
+        Long sqlLong = asLong(sqlMax);
+        Long cachedLong = asLong(cached);
+        if (sqlLong != null && cachedLong != null) {
+            return cachedLong > sqlLong ? cached : sqlMax;
+        }
+        return cached.toString().compareTo(sqlMax.toString()) > 0 ? cached : sqlMax;
+    }
+
+    private static Long asLong(Object value)
+    {
+        try {
+            return Long.parseLong(value.toString());
+        }
+        catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * @return the target MAX, or null when the partition holds no rows yet (SQL NULL) or the max is 0
+     */
+    private Object queryMaxValue(VwEtlTableWithSource table, String columnName, String datePartition,
+        String partValue) throws SQLException
+    {
         String tableName = String.format("`%s`.`%s`", table.getTargetDb(), table.getTargetTable());
         String sql = String.format("SELECT MAX(`%s`) AS max_val FROM %s where %s = '%s'",
             columnName, tableName, datePartition, partValue);
         log.info("getMaxValue sql: {}", sql);
-
-        String redisKey = "target:max:" + table.getId() + ":" + columnName;
         try (Connection conn = connectFor(table);
             Statement stmt = conn.createStatement();
             var rs = stmt.executeQuery(sql)) {
@@ -807,44 +924,31 @@ public class HdfsTargetAdapter
             if (sqlMax instanceof Number && ((Number) sqlMax).longValue() == 0L) {
                 sqlMax = null;
             }
-            // If sqlMax is null or zero, try to read from redis cache
-            if (sqlMax == null) {
-                try {
-                    Object cached = redisTemplate.opsForValue().get(redisKey);
-                    if (cached != null) {
-                       return cached;
-                    }
-                }
-                catch (Exception e) {
-                    log.warn("Failed to read max value from redis for key {}: {}", redisKey, e.getMessage());
-                }
-                // return sqlMax (which may be null or 0)
-                return sqlMax;
-            }
-
-            // sqlMax is a valid value: update redis and return
-            try {
-                redisTemplate.opsForValue().set(redisKey, sqlMax.toString());
-            }
-            catch (Exception e) {
-                log.warn("Failed to write max value to redis for key {}: {}", redisKey, e.getMessage());
-            }
             return sqlMax;
         }
-        catch (SQLException e) {
-            log.error("Failed to get max value for {}.{} ", tableName, columnName, e);
-            // on SQL failure, try to read redis as a fallback
-            try {
-                Object cached = redisTemplate.opsForValue().get(redisKey);
-                if (cached != null) {
-                    return cached;
-                }
-            }
-            catch (Exception ex) {
-                log.warn("Failed to read max value from redis for key {} after sql failure: {}", redisKey, ex.getMessage());
-            }
+    }
+
+    private Object cachedMaxValue(String redisKey)
+    {
+        try {
+            return redisTemplate.opsForValue().get(redisKey);
+        }
+        catch (Exception e) {
+            log.warn("Failed to read max value from redis for key {}: {}", redisKey, e.getMessage());
             return null;
         }
+    }
+
+    @Override
+    public void beginRefreshRound()
+    {
+        connectionManager.beginRound();
+    }
+
+    @Override
+    public void endRefreshRound()
+    {
+        connectionManager.endRound();
     }
 
     private String getHdfsWriteColumns(VwEtlTableWithSource table)

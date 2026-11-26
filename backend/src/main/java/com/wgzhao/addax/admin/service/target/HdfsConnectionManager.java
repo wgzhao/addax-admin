@@ -8,10 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -22,6 +26,12 @@ import java.util.Properties;
  * Tomcat/SLF4J classes; for those the target may configure an optional {@code driverPath}, which
  * the registry loads in its own classloader without touching the application classpath. The driver
  * is only used by addax-admin for DDL/metadata work — Addax's own hdfswriter does not need it.</p>
+ *
+ * <p>A refresh round reuses one connection per endpoint through {@link #beginRound()}. A daily
+ * refresh asks the target for a MAX value once per incremental table, and a fresh HiveServer2
+ * session pays for warming its metastore/partition cache on every call: measured ~10s cold versus
+ * ~1-2s warm against the same cluster. Per-run work ({@code prepareBeforeRun}, a manual single-table
+ * refresh) keeps opening and closing a connection as before.</p>
  */
 @Component
 @RequiredArgsConstructor
@@ -31,7 +41,93 @@ public class HdfsConnectionManager
     private final ObjectMapper objectMapper;
     private final JdbcDriverRegistry driverRegistry;
 
+    /** Connections owned by the current refresh round, keyed by target id. Absent outside a round. */
+    private final ThreadLocal<Map<Long, Connection>> roundConnections = new ThreadLocal<>();
+
+    public void beginRound()
+    {
+        endRound();
+        roundConnections.set(new LinkedHashMap<>());
+    }
+
+    /** Closes every connection the round opened. Callers must not use them afterwards. */
+    public void endRound()
+    {
+        Map<Long, Connection> connections = roundConnections.get();
+        if (connections == null) {
+            return;
+        }
+        connections.forEach((targetId, connection) -> closeQuietly(targetId, connection));
+        roundConnections.remove();
+    }
+
+    /**
+     * Drops a connection that failed mid-round so the next call opens a fresh session instead of
+     * reusing a broken one for every remaining table.
+     */
+    public void invalidate(EtlTarget target)
+    {
+        Map<Long, Connection> connections = roundConnections.get();
+        if (connections == null || target == null) {
+            return;
+        }
+        Connection broken = connections.remove(target.getId());
+        if (broken != null) {
+            closeQuietly(target.getId(), broken);
+        }
+    }
+
     public Connection open(EtlTarget target) throws SQLException
+    {
+        Map<Long, Connection> connections = roundConnections.get();
+        if (connections == null) {
+            return openNew(target);
+        }
+        Connection existing = connections.get(target.getId());
+        if (existing != null && !existing.isClosed()) {
+            return nonClosing(existing);
+        }
+        if (existing != null) {
+            connections.remove(target.getId());
+            closeQuietly(target.getId(), existing);
+        }
+        Connection fresh = openNew(target);
+        connections.put(target.getId(), fresh);
+        return nonClosing(fresh);
+    }
+
+    private static void closeQuietly(Long targetId, Connection connection)
+    {
+        try {
+            connection.close();
+        }
+        catch (SQLException e) {
+            log.warn("Failed to close Hive connection for target {}: {}", targetId, e.getMessage());
+        }
+    }
+
+    /**
+     * Round-scoped call sites keep their try-with-resources shape; closing the handle must not close
+     * the shared session, only {@link #endRound()}/{@link #invalidate(EtlTarget)} may do that.
+     */
+    private static Connection nonClosing(Connection delegate)
+    {
+        return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+            new Class<?>[] {Connection.class},
+            (proxy, method, args) -> {
+                if ("close".equals(method.getName())) {
+                    return null;
+                }
+                try {
+                    return method.invoke(delegate, args);
+                }
+                catch (InvocationTargetException e) {
+                    throw e.getTargetException();
+                }
+            });
+    }
+
+    private Connection openNew(EtlTarget target) throws SQLException
     {
         HdfsTargetSettings settings = HdfsTargetSettings.from(target, objectMapper);
         if (settings.url() == null || settings.url().isBlank())

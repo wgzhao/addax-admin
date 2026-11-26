@@ -8,6 +8,7 @@ import com.wgzhao.addax.admin.common.TableStatus;
 import com.wgzhao.addax.admin.dto.TaskResultDto;
 import com.wgzhao.addax.admin.event.SourceUpdatedEvent;
 import com.wgzhao.addax.admin.exception.ApiException;
+import com.wgzhao.addax.admin.exception.IncrementalPositionUnavailableException;
 import com.wgzhao.addax.admin.model.EtlJob;
 import com.wgzhao.addax.admin.model.EtlJour;
 import com.wgzhao.addax.admin.model.EtlTable;
@@ -143,6 +144,16 @@ public class JobContentService
             jourService.successJour(etlJour);
             log.info("表 {}.{} 更新完成", etlTable.getTargetDb(), etlTable.getTargetTable());
             return TaskResultDto.success("更新采集任务模板成功", 0);
+        }
+        catch (IncrementalPositionUnavailableException e) {
+            // Every caller must leave the table non-runnable, not only the day-cut refresh: the
+            // manual "regenerate job" endpoints and the source-change listener reach this method
+            // directly, and a table keeping its previous template there would still be collected
+            // from a position nobody has verified. The status write stands on its own transaction
+            // so a later rollback in the caller cannot undo it.
+            jourService.failJour(etlJour, e.getMessage());
+            tableRepo.markUpdateSchema(etlTable.getId());
+            throw e;
         }
         catch (RuntimeException e) {
             // Previously an exception here left the journal row looking successful and the table
@@ -310,8 +321,24 @@ public class JobContentService
             }
         }
 
+        // A day-cut/manual refresh template must not silently degrade to "read the whole table" when
+        // no incremental position can be established: that turns an incremental table into a full
+        // reload and still reports success. First collection never reaches the lookup (no last ETL
+        // date), and a fillback may legitimately have no target data for its window, so only the
+        // refresh path is strict. A remembered water mark counts as a position even when the
+        // partition query returns nothing: the table simply missed a day.
+        boolean strictMaxLookup = overrideLastEtlDate == null;
         ReaderJobContext context = new ReaderJobContext(dateValues, lastEtlDate, partValue, mappings,
-            (column, part) -> targetAdapter.getMaxValue(table, column, part));
+            (column, part) -> {
+                Object maxValue = targetAdapter.getMaxValue(table, column, part);
+                if (maxValue == null && strictMaxLookup) {
+                    throw new IncrementalPositionUnavailableException(
+                        "无法确定目标端增量位点（列 " + column + "，业务日期 " + part
+                            + "）：目标端查询无结果，也没有历史水位。已拒绝生成会把整表重读一遍的任务模板，"
+                            + "请检查目标表分区/业务日期列绑定或目标端连通性。", null);
+                }
+                return maxValue;
+            });
         ObjectNode reader = adapter.buildReaderJob(table, context);
         if (reader.get("parameter") instanceof ObjectNode parameter)
         {
@@ -338,9 +365,20 @@ public class JobContentService
     // 根据数据源 ID 更新相关的任务
     public void updateJobBySourceId(int sid)
     {
-        vwEtlTableWithSourceRepo.findBySidAndEnabledTrueAndStatusNotAndRetiredAtIsNull(
-                sid, TableStatus.EXCLUDE_COLLECT)
-            .forEach(this::updateJob);
+        // One table raising (a missing incremental position now raises) must not stop the rest of the
+        // source from being re-templated: the tables after it would keep their old templates while the
+        // edit that triggered this refresh is already committed.
+        for (VwEtlTableWithSource table : vwEtlTableWithSourceRepo
+            .findBySidAndEnabledTrueAndStatusNotAndRetiredAtIsNull(sid, TableStatus.EXCLUDE_COLLECT))
+        {
+            try {
+                updateJob(table);
+            }
+            catch (RuntimeException e) {
+                log.warn("Failed to regenerate the job template for tid {} after the source {} changed: {}",
+                    table.getId(), sid, e.getMessage());
+            }
+        }
     }
 
     /**
