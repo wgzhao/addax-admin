@@ -71,13 +71,12 @@
             v-model:selected="selectedTables"
             v-model:search="search"
             :tables="tables"
-            :retired-tables="retiredTables"
-            :restoring-id="restoringId"
+            :retired-count="retiredCount"
             :loading="loadingTables"
             :load-error="tableLoadError"
             @retry="getTables"
             @back="currentStep = 1"
-            @restore="restoreRetired"
+            @open-retired="openRetiredList"
           />
         </v-stepper-window-item>
 
@@ -323,8 +322,9 @@
     isMongoSource.value ? '{}' : isEsSource.value ? '{"match_all":{}}' : '1=1';
   const selectedDb = ref<string | null>(null);
   const tables = ref<EtlTableView[]>([]);
-  const retiredTables = ref<CollectableTable[]>([]);
-  const restoringId = ref<number | null>(null);
+  // Why: retired definitions have exactly one restore entry (the table list's 已退役 scope);
+  // the wizard only needs the count to explain why those tables are absent.
+  const retiredCount = ref(0);
   const tableRows = ref<number[]>([]);
   const sourceSystemList = ref<EtlSource[]>([]);
   const sourceDbs = ref<string[]>([]);
@@ -422,7 +422,7 @@
   watch(selectedSourceId, val => {
     selectedDb.value = null;
     tables.value = [];
-    retiredTables.value = [];
+    retiredCount.value = 0;
     selectedTables.value = [];
     sourceDbs.value = [];
     search.value = '';
@@ -444,7 +444,7 @@
 
   watch(selectedDb, () => {
     tables.value = [];
-    retiredTables.value = [];
+    retiredCount.value = 0;
     selectedTables.value = [];
     search.value = '';
   });
@@ -454,7 +454,7 @@
   watch([targetId, targetDb], async ([newTarget, newDb], [oldTarget, oldDb]) => {
     if (newTarget === oldTarget && newDb === oldDb) return;
     tables.value = [];
-    retiredTables.value = [];
+    retiredCount.value = 0;
     selectedTables.value = [];
     search.value = '';
     if (
@@ -521,7 +521,7 @@
     // Why: a reload can return different rows; keeping the old object refs would leave
     // invisible selections that still count towards the next step.
     tables.value = [];
-    retiredTables.value = [];
+    retiredCount.value = 0;
     tableRows.value = [];
     selectedTables.value = [];
     search.value = '';
@@ -532,7 +532,7 @@
         routeTargetId,
         routeTargetDb
       );
-      retiredTables.value = (res || []).filter(item => item.state === 'RETIRED');
+      retiredCount.value = (res || []).filter(item => item.state === 'RETIRED').length;
       (res || [])
         .filter(item => item.state === 'AVAILABLE')
         .forEach((element: CollectableTable) => {
@@ -562,18 +562,8 @@
     }
   };
 
-  const restoreRetired = async (item: CollectableTable) => {
-    if (!item.definitionId) return;
-    restoringId.value = item.definitionId;
-    try {
-      await tableService.restore(item.definitionId);
-      notify(`已恢复采集表 ${item.name}，可在采集表列表中查看或编辑`, 'success');
-      await getTables();
-    } catch (error) {
-      notify(`恢复失败：${(error as Error)?.message || error || '未知错误'}`, 'error');
-    } finally {
-      restoringId.value = null;
-    }
+  const openRetiredList = () => {
+    router.push({ path: '/table', query: { scope: 'RETIRED' } });
   };
 
   const applyTargetTableTemplate = () => {
@@ -699,7 +689,7 @@
 
   const resetFlow = () => {
     selectedTables.value = [];
-    retiredTables.value = [];
+    retiredCount.value = 0;
     reviewRows.value = [];
     commitResults.value = [];
     tables.value = [];

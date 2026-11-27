@@ -40,12 +40,26 @@ For a route the collectable-table endpoint returns one of:
 
 - `AVAILABLE`: no definition exists for the route; it may be created.
 - `ACTIVE`: an active definition exists; it is not offered as new.
-- `RETIRED`: a definition exists but is retired; it is shown as retired and can only be restored.
+- `RETIRED`: a definition exists but is retired; it is excluded from the add list and can only be
+  restored from the table list's 已退役 scope.
 
 Creating a definition for a route with an active row fails with a duplicate error. Creating one for a
 route with a retired row fails with an instruction to restore that row. Restoring checks that no other
 active definition occupies the same route or target table, clears only the retirement markers, and
 keeps columns, mappings, job content, statistics, executions and logs under the original id.
+
+## Single restore entry
+
+A retired definition is restored from exactly one place: the table list filtered to 已退役. The batch
+wizard does not list retired rows as selectable work — an earlier iteration that offered them there
+(the wizard would restore the row and apply the batch configuration on commit) made retirement look
+like a soft delete plus re-create and blurred the boundary with a stopped (`X`) definition. The
+wizard only shows how many retired tables the route has and links to that one scope.
+
+This keeps the two stop states distinct: `X` is "paused but still in the collection scope" (visible,
+manually runnable, fillback allowed), retirement is "out of scope, facts kept" (hidden everywhere,
+manual run and fillback rejected). Both are excluded from scheduling and the day-cut refresh; the
+difference is scope and what the manual paths still allow.
 
 ## Target database
 
@@ -66,8 +80,8 @@ orphan existing data. Comparisons use the target policy instead.
   reloads the table list.
 - `SOURCE_ALREADY_COLLECTED` and `SOURCE_DEFINITION_RETIRED` are explicit preflight findings and create
   errors, distinct from `TARGET_ALREADY_EXISTS` / target-name collisions.
-- Retired definitions are restored, never re-created. The retired list and the collectable list both
-  point at the same row id.
+- Retired definitions are restored, never re-created, and there is one restore entry (the 已退役
+  scope). The collectable endpoint still reports `RETIRED` so the wizard can explain the absence.
 - A legacy active+retired pair for one route is visible to the audit; restoring the retired row is
   rejected while the active row exists.
 - A future change may add materialized source/target keys and partial unique indexes. The current
