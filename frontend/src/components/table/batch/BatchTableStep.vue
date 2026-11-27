@@ -4,39 +4,12 @@
       <div class="step-kicker">Step 2</div>
       <h2 class="step-title">选择采集表</h2>
       <div class="step-desc">
-        只展示当前采集路由下尚未纳入采集的表。已退役定义可以恢复，系统不会为同一路由重复创建。
+        只展示当前采集路由下尚未纳入采集的表。已退役的表不在可新增列表中，恢复请到采集表列表的「已退役」范围。
       </div>
     </div>
 
-    <v-alert v-if="retiredTables.length > 0" type="warning" variant="tonal" class="step-alert">
-      <div class="retired-head">
-        有 {{ retiredTables.length }} 张表已退役。恢复会复用原采集定义，请勿重复新增。
-      </div>
-      <div class="retired-list">
-        <div
-          v-for="item in retiredTables"
-          :key="item.definitionId || item.name"
-          class="retired-row"
-        >
-          <div class="retired-meta">
-            <span class="table-name">{{ item.name }}</span>
-            <span class="retired-comment">{{ item.comment || '无表注释' }}</span>
-            <span v-if="item.retiredAt" class="retired-at">
-              退役于 {{ item.retiredAt
-              }}<template v-if="item.retiredBy"> · {{ item.retiredBy }}</template>
-            </span>
-          </div>
-          <v-btn
-            size="small"
-            variant="tonal"
-            color="warning"
-            :loading="restoringId === item.definitionId"
-            @click="$emit('restore', item)"
-          >
-            恢复
-          </v-btn>
-        </div>
-      </div>
+    <v-alert v-if="retiredCount > 0" type="info" variant="tonal" class="step-alert">
+      当前采集路由下有 {{ retiredCount }} 张已退役的表，不在可新增列表中。如需恢复，请到「采集表」把当前定义切换为「已退役」后恢复。
     </v-alert>
 
     <div v-if="loading" class="panel-state">
@@ -103,7 +76,7 @@
       <v-icon size="48" class="panel-state__icon">mdi-table-off</v-icon>
       <div class="panel-state__title">当前采集路由下没有可新增的表</div>
       <div class="panel-state__desc">
-        可以返回上一步切换源库、目标端或目标库；如果表已退役，请在上方恢复原采集定义。
+        可以返回上一步切换源库、目标端或目标库；已退役的表需要到采集表列表的「已退役」范围恢复。
       </div>
       <v-btn variant="text" color="primary" prepend-icon="mdi-chevron-left" @click="$emit('back')">
         返回上一步
@@ -115,17 +88,16 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import type { DataTableHeader } from 'vuetify';
-  import type { CollectableTable, EtlTableView } from '@/types/database';
+  import type { EtlTableView } from '@/types/database';
 
   defineProps<{
     tables: EtlTableView[];
-    retiredTables: CollectableTable[];
-    restoringId: number | null;
+    retiredCount: number;
     loading: boolean;
     loadError: string;
   }>();
 
-  defineEmits(['retry', 'back', 'restore']);
+  defineEmits(['retry', 'back']);
 
   const selected = defineModel<EtlTableView[]>('selected', { required: true });
   const search = defineModel<string>('search');
@@ -200,41 +172,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .retired-head {
-    margin-bottom: 10px;
-    font-weight: 600;
-  }
-
-  .retired-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .retired-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 8px 10px;
-    border: 1px solid rgba(var(--v-theme-warning), 0.22);
-    border-radius: 10px;
-    background: rgba(var(--v-theme-warning), 0.05);
-  }
-
-  .retired-meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px 14px;
-    min-width: 0;
-  }
-
-  .retired-comment,
-  .retired-at {
-    color: rgba(var(--v-theme-on-surface), 0.62);
-    font-size: 12px;
-  }
 
   @media (max-width: 760px) {
     .table-stage__toolbar,
