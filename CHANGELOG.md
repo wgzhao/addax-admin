@@ -1,5 +1,48 @@
 # Changelog
 
+## 4.9.0
+
+### Added
+
+- Doris 目标端（ADR-0015）：新增目标类型 `DORIS` 与写入模板 `wD`（Stream Load）。连接配置增加 `loadUrl`、`batchSize`、`flushInterval`、`flushQueueLength`、`loadProps`；支持 EXTERNAL 契约校验与 MANAGED 建表/演化（键模型、分桶、动态分区），已在 Doris 4.0.4 测试集群完成 54 项 E2E。
+- 采集表高级筛选（ADR-0017）与精简面板（ADR-0018）：目标端、采集源、写入模式、结构管理、耗时区间与创建/更新/结束时间；筛选状态与 URL 双向同步，支持 chips 清除、服务端排序白名单与 LIKE 转义。
+- 告警扩展：新增 `SCHEDULE`（切日阶段）与 `DAILY`（每日批次汇总）事件；切日硬失败/部分失败事件、切日恢复通知、每日汇总（订阅制，未订阅时只记录不投递），以及集群状态一致性巡检（`SYSTEM:STATE:CONSISTENCY`）。
+- 账号自助页 `/account`：资料、授权来源、改密与主题（浅色/深色/跟随系统）；新增 `PUT /users/me`，移除 `/change-password`（重定向到 `/account`）。
+- 控制台改版：导航分组标题调整为「运行监控」「系统配置」，首页风险队列/今日脉搏布局调整并移除新手清单；采集源与目标端改为右侧抽屉编辑。
+- 首页「今日脉搏」显示每个采集源的批次耗时；慢表条形可直接打开采集表详情。
+
+### Changed
+
+- 采集路由唯一性落库（ADR-0021）：`etl_table` 新增 `source_route_key`/`target_slot_key` 与两个活动行部分唯一索引；创建、编辑、恢复时同步计算，目标端类型或写入模板变更时在同一事务重写该目标的键（冲突回滚），启动后回填历史行。
+- 编号迁移链（ADR-0022）：`schema.sql`/`data.sql` 改为 classpath 下的 `V0001` 基线、`V0002` 种子与 `V0003` 历史升级步骤，新增 `schema_migration`（版本、描述、校验和、耗时、是否 baseline）；空库顺序重放、存量库收养基线、已应用校验和不符则拒绝启动。
+- 增量水位语义（PR #174）：单 key、只进不退；既无水位也无分区数据时置 `U` 并拒绝提交；`__max__` 表拒绝补采；结构刷新按轮复用 Hive 会话并输出阶段耗时，源不可达时短路本轮剩余表。
+- MySQL 目标端建表不再强制 `utf8mb4`（ADR-0016）：继承目标库的字符集与排序规则，平台自动建库仍用 `utf8mb4`，非 Unicode 表字符集记录服务日志告警。
+- 响应 DTO 与审计脱敏（ADR-0020）：`/sources`、`/tables` 返回显式 DTO，连接账号与结构化配置仅对 OPERATE 可见（连接串仍作为地址返回）；审计 metadata、资源名与失败摘要统一脱敏。
+- 任务报告鉴权（ADR-0019）：执行记录新增 `report_token`/`report_received_at`，报告需匹配执行与 token 并持久化防重放（24 小时窗口）；`GET /log/addax/{tid}` 改为 OPERATE。
+- `risk_log` 退役：不再写入，纯告警改走服务日志；新库不再建表，遗留库保留历史数据但应用不再引用。
+- 队列管理与 Schema 初始化拆分为内部单元（`TaskQueueManagerV2Impl` 1818→1545 行，DDL 拆成 13 个单元），无接口与行为变化。
+- 主机发行包 CI：`release: published` 仅在缺少发行包时构建，tag push 仍无条件构建。
+
+### Fixed
+
+- 目标端准备失败重复记账（ADR-0009 修正）：一次逻辑失败只记录一条事实，分区流水关联执行 ID。
+- 采集表详情深链 `?tab=logs`、`?tab=job`、`?tab=fillback` 在详情返回前被重置到 `info`。
+- 批量新增向导不再单独提供退役表的恢复入口：恢复后表会从流程中消失，改为一行说明并把恢复统一到采集表列表的「已退役」范围（#176）。
+- 修改采集源连接后作业模板未落库（`@Async` 自调用与 afterCommit 事务问题）；采集源标识符策略缓存未及时失效；失败摘要与审计自由文本脱敏。
+- 批量新增把分区默认值注入非分区 Hive 表的目标选项（#164）。
+- 容量计数在丢租约或提前退出时可能变负、任务报告可重放、登录跳转丢失 `redirect` 等 P0 问题。
+
+### 升级提示
+
+- 本版首次引入编号迁移链：存量库启动时把 `V0001`/`V0002` 记为 baseline（不执行），执行 `V0003` 历史升级步骤。已应用的迁移文件不可再修改，校验和不符会拒绝启动；升级前请备份数据库。
+- 启动迁移会新增 `etl_execution.report_token`/`report_received_at`、`etl_table.source_route_key`/`target_slot_key`、两个部分唯一索引与 `schema_migration`。建议仍按 worker → master 顺序逐台重启完成。
+- 采集路由回填：历史重复路由无法加键，会保留为空并在日志记录 ERROR，需要人工核对后编辑或退役其中一条。
+- 增量水位：没有水位且上一业务日目标分区无数据的表会被置 `U`，首次切日后请检查日切告警与 `U` 表名单；`__max__` 表不再允许补采。
+- MySQL 目标端新表继承目标库字符集与排序规则，已有表不变；目标库为非 Unicode 字符集时会在服务日志告警。
+- 告警新增 `SCHEDULE`/`DAILY` 事件；`DAILY` 需要显式创建订阅规则，否则事件只记录不投递。
+- UI：`/change-password` 重定向到 `/account`；导航分组标题与首页布局调整；采集源/目标端编辑改为右侧抽屉。
+- Doris 目标端需要 Addax `doriswriter` 插件以及可用的 Doris FE/BE；EXTERNAL 模式需先自建表，MANAGED 模式由平台建表与演化。
+
 ## 4.8.0
 
 ### Added
